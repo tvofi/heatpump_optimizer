@@ -6,7 +6,7 @@ YAML — the integration is configured entirely through Home Assistant's UI, and
 this page follows the same order the UI does.
 
 - [Initial setup](#initial-setup) — the questions asked once, when you add the integration
-- [Changing settings later](#changing-settings-later) — the 24 options pages behind two menus
+- [Changing settings later](#changing-settings-later) — the 25 options pages behind two menus
 - [The hydronic layout catalog](#the-hydronic-layout-catalog) — which plumbing arrangements are modelled
 - [Services](#services) — every service and its fields
 
@@ -85,7 +85,7 @@ Every picker on this second screen is optional; skip any you do not have. Withou
 |---|---|---|
 | Indoor temperature sensor | none | The real room temperature. Without it the optimizer trusts its own model, which drifts over time — this is the sensor worth finding first. |
 | Outdoor temperature sensor | none | A local thermometer beats the forecast for the current hour. |
-| Heat pump on/off switch | none | A `switch` the optimizer may turn off during expensive hours. In *auto* and *economy* mode it is never switched off less than 10 minutes after it came on, nor on less than 10 minutes after it went off, and a run the plan would end within 10 minutes is not started unless the step heats the tank and the tank needs heat now (below its minimum, or a disinfection hold); a held switch is retried every minute and changes once its 10 minutes have passed. The age is the switch's own, whoever switched it; after a Home Assistant restart it counts from the restart. A boost, the other modes and the measurement experiment are not held. Without it — and without the ECL110 or frequency-control paths — the plan is published on sensors for your own automations to act on ([worked examples](automations.md)). |
+| Heat pump on/off switch | none | A `switch` the optimizer may turn off during expensive hours. In *auto* and *economy* mode it is never switched off less than 10 minutes after it came on, nor on less than 10 minutes after it went off, and a run the plan would end within 10 minutes is not started unless the step heats the tank and the tank needs heat now (below its minimum, or a disinfection hold); a held switch is retried every minute and changes once its 10 minutes have passed. The age is the switch's own, whoever switched it; after a Home Assistant restart it counts from the restart. A boost, the other modes and the measurement experiment are not held. Without it — and without the heat-curve or frequency-control paths — the plan is published on sensors for your own automations to act on ([worked examples](automations.md)). |
 | Solar radiation sensor | none | Irradiance in W/m², the sun on the house now, which the learners read. The plan's later steps take the sun from the weather forecast; the sensor's reading stands in for the whole horizon only when no forecast is available. |
 | Solar irradiance source | Weather entity | `Weather entity` reads irradiance from your weather integration, which often does not publish any. `Open-Meteo` fetches a free forecast for the location below; no account needed. |
 | Solar irradiance location | your Home Assistant home location | The coordinate Open-Meteo is asked about. Only used when the source is Open-Meteo. |
@@ -98,12 +98,12 @@ Every picker on this second screen is optional; skip any you do not have. Withou
 | Pump online | none | Strongly recommended for a cloud-connected pump. On while the pump is actually reachable, which a stale cloud republish cannot tell you on its own. |
 | Fault alarm | none | On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself. |
 
-The heat-curve settings (the Danfoss ECL110 MQTT topics and the offset entity)
-are not asked during setup. Questions only owners of such a controller can
-answer do not belong on everyone's first screen, so they
-live on their own options page, where both MQTT topics ship empty and nothing
-is published or subscribed until a topic is set (see [ecl110.md](ecl110.md));
-an install without an ECL110 never touches the topics.
+The heat-curve settings (the MQTT topics and the entity, for the three ways
+in [heat-curve.md](heat-curve.md)) are not asked during setup. Questions only
+owners of such a controller can answer do not belong on everyone's first
+screen, so they live on their own options page, where both MQTT topics ship
+empty and nothing is published or subscribed until a topic is set; an install
+whose controller takes nothing over MQTT never touches the topics.
 
 ### 3 · The finish menu — Finish setup now?
 
@@ -323,7 +323,7 @@ opens this screen. Enter a valid token and price updates resume.
 
 **Settings → Devices & services → Heat Pump Optimizer → Configure.**
 
-There are **24 pages**: eight on the first menu, and sixteen more behind
+There are **25 pages**: eight on the first menu, and seventeen more behind
 **Advanced settings**. One of the eight — *Your system, as configured* — is
 read-only, and the last advanced page, *Reset to factory defaults*, is an
 action behind a confirmation rather than settings. Each page saves on its own, so changing one setting never touches
@@ -350,6 +350,7 @@ control, described once here rather than twenty-three times below:
 | Sensors and entities | Price source, weather, room and tank sensors, the on/off switch |
 | Power and solar sensors | Irradiance, the three power/energy meters, compressor frequency |
 | Heat pump telemetry | Mode, defrost, online, fault |
+| Room thermometers | Optional room thermostats or temperature sensors: their average and spread, and whether a cold room raises the planned minimum |
 | Heating system and heat storage | Mixing valve, buffer tank, wood furnace, the heating circulation pump |
 | Building type and emitters | The questionnaire again, plus windows and weather sensitivity |
 | Thermal model (expert) | The raw single-zone masses, losses, COP and power limits |
@@ -489,7 +490,7 @@ warmth.
 | How hard to chase low prices | 1.0 | 0.1–10 | Higher moves more heating into cheap hours and allows more swing. |
 | How strictly to hold the temperature | 5.0 | 0.1–20 | The most effective knob you have. It is weighed against the range you allow, so widening that range makes the optimizer bolder. |
 | Recalculate every | 30 min | 10–120, 5 steps | More often reacts quicker and does more work. |
-| Cost of one compressor start | 0.0 | 0–10, 0.05 steps | In the same currency as your prices. Discourages plans that switch on and off repeatedly: above 0, the plan runs the pump in whole runs at or above its minimum power instead of averaging a lower level within a step. The **Compressor Starts** sensor counts *realised* starts and needs a power meter; the plan's own projected start count is not published on any entity. |
+| Cost of one compressor start | 0.0 | 0–10, 0.05 steps | In the same currency as your prices. Discourages plans that switch on and off repeatedly: above 0, the plan runs the pump in whole runs at or above its minimum power instead of averaging a lower level within a step. At 0 on an install that cannot run below its minimum power (it cannot duty-cycle), the plan prices each start at 0.1 instead, so committing the plan to whole runs does not add starts; any value above 0 is used as set. The **Compressor Starts** sensor counts *realised* starts and needs a power meter; the plan's own projected start count is not published on any entity. |
 | Caution with guessed prices | 0.0 | 0.0–2.0, 0.05 steps | Beyond the published horizon prices come from your learned daily shape. This adds a premium proportional to how wrong those guesses have tended to be. 0 trusts them at face value. |
 | Hold a safety margin where the model is unsure | off | on/off | Raises the comfort floor by the model's own expected error at that horizon, capped at 0.8 °C and shrinking as accuracy improves. |
 | Compressor replacement cost | 0 | 0–100 000, 100 steps | What a compressor swap costs including labour, in your price currency. Divided by the rated starts below it prices each realised start. 0 keeps the start counter pure observation. |
@@ -627,8 +628,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Minimum lift above the inlet water (`flow_min_lift_k`) | 5 K | 0.5–15 K, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at the plan's lowest power is the measured inlet water plus this (see [Pump duty control](#pump-duty-control)). |
 | Heating flow ceiling (`flow_heat_c`) | 55 °C | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest heating value written while the plan is in charge. A space boost or Boost mode writes the set-point entity's own maximum instead (up to 70 °C), capped by a value here other than 55 °C. A stored value at or below the 25 °C gate is read as 55 °C. |
 | Follow the planned power on the measured draw (`space_setpoint_power_feedback`) | On | on / off | Shown when the unit above is *Flow* or *Return temperature*; acts only when a heat-pump power sensor is configured too. Closes the heating value on the measured draw (see [Pump duty control](#pump-duty-control)). Off writes the inlet plus the lift. |
-| Controller's minimum set-point sensor (`space_setpoint_low_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the lowest value the controller accepts for the set-point entity (a Luxtronik through ha-luxtronik-shi: “Temperature: return target minimum”, input 10104). *Follow the planned power* then never sends a value below it (see [Pump duty control](#pump-duty-control)). Empty changes nothing. |
-| Controller's maximum set-point sensor (`space_setpoint_high_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the controller accepts (a Luxtronik: “Temperature: return limit”, input 10103). *Follow the planned power* then never sends a value above it. Empty changes nothing. |
+| Controller's minimum set-point sensor (`space_setpoint_low_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the lowest value the controller accepts for the set-point entity (for example a Luxtronik through ha-luxtronik-shi: “Temperature: return target minimum”, input 10104). *Follow the planned power* then never sends a value below it (see [Pump duty control](#pump-duty-control)). Empty changes nothing. |
+| Controller's maximum set-point sensor (`space_setpoint_high_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the controller accepts (for example a Luxtronik: “Temperature: return limit”, input 10103). *Follow the planned power* then never sends a value above it. Empty changes nothing. |
 
 ### Power and solar sensors
 
@@ -716,8 +717,8 @@ writes, at every 15-minute plan step:
   fields appear once that unit is saved). Those defaults suit a controller
   that holds its **supply** at the set-point.
 - **For a *Return temperature* entity** — a controller that takes the
-  number as its **return-water** target, as a Luxtronik (alpha innotec,
-  Novelan) through its Smart Home Interface is assumed to — everything above
+  number as its **return-water** target, as, for example, a Luxtronik
+  (alpha innotec, Novelan) through its Smart Home Interface is assumed to — everything above
   applies, with these differences:
   - The values derived from a supply temperature — the 35 °C hold, the
     weather curve and the 25 °C gate — are written 5 K lower (the rated
@@ -747,12 +748,12 @@ writes, at every 15-minute plan step:
     level; check it against the measured frequency and power. Choose the
     ceiling above the highest return you see in normal heating plus the
     lift (otherwise a heating step writes a target below the return, and
-    such a controller presumably stops), and no higher than the controller accepts: a Luxtronik
+    such a controller presumably stops), and no higher than the controller accepts: a Luxtronik, for example,
     clamps the target to its own minimum return target and return limit, so a ceiling above the
     limit is written but not followed. A controller that starts heating only once the target sits
     its hysteresis above the return is not started by a smaller lift;
     it only keeps a running compressor near its minimum. That hysteresis is a setting of the
-    controller, not a fixed 2 K: a Luxtronik accepts 0.5 K at the least, and the start threshold in
+    controller, not a fixed 2 K: a Luxtronik, for example, accepts 0.5 K at the least, and the start threshold in
     effect (the return target less the hysteresis) is input 10107 of its Smart Home Interface, which
     ha-luxtronik-shi publishes as its *Demand border* sensor
     ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)).
@@ -762,8 +763,8 @@ writes, at every 15-minute plan step:
     frequency and power.
   - The integration that exposes the controller must poll it at least
     every 10 minutes and restore its heating mode after a controller
-    restart: a Luxtronik Smart Home Interface drops every value set through
-    it after 600 s without access and after each restart. Any access
+    restart, since a controller can drop what was set through it: a Luxtronik
+    Smart Home Interface, for one, drops every value set through it after 600 s without access and after each restart. Any access
     re-arms those 600 s, a read as much as a write, so polling alone keeps
     a written value; ha-luxtronik-shi polls every 30 s by default and
     offers 10–300 s, and restores what it wrote after a controller restart
@@ -771,7 +772,7 @@ writes, at every 15-minute plan step:
     ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)). A reverted
     set-point is noticed and written again; a reverted heating mode is not
     visible to this integration. No second tool may write the same
-    registers: a Luxtronik then silently discards writes (error 816).
+    registers: a Luxtronik, for one, then silently discards writes (error 816).
   - Downgrading: a version before this option reads *Return temperature* as
     *Indoor temperature* and writes the planned room temperature to the
     entity. Switch the unit back to *Flow temperature* before downgrading.
@@ -793,12 +794,12 @@ writes, at every 15-minute plan step:
   unchanged and start the loop over. Where the controller cuts a written
   value to its own limits, that cut is taken as the run's limit and no
   repair is raised. Preconditions on the controller:
-  - its heating hysteresis is at most the lift (Luxtronik: 0.5 K, its
-    minimum), or the first write of a run does not start a stopped
+  - its heating hysteresis is at most the lift (on a Luxtronik, for
+    example, 0.5 K, its minimum), or the first write of a run does not start a stopped
     compressor — the same limitation as without the loop;
   - its minimum return target sits below the return during the heating
     season, or the loop cannot wind the compressor down past it. A
-    Luxtronik cuts the set-point to its minimum return target (input 10104
+    Luxtronik, for example, cuts the set-point to its minimum return target (input 10104
     of its Smart Home Interface, parameter 979) and its return limit (input
     10103, parameter 87), both of which ha-luxtronik-shi publishes as
     sensors ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)).
@@ -964,6 +965,13 @@ tank rise. The counts and the steps are in the diagnostics download under
 whether *Control* is worth turning on: the share of *delivered* steps is how
 often the pump already does what the plan wanted. *Off* (the default) does
 neither.
+
+### Room thermometers
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Room thermometers | none | up to 32 `climate` entities or `temperature` sensors | Optional, one per room. A room thermostat's own room temperature (its `current_temperature`) is read, not its HVAC mode; a temperature sensor's state is read as it is. Two sensors appear once the list is saved: **Room Average Temperature**, the mean over the rooms that read, and **Room Temperature Spread**, the warmest room less the coldest, in K. A room that is unavailable, older than six hours (times the staleness scale) or outside -30 to 60 °C is left out and listed under the average's `dropped` attribute; it never raises an input problem. With fewer than half the rooms readable both sensors read unknown. The indoor temperature sensor on **Sensors and entities** is still the one the model runs on, and the plan uses the rooms only with the setting below. Clearing the list removes it; a factory reset keeps it, as it keeps every sensor. |
+| Let a cold room raise the planned minimum | off | on / off | Off, a room list changes nothing in the plan. On, a room thermostat that reads further below its own target than the house reads below yours raises the minimum temperature the plan holds. Only a `climate` in `heat` or `auto` mode counts: a room switched off or cooling, a plain temperature sensor (it has no target) and a dropped room do not. The raise is the coldest such room's shortfall less the house's own, at most 1 °C, and it never lifts the minimum above your comfort target for that hour — so the plan holds the house at its target while a room is short, and never plans the house above it; raise the target for more. It rises from where the house is now by 0.25 °C an hour, moves only when the rooms ask for 0.2 °C more or less, and drops at once when it yields: in Economy mode, while a window is detected open, while away, on a holiday, while a heating slot is planned by hand, and in two-zone mode (the list does not say which floor a room is on). **Room Temperature Spread**'s `lift` attribute shows the size asked for, the room that set it and, when it yielded, to what. |
 
 ### Heating system and heat storage
 
@@ -1187,12 +1195,14 @@ reads SEK, that is a label, not a constraint.
 
 ### Heat curve control
 
-For Danfoss ECL110 controllers driven over MQTT, or any controller whose
-heat-curve offset Home Assistant exposes as a `number`. The topics have no
-shipped default: each is exactly what you store, an empty or absent topic
-leaves that arm off, and nothing is published or subscribed until a topic
-is set — an install without an ECL110 never touches these topics. See
-[ecl110.md](ecl110.md) for the full picture.
+For a weather-compensated controller whose heat curve the optimizer shifts,
+three ways: over MQTT topics (a Danfoss ECL110 through an MQTT bridge, for
+example), to a volatile offset `number` entity, or to a stored curve
+parameter. The topics have no shipped default: each is exactly what you
+store, an empty or absent topic leaves that arm off, and nothing is published
+or subscribed until a topic is set — an install whose controller takes
+nothing over MQTT never touches these topics. See
+[heat-curve.md](heat-curve.md) for the full picture.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
@@ -1205,10 +1215,10 @@ is set — an install without an ECL110 never touches these topics. See
 | Largest upward offset | 20 °C | 0–30, 0.5 steps | How far it may be shifted up when storing cheap heat. |
 | Controller response time | 1.5 h | 0.25–6.0, 0.25 steps | Roughly how long the controller takes to act on a new offset, so the optimizer does not ask for changes faster than the system can follow. |
 | Heat-curve offset entity | *(empty)* | a `number` or `input_number` | The same offset written to an entity instead of, or as well as, MQTT. Kind offset: a whole-curve offset, 0 neutral, that the controller forgets on a restart; turning the optimizer off, or unloading it, writes 0; refused when its own range excludes 0. Kind persistent: a curve setting the controller stores; off and unload write back the value it held before the first write; refused when it reads no value or one outside its own range. Refused when it is an entity the optimizer already writes. |
-| What the entity is | Offset | Offset, Persistent | Offset: a temperature difference, not stored by the controller; prefer it where the controller has one. Persistent: a stored curve setting, displaced from its own value with a daily write cap; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
-| Largest offset written to the entity | 3 K | 0.5–5, 0.5 steps | The entity's offset stays within this many kelvin either way, whatever the MQTT range allows. 3 K is an estimate; see [ecl110.md](ecl110.md#without-mqtt-a-number-entity). |
+| What the entity is | Offset | Offset, Persistent | Offset: a temperature difference, not stored by the controller; prefer it where the controller has one. Persistent: a stored curve setting, displaced from its own value with a daily write cap; see [heat-curve.md](heat-curve.md#kind-persistent-a-stored-curve-parameter). |
+| Largest offset written to the entity | 3 K | 0.5–5, 0.5 steps | The entity's offset stays within this many kelvin either way, whatever the MQTT range allows. 3 K is an estimate; see [heat-curve.md](heat-curve.md#without-mqtt-a-number-entity). |
 | Largest displacement of a stored parameter | 3 K | 0.5–5, 0.5 steps | Kind persistent only: the stored setting stays within this many kelvin of its value before the first write. 3 K is an estimate. |
-| Most writes a day to a stored parameter | 12 | 0–48 | Kind persistent only: writes in one local day, the write back on off included, one always kept for it; 0 or 1 writes nothing. 12 rests partly on forum figures and estimates; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
+| Most writes a day to a stored parameter | 12 | 0–48 | Kind persistent only: writes in one local day, the write back on off included, one always kept for it; 0 or 1 writes nothing. 12 rests partly on forum figures and estimates; see [heat-curve.md](heat-curve.md#kind-persistent-a-stored-curve-parameter). |
 | Least time between writes to a stored parameter | 60 min | 15–360, 15 steps | Kind persistent only: after a write, the next waits at least this long. 60 min is an estimate of three radiator response times. |
 
 ### Reset to factory defaults
@@ -1226,8 +1236,8 @@ changes, and closing the dialog cancels.
   the optimizer stays connected to the house: every assigned entity, the zone
   and emitter topology (the two-zone switch is written as the settings in force
   imply it), the hot-water tank, valve and wood-furnace layout, the price and
-  solar-forecast sources and the Tibber token, the plant diagram, the ECL110
-  MQTT wiring, the pre-fill device and the main fuse.
+  solar-forecast sources and the Tibber token, the plant diagram, the
+  heat-curve MQTT wiring, the pre-fill device and the main fuse.
 - **Learned values**: every learner starts again from the settings: the heat
   loss scale and lower-floor ratio, the comfort weight, COP, buffer and hot
   water cooling, the hot water profile and draws, defrost, the heat curve, the
@@ -1382,11 +1392,11 @@ would otherwise divide by zero inside the model:
   `dhw_min_temperature` (10–70), `dhw_daily_consumption` (0.01–2000),
   `dhw_cooling_rate` (0.01–5), `buffer_cooling_rate` (0.01–50),
   `dhw_schedule_enabled`, `dhw_windows`, `dhw_idle_min_temperature` (5–60),
-  `dhw_legionella_enabled`, `dhw_legionella_temperature` (55–75),
+  `dhw_legionella_enabled`, `dhw_legionella_temperature` (55–70),
   `dhw_legionella_interval_days` (0.01–60).
 - **Weather:** `wind_sensitivity_factor` (0–1),
   `rain_heat_loss_multiplier` (1–2).
-- **ECL110:** `ecl110_pid_time_constant_hours` (0.01–24),
+- **Heat curve:** `ecl110_pid_time_constant_hours` (0.01–24),
   `ecl110_displace_min` (−30–0), `ecl110_displace_max` (0–30).
 
 **`simulate_plan`** prices a hypothetical comfort choice against the current
@@ -1412,7 +1422,8 @@ same failure the live solve would report.
 into your configuration and reloads the entry, so the next plan uses them. The
 windows are parsed and canonicalised before storing, and a day window that
 would never open is rejected — checked against the values that *would* be
-stored, not only against the ones in the call.
+stored, not only against the ones in the call. A `silent_mode_power_fraction`
+of 1.0 replaces a stored lower fraction; leave the field out to keep it.
 
 **`assign_entity`** assigns or clears one optional sensor slot: `key` is one of
 the 21 assignable configuration keys (`outdoor_temp_entity`,
@@ -1496,4 +1507,4 @@ file under `.storage/` that holds the rows.
 - [../README.md#removal](../README.md#removal) — removing the integration: what deleting the entry does, and what it leaves behind
 - [how-it-works.md](how-it-works.md) — the mechanisms behind these settings
 - [dashboard-card.md](dashboard-card.md) — the card, its own configuration keys, and the Setup tab
-- [ecl110.md](ecl110.md) — the heat-curve path in full: the Danfoss ECL110 over MQTT, and an offset `number` entity
+- [heat-curve.md](heat-curve.md) — heat-curve control in full, all three ways: MQTT topics (a Danfoss ECL110, for example), an offset `number` entity, and a stored curve parameter

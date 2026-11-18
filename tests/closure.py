@@ -268,6 +268,10 @@ INERT = (
     # reads it. Same class as LICENSE / DISCLAIMER.md: an unclassified root
     # file forced the FULL suite and failed the orphan check on #819.
     "SECURITY.md",
+    # The community-standards files GitHub renders (owner's item, round 11):
+    # the code of conduct and the issue forms. No gate script reads them.
+    "CODE_OF_CONDUCT.md",
+    ".github/ISSUE_TEMPLATE/",
     "NOTICE",
     # docs/ except the handover (HANDOVER_DIR below) and the pages a gate
     # script pins (INERT_EXCEPT below, #937 and #939) -- the same split
@@ -603,6 +607,10 @@ INERT_EXCEPT = (
     # seat-on and FIRE-OWED reads moved there), so that self-test reads it. Same
     # route as ci_priority.py: the prefix stays INERT, the file joins the closure.
     "tools/audit/seat/owed_watch.py",
+    # R11-PRE-ACK-COMPLETION part 2: the tick's self-test feeds the lines it emits through
+    # owed_unactioned's reader (the cap line, the design-review line), so that self-test reads it;
+    # ci_predict's self-test-reads arm names it UNDER-SCOPED. Same route as owed_watch.py.
+    "tools/audit/seat/owed_unactioned.py",
     # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
     # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
     "tools/audit/seat/pr_cap.py",
@@ -700,6 +708,7 @@ INERT_EXCEPT = (
     # dependency, not inert prose, whatever directory it lives in.
     "docs/dashboard-card.md",
     "docs/ecl110.md",
+    "docs/heat-curve.md",
     "docs/how-it-works.md",
     "docs/setup.md",
     # R10-OUTSIDE-CONTRIBUTOR-CYCLE: the contributor guide is a reader doc

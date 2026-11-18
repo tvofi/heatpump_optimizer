@@ -311,7 +311,7 @@
   "mode": "cells",
   "universe": [
    "README.md",
-   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,heat-curve,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/*.py",
    "custom_components/heatpump_optimizer/www/*.js",
    "tools/**.{py,sh,js,mjs}",
@@ -487,7 +487,7 @@
    "docs/index.html",
    "docs/site/*.css",
    "tools/site/build_docs.mjs",
-   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,heat-curve,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
    "hacs.json",
    "blueprints/**",
@@ -498,6 +498,7 @@
    "CLAUDE.md",
    "AGENTS.md",
    "SECURITY.md",
+   "CODE_OF_CONDUCT.md",
    "dev/README.md",
    "dev/governance/{dimensions,dimensions/criteria,roles,rules}/*.md",
    "dev/programme/HANDOVER.md",
@@ -545,7 +546,7 @@
       "docs/index.html",
       "docs/site/*.css",
       "tools/site/build_docs.mjs",
-      "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md"
+      "docs/{architecture,automations,configuration,dashboard-card,ecl110,heat-curve,how-it-works,setup}.md"
      ],
      "steps": [
       "M1",
@@ -602,6 +603,7 @@
       "CLAUDE.md",
       "AGENTS.md",
       "SECURITY.md",
+      "CODE_OF_CONDUCT.md",
       "dev/README.md",
       "dev/governance/rules/*.md",
       "dev/programme/HANDOVER.md",
@@ -1175,6 +1177,130 @@
       "M7",
       "M8",
       "M9"
+     ]
+    }
+   ]
+  }
+ },
+ "D16": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M5",
+      "M6"
+     ]
+    }
+   ]
+  }
+ },
+ "D17": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/{services.yaml,strings.json}",
+   "blueprints/**"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3"
+  ],
+  "axis": {
+   "kind": [
+    "option",
+    "options-step",
+    "config-field",
+    "config-step",
+    "service",
+    "entity",
+    "blueprint"
+   ]
+  },
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "axis": [
+      "option",
+      "options-step"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "axis": [
+      "config-field",
+      "config-step"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "axis": [
+      "service",
+      "entity",
+      "blueprint"
      ]
     }
    ]

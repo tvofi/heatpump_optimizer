@@ -11282,12 +11282,14 @@ _ua_sz = (
     _p_sz.max_electrical_power * _p_sz.cop_nominal_floored
     / _p_sz.emitter_design_delta_t_floored
 )
-_fs_sz = _mv.flow_setpoint(
-    target_temp=23.0, outdoor_temp=-5.0,
-    heat_loss_coefficient=_m_sz.effective_heat_loss_coefficient(
-        _p_sz.heat_loss_coefficient, 0.0, 0.0
-    ),
-    emitter_ua=_ua_sz,
+# The plant's own curve (R11-VALVE-REFERENCE: the slab in series, the gains
+# offset), read rather than re-derived: this check pins the energy balance.
+from heatpump_optimizer.thermal_model import _valve_flow_set as _vfs_sz  # noqa: E402
+
+_fs_sz = _vfs_sz(
+    _p_sz, None, -5.0,
+    _m_sz.effective_heat_loss_coefficient(_p_sz.heat_loss_coefficient, 0.0, 0.0),
+    _ua_sz,
 )
 _q_sz = _mv.emitter_delivery(mix_temp=min(50.0, _fs_sz), zone_temp=25.0, ua=_ua_sz)
 _stand_sz = _p_sz.buffer_tank_heat_loss_coefficient * (50.0 - 20.0)
@@ -11428,7 +11430,9 @@ def _zoned_store_capabilities(two_zone):
     _on, _off = ThermalModel(_zp), ThermalModel(_zq)
     _valved = _on.simulate_step(_zs(22.0, 60.0), 4.0, -5.0, dt_hours=0.25)
     _bare = _off.simulate_step(_zs(22.0, 60.0), 4.0, -5.0, dt_hours=0.25)
-    _on.simulate_step(_zs(25.0, 69.5), 5.0, -5.0, dt_hours=0.25)
+    # The cap arm's slab sits near the single-zone curve (31.2 C here since
+    # R11-VALVE-REFERENCE), so the draw stays below what the pump puts in.
+    _on.simulate_step(_zs(30.0, 69.5), 5.0, -5.0, dt_hours=0.25)
     _zopt = _StoreOpt(ThermalModel(_zp), _StoreCfg(
         horizon_hours=24, time_step_minutes=15,
         target_temp=21.0, min_temp=17.0, max_temp=23.0,
@@ -12148,12 +12152,20 @@ def _cg_rounds(moving):
     return runs
 
 
-_cg_still = _cg_rounds(False) if _ct_p is not None else []
+# The converging arm runs under a raised cap, so its rounds end because the
+# plan stopped moving, never because the cap ran out: on this fixture the
+# first exchange settles on its fourth build (R11-VALVE-REFERENCE's curve).
+_cg_round_cap = _optmod._COMBI_EXCHANGE_ROUNDS
+_optmod._COMBI_EXCHANGE_ROUNDS = 8
+try:
+    _cg_still = _cg_rounds(False) if _ct_p is not None else []
+finally:
+    _optmod._COMBI_EXCHANGE_ROUNDS = _cg_round_cap
 _cg_moving = _cg_rounds(True) if _ct_p is not None else []
 R.check(
-    "combi flux exchange: a plan that stops moving ends the rounds before the cap; one still "
+    "combi flux exchange: a plan that stops moving ends the rounds before a raised cap; one still "
     "moving is published after exactly four plan builds",
-    bool(_cg_still) and all(0 < n < 4 for n in _cg_still)
+    _cg_round_cap == 4 and bool(_cg_still) and all(0 < n < 8 for n in _cg_still)
     and bool(_cg_moving) and all(n == 4 for n in _cg_moving),
     f"builds per exchange: converging {_cg_still}, moving {_cg_moving}",
 )
@@ -14551,6 +14563,8 @@ _FR_LISTED = {
     "topology_positions", "ecl110_command_topic", "ecl110_displace_set_topic",
     "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "heat_curve_target_kind",
     "modbus_prefill_prefix", "main_fuse_amperes", "main_fuse_phases",
+    # #3616: an entity list, kept as wiring; its name ends in _entities, not _entity.
+    "room_temperature_entities",
 }
 #: Every key a ``CONF_`` constant names (a tuple names several: the weekday
 #: hot-water windows), and Home Assistant's own ``name``.
@@ -42061,6 +42075,90 @@ R.check(
     and _et_quiet_entry.options.get("silent_mode_power_fraction") == 0.7,
     f"raised {_et_quiet_applied!r}, stored {dict(_et_quiet_entry.options)}",
 )
+# An explicit 1.0 is a value, not "the call left it alone": it resets a
+# stored lower fraction to the default (carry 56724b85). The null control is
+# the same call without the field, which keeps the stored one.
+_et_frac_low = _et_call(
+    _et_quiet_hass, "apply_schedule", {"silent_mode_power_fraction": 0.6},
+)
+_et_frac_absent = _et_call(
+    _et_quiet_hass, "apply_schedule", {"quiet_silent_windows": "22:00-06:00"},
+)
+_et_frac_kept = _et_quiet_entry.options.get("silent_mode_power_fraction")
+R.check(
+    "apply_schedule without the fraction keeps a stored 0.6",
+    _et_frac_low is None and _et_frac_absent is None and _et_frac_kept == 0.6,
+    f"raised {_et_frac_low!r}/{_et_frac_absent!r}, stored {_et_frac_kept!r}",
+)
+_et_frac_reset = _et_call(
+    _et_quiet_hass, "apply_schedule", {"silent_mode_power_fraction": 1.0},
+)
+R.check(
+    "apply_schedule with an explicit 1.0 resets a stored 0.6 to 1.0",
+    _et_frac_reset is None
+    and _et_quiet_entry.options.get("silent_mode_power_fraction") == 1.0,
+    f"raised {_et_frac_reset!r}, stored "
+    f"{_et_quiet_entry.options.get('silent_mode_power_fraction')!r}",
+)
+# The same rule at the fraction's two sibling folds, so a what-if previews
+# what the save stores and a parameter write's live config equals the options
+# it persists: simulate_plan's `overridden_config` and set_thermal_parameters'
+# `apply_config_keys`. Each with its absent-field null control.
+from heatpump_optimizer import quiet_windows as _et_qw  # noqa: E402
+
+_et_frac_stored = {"silent_mode_power_fraction": 0.6}
+_et_frac_live = dict(_et_frac_stored)
+_et_qw.apply_config_keys(_et_frac_live, {"silent_mode_power_fraction": 1.0})
+_et_frac_live_absent = dict(_et_frac_stored)
+_et_qw.apply_config_keys(_et_frac_live_absent, {"quiet_off_windows": ""})
+_et_frac_folds = {
+    "simulate 1.0": _et_qw.overridden_config(
+        _et_frac_stored, {"silent_mode_power_fraction": 1.0}
+    ).get("silent_mode_power_fraction"),
+    "simulate absent": _et_qw.overridden_config(
+        _et_frac_stored, {"quiet_off_windows": ""}
+    ).get("silent_mode_power_fraction"),
+    "live 1.0": _et_frac_live.get("silent_mode_power_fraction"),
+    "live absent": _et_frac_live_absent.get("silent_mode_power_fraction"),
+}
+R.check(
+    "the what-if and live-config folds apply an explicit 1.0 over a stored 0.6 and keep it when absent",
+    _et_frac_folds == {
+        "simulate 1.0": 1.0, "simulate absent": 0.6,
+        "live 1.0": 1.0, "live absent": 0.6,
+    },
+    f"{_et_frac_folds}",
+)
+# set_thermal_parameters' disinfection temperature stops at the 70 °C hard
+# maximum (`ThermalParameters.dhw_hard_max_temp`) that caps every cycle, the
+# config flow's own top (carry bde9263f); 70 itself is the null control.
+
+
+def _et_leg_call(temp_c):
+    """set_thermal_parameters with one disinfection temperature; what it raised."""
+    try:
+        return _et_call(
+            _et_quiet_hass, "set_thermal_parameters",
+            {"dhw_legionella_temperature": temp_c},
+        )
+    except _ger_vol.Invalid as err:
+        return err
+
+
+_et_leg_71 = _et_leg_call(71)
+_et_leg_70 = _et_leg_call(70)
+R.check(
+    "set_thermal_parameters refuses a 71 °C disinfection temperature and accepts 70",
+    isinstance(_et_leg_71, _ger_vol.Invalid) and _et_leg_70 is None,
+    f"71 raised {_et_leg_71!r}; 70 raised {_et_leg_70!r}",
+)
+_et_leg_55 = _et_leg_call(55)
+_et_leg_54 = _et_leg_call(54)
+R.check(
+    "set_thermal_parameters accepts a 55 °C disinfection temperature and refuses 54",
+    _et_leg_55 is None and isinstance(_et_leg_54, _ger_vol.Invalid),
+    f"55 raised {_et_leg_55!r}; 54 raised {_et_leg_54!r}",
+)
 _et_quiet_set = _et_call(
     _et_quiet_hass,
     "set_thermal_parameters",
@@ -47417,7 +47515,7 @@ _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
     # The literal is the persisted stamp this release writes: a bump is deliberate.
-    _sb_meta == {"sum": 3.0, "count": 1} and _SB_NOW == 3 and _sb_row["old_basis"] is False
+    _sb_meta == {"sum": 4.0, "count": 1} and _SB_NOW == 4 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
@@ -47438,9 +47536,11 @@ R.check(
 )
 # A stamp 2.0 is what v7.1.17 wrote, before pull request 3587 held a valve-limited
 # two-zone reference at the valve top: a month it opened mixes two references
-# once it books on under this code. A stamp 3.0, this release's, keeps its saving.
+# once it books on under this code. A stamp 3.0 held a single-zone valved house
+# short of its setpoint, before R11-VALVE-REFERENCE's curve reached it. A stamp
+# 4.0, this release's, keeps its saving.
 _sb_by_stamp = {}
-for _sb_stamp in (2.0, 3.0):
+for _sb_stamp in (2.0, 3.0, 4.0):
     _sb_s = _sb_copy.deepcopy(_sb_led.as_dict())
     _sb_s["months"]["2026-02"]["meta"][_SB_META] = {"sum": _sb_stamp, "count": 1}
     _sb_s_led = _SavLedger.from_dict(_sb_s)
@@ -47456,10 +47556,18 @@ R.check(
 )
 _sb_v3_row, _sb_v3_meta = _sb_by_stamp[3.0]
 R.check(
-    "a month stamped 3, the reference in force, keeps stating its saving as it books on",
-    _sb_v3_row["old_basis"] is False and _sb_v3_row["savings_sek"] is not None
-    and _sb_v3_row["savings_pct"] is not None and _sb_v3_meta == {"sum": 3.0, "count": 1},
+    "a month stamped 3, booked before the single-zone valve reached its setpoint, states no saving after the change",
+    _sb_v3_row["old_basis"] is True and _sb_v3_row["savings_sek"] is None
+    and _sb_v3_row["savings_pct"] is None and _sb_v3_row["baseline_sek"] is not None
+    and _sb_v3_row["actual_sek"] is not None and _sb_v3_meta == {"sum": 3.0, "count": 1},
     repr(_sb_by_stamp[3.0]),
+)
+_sb_v4_row, _sb_v4_meta = _sb_by_stamp[4.0]
+R.check(
+    "a month stamped 4, the reference in force, keeps stating its saving as it books on",
+    _sb_v4_row["old_basis"] is False and _sb_v4_row["savings_sek"] is not None
+    and _sb_v4_row["savings_pct"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
+    repr(_sb_by_stamp[4.0]),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
@@ -47525,6 +47633,189 @@ R.check(
     "a month with savings lines and no stamp reads as the old basis",
     _sb_bare.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]["old_basis"] is True,
     repr(_sb_bare.months),
+)
+# R11-VALVE-REFERENCE (carry 2): the booked reference, pinned. A digest of
+# `_compute_baseline_power`'s day (power to 1e-6 kW, its end room and tank) on
+# three installs at two outdoor levels with a sinusoid on them: the owner's
+# two-zone replay install with its manual valve, a single-zone house behind a
+# manual valve on one tank, and the same house with no valve. A diff that moves
+# the booked reference fails here until it re-records the digest and bumps
+# `REFERENCE_BASIS` and the stamp literal above with it.
+def _vr_one_tank():
+    from profiles import house as _vr_house
+
+    _vr_p = ThermalParameters.from_config(_vr_house(dhw=False))
+    _vr_p.dhw_enabled = False
+    _vr_p.mixing_valve_mode = "manual"
+    _vr_p.wood_tank_configured, _vr_p.wood_tank_volume = True, 500.0
+    return _vr_p
+
+
+def _vr_reference_digests():
+    import hashlib
+
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer as _VrOpt
+    from heatpump_optimizer.optimizer import OptimizationConfig as _VrCfg
+    from heatpump_optimizer.thermal_model import WeatherSeries as _VrWeather
+    from profiles import house as _vr_house, replay_install as _vr_replay
+
+    _vr_n = 96
+    _vr_installs = {
+        "install": ThermalParameters.from_config(_vr_replay()),
+        "one-tank": _vr_one_tank(),
+        "no valve": ThermalParameters.from_config(_vr_house(dhw=False)),
+    }
+    _vr_out = {}
+    for _vr_name, _vr_p in _vr_installs.items():
+        for _vr_outdoor in (5.0, -15.0):
+            _vr_model = ThermalModel(_vr_p)
+            _vr_opt = _VrOpt(_vr_model, _VrCfg(horizon_hours=24, time_step_minutes=15, target_temp=21.0))
+            _vr_w = _VrWeather(
+                outdoor_temps=_vr_outdoor + 3.0 * np.sin(2.0 * np.pi * np.arange(_vr_n) / _vr_n),
+                wind_speeds=np.full(_vr_n, 3.0), precipitation=np.zeros(_vr_n),
+                solar_radiation=np.zeros(_vr_n))
+            _vr_start = ThermalState(
+                room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_vr_outdoor,
+                upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+            _vr_power, _vr_end = _vr_opt._compute_baseline_power(
+                _vr_w, _vr_start, 0.25, np.full(_vr_n, 21.0))
+            _vr_text = ";".join(f"{float(v) + 0.0:.6f}" for v in _vr_power) + (
+                f"|{_vr_end.room_temperature + 0.0:.6f}|{_vr_end.buffer_tank_temperature + 0.0:.6f}")
+            _vr_out[f"{_vr_name} {_vr_outdoor:+.0f}"] = hashlib.sha256(_vr_text.encode()).hexdigest()[:16]
+    return _vr_out
+
+
+_vr_digests = _vr_reference_digests()
+R.check(
+    "the booked reference reproduces its recorded digest on every pinned install "
+    "(a change re-records it and bumps REFERENCE_BASIS)",
+    _vr_digests == {
+        "install +5": "2f088060f8fe63dd",
+        "install -15": "35cc1d0d71a4414b",
+        "one-tank +5": "ba516c4bb8328b78",
+        "one-tank -15": "cb3e0ea30949c952",
+        "no valve +5": "514d1532f1b30760",
+        "no valve -15": "0e396b7d1cc59e1a",
+    },
+    repr(_vr_digests),
+)
+# R11-VALVE-REFERENCE (carries 0, 1): a single-zone valve feeds the slab, which
+# reaches the room through `slab_heat_transfer` in series, and the house's own
+# gains offset part of its loss. The curve holds its target only with both in
+# it, and a thermostat behind that valve then reaches its setpoint.
+def _vr_single_zone_holds():
+    from heatpump_optimizer.optimizer import _thermostat_held_state as _vr_held
+    from heatpump_optimizer.thermal_model import WeatherSeries as _VrWeather
+
+    _vr_p = _vr_one_tank()
+    _vr_model = ThermalModel(_vr_p)
+    _vr_out = {}
+    for _vr_outdoor in (5.0, -5.0, -15.0):
+        _vr_start = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_vr_outdoor,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _vr_w = _VrWeather(
+            outdoor_temps=np.full(96, _vr_outdoor), wind_speeds=np.full(96, 3.0),
+            precipitation=np.zeros(96), solar_radiation=np.zeros(96))
+        _vr_h = _vr_held(_vr_model, _vr_start, _vr_w, 21.0)
+        _vr_s = _vr_h
+        for _ in range(960):
+            _vr_s = _vr_model.simulate_step(
+                _vr_s, _vr_p.max_electrical_power, _vr_outdoor, 3.0, 0.0, 0.0, 0.25)
+        _vr_out[_vr_outdoor] = (_vr_h.room_temperature, _vr_s.room_temperature)
+    return _vr_p.mixing_valve_target or _vr_p.comfort_ceiling, _vr_out
+
+
+_vr_target, _vr_holds = _vr_single_zone_holds()
+R.check(
+    "single-zone valve: the plant at its pump, settled, holds the curve's own target within 0.02 K",
+    all(abs(_vr_plant - _vr_target) < 0.02 for _, _vr_plant in _vr_holds.values()),
+    f"target {_vr_target}: " + ", ".join(
+        f"{o:+.0f} C {pl:.3f}" for o, (_, pl) in _vr_holds.items()),
+)
+R.check(
+    "single-zone valve: a thermostat set to 21 C holds 21 C behind it",
+    all(abs(_vr_room - 21.0) < 1e-3 for _vr_room, _ in _vr_holds.values()),
+    ", ".join(f"{o:+.0f} C {r:.4f}" for o, (r, _) in _vr_holds.items()),
+)
+
+
+def _vr_curve_agrees():
+    from heatpump_optimizer.thermal_model import _valve_flow_set, _valve_ua
+
+    _vr_cases = {
+        "one-tank": _vr_one_tank(),
+        "defaults": ThermalParameters(mixing_valve_mode="manual"),
+        "floors apart": ThermalParameters(
+            mixing_valve_mode="manual", upper_floor_heat_loss=0.12, lower_floor_heat_loss=0.09),
+    }
+    _vr_out = {}
+    for _vr_name, _vr_p in _vr_cases.items():
+        _vr_model = ThermalModel(_vr_p)
+        _vr_u = _vr_model.effective_heat_loss_coefficient(_vr_p.heat_loss_coefficient, 0.0, 0.0)
+        for _vr_outdoor in (5.0, -5.0, -15.0):
+            _vr_out[(_vr_name, _vr_outdoor)] = (
+                _vr_model.flow_target_for_indoor(21.0, _vr_outdoor),
+                _valve_flow_set(_vr_p, 21.0, _vr_outdoor, _vr_u, _valve_ua(_vr_p)))
+    return _vr_out
+
+
+_vr_agree = _vr_curve_agrees()
+R.check(
+    "single-zone valve: the curve the model reports is the plant's own, at zero wind and rain",
+    all(_vr_rep == _vr_plant for _vr_rep, _vr_plant in _vr_agree.values()),
+    repr(_vr_agree),
+)
+
+
+
+def _vr_mild_curve():
+    from heatpump_optimizer.thermal_model import _valve_flow_set, _valve_ua
+
+    _vr_p = _vr_one_tank()
+    _vr_u = ThermalModel(_vr_p).effective_heat_loss_coefficient(_vr_p.heat_loss_coefficient, 0.0, 0.0)
+    return _vr_p.internal_gains, _vr_u * 0.5, _valve_flow_set(_vr_p, 21.0, 20.5, _vr_u, _valve_ua(_vr_p))
+
+
+_vr_gains, _vr_loss, _vr_mild = _vr_mild_curve()
+R.check(
+    "single-zone valve: where the house's gains cover its loss the curve sits at its target, never below",
+    _vr_gains > _vr_loss and _vr_mild == 21.0,
+    f"gains {_vr_gains:.3f} kW, loss {_vr_loss:.4f} kW, curve {_vr_mild!r} C",
+)
+
+
+def _vr_direct_curve():
+    from heatpump_optimizer import mixing_valve as _vr_mv
+    from profiles import house as _vr_house
+
+    _vr_cfg = dict(flow_curve_cop_enabled=True, heat_pump_max_power=3.0,
+                   upper_floor_heat_loss=0.2, lower_floor_heat_loss=0.2)
+    _vr_p = ThermalParameters.from_config(_vr_house(**_vr_cfg))
+    _vr_p.flow_curve_bias = 5.0
+    _vr_model = ThermalModel(_vr_p)
+    # The new curve is reached only behind a throttling valve, and the price
+    # path reads a curve only with `flow_curve_cop`: `from_config` is what keeps
+    # the two apart, so a throttling mode must turn the priced curve off.
+    _vr_coupled = all(
+        ThermalParameters.from_config(_vr_house(mixing_valve_mode=_vr_mode, **_vr_cfg)).flow_curve_cop
+        is (not _vr_mv.is_throttling(_vr_mode))
+        for _vr_mode in (_vr_mv.MODE_NONE, *sorted(_vr_mv.THROTTLING_MODES)))
+    return _vr_p.flow_curve_cop, _vr_coupled, [
+        (_vr_model.flow_target_for_indoor(21.0, _vr_o), _vr_model.curve_flow_temp(_vr_o))
+        for _vr_o in (5.0, -5.0, -15.0)]
+
+
+_vr_priced, _vr_coupled, _vr_direct = _vr_direct_curve()
+R.check(
+    "no valve: the priced flow curve of a single-zone direct plant is unchanged, bit for bit",
+    _vr_priced is True and _vr_coupled is True and _vr_direct == [
+        (30.142857142857146, 35.142857142857146),
+        (35.85714285714286, 40.85714285714286),
+        (41.57142857142857, 46.57142857142857),
+    ],
+    repr((_vr_priced, _vr_coupled, _vr_direct)),
 )
 # R10-HOTFIX-SAV-ESTIMATE: the settlement books step 0 of a plan re-made every
 # interval, so behind a valve the first step must not be the stores' transient.
@@ -67592,6 +67883,9 @@ _P6_READ_ONLY = {
     **{key: "the pump's own start hysteresis, read_temperature_delta_k reads it" for key in (
         hp_const.CONF_SPACE_HYSTERESIS_ENTITY, hp_const.CONF_DHW_HYSTERESIS_ENTITY,
     )},
+    # #3616: room thermostats' attributes are read by inputs.read_room; phase 1
+    # writes no room thermostat.
+    hp_const.CONF_ROOM_TEMPERATURE_ENTITIES: "room thermostats inputs.read_room reads",
 }
 
 
@@ -89366,18 +89660,22 @@ def _svh_case(two_zone, outdoor, **over):
     return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), nxt
 
 
-# -10 and -15 C sag far; at 14 C the two-zone house falls just short of the
-# target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
+# -10 and -15 C sag far on two zones; at 14 C the two-zone house falls just short
+# of the target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
+# A single-zone curve holds its target through the slab (R11-VALVE-REFERENCE), so
+# its held room is the setpoint at every row.
 _svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0, 14.0, 16.0)}
 R.check(
     "R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the "
     "setpoint, the thermostat reference starts where that curve holds the "
     "house -- its first booked step draws no stored heat (the held 21 C "
     "drew it every step, booked as unpaid reference heat); both zonings, "
-    "from a deep shortfall to a mild day the curve holds",
+    "from a deep shortfall to a mild day the curve holds; a single-zone curve "
+    "holds the setpoint itself",
     all(abs(ds) < 0.02 for h, ds, _ in _svh_rows.values())
-    and all(_svh_rows[(tz, t)][0].room_temperature < 21.0 - 0.1
-            for tz in (True, False) for t in (-10.0, -15.0)),
+    and all(_svh_rows[(True, t)][0].room_temperature < 21.0 - 0.1 for t in (-10.0, -15.0))
+    and all(abs(_svh_rows[(False, t)][0].room_temperature - 21.0) < 1e-3
+            for t in (-10.0, -15.0, 14.0, 16.0)),
     {k: (round(h.room_temperature, 3), round(ds, 4)) for k, (h, ds, _) in _svh_rows.items()},
 )
 # Null control: a curve that holds the setpoint keeps the held state at target.
@@ -92152,7 +92450,12 @@ R.check(
     [_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)] == ["dhw", "space", "space"],
     f"{[_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)]}",
 )
-_dsp_mc = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, cyc=0.0)
+# A clamped install prices no start only with the clamped default patched to
+# zero (R11-OUTSIDE-HONEST-STARTS-RUNS-P3), as the two references below.
+from unittest import mock as _dsp_mock  # noqa: E402
+
+with _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _dsp_mc = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, cyc=0.0)
 _dsp_mc_avail = _dsp_mc.opt._space_avail
 _dsp_mc_fed = np.asarray(_dsp_mc.sims[-1]["space_power_schedule"], float)
 _dsp_mc_live = (
@@ -92220,7 +92523,11 @@ R.check(
 )
 # The switch term reads the shipped level: on the fixed-speed plan the
 # delivered draw of a charged step is under the floor and would be no leg.
-_dsp_fx_free = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, p_min=5.5, cyc=0.0)
+# The unpriced reference is clamped at a start price of zero, which since
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 only a clamped default patched to zero
+# reaches (a clamped install configured at zero plans at the default).
+with _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _dsp_fx_free = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, p_min=5.5, cyc=0.0)
 _dsp_fx_obj, _dsp_fx_batch = _dsp_fx.objectives[-1][1], _dsp_fx.objectives[-1][2]
 _dsp_fx_score = float(_dsp_fx_obj(_dsp_fx.space, _dsp_fx.dhw, None, _dsp_fx_avail))
 _dsp_fx_level_terms = _dsp_fx.opt.config.price_weight * (
@@ -92553,7 +92860,10 @@ R.check(
 # plan the true objective scores above the one that kept it. Such a solve
 # therefore descends twice, with the switch operand and as a solve that
 # prices no stop would, and the true objective judges the candidates of both.
-# Two duty-cycle days, one where each descent supplies the plan that ships.
+# Two duty-cycle days, one where each descent supplies the plan that ships:
+# the cells "duty-cycle price phase 30 outdoor 2.0" (mild) and "... outdoor
+# -4.0" (cold) that dev/audit/harnesses/r11_honest_starts_runs.py's
+# descents mode prints, both and each descent alone (design verdict r2).
 # The scores are of one non-convex solve per arm (``fixer.md`` step 15): the
 # margins measured on x86_64 are 0.07 and 0.39, the checks ask for 0.01.
 _dsp_real_plans, _dsp_real_term = _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn
@@ -92587,9 +92897,9 @@ _dsp_days = {
 }
 R.check(
     "a solve that prices a stop commits both descents and ships the lower: on "
-    "the mild day the unpriced descent's plan, which the operand's descent "
-    "alone scores above; on the cold day the operand's, which the unpriced "
-    "descent alone scores above",
+    "the mild day (duty-cycle, price phase 30, 2 degC) the unpriced descent's "
+    "plan, which the operand's descent alone scores above; on the cold day "
+    "(the same at -4 degC) the operand's, which the unpriced descent alone scores above",
     _dsp_days["mild"]["both"] <= _dsp_days["mild"]["unpriced"] + 1e-9
     and _dsp_days["mild"]["both"] < _dsp_days["mild"]["operand"] - 0.01
     and _dsp_days["cold"]["both"] <= _dsp_days["cold"]["operand"] + 1e-9
@@ -92673,10 +92983,14 @@ R.check(
 # zero price, no mask buys anything, so every band's mask is the relaxed
 # plan's own runs and each candidate of the stage is that plan. Corpus: 60
 # realizable plans of 24 steps, one charge each, from a stopped and a running
-# compressor. At a flat price the same plans get another candidate.
+# compressor. At a flat price the same plans get another candidate. A
+# clamped install prices no start only with the clamped default patched to
+# zero (R11-OUTSIDE-HONEST-STARTS-RUNS-P3).
 _dsp_tie_rng = np.random.default_rng(3602)
 _dsp_tie_opt = _dsp_opt(clamp=True, cyc=0.0)
 _dsp_tie_moved = {"zero price": 0, "flat price": 0}
+_dsp_tie_zero = _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0)
+_dsp_tie_zero.start()
 for _dsp_tie_i in range(60):
     _dsp_tie_space = np.where(_dsp_tie_rng.random(24) < 0.5, 0.0, _dsp_tie_rng.uniform(1.5, 3.0, 24))
     _dsp_tie_dhw = np.zeros(24)
@@ -92688,6 +93002,7 @@ for _dsp_tie_i in range(60):
                 _dsp_tie_opt,
                 _DspNS(prices=np.full(24, _dsp_tie_price), dt=0.25, compressor_running=bool(_dsp_tie_i % 2)),
                 _dsp_tie_space, _dsp_tie_dhw, np.zeros(24), 5.5 - _dsp_tie_dhw, np.zeros(24, dtype=bool)))
+_dsp_tie_zero.stop()
 R.check(
     "beside a hot-water charge, at a zero price on an install that prices no "
     "start, every candidate of the stage is the realizable relaxed plan itself; "
@@ -93174,13 +93489,19 @@ R.check(
 # A realizable relaxed plan is a candidate, never a result the stage is held
 # to (design note round 3, test 4): the relaxed descent prices no start, so
 # such a plan carries starts nobody priced. The fixture is the plan the same
-# house ships clamped at no price, which already runs, handed as the relaxed
-# plan to the stage of the priced solve, in that solve's own scope: the stage
+# house ships clamped at a start price of zero, which already runs; since
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 a clamped install plans at the clamped
+# default, so only a default patched to zero reaches that plan. It is handed as
+# the relaxed plan to the stage of the priced solve, in that solve's own scope: the stage
 # ships another plan, with fewer starts, that the scope it ships in scores
 # strictly below the plan handed in. One non-convex stage per arm
 # (``fixer.md`` step 15): the margin measured on x86_64 is 0.70, the check
 # asks for 0.01.
-_hsr_ran = _hsr_cells[(0.0, True, 1.1)].space
+from unittest import mock as _hsr_mock  # noqa: E402
+
+with _hsr_mock.patch.object(_hsr_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _hsr_zero_clamped = _hsr_solve(0.0, True, 1.1)
+_hsr_ran = _hsr_zero_clamped.space
 _hsr_ran_stage = _hsr_cells[(0.25, False, 1.1)].stages[-1]
 _hsr_ran_shipped, _hsr_ran_scope = _hsr_om._commit_runs(
     *_hsr_ran_stage[:3], [_hsr_ran], *_hsr_ran_stage[4:])
@@ -93265,8 +93586,9 @@ R.check(
     _hsr_run_on.result.objective_value != _hsr_run_off.result.objective_value,
     f"{_hsr_run_on.result.objective_value} vs {_hsr_run_off.result.objective_value}",
 )
-# A realizable relaxed plan on a clamped install that prices no start ships
-# as it stands: the stage is the identity, the objective never called.
+# An unengaged solve ships its relaxed plan as it stands: the stage is the
+# identity, the objective never called. An engaged solve always prices a
+# start (R11-OUTSIDE-HONEST-STARTS-RUNS-P3), so it has no such identity.
 
 
 def _hsr_never(*_args, **_kw):
@@ -93283,10 +93605,10 @@ def _hsr_commit(opt, objective, batch, space, maxiter=5):
 
 
 R.check(
-    "null control, a realizable relaxed plan: a clamped install that prices no "
-    "start ships it unchanged, the very array, and an unengaged solve any plan",
-    _hsr_commit(_hsr_opt(0.0, True, 1.1), _hsr_never, _hsr_never, _hsr_real) is _hsr_real
-    and _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_trickle) is _hsr_trickle,
+    "null control: an unengaged solve ships any relaxed plan unchanged, the very array, "
+    "the objective never consulted",
+    _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_trickle) is _hsr_trickle
+    and _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_real) is _hsr_real,
 )
 R.check(
     "and with a plan that is not realizable the same call ships the projection "
@@ -93597,6 +93919,51 @@ R.check(
     and _hsr_om._start_cost_fn(_hsr_opt(0.25, False, 1.1), True)(_hsr_real, None)
     == 0.25 * _hsr_count(_hsr_real, 1.1, True),
 )
+
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (owner ruling Q2): a clamped install that
+# prices no start plans at the clamped default start price, 0.1. Without it
+# the grid cell clamped at no price ships 5 starts where the tree before pull
+# request 3602 shipped 2 (dev/audit/harnesses/r11_honest_starts_runs.py,
+# ``grid`` and ``defaults``). The rule: the default replaces a configured
+# price of zero on a clamped install and nothing else. Nulls: a priced install
+# keeps its price below and above the default, an unclamped one keeps zero.
+import inspect as _hsr_inspect  # noqa: E402
+import re as _hsr_re  # noqa: E402
+
+_hsr_sp = {
+    (cost, clamp): getattr(
+        _hsr_om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=cost), "start_price", None)
+    for cost in (0.0, 0.05, 0.25) for clamp in (False, True)
+}
+R.check(
+    "the start price a solve plans with: the configured price, except that a clamped install "
+    "configured at zero plans at the clamped default 0.1; a priced install keeps its own price "
+    "below and above the default, and an unclamped install keeps zero",
+    getattr(_hsr_om, "CLAMPED_DEFAULT_START_PRICE", None) == 0.1
+    and _hsr_sp == {(0.0, False): 0.0, (0.0, True): 0.1, (0.05, False): 0.05,
+                    (0.05, True): 0.05, (0.25, False): 0.25, (0.25, True): 0.25},
+    f"{_hsr_sp}",
+)
+_hsr_at_default = _hsr_solve(0.1, True, 1.1)
+R.check(
+    "failing case: the grid cell clamped at no configured price ships the plan it ships "
+    "configured at the clamped default, with no more than the 2 starts the tree before "
+    "pull request 3602 shipped (5 without the default) and fewer than the same install "
+    "ships with the default patched to zero",
+    np.array_equal(_hsr_cells[(0.0, True, 1.1)].space, _hsr_at_default.space)
+    and _hsr_edges(_hsr_cells[(0.0, True, 1.1)].space) <= 2
+    and _hsr_edges(_hsr_cells[(0.0, True, 1.1)].space) < _hsr_edges(_hsr_zero_clamped.space),
+    f"edges {_hsr_edges(_hsr_cells[(0.0, True, 1.1)].space)}, "
+    f"at the default {_hsr_edges(_hsr_at_default.space)}, "
+    f"default patched to zero {_hsr_edges(_hsr_zero_clamped.space)}",
+)
+_hsr_cost_readers = _hsr_re.findall(r"\.config\.cycling_cost\b", _hsr_inspect.getsource(_hsr_om))
+R.check(
+    "every optimizer reader of the start price reads start_price, never the raw "
+    "configured cycling_cost, which only the property reads",
+    not _hsr_cost_readers,
+    f"{len(_hsr_cost_readers)} raw readers",
+)
 # The humidity guard the two SolveInputs sites share.
 from heatpump_optimizer.coordinator import _humidity_with_data as _hsr_humidity  # noqa: E402
 
@@ -93607,6 +93974,157 @@ R.check(
     _hsr_humidity(_hsr_rh) is _hsr_rh
     and _hsr_humidity(np.array([], dtype=float)) is None
     and _hsr_humidity(np.full(4, np.nan)) is None,
+)
+
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P2: the four lines of the candidate stage the
+# fix review's mutants left unread, and the two halves of the commit's tie
+# break (owner ruling 2026-11-15: of two equal-cost masks the one that agrees
+# with the relaxed plan ships). Each check below kills one mutant of
+# dev/audit/harnesses/r11_honest_starts_runs_mutants.json, named in its comment.
+#
+# Beside a hot-water charge a committed space step heats only where the
+# relaxed plan asked for half the floor (REV_HEATS_HALF_FLOOR): 0.6 kW of a
+# 1.1 kW floor is raised to the floor, 0.5 and 0.3 kW idle.
+_hsr_p2_opt = _hsr_opt(0.25, False, 1.1)
+_hsr_p2_space = np.zeros(12)
+_hsr_p2_space[8], _hsr_p2_space[9], _hsr_p2_space[10] = 0.6, 0.5, 0.3
+_hsr_p2_tank = np.where((np.arange(12) >= 8) & (np.arange(12) <= 10), 2.0, 0.0)
+_hsr_p2_box = _hsr_om._stage_box(_hsr_p2_opt, [(0.0, 5.5)] * 12, _hsr_p2_tank)
+_hsr_p2_beside = _hsr_om._run_plans(
+    _hsr_p2_opt, _hsr_h, _hsr_p2_space, _hsr_p2_box[2], _hsr_p2_box[0], _hsr_p2_box[1], _hsr_p2_box[3])
+R.check(
+    "beside a hot-water charge a committed space step heats where the relaxed "
+    "plan asked for half the floor or more: 0.6 kW of a 1.1 kW floor runs at "
+    "the floor in every mask, 0.5 and 0.3 kW idle",
+    len(_hsr_p2_beside) >= 1
+    and all(c[8] == 1.1 and c[9] == 0.0 and c[10] == 0.0 for c in _hsr_p2_beside),
+    f"{[c.tolist() for c in _hsr_p2_beside]}",
+)
+# The stage box leaves space the room the tank does not draw
+# (REV_STAGE_BOX_TANK_ROOM): p_max less the tank's plan on a modulating
+# install, less its projection on a clamped one, a pinned floor lowered to
+# what is left; with no tank the box is the scope's own (the null).
+_hsr_p2_dhw = np.zeros(12)
+_hsr_p2_dhw[2], _hsr_p2_dhw[3], _hsr_p2_dhw[4], _hsr_p2_dhw[6] = 2.0, 5.5, 5.0, 0.5
+_hsr_p2_bounds = [(0.0, 5.5)] * 12
+_hsr_p2_bounds[4] = (1.1, 5.5)
+_hsr_p2_room = {
+    name: _hsr_om._stage_box(_hsr_opt(0.25, clamp, 1.1), _hsr_p2_bounds, tank)[:2]
+    for name, clamp, tank in (
+        ("modulating", False, _hsr_p2_dhw), ("clamped", True, _hsr_p2_dhw), ("no tank", False, None))
+}
+R.check(
+    "the stage box caps space at p_max less what the tank draws: 3.5, 0, 0.5 "
+    "and 5.0 kW beside 2.0, 5.5, 5.0 and 0.5 kW of hot water, 4.4 kW beside the "
+    "clamped projection of 0.5 kW, a pinned floor lowered to the room left, and "
+    "the scope's own box with no tank",
+    _hsr_p2_room["modulating"][1][[2, 3, 4, 6]].tolist() == [3.5, 0.0, 0.5, 5.0]
+    and _hsr_p2_room["modulating"][0][4] == 0.5
+    and abs(float(_hsr_p2_room["clamped"][1][6]) - 4.4) < 1e-12
+    and _hsr_p2_room["clamped"][1][[2, 3, 4]].tolist() == [3.5, 0.0, 0.5]
+    and _hsr_p2_room["no tank"][1].tolist() == [5.5] * 12 and _hsr_p2_room["no tank"][0][4] == 1.1,
+    f"{({k: (v[0].tolist(), v[1].tolist()) for k, v in _hsr_p2_room.items()})}",
+)
+# The re-solved candidate is polished once (REV_NO_POLISH): on an objective
+# whose weights differ by 40x across the steps, one L-BFGS-B iteration
+# stops short and the restart from its point moves on. The plan that ships
+# is the restart's, and it scores below the run it restarted from.
+_hsr_p2_weight = np.linspace(1.0, 40.0, 12)
+_hsr_p2_goal = np.where(_hsr_sel_masks[-1] > 0.0, 2.7, 0.0)
+
+
+def _hsr_p2_weighted(x, *_args, **_kw):
+    return float(np.sum(_hsr_p2_weight * (np.asarray(x, float) - _hsr_p2_goal) ** 2))
+
+
+def _hsr_p2_weighted_batch(rows, *_args, **_kw):
+    return np.sum(_hsr_p2_weight * (np.atleast_2d(rows) - _hsr_p2_goal) ** 2, axis=1)
+
+
+_hsr_p2_polished = []
+_hsr_p2_real_restart = _hsr_om._lbfgsb_restart
+
+
+def _hsr_p2_restart(best, objective, *args, **kwargs):
+    out = _hsr_p2_real_restart(best, objective, *args, **kwargs)
+    _hsr_p2_polished.append((float(objective(best.x)), float(objective(out.x)), np.array(out.x, float)))
+    return out
+
+
+_hsr_om._lbfgsb_restart = _hsr_p2_restart
+try:
+    _hsr_p2_shipped = _hsr_commit(_hsr_sel_opt, _hsr_p2_weighted, _hsr_p2_weighted_batch, _hsr_trickle, 1)
+finally:
+    _hsr_om._lbfgsb_restart = _hsr_p2_real_restart
+R.check(
+    "the best re-solved candidate is polished once from its own point: at one "
+    "iteration the plan that ships is the restart's, scoring below the run it "
+    "restarted from",
+    len(_hsr_p2_polished) == 1
+    and np.array_equal(_hsr_p2_shipped, _hsr_p2_polished[0][2])
+    and _hsr_p2_polished[0][1] < _hsr_p2_polished[0][0] - 0.01,
+    f"{[(round(a, 4), round(b, 4)) for a, b, _ in _hsr_p2_polished]}",
+)
+# Two candidates are re-solved, not one (REV_ONE_RESOLVED). Toward this
+# target the best candidate as it stands is a mask, the projection is
+# second, and only the projection's runs reach the 2.0 and 3.0 kW steps the
+# mask holds shut: re-solved, the second candidate ships.
+_hsr_p2_target = np.array([0.0, 0.0, 1.1, 0.0, 1.1, 0.0, 2.0, 0.3, 0.0, 0.0, 3.0, 0.0])
+_hsr_p2_toward = _hsr_toward(_hsr_p2_target)
+_hsr_p2_as_is = [_hsr_p2_toward[0](c) for c in (_hsr_sel_first, *_hsr_sel_masks)]
+_hsr_p2_second = _hsr_commit(_hsr_sel_opt, *_hsr_p2_toward, _hsr_trickle, 50)
+R.check(
+    "the two best candidates are re-solved: where the best as it stands is a "
+    "mask and the projection second, the projection's runs re-solved ship, "
+    "every step on and scoring below the best mask's",
+    _hsr_om._RESOLVED_CANDIDATES == 2
+    and int(np.argmin(_hsr_p2_as_is)) > 0 and sorted(_hsr_p2_as_is)[1] == _hsr_p2_as_is[0]
+    and bool(np.all(_hsr_p2_second >= 1.1 - 1e-9))
+    and _hsr_p2_toward[0](_hsr_p2_second) < min(_hsr_p2_as_is) - 1.0,
+    f"as it stands {[round(s, 3) for s in _hsr_p2_as_is]}; shipped "
+    f"{_hsr_p2_second.round(3).tolist()} scoring {_hsr_p2_toward[0](_hsr_p2_second):.3f}",
+)
+# The tie break's two halves, each pinned alone (owner ruling 2026-11-15,
+# "Keep as built, pin it"). At a flat price two masks of equal cost exist on
+# each plan below; a price 1e-5 lower on the step the shipped mask leaves
+# out ships the other, a price 1e-5 higher keeps it, so the two tie and only
+# the tie break chooses. A design choice: the mask that agrees with the
+# relaxed plan's own on/off reading ships.
+#
+# The half on a step the plan did not ask for (REV3_TIE_NOT_ASKED_SIDE_OFF):
+# both masks pause one step the plan asked for, and the other one also runs
+# step 0, which the plan leaves off.
+_hsr_p2_na = np.array([0.0, 2.2, 0.5, 0.9, 0.9])
+# The half on a step the plan asked for (REV3_TIE_ASKED_SIDE_OFF): neither
+# mask runs a step the plan leaves off, and the other one pauses two steps
+# the plan asked for where this one pauses one.
+_hsr_p2_as = np.array([0.5, 0.5, 0.5, 2.2, 0.9, 0.9])
+
+
+def _hsr_p2_masks(q, step, nudge):
+    """The stage's masks of ``q`` at a flat 0.2 with ``nudge`` on one step."""
+    prices = np.full(q.size, 0.2)
+    prices[step] += nudge
+    return [m.astype(int).tolist() for m in _hsr_runs.candidates(q, prices, 1.1, 3.0, 0.0, dt=0.25)]
+
+
+_hsr_p2_ties = {
+    name: {nudge: _hsr_p2_masks(q, step, nudge) for nudge in (0.0, -1e-5, 1e-5)}
+    for name, q, step in (("not asked", _hsr_p2_na, 0), ("asked", _hsr_p2_as, 3))
+}
+R.check(
+    "at a flat price, of two equal-cost masks that pause as many steps the "
+    "plan asked for, the one that runs no step the plan left off ships",
+    _hsr_p2_ties["not asked"] == {
+        0.0: [[0, 1, 0, 1, 1]], -1e-5: [[1, 0, 1, 1, 1]], 1e-5: [[0, 1, 0, 1, 1]]},
+    f"{_hsr_p2_ties['not asked']}",
+)
+R.check(
+    "at a flat price, of two equal-cost masks that run no step the plan left "
+    "off, the one that pauses fewer steps the plan asked for ships",
+    _hsr_p2_ties["asked"] == {
+        0.0: [[1, 1, 1, 0, 1, 1]], -1e-5: [[0, 0, 1, 1, 1, 1]], 1e-5: [[1, 1, 1, 0, 1, 1]]},
+    f"{_hsr_p2_ties['asked']}",
 )
 
 
@@ -94076,10 +94594,12 @@ R.check(
 
 # The month and the wear line take the edge's one stamp: a start whose first
 # reading is before midnight at a month's end and whose confirmation is after
-# it is January's, in the count and on the ledger.
+# it is February's, in the count and on the ledger. Both key the configured
+# zone's wall clock, so the midnight is that zone's, not UTC's: a UTC literal
+# lands in March under any zone east of UTC (the nightly Asia/Kolkata lane).
 _sce_mid = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True, heat_pump_power_entity="sensor.kw")
 _sce_mid.load(None)
-_sce_mid_edge = datetime(2026, 2, 28, 23, 59, 50, tzinfo=UTC)
+_sce_mid_edge = datetime(2026, 2, 28, 23, 59, 50, tzinfo=_sce_dt.DEFAULT_TIME_ZONE)
 _sce_mid.set("sensor.kw", "2.0", _sce_mid_edge, unit="kW")
 for _sce_k in (1, 2):  # the meter's rise is held for two refreshes (S7), released in March
     _sce_mid.refresh(_sce_mid_edge + timedelta(seconds=_SCE_DEBOUNCE_S + _sce_k))
@@ -94371,6 +94891,692 @@ R.check(
     f"{_sce_reread_rows}",
 )
 _sce_dt.freeze(None)
+
+
+R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
+
+# Phase 1 of room-level support (design/R11-OUTSIDE-ROOMS-P2): a list of room
+# thermometers, read through inputs.read_room and summarised by rooms. A
+# climate's state is its HVAC mode, so the temperature and target come from
+# its attributes in the instance's unit system.
+from types import SimpleNamespace as _rm_ns  # noqa: E402
+from heatpump_optimizer import rooms as _rm  # noqa: E402
+from heatpump_optimizer.const import CONF_ROOM_TEMPERATURE_ENTITIES as _RM_KEY  # noqa: E402
+from heatpump_optimizer import entry_config as _rm_ec  # noqa: E402
+
+_RM_NOW = datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
+
+
+def _rm_climate(current, target, action="heating", mode="heat", age_min=5.0):
+    attrs = {"temperature": target, "hvac_action": action}
+    if current is not None:
+        attrs["current_temperature"] = current
+    if action is None:
+        del attrs["hvac_action"]
+    return FakeState(mode, last_updated=_RM_NOW - timedelta(minutes=age_min), attributes=attrs)
+
+
+def _rm_reader(states, unit=None, enabled=True):
+    hass = FakeHass(states)
+    if unit is not None:
+        hass.config.units = _rm_ns(temperature_unit=unit)
+    return InputReader(hass, {}, enabled=enabled, now=lambda: _RM_NOW)
+
+
+_rm_r = _rm_reader({
+    "climate.a": _rm_climate(18.0, 21.0),
+    "climate.b": _rm_climate(20.4, 20.0, action="idle"),
+    "climate.noattr": _rm_climate(None, 20.0, action=None),
+    "climate.off": _rm_climate(17.0, 22.0, action="off", mode="off"),
+    "sensor.c": FakeState("19.5", unit="°C", last_updated=_RM_NOW - timedelta(minutes=3)),
+    "sensor.down": FakeState("unavailable"),
+    "sensor.old": FakeState("19.0", unit="°C", last_updated=_RM_NOW - timedelta(hours=7)),
+    "sensor.fault": FakeState("85.0", unit="°C", last_updated=_RM_NOW - timedelta(minutes=1)),
+})
+_rm_a = inputs_mod.read_room(_rm_r, "climate.a")
+_rm_b = inputs_mod.read_room(_rm_r, "climate.b")
+R.check(
+    "a climate room reads current_temperature and its target from attributes, calling from hvac_action",
+    (_rm_a.temperature_c, _rm_a.target_c, _rm_a.calling, _rm_a.hvac_mode, _rm_a.problem)
+    == (18.0, 21.0, True, "heat", None)
+    and (_rm_b.calling, _rm.usable_c(_rm_b)) == (False, 20.4),
+    f"{_rm_a} {_rm_b}",
+)
+_rm_noattr = inputs_mod.read_room(_rm_r, "climate.noattr")
+_rm_sensor = inputs_mod.read_room(_rm_r, "sensor.c")
+R.check(
+    "a climate with no current_temperature is not_numeric, and with no hvac_action its call for heat "
+    "is unknown, not False; a sensor room reads its state, no target",
+    _rm_noattr.problem == "not_numeric" and _rm_noattr.temperature_c is None and _rm_noattr.calling is None
+    and (_rm_sensor.temperature_c, _rm_sensor.target_c, _rm_sensor.calling, _rm_sensor.problem)
+    == (19.5, None, None, None),
+    f"{_rm_noattr} {_rm_sensor}",
+)
+_rm_f = inputs_mod.read_room(
+    _rm_reader({"climate.f": _rm_climate(68.0, 69.8)}, unit="°F"), "climate.f")
+_rm_f_null = inputs_mod.read_room(_rm_reader({"climate.f": _rm_climate(68.0, 69.8)}), "climate.f")
+R.check(
+    "a Fahrenheit instance's climate attributes convert to degC; null control, a Celsius instance "
+    "reads the same 68 raw, outside a room's range",
+    round(_rm_f.temperature_c, 6) == 20.0 and round(_rm_f.target_c, 6) == 21.0
+    and _rm_f_null.problem == "implausible" and _rm_f_null.target_c == 69.8,
+    f"{_rm_f} {_rm_f_null}",
+)
+# A sensor room converts by its own unit_of_measurement, not the instance's: a
+# degF sensor on a Celsius instance (the default reader) reads degC.
+_rm_sf = {u: inputs_mod.read_room(_rm_reader({"sensor.u": FakeState(
+    v, unit=u, last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.u")
+    for u, v in (("°F", "68.0"), ("°C", "20.0"))}
+R.check(
+    "a degF sensor room converts by its own unit to degC (68 degF reads 20.0, no problem); null "
+    "control, a degC sensor at 20.0 reads 20.0",
+    round(_rm_sf["°F"].temperature_c or 0.0, 6) == 20.0 and _rm_sf["°F"].problem is None
+    and _rm_sf["°C"].temperature_c == 20.0 and _rm_sf["°C"].problem is None,
+    f"{_rm_sf}",
+)
+_rm_bad = {e: inputs_mod.read_room(_rm_r, e).problem
+           for e in ("sensor.down", "sensor.none", "sensor.old", "sensor.fault")}
+_rm_fault = inputs_mod.read_room(_rm_r, "sensor.fault")
+_rm_old_off = inputs_mod.read_room(_rm_reader({"sensor.old": FakeState(
+    "19.0", unit="°C", last_updated=_RM_NOW - timedelta(hours=7))}, enabled=False), "sensor.old")
+R.check(
+    "an unavailable, missing, stale (past the indoor limit, 360 min) and implausible room each carry "
+    "their problem word, the implausible one no temperature; null control, the watchdog off reads the "
+    "old room fresh",
+    _rm_bad == {"sensor.down": "unavailable", "sensor.none": "missing_entity",
+                "sensor.old": "stale", "sensor.fault": "implausible"}
+    and _rm_fault.temperature_c is None and _rm_old_off.problem is None,
+    f"{_rm_bad} {_rm_fault} {_rm_old_off}",
+)
+R.check(
+    "no room read records into the reader's input health, on any path",
+    _rm_r.health.readings == {},
+    f"{sorted(_rm_r.health.readings)}",
+)
+
+
+def _rm_ok(entity, temp):
+    return _rm.RoomReading(entity_id=entity, temperature_c=temp)
+
+
+_rm_s = _rm.summarize((_rm_ok("climate.a", 18.0), _rm_ok("climate.b", 20.4),
+                       _rm_ok("sensor.c", 19.5), _rm_noattr))
+R.check(
+    "the summary is the mean and the warmest less the coldest over the readable rooms, naming "
+    "the coldest and the warmest",
+    _rm_s is not None and round(_rm_s.mean_c, 6) == round((18.0 + 20.4 + 19.5) / 3, 6)
+    and round(_rm_s.spread_c, 6) == 2.4
+    and (_rm_s.coldest_entity, _rm_s.warmest_entity, _rm_s.valid_count) == ("climate.a", "climate.b", 3),
+    f"{_rm_s}",
+)
+_rm_down = _rm.RoomReading(entity_id="x", temperature_c=None, problem="unavailable")
+_rm_q = {
+    (n, ok): _rm.summarize(tuple(_rm_ok(f"s.{i}", 20.0) for i in range(ok))
+                           + tuple(_rm_down for _ in range(n - ok))) is not None
+    for n, ok in ((20, 10), (20, 9), (1, 1), (1, 0), (3, 2), (3, 1), (0, 0))
+}
+R.check(
+    "the quorum is half the list, minimum one: 10 of 20 and 2 of 3 summarise, 9 of 20, 1 of 3, "
+    "0 of 1 and an empty list do not",
+    _rm_q == {(20, 10): True, (20, 9): False, (1, 1): True, (1, 0): False,
+              (3, 2): True, (3, 1): False, (0, 0): False},
+    f"{_rm_q}",
+)
+_rm_stale_kept = _rm.RoomReading(entity_id="s.old", temperature_c=19.0, problem="stale")
+R.check(
+    "a stale room's kept temperature never reaches the summary",
+    _rm.summarize((_rm_ok("s.a", 20.0), _rm_stale_kept)).mean_c == 20.0,
+    f"{_rm.summarize((_rm_ok('s.a', 20.0), _rm_stale_kept))}",
+)
+
+R.check(
+    "the room list parses absent, None, empty and a stored non-list to the empty tuple, a list to a "
+    "tuple without its empty items, and survives a factory reset as wiring",
+    _rm_ec.EntryConfig.from_mapping({}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: None}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: []}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: ["climate.a", "sensor.c"]}).room_temperature_entities
+    == ("climate.a", "sensor.c")
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: "climate.a"}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: ["climate.a", None, ""]}).room_temperature_entities
+    == ("climate.a",)
+    and _RM_KEY in _rm_ec.FACTORY_KEPT,
+    f"{_rm_ec.EntryConfig.from_mapping({_RM_KEY: ['climate.a']}).room_temperature_entities}",
+)
+
+
+def _rm_cycle(rooms=None, indoor_entity="sensor.indoor", tag=""):
+    """One closed-loop cycle on the r9f12 rig: (payload, coordinator)."""
+    cfg = dict(_r9f12_seed_cfg, indoor_temp_entity=indoor_entity)
+    hass = FakeHass()
+    hass.bus.async_fire = lambda *_a, **_k: None
+    hass.states.set("sensor.indoor", FakeState("19.6", unit="°C"))
+    hass.states.set("sensor.outdoor", FakeState("6.0", unit="°C"))
+    hass.states.set("climate.dead", FakeState("unavailable"))
+    for i in range(19):
+        hass.states.set(f"climate.r{i}", FakeState("heat", attributes={
+            "current_temperature": 19.0 + 0.1 * i, "temperature": 20.0, "hvac_action": "idle"}))
+    if rooms is not None:
+        cfg[_RM_KEY] = rooms
+    entry = _r9f12_entry(data=cfg, entry_id=f"rm_{tag}")
+    _r9f12_dt.freeze(_RM_NOW)
+    try:
+        _r9f12_seed_prices(hass, _RM_NOW)
+        _r9f12_aio.run(_r9f12_integ.async_setup_entry(hass, entry))
+        coord = entry.runtime_data
+        _r9f12_aio.run(coord.async_refresh())
+    finally:
+        _r9f12_dt.freeze(None)
+    return coord.data, coord
+
+
+_RM_TWENTY = ["climate.dead"] + [f"climate.r{i}" for i in range(19)]
+_rm_none, _ = _rm_cycle(tag="none")
+_rm_empty, _ = _rm_cycle(rooms=[], tag="empty")
+_rm_twenty, _rm_twenty_coord = _rm_cycle(rooms=_RM_TWENTY, tag="twenty")
+_rm_indoor_dead, _ = _rm_cycle(indoor_entity="climate.dead", tag="dead_indoor")
+R.check(
+    "twenty rooms with one unavailable leave input_problems and stale_inputs equal to the no-list "
+    "run; null control, the same unavailable entity as the indoor thermometer raises a problem",
+    _rm_twenty["input_problems"] == _rm_none["input_problems"]
+    and _rm_twenty["stale_inputs"] == _rm_none["stale_inputs"]
+    and any(p.get("entity_id") == "climate.dead" for p in _rm_indoor_dead["input_problems"]),
+    f"twenty={_rm_twenty['input_problems']} none={_rm_none['input_problems']} "
+    f"dead={_rm_indoor_dead['input_problems']}",
+)
+_rm_pub = _rm_twenty.get("rooms") or {}
+R.check(
+    "the payload's rooms block carries the average, spread, valid count, the dropped room and each "
+    "readable thermostat's temperature, target, call for heat and HVAC mode",
+    _rm_pub.get("valid_count") == 19 and _rm_pub.get("configured_count") == 20
+    and round(_rm_pub.get("average"), 6) == round(sum(19.0 + 0.1 * i for i in range(19)) / 19, 6)
+    and round(_rm_pub.get("spread"), 6) == 1.8
+    and _rm_pub.get("dropped") == {"climate.dead": "unavailable"}
+    and _rm_pub.get("coldest_entity") == "climate.r0"
+    and _rm_pub.get("per_room", {}).get("climate.r1")
+    == {"temperature": 19.1, "target": 20.0, "calling": False, "hvac_mode": "heat"},
+    f"{_rm_pub}",
+)
+R.check(
+    "no list and an empty list publish no rooms key and the same payload keys",
+    "rooms" not in _rm_none and "rooms" not in _rm_empty and set(_rm_none) == set(_rm_empty),
+    f"{sorted(set(_rm_none) ^ set(_rm_empty))}",
+)
+
+
+def _rm_displace(cmd):
+    """The coordinator's ECL110 displace read after one more state update, the
+    action carrying ``cmd`` as its displace (None: no displace key at all)."""
+    _, coord = _rm_cycle(tag=f"displace_{cmd}")
+    coord._ecl110_current_displace = -1.25
+    action = {k: v for k, v in coord._current_action.items() if k != "displace_value"}
+    coord._current_action = action if cmd is None else {**action, "displace_value": cmd}
+    _r9f12_dt.freeze(_RM_NOW)
+    try:
+        _r9f12_aio.run(coord._update_current_state())
+    finally:
+        _r9f12_dt.freeze(None)
+    return coord._ecl110_current_displace, coord._current_state.ecl110_displace_command
+
+
+_rm_disp = {c: _rm_displace(c) for c in (2.0, "2", None)}
+R.check(
+    "an action carrying a displace hands it, as a number, to the ECL110 lag and the coordinator's "
+    "read of it; null control, an action with no displace leaves the read where it was",
+    _rm_disp[2.0] == (2.0, 2.0) and _rm_disp["2"] == (2.0, 2.0) and _rm_disp[None][0] == -1.25,
+    f"{_rm_disp}",
+)
+R.check(
+    "the room read's age limit is the indoor sensor's, the staleness scale applied through the "
+    "same clamp max_age_for applies",
+    inputs_mod.max_age_for("indoor_temp_entity", 2.0) == inputs_mod._scaled(360.0, 2.0) == 720.0
+    and inputs_mod._scaled(360.0, 1e9) == inputs_mod.max_age_for("indoor_temp_entity", 1e9),
+    f"{inputs_mod.max_age_for('indoor_temp_entity', 2.0)}",
+)
+_rm_scaled_ends = [inputs_mod._scaled(360.0, s) for s in (0.0, 0.5, 10.0, 1e9)]
+R.check(
+    "the staleness scale is clamped at both ends: a scale under 0.5 reads as 0.5 and one over "
+    "10 as 10; null control, the two ends themselves pass through unchanged",
+    (inputs_mod.STALENESS_SCALE_MIN, inputs_mod.STALENESS_SCALE_MAX) == (0.5, 10.0)
+    and _rm_scaled_ends == [180.0, 180.0, 3600.0, 3600.0],
+    f"{_rm_scaled_ends}",
+)
+_rm_edges = {v: inputs_mod.read_room(_rm_reader({"sensor.e": FakeState(
+    str(v), unit="°C", last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.e").problem
+    for v in (-30.0, 60.0, -30.1, 60.1)}
+R.check(
+    "a room's range is closed: -30 and 60 degC read, -30.1 and 60.1 are implausible",
+    _rm_edges == {-30.0: None, 60.0: None, -30.1: "implausible", 60.1: "implausible"},
+    f"{_rm_edges}",
+)
+
+R.check(
+    "the side table holds plain data only: a tuple of frozen readings",
+    all(isinstance(r, _rm.RoomReading) for r in _rm.readings_of(_rm_twenty_coord))
+    and len(_rm.readings_of(_rm_twenty_coord)) == 20,
+    f"{_rm.readings_of(_rm_twenty_coord)[:2]}",
+)
+
+
+R.section("#3616 R11-OUTSIDE-ROOMS-P2: a room short of its target lifts the solve's comfort floor")
+
+# Phase 2 (design/R11-OUTSIDE-ROOMS-P2): rooms.resolve and rooms.lifted add a lift to the
+# floor-margin array the solver already takes. The fixture is the design
+# note's: rooms A 18.0 under a 21.0 target, B and C at or above theirs, D
+# colder than A but switched off; the house reads 19.6 under a 20.0 target on
+# a 19.5 floor, so the day band is 0.5 K and the night band 1.0 K.
+from heatpump_optimizer.optimizer import OptimizationConfig as _rl_Config  # noqa: E402
+from heatpump_optimizer import const as _rl_const  # noqa: E402
+
+_RL_N = 48  # 12:00 to 24:00 at 15 min; the night floor holds from step 40 (22:00)
+_rl_cfg = _rl_Config(min_temp=19.5, max_temp=23.0, target_temp=20.0,
+                     comfort_temp_day=20.0, comfort_temp_night=20.0)
+_RL_OPEN = dict(enabled=True, economy=False, open_window=False, away=False,
+                manual_pin=False, two_zone=False)
+
+
+class _RlOwner:
+    """A stand-in coordinator: the side tables key on it weakly."""
+
+
+def _rl_room(entity, temp, target, mode="heat", problem=None):
+    return _rm.RoomReading(entity_id=entity, temperature_c=temp, target_c=target,
+                           hvac_mode=mode, problem=problem)
+
+
+_RL_A = _rl_room("climate.a", 18.0, 21.0)
+_RL_REST = (_rl_room("climate.b", 20.4, 20.0), _rl_room("climate.c", 20.4, 16.0),
+            _rl_room("climate.d", 17.0, 22.0, mode="off"))
+_RL_ROOMS = (_RL_A,) + _RL_REST
+
+
+def _rl_solve(readings=_RL_ROOMS, house=19.6, base=None, cfg=_rl_cfg, owner=None,
+              start=_RM_NOW, n=_RL_N, **signals):
+    """One scheduled solve's margins: (array or base, owner)."""
+    owner = owner or _RlOwner()
+    _rm.record(owner, readings)
+    held = _rm.hold(owner, _rm.resolve(
+        _rm.readings_of(owner), _rm.lift_of(owner), _rm.gate(**dict(_RL_OPEN, **signals)),
+        cfg, house, start))
+    return _rm.lifted(held, base, cfg, start, n), owner
+
+
+_rl_ramped, _rl_ramped_owner = _rl_solve()
+_rl_want_ramp = np.minimum(0.5, 0.1 + 0.25 * 0.25 * np.arange(40))
+R.check(
+    "room A three kelvin under its target lifts the floor: from the house's 0.1 K margin over "
+    "the floor at step 0, rising 0.25 K an hour, to the 0.5 K day band, and to the 1.0 K cap "
+    "under the night band from 22:00",
+    _rl_ramped is not None and np.allclose(_rl_ramped[:40], _rl_want_ramp)
+    and np.allclose(_rl_ramped[40:], 1.0)
+    and _rm.lift_of(_rl_ramped_owner) == _rm.HeldLift(1.0, "climate.a", None, 19.6 - 19.5),
+    f"{None if _rl_ramped is None else np.round(_rl_ramped, 4).tolist()} {_rm.lift_of(_rl_ramped_owner)}",
+)
+_rl_flat, _ = _rl_solve(house=20.0)
+_rl_above, _ = _rl_solve(house=20.3)
+R.check(
+    "with the house at or above the lifted floor the lift is flat at the band: 0.5 K at every "
+    "day step, the night band at a night step",
+    _rl_flat is not None and np.allclose(_rl_flat[:40], 0.5) and np.allclose(_rl_flat[40:], 1.0)
+    and _rl_above is not None and np.allclose(_rl_above[:40], 0.5),
+    f"{None if _rl_flat is None else sorted(set(np.round(_rl_flat, 4).tolist()))}",
+)
+_rl_base = np.full(_RL_N, 0.3)
+_rl_conf, _ = _rl_solve(house=20.0, base=_rl_base)
+_rl_conf_low, _ = _rl_solve(house=19.9, base=_rl_base)
+R.check(
+    "a 0.3 K confidence margin leaves the lift 0.2 K, so both margins end at the comfort target "
+    "and never past it; the ramp's anchor is the house's margin over the floor with that margin "
+    "on it (19.9 over 19.8: 0.1 K at step 0)",
+    _rl_conf is not None and np.allclose(_rl_conf[:40], 0.5) and np.allclose(_rl_conf[40:], 1.0)
+    and _rl_conf is not _rl_base and np.allclose(_rl_base, 0.3)
+    and _rl_conf_low is not None and np.allclose(_rl_conf_low[:3], [0.4, 0.4625, 0.5]),
+    f"{None if _rl_conf is None else sorted(set(np.round(_rl_conf, 4).tolist()))} "
+    f"{None if _rl_conf_low is None else np.round(_rl_conf_low[:3], 4).tolist()}",
+)
+_rl_squeezed, _ = _rl_solve(house=20.0, base=np.full(_RL_N, 0.7))
+R.check(
+    "a confidence margin wider than the day band takes the whole band: no lift at a day step "
+    "(never a negative one), the rest of the night band at a night step",
+    _rl_squeezed is not None and np.allclose(_rl_squeezed[:40], 0.7)
+    and np.allclose(_rl_squeezed[40:], 1.0),
+    f"{None if _rl_squeezed is None else sorted(set(np.round(_rl_squeezed, 4).tolist()))}",
+)
+
+# -- What does not lift: each returns the base array object itself -----------
+_rl_d_heat = (_rl_room("climate.d", 17.0, 22.0, mode="heat"),) + _RL_REST[:2]
+_rl_inert = {
+    "A at its target": dict(readings=(_rl_room("climate.a", 21.0, 21.0),) + _RL_REST),
+    "D alone short, switched off": dict(readings=_RL_REST),
+    "D switched to cool": dict(readings=_RL_REST[:2] + (_rl_room("climate.d", 17.0, 22.0, mode="cool"),)),
+    "D in heat_cool": dict(readings=_RL_REST[:2] + (_rl_room("climate.d", 17.0, 22.0, mode="heat_cool"),)),
+    "A stale": dict(readings=(_rl_room("climate.a", 18.0, 21.0, problem="stale"),) + _RL_REST),
+    "A a sensor, no target": dict(readings=(_rl_room("sensor.a", 18.0, None, mode=None),) + _RL_REST),
+    "empty list": dict(readings=()),
+    "flag off": dict(enabled=False),
+    "economy": dict(economy=True),
+    "open window": dict(open_window=True),
+    "away": dict(away=True),
+    "manual pin": dict(manual_pin=True),
+    "two-zone": dict(two_zone=True),
+    "holiday at the start": dict(cfg=replace(_rl_cfg, holiday_dates=frozenset({_RM_NOW.date()}))),
+    "house reading not finite": dict(house=float("nan")),
+}
+_rl_inert_got = {}
+for _rl_name, _rl_kw in _rl_inert.items():
+    _rl_got_none, _rl_o = _rl_solve(**_rl_kw)
+    _rl_got_base, _ = _rl_solve(base=_rl_base, **_rl_kw)
+    _rl_inert_got[_rl_name] = (_rl_got_none is None, _rl_got_base is _rl_base, _rm.lift_of(_rl_o).gate)
+_rl_d_heat_arr, _rl_d_heat_owner = _rl_solve(readings=_rl_d_heat)
+R.check(
+    "no lift, and the base array object itself (None stays None), for a room at its target, a "
+    "room switched off or cooling, a stale room, a sensor with no target, an empty list, the "
+    "flag off, Economy, an open window, away, a manual space pin, the two-zone model, a holiday "
+    "and an unknown house temperature; null control, room D in heat mode lifts and is named",
+    all(got[:2] == (True, True) for got in _rl_inert_got.values())
+    and {k: v[2] for k, v in _rl_inert_got.items()} == {
+        "A at its target": None, "D alone short, switched off": None, "D switched to cool": None,
+        "D in heat_cool": None, "A stale": None, "A a sensor, no target": None,
+        "empty list": "no_rooms", "flag off": "disabled", "economy": "economy",
+        "open window": "open_window", "away": "away", "manual pin": "manual_pin",
+        "two-zone": "two_zone", "holiday at the start": "holiday",
+        "house reading not finite": "house_unknown"}
+    and _rl_d_heat_arr is not None and _rm.lift_of(_rl_d_heat_owner).entity_id == "climate.d",
+    f"{_rl_inert_got} d_heat={_rm.lift_of(_rl_d_heat_owner)}",
+)
+_rl_gate_order = [_rm.gate(**dict(_RL_OPEN, **kw)) for kw in (
+    {}, dict(enabled=False, economy=True), dict(economy=True, away=True), dict(open_window=True, two_zone=True))]
+R.check(
+    "the gate names the first signal that fires and is None when none does",
+    _rl_gate_order == [None, "disabled", "economy", "open_window"],
+    f"{_rl_gate_order}",
+)
+_rl_no_target, _rl_no_target_owner = _rl_solve(readings=(_rl_room("sensor.a", 18.0, None, mode=None),))
+_rl_quorum, _rl_quorum_owner = _rl_solve(readings=(
+    _RL_A, _rl_room("climate.x", None, 21.0, problem="unavailable"),
+    _rl_room("climate.y", None, 21.0, problem="unavailable")))
+_rl_half, _ = _rl_solve(readings=(_RL_A, _rl_room("climate.x", None, 21.0, problem="unavailable")))
+R.check(
+    "a list under its quorum lifts nothing however short its one readable room, and a list of "
+    "sensors has no target to lift by; null control, one readable room of two is a quorum",
+    _rl_quorum is None and _rm.lift_of(_rl_quorum_owner).gate == "quorum"
+    and _rl_no_target is None and _rm.lift_of(_rl_no_target_owner).gate == "no_target"
+    and _rl_half is not None,
+    f"{_rm.lift_of(_rl_quorum_owner)} {_rm.lift_of(_rl_no_target_owner)}",
+)
+
+# -- The house's own shortfall is taken off, and the cap -----------------------
+_rl_e = lambda temp: (_rl_room("climate.e", temp, 20.0),)  # noqa: E731
+_rl_same, _rl_same_owner = _rl_solve(readings=_rl_e(19.5), house=19.5)
+_rl_less, _rl_less_owner = _rl_solve(readings=_rl_e(19.25), house=19.75)
+_rl_capped, _rl_capped_owner = _rl_solve(readings=_rl_e(15.0), house=20.0)
+R.check(
+    "a room no shorter of its target than the house is of its own lifts nothing; one 0.5 K "
+    "shorter lifts 0.5 K; one five kelvin shorter lifts the 1.0 K cap",
+    _rl_same is None and _rm.lift_of(_rl_same_owner).lift_c == 0.0
+    and _rm.lift_of(_rl_less_owner) == _rm.HeldLift(0.5, "climate.e", None, 0.25)
+    and _rm.lift_of(_rl_capped_owner).lift_c == _rm.ROOM_LIFT_CAP_C == 1.0,
+    f"{_rm.lift_of(_rl_same_owner)} {_rm.lift_of(_rl_less_owner)} {_rm.lift_of(_rl_capped_owner)}",
+)
+_rl_ahead, _rl_ahead_owner = _rl_solve(readings=_rl_e(19.8), house=19.0)
+R.check(
+    "a room less short of its target than the house is of its own holds a lift of zero, never a "
+    "negative one; null control, a room 0.5 K shorter than the house holds 0.5 K",
+    _rl_ahead is None and _rm.lift_of(_rl_ahead_owner).lift_c == 0.0
+    and _rm.lift_of(_rl_less_owner).lift_c == 0.5,
+    f"{_rm.lift_of(_rl_ahead_owner)}",
+)
+_rl_neg_base, _ = _rl_solve(house=20.0, base=np.full(_RL_N, -0.5))
+R.check(
+    "a negative confidence margin is read as zero, as the solver reads it: the lifted margins "
+    "equal those with no confidence margin at all, the night band's 1.0 K included",
+    _rl_neg_base is not None and _rl_flat is not None and np.allclose(_rl_neg_base, _rl_flat),
+    f"{None if _rl_neg_base is None else sorted(set(np.round(_rl_neg_base, 4).tolist()))}",
+)
+_rl_below, _rl_below_owner = _rl_solve(readings=_rl_e(18.0), house=19.0)
+R.check(
+    "a house under its floor starts the ramp at zero, never below: step 0 takes no lift and "
+    "step 1 one step of the rate",
+    _rl_below is not None and np.allclose(_rl_below[:3], [0.0, 0.0625, 0.125])
+    and _rm.lift_of(_rl_below_owner).anchor_c == 19.0 - 19.5,
+    f"{None if _rl_below is None else np.round(_rl_below[:3], 4).tolist()} {_rm.lift_of(_rl_below_owner)}",
+)
+
+_rl_uneven = np.concatenate(([0.3], np.zeros(_RL_N - 1)))
+_rl_uneven_got, _ = _rl_solve(readings=_rl_e(15.0), house=19.9, base=_rl_uneven)
+R.check(
+    "the ramp starts at the house's margin over step 0's own margin, not a later step's: 19.9 "
+    "over a floor a 0.3 K margin raised at step 0 alone starts 0.1 K up",
+    _rl_uneven_got is not None and np.allclose(_rl_uneven_got[:3], [0.3 + 0.1, 0.1625, 0.225]),
+    f"{None if _rl_uneven_got is None else np.round(_rl_uneven_got[:3], 4).tolist()}",
+)
+_rl_half_cfg = replace(_rl_cfg, day_end_hour=21.5, comfort_temp_night=19.25)
+_rl_half_got, _ = _rl_solve(house=20.0, cfg=_rl_half_cfg)
+R.check(
+    "the band is read at each step's hour and minute, target and floor both, as the solver's "
+    "bounds are: a day ending 21:30 gives the 0.5 K day band through 21:15 and the night's "
+    "19.25 target over its 19.0 floor, 0.25 K, from 21:30",
+    _rl_half_got is not None and np.allclose(_rl_half_got[:38], 0.5)
+    and np.allclose(_rl_half_got[38:], 0.25),
+    f"{None if _rl_half_got is None else np.round(_rl_half_got[36:40], 4).tolist()}",
+)
+_, _rl_first_owner = _rl_solve(readings=_rl_e(19.125), house=20.0)
+_, _rl_edge_owner = _rl_solve(readings=(_rl_room("climate.e", 0.0, 0.2),), house=20.0)
+R.check(
+    "a first solve holds what the rooms ask, 0.875 K, not a lift it never had; a room asking "
+    "the deadband exactly, 0.2 K, moves the lift from zero; and a lift record with no lift "
+    "starts its ramp nowhere",
+    _rm.lift_of(_rl_first_owner).lift_c == 0.875
+    and _rm.lift_of(_rl_edge_owner).lift_c == _rm.ROOM_LIFT_DEADBAND_C == 0.2
+    and _rm.HeldLift().anchor_c == 0.0 and _rm.HeldLift() == _rm.HeldLift(0.0, None, None, 0.0),
+    f"{_rm.lift_of(_rl_first_owner)} {_rm.lift_of(_rl_edge_owner)} {_rm.HeldLift()}",
+)
+
+# -- Hold: the lift moves by the deadband or not at all; a gate zeroes at once --
+_rl_h1, _rl_hold = _rl_solve(readings=_rl_e(19.5), house=20.0)
+_rl_h2, _ = _rl_solve(readings=_rl_e(19.375), house=20.0, owner=_rl_hold)
+_rl_held_2 = _rm.lift_of(_rl_hold).lift_c
+_rl_h3, _ = _rl_solve(readings=_rl_e(19.25), house=20.0, owner=_rl_hold)
+_rl_held_3 = _rm.lift_of(_rl_hold).lift_c
+_rl_h4, _ = _rl_solve(readings=_rl_e(19.25), house=20.0, owner=_rl_hold, away=True)
+_rl_held_4 = _rm.lift_of(_rl_hold)
+_rl_h5, _ = _rl_solve(readings=_rl_e(19.875), house=20.0, owner=_rl_hold)
+R.check(
+    "a held 0.5 K lift stays, array and all, while the rooms ask 0.125 K more, moves to 0.75 K "
+    "when they ask 0.25 K more, drops to zero at once under a gate, and from zero ignores a "
+    "0.125 K ask",
+    np.array_equal(_rl_h1, _rl_h2) and _rl_held_2 == 0.5 and _rl_held_3 == 0.75
+    and np.allclose(_rl_h3[40:], 0.75) and _rl_h4 is None
+    and _rl_held_4 == _rm.HeldLift(gate="away") and _rl_h5 is None
+    and _rm.lift_of(_rl_hold).lift_c == 0.0,
+    f"held {_rl_held_2} {_rl_held_3} {_rl_held_4} {_rm.lift_of(_rl_hold)}",
+)
+
+# -- Holiday: treated as away, per step ----------------------------------------
+_rl_hol_cfg = replace(_rl_cfg, holiday_dates=frozenset({(_RM_NOW + timedelta(days=1)).date()}))
+_rl_hol, _ = _rl_solve(house=20.0, cfg=_rl_hol_cfg, n=60)
+R.check(
+    "a holiday date later in the horizon takes no lift at its own steps and leaves today's; "
+    "null control, the same horizon with no holiday lifts every step",
+    _rl_hol is not None and np.allclose(_rl_hol[:40], 0.5) and np.allclose(_rl_hol[40:48], 1.0)
+    and np.allclose(_rl_hol[48:], 0.0) and bool(np.all(_rl_solve(house=20.0, n=60)[0] > 0.0)),
+    f"{None if _rl_hol is None else np.round(_rl_hol[36:], 3).tolist()}",
+)
+
+# -- The what-if: the baseline's held lift and anchor, its own configuration ----
+_rl_wi_base, _rl_wi = _rl_solve()
+_rl_wi_same = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
+_rm.record(_rl_wi, (_rl_room("climate.a", 21.0, 21.0),) + _RL_REST)
+_rl_wi_after = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_low = _rm.lifted(_rm.lift_of(_rl_wi), None, replace(_rl_cfg, comfort_temp_day=19.75), _RM_NOW, _RL_N)
+_rl_wi_fresh = _rm.lifted(_rm.lift_of(_RlOwner()), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_resolved, _ = _rl_solve(readings=(_rl_room("climate.a", 21.0, 21.0),) + _RL_REST, owner=_rl_wi)
+R.check(
+    "a what-if's margins equal the baseline's after the readings change, and its clip is its own "
+    "configuration's (a 19.75 target leaves a 0.25 K band over the same 0.1 K anchor); an owner "
+    "never solved hands back the base; null control, a scheduled solve on the new readings "
+    "lifts nothing",
+    np.array_equal(_rl_wi_base, _rl_wi_same) and np.array_equal(_rl_wi_base, _rl_wi_after)
+    and np.allclose(_rl_wi_low[:4], [0.1, 0.1625, 0.225, 0.25]) and np.allclose(_rl_wi_low[4:40], 0.25)
+    and _rl_wi_fresh is _rl_base and _rl_wi_resolved is None,
+    f"{np.round(_rl_wi_low[:5], 4).tolist()} resolved={_rl_wi_resolved}",
+)
+
+# -- Published: the spread sensor's lift attribute -----------------------------
+_rl_pub = _rm.published(_RL_ROOMS, _rm.lift_of(_rl_ramped_owner))["rooms"]["lift"]
+_rl_pub_gate = _rm.published(_RL_ROOMS, _rm.HeldLift(gate="economy"))["rooms"]["lift"]
+R.check(
+    "the rooms block names the lift's size to a hundredth, its room (none while nothing is "
+    "lifted) and the gate that zeroed it; None before a solve; and no rooms block at all with "
+    "no list",
+    _rl_pub == {"size": 1.0, "entity": "climate.a", "gate": None}
+    and _rl_pub_gate == {"size": 0.0, "entity": None, "gate": "economy"}
+    and _rm.published(_RL_ROOMS)["rooms"]["lift"] is None
+    and _rm.published(_RL_ROOMS, _rm.HeldLift(0.126, "climate.a"))["rooms"]["lift"]["size"] == 0.13
+    and _rm.published(_RL_ROOMS, _rm.lift_of(_rl_same_owner))["rooms"]["lift"]
+    == {"size": 0.0, "entity": None, "gate": None}
+    and _rm.lift_of(_rl_same_owner).entity_id == "climate.e"
+    and _rm.published((), _rm.HeldLift(1.0, "climate.a")) == {},
+    f"{_rl_pub} {_rl_pub_gate}",
+)
+
+# -- The coordinator: the two SolveLimits builds, and the gate signals it reads --
+# The T5 rig's solve: floor 19.0, day target 21.0, so a 2.0 K day band and the
+# 1.0 K cap is what binds.
+from heatpump_optimizer import manual_plan as _rl_mp  # noqa: E402
+from heatpump_optimizer import away as _rl_away  # noqa: E402
+
+_RL_LIST = ["climate.a", "climate.b"]
+_RL_COLD = (_rl_room("climate.a", 17.0, 21.0), _rl_room("climate.b", 20.4, 20.0))
+
+
+def _rl_coord(readings=_RL_COLD, arm=None, **config):
+    """A T5 solve with a room list: (coordinator, the margins each solve was given)."""
+    c = _t5_solve_spy(**dict({_RM_KEY: _RL_LIST, _rl_const.CONF_ROOM_LIFT_ENABLED: True}, **config))
+    _rm.record(c, readings)
+    if arm is not None:
+        arm(c)
+    c._rl_margins = []
+    inner = c._solve_record
+
+    def spy(*args, **kwargs):
+        record = inner(*args, **kwargs)
+        c._rl_margins.append(record.inputs.limits.min_temp_margins)
+        return record
+
+    c._solve_record = spy
+    return _t5_run(c)
+
+
+def _rl_plan(c):
+    return None if c._optimization_result is None else list(c._optimization_result.power_schedule)
+
+
+def _rl_arm_pin(c):
+    c._manual_override = _rl_mp.build_override(
+        dhw_slots=None, space_slots=[{"start": (_T5_NOW + timedelta(hours=2)).isoformat(),
+                                      "end": (_T5_NOW + timedelta(hours=3)).isoformat()}],
+        expires_at=_T5_NOW + timedelta(hours=10), now=_T5_NOW)
+
+
+_rl_c_on = _rl_coord()
+_rl_c_none = _t5_run(_t5_solve_spy())
+_rl_c_off = _rl_coord(**{_rl_const.CONF_ROOM_LIFT_ENABLED: False})
+_rl_c_default = _rl_coord(**{_rl_const.CONF_ROOM_LIFT_ENABLED: None})
+_rl_c_absent = _t5_solve_spy(**{_RM_KEY: _RL_LIST})
+_rm.record(_rl_c_absent, _RL_COLD)
+_t5_run(_rl_c_absent)
+_rl_house = _rl_c_on._current_state.room_temperature
+_rl_on_m = _rl_c_on._rl_margins[0]
+R.check(
+    "the scheduled solve is given the lift: held at the 1.0 K cap for room A, starting from the "
+    "house's own margin over the 19.0 floor and never above 1.0",
+    _rl_c_on._t5_escaped is None and len(_rl_c_on._rl_margins) == 1 and _rl_on_m is not None
+    and _rm.lift_of(_rl_c_on) == _rm.HeldLift(1.0, "climate.a", None, _rl_house - 19.0)
+    and float(_rl_on_m[0]) == min(1.0, max(_rl_house - 19.0, 0.0))
+    and float(np.max(_rl_on_m)) == 1.0,
+    f"escaped={_rl_c_on._t5_escaped!r} house={_rl_house} held={_rm.lift_of(_rl_c_on)} "
+    f"m={None if _rl_on_m is None else np.round(_rl_on_m[:6], 3).tolist()}",
+)
+R.check(
+    "with the flag off, or never stored, a room list changes nothing: the margins stay None and "
+    "the plan is the no-list plan step for step; null control, the lifted plan differs",
+    _rl_c_off._rl_margins == [None] and _rl_c_default._rl_margins == [None]
+    and _rm.lift_of(_rl_c_off).gate == "disabled"
+    and _rm.lift_of(_rl_c_absent) == _rm.HeldLift(gate="disabled")
+    and _rl_const.DEFAULT_ROOM_LIFT_ENABLED is False
+    and _rl_plan(_rl_c_none) is not None
+    and _rl_plan(_rl_c_off) == _rl_plan(_rl_c_none) == _rl_plan(_rl_c_default)
+    and _rl_plan(_rl_c_on) != _rl_plan(_rl_c_none),
+    f"off={_rl_c_off._rl_margins} default={_rl_c_default._rl_margins} "
+    f"kWh none={None if _rl_plan(_rl_c_none) is None else round(sum(_rl_plan(_rl_c_none)), 3)} "
+    f"on={None if _rl_plan(_rl_c_on) is None else round(sum(_rl_plan(_rl_c_on)), 3)}",
+)
+_rl_c_gated = {
+    "economy": _rl_coord(arm=lambda c: setattr(c, "_mode", "economy")),
+    "open_window": _rl_coord(arm=lambda c: setattr(c._vent_cusum, "tripped", True)),
+    "open_window, relax on": _rl_coord(
+        arm=lambda c: setattr(c._vent_cusum, "tripped", True), open_window_relax_enabled=True),
+    "away": _rl_coord(arm=lambda c: setattr(c, "_away_state", _rl_away.AwayState(override_active=True))),
+    "away, recovering": _rl_coord(arm=lambda c: setattr(c, "_away_state", _rl_away.AwayState(
+        override_active=True, override_return_iso=(_T5_NOW + timedelta(minutes=30)).isoformat()))),
+    "manual_pin": _rl_coord(arm=_rl_arm_pin),
+    "two_zone": _rl_coord(arm=lambda c: setattr(
+        c, "_thermal_params", replace(c._thermal_params, two_zone_enabled=True))),
+}
+_rl_c_gates = {k: (c._t5_escaped, [m is None for m in c._rl_margins], _rm.lift_of(c) and _rm.lift_of(c).gate)
+               for k, c in _rl_c_gated.items()}
+R.check(
+    "the coordinator's signals each gate the lift, margins None: Economy, a tripped window "
+    "detector with the relax option off and on, away, away recovering, a manual space pin, the "
+    "two-zone model",
+    _rl_c_gates == {
+        "economy": (None, [True], "economy"), "open_window": (None, [True], "open_window"),
+        "open_window, relax on": (None, [True], "open_window"), "away": (None, [True], "away"),
+        "away, recovering": (None, [True], "away"), "manual_pin": (None, [True], "manual_pin"),
+        "two_zone": (None, [True], "two_zone")},
+    f"{_rl_c_gates}",
+)
+_rl_c_away = {k: (_rl_c_gated[k]._away_state.active, _rl_c_gated[k]._away_state.recovery_active)
+              for k in ("away", "away, recovering", "economy")}
+R.check(
+    "those two away solves were away, the second one recovering, and the Economy one was not",
+    _rl_c_away == {"away": (True, False), "away, recovering": (True, True), "economy": (False, False)},
+    f"{_rl_c_away}",
+)
+_rl_c_pub = _rl_c_on._build_data_dict().get("rooms", {}).get("lift")
+R.check(
+    "the coordinator publishes the lift its solve was given in the payload's rooms block",
+    _rl_c_pub == {"size": 1.0, "entity": "climate.a", "gate": None},
+    f"{_rl_c_pub}",
+)
+
+
+def _rl_whatif(c, overrides):
+    """The margins one what-if solve of ``overrides`` is given, at the baseline's instant."""
+    dt_util.freeze(_T5_NOW)
+    try:
+        horizon = c._forecast_arrays(_T5_NOW)
+        config, params, state = c._solve_hubs(len(horizon.prices), banded=False)
+        return c._whatif_solve(overrides, config, params, state, horizon, _T5_NOW, False)[1].limits.min_temp_margins
+    finally:
+        dt_util.freeze(None)
+
+
+_rl_wi_c = _rl_whatif(_rl_c_on, {})
+_rm.record(_rl_c_on, (_rl_room("climate.a", 21.0, 21.0), _rl_room("climate.b", 20.4, 20.0)))
+_rl_wi_c_after = _rl_whatif(_rl_c_on, {})
+_rl_wi_c_target = _rl_whatif(_rl_c_on, {"comfort_temp_day": 19.5})
+R.check(
+    "the what-if's build takes the lift the baseline was solved with, the same after the rooms "
+    "recover, and clips it to its own configuration: a what-if at a 19.5 day target has a 0.5 K "
+    "band; null control, a coordinator with the flag off gives its what-if None",
+    _rl_wi_c is not None and np.array_equal(_rl_wi_c, _rl_on_m) and np.array_equal(_rl_wi_c_after, _rl_on_m)
+    and _rl_wi_c_target is not None and float(np.max(_rl_wi_c_target[:40])) == min(0.5, 1.0)
+    and _rl_whatif(_rl_c_off, {}) is None,
+    f"{None if _rl_wi_c is None else np.round(_rl_wi_c[:4], 3).tolist()} "
+    f"target={None if _rl_wi_c_target is None else sorted(set(np.round(_rl_wi_c_target, 3).tolist()))}",
+)
 
 
 sys.exit(R.close("FEATURE CHECKS"))
