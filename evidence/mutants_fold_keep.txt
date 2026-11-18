@@ -1,0 +1,4 @@
+M9b commit_runs keep never: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL null: DrawRange.samples, engaged, ask_evidence, the floor, the learned floor and its count, the solve band's bottom and the stored window are identical with and without map rows, and the rows were kept  [rows 0 floo
+M9c frozen ignored: rc=0 fails=0 last=ALL 32 FEATURES BLOCK PASSED
+M9d distorted ignored: rc=0 fails=0 last=ALL 32 FEATURES BLOCK PASSED

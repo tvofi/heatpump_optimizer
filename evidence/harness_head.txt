@@ -1,0 +1,5 @@
+# draw_map_rows.py sha1 057455db8d886d3b112e0c43a2b422d3de37e220 at head 007e7be48d0fcfe5c01c9bafb920f0c34c67d12a
+RESULT open_loop rows=25 distinct_c=18 gain_kw_per_k=0.300 offset_kw=0.400 planted_gain=0.3 planted_offset=0.4
+RESULT shuffled rows=25 distinct_c=18 gain_kw_per_k=0.023 offset_kw=1.254
+RESULT closed_loop rows=99 distinct_c=71 gain_kw_per_k=0.001 offset_kw=1.296
+RESULT store rows=672 draw_record_bytes_empty=83 draw_record_bytes_capped=58141 added_bytes=58058 added_bytes_per_day=2786784
