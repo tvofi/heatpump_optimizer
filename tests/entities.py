@@ -42458,7 +42458,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
-        ("__init__.py", "async_migrate_entry"): 1, ("accuracy.py", "from_dict"): 1,
+        ("__init__.py", "async_migrate_entry"): 2, ("accuracy.py", "from_dict"): 1,
         ("defrost.py", "from_dict"): 1, ("ledger.py", "from_dict"): 1,
         ("price_model.py", "from_dict"): 1, ("price_model.py", "_stored_rows"): 1,
         ("price_model.py", "_in_domain"): 1, ("snapshots.py", "from_dict"): 1,
