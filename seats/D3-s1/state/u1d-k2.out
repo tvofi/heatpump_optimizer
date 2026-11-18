@@ -45,3 +45,7 @@
 2026-11-18T17:17:28Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._track_curve_comfort CLAMP_DROP 35044979 L9271 by=tests/features.py ran=13 wall=1337.6s
 2026-11-18T17:25:54Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings CMP_BOUND 8496f2c5 L743 by=tests/features.py ran=17 wall=1350.9s
 2026-11-18T17:30:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps GUARD_OFF b53f4395 L4525 by=- ran=13 wall=1340.1s
+2026-11-18T17:33:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_cop_health CMP_BOUND 950f898d L9500 by=- ran=13 wall=1353.3s
+2026-11-18T17:39:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND 8458ecd6 L6640 by=- ran=12 wall=1344.8s
+2026-11-18T17:48:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements GUARD_OFF 07639b21 L1188 by=- ran=13 wall=1367.7s
+2026-11-18T17:53:35Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF bb8b8794 L6726 by=tests/features.py ran=15 wall=1181.0s
