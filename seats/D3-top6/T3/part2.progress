@@ -17,3 +17,5 @@
 2026-11-18T21:22:03Z heartbeat: done=8/11 load1=3.00 phase=part2
 2026-11-18T21:23:28Z heartbeat: done=9/11 load1=2.45 phase=part2
 2026-11-18T21:37:06Z heartbeat: done=10/11 load1=0.98 phase=part2
+2026-11-18T21:44:26Z notes: box nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1 during run 1.9-3.3; baselines re-taken on this box (21 drivers, all rc=0 failed=0; M1 copy kept as state/baselines-M1-restored.json, not used); null LIVES (16 drivers), posctl-T3 2/2 KILLED; acc8fa3942789f45 killed by harness_headers via a SIGXCPU of dev/audit/rounds/round4/D7/sysid_estimator_frontier.py (480 CPU-s bound) -- a CPU-bound kill, provisional; no TIMEOUT verdicts
+2026-11-18T21:44:26Z heartbeat: done=11/11 load1=0.83 phase=part2-done
