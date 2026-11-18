@@ -82,3 +82,4 @@
 1795014741 CKPT D3-s1 147 file(s)
 1795014746 HB T2 gate done: c2:8e82d7a0b3617003
 1795014885 CKPT D3-s1 150 file(s)
+1795014890 HB T2 done: 5 of 6 KILLED (features.py), tariff.py:744 M31 SURVIVED -> finding D3-s1-02 (low). T3 complete net running.
