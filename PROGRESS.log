@@ -35,3 +35,4 @@
 1794993841 HB alive
 1794994000 RESUMED from 7dcf29116c37
 1794994000 INIT box D3-top6
+1794994071 HB LOCAL re-run of D3-top6 on the orchestrator machine (cloud refused twice by frugal guard). BLOCKED.md removed. R1 machine: nproc=8, 8192 MB RAM, Apple M1 macOS, free 12Gi on HOME, load1 2.18. T1 kept from the cloud fire (M22 SURVIVED). R1 baselines re-take starting.
