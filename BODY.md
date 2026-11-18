@@ -10,7 +10,7 @@ Alternatives: (a) narrowing grid_fee's two docstrings to "no direct Home Assista
 
 ## Head
 
-14fb25f70cec16a15557ddbe11bce4d2c88001d9, measured on merge base bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f (origin/main at 2026-11-18T12:38Z).
+9049a4a81e35b6b86f2f78c3bcc410839ea6e008, measured on merge base bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f. The figures below were measured at 14fb25f70cec16a15557ddbe11bce4d2c88001d9; the commits since add the delivery row and one mutation-ledger row and change no production file.
 
 ## Mutation proof
 
@@ -18,13 +18,13 @@ Each production file was reverted to the merge base on its own, and the check wa
 - revert `currency.py`: 2 of 28 FAILED: `grid_fee.py says grid_fee is free of Home Assistant imports, and it imports without it (D5-s3-01)`, `a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)` [grid_fee]
 - revert `tariff.py`: 2 of 28 FAILED: `topology.py says topology is free of Home Assistant imports ... (D5-s3-01)`, the kernel arm [optimizer, tariff, topology]
 - revert `power_guard.py`, `comfort_learning.py`, `external_heat.py`, `sysid.py`, each alone: 1 of 28 FAILED, the kernel arm naming that module
-- `currency.py:21 GUARD_OFF` (`if TYPE_CHECKING:` to `if True:`): 2 of 28 FAILED, the grid_fee claim and the kernel arm [grid_fee]
+- `currency.py:21` control (`if TYPE_CHECKING:` to `if True:`, not the generator's GUARD_OFF): 2 of 28 FAILED, the grid_fee claim and the kernel arm [grid_fee]
 - stale-entry arm: grid_fee added to the glue-reached set: 1 of 28 FAILED, `every entry of ADR-002's glue-reached set still needs Home Assistant (a cleared entry leaves the set)` [grid_fee]
 - all production files at the merge base: 3 of 28 FAILED. The grid_fee and topology claims fail, and the kernel arm names comfort_learning, external_heat, grid_fee, optimizer, power_guard, sysid, tariff and topology.
 
 ## Unpinned sites
 
-- `custom_components/heatpump_optimizer/currency.py:21 GUARD_OFF`: killed by `tests/doc_claims.py` `check_ha_free_imports` (2 of 28 FAILED, see Mutation proof). `tests/doc_claims.py` is in currency.py's measured closure. The ledger pin is mutation-autofix's (`--pin-killed`, ci-autofix.md).
+- `custom_components/heatpump_optimizer/currency.py:21 GUARD_OFF` (`if TYPE_CHECKING:` to `if False:`): equivalent, recorded in `tests/mutation_ledger/survivor_triage/currency.py/@module.GUARD_OFF.e1433e05.json` the way the ledger records the same site in rooms.py, payload.py and off_restore.py. TYPE_CHECKING is False at runtime, so the mutant skips the annotation-only import exactly as the head does. Measured on copies of the module in venv-ci's HA-free interpreter: the module namespace (names, types, annotations) hashes 55c66ebe4e75 at the head and under the mutant, while the control `if True:` raises ModuleNotFoundError: homeassistant. The earlier body called this site killed: that measured `if True:`, not the generator's mutant.
 
 ## Null control
 
@@ -34,7 +34,7 @@ Each production file was reverted to the merge base on its own, and the check wa
 
 ## Figures
 
-<!-- figure-block: scope-line mb=bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f head=14fb25f70cec16a15557ddbe11bce4d2c88001d9 -->
+<!-- figure-block: scope-line mb=bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f head=9049a4a81e35b6b86f2f78c3bcc410839ea6e008 -->
 ~~~text
 MODE: SCOPED -- 29 script(s) run, 4 scoped out.
 ~~~
@@ -48,7 +48,9 @@ MODE: SCOPED -- 29 script(s) run, 4 scoped out.
 
 ## Red checks
 
-- `mutation` (predicted by prepr step 6d: `currency.py:21 GUARD_OFF` ADDED UNPINNED). The site is killed by `tests/doc_claims.py`, and only the ledger entry is missing; mutation-autofix writes it. The cheaper detector is step 6d itself, which predicted the red before any CI ran; its standing cost is one static read per prepr run. No cheaper one exists.
+- `tests / mutation`: red at 4c988319 (run 44308221206, job 134815743649) on `currency.py:21 GUARD_OFF` ADDED UNPINNED. The mutant is equivalent and is now recorded as such (Unpinned sites); `python3 tests/mutation_table.py --scope changed --base origin/main` no longer refuses. The cheaper detector was prepr step 6d, which predicted the site; the miss was reading the `if True:` control as the generator's mutant, so the site was handed to mutation-autofix, which pins only killed mutants.
+- `tests / mutation-autofix`: red at 4c988319 on the same site. It pins only a mutant a check kills, and this one is equivalent, so it had nothing to pin; the equivalent row above answers it. Its cheaper detector is the same prepr step 6d named above; no cheaper one exists.
+- `tests / nightly-status`: inherited from main, not caused by this diff.
 
 ## Forward-carry
 
