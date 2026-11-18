@@ -99,3 +99,4 @@
 2026-11-18T22:09:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold GUARD_OFF 688eecbd L8842 by=- ran=13 wall=1331.6s
 2026-11-18T22:18:11Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._effective_dhw_windows GUARD_OFF d2584b72 L556 by=- ran=12 wall=1232.5s
 2026-11-18T22:20:32Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._tighten_buffer_caps GUARD_OFF b467baf0 L5120 by=- ran=13 wall=1233.8s
+2026-11-18T22:27:20Z COMPLETE KILLED custom_components/heatpump_optimizer/grid_fee.py:GridFeeSchedule.current_fee GUARD_OFF 5534a781 L306 by=tests/features.py ran=14 wall=1421.7s
