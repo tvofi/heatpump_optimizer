@@ -97022,41 +97022,67 @@ R.check(
 
 # The combi commit's tolerance, met exactly: the committed plan ships where
 # its store falls exactly the slack further under the requirement than the
-# last round's, and not where the slack is short of that by a float.
-def _hdr_k_combi(slack=None):
-    real, worst = DhwPlanner._dhw_shortfall, []
+# plan the rounds settled on, and that plan where the slack is a float
+# short; both plans are the ones the exchange's comparison reads. The
+# slack is set inside the solve, from the two worst gaps the exchange has
+# just read and before its comparison reads the slack, because one solve's
+# gaps need not be the next solve's to the float.
+def _hdr_k_combi(short):
+    real, exchange, saved, worst, inside, slacks, plans = (
+        DhwPlanner._dhw_shortfall, _hdr_om._combi_flux_exchange, _hdr_om._COMBI_COMMIT_SLACK_K, [], [], [], [])
+
+    def slack_for(committed, last):
+        slack = committed - last
+        for _ in range(64):
+            if last + slack == committed:
+                break
+            slack = np.nextafter(slack, np.inf if last + slack < committed else -np.inf)
+        if short:
+            slack = float(np.nextafter(committed, -np.inf)) - last
+            for _ in range(64):
+                if last + slack < committed:
+                    break
+                slack = float(np.nextafter(last + slack, -np.inf)) - last
+        return slack
 
     def spy(self, *a, **k):
         out = real(self, *a, **k)
-        worst.append(float(np.max(out[1])))
+        if inside:
+            worst.append(float(np.max(out[1])))
+            plans.append(np.array(a[1]))
+            if len(worst) >= 2:
+                _hdr_om._COMBI_COMMIT_SLACK_K = slack_for(worst[-2], worst[-1])
+                slacks.append(_hdr_om._COMBI_COMMIT_SLACK_K)
         return out
 
-    DhwPlanner._dhw_shortfall = spy
+    def within(*a, **k):
+        inside.append(True)
+        try:
+            return exchange(*a, **k)
+        finally:
+            inside.pop()
+
+    DhwPlanner._dhw_shortfall, _hdr_om._combi_flux_exchange = spy, within
     try:
-        return _hdr_combi(0.5, slack)[1], worst[-2:]
+        got = _hdr_combi(0.5)[1]
+        return got, worst[-2], worst[-1], float(slacks[-1]), plans[-2], plans[-1]
     finally:
-        DhwPlanner._dhw_shortfall = real
+        DhwPlanner._dhw_shortfall, _hdr_om._combi_flux_exchange = real, exchange
+        _hdr_om._COMBI_COMMIT_SLACK_K = saved
 
 
-_hdr_k_x, (_hdr_k_committed, _hdr_k_round) = _hdr_k_combi()
-_hdr_k_exact = _hdr_k_committed - _hdr_k_round
-for _ in range(64):
-    if _hdr_k_round + _hdr_k_exact == _hdr_k_committed:
-        break
-    _hdr_k_exact = np.nextafter(_hdr_k_exact, np.inf if _hdr_k_round + _hdr_k_exact < _hdr_k_committed else -np.inf)
-_hdr_k_short = _hdr_k_exact
-for _ in range(64):
-    if _hdr_k_round + _hdr_k_short < _hdr_k_committed:
-        break
-    _hdr_k_short = np.nextafter(_hdr_k_short, -np.inf)
-_hdr_k_at, _hdr_k_under = _hdr_k_combi(_hdr_k_exact)[0], _hdr_k_combi(_hdr_k_short)[0]
+_hdr_k_at, _hdr_k_c1, _hdr_k_r1, _hdr_k_s1, _hdr_k_pc1, _hdr_k_pr1 = _hdr_k_combi(False)
+_hdr_k_under, _hdr_k_c2, _hdr_k_r2, _hdr_k_s2, _hdr_k_pc2, _hdr_k_pr2 = _hdr_k_combi(True)
+_hdr_k_parts = (
+    _hdr_k_r1 + _hdr_k_s1 == _hdr_k_c1, _hdr_k_r2 + _hdr_k_s2 < _hdr_k_c2,
+    not np.array_equal(_hdr_k_pc1, _hdr_k_pr1), np.array_equal(_hdr_k_at.out, _hdr_k_pc1),
+    not np.array_equal(_hdr_k_pc2, _hdr_k_pr2), np.array_equal(_hdr_k_under.out, _hdr_k_pr2))
 R.check(
     "combi: the committed build ships where its store falls exactly the slack further under the "
-    "requirement than the last round's plan, and the last round's plan ships where the slack is a float short",
-    _hdr_k_round + _hdr_k_exact == _hdr_k_committed and _hdr_k_round + _hdr_k_short < _hdr_k_committed
-    and not np.array_equal(_hdr_k_at.commits[0], _hdr_k_at.rounds[-1])
-    and np.array_equal(_hdr_k_at.out, _hdr_k_at.commits[0]) and np.array_equal(_hdr_k_under.out, _hdr_k_under.rounds[-1]),
-    f"committed {_hdr_k_committed!r} round {_hdr_k_round!r} slack {_hdr_k_exact!r}",
+    "requirement than the plan the rounds settled on, and that plan ships where the slack is a float short",
+    all(_hdr_k_parts),
+    f"{_hdr_k_parts}; committed {_hdr_k_c1!r} round {_hdr_k_r1!r} slack {_hdr_k_s1!r}; "
+    f"committed {_hdr_k_c2!r} round {_hdr_k_r2!r} slack {_hdr_k_s2!r}",
 )
 
 
