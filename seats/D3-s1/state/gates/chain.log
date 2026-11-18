@@ -1,0 +1,4 @@
+2026-11-18T11:05:59Z GATE null :: RESULT gate_rc=1 code RESULT failed_scripts=4 count RESULT wall=4268 s RESULT thread_factor=1.0 ratio RESULT load1=14.05 
+/dev/disk3s5   228Gi   189Gi   9.2Gi    96%    3.3M   96M    3%   /System/Volumes/Data
+2026-11-18T11:13:14Z chain aborted after null (card.mjs OOM at node default heap, standalone 5120 MB passes); first mutant gate fb16 aborted at 18 s, moved to superseded/gates-aborted; restarting with D3S1_NODE_HEAP=5120
+2026-11-18T13:00:13Z GATE null :: RESULT gate_rc=1 code RESULT failed_scripts=3 count RESULT wall=6418 s RESULT thread_factor=1.0 ratio RESULT load1=6.26 
