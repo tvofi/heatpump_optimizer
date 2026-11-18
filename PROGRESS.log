@@ -7,3 +7,4 @@
 1794988578 HB D3-s1: frugal guard refused general-purpose/opus spawn; per brief dispatched on frugal:builder (sonnet) instead
 1794989054 HB alive
 1794989659 HB alive
+1794989691 HB CMD 1 obeyed: builder subagent stopped after R0+baseline; seat D3-s1 now runs inline in this session
