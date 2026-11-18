@@ -44,6 +44,11 @@ posctl killed=2 of 2
 2026-11-18T19:29:37Z COMPLETE KILLED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF ed095cbf L198 by=tests/features.py ran=14 wall=934.9s
 2026-11-18T19:44:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_tau_fast GUARD_OFF 72abb7dd L610 by=- ran=12 wall=1839.0s
 2026-11-18T19:48:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_holiday_flags_for GUARD_OFF dacd4cc6 L773 by=- ran=17 wall=2071.8s
+2026-11-18T20:02:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_holiday_dhw_windows GUARD_OFF 4893b0a8 L169 by=- ran=19 wall=1990.5s
+RESULT load1=0.94
+RESULT thread_factor=1.00
+EXIT complete pre 0 2026-11-18T20:02:48Z load1=0.94
+2026-11-18T20:02:48Z COMPLETE queued=6 from=c2
 === prescreen.log ===
 2026-11-18T18:55:09Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=225.2s reach_ok=True
 2026-11-18T18:57:57Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=167.8s reach_ok=False
@@ -73,3 +78,5 @@ posctl killed=2 of 2
 2026-11-18T19:29:37Z COMPLETE KILLED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF ed095cbf L198 by=tests/features.py ran=14 wall=934.9s
 2026-11-18T19:44:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_tau_fast GUARD_OFF 72abb7dd L610 by=- ran=12 wall=1839.0s
 2026-11-18T19:48:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_holiday_flags_for GUARD_OFF dacd4cc6 L773 by=- ran=17 wall=2071.8s
+2026-11-18T20:02:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_holiday_dhw_windows GUARD_OFF 4893b0a8 L169 by=- ran=19 wall=1990.5s
+2026-11-18T20:02:48Z COMPLETE queued=6 from=c2
