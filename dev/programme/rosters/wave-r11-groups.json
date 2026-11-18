@@ -3702,7 +3702,7 @@
     "From r10-draw-map-evidence-b, body item 7d9a0702: A sweep on fast-warming water keeps few running minutes at its low levels (`yield` at 0.1 and 0.2 K/min): a reader of sweep rows weighs a level by its steady minutes in `last_sweep`, never by its presence. Lands in the group's carry list, `dev/programme/rosters/wave-r10-groups.json` on handoff/audit-r10-roster, which the relay writes. Carry: R10-DRAW-MAP-EVIDENCE (items 7d9a0702)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r11-carry-drawmap",
     "commit": null,
     "last_step": null,
