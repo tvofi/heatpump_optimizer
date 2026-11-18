@@ -56,8 +56,7 @@ an abort, which an unpushed in-tree edit does not.
 
 **Nothing goes in both.**
 
-`tests/entities.py` enforces it: exactly one handover, `dev/programme/HANDOVER.md`
-(a second under `dev/programme/` or `docs/` is refused), and an
+`tests/entities.py` enforces it: exactly one handover, and an
 `updated-for:` naming a commit reachable from `HEAD`. Handover files are
 deliberately *not* on `tests/closure.py`'s `INERT` list, so editing the living
 one selects that script and adding a second forces `MODE: FULL` — either way
