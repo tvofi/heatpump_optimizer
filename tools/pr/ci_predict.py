@@ -531,6 +531,11 @@ def instrument_steps(root: Path) -> dict[str, str]:
         m = re.search(r"^        run: \|\n((?:(?: {10}.*)?\n)*)", rest + "\n", re.M)
         one = re.search(r"^        run: (?!\|)(.+)$", rest, re.M)
         run = "\n".join(ln[10:] for ln in m.group(1).splitlines()) if m else (one.group(1) if one else "")
+        # A step that runs only after another step failed (`absorb`, after a
+        # red `drift`) reads what that failure wrote: replayed alone it is red
+        # on a missing input, never on the diff.
+        if re.search(r"^        if: .*\bsteps\.[\w-]+\.outcome == 'failure'", rest, re.M):
+            continue
         if run.strip():
             out[name.strip()] = run
     return out
@@ -783,6 +788,16 @@ def step_replay_self_test(root: Path) -> int:
             got = len(step_replay_preds(t, base, changed))
             print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
             bad += got != want
+        wf = (t / INSTRUMENT_WF).read_text()
+        (t / INSTRUMENT_WF).write_text(wf + "      - name: e\n        id: e\n        if: ${{ !cancelled() && steps.d.outcome == 'failure' }}\n"
+                                       "        run: bash tools/e.sh\n      - name: f\n        id: f\n"
+                                       "        if: ${{ !cancelled() && steps.d.outcome == 'success' }}\n        run: bash tools/f.sh\n")
+        names = set(instrument_steps(t))
+        (t / INSTRUMENT_WF).write_text(wf)
+        good = "e" not in names and {"a", "b", "c", "d", "f"} <= names
+        print(f"  {'ok  ' if good else 'FAIL'} a step that runs only after another step failed is not replayed alone; "
+              "null control: one conditioned on another's success is")
+        bad += not good
         notes: list[str] = []
         got = len(step_replay_preds(t, base, {"tools/b.sh"}, notes))
         good = got == 0 and len(notes) == 1
