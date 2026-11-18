@@ -8,3 +8,4 @@
 1795006399 CKPT resumed after inbox ruling 1; worktree cut at bc658f9d; extracting findings via worker snapshot d305a737abb6
 1795006806 CKPT edits committed ae85b28b; finder harnesses + companion re-run base/head snapshot 7694bbb62684
 1795008236 CKPT policy_lint green at 9a2cb310; rerunning entities.py snapshot 4ecffea2d005
+1795009068 DONE returned: handoff 9a2cb310, body eb3ab3bf; D6-s2-02/03 held for instrument ruling
