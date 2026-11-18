@@ -66039,6 +66039,137 @@ R.check(
 )
 
 
+# ---- design note 3, a later key: a write racing the unload after the supply's restore landed ----
+async def _r11ar_late_race_scn(race):
+    hass, entry, c, _written = await _r11ar_plant()
+    real = hass.services.async_call
+    fired = []
+
+    async def racing(domain, service, data=None, **kw):
+        if race and _r11ar_key(data) == "number.valve" and not fired:
+            fired.append(True)  # the supply's restore has landed: its key is free to arm again
+            await _r11ar_pa.switch_supply(hass, entry, c._config, "switch.hp", False)
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = racing
+    await _r11ar_integ.async_unload_entry(hass, entry)
+    calls = _r11ar_settle(hass)
+    return (hass.states.get("switch.hp").state, "pump_arbiter_supply" in _r11ar_or.diagnostics(entry)["armed"],
+            [s for _do, s, d in calls if _r11ar_key(d) == "switch.hp"], bool(fired))
+
+
+_r11ar_lr = _r11ar_try(_r11ar_aio.run, _r11ar_late_race_scn(True))
+_r11ar_lr0 = _r11ar_try(_r11ar_aio.run, _r11ar_late_race_scn(False))
+R.check(
+    "design note 3 (later key): an off write of the supply switch landing during a later key's unload "
+    "restore is handed back by the unload's second restore: the switch reads on and its restore is not left armed",
+    _r11ar_ok(_r11ar_lr, lambda r: r[3] and r[0] == "on" and r[1] is False),
+    f"(switch, armed, switch calls, raced) {_r11ar_lr!r}",
+)
+R.check(
+    "design note 3 (later key) null control: with no racing write the same end state, from exactly one turn_on",
+    _r11ar_ok(_r11ar_lr0, lambda r: not r[3] and r[0] == "on" and r[1] is False and r[2].count("turn_on") == 1),
+    f"{_r11ar_lr0!r}",
+)
+
+
+# ---- a restore already in flight for a key is not sent twice ----
+async def _r11ar_twice_scn(concurrent):
+    writes = []
+
+    async def write(_hass, entity_id, _value):
+        writes.append(entity_id)
+        await _r11ar_aio.sleep(0.01)
+    _r11ar_or.register_consumer("_r11ar_slow", lambda _cfg: _r11ar_or.Restorer("number.slow", write, neutral=1.0))
+    hass, entry = FakeHass(), _r11ar_Entry(data={}, entry_id=f"r11ar_twice_{next(_R11AR_IDS)}")
+    await _r11ar_or.async_arm(hass, entry, {}, "_r11ar_slow")
+    if concurrent:
+        sent = sum(await _r11ar_aio.gather(*(_r11ar_or.async_restore(hass, entry, {}, "mode_off") for _ in range(2))))
+    else:
+        sent = await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+        sent += await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    return sent, len(writes)
+
+
+try:
+    _r11ar_tw = _r11ar_try(_r11ar_aio.run, _r11ar_twice_scn(True))
+    _r11ar_tw0 = _r11ar_try(_r11ar_aio.run, _r11ar_twice_scn(False))
+finally:
+    _r11ar_unregister("_r11ar_slow")
+R.check(
+    "two restores running at once on one entry send a key's restore write once, the summed count being 1",
+    _r11ar_ok(_r11ar_tw, lambda r: r == (1, 1)),
+    f"(restores, writes) {_r11ar_tw!r}",
+)
+R.check(
+    "null control: the same two restores one after the other also send one write",
+    _r11ar_ok(_r11ar_tw0, lambda r: r == (1, 1)),
+    f"{_r11ar_tw0!r}",
+)
+
+
+# ---- the space circulation pump is handed back on a stale plan, the hot-water one is not ----
+async def _r11ar_pump_stale_scn(pump, field, entity):
+    hass = FakeHass({entity: FakeState("on")})
+    entry = _r11ar_Entry(data={}, entry_id=f"r11ar_pump_{next(_R11AR_IDS)}")
+    config = {field: entity}
+    await _r11ar_circ.command(hass, entry, config, pump, False, "r")
+    _r11ar_settle(hass)
+    off = hass.states.get(entity).state
+    held = dict(_r11ar_circ.commanded(entry))
+    await _r11ar_or.async_cycle(hass, entry, config, False, True)
+    calls = _r11ar_settle(hass)
+    return off, held, hass.states.get(entity).state, dict(_r11ar_circ.commanded(entry)), _r11ar_n(calls, entity)
+
+
+_r11ar_ps = _r11ar_try(_r11ar_aio.run, _r11ar_pump_stale_scn(
+    _r11ar_circ and _r11ar_circ.SPACE, "space_circulation_pump_entity", "switch.space_pump"))
+_r11ar_pd = _r11ar_try(_r11ar_aio.run, _r11ar_pump_stale_scn(
+    _r11ar_circ and _r11ar_circ.DHW, "vvc_pump_entity", "switch.vvc_pump"))
+R.check(
+    "a stale-plan cycle switches the space circulation pump back on and empties its record",
+    _r11ar_ok(_r11ar_ps, lambda r: r[0] == "off" and r[1] == {"switch.space_pump": False}
+              and r[2] == "on" and r[3] == {} and r[4] == 1),
+    f"{_r11ar_ps!r}",
+)
+R.check(
+    "null control: the same stale-plan cycle does not write the hot-water circulation pump, which a clock drives",
+    _r11ar_ok(_r11ar_pd, lambda r: r[0] == "off" and r[2] == "off" and r[3] == {"switch.vvc_pump": False} and r[4] == 0),
+    f"{_r11ar_pd!r}",
+)
+
+
+# ---- a pump command that failed is not recorded as done ----
+async def _r11ar_failed_cmd_scn(fail):
+    hass = FakeHass({"switch.vvc_pump": FakeState("off")})
+    entry = _r11ar_Entry(data={}, entry_id=f"r11ar_cmd_{next(_R11AR_IDS)}")
+    attempts = []
+
+    async def call(domain, service, data=None, **kw):
+        attempts.append(service)
+        if fail:
+            raise RuntimeError("entity unavailable")
+    hass.services.async_call = call
+    config = {"vvc_pump_entity": "switch.vvc_pump"}
+    await _r11ar_circ.command(hass, entry, config, _r11ar_circ.DHW, True, "r")
+    recorded = dict(_r11ar_circ.commanded(entry))
+    await _r11ar_circ.command(hass, entry, config, _r11ar_circ.DHW, True, "r")
+    return recorded, attempts
+
+
+_r11ar_fc = _r11ar_try(_r11ar_aio.run, _r11ar_failed_cmd_scn(True))
+_r11ar_fc0 = _r11ar_try(_r11ar_aio.run, _r11ar_failed_cmd_scn(False))
+R.check(
+    "a circulation pump command whose service call raised is not recorded, and the same command is sent again",
+    _r11ar_ok(_r11ar_fc, lambda r: r[0] == {} and r[1] == ["turn_on", "turn_on"]),
+    f"{_r11ar_fc!r}",
+)
+R.check(
+    "null control: a command that succeeded is recorded and the same command is not sent again",
+    _r11ar_ok(_r11ar_fc0, lambda r: r[0] == {"switch.vvc_pump": True} and r[1] == ["turn_on"]),
+    f"{_r11ar_fc0!r}",
+)
+
+
 # ---- B14 (D7-s1-05): the two day-count notices share one raiser ----
 def _r11ar_guard(probe=False):
     """A coordinator whose guard is overdue: hot water and the cycle on, 20 days since the last one, a 7-day interval."""
