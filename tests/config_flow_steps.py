@@ -469,8 +469,70 @@ async def submit_reconfigure(flow, answers):
 # The coverage ledger: one row per step, happy checks and error branches.
 # ---------------------------------------------------------------------------
 class Ledger:
+    _OK_ABORTS = ("reauth_successful", "reconfigure_successful")
+
     def __init__(self):
         self.rows = {}
+
+    def install_tracker(self):
+        """Record, per flow instance, every error form it renders and whether it finished.
+
+        Installed once on the two production classes, so every flow the script
+        builds registers -- the construction sites and async_get_options_flow alike.
+        """
+        ledger = self
+
+        def rec(flow):
+            kind = "options" if isinstance(flow, config_flow.HeatPumpOptimizerOptionsFlow) else "config"
+            if kind == "config":
+                if getattr(flow, "_reauth_entry", None) is not None:
+                    kind = "reauth"
+                elif getattr(flow, "_reconfigure_entry", None) is not None:
+                    kind = "reconfigure"
+            r = flow.__dict__.setdefault("_ledger_track", {"kind": "config", "errors": set(), "done": False})
+            if kind != "config":
+                r["kind"] = kind
+            if flow not in ledger.flows:
+                ledger.flows.append(flow)
+            return r
+
+        def wrap(cls):
+            show, create, abort = cls.async_show_form, cls.async_create_entry, cls.async_abort
+
+            def async_show_form(self, *a, **k):
+                r = rec(self)
+                for code in (k.get("errors") or {}).values():
+                    r["errors"].add((k.get("step_id"), code))
+                return show(self, *a, **k)
+
+            def async_create_entry(self, *a, **k):
+                rec(self)["done"] = True
+                return create(self, *a, **k)
+
+            def async_abort(self, *a, **k):
+                reason = k.get("reason") if "reason" in k else (a[0] if a else None)
+                r = rec(self)
+                if reason in ledger._OK_ABORTS:
+                    r["done"] = True
+                return abort(self, *a, **k)
+
+            cls.async_show_form, cls.async_create_entry, cls.async_abort = (
+                async_show_form, async_create_entry, async_abort)
+
+        self.flows = []
+        wrap(config_flow.HeatPumpOptimizerConfigFlow)
+        wrap(config_flow.HeatPumpOptimizerOptionsFlow)
+
+    def error_triples(self):
+        """(rendered, recovered): (kind, step, code) triples, recovered = some instance finished."""
+        rendered, recovered = set(), set()
+        for flow in self.flows:
+            r = flow.__dict__["_ledger_track"]
+            for step, code in r["errors"]:
+                rendered.add((r["kind"], step, code))
+                if r["done"]:
+                    recovered.add((r["kind"], step, code))
+        return rendered, recovered
 
     def record(self, step, kind, name, ok):
         row = self.rows.setdefault(
@@ -8066,6 +8128,7 @@ async def main() -> int:
     sink.emit = lambda record: None
     logging.getLogger().addHandler(sink)
 
+    LEDGER.install_tracker()
     pin_number_selector_convention()
     await token_surfaces_agree()
     await seed_base_entry()
@@ -8106,6 +8169,15 @@ async def main() -> int:
     await options_rejected_page_rerenders_the_clear()
     await options_cleared_price_entity_is_refused()
     await options_room_list()
+
+    rendered, recovered = LEDGER.error_triples()
+    residual = sorted(f"{k}/{s}/{c}" for k, s, c in rendered - recovered)
+    check("_recovery", "error", "every rendered flow error is recovered on the flow that rendered it",
+          not residual, "; ".join(residual))
+    print(f"RESULT flow_error_triples={len(rendered)}")
+    print(f"RESULT unrecovered_flow_error_triples={len(residual)}")
+    for triple in residual:
+        print(f"UNRECOVERED {triple}")
 
     print()
     LEDGER.print_result_lines()
