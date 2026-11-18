@@ -31,3 +31,6 @@
 2026-11-18T15:55:47Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state BOOLOP 23752846 L539 by=tests/features.py ran=13 wall=1055.6s
 2026-11-18T15:56:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture GUARD_OFF aba82b00 L9386 by=- ran=13 wall=1367.3s
 2026-11-18T15:57:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop BOOLOP 66b15be8 L4463 by=- ran=17 wall=1547.9s
+2026-11-18T16:17:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._derive_hold_schedule GUARD_OFF 720b1445 L5059 by=- ran=12 wall=1242.7s
+2026-11-18T16:17:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_storable_sample_count CMP_BOUND 713016cb L467 by=- ran=14 wall=1502.0s
+2026-11-18T16:18:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state BOOLOP 9f6c1950 L6752 by=- ran=13 wall=1338.5s
