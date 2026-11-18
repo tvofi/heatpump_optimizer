@@ -2646,6 +2646,152 @@
     "R11-SEAM-learners"
    ],
    "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The buffer cooling, house heat-loss and internal-gains folds and the re-anchor leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint, which is read end to end after every coordinator merge. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arm fabric, reads the footprint 28 statements lower for two of the folds; the designer's note carries the reading of the whole cut. Scenario: growth of coordinator.py is priced and the class shrinks (S13). Its designer starts in the first wave, not behind R11-SEAM-learners, so F is measured before most coordinator merges spend R (decided 2026-11-18, orchestrator under mandate, pending owner confirmation); the fixer still waits on R11-SEAM-learners."
+  },
+  {
+   "group": "R11-INTAKE-R10-RESIDUE",
+   "findings": [],
+   "size": "L",
+   "seam": "instrument",
+   "after": [],
+   "origin": "roster",
+   "stage": "not-started",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-PRE-TOKEN-LEDGER",
+   "findings": [],
+   "size": "M",
+   "seam": "instrument",
+   "after": [
+    "R10-GH-READ-RESIDUE-P3"
+   ],
+   "origin": "roster",
+   "stage": "not-started",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-PRE-SHARED-FILES",
+   "findings": [],
+   "size": "L",
+   "seam": "instrument",
+   "after": [],
+   "origin": "roster",
+   "stage": "in-progress",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-PRE-HANDOFF-BOOKKEEPING",
+   "findings": [],
+   "size": "M",
+   "seam": "policy",
+   "after": [
+    "R11-PRE-RELAY-REBUILD"
+   ],
+   "origin": "roster",
+   "stage": "carries-open",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-OUTSIDE-HONEST-DHW-RUNS",
+   "findings": [],
+   "size": "L",
+   "seam": "production",
+   "after": [
+    "R11-OUTSIDE-HONEST-STARTS-RUNS",
+    "R11-OUTSIDE-HONEST-STARTS-RUNS-P2"
+   ],
+   "origin": "roster",
+   "stage": "in-progress",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-PRE-SECURITY-PRIVACY",
+   "findings": [],
+   "size": "L",
+   "seam": "policy",
+   "after": [
+    "R11-PRE-FINDER-CONTRACT",
+    "R11-PRE-BRIEFS-CENSUS"
+   ],
+   "origin": "roster",
+   "stage": "carries-open",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-OUTSIDE-ROOMS-P3",
+   "findings": [],
+   "size": "L",
+   "seam": "feature",
+   "after": [
+    "R11-OUTSIDE-ROOMS-P2"
+   ],
+   "origin": "roster",
+   "stage": "in-progress",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-CLOSEOUT-CLEANUP",
+   "findings": [],
+   "size": "M",
+   "seam": "instrument",
+   "after": [],
+   "origin": "roster",
+   "stage": "not-started",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-OUTSIDE-SELF-SETTING-PUMP",
+   "findings": [],
+   "size": "L",
+   "seam": "production",
+   "after": [],
+   "origin": "roster",
+   "stage": "carries-open",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-PREPR-STEP-TIMING",
+   "findings": [],
+   "size": "S",
+   "seam": "instrument",
+   "after": [
+    "R10-PREPR-DARWIN-SELFTEST-LANE"
+   ],
+   "origin": "roster",
+   "stage": "not-started",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-PRODUCT-TEXT-PINS",
+   "findings": [],
+   "size": "S",
+   "seam": "production",
+   "after": [
+    "R11-OUTSIDE-ROOMS-P1"
+   ],
+   "origin": "roster",
+   "stage": "not-started",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-CARRY-DRAWMAP",
+   "findings": [],
+   "size": "L",
+   "seam": "production",
+   "after": [],
+   "origin": "roster",
+   "stage": "in-progress",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-CARRY-ROOM-LIFT",
+   "findings": [],
+   "size": "S",
+   "seam": "production",
+   "after": [],
+   "origin": "roster",
+   "stage": "not-started",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
   }
  ],
  "moves": [
@@ -2946,5 +3092,514 @@
  "depth": "4",
  "hours": "175.63",
  "risks": "[{\"risk\": \"Admissibility: coord_footprint. Main reads nine above the fork before any group of this plan has merged, fourteen groups and the open product groups add statements, and the fall that pays for them (ADR-007) is prototyped at 28 statements behind a design that is still owed. Without it the round is inadmissible whatever dS reads.\", \"check\": \"ADR-007's designer starts in the first wave (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). plan_audit.py end-to-end --fork <fork> --head origin/main after every coordinator merge; the running R against 6 + F; the plan returns to the owner when R passes 26 or the designer's F leaves the budget below R (ADR-007 part 5).\"}, {\"risk\": \"Admissibility: every other metric. An argued rise in any other scored metric or tripwire makes the round inadmissible end to end, and no move pays it back.\", \"check\": \"Such a rise is a review block for a group of this roster; the orchestrator reads the tripwire lines of each merged body and of the end-to-end reading.\"}, {\"risk\": \"The spread rule's \\\"three scored classes\\\" cannot be met by the instrument's own classes. vector.py gives a class to six metrics; two classes can improve (N-shared-config, P2+P3). P6 and N-name-sort read 0 at the fork and N-structure-blind's one member is a barrier's declaration. The third improving group is the unclassed floor metrics (layer_violations, coordinator_private_reach), which weights.json describes as guarding no single register class.\", \"check\": \"The floor metrics count as the third scored class (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). If the owner rules they do not count, the condition cannot be met at this fork without deleting behaviour, and the plan says so here and does not plan the deletion.\"}, {\"risk\": \"The 40 % cap is expected to fail in the planned case. duplication_copies supplies 39.5 %, and one further clone removed by a sound fix (the Carnot expression in R11-SEAM-plant-model, D2-s1-01, the round's critical finding) reads 43.0 %: dS rises and the spread condition fails. In the floor case there is room for one copy.\", \"check\": \"The cap is checked at the stamp, not at plan time (decided 2026-11-18, orchestrator under mandate, pending owner confirmation): the share is read at each stamp from plan_audit.py end-to-end. The plan does not hold a sound removal back to protect a share. If the share passes 40 % the target is reported not met on spread, with the per-metric table, and the owner rules.\"}, {\"risk\": \"One prototyped move is conditional (the one-row scalar, ADR-006 part 2).\", \"check\": \"tests/golden/ byte-identical and the solve-time harness. A dropped part is recorded; \\\"The cases\\\" states the floor.\"}, {\"risk\": \"A further failure puts the round short. The floor case is 0.32 above the target, and one clone arm unrealised from there reads 0.90 short.\", \"check\": \"The orchestrator reads plan_audit.py end-to-end --fork <fork> at each stamp; each clone arm is one group's part and is seen at that group's merge. A prototyped move reported UNREALISED returns the plan to the architect before the last wave.\"}, {\"risk\": \"One finding is carried by six groups. D7-s1-05's arms merge at six times, and an arm can be forgotten by a group whose own findings are larger.\", \"check\": \"Each carrying group's roster entry names its arm; the clone census (m7_sites.py) is the class sweep at every one of those merges; the finding closes when the census reads the planned count.\"}, {\"risk\": \"The two private_cross_module crossings are a rename unless the new reader lands.\", \"check\": \"Named at 0.0. The reviewer finds the reader in the PR's diff (ADR-008); otherwise metric-gamed, not banked.\"}, {\"risk\": \"The score reading better than the code: an in-place write moved, not removed. ADR-004 lowers shared_inplace_writes by moving the circulation pumps' post-await store into a new owner class. The metric's definition reads that as encapsulation and D16-s3-02 asks for the owner, but the count would fall the same way for a wrapper that owns nothing.\", \"check\": \"The move is banked only when the PR registers the real restoring owner with off_restore.py and D16's release cells pass on the PR: the owner must be the one that restores on Off, stale plan, unload and remove (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). A class that only holds the dict is metric-gamed. Not banked, the round reads no-circ, +21.1938 end to end, short of the target (\\\"The cases\\\"), and the plan returns to the architect for a paying move.\"}, {\"risk\": \"The score reading better than the code: clones. An in-function copy is not counted (D7-s1-02), and the scorer's repair is deferred.\", \"check\": \"Fix review step 14 runs m7_floor_plants.py's place-keyed owner on every PR that lowers duplication_copies.\"}, {\"risk\": \"The score reading better than the code: values not handles. A wrapper, an accessor or a rebind lowers coordinator_private_reach or shared_inplace_writes with the coupling unchanged.\", \"check\": \"ADR-003, ADR-004 and ADR-005 each name the refused spelling; the reviewer re-runs the arm with the fixer's diff and reads the tripwires.\"}, {\"risk\": \"Sensitivity S6, T6: the Carnot fix moves every learned correction and golden fixture.\", \"check\": \"Claimed drift with its direction (tests/golden/claimed_drift.txt); learners run after plant-model so each is re-measured once.\"}, {\"risk\": \"Sensitivity S9, S11: the held record. Release and writes both redefine it; R11-CARRY-DRAWMAP edits the same file.\", \"check\": \"The D16 enumerator's release and write cells after each of the three merges.\"}, {\"risk\": \"Seams likely to need redesign: the config migration (T18) and the solve admission (T14). Both are designer-owed and irreversible or user-visible. R11-SEAM-tests and R11-SEAM-card (both L) are designer-owed too.\", \"check\": \"Design review at the handoff SHA; a third revise re-cuts the group (design-review.md).\"}, {\"risk\": \"R11-SEAM-dead-state is cut by kind of edit, across seams. A deletion that a reader found later needs is a behaviour change, and a group merging before it may add such a reader.\", \"check\": \"Each deletion's proof, re-run at the PR's head, is that no production code and no stored document reads the name; the suite and tests/golden/ unchanged. It is first on none of its rows, so the groups that could add a reader have mostly merged by then.\"}, {\"risk\": \"Fourteen groups on coordinator.py at a cap of three. The cap, not an edge, sets most of the wall: cap 2 costs 68 h more.\", \"check\": \"The orchestrator's replan at each wave edge; a group whose fix lands wholly in its owning module leaves the coordinator order when its fixer says so.\"}, {\"risk\": \"A ratchet repair reads as a budget raise (const_modules_over_50), and D7-s1-04's limit is the owner's to choose.\", \"check\": \"The owner's confirmation before the push (ADR-009); budget-raise-gate. Both are in R11-SEAM-ratchet-raise, so nothing else waits on it.\"}, {\"risk\": \"T7, T16, T18 change what an existing install does at upgrade.\", \"check\": \"Each PR's release-notes step, first in the notes; the docs group verifies them last.\"}, {\"risk\": \"The instrument-comment reading is pending owner confirmation (COMPONENTS.md, \\\"Deferred\\\"): fourteen rows and ten merged into them.\", \"check\": \"The deferral to round 12 under the tooling freeze stands (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). If the owner rules the other way, one text-only group joins with no edge; no move changes.\"}, {\"risk\": \"Holdout 5, change coupling. One-owner moves add import edges.\", \"check\": \"plan_audit.py compare at the stamp; the kernel's work is three PRs and six arms, not one PR over 34 files.\"}]",
- "holdouts": "dev/audit/rounds/round11/PLAN/holdouts/fork.json"
+ "holdouts": "dev/audit/rounds/round11/PLAN/holdouts/fork.json",
+ "objective": {
+  "baseline": {
+   "record": "dev/audit/yardstick/round10/OBJECTIVE.json"
+  },
+  "pin": {
+   "roster_path": "dev/audit/rounds/round11/PLAN/wave-r11-groups.json",
+   "roster_blob": "b2e399fa2a194951058c46eaa2f8099cdacf0bfb",
+   "start": "2026-11-18T16:37:00Z",
+   "durations_blob": "d6ece5958f6b8f3e720ae3cf6faba16574294176"
+  },
+  "terms": {
+   "regret": {
+    "direction": "undecided",
+    "builder": "R11-INTAKE-R10-RESIDUE"
+   },
+   "operation": {
+    "direction": "undecided",
+    "builder": "R11-INTAKE-R10-RESIDUE"
+   },
+   "generality": {
+    "direction": "undecided",
+    "builder": "R11-INTAKE-R10-RESIDUE"
+   },
+   "unowned": {
+    "direction": "undecided",
+    "builder": "R11-INTAKE-R10-RESIDUE"
+   },
+   "escapes": {
+    "direction": "undecided",
+    "builder": "R11-INTAKE-R10-RESIDUE"
+   },
+   "injected": {
+    "direction": "undecided",
+    "builder": "R11-INTAKE-R10-RESIDUE"
+   },
+   "product_green": {
+    "direction": "undecided",
+    "builder": "R11-PRE-ROUND-METRICS"
+   },
+   "coverage": {
+    "direction": "undecided",
+    "builder": "R11-INTAKE-R10-RESIDUE"
+   },
+   "unexamined": {
+    "direction": "undecided",
+    "builder": "R11-PRE-ROUND-METRICS"
+   },
+   "first_pass": {
+    "direction": "hold",
+    "basis": "the one term read in the baseline; this plan changes no review rule or contract clause, and section 5 lets first_pass rank nothing while injected and escapes are NO-READ"
+   },
+   "lead_time": {
+    "direction": "undecided",
+    "builder": "R11-PRE-ROUND-METRICS"
+   },
+   "closure_slip": {
+    "direction": "undecided",
+    "builder": "R11-PRE-ROUND-METRICS"
+   },
+   "tokens_per_change": {
+    "direction": "undecided",
+    "builder": "R11-PRE-TOKEN-LEDGER"
+   }
+  },
+  "groups": {
+   "R11-SEAM-kernel-step": {
+    "removes": [
+     "D7-s3-03",
+     "D7-s3-04",
+     "D7-s1-05"
+    ],
+    "classes": [
+     "N-no-expiry",
+     "P2"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-kernel-layering": {
+    "removes": [
+     "D7-s1-06"
+    ],
+    "rank": 2,
+    "examined_by": "round-11 close pass of D7: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-SEAM-dead-state": {
+    "removes": [
+     "D7-s3-05"
+    ],
+    "rank": 2,
+    "examined_by": "round-11 close pass of D7: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-SEAM-plant-model": {
+    "removes": [
+     "D2-s1-01",
+     "D2-s1-02",
+     "D2-s2-02",
+     "D2-s1-51",
+     "D12-s2-01",
+     "D12-s3-01",
+     "D12-s1-01",
+     "D17-s1-03",
+     "D17-s3-02",
+     "D17-s2-03",
+     "D8-s1-01"
+    ],
+    "classes": [
+     "N-table-value",
+     "N-wrong-law",
+     "P2"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-inputs-guards": {
+    "removes": [
+     "D2-s3-02",
+     "D7-s3-01",
+     "D1-s3-01",
+     "D1-s3-03",
+     "D1-s2-05",
+     "D1-s2-51"
+    ],
+    "classes": [
+     "N-missing-unit-scale",
+     "P1",
+     "P8"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-inputs-freshness": {
+    "removes": [
+     "D1-s2-03",
+     "D1-s2-02",
+     "D14-s2-02",
+     "D14-s2-01",
+     "D17-s2-02",
+     "D1-s2-52",
+     "D1-s3-02"
+    ],
+    "classes": [
+     "N-dead-input",
+     "N-no-expiry",
+     "N-staleness",
+     "P1",
+     "P2"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-store": {
+    "removes": [
+     "D1-s2-01",
+     "D15-s1-04",
+     "D15-s1-05",
+     "D1-s2-06",
+     "D17-s3-03"
+    ],
+    "classes": [
+     "N-silent-zero",
+     "P1",
+     "P2"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-money": {
+    "removes": [
+     "D2-s3-03",
+     "D2-s3-04",
+     "D2-s3-05",
+     "D2-s3-06",
+     "D2-s3-07",
+     "D8-s1-02",
+     "D14-s1-03",
+     "D17-s1-05",
+     "D5-s3-01"
+    ],
+    "classes": [
+     "I4",
+     "N-inverted-aggregate",
+     "N-partial-payload-parse",
+     "N-partial-window-extrapolation",
+     "P2",
+     "P7",
+     "P8"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-solver": {
+    "removes": [
+     "D0-s2-01",
+     "D0-s3-02",
+     "D2-s3-01",
+     "D1-s1-51"
+    ],
+    "classes": [
+     "N-objective-as-money",
+     "N-unordered-tiebreak",
+     "P4"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-learners": {
+    "removes": [
+     "D12-s3-03",
+     "D2-s3-08",
+     "D2-s3-09",
+     "D2-s3-10",
+     "D2-s3-11",
+     "D7-s2-01",
+     "D7-s2-02",
+     "D5-s4-02"
+    ],
+    "classes": [
+     "N-confounded-learner",
+     "N-event-misattribution",
+     "P5"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-actuation-release": {
+    "removes": [
+     "D16-s1-04",
+     "D16-s3-01",
+     "D16-s3-02",
+     "D16-s3-03",
+     "D16-s3-04",
+     "D1-s2-04"
+    ],
+    "classes": [
+     "N-order-coupling",
+     "N-restore-race",
+     "N-unreleased-hold"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-actuation-writes": {
+    "removes": [
+     "D16-s1-01",
+     "D16-s1-02",
+     "D16-s1-03",
+     "D16-s1-05",
+     "D16-s2-01",
+     "D16-s2-02",
+     "D16-s2-03",
+     "D16-s2-04",
+     "D12-s3-02"
+    ],
+    "classes": [
+     "N-mode-coupled-write",
+     "N-stale-step-actuation",
+     "N-step-grid",
+     "P11",
+     "P2",
+     "P3"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-cycle-solve": {
+    "removes": [
+     "D1-s1-01",
+     "D1-s1-03",
+     "D1-s3-04",
+     "D9-s1-01",
+     "D9-s1-02",
+     "D9-s1-03",
+     "D9-s1-04",
+     "D17-s3-01"
+    ],
+    "classes": [
+     "N-dropped-refresh",
+     "N-solve-recompute",
+     "N-unbudgeted-background",
+     "N-uncleared-issue",
+     "P10",
+     "P2"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-cycle-reporting": {
+    "removes": [
+     "D1-s3-05",
+     "D1-s3-06",
+     "D1-s3-07",
+     "D10-s1-01",
+     "D7-s2-03",
+     "D10-s3-02",
+     "D10-s3-01"
+    ],
+    "classes": [
+     "N-shared-config",
+     "N-silent-zero",
+     "N-swallowed-failure"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-config": {
+    "removes": [
+     "D17-s1-02",
+     "D10-s2-01",
+     "D10-s1-03",
+     "D17-s2-05",
+     "D4-s2-01",
+     "D17-s2-04"
+    ],
+    "classes": [
+     "N-dead-input",
+     "P2"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-entity-service": {
+    "removes": [
+     "D10-s1-02",
+     "D10-s2-04",
+     "D8-s1-03",
+     "D8-s2-02",
+     "D8-s3-01",
+     "D15-s3-01",
+     "D14-s1-01",
+     "D17-s3-51"
+    ],
+    "classes": [
+     "N-entity-metadata",
+     "N-silent-zero",
+     "N-step-grid",
+     "P2"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-card": {
+    "removes": [
+     "D4-s1-01",
+     "D4-s1-03",
+     "D4-s3-01",
+     "D4-s3-02",
+     "D4-s3-03",
+     "D4-s3-04",
+     "D4-s3-05",
+     "D6-s4-01",
+     "D9-s2-01"
+    ],
+    "classes": [
+     "N-unbounded-retention",
+     "P9"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-product-text": {
+    "removes": [
+     "D6-s2-01",
+     "D6-s6-01",
+     "D6-s4-02",
+     "D4-s3-06",
+     "D4-s3-07",
+     "D10-s2-03",
+     "D4-s2-51"
+    ],
+    "classes": [
+     "I5"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-tests": {
+    "removes": [
+     "D10-s1-05",
+     "D10-s1-06",
+     "D9-s3-01",
+     "D9-s3-02"
+    ],
+    "classes": [
+     "I1"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-ratchets": {
+    "removes": [
+     "D7-s1-02",
+     "D7-s1-03",
+     "D14-s2-03"
+    ],
+    "classes": [
+     "N-log-flood"
+    ],
+    "rank": 1
+   },
+   "R11-SEAM-ratchet-raise": {
+    "removes": [
+     "D7-s1-01",
+     "D7-s1-04"
+    ],
+    "rank": 2,
+    "examined_by": "round-11 close pass of D7: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-SEAM-docs": {
+    "removes": [
+     "D5-s2-01",
+     "D5-s2-02",
+     "D5-s2-03",
+     "D5-s2-08",
+     "D5-s2-09",
+     "D5-s2-10",
+     "D5-s2-11",
+     "D6-s1-02",
+     "D6-s7-01",
+     "D5-s2-04",
+     "D5-s2-05",
+     "D5-s2-06"
+    ],
+    "rank": 2,
+    "examined_by": "round-11 close pass of D6: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-SEAM-governance-text": {
+    "removes": [
+     "D6-s5-02",
+     "D6-s5-03",
+     "D6-s5-01",
+     "D6-s5-05",
+     "D6-s5-06",
+     "D6-s5-07",
+     "D6-s5-08",
+     "D6-s7-02",
+     "D11-s2-04",
+     "D15-s1-02"
+    ],
+    "rank": 2,
+    "examined_by": "round-11 close pass of D11: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-SEAM-comments-production": {
+    "removes": [
+     "D5-s4-01",
+     "D5-s3-02"
+    ],
+    "rank": 2,
+    "examined_by": "round-11 close pass of D5: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-SEAM-comments-tests": {
+    "removes": [
+     "D5-s9-04",
+     "D5-s9-01",
+     "D5-s8-04",
+     "D5-s8-05"
+    ],
+    "rank": 2,
+    "examined_by": "round-11 close pass of D5: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-ARCH-cycle-surface": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D7: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-ARCH-fabric-learner": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D7: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-INTAKE-R10-RESIDUE": {
+    "cards": [
+     "E11-N-INTAKE-BUILDER"
+    ],
+    "rank": 1
+   },
+   "R11-PRE-TOKEN-LEDGER": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D13: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-PRE-SHARED-FILES": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D11: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-PRE-HANDOFF-BOOKKEEPING": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D11: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-OUTSIDE-HONEST-DHW-RUNS": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D16: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-PRE-SECURITY-PRIVACY": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D11: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-OUTSIDE-ROOMS-P3": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D17: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-CLOSEOUT-CLEANUP": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D11: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-OUTSIDE-SELF-SETTING-PUMP": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D16: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-PREPR-STEP-TIMING": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D11: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-PRODUCT-TEXT-PINS": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D6: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-CARRY-DRAWMAP": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D2: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-CARRY-ROOM-LIFT": {
+    "rank": 2,
+    "examined_by": "round-11 close pass of D16: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   }
+  },
+  "edges": [],
+  "dispositions": {}
+ }
 }
