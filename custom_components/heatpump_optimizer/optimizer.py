@@ -206,7 +206,7 @@ def _charge_runs(opt: HeatPumpOptimizer, running: bool) -> ChargeRuns | None:
     as runs too (``dhw_planner.commit_charges``); ``None`` unengaged."""
     if not _engaged(opt):
         return None
-    return ChargeRuns(opt.config.cycling_cost, running, opt.config.clamp_planned_levels)
+    return ChargeRuns(opt.config.start_price, running, opt.config.clamp_planned_levels)
 
 
 #: The objectives a multi-start descends on in place of the true one
