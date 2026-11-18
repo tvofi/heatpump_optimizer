@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:state_moves CLAMP_DROP b33258f0",
+  "killed_by": "tests/features.py",
+  "old": "        out += [(i, min(i + 1, last_on), False) for i in range(min_on)]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`out += [(i, (i + 1), False) for i in range(min_on)]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=22."
+}
