@@ -427,3 +427,5 @@
 2026-11-18T13:12:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF b9ee7b52 L566 by=- ran=12 wall=1369.3s
 2026-11-18T13:15:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._predicted_next_room_temp CLAMP_DROP 30397d3b L10267 by=- ran=14 wall=1555.1s
 2026-11-18T13:34:01Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_peak_excess CMP_BOUND c3fdf6fc L911 by=tests/features.py ran=12 wall=1325.9s
+2026-11-18T13:35:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 036bc6d8 L2126 by=- ran=12 wall=1414.5s
+2026-11-18T13:35:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_plausible_forecast_rows CMP_BOUND 9a9af603 L3013 by=- ran=13 wall=1432.5s
