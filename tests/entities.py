@@ -42295,6 +42295,7 @@ R.check(
 # still fails; a site that went away fails too, until its entry is deleted.
 # ---------------------------------------------------------------------------
 from collections import Counter  # noqa: E402
+import logging  # noqa: E402
 
 _r10_pkg = Path("custom_components/heatpump_optimizer")
 _r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
@@ -42385,9 +42386,14 @@ def _r10_unlatched_logs(sources):
         # function: logflood_shape.py execs it alone.
         if call.func.attr in ("warning", "warn", "error", "exception", "critical", "fatal"):
             return True
-        if call.func.attr != "log" or not call.args:
+        if call.func.attr != "log":
             return False
-        level = call.args[0]
+        # the level is the first positional or the ``level=`` keyword; one
+        # behind ``*args`` or ``**kwargs`` is unknown, and so counted
+        level = (call.args[0] if call.args
+                 else next((k.value for k in call.keywords if k.arg == "level"), None))
+        if level is None or isinstance(level, ast.Starred):
+            return True
         if isinstance(level, ast.Constant) and isinstance(level.value, int):
             return level.value >= 30
         return ast.unparse(level) not in ("logging.DEBUG", "logging.INFO", "logging.NOTSET")
@@ -42422,16 +42428,28 @@ def _r11_logger_aliases(sources):
     something the barrier does not read. The barrier keys on the text
     ``_LOGGER``, so the one logger it sees is a module-level
     ``_LOGGER = logging.getLogger(...)`` used only as ``_LOGGER.<method>(...)``.
-    Refused: a name bound to ``_LOGGER``, to a ``getLogger``/``getChild``
-    result or to a ``logging`` alias; any other ``getLogger``/``getChild``
-    call, bound or inline, ``logging.getLogger`` or a bare ``getLogger``; an
-    import of ``_LOGGER`` or of ``logging``'s loggers and level functions;
-    ``logging.<level>(...)`` on the root logger; and ``_LOGGER`` itself
-    escaping, as an argument, a return value, an element or a bound method,
-    which is how a logger reaches a parameter the barrier cannot name."""
+    Both surfaces are read by allow-list, so a spelling nobody listed is
+    refused rather than missed. Refused: a name bound to ``_LOGGER`` or to a
+    ``getLogger``/``getChild`` result; any other ``getLogger``/``getChild``
+    call, bound or inline, ``logging.getLogger`` or a bare ``getLogger``;
+    ``import logging as`` another name, an import of ``_LOGGER``, of a module
+    called ``logging``, or of anything from ``logging`` but its level numbers;
+    the module ``logging`` used other than as ``logging.<level number>`` or
+    a ``logging.getLogger(...)`` call (a call on the root logger, ``logging.Logger``,
+    a rebinding by assignment or walrus, ``getattr(logging, ...)``); the text
+    ``'logging'`` (``__import__``, ``import_module``, ``sys.modules``); an
+    attribute named ``logging``, or ``logger`` (Home Assistant's coordinator
+    exposes the handed-over ``_LOGGER`` so); ``_LOGGER.<method>(...)`` for a
+    method outside the level calls and ``isEnabledFor`` (``_log``,
+    ``handle``, ``makeRecord``); and ``_LOGGER`` itself escaping, as an
+    argument, a return value, an element or a bound method, which is how a
+    logger reaches a parameter the barrier cannot name. Not read: a module
+    name computed at run time (``import_module('log' + 'ging')``), which no
+    syntactic rule can name."""
     levels = {"debug", "info", "warning", "warn", "error", "exception",
               "critical", "fatal", "log"}
-    root_names = levels | {"root", "getLogger", "Logger", "LoggerAdapter"}
+    methods = levels | {"isEnabledFor"}
+    numbers = {"NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL"}
     binders = (ast.Assign, ast.AnnAssign, ast.NamedExpr)
 
     def logger_call(node):
@@ -42456,11 +42474,12 @@ def _r11_logger_aliases(sources):
             up = parent.get(id(node))
             if isinstance(node, ast.Import):
                 for a in node.names:
-                    if a.name == "logging" and a.asname:
+                    if a.name.split(".")[0] == "logging" and a.asname:
                         out.append((name, node.lineno, a.asname))
             elif isinstance(node, ast.ImportFrom):
                 for a in node.names:
-                    if a.name == "_LOGGER" or (node.module == "logging" and a.name in root_names):
+                    if a.name in ("_LOGGER", "logging") or (
+                            (node.module or "").split(".")[0] == "logging" and a.name not in numbers):
                         out.append((name, node.lineno, a.asname or a.name))
             elif isinstance(node, binders):
                 value = node.value
@@ -42473,12 +42492,22 @@ def _r11_logger_aliases(sources):
                     isinstance(up, binders) and up.value is node):
                 out.append((name, node.lineno, ast.unparse(node.func)))
             elif (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
-                    and node.value.id == "logging" and node.attr in levels | {"root", "Logger", "LoggerAdapter"}):
+                    and node.attr not in numbers and node.value.id == "logging" and not (
+                        node.attr == "getLogger" and isinstance(up, ast.Call) and up.func is node)):
                 out.append((name, node.lineno, ast.unparse(node)))
+            elif isinstance(node, ast.Attribute) and node.attr in ("logging", "logger"):
+                out.append((name, node.lineno, ast.unparse(node)))
+            elif isinstance(node, ast.Name) and node.id == "logging" and not (
+                    isinstance(up, ast.Attribute) and up.value is node):
+                out.append((name, node.lineno, f"logging -> {type(up).__name__}"
+                            if not isinstance(up, ast.Call) else f"logging -> {ast.unparse(up.func)}"))
+            elif isinstance(node, ast.Constant) and node.value == "logging":
+                out.append((name, node.lineno, "'logging'"))
             elif isinstance(node, ast.Name) and node.id == "_LOGGER" and isinstance(node.ctx, ast.Load):
                 via = up
                 if isinstance(via, ast.Attribute) and via.value is node:
-                    if isinstance(parent.get(id(via)), ast.Call) and parent[id(via)].func is via:
+                    if (isinstance(parent.get(id(via)), ast.Call) and parent[id(via)].func is via
+                            and via.attr in methods):
                         continue
                     out.append((name, node.lineno, f"_LOGGER -> {ast.unparse(via)}"))
                     continue
@@ -42596,12 +42625,19 @@ _r10_log_planted = _r10_unlatched_logs({
                  "def at_debug(self):\n    _LOGGER.log(logging.DEBUG, 'x')\n"
                  "def at_info(self):\n    _LOGGER.info('x')\n"
                  "def warn_alias(self):\n    _LOGGER.warn('x')\n"
-                 "def fatal_alias(self):\n    _LOGGER.fatal('x')\n",
+                 "def fatal_alias(self):\n    _LOGGER.fatal('x')\n"
+                 # R11 #3729 review: a keyword level is read; one behind *args/**kwargs is unknown
+                 "def at_kw_error(self):\n    _LOGGER.log(level=logging.ERROR, msg='x')\n"
+                 "def at_kw_debug(self):\n    _LOGGER.log(level=logging.DEBUG, msg='x')\n"
+                 "def at_star(self, a):\n    _LOGGER.log(*a)\n"
+                 "def at_kwargs(self, k):\n    _LOGGER.log(**k)\n",
 })
 _r11_aliases_found = _r11_logger_aliases(_r10_sources)
 _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n"
-             "def f():\n    _LOGGER.warning('x')\n    _LOGGER.isEnabledFor(logging.DEBUG)\n",
+             "from logging import DEBUG\n"
+             "def f():\n    _LOGGER.warning('x')\n    _LOGGER.isEnabledFor(logging.DEBUG)\n"
+             "    _LOGGER.log(level=DEBUG, msg='see logging')\n",
     "alias.py": "_LOGGER = logging.getLogger(__name__)\ndef f():\n    log = _LOGGER\n    log.warning('x')\n",
     "child.py": "_LOG = logging.getLogger(__name__)\nCHILD = _LOGGER.getChild('c')\n",
     "mod.py": "import logging as lg\n",
@@ -42614,7 +42650,33 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "param.py": "_LOGGER = logging.getLogger(__name__)\ndef f(log):\n    log.warning('x')\n"
                 "def g():\n    f(_LOGGER)\n    return _LOGGER\n",
     "method.py": "_LOGGER = logging.getLogger(__name__)\ndef g():\n    return _LOGGER.error\n",
+    # R11 #3729 review: the module rebound, a record-path method, a reflective
+    # lookup, the rest of logging's surface, and Home Assistant's .logger
+    "rebind.py": "import logging\nlg = logging\ndef f():\n    lg.warning('x')\n"
+                 "    (w := logging).error('y')\n",
+    "record.py": "_LOGGER = logging.getLogger(__name__)\ndef f(r):\n"
+                 "    _LOGGER._log(logging.ERROR, 'x', ())\n    _LOGGER.handle(r)\n",
+    "reflect.py": "import importlib\ndef f():\n    getattr(logging, 'warning')('x')\n"
+                  "    __import__('logging').warning('y')\n"
+                  "    importlib.import_module('logging').error('z')\n",
+    "surface.py": "from logging import WARNING, makeLogRecord\nfrom homeassistant import logging as hl\n"
+                  "def f(self):\n    logging.Logger.error(self, 'x')\n    self.logger.error('y')\n",
+    "star.py": "from logging import *\n",
+    "getref.py": "make = logging.getLogger\n",
 })}
+# Every callable of a Logger, called at ERROR on _LOGGER, and every name the
+# logging module exports: what neither check reads is exactly the quiet
+# level calls and the level numbers, so a method or helper added to either
+# surface by a Python release is refused, not missed.
+_r11_unread = {
+    f"_LOGGER.{a}" for a in dir(logging.Logger) if callable(getattr(logging.Logger, a))
+    for src in [f"_LOGGER = logging.getLogger(__name__)\ndef f():\n    _LOGGER.{a}(logging.ERROR, 'x')\n"]
+    if not _r10_unlatched_logs({"s.py": src}) and not _r11_logger_aliases({"s.py": src})
+} | {
+    f"logging.{a}" for a in dir(logging)
+    for src in [f"import logging\ndef f():\n    return logging.{a}\n"]
+    if not _r11_logger_aliases({"s.py": src})
+}
 R.check(
     "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
     "with its exact count -- a persisting condition goes through log_held",
@@ -42629,8 +42691,10 @@ R.check(
     and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
     and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted)
     and all(("levels.py", f) in _r10_log_verdict(_r10_log_planted)
-            for f in ("exc", "crit", "at_warning", "at_forty", "warn_alias", "fatal_alias"))
-    and not {("levels.py", "at_debug"), ("levels.py", "at_info")} & set(_r10_log_verdict(_r10_log_planted)),
+            for f in ("exc", "crit", "at_warning", "at_forty", "warn_alias", "fatal_alias",
+                      "at_kw_error", "at_star", "at_kwargs"))
+    and not {("levels.py", "at_debug"), ("levels.py", "at_info"),
+             ("levels.py", "at_kw_debug")} & set(_r10_log_verdict(_r10_log_planted)),
     f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
 )
 R.check(
@@ -42649,8 +42713,23 @@ R.check(
                                  ("root.py", "logging.warning"), ("root.py", "logging.root"),
                                  ("fromimp.py", "log"), ("param.py", "_LOGGER -> f"),
                                  ("param.py", "_LOGGER -> Return"),
-                                 ("method.py", "_LOGGER -> _LOGGER.error")},
-    f"refused {_r11_alias_verdict(_r11_aliases_found)}; planted read {sorted(_r11_aliases_planted)}",
+                                 ("method.py", "_LOGGER -> _LOGGER.error"),
+                                 ("rebind.py", "logging -> Assign"),
+                                 ("rebind.py", "logging -> NamedExpr"),
+                                 ("record.py", "_LOGGER -> _LOGGER._log"),
+                                 ("record.py", "_LOGGER -> _LOGGER.handle"),
+                                 ("reflect.py", "logging -> getattr"), ("reflect.py", "'logging'"),
+                                 ("surface.py", "makeLogRecord"), ("surface.py", "hl"),
+                                 ("surface.py", "logging.Logger"), ("surface.py", "self.logger"),
+                                 ("star.py", "*"), ("getref.py", "logging.getLogger"),
+                                 ("child.py", "_LOGGER -> _LOGGER.getChild")}
+    and _r11_unread == {"_LOGGER.debug", "_LOGGER.info", "_LOGGER.isEnabledFor"}
+    | {f"logging.{n}" for n in ("NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR",
+                                "CRITICAL", "FATAL")}
+    # precondition: the package is flat, so the glob read every module
+    and len(list(_r10_pkg.rglob("*.py"))) == len(_r10_sources),
+    f"refused {_r11_alias_verdict(_r11_aliases_found)}; planted read {sorted(_r11_aliases_planted)}; "
+    f"unread surface {sorted(_r11_unread)}",
 )
 
 # THE RECORD JOB'S WINDOW CACHE WIRING (R10-RECORD-API-BUDGET, M1). The cache is
