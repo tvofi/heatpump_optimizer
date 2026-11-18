@@ -6,10 +6,4 @@
 1794988545 SEAT D3-s1 running
 1794988627 HB D3-s1 started (subagent frugal:builder, model opus; general-purpose refused by the frugal guard)
 1794989075 HB alive
-1794989480 RESUMED from 7830bb637572
-1794989480 INIT box D3-u1d
-1794989496 HB alive
-1794989527 HB drift warm skipped: HEAD is the baseline
-1794989561 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
-1794989568 HB prepared
-1794989584 SEAT D3-s1 running
+1794989679 HB alive
