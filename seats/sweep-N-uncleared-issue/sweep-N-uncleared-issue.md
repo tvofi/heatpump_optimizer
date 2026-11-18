@@ -42,7 +42,7 @@ Guarded / not applicable:
 | dhw_legionella_unverified | guarded | clear_unverified_issue runs on the first credited cycle once a tank probe exists; while no probe is configured the reported condition still holds |
 | ConfigNotices: floor_return_implausible, lower_floor_modelled, comfort_band_contradiction, valve_target_above_comfort | guarded | ConfigNotices.report(None) clears every cycle, unconditionally (its _raised dict only suppresses a repeat create, so an empty dict after restart does not block the clear) |
 | store_version_<where> | not applicable | non-persistent: HA drops it at restart, and the condition is a load-time event that changes only across a restart |
-| non-persistent issues (pump_mode_unreadable, price_feed_stale, pump_write_ignored, dhw_* in-memory-deduped notices, price_unit_*, price_currency, setpoint_check set_issue ids, floor_return_silent) | not applicable | not a seam: non-persistent issues do not outlive a restart and each has an in-process clear on its recovery branch (the extractor's raise/clear table in the .md) |
+| non-persistent issues (pump_mode_unreadable, price_feed_stale, pump_write_ignored, dhw_* in-memory-deduped notices, price_unit_*, price_currency, setpoint_check set_issue ids, floor_return_silent) | not applicable | not a seam: non-persistent issues do not outlive a restart and each has an in-process clear on its recovery branch (reviewed site by site: 25 raised ids, every create and delete call in the package) |
 
 ## Barrier (proposed)
 

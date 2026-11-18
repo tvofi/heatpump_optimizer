@@ -78,7 +78,7 @@
   {
    "seam": "non-persistent issues (pump_mode_unreadable, price_feed_stale, pump_write_ignored, dhw_* in-memory-deduped notices, price_unit_*, price_currency, setpoint_check set_issue ids, floor_return_silent)",
    "disposition": "not applicable",
-   "reason": "not a seam: non-persistent issues do not outlive a restart and each has an in-process clear on its recovery branch (the extractor's raise/clear table in the .md)"
+   "reason": "not a seam: non-persistent issues do not outlive a restart and each has an in-process clear on its recovery branch (reviewed site by site: 25 raised ids, every create and delete call in the package)"
   }
  ],
  "ledger_status": "absent: N-uncleared-issue is not a key of dev/audit/config/bugclasses.json at the register head (minted by the round-11 judge)",
