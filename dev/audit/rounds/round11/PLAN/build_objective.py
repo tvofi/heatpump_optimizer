@@ -28,6 +28,13 @@ PASS = {"R11-ARCH-cycle-surface": "D7", "R11-ARCH-fabric-learner": "D7",
         "R11-SEAM-dead-state": "D7", "R11-SEAM-docs": "D6",
         "R11-SEAM-governance-text": "D11", "R11-SEAM-kernel-layering": "D7",
         "R11-SEAM-ratchet-raise": "D7"}
+# The roster commit the draft is cut from, and revision 3's order changes to it.
+ROSTER_REF = "c7e683a6d469fd050096f284399308b087474a52"
+ROSTER_SRC = "dev/programme/rosters/wave-r11-groups.json"
+BEHAVIOUR = "R11-SEAM-product-text"   # comments follow the seams product text follows (ADR-010)
+ADD_AFTER = {"R11-SEAM-dead-state": ["R11-SEAM-store"]}
+# Verified `bug` findings deferred to round 12: the owner card that rules the deferral.
+FREEZE_CARD = "P11"
 TERMS = {
     "first_pass": {"direction": "hold", "basis":
                    "the one term read in the baseline; this plan changes no review rule or "
@@ -41,7 +48,14 @@ def main() -> int:
     ap.add_argument("--start", required=True)
     args = ap.parse_args()
     plan = json.loads((HERE / "PLAN.json").read_text())
-    roster = json.loads((ROOT / ROSTER).read_text())
+    roster = json.loads(subprocess.run(
+        ["git", "-C", str(ROOT), "show", f"{ROSTER_REF}:{ROSTER_SRC}"],
+        capture_output=True, text=True, check=True).stdout)
+    rows = {g["group"]: g for g in roster["groups"]}
+    rows["R11-SEAM-comments-production"]["after"] = list(rows[BEHAVIOUR]["after"])
+    for name, more in ADD_AFTER.items():
+        rows[name]["after"] = list(rows[name].get("after") or []) + more
+    (ROOT / ROSTER).write_text(json.dumps(roster, indent=1) + "\n")
     judge = json.loads((ROOT / "dev/audit/rounds/round11/JUDGE.json").read_text())["verdicts"]
     baseline = json.loads((ROOT / "dev/audit/yardstick/round10/OBJECTIVE.json").read_text())
     terms = json.loads((ROOT / "dev/audit/config/objective.json").read_text())["terms"]
@@ -51,6 +65,14 @@ def main() -> int:
            if f["verdict"] in VERIFIED and f["stop_rule_class"] == "bug"}
     known = {f["id"] for f in judge}
     planned = {g["group"]: g for g in plan["groups"]}
+    for row in plan["triage"]:
+        if row["id"] in bug and row["verdict"] == "defer":
+            row["card"] = FREEZE_CARD
+    for g in plan["groups"]:
+        if g["group"] in rows and g.get("origin") != "roster":
+            g["after"] = list(rows[g["group"]].get("after") or [])
+    plan["revision"] = 3
+    plan["draft"] = ROSTER
     is_open = lambda g: (g.get("resume") or {}).get("stage") not in CLOSED
     by_name = {g["group"]: g for g in roster["groups"]}
     # A group every open dependency of which is deferred is held, and replan.py marks it done.

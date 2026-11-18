@@ -4856,7 +4856,9 @@
    },
    "fixerModel": "opus",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R11-SEAM-store"
+   ],
    "files": [
     "custom_components/heatpump_optimizer/config_flow.py",
     "custom_components/heatpump_optimizer/modbus_prefill.py",
@@ -6503,7 +6505,18 @@
    },
    "fixerModel": "opus",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R11-SEAM-plant-model",
+    "R11-SEAM-money",
+    "R11-SEAM-actuation-release",
+    "R11-SEAM-actuation-writes",
+    "R11-SEAM-config",
+    "R11-SEAM-entity-service",
+    "R11-SEAM-inputs-guards",
+    "R11-SEAM-inputs-freshness",
+    "R11-SEAM-cycle-solve",
+    "R11-SEAM-cycle-reporting"
+   ],
    "files": [
     "custom_components/heatpump_optimizer/*.py",
     "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"

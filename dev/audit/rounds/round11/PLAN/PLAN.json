@@ -2,7 +2,7 @@
  "round": 11,
  "fork": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
  "target_dS": 22.7,
- "draft": ".claude/workflows/wave-r11-groups.json",
+ "draft": "dev/audit/rounds/round11/PLAN/wave-r11-groups.json",
  "components": [
   {
    "name": "shared kernel",
@@ -1491,56 +1491,64 @@
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s1-01",
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s1-02",
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s1-03",
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s1-04",
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s1-05",
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s1-06",
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s2-01",
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s2-03",
@@ -1554,21 +1562,24 @@
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s3-03",
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s3-04",
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D13-s2-01",
@@ -1638,7 +1649,8 @@
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D5-s2-07",
@@ -1652,7 +1664,8 @@
    "verdict": "defer",
    "into": null,
    "round": 12,
-   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start",
+   "card": "P11"
   },
   {
    "id": "D11-s2-02",
@@ -1917,7 +1930,9 @@
     "dhw_learning.py",
     "flow_lift.py"
    ],
-   "after": [],
+   "after": [
+    "R11-SEAM-store"
+   ],
    "architect_note": "State production stores and nothing reads (D7-s3-05): constants named only by tests, parameters a function never loads, locals, attributes and fields only tests read, each deleted in the module that holds it and at its callers, and the fourteen import bindings D7-s1-03 lists. No owner is created or moved and no behaviour changes, so this one group is cut by kind of edit and not by seam; COMPONENTS.md states the deviation. 1 finding (0 merged in), size M; class tags N-structure-blind. Plan: ADR-001 part 4. It is the prerequisite of R11-SEAM-ratchets, which records the import row at the value these deletions leave. A parameter a caller still computes is removed at the caller too; a field a stored document carries is left."
   },
   {
@@ -2584,7 +2599,18 @@
     "custom_components/heatpump_optimizer/*.py",
     "www/heatpump-optimizer-card.js"
    ],
-   "after": [],
+   "after": [
+    "R11-SEAM-plant-model",
+    "R11-SEAM-money",
+    "R11-SEAM-actuation-release",
+    "R11-SEAM-actuation-writes",
+    "R11-SEAM-config",
+    "R11-SEAM-entity-service",
+    "R11-SEAM-inputs-guards",
+    "R11-SEAM-inputs-freshness",
+    "R11-SEAM-cycle-solve",
+    "R11-SEAM-cycle-reporting"
+   ],
    "architect_note": "Criterion C5 over production comments (921 units in two seats' cells, 155 of them in the card's script) and one false docstring. Text only. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Plan: ADR-010. No edge: the order against the behaviour groups is a hot-file order. The fixer cuts it into parts by seam, one PR per part; the part for a file is released when the last group in that file's row of PLAN.md's hot-file order has merged, and files no other group names are released at the first dispatch. The card's script is released after R11-SEAM-card and R11-SEAM-product-text."
   },
   {
@@ -3099,8 +3125,8 @@
   },
   "pin": {
    "roster_path": "dev/audit/rounds/round11/PLAN/wave-r11-groups.json",
-   "roster_blob": "b2e399fa2a194951058c46eaa2f8099cdacf0bfb",
-   "start": "2026-11-18T16:37:00Z",
+   "roster_blob": "eda6bbb52dc85f87d05492428262fc2768d22961",
+   "start": "2026-11-18T16:40:00Z",
    "durations_blob": "d6ece5958f6b8f3e720ae3cf6faba16574294176"
   },
   "terms": {
@@ -3601,5 +3627,6 @@
   },
   "edges": [],
   "dispositions": {}
- }
+ },
+ "revision": 3
 }
