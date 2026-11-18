@@ -490,3 +490,5 @@
 2026-11-18T19:47:05Z COMPLETE KILLED custom_components/heatpump_optimizer/grid_fee.py:min_component GUARD_OFF f5134440 L383 by=tests/features.py ran=12 wall=1580.2s
 2026-11-18T20:12:51Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:apply_catalog GUARD_OFF 481898b9 L483 by=- ran=12 wall=1694.3s
 2026-11-18T20:17:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_mark_manual_reasons GUARD_OFF 69bbbda7 L2494 by=- ran=14 wall=1804.9s
+2026-11-18T20:18:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize GUARD_OFF 510621f6 L1948 by=- ran=17 wall=1908.8s
+2026-11-18T20:18:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize GUARD_OFF dd7f271c L1996 by=- ran=17 wall=1912.6s
