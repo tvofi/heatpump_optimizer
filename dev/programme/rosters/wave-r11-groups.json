@@ -1972,9 +1972,9 @@
     "From r11-outside-honest-dhw-runs, body item 7502c4d5: On the fixed-speed install of `r11_honest_starts_runs.py` (floor 5.5 kW) the planner's run power, 0.8 of the pump's maximum, is under the floor, so the commit stage returns the plan as it is and the optimizer's projection raises it, as at the base (`tail` arm: 4 steps under the floor as planned, 0 as shipped). The floor's value is R11-OUTSIDE-HONEST-METERED-FLOOR's. Carry: R11-OUTSIDE-HONEST-METERED-FLOOR (items 7502c4d5)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-outside-honest-metered-floor",
-    "commit": null,
+    "commit": "7ae657e0e2bf42731c902f5aebf1d20d3e76d348",
     "last_step": null,
     "next_step": "designer (M, opus) now; design review; fixer only on Design review: approve; ruling c2 is the owner's",
     "note": "overlap admitted (R11-PRE-SHARED-FILES, R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS): the note's group C, the metered floor in draw_range.py; independent of A and B per the note; shares files with distinct seams, merged in train order | set-size M -> L",
@@ -2842,12 +2842,13 @@
     "From r11-outside-rooms-p3, body item e82913fe: The why-now comfort-floor row and the daily narrative still do not name the room lift (P2 body item e98789a8). Not built here: the approved P3 note is phase 3a only and keeps `optimizer.py` out, and the precondition is a per-step lift on the solve's result beside `comfort_floors`, read by `slot_drivers` and `narrative.py`, with card text in three languages; its control is a solve with the toggle off whose row must not change. The roster sent it here and the approved note's routed orchestrator decision makes P3 phase 3a only, so where it is built is that decision's to place. Carry: R11-OUTSIDE-ROOMS-P3 (item e98789a8) (items e82913fe)"
    ],
    "resume": {
-    "stage": "design",
+    "stage": "in-progress",
     "branch": "handoff/r11-outside-rooms-p3",
     "commit": null,
     "last_step": null,
     "next_step": "design-review",
-    "note": "owner item from #3616, tvofi 2026-11-15; overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-SLAB-SEED-GUARD, R11-OUTSIDE-ROOMS-P1): owner item tvofi 2026-11-15 from #3616"
+    "note": "owner item from #3616, tvofi 2026-11-15; overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-SLAB-SEED-GUARD, R11-OUTSIDE-ROOMS-P1): owner item tvofi 2026-11-15 from #3616",
+    "pr": 3711
    }
   },
   {
