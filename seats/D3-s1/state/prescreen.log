@@ -483,3 +483,10 @@
 2026-11-18T19:53:39Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_comfort_bounds GUARD_OFF 22347724 L4766 by=tests/entities.py ran=12 wall=1542.2s
 2026-11-18T19:58:51Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 1bac3001 L1138 by=tests/entities.py ran=16 wall=1657.3s
 2026-11-18T19:58:57Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._solar_location GUARD_OFF 8dd05ba8 L7165 by=tests/entities.py,tests/features.py ran=13 wall=1540.5s
+2026-11-18T20:18:42Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._co_optimize GUARD_OFF f3280827 L3981 by=tests/entities.py,tests/features.py ran=16 wall=1717.0s
+2026-11-18T20:20:13Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.arm GUARD_OFF 35be40f7 L1461 by=tests/entities.py,tests/features.py ran=12 wall=1593.4s
+2026-11-18T20:25:10Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CMP_BOUND 8e515e12 L4725 by=tests/entities.py ran=13 wall=1579.1s
+2026-11-18T20:27:30Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CLAMP_DROP 44e7fc37 L2065 by=tests/entities.py ran=16 wall=1713.0s
+2026-11-18T20:45:23Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._slab_outcome GUARD_OFF 0e512205 L2409 by=tests/entities.py ran=12 wall=1601.5s
+2026-11-18T20:50:29Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict._unit CMP_BOUND 257d42d3 L537 by=tests/entities.py ran=13 wall=1816.5s
+2026-11-18T20:51:41Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:PeakTracker.from_dict CMP_BOUND 55d61241 L465 by=tests/entities.py ran=12 wall=1590.6s
