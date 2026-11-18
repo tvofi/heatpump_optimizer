@@ -1,1 +1,48 @@
 1 2026-11-18T12:45:34Z orchestrator RULING (mandate 6893738184): the brief line "do your work inline, with no subagents" is CORRECTED. It existed only because the cloud frugal guard refuses reasoning-tier (opus) Agent spawns. Resolution: delegate discovery reads (locate, grep, read-and-summarise, log extraction) to the cheap workers the guard allows (frugal scout/extractor = haiku, mechanic/builder = sonnet), passing pointers not pasted content; keep all reasoning, design decisions, test-writing judgement and the fix itself in your own loop. Do not set FRUGAL_ALLOW_INLINE or FRUGAL_ALLOW_EXPENSIVE, do not edit settings. Resume from your handoff-wip state.
+2026-11-18T14:58:45Z ORCHESTRATOR: reviewer BLOCKED #3729 at fc2daf48 (probe/rev-3729-f8a7e789). Repair every item below, then hand off again. Verdict text follows verbatim:
+    Fix review: blocked fc2daf48862599bb19f70ff563db63e347bdf2e7 class-open: D14-s2-03's predicate leaves WARNING-or-above shapes unread at head: _LOGGER.warn, _LOGGER.fatal (flood_level's method tuple); a bare-callee getLogger binding (from logging import getLogger; LOG = getLogger(__name__)), an inline logging.getLogger(...).warning, a root logging.warning, a from-import alias (from .x import _LOGGER as log) and a logger passed as a parameter (_r11_logger_aliases reads none of them)
+    
+    bus-nonce: f8a7e789a3aabab859ad1c64dc52b1cb
+    
+    Round: 1 (first review of PR #3729). Seat: cloud reviewer, detached worktrees at head fc2daf48 and merge base ae0ed64a (origin/main at review time). Role contract current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+    
+    ## The block (step 6, class-open)
+    
+    The finding's own `phenomenon_property` (D14-s2-03.json, plan/r11 819aa2e3) is "every logging call in the package that can emit at WARNING or above, whatever method or logger binding spells it". The body claims the barrier "counts every `_LOGGER` call at WARNING or above" and that `_r11_logger_aliases` "refuses a logger bound to any name the barrier does not read". Both claims are false at head.
+    
+    - Instrument: `ev/class_probe.py`, built by this reviewer, not the finder's. It execs head's own `_r10_unlatched_logs` and `_r11_logger_aliases`, extracted by AST from `tests/entities.py` the same way `logflood_shape.py` extracts the barrier. It plants each shape in `coordinator.py` as `logflood_shape.py` does and reads both counters.
+    - Head: `ev/class_probe_head.out`. `control_warning` is seen=1. All seven shapes above are seen=0.
+      - Python 3.14.7 here has `Logger.warn` (the WARNING alias) and `Logger.fatal` (the CRITICAL alias).
+    - Perturbation (`ev/class_probe_perturbation.diff`): widen `flood_level`'s tuple to add `warn` and `fatal`, and let `_r11_logger_aliases` accept a `getLogger` Name callee. warn, fatal and from_logging_getLogger then move 0 -> 1 (`ev/class_probe_perturbed.out`). The probe moves under its own perturbation, so the item is not void (`judge.md`).
+    - Live sites: `live_unread_shape_sites=0` at base and head. This is a predicate's unguarded domain, not an undispositioned live site.
+    - Owed: close the domain the body claims, and pin every shape above with a planted control in the existing checks. One way: read `warn`/`fatal` in `flood_level`. Make `_r11_logger_aliases` refuse any `getLogger` call that is not the canonical binding (Name or Attribute callee, bound or inline), any ImportFrom of `_LOGGER`, and any `logging.<level>` root call. A remaining shape you choose not to close goes in the body with its reason.
+    - Also owed in the same re-cut, test-side and not blocking alone: the comment `# One window, three spellings of it: ...` at `tests/structure.py` (in the hunk at old 4060) now sits above `IN_FUNCTION_SELF_CHECK_SOURCES`, separated from the `DUP_SELF_CHECK_BODY` it describes.
+    
+    ## Steps that pass
+    
+    - 1, mutation proof. Re-run on an archive of the head tree (`ev/mutants.sh`, `ev/mutants.out`):
+      - M1 fails `a window one function writes twice and another once is a clone class, not an in-function copy`.
+      - M3 fails `a package from-import nothing loads is unused`.
+      - E1 (`("warning", "error")` restored), run in the head worktree and then reverted: `FAIL R10 N-log-flood barrier: ... [mismatch {('sysid.py', '_finish'): (0, 1)}; read 71 sites]`, `1 of 2733 ENTITY CHECKS FAILED` (`ev/E1_full.out`).
+    - 2, the finder's harnesses at both ends, run from `git archive 819aa2e3 dev/audit/rounds/round11`:
+      - `logflood_shape.py` (`ev/logflood_shape_{base,head}.out`):
+        - base: exception=0, critical=0, log_level=0, alias=0, sites=71.
+        - head: exception=1, critical=1, log_level=1, alias=0, sites=72.
+        - `counted_alias` reads 0 at both ends by design. Its companion, the planted `alias.py` in `R11 N-log-flood barrier reach`, is refused at head.
+      - `m1_ratchet_census.py` (`ev/m1_ratchet_census.out`):
+        - Unperturbed, both ends: in_function_copies=6, unused_package_imports=14, duplication_copies=8, recount_mismatches=0.
+        - `--perturb unused-import`: head off-budget `unused_package_imports 14->15`; base has no row.
+        - `--perturb clone-same-fn`: head adds `in_function_copies 11->12`.
+        - `use-import` and `clone-two-fns` leave both new rows flat at both ends.
+      - These match the body's Figures.
+    - 3, null control: `duplicate_clones(module_trees())` as JSON is byte-identical at base and head, 1157 bytes (`ev/clones_{base,head}.json`, `cmp` 0).
+    - 4/5: the diff touches no golden or claim file, and no VERSION, manifest or notes heading. It touches four files: `tests/entities.py`, `tests/structure.py`, `tests/structure_budgets.json` and `dev/programme/delivery/3729.md`.
+    - 7: the body's head is fc2daf48, which is the PR head (`ls-remote`).
+    - 13: `git merge-tree --write-tree origin/main fc2daf48` rc=0.
+    - 14: both budget keys are new caps at their measured value. `python3 tests/structure.py` at head prints `ok in_function_copies 11 <= 11`, `ok unused_package_imports 14 <= 14` and `STRUCTURE RATCHET PASSED` (`ev/structure_head.out`). No existing key moves except `recorded_at`.
+      - Re-derived the body's 11-vs-6: the row counts places past the first, the harness counts windows. Both move by 1 under `clone-same-fn`.
+    - 16: the sysid `_finish` disposition is sound. `_finish` sets `self.phase = PHASE_DONE` before the fit, so the `.exception` at sysid.py:1850 fires at most once per experiment. The diff changes no production line.
+    - 11, checks at review time:
+      - `gate` reads failure, and its log says `FAIL run(s) [44323789715] at this head are still being judged`. That is an interim exit, not a defect red.
+      - tests/closures, coverage, fast and instrument-self-tests were still in_progress.
+      - No red is owed an answer yet. A re-cut head is re-read anyway.
