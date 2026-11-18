@@ -27,7 +27,16 @@ Commands (repo root, PYTHONPATH=tests/hastub):
   python3 dev/audit/rounds/round11/D3/s1/prescreen.py report
 Expected: null control LIVES; verdict counts in `report` (exact counts are
 contention-immune; every seconds figure is provisional).
-Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: owner macOS arm64, shared box.
+Box D3-m5 (D3.M5(b), the kill-overlap matrix, no early stop over every
+closure script):
+  D3S1_RELAX=0 D3S1_FRESH_TREE=1 D3S1_EXTRA_DRIVERS=tests/edge.py,tests/backtest.py,tests/golden.py,tests/card.mjs,tests/card_drift.mjs \
+    python3 dev/audit/rounds/round11/D3/s1/prescreen.py baseline --workers 4
+  D3S1_EXTRA_DRIVERS=tests/stress.py python3 .../prescreen.py baseline --workers 1   # alone
+  D3S1_RELAX=0 D3S1_FRESH_TREE=1 D3S1_EXTRA_DRIVERS=... D3S1_ONLY=<every driver but stress> \
+    python3 .../prescreen.py run --full --mutants dev/audit/rounds/round11/D3/s1/matrix_mutants.json --sub matrix --workers 4
+  D3S1_RELAX=0 D3S1_FRESH_TREE=1 D3S1_ONLY=tests/stress.py python3 .../prescreen.py run --full --mutants ... --sub matrix-stress --workers 1
+Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: owner macOS arm64, shared box;
+box D3R and box D3-m5 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz), each alone.
 State: dev/audit/rounds/round11/D3/s1/state/ (resumable); worker trees under $TMPDIR.
 """
 import os

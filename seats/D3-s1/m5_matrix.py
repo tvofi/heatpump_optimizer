@@ -38,6 +38,8 @@ import argparse
 import hashlib
 import json
 import sys
+import time as _t
+_P0, _T0 = _t.process_time(), _t.thread_time()
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -150,7 +152,7 @@ def cmd_table(a) -> int:
         print(f"RESULT mutants_with_{n}_killers={per_killers[n]}")
     print(f"RESULT scripts_without_unique_kill={len(no_unique)}")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
-    print("RESULT thread_factor=1.00")
+    print(f"RESULT thread_factor={(_t.process_time() - _P0) / max(_t.thread_time() - _T0, 1e-9):.2f}")
     return 0
 
 

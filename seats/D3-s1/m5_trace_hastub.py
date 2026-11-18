@@ -39,6 +39,8 @@ import json
 import shutil
 import subprocess
 import sys
+import time as _t
+_P0, _T0 = _t.process_time(), _t.thread_time()
 import tempfile
 import time
 from pathlib import Path
@@ -150,7 +152,7 @@ def main() -> int:
     print(f"RESULT closure_pairs={pairs_total}")
     print(f"RESULT over_approx_pairs={over_total}")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
-    print("RESULT thread_factor=1.00")
+    print(f"RESULT thread_factor={(_t.process_time() - _P0) / max(_t.thread_time() - _T0, 1e-9):.2f}")
     return 0
 
 

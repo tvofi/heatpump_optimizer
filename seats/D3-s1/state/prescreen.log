@@ -133,3 +133,6 @@
 2026-11-18T08:13:14Z RUN posctl-D3-m5 queued=2 workers=2
 2026-11-18T08:13:25Z POSCTL-D3-M5 KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=8.1s
 2026-11-18T08:13:25Z POSCTL-D3-M5 KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=2 skip=5 wall=8.4s
+2026-11-18T10:16:09Z BASELINE tests/card_drift.mjs rc=0 failed=0 wall=5.3s reach_ok=True
+2026-11-18T10:17:06Z BASELINE tests/edge.py rc=0 failed=0 wall=25.2s reach_ok=True
+2026-11-18T10:17:40Z BASELINE tests/backtest.py rc=0 failed=0 wall=59.2s reach_ok=True
