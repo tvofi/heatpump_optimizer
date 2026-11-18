@@ -1,0 +1,41 @@
+== probe.py refresh
+RESULT dist_to_reference=0,0.000604
+RESULT ref_scale=6,6
+RESULT trigger=refresh reference_solves=2 trigger_solves=2 reproduced=2
+RESULT recompute=1
+== probe.py away
+RESULT dist_to_reference=6
+RESULT ref_scale=6,6
+RESULT trigger=away reference_solves=2 trigger_solves=1 reproduced=0
+RESULT recompute=0
+== probe.py diagnose
+RESULT dist_to_reference=0,0.000604
+RESULT ref_scale=6,6
+RESULT trigger=diagnose reference_solves=2 trigger_solves=2 reproduced=2
+RESULT recompute=1
+== probe.py force_button
+RESULT dist_to_reference=0,0.000604,0,0.00121
+RESULT ref_scale=6,6
+RESULT press_first_solves=2 refresh_solves=2 refresh_reproduces_press=2
+RESULT trigger=force_button reference_solves=2 trigger_solves=2 reproduced=2
+RESULT recompute=1
+== probe.py boost_dhw
+RESULT dist_to_reference=0,0.000604
+RESULT ref_scale=6,6
+RESULT trigger=boost_dhw reference_solves=2 trigger_solves=2 reproduced=2
+RESULT recompute=1
+== probe.py block_space
+RESULT dist_to_reference=0,0.000604
+RESULT ref_scale=6,6
+RESULT trigger=block_space reference_solves=2 trigger_solves=2 reproduced=2
+RESULT recompute=1
+== probe.py diagnose --perturb
+RESULT dist_to_reference=
+RESULT ref_scale=6,6
+RESULT trigger=diagnose reference_solves=2 trigger_solves=0 reproduced=0
+RESULT recompute=0
+== probe.py boost_dhw --perturb
+RESULT dist_to_reference=
+RESULT ref_scale=6,6
+RESULT trigger=boost_dhw reference_solves=2 trigger_solves=0 reproduced=0
+RESULT recompute=0

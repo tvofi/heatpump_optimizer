@@ -1,0 +1,26 @@
+{
+ "class": "N-solve-recompute",
+ "instances": 2,
+ "barriered": true,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/enumerate.py (controls: --controls; probe: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/probe.py TRIGGER [--perturb])",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_diagnose_interval (-> async_request_refresh, coordinator.py:10686)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/probe.py diagnose",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/button.py",
+   "symbol": "ForceOptimizationButton.async_press (async_run_optimization at :109, then async_request_refresh at :110)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/probe.py force_button",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/entity.py",
+   "symbol": "publish_then_refresh._refresh (entity.py:339) reached from switch.py TimedDutySwitch._press (Boost DHW/Space, Block DHW/Space -> boost.set_channel/set_block, refresh=False)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/probe.py boost_dhw; same with block_space",
+   "beyond_finding": true
+  }
+ ]
+}
