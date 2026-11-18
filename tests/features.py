@@ -49340,7 +49340,9 @@ R.check(
 import homeassistant.util.dt as _dt_sav
 _real_now_sav = _dt_sav.now
 try:
-    _dt_sav.now = lambda: NOW
+    # Read in March, February closed: an open month half an hour old has no
+    # row until it has covered ledger.MIN_COVERAGE_HOURS (R11-SEAM-money).
+    _dt_sav.now = lambda: NOW + timedelta(days=28)
     _pub = _sv._build_data_dict()
 finally:
     _dt_sav.now = _real_now_sav
