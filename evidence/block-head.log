@@ -1,0 +1,11 @@
+
+=== features block ===
+  ok   a plan slot's reason tie reads the slot's first code, whatever the hash seed (D1-s1-51)
+  ok   lambda=1 books no premium as money: the published prices are the input's, the reference's cost is lambda=0's, the plan's cost is its draw on the input prices, and every settlement price is the input's (D2-s3-01)
+  ok   the premium still prices the objective: lambda=1 moves the plan (the D2-s3-01 fix's null control)
+  ok   the first multi-start of each solve path starts one run at the lower bound, the all-off plan (D0-s3-02)
+  ok   the space-only solve commits the all-off plan beside the descent's run, so the true objective, not the start-blind descent, ranks it (D0-s3-02)
+  ok   a space-only solve no wood covers hands the multi-start no duplicate start, so the reference-energy seeds are drawn only where a share scaled the others (D0-s2-01)
+  ok   a reference the wood tank covers whole still leaves the space-only start set a nonzero energy-anchored start beside the initial guess (D0-s2-01)
+
+ALL 7 FEATURES BLOCK PASSED
