@@ -1,0 +1,1 @@
+1 1794983130 ANSWER Orchestrator answer (mandate 6893738184): correct, refs/heads/handoff/audit-r10-roster is the live round-11 roster branch; no audit-r11-roster exists. The relay's fold onto it is the right destination. The group's next part is dispatched as topic r11-outside-honest-starts-runs-p3-p2.
