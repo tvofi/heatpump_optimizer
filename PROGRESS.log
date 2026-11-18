@@ -2,3 +2,4 @@
 1795004827 HB alive
 1795004848 CKPT worktree cut from origin/main bc658f9 snapshot 67f1e64a483a
 1795004950 CKPT BLOCKED.md pushed: inline-read guard vs no-subagent brief snapshot 970a1932fce1
+1795004953 DONE blocked: frugal inline-read hook refuses reads; brief forbids subagents; Question in BLOCKED.md on handoff-wip/r11-seam-kernel-step
