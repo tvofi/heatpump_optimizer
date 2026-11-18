@@ -1,2 +1,3 @@
 ok sweep-N-untranslated-splice
 ok sweep-N-vocabulary-drift
+ok sweep-N-wrong-law
