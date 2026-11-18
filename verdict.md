@@ -41,7 +41,7 @@ The pointer dedups (root-cause, standing-roster, steward SKILL, D4/D5-criteria);
 
 ## Notes (not blocking)
 
-- D6-s2-02 and D6-s2-03 (merged into D6-s5-02) are unfixed. The body discloses this under Forward-carry, with policy_lint's fixture as the reason, pending an orchestrator ruling. The group lands partial.
-- D15 step 2's "elsewhere credential keys hold only **REDACTED**" can be read as a claim or as a step. A finder cannot tell which, and no instrument runs it.
-- tools/audit/seat/INSTRUMENTS.md:15 has trailing whitespace (git diff --check).
-- D15-s1-02's privacy_gate.py --bundle was not run: no bundle is in the tree.
+- D6-s2-02 and D6-s2-03 (merged into D6-s5-02) are unfixed. The body discloses this under Forward-carry, with policy_lint's fixture as the reason, pending an orchestrator ruling. The group lands partial. Carry: dismissed: carried by the PR body's Forward-carry, held for the orchestrator's ruling on the policy_lint fixture; both findings stay open in the round register
+- D15 step 2's "elsewhere credential keys hold only **REDACTED**" can be read as a claim or as a step. A finder cannot tell which, and no instrument runs it. Carry: dismissed: no live roster group follows R11-SEAM-governance-text, so the producing group keeps it; the owner's review of policy edit 1 above decides it
+- tools/audit/seat/INSTRUMENTS.md:15 has trailing whitespace (git diff --check). Carry: dismissed: a whitespace nit in this PR's own diff, the fixer's to strip; it changes no later stage
+- D15-s1-02's privacy_gate.py --bundle was not run: no bundle is in the tree. Carry: dismissed: no debug bundle exists in the tree; the PR body records the same gap and a D15 seat runs it on a live bundle
