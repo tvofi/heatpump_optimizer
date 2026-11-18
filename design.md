@@ -17,7 +17,7 @@ The judge re-ran the D2 and D12 findings in the planted copy (`JUDGE.md`, "plant
 
 No failing test can fail on today's code for these six, so the note designs no production change for them (stop rule: behaviour not stated precisely enough for a failing test). What it designs instead is the regression evidence in "Evidence". Because the Carnot factor is already right, the expected golden drift and the `claimed_drift.txt` claim go away.
 
-Five reproduce: D12-s1-01 (`D12/s1/plan_zone.py`: zone_plants 8 of 8, 768 rows), D17-s1-03 (`D17/s1/h_zone.py`: `two_zone_only_no_effect=1 ['house_thermal_mass']`), D17-s3-02 (`D17/s3/f02_two_zone_inert.py`: 2 of 4 cells, mode `on` only; `auto` now resolves single-zone and moves 166.438), D8-s1-01 (`D8/s1/gapdhw.py`: no_dhw_priced 12 of 22, dhw_null 4 of 6), and D17-s2-03 (`D17/s2/wood_quick.py`; reading in the handoff line).
+Five reproduce: D12-s1-01 (`D12/s1/plan_zone.py`: zone_plants 8 of 8, 768 rows), D17-s1-03 (`D17/s1/h_zone.py`: `two_zone_only_no_effect=1 ['house_thermal_mass']`), D17-s3-02 (`D17/s3/f02_two_zone_inert.py`: 2 of 4 cells, mode `on` only; `auto` now resolves single-zone and moves 166.438), D8-s1-01 (`D8/s1/gapdhw.py`: no_dhw_priced 12 of 22, dhw_null 4 of 6), and D17-s2-03 (`D17/s2/wood_quick.py`: quick-path spread 0.0000 kWh, valve arm 11.7844).
 
 ## Owning seam
 
@@ -52,7 +52,7 @@ Five reproduce: D12-s1-01 (`D12/s1/plan_zone.py`: zone_plants 8 of 8, 768 rows),
 ## Evidence, by file
 
 - **Failing tests first** (`tests/features.py`, beside the #2238 P3 rule, `features.py:90269`): (a) a single-zone `OptimizationResult` with filled zone lists gives `zone_trajectories(False) is None`, and the published `space_plan` rows carry null `upper`/`lower`; (b) the options schema for `two_zone_mode: on` omits `house_thermal_mass`; (c) `set_thermal_parameters` with `house_thermal_mass` on a `two_zone_mode: on` entry raises the new key and writes no option; (d) `_gap_probe_terms` with no hot-water key returns `dhw_extra_kwh == 0.0`; (e) a strings test that both wood descriptions name the valve condition.
-- **Finder harness at both ends**: `plan_zone.py` 8 -> 0 with control rows 96 kept; `h_zone.py` 1 -> 0; `f02_two_zone_inert.py` reads refusal, not 0.000, on the `on` cells while the `auto` deltas are unchanged; `gapdhw.py` 12 -> 0 with dhw_null 4 kept (null control); `wood_quick.py` spread unchanged, valve arm 11.805 unchanged.
+- **Finder harness at both ends**: `plan_zone.py` 8 -> 0 with control rows 96 kept; `h_zone.py` 1 -> 0; `f02_two_zone_inert.py` reads refusal, not 0.000, on the `on` cells while the `auto` deltas are unchanged; `gapdhw.py` 12 -> 0 with dhw_null 4 kept (null control); `wood_quick.py` spread unchanged, valve arm 11.7844 unchanged.
 - **The six non-reproducing findings**: apply each planted line in a private copy, run `GATE_SCOPE=auto`'s scripts, and add a pin only where none fails. Candidates: a scalar/batch parity row in `tests/features.py` for the lift factor and `emitter_delivery`, the era-order monotone check, the duty law, and the `two_zone_mode` absent -> presence rule.
 - **Mutation targets**: the `zone_trajectories` conjunction, the `when=_single_zone` row, the refusal's `two_zone_from_config` test, and the `dhw_enabled_from_config` gate in `_gap_probe_terms`.
 - **Goldens**: `tests/env_drift.py` byte-identical, and both claim files byte-identical.
