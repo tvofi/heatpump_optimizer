@@ -558,3 +558,4 @@
 2026-11-18T23:14:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_space_power_caps CMP_BOUND 934404a3 L4828 by=- ran=12 wall=1208.9s
 2026-11-18T23:24:45Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_price_guess_weights CLAMP_DROP f3416292 L2086 by=- ran=12 wall=1290.8s
 2026-11-18T23:33:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._pv_self_consumed CLAMP_DROP cb686f74 L5701 by=- ran=12 wall=1188.1s
+2026-11-18T23:38:29Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._anticipatory_weights CMP_BOUND 055feb1c L3402 by=- ran=17 wall=1449.0s
