@@ -33,23 +33,91 @@
 1794992631 HB alive
 1794993236 HB alive
 1794993841 HB alive
-1794994000 RESUMED from 7dcf29116c37
-1794994000 INIT box D3-top6
-1794994071 HB LOCAL re-run of D3-top6 on the orchestrator machine (cloud refused twice by frugal guard). BLOCKED.md removed. R1 machine: nproc=8, 8192 MB RAM, Apple M1 macOS, free 12Gi on HOME, load1 2.18. T1 kept from the cloud fire (M22 SURVIVED). R1 baselines re-take starting.
-1794994076 CKPT D3-s1 136 file(s)
-1794995679 HB R1 local: baselines re-taken; controls RESULT null_verdict=LIVES RESULT null_drivers_run=16 RESULT load1=2.86 RESULT thread_factor=1.00  posctl 2/2 KILLED
-1794995686 CKPT D3-s1 145 file(s)
-1794999959 HB gate done: null RESULT gate_rc=1 code 
-1794999967 CKPT D3-s1 147 file(s)
-1795000401 HB T2: null full gate at node default heap: card.mjs OOM (also standalone); re-running null + 6 gates with node --max-old-space-size=5120 (card.mjs passes standalone with it). Null-red at baseline locally (env): closure.py selftest 2, entities.py 2, optimality.py 1; kill = more failed checks than null.
-1795006813 HB gate done: null RESULT gate_rc=1 code 
-1795006821 CKPT D3-s1 154 file(s)
-1795010795 HB gate done: pre:fb16c7b0cbbfc63d RESULT gate_rc=1 code VERDICT fb16c7b0cbbfc63d KILLED python3 tests/features.py 
-1795010803 CKPT D3-s1 156 file(s)
-1795015851 HB gate done: pre:4b3795aece73ba73 RESULT gate_rc=1 code VERDICT 4b3795aece73ba73 KILLED python3 tests/features.py,python3 tests/structure.py 
-1795015858 CKPT D3-s1 158 file(s)
-1795018395 HB LOCAL seat not blocked: T2 running (null re-run with lease label; fb16 KILLED, 4b37 KILLED by features.py). BLOCKED.md deleted. NOTE: a stale cloud box loop (HB alive pairs every 10 min) keeps re-pushing its old tree incl. BLOCKED.md over this ref.
-1795018402 CKPT D3-s1 162 file(s)
-1795019548 HB gate done: null RESULT gate_rc=1 code 
-1795019556 CKPT D3-s1 162 file(s)
-1795027424 HB T3-SPLIT.md written (3 parts x 11) for cloud boxes
+1794994445 HB alive
+1794994708 CKPT D3-s1 135 file(s)
+1794994713 HB T2 gate done: null
+1794995055 HB alive
+1794995660 HB alive
+1794996265 HB alive
+1794996870 HB alive
+1794997475 HB alive
+1794998080 HB alive
+1794998117 CKPT D3-s1 137 file(s)
+1794998121 HB T2 gate done: pre:fb16c7b0cbbfc63d
+1794998685 HB alive
+1794999289 HB alive
+1794999896 HB alive
+1795000501 HB alive
+1795001106 HB alive
+1795001501 CKPT D3-s1 139 file(s)
+1795001506 HB T2 gate done: pre:4b3795aece73ba73
+1795001711 HB alive
+1795002316 HB alive
+1795002920 HB alive
+1795003525 HB alive
+1795004131 HB alive
+1795004735 HB alive
+1795004974 CKPT D3-s1 141 file(s)
+1795004979 HB T2 gate done: pre:bdcf7589b0a0a6df
+1795005340 HB alive
+1795005945 HB alive
+1795006550 HB alive
+1795007155 HB alive
+1795007760 HB alive
+1795008324 CKPT D3-s1 143 file(s)
+1795008328 HB T2 gate done: c2:0e172028a23d9372
+1795008366 HB alive
+1795008970 HB alive
+1795009575 HB alive
+1795010180 HB alive
+1795010785 HB alive
+1795011390 HB alive
+1795011738 CKPT D3-s1 145 file(s)
+1795011743 HB T2 gate done: c2:d931ab195b940b0c
+1795011998 HB alive
+1795012602 HB alive
+1795013207 HB alive
+1795013812 HB alive
+1795014226 RESUMED from fef691f050b1
+1795014226 INIT box D3-top6
+1795014243 HB alive
+1795014358 HB drift warm skipped: HEAD is the baseline
+1795014365 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
+1795014373 HB prepared
+1795014393 SEAT D3-s1 running
+1795014398 HB R0 restored from checkpoint into fresh container; PREPARE redone; R1 baseline re-take starting
+1795014412 HB alive
+1795014857 CKPT D3-s1 152 file(s)
+1795015018 HB alive
+1795015624 HB alive
+1795015866 CKPT D3-s1 153 file(s)
+1795015871 HB R1 re-fire: baselines re-taken on this container (nproc 4, load1~1), null LIVES (16 drivers), posctl 2/2 KILLED; T2 last gate c2:8e82d7a0b3617003 next
+1795016217 HB alive
+1795016822 HB alive
+1795017429 HB alive
+1795018034 HB alive
+1795018640 HB alive
+1795018987 CKPT D3-s1 156 file(s)
+1795018992 HB T2 gate done: c2:8e82d7a0b3617003
+1795019248 HB alive
+1795019852 HB alive
+1795020457 HB alive
+1795021063 HB alive
+1795021668 HB alive
+1795022045 CKPT D3-s1 160 file(s)
+1795022052 HB T2 gate done: c2:8e82d7a0b3617003
+1795022138 HB T2 done: 5/6 KILLED by full gate (features.py); SURVIVED c2:d931ab195b940b0c tariff.py:744 M31. M26 gate re-run on clean tree (first run was on the stripped tree, superseded). T3 full net started: pre 16 queued
+1795022274 HB alive
+1795022879 HB alive
+1795023271 CKPT D3-s1 163 file(s)
+1795023485 HB alive
+1795024090 HB alive
+1795024478 CKPT D3-s1 167 file(s)
+1795024696 HB alive
+1795025300 HB alive
+1795025683 CKPT D3-s1 172 file(s)
+1795025906 HB alive
+1795026511 HB alive
+1795026887 CKPT D3-s1 175 file(s)
+1795027116 HB alive
+1795027721 HB alive
