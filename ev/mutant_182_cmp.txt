@@ -1,0 +1,16 @@
+
+=== features block ===
+
+-- Room history and the identifiability report
+  FAIL three 10-minute cycles make one 30-minute row: the first reading, the target and a calling share of 6667 (two of three samples, hundredths of a percent); the open period is not a row  [[] {} {'outdoor': [], 'return': [], 'power': [], 'space': []}]
+Traceback (most recent call last):
+  File "/root/wt2/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/root/wt2/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/root/wt2/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 42, in <module>
+KeyError: 'climate.a'
