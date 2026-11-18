@@ -1,0 +1,8 @@
+head: PASS
+M1 live=r.file: FAIL
+ tools/policy/policy_lint.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M2 key on every row: FAIL
+ tools/policy/policy_lint.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M3 key dropped: FAIL

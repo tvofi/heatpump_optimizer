@@ -1,0 +1,19 @@
+== policy_lint
+TOTAL: 0 error(s) across 57 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+== budgets touched rows
+tests/README.md                                  461  800     6677  6686 
+dev/audit/README.md                              309  321     5934  6059   key tools/audit/README.md
+.claude/rules/defect-root-cause.md               151  151     1885  1885 
+dev/governance/roles/root-cause.md                81   81      990   990   key tools/audit/briefs/root-cause.md
+dev/governance/roles/proposal-triage.md           42   42      594   594 
+key rows: 23
+== rules_sync
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+== structure
+
+STRUCTURE RATCHET PASSED
+== policy_budgets json
+[]
