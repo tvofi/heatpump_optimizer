@@ -6621,6 +6621,62 @@
     "next_step": "fixer per the architect note (ADR-005)",
     "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-ARCH-fabric-learner",
+   "lane": "CORE",
+   "kind": "refactor",
+   "class": "production",
+   "severity": "low",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "merged": {},
+   "classes": [],
+   "seam": "learners",
+   "hot_files": [
+    "coordinator.py",
+    "tests/structure_budgets.json",
+    "tests/features.py",
+    "tests/structure.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The buffer cooling, house heat-loss and internal-gains folds and the re-anchor leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint, which is read end to end after every coordinator merge. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py at 819aa2e354b4, arm fabric, reads the footprint 28 statements lower for two of the folds; the designer's note carries the reading of the whole cut. Scenario: growth of coordinator.py is priced and the class shrinks (S13). Its designer starts in the first wave, not behind R11-SEAM-learners, so F is measured before most coordinator merges spend R (decided 2026-11-18, orchestrator under mandate, pending owner confirmation); the fixer still waits on R11-SEAM-learners.",
+   "effort": "high",
+   "model": {
+    "designer": "fable",
+    "design_reviewer": "fable",
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R11-SEAM-learners"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/structure_budgets.json",
+    "tests/features.py",
+    "tests/structure.py"
+   ],
+   "brief": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The buffer cooling, house heat-loss and internal-gains folds and the re-anchor leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint, which is read end to end after every coordinator merge. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py at 819aa2e354b4, arm fabric, reads the footprint 28 statements lower for two of the folds; the designer's note carries the reading of the whole cut. Scenario: growth of coordinator.py is priced and the class shrinks (S13). Its designer starts in the first wave, not behind R11-SEAM-learners, so F is measured before most coordinator merges spend R (decided 2026-11-18, orchestrator under mandate, pending owner confirmation); the fixer still waits on R11-SEAM-learners. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md at 819aa2e354b4 with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-arch-fabric-learner",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "designer (ADR-007) in the first wave; design review; the fixer waits on R11-SEAM-learners and an approve",
+    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-entity-service, R11-SEAM-ratchets, R11-SEAM-ratchet-raise, R11-ARCH-cycle-surface): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
