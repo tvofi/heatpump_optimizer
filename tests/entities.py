@@ -42430,7 +42430,7 @@ def _r11_logger_aliases(sources):
             if isinstance(node, ast.Import):
                 value, targets = None, [a for a in node.names if a.name == "logging" and a.asname]
                 is_logger = True
-            elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and node.value is not None:
+            elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr)):
                 value = node.value
                 targets = node.targets if isinstance(node, ast.Assign) else [node.target]
                 is_logger = (isinstance(value, ast.Name) and value.id == "_LOGGER") or (
