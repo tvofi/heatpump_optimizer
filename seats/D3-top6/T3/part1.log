@@ -1,4 +1,4 @@
-# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=0.00 at 2026-11-18T19:22:04Z
+# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=0.13 at 2026-11-18T19:22:46Z
 ## run.log (driver steps + controls)
 === 2026-11-18T18:51:31Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.18 :: STEP baseline
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
@@ -39,6 +39,11 @@ Traceback (most recent call last):
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AssertionError: ({'kind': 'NULL_COMMENT', 'file': 'custom_components/heatpump_optimizer/batchmath.py', 'line': 19, 'old': '#: The two sides of every boundary between consecutive steps of a ``[B, n]``', 'new': '#: The two sides of every boundary between consecutive steps of a ``[B, n]`` (null control)'}, '#: The two sides of every boundary between consecutive steps of a ``[B, n]`` (null control)\n')
 === 2026-11-18T19:06:43Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.35 :: FAIL null control
+=== 2026-11-18T19:22:45Z NOTE null-control tree w4 was left dirty by an interrupted first null run (killed by this seat during setup); restored with git checkout; baselines ran in clean w0-w2; re-firing from null
+=== 2026-11-18T19:22:45Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=0.05 :: STEP baseline
+RESULT load1=0.13
+RESULT thread_factor=1.00
+=== 2026-11-18T19:22:45Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=0.13 :: STEP null
 ## prescreen.log
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
 2026-11-18T18:57:42Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=155.7s reach_ok=False
