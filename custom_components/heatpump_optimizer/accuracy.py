@@ -1269,10 +1269,13 @@ class MeasuredCop:
         install measures no heat (``probe_install(...).measured_heat``)."""
         return state == ASK_UNOBTAINABLE and draw is not None and not measured_heat
 
-    def owed_scale(self, configured: Callable[[], float], now: datetime) -> float | None:
+    def owed_scale(self, configured: Callable[[], float], now: datetime, read: bool = True) -> float | None:
         """The COP scale ``probe`` owes this cycle, or None (``ScaleProbe.owed_scale``).
-        A frozen or unread cycle since the last one (``refusal``) read no interval."""
-        return self.probe.owed_scale(configured, now, self.refusal not in (COP_REFUSED_FROZEN, COP_REFUSED_NO_POWER))
+        A frozen or unread cycle since the last one (``refusal``) read no interval,
+        nor does this one where not ``read`` (an experiment's: the step the last
+        row earned is not taken inside it)."""
+        return self.probe.owed_scale(
+            configured, now, read and self.refusal not in (COP_REFUSED_FROZEN, COP_REFUSED_NO_POWER))
 
     def judge_ratio(
         self, ewma: float, row: CopInterval, params: Any, draw: DrawRange | None, measured_heat: bool = False

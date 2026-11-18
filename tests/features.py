@@ -97109,27 +97109,35 @@ class _MrParams:
 
 def _mr_fold_run(with_rows):
     draw = _mr_dr.DrawRange()
-    for i in range(80):
-        ask = (1.0, 1.6, 2.4, 3.2)[i % 4]
+    for i in range(240):
+        ask = (0.5, 1.6, 2.4, 3.2)[i % 4]  # asks at the configured minimum draw 0.8: the floor moves
+        drawn = 0.8 if i % 4 == 0 else ask * 1.1
         cmd = _mr_pa.FlowCommand(30.0 + 2 * (i % 4), 25.0, 45.0)
         if with_rows:
             for m in range(30):
-                _mr_dr.note_pass(draw, _mr_pass(30 * i + m, written=cmd.written_c, level=ask, drawn=ask * 1.1))
-        _mr_dr.fold(draw, ask * 1.1 if i % 9 else 0.1, (ask, 0.0), _MrParams(), frozen=False,
+                _mr_dr.note_pass(draw, _mr_pass(30 * i + m, written=cmd.written_c, level=ask, drawn=drawn))
+        _mr_dr.fold(draw, drawn if i % 9 else 0.1, (ask, 0.0), _MrParams(), frozen=False,
                     distorted=False, defrost=False, command=cmd)
     return draw
 
 
 _mr_with, _mr_without = _mr_fold_run(True), _mr_fold_run(False)
+_MR_CAP = __import__("heatpump_optimizer.thermal_model", fromlist=["InstallCapability"]).InstallCapability(
+    frozenset({"power"}), True, False)
+_mr_band = lambda d: _mr_dr.solve_band(d, _MrParams(), _MR_CAP, 0.0, applies_floor=True)  # noqa: E731
 _mr_readers = lambda d: (list(d.samples), list(d.commands), d.engaged, list(d.idle), list(d.ceiling),  # noqa: E731
                          _mr_dr.ask_evidence(d), _mr_dr.power_floor_kw(d, _MrParams()), d.observed(),
+                         d.floor_kw, d.floor_since, _mr_band(d),
                          {k: v for k, v in d.as_dict().items() if k != "map_rows"})
 R.check(
-    "null: DrawRange.samples, engaged, ask_evidence, the floor and the stored "
-    "window are identical with and without map rows, and the rows were kept",
+    "null: DrawRange.samples, engaged, ask_evidence, the floor, the learned floor and its "
+    "count, the solve band's bottom and the stored window are identical with and without map "
+    "rows, and the rows were kept",
     _mr_readers(_mr_with) == _mr_readers(_mr_without) and len(_mr_with.map.rows) > 0
-    and not _mr_without.map.rows,
-    f"rows {len(_mr_with.map.rows)}",
+    and not _mr_without.map.rows and _mr_without.floor_kw is not None
+    and _mr_band(_mr_without).min_source != "configured",
+    f"rows {len(_mr_with.map.rows)} floor {_mr_with.floor_kw} since {_mr_with.floor_since} "
+    f"band min {_mr_band(_mr_with).min_kw} {_mr_band(_mr_with).min_source}",
 )
 
 # Origin: decided once, in pump_arbiter.pass_origin.
@@ -97318,6 +97326,54 @@ R.check(
     "without it; the first plan interval after it folds none of its draw",
     _mr_excl == _mr_froz == _mr_noexp and _mr_excl[0] == 3,
     f"{_mr_excl} / {_mr_froz} / {_mr_noexp}",
+)
+
+
+# The dither's first experiment cycle (design R11-CARRY-DRAWMAP, item 1 and
+# the verdict's dither-first-cycle note): owed_scale reads the cycle before's
+# admission, so a plan row admitted just ahead of an experiment would step the
+# scale inside it. An experiment cycle moves no scale, as a frozen one does not.
+def _mr_dither(k, arm, n=70):
+    """``n`` heat-led cycles on ``_ss_coord``; cycle ``k`` is ``arm`` ("plan",
+    "experiment" or "frozen"). Per cycle: the scale in force, the probe's level,
+    the dither's state and the verdict; and whether the row before ``k`` was admitted."""
+    coord, trace, admitted_before = _ss_coord(), [], None
+    for i, (asked, _) in enumerate(_ss_flat(n, seed=11)):
+        if i == k:
+            admitted_before = coord._measured_cop.probe.dither.admitted
+        drawn = asked * coord._cop_scale / 1.1
+        coord._current_action = {"power": asked, "dhw_power": 0.0,
+                                 **(_MR_SYSID if i == k and arm == "experiment" else {})}
+        coord._measured_power = drawn
+        coord._current_state.outdoor_temperature = 8.0
+        _cf_drm.fold(coord._accuracy.draw, drawn, coord._commanded_split(), coord._thermal_params,
+                     frozen=False, distorted=False, defrost=False)
+        if i == k and arm == "frozen":
+            coord._learning_frozen = lambda *a, **kw: "frozen"
+        coord._learn_measured_cop(coord._accuracy.draw)
+        coord.__dict__.pop("_learning_frozen", None)
+        d, p = coord._measured_cop.probe.dither, coord._measured_cop.probe
+        trace.append((repr(coord._cop_scale), p.level, p.base, d.rows, list(d.contrasts), d.reading,
+                      d.ahead, d.admitted, coord._measured_cop.scale_response))
+    return trace, admitted_before
+
+
+_mr_dk = 55  # past the probe arming (cycle 47 on this run), the row before admitted
+_mr_d_exp, _mr_d_froz, _mr_d_plan = (_mr_dither(_mr_dk, a) for a in ("experiment", "frozen", "plan"))
+R.check(
+    "the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the "
+    "row before it admitted, takes no dither step inside it -- the scale in force is the probe's "
+    "base and the dither holds no reading -- and from the next cycle to the run's end is "
+    "byte-identical to the same run with that cycle frozen; null control, the same cycle under "
+    "the plan steps the dither off its base",
+    _mr_d_exp[1] is True and _mr_d_exp[0][_mr_dk][2] is not None
+    and float(_mr_d_exp[0][_mr_dk][0]) == _mr_d_exp[0][_mr_dk][2]
+    and _mr_d_exp[0][_mr_dk][5:7] == (None, None)
+    and _mr_d_exp[0][_mr_dk + 1:] == _mr_d_froz[0][_mr_dk + 1:]
+    and float(_mr_d_plan[0][_mr_dk][0]) != _mr_d_plan[0][_mr_dk][2],
+    f"admitted before {_mr_d_exp[1]}; cycle {_mr_dk}: experiment {_mr_d_exp[0][_mr_dk][:3]} "
+    f"plan {_mr_d_plan[0][_mr_dk][:3]}; first diverging cycle after it "
+    f"{next((i for i, (a, b) in enumerate(zip(_mr_d_exp[0], _mr_d_froz[0])) if a != b and i > _mr_dk), None)}",
 )
 _mr_one = _cf_coord()
 _mr_cop(_mr_one, [(_MR_SYSID, 2.0, 2.0)])
