@@ -1,0 +1,24 @@
+== mb
+RESULT openmeteo_year1_solve_failures=3 solves
+RESULT openmeteo_year1_failed_updates=0 cycles
+RESULT openmeteo_healthy_solve_failures=0 solves
+RESULT openmeteo_all_variants_solve_failures=3 solves
+RESULT thread_factor=1.000
+RESULT load1=3.43
+RESULT swapins=0
+== hd
+RESULT openmeteo_year1_solve_failures=0 solves
+RESULT openmeteo_year1_failed_updates=0 cycles
+RESULT openmeteo_healthy_solve_failures=0 solves
+RESULT openmeteo_all_variants_solve_failures=0 solves
+RESULT thread_factor=1.000
+RESULT load1=3.59
+RESULT swapins=0
+== hm
+RESULT openmeteo_year1_solve_failures=0 solves
+RESULT openmeteo_year1_failed_updates=0 cycles
+RESULT openmeteo_healthy_solve_failures=0 solves
+RESULT openmeteo_all_variants_solve_failures=0 solves
+RESULT thread_factor=1.000
+RESULT load1=3.57
+RESULT swapins=0
