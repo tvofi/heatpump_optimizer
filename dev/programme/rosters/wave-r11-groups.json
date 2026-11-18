@@ -4881,6 +4881,92 @@
     "next_step": "fixer per the architect note (ADR-001)",
     "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-plant-model",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "critical",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D2-s1-01",
+    "D2-s1-02",
+    "D2-s2-02",
+    "D2-s1-51",
+    "D12-s2-01",
+    "D12-s3-01",
+    "D12-s1-01",
+    "D17-s1-03",
+    "D17-s3-02",
+    "D17-s2-03",
+    "D8-s1-01"
+   ],
+   "merged": {},
+   "classes": [
+    "N-table-value",
+    "N-wrong-law",
+    "P2"
+   ],
+   "seam": "plant model",
+   "hot_files": [
+    "thermal_model.py",
+    "mixing_valve.py",
+    "defrost.py",
+    "presets.py",
+    "topology.py",
+    "coordinator.py",
+    "config_flow.py",
+    "sensor.py",
+    "optimizer.py",
+    "strings.json",
+    "services.py",
+    "services.yaml",
+    "quick_setup.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers \"two zones\", \"modulating\" and \"has hot water\" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Plan: ADR-008 is the approved design of the predicate work; the law fixes are point fixes. The has-hot-water predicate becomes a public function with the gap advisor as a new reader; the fall in private_cross_module is banked only when the reviewer finds that reader in the PR. Golden drift from the Carnot fix is claimed with its direction.",
+   "effort": "high",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/mixing_valve.py",
+    "custom_components/heatpump_optimizer/defrost.py",
+    "custom_components/heatpump_optimizer/presets.py",
+    "custom_components/heatpump_optimizer/topology.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/quick_setup.py"
+   ],
+   "brief": "Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers \"two zones\", \"modulating\" and \"has hot water\" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Plan: ADR-008 is the approved design of the predicate work; the law fixes are point fixes. The has-hot-water predicate becomes a public function with the gap advisor as a new reader; the fall in private_cross_module is banked only when the reviewer finds that reader in the PR. Golden drift from the Carnot fix is claimed with its direction. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-plant-model",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-008)",
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-dead-state): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
