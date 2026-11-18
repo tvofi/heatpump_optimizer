@@ -6123,6 +6123,65 @@
     "next_step": "designer (designer.md) first; design review; fixer only on approve",
     "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-money, R11-SEAM-cycle-reporting, R11-SEAM-config, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-ratchets",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "low",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D7-s1-02",
+    "D7-s1-03",
+    "D14-s2-03"
+   ],
+   "merged": {},
+   "classes": [
+    "N-log-flood",
+    "N-structure-blind"
+   ],
+   "seam": "test suite",
+   "hot_files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json",
+    "tests/entities.py",
+    "sysid.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value when the group merges; no edge waits on R11-SEAM-dead-state, whose later deletions re-record the import row downward (the edge dropped, decided 2026-11-18, orchestrator under mandate, pending owner confirmation). 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind. Plan: ADR-009. No function the architecture score reads from tests/structure.py changes; D7-s1-02 gets a row of its own beside duplicate_clones, and the score's clone census is not edited in this round. No budget is raised here.",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json",
+    "tests/entities.py",
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "brief": "Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value when the group merges; no edge waits on R11-SEAM-dead-state, whose later deletions re-record the import row downward (the edge dropped, decided 2026-11-18, orchestrator under mandate, pending owner confirmation). 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind. Plan: ADR-009. No function the architecture score reads from tests/structure.py changes; D7-s1-02 gets a row of its own beside duplicate_clones, and the score's clone census is not edited in this round. No budget is raised here. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-ratchets",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-009)",
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
