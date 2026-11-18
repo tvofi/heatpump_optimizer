@@ -21,10 +21,11 @@ if [ "${1:-}" = "--self-test" ]; then
   . "$SH/../../../tests/throwaway_git.sh"
   mkcopy() { mkdir -p "$W/$1/audit/seat" "$W/$1/pr"; cp "$SH/ref_privacy.py" "$SH/pr_args.sh" "$W/$1/audit/seat/"
     case $2 in real) cp "$SELF" "$W/$1/audit/seat/body_push.sh";; bpbase) sed '/# mut:bpbase$/s/.*/    :/' "$SELF" > "$W/$1/audit/seat/body_push.sh";;
+      privacy) sed '/# mut:privacy$/s/^\( *\)if .*/\1if false; then/' "$SELF" > "$W/$1/audit/seat/body_push.sh";;
       *) sed '/# mut:keep$/s/.*/    :/' "$SELF" > "$W/$1/audit/seat/body_push.sh";; esac
     printf '#!/bin/bash\n[ "$1" = --body-check ] && [ -f "$FLAGS/lint" ] && { echo lint-stub-refuses; exit 1; }\nexit 0\n' > "$W/$1/pr/prepr.sh"
     printf 'import os, sys\nopen(os.environ["FLAGS"] + "/refreshed", "w").close()\nopen(os.environ["FLAGS"] + "/figbase", "a").write(sys.argv[sys.argv.index("--base") + 1] + "\\n")\n' > "$W/$1/pr/figure_block.py"; }
-  mkcopy t real; mkcopy m mutant; mkcopy b bpbase
+  mkcopy t real; mkcopy m mutant; mkcopy b bpbase; mkcopy p privacy
   mkdir -p "$W/bin"; printf '#!/bin/sh\ncase "$*" in api*pulls?state*) cat "$W/prn" ;; api*pulls/*) cat "$W/pullbase" ;; *) exit 99 ;; esac\n' > "$W/bin/gh"; chmod +x "$W/bin/gh"; : > "$W/prn"
   printf '#!/bin/bash\nexit 0\n' > "$W/packer"; printf '#!/bin/bash\n[ -f "$FLAGS/packet" ] && exit 1\nexit 0\n' > "$W/packer"
   printf '#!/bin/bash\n[ -f "$FLAGS/landed" ] && exit 1\nexit 0\n' > "$W/landed"; chmod +x "$W/packer" "$W/landed"
@@ -57,6 +58,27 @@ if [ "${1:-}" = "--self-test" ]; then
     drop; : > "$W/flags/$arm"; run m; rc=$?
     st "$(keepsha)" none "MUTANT keep deleted ($arm): nothing is kept, so the arm above would fail"
   done
+  # PC-1113-17: a refused body that names this host (ref_privacy body-lines) keeps nothing on origin, and says so locally.
+  # The host is a fixture account, not a public one; the null control is the same body under another non-public host.
+  hostrun() { ( export HOME="/home/$1" USER="$1" LOGNAME="$1"; run "$2" ); }
+  printf '%s\n\nsee /home/hpofixa/notes\n' "$BODYTXT" > "$W/body.md"
+  drop; : > "$W/flags/lint"; hostrun hpofixa t; rc=$?
+  st "$rc$(grep -c '^body_push: REFUSED BODY-LINT$' "$W/out")" 11 "PRIVACY: a lint-refused body naming this host still refuses, exit 1"
+  st "$(keepsha)" none "... and nothing is kept on origin"
+  st "$(grep -c "^body_push: the refused body fails ref_privacy body-lines (above); nothing is kept on origin, it stays at $W/body.md\$" "$W/out")" 1 "... and the output says so and names the local body"
+  st "$(grep -c 'refused body kept at' "$W/out")" 0 "... and prints no keep line"
+  drop; : > "$W/flags/pred"; hostrun hpofixa t; rc=$?; st "$rc$(keepsha)" 1none "PRIVACY: the predictor arm keeps nothing either"
+  printf '%s\n' "$BODYTXT" > "$W/body.md"; printf 'see /home/hpofixa/notes\n' > "$W/note.md"
+  drop; : > "$W/flags/lint"
+  ( export HOME=/home/hpofixa USER=hpofixa LOGNAME=hpofixa; cd "$W/repo" && throwaway_git_env && PATH="$W/bin:$PATH" W="$W" FLAGS="$W/flags" HPO_HANDOFF_PACKER="$W/packer" \
+      HPO_HANDOFF_LANDED="$W/landed" bash "$W/t/audit/seat/body_push.sh" t "$W/body.md" "$W/note.md" > "$W/out" 2>&1 ); rc=$?
+  st "$rc$(keepsha)" 1none "PRIVACY: a RESUME note naming this host keeps nothing either"
+  printf '%s\n\nsee /home/hpofixa/notes\n' "$BODYTXT" > "$W/body.md"
+  drop; : > "$W/flags/lint"; hostrun hpofixb t; rc=$?
+  st "$rc$(git -C "$W/o.git" show "$(keepsha):BODY.md" 2>/dev/null | grep -c hpofixa)" 11 "  null control: the same body under another host is a non-privacy BODY-LINT refusal, kept on origin"
+  drop; : > "$W/flags/lint"; hostrun hpofixa p; rc=$?
+  st "$rc$(keepsha | grep -c none)" 10 "  MUTANT mut:privacy (its predicate never true): the privacy body is kept, so the arms above would fail"
+  printf '%s\n' "$BODYTXT" > "$W/body.md"
   drop; : > "$W/flags/lint"; run t; first=$(keepsha); run t
   st "$(git -C "$W/o.git" rev-parse "$(keepsha)^" 2>/dev/null)" "$first" "a second refusal fast-forwards the keep ref"
   drop; : > "$W/flags/lint"; cp "$W/hook" "$W/o.git/hooks/pre-receive"; run t; rc=$?
@@ -120,8 +142,16 @@ prepr_trailer() { # checkout root, code head -> `Prepr: <sha> <tree>`, or nothin
 # ref handoff-wip/<topic>-body (parentless, then fast-forward, as the real push below), a prefix
 # neither cloud_relay.sh's handoff arm nor `bus.sh orphans` lists. It changes neither the refusal
 # nor its exit code; a failed keep is said and nothing else. drop_keep removes it after a success.
+# A body or note the comment gate would refuse to post (ref_privacy body-lines: this host's identity,
+# a tool attribution) is not kept: origin gets nothing, the body stays local and its path is said
+# (PC-1113-17). Any refusal arm, the lint's privacy one included; a judge that fails keeps nothing.
 keep_refused() {
-  local kref=handoff-wip/$TOPIC-body kdir; kdir=$(dirname "$0")
+  local kref=handoff-wip/$TOPIC-body kdir kw; kdir=$(dirname "$0")
+  if ! kw=$(python3 -I "$kdir/ref_privacy.py" body-lines "$BODY" 2>&1) || { [ -n "$NOTE" ] && ! kw=$(python3 -I "$kdir/ref_privacy.py" body-lines "$NOTE" 2>&1); }; then  # mut:privacy
+    printf '%s\n' "$kw" >&2
+    echo "body_push: the refused body fails ref_privacy body-lines (above); nothing is kept on origin, it stays at $BODY" >&2
+    return 0
+  fi
   (
     kt=$(git ls-remote origin "refs/heads/$kref" 2>/dev/null | awk 'NF { print $1; exit }') || kt=""
     kp=""
