@@ -8,3 +8,4 @@
 1795006625 CKPT baselines measured at main; 3 real, 3 pin-only snapshot ed4fd86031f4
 1795007004 HB alive
 1795007159 CKPT production fixes written; harnesses re-run snapshot 285ac38dbcc3
+1795007311 CKPT tests written, entities.py running snapshot 138023628a2d
