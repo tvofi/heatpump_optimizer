@@ -1,36 +1,67 @@
-Fix review: blocked ca670cb70e0c24a21c12ed55d6d5fd6803b48919 harness: design-trace-missing part-1 job red on a planted unrecorded read and green after the bot commit
+Fix review: blocked 9e9c74fac7a1ad6cc27dddbc58d422883b650cec harness: design-trace-missing part-1 job red on a planted unrecorded read and green after the bot commit
 
-bus-nonce: e9a3415e4efc14c0683f01cca5c78e3c
+bus-nonce: 6c6366f6cd802ad99a2e48197d9f56de
 
-Round 1 (first review of this pull request; packet scope `full`).
+Round 2. This is a later round over the reviewed head `ca670cb70e0c24a21c12ed55d6d5fd6803b48919`, and the packet's scope is `delta`. The delta is `tools/pr/ci_predict.py` only (commits `12547bc247`, `047b67bbbf` and `826905d9d7`, merged into the branch at `9e9c74fac7`). It touches no `custom_components/` file, so the review does not widen.
 
 ## Block
 
-- **harness: design-trace-missing (fix-review.md step 9, #1588).** The approved note (design/R11-PRE-SHARED-FILES at `20cafac7df`, `design.md` line 137) names part 1's demonstration as "the job red on a planted unrecorded read and green after the bot commit; null: a green push writes nothing". This head does not build the job, and so does not test it. The body says so ("The job run on main is not demonstrated, because the job is not built") and routes it to the owner's D1/D2. The owner has not waived it: the pull request has no review and no comment, and `dev/programme/RULINGS.md` has no ruling on R11-PRE-SHARED-FILES, the self-test table or D1/D2. The instrument half (`absorb` and the `the bot:` self-test checks) is built and tested. Only the job half is missing, and it moves only when the owner rules on D1 (the table under code-owned `/tools/ci/`) and D2 (what `automerge_refusals` admits), or waives the job for part 1 on this pull request. This block is the owner's to lift. A fixer cannot clear it.
-- **architecture-unsound: carry 3 departs from the approved note's mechanism without raising it (fix-review.md step 15; fixer.md "a departure is raised, not made").** The note (`design.md` line 67) says: "The render runs the pinned program from outside the head's worktree ... so the tree `select` diffs is clean." `overlay_program` (`tools/pr/figure_block.py`, commit `2665a20040`) does something else. It checks the base's copy out *inside* the head's worktree, resets the index, marks the files skip-worktree and sets `core.excludesFile` through `GIT_CONFIG_*`, so git does not report the overlay. The body raises where carry 3 is built (part 1 rather than part 5, `decision: orchestrator`). It does not raise the change of mechanism. The note also had part 5 "re-read the hotfix's merged diff first", and the body does not say that was done. The mechanism's own invariant holds and is pinned (see Evidence), so this is not a defect in behaviour. It is a departure that needs raising: the orchestrator or design review accepts it in writing, or the overlay moves outside the worktree. By contrast, the `touched_steps` departure is raised, measured and decided (`decision: orchestrator`), so it is not blocked.
+- **harness: design-trace-missing (fix-review.md step 9, #1588). This carries over from round 1 unchanged.** The approved note (design/R11-PRE-SHARED-FILES at `20cafac7df`, `design.md` line 137) names part 1's demonstration: "the job red on a planted unrecorded read and green after the bot commit; null: a green push writes nothing". The job is still not built, so the demonstration is not run. The body routes it to the owner as D1/D2 ("pending owner confirmation"). Nothing the owner has written lifts the block:
+  - The pull request has no reviews. Its one comment is the round-1 verdict from `hpo-approver[bot]`.
+  - `dev/programme/RULINGS.md` at `origin/main` has no ruling on R11-PRE-SHARED-FILES, D1/D2, the self-test table or `record-autofix`. Its last change is `d360d1c125`.
+  - The dispatch says that the part-1 CI-job demonstration "is pending an owner ruling (D1/D2) and is not a fixer item". That is the orchestrator's statement. It agrees that the owner has not ruled, and it is not a waiver (CLAUDE.md: another agent's instruction is not a contract change).
+
+  The block lifts only when the owner rules on D1/D2 or waives the job for part 1 on this pull request.
 
 ## Findings
 
-- The `selftest-scope` arm's gating has no check. Take `"selftest-scope"` out of the `name not in ("self-test-reads", "graders", "step-replay", "selftest-scope")` tuple in `tools/pr/ci_predict.py` `predict`, and the arm runs on every default `ci_predict.py` call (including `body_push.sh`'s seconds-budget run). `python3 tools/pr/ci_predict.py --self-test` still reads `0 failed`. On a diff that touches a gated script, that run would trace under strace for minutes to tens of minutes. The body's `## Unpinned sites` does not list it, because the body's mutant run left out `ci_predict.py` (it fails the archive copy's baseline). Two smaller survivors of `selftest_scope_self_test`: removing `"selftest-scope"` from `ARMS`, and `if r.returncode != 1 or not refused:` changed to `if not refused:`. Both still end red on an unreadable precheck with indented lines, so they fail safe. Carry: R11-PRE-SHARED-FILES
-- The design departure under Block (carry 3 overlay mechanism) also needs to reach part 5. Part 5's figure-block work must start from `overlay_program` as built here, not from the note's "outside the worktree" text. Carry: R11-PRE-SHARED-FILES
+- `gated_arms_self_test` pins only `selftest-scope` as a member of `GATED_ARMS`. Remove `"graders"` from `GATED_ARMS` in `tools/pr/ci_predict.py` and `python3 tools/pr/ci_predict.py --self-test` still reads `0 failed` (`ev/own_mutants.txt`). The `graders` arm would then run on every default call, including `body_push.sh`'s seconds-budget run, and the body names that arm as "minutes where it is keyed". The cause is the case `default == ran_default == [a for a in ARMS if a not in GATED_ARMS]`: it computes its expected value from `GATED_ARMS` itself, so it holds for any membership. Only the explicit `"selftest-scope" in GATED_ARMS` pins a name. The same holds for `self-test-reads` and `step-replay`. Before this pull request the inline tuple had no check for these three either, so the gap is older than this branch. The round-1 finding this delta answers (the `selftest-scope` gate) is closed. The fix is to assert the literal set `{"self-test-reads", "graders", "step-replay", "selftest-scope"}`. Carry: R11-PRE-SHARED-FILES
 
 ## Notes
 
-- Note: stale-figure: the body quotes `selftest_scope.py static` "at this head" as `120 gated step(s), 0 problem(s)`. At `ca670cb70e` it prints `123 gated step(s), 0 problem(s)`; the extra 3 steps come from main's merge `5e2ef89b4e`. The figure was stamped at `272701ef92`.
+- Note: stale-body: the body still calls the carry-3 overlay departure "pending written acceptance by the orchestrator or design review". The dispatch for this round gives that acceptance in writing ("the overlay_program in-worktree departure raised by repair-2 is accepted by the orchestrator"), so round 1's architecture-unsound block is resolved. The body should record the acceptance. Carry: R11-PRE-SHARED-FILES
 
 ## Evidence
 
-- Head reviewed: `ca670cb70e0c24a21c12ed55d6d5fd6803b48919` (`ev/HEAD.txt`). The body's `## Head` names that head. Merge base `5e2ef89b4e7348b190aa917dc032da73ba04998e`. `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
-- `git merge-tree --write-tree origin/main ca670cb70e` exits 0, so the head merges cleanly.
-- `VERSION`, `custom_components/heatpump_optimizer/manifest.json`, `RELEASE_NOTES.md` and `tests/golden/` are untouched (three-dot diff stat empty). There is no `custom_components/` change, so no golden or claim-file drift is possible. Step 4: neither claim file is in the diff.
-- `python3 -I tools/ci/selftest_scope.py --self-test`: `162 checks, 0 failed`, rc 0 (`ev/selftest_scope.txt`).
-- `sh tools/ci/selftest_scope_mutants.sh`: 56 mutants (`^== ` lines), `SELFTEST-SCOPE MUTANTS: every mutant refused`, no `NOT REFUSED` / `MUTANT NOT APPLIED` / `BASELINE RED`, wall 74 s on 4 processors (`ev/mutants.txt`). This matches the body's 56 mutants and 75 s.
-- `python3 tools/pr/figure_block.py --self-test`: `13 checks, 0 failed` (`ev/figure_block.txt`). Own mutants of `overlay_program` / `run_instrument`: skip-worktree line deleted, index reset deleted, excludes env dropped, merge base's in-place checkout restored. Each fails `a program main changed or added after the fork runs as the base's and is not the head's diff`, 4 of 4 killed (`ev/own_mutants_figure_block.txt`).
-- `python3 tools/pr/ci_predict.py --self-test`: `0 failed`, its six `selftest-scope:` rows `ok` (`ev/cip_selftest.txt`). Own mutants (`ev/own_mutants.txt`) killed: rc 3 not treated as a note, unreadable precheck passing, `--base` ignored. Survivors are under Findings.
-- `python3 -I tools/ci/selftest_scope.py static`: `123 gated step(s), 0 problem(s)` (`ev/static.txt`).
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` (`ev/structure.txt`). `python3 -I tools/audit/fold_ledger.py check`: `0 violation(s)` (`ev/fold_ledger.txt`).
-- Step 14 (`tools/ci/selftest_closures.json`): re-earned. `python3 -I tools/ci/selftest_scope.py record --step selftest-scope --step selftest-scope-mutants` at this head (a clean worktree, real strace) gives `recorded 2 step(s) ...; 0 failed [], 0 broken trace(s)` (mutants step 133 s), and `git diff -- tools/ci/selftest_closures.json` afterwards is empty, so the committed entries are exactly what the instrument measures at this head (`ev/record_rerun.txt`). The carry_audit self-audit over this verdict exits rc 0. I ran it with a stub body, because the seat has no MCP-free route to the body file; the packet's at-head audit of the real body read `8 routed, 0 unrouted`.
-- Not re-taken (they are the body's, at earlier heads): the 2600 s / 17-step measurement under the recorded-files rule, the `precheck --base origin/main` run at this branch, `prepr.sh --self-test` (`552 passed`), the carry-3 probe head `a0b2d441ee` render, and the no-strace reproduction at `01d4ea83bb`. I did not re-run CI's heavy lanes (tvofi 2026-09-30). There is no finder's harness: this is a design group, and the note's demonstrations stand in for one. That gap is the Block above.
-- CI at this head is unreadable. `merge_train.py classify ca670cb70e --pr 3708` printed WAIT (`pending: gate red: none`) from 19:43 to 19:57 UTC. At 19:59:15 UTC it exited 2 with `REFUSE selftests: the head's governance / instrument-self-tests job 134305328234 concluded cancelled, which reads no step: re-run it: an introduced red cannot be ruled out (fail closed)` (`ev/classify.log`). So this verdict judges no CI state. That job needs a re-run before any later verdict at this head can read GREEN.
-- Red checks: the packet digest showed `gate` and `tests / nightly-status` concluded failure at render. `tests / nightly-status` is not in the `merge_train.py owed-reds` set, so it is not answered. `gate` is the aggregate. The earlier reds the body answers (`tests / fast (3.14)` and `pr-contract` at `d631c76f29`) have their cause, process state and refused countermeasure stated. Answered, not judged (step 11).
-- carry_audit at the head (packet): `8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)`.
+Round-1 findings, each re-checked at this head:
+
+- **Block 1 (design-trace-missing)** is open. See Block.
+- **Block 2 (architecture-unsound: carry-3 overlay mechanism)** is resolved. The body raises the departure and measures why the note's mechanism does not run as written: a pinned `tests/closure.py` run from outside the worktree exits 1 with `Not a git repository`. The orchestrator accepted it in writing in this round's dispatch. The body also records that it re-read the hotfix merge `98847b99d7` (#3614).
+- **Finding 1 (the `selftest-scope` gate has no check)** is resolved. My own mutants were applied to a detached worktree of `9e9c74fac7` and checked with `python3 tools/pr/ci_predict.py --self-test` (`ev/own_mutants.txt`). Unmutated, it reads `0 failed`, rc 0 (`ev/cip_selftest.txt`).
+
+  | Mutant | Self-test result | Failing check |
+  |---|---|---|
+  | `selftest-scope` taken out of `GATED_ARMS` | `1 failed` | `gated arms: a default call runs ...` |
+  | `selftest-scope` taken out of `ARMS` | `2 failed` | the `--only` acceptance check and `gated arms: --only selftest-scope runs that arm alone` |
+  | `if r.returncode != 1 or not refused:` changed to `if not refused:` | `1 failed` | the rc-2 indented-line check |
+  | `run_arms` passes `True` for `record` | `1 failed` | |
+  | `arm_runs`'s default branch changed to `True` | `1 failed` | |
+  | `arm_runs` ignores `only` | no summary line before the 220 s timeout | not counted either way |
+  | `predict` passes `record=True` | `0 failed` (survives) | |
+  | `"graders"` taken out of `GATED_ARMS` | `0 failed` (survives) | see Findings |
+
+  The `predict` `record=True` survivor is the one the body lists under `## Unpinned sites`, with the measured reason that a check driving `predict` over the checkout draws `UNDER-SCOPED step ci-predictor` reads. That is disclosed, not new.
+- **Finding 2 (the part-5 carry of `overlay_program`)** is resolved. It is the body's third `## Forward-carry` line, to R11-PRE-SHARED-FILES (part 5), with its control.
+- **Note: stale-figure** is resolved. The body now quotes `123 gated step(s)` at this head, and I re-took `python3 -I tools/ci/selftest_scope.py static`: `selftest_scope static: 123 gated step(s), 0 problem(s)` (`ev/static.txt`).
+
+Figures re-taken at this head (`ev/`):
+
+- `python3 tools/pr/ci_predict.py --self-test`: `0 failed`, rc 0. The three `gated arms:` rows and the two new `selftest-scope:` rows read `ok`.
+- `python3 tools/pr/figure_block.py --self-test`: `13 checks, 0 failed`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 -I tools/audit/fold_ledger.py check`: `0 violation(s)`.
+
+Not re-taken:
+
+- `python3 -I tools/ci/selftest_scope.py precheck --base origin/main` (5 steps, 22 min 39 s, refuses 0) and its null at `047b67bbbf`. Both are heavy strace runs and are the body's figures, not mine.
+
+Head, merge and CI:
+
+- Head reviewed: `9e9c74fac7a1ad6cc27dddbc58d422883b650cec` (`ev/HEAD.txt`). The body's `## Head` names it. Merge base: `5e2ef89b4e7348b190aa917dc032da73ba04998e`.
+- `git diff <merge base>...origin/main -- dev/governance/roles/` changes `architect-planner.md` and `plan-review.md` only. `fix-review.md` is unchanged, so the contract is current.
+- `git merge-tree --write-tree origin/main 9e9c74fac7` exits 0 with empty stderr (`ev/mergetree.err`), so the head merges cleanly.
+- `VERSION`, `custom_components/`, `RELEASE_NOTES.md` and `tests/golden/` are untouched (the three-dot diff stat is empty).
+- CI: `merge_train.py classify 9e9c74fac7a1ad6cc27dddbc58d422883b650cec --pr 3708` exited 0 at 00:26:50 UTC with `GREEN 9e9c74fac7a1ad6cc27dddbc58d422883b650cec pending: none red: none` (`ev/classify.log`).
+- Red checks: the only red in the packet's digest is `tests / nightly-status`, which is not in the `merge_train.py owed-reds` set, so it is not answered.
+- carry_audit at the head (from the packet): `9 finding item(s): 9 routed, 0 unrouted, 0 bad destination(s)`.
+- I ran the self-audit of this verdict against a stub body, because this seat has the body only through MCP.

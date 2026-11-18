@@ -1,53 +1,16 @@
-== mutant: rc 3 not a note
--    if r.returncode == 3:
-+    if r.returncode == 99:
-  ok   selftest-scope: a tree without the tool predicts nothing and runs nothing
-  ok   selftest-scope: each refusal of precheck is a predicted instrument red; a step's names its record command
-  ok   selftest-scope: precheck is run isolated, against the given base, in the tree
-  FAIL selftest-scope: rc 3 (no strace) is a note and no red
-  FAIL selftest-scope: rc 0 predicts nothing (null control)
-  ok   selftest-scope: a precheck that could not run is a red, never a pass
-bad 2
-== mutant: unreadable rc!=1 accepted
--    if r.returncode != 1 or not refused:
-+    if not refused:
-  ok   selftest-scope: a tree without the tool predicts nothing and runs nothing
-  ok   selftest-scope: each refusal of precheck is a predicted instrument red; a step's names its record command
-  ok   selftest-scope: precheck is run isolated, against the given base, in the tree
-  ok   selftest-scope: rc 3 (no strace) is a note and no red
-  ok   selftest-scope: rc 0 predicts nothing (null control)
-  ok   selftest-scope: a precheck that could not run is a red, never a pass
-bad 0
-== mutant: unreadable precheck passes
--        return [("instrument", f"SELFTEST SCOPE UNREADABLE precheck rc {r.returncode}: {tail}")]
-+        return []; [("instrument", f"SELFTEST SCOPE UNREADABLE precheck rc {r.returncode}: {tail}")]
-  ok   selftest-scope: a tree without the tool predicts nothing and runs nothing
-  ok   selftest-scope: each refusal of precheck is a predicted instrument red; a step's names its record command
-  ok   selftest-scope: precheck is run isolated, against the given base, in the tree
-  ok   selftest-scope: rc 3 (no strace) is a note and no red
-  ok   selftest-scope: rc 0 predicts nothing (null control)
-  FAIL selftest-scope: a precheck that could not run is a red, never a pass
-bad 1
-== mutant: base ignored
--    r = run([sys.executable, "-I", SCOPE_TOOL, "precheck", "--base", base], cwd=root,
-+    r = run([sys.executable, "-I", SCOPE_TOOL, "precheck", "--base", "origin/main"], cwd=root,
-  ok   selftest-scope: a tree without the tool predicts nothing and runs nothing
-  ok   selftest-scope: each refusal of precheck is a predicted instrument red; a step's names its record command
-  FAIL selftest-scope: precheck is run isolated, against the given base, in the tree
-  ok   selftest-scope: rc 3 (no strace) is a note and no red
-  ok   selftest-scope: rc 0 predicts nothing (null control)
-  ok   selftest-scope: a precheck that could not run is a red, never a pass
-bad 1
-== mutant: arm unregistered in ARMS
--        "step-replay", "selftest-scope")
-+        "step-replay")
-  ok   selftest-scope: a tree without the tool predicts nothing and runs nothing
-  ok   selftest-scope: each refusal of precheck is a predicted instrument red; a step's names its record command
-  ok   selftest-scope: precheck is run isolated, against the given base, in the tree
-  ok   selftest-scope: rc 3 (no strace) is a note and no red
-  ok   selftest-scope: rc 0 predicts nothing (null control)
-  ok   selftest-scope: a precheck that could not run is a red, never a pass
-bad 0
-== mutant: arm ungated (full self-test)
-  ok   predict with a body refreshes the round rosters and notes a failed refresh
-ci_predict self-test: 0 failed
+== GATED_ARMS drops selftest-scope: ci_predict self-test: 1 failed
+  FAIL gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
+== ARMS drops selftest-scope: ci_predict self-test: 2 failed
+  FAIL selftest-scope: --only selftest-scope is an arm predict accepts (an unknown name is refused)
+  FAIL gated arms: --only selftest-scope runs that arm alone
+== rc!=1 check loosened: ci_predict self-test: 1 failed
+  FAIL selftest-scope: an indented line under an rc that is neither 0, 1 nor 3 is no refusal: the run is unreadable
+== run_arms record->True: ci_predict self-test: 1 failed
+  FAIL gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
+== arm_runs default True: ci_predict self-test: 1 failed
+  FAIL gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
+== arm_runs only ignored: 
+== predict passes record=True: ci_predict self-test: 0 failed
+== GATED_ARMS drops graders: ci_predict self-test: 0 failed
+
+[exited with code 0]

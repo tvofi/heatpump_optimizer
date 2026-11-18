@@ -1,9 +1,9 @@
-NOTE stale tree: ca670cb70e0c24a21c12ed55d6d5fd6803b48919 lacks origin/main 91674d15cdd6a66924ed45eced7a808f7ae3f62e; roster read at origin/main
-NOTE stale tree: ca670cb70e0c24a21c12ed55d6d5fd6803b48919 lacks origin/main 91674d15cdd6a66924ed45eced7a808f7ae3f62e; roster read at origin/main
+NOTE stale tree: 9e9c74fac7a1ad6cc27dddbc58d422883b650cec lacks origin/main 76bbf637442f586fd9d91dd565b496445db282f0; roster read at origin/main
+NOTE stale tree: 9e9c74fac7a1ad6cc27dddbc58d422883b650cec lacks origin/main 76bbf637442f586fd9d91dd565b496445db282f0; roster read at origin/main
   ok   a carry to a live group of the roster is predicted green
-NOTE stale tree: ca670cb70e0c24a21c12ed55d6d5fd6803b48919 lacks origin/main 91674d15cdd6a66924ed45eced7a808f7ae3f62e; roster read at origin/main
+NOTE stale tree: 9e9c74fac7a1ad6cc27dddbc58d422883b650cec lacks origin/main 76bbf637442f586fd9d91dd565b496445db282f0; roster read at origin/main
   ok   a carry to a group the roster lacks is predicted red
-NOTE stale tree: ca670cb70e0c24a21c12ed55d6d5fd6803b48919 lacks origin/main 91674d15cdd6a66924ed45eced7a808f7ae3f62e; roster read at origin/main
+NOTE stale tree: 9e9c74fac7a1ad6cc27dddbc58d422883b650cec lacks origin/main 76bbf637442f586fd9d91dd565b496445db282f0; roster read at origin/main
   ok   a finding with no carry at all is predicted red
   ok   a file re-added at a path whose move landed is predicted red (rc 1)
   ok   the re-added path under a second commit is predicted red (rc 1)
@@ -95,6 +95,11 @@ NOTE stale tree: ca670cb70e0c24a21c12ed55d6d5fd6803b48919 lacks origin/main 9167
   ok   selftest-scope: rc 3 (no strace) is a note and no red
   ok   selftest-scope: rc 0 predicts nothing (null control)
   ok   selftest-scope: a precheck that could not run is a red, never a pass
+  ok   selftest-scope: an indented line under an rc that is neither 0, 1 nor 3 is no refusal: the run is unreadable
+  ok   selftest-scope: --only selftest-scope is an arm predict accepts (an unknown name is refused)
+  ok   gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
+  ok   gated arms: null: --record-self-tests runs every arm, in order
+  ok   gated arms: --only selftest-scope runs that arm alone
   ok   clone's round ref is the stale local branch before the fetch (tracking=True)
   ok   fetch_round_rosters takes root's remote-tracking ref
   ok   clone's round ref is the stale local branch before the fetch (tracking=False)
@@ -103,7 +108,7 @@ NOTE stale tree: ca670cb70e0c24a21c12ed55d6d5fd6803b48919 lacks origin/main 9167
   ok   the seat's round ref is stale before the refresh
   ok   refresh_round_rosters moves it to origin's branch and returns no note
   ok   an unreachable origin leaves the ref, raises nothing and notes ROSTER UNFETCHED with git's reason (null control)
-NOTE stale tree: ca670cb70e0c24a21c12ed55d6d5fd6803b48919 lacks origin/main 91674d15cdd6a66924ed45eced7a808f7ae3f62e; roster read at origin/main
+NOTE stale tree: 9e9c74fac7a1ad6cc27dddbc58d422883b650cec lacks origin/main 76bbf637442f586fd9d91dd565b496445db282f0; roster read at origin/main
   ok   predict with a body refreshes the round rosters and notes a failed refresh
   ok   predict without a body fetches nothing (null control)
   ok   every JOB value is a name gate.REQUIRED owes
