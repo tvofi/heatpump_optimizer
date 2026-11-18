@@ -10,3 +10,4 @@
 1794989480 INIT box D3-u1d
 1794989496 HB alive
 1794989527 HB drift warm skipped: HEAD is the baseline
+1794989561 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
