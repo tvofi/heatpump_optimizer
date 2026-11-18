@@ -1,0 +1,39 @@
+script	kills	unique_kills	duplicate_kills
+tests/arch_score_head.py	0	0	0
+tests/backtest.py	0	0	0
+tests/block_duty.py	0	0	0
+tests/boost_drift_replay.py	0	0	0
+tests/config_flow_steps.py	0	0	0
+tests/debug_collect.py	0	0	0
+tests/deployment_shape.py	0	0	0
+tests/doc_claims.py	0	0	0
+tests/edge.py	0	0	0
+tests/entities.py	3	0	3
+tests/env_drift.py	2	0	2
+tests/features.py	21	14	7
+tests/finite_boundary.py	1	0	1
+tests/guard_pins.py	0	0	0
+tests/harness_headers.py	4	1	3
+tests/manual_plan.py	0	0	0
+tests/optimality.py	1	0	1
+tests/plan_view.py	0	0	0
+tests/solar_alignment.py	0	0	0
+tests/stress.py	2	0	2
+tests/structure.py	0	0	0
+tests/typing_ruler.py	0	0	0
+tests/validate.py	0	0	0
+tests/wood_advisor.py	0	0	0
+RESULT matrix_mutants=38
+RESULT matrix_driven=38
+RESULT killed_mutants=22
+RESULT killed_by_two_or_more=7
+RESULT killed_by_exactly_one=15
+RESULT pairs_absent=105
+RESULT pairs_killed=34
+RESULT pairs_skipped=244
+RESULT pairs_survived=528
+RESULT pairs_timeout=1
+RESULT scripts_with_kills_but_no_unique_kill=5 tests/entities.py,tests/env_drift.py,tests/finite_boundary.py,tests/optimality.py,tests/stress.py
+RESULT scripts_killing_nothing=17 tests/arch_score_head.py,tests/backtest.py,tests/block_duty.py,tests/boost_drift_replay.py,tests/config_flow_steps.py,tests/debug_collect.py,tests/deployment_shape.py,tests/doc_claims.py,tests/edge.py,tests/guard_pins.py,tests/manual_plan.py,tests/plan_view.py,tests/solar_alignment.py,tests/structure.py,tests/typing_ruler.py,tests/validate.py,tests/wood_advisor.py
+RESULT load1=0.36
+RESULT thread_factor=1.00

@@ -1,0 +1,274 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D3/s1/REPORT.md",
+ "exposure": "No docs/ or GitHub read. Redispatch items C2/C3/C6 name round-10 mutant ids from dev/audit/rounds/round10/D3/s1/mutants.py, which the export strips: the seat read that one file from the worktree's object store (git show HEAD:...) only to re-draw its seed-10 sample at this baseline (c2_mutants.json, c3c6_mutants.json); no round-10 report, verdict or finding text was read. `git diff --stat HEAD^1 HEAD -- custom_components` was run once to confirm the env_drift comparison ref HEAD^1 (2c84a85c) carries production byte-identical to the baseline. Box D3R run (inline in the box session, the Agent spawn being refused by the frugal guard): read COMMON.md, D3.md, dev/audit/README.md, finding.schema.json (through a haiku extractor), the seat's own carried harnesses and state, and the three new survivor lines in custom_components; no docs/ or GitHub read beyond the box's own dispatch/inbox/wip refs. Box D3-m5 run (inline in the box session): read COMMON.md, D3.md, dev/audit/README.md (harness contract), finding.schema.json and tests/mutation_table.py, tests/run.sh, tests/closures.json, tests/closure.py and tests/gate_lock.py excerpts (through haiku extractors/scout), the carried harnesses, REPORT.json and LOCAL-REPORT.json; no docs/ or GitHub read beyond the box's dispatch/inbox/wip refs.",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": [
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l",
+     "value": "1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline)"
+    },
+    {
+     "command": "cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json",
+     "value": "C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)"
+    }
+   ]
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 34,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/coordinator.py: 359 unpinned sites not pre-screened (lines 467-11291) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/defrost.py: 42 unpinned sites not pre-screened (lines 106-808) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/dhw_planner.py: 121 unpinned sites not pre-screened (lines 91-2307) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/flow_lift.py: 5 unpinned sites not pre-screened (lines 51-244) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/grid_fee.py: 26 unpinned sites not pre-screened (lines 162-496) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/optimizer.py: 265 unpinned sites not pre-screened (lines 1320-6661) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/price_model.py: 58 unpinned sites not pre-screened (lines 57-896) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/sysid.py: 147 unpinned sites not pre-screened (lines 129-2411) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/tariff.py: 57 unpinned sites not pre-screened (lines 77-1227) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/thermal_model.py: 146 unpinned sites not pre-screened (lines 270-5045) -- assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": [
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py",
+     "value": "fast-net pre-screen (fast closure scripts + env_drift --all): pre 20 driven (4 killed, 16 survived); C2 12 of 12 driven (1 killed, 11 survived; M34-M36 driven 17:52-18:29Z after the reboot); C3C6 8 driven (2 killed, 5 survived, 1 TIMEOUT M22 at 17:20Z, inside the 16:50-17:45Z disk-full window and so suspect). First kills: env_drift 4, finite_boundary 2, deployment_shape 1. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not."
+    },
+    {
+     "command": "cat dev/audit/rounds/round11/D3/s1/state/null.out dev/audit/rounds/round11/D3/s1/state/posctl.out",
+     "value": "null control LIVES over 16 fast drivers; positive control 2/2 ledger-pinned sites KILLED by tests/manual_plan.py"
+    },
+    {
+     "command": "cat dev/audit/rounds/round11/D3/s1/state/box-null.out dev/audit/rounds/round11/D3/s1/state/box-posctl.out dev/audit/rounds/round11/D3/s1/state/box-chain1.log",
+     "value": "box D3R re-run of both controls after re-taking every driver's traced baseline on this machine (prescreen.py baseline, 21 drivers, all rc=0 failed=0; trace-capture rc=0, procs 2/2): null control LIVES over 16 fast drivers; positive control 2/2 ledger-pinned sites KILLED by tests/manual_plan.py. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2"
+    },
+    {
+     "command": "grep -E ' (PRE|C3C6) ' dev/audit/rounds/round11/D3/s1/state/prescreen.log | tail -5",
+     "value": "box D3R: C3C6 M22 (tariff.py:595) re-driven: SURVIVED, 12 fast drivers, 442.5 s (provisional), replacing the local 17:20Z TIMEOUT (kept as state/superseded/). U1 started 19:42Z over the 1240 not-yet-driven inventory mutants (u1_keys.txt), 4 workers, fresh tree per mutant; halted by orchestrator STOP (inbox command 1) after 4: dhw_planner.py:543 and tariff.py:146 KILLED by env_drift.py, defrost.py:559 and thermal_model.py:270 SURVIVED. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2"
+    }
+   ]
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 35,
+   "examined": 2,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/price_model.py:198 GUARD_OFF ed095cbf -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/price_model.py:201 GUARD_OFF 3dbd4039 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/dhw_planner.py:473 GUARD_OFF 54e620e3 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/coordinator.py:687 GUARD_OFF d02b7542 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/sysid.py:677 GUARD_OFF f4619cef -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/grid_fee.py:173 GUARD_OFF f8c4994a -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/tariff.py:64 GUARD_OFF 39ff0db0 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/coordinator.py:539 GUARD_OFF 23752846 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/thermal_model.py:169 GUARD_OFF 4893b0a8 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/dhw_planner.py:75 GUARD_OFF b551ee16 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/flow_lift.py:183 GUARD_OFF 336a6ca0 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/optimizer.py:773 GUARD_OFF dacd4cc6 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/flow_lift.py:47 CONST 17af2c12 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/sysid.py:610 GUARD_OFF 72abb7dd -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/thermal_model.py:270 GUARD_OFF 55e7d0fb -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/defrost.py:559 GUARD_OFF 7b8dda16 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/price_model.py:337 R10C2 M25 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/tariff.py:744 R10C2 M31 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/sysid.py:1549 R10C2 M26 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/price_model.py:252 R10C2 M34 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/price_model.py:532 R10C2 M33 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/flow_lift.py:188 R10C2 M35 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/sysid.py:2246 R10C2 M27 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/sysid.py:1593 R10C2 M28 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/tariff.py:64 R10C2 M29 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/defrost.py:783 R10C2 M32 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/grid_fee.py:355 R10C2 M36 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/coordinator.py:8806 R10C2 M04 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/thermal_model.py:835 R10C2 M03 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/tariff.py:595 R10C2 M22 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/dhw_planner.py:1559 R10C2 M19 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/thermal_model.py:2593 R10C2 M07 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5",
+    "custom_components/heatpump_optimizer/grid_fee.py:383 R10C2 M21 -- assigned to boxes D3-top6, D3-u1a, D3-u1b, D3-u1c, D3-u1d, not box D3-m5"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": [
+    {
+     "command": "cat dev/audit/rounds/round11/D3/s1/state/complete1.out",
+     "value": "full net (every closure script incl. features.py/entities.py, no early stop) completed on 2 of 32 survivors: defrost.py:419 and coordinator.py:422 both KILLED by tests/features.py only. Batch 2 (tariff.py:64, price_model.py:201, coordinator.py:539) killed at 16:57Z under thermal throttling; C6 M26 lost in the 17:40Z reboot. GATE_SCOPE=full GOLDEN_MODE=drift quiet-window gate not run (no quiet window). Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not."
+    }
+   ]
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 35,
+   "examined": 35,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": [
+    {
+     "command": "cat dev/audit/rounds/round11/D3/s1/m4_answers.json",
+     "value": "32 of 32 survivors answered: production line, file and the check that should have failed; 3 read as equivalent or near-equivalent (optimizer.py:773, thermal_model.py:835 M03, grid_fee.py:173 message-only)"
+    },
+    {
+     "command": "cat dev/audit/rounds/round11/D3/s1/m4_answers.json",
+     "value": "box D3R: the 3 new survivors (thermal_model.py:270, defrost.py:559, tariff.py:595 M22) answered; 35 of 35"
+    }
+   ]
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 27,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    },
+    {
+     "item": "C7",
+     "state": "examined"
+    },
+    {
+     "item": "C9",
+     "state": "examined"
+    }
+   ],
+   "evidence": [
+    {
+     "command": "cat dev/audit/rounds/round11/D3/s1/state/m5-baseline.out dev/audit/rounds/round11/D3/s1/state/m5-baseline2.out dev/audit/rounds/round11/D3/s1/state/m5-null.out dev/audit/rounds/round11/D3/s1/state/m5-posctl.out",
+     "value": "R1 on box D3-m5: 24 drivers' traced baselines re-taken here (prescreen.py baseline; D3S1_ALL_DRIVERS=1 adds stress/edge/backtest), all rc=0 failed=0 (entities.py and optimality.py, red 1/2722 and 1/84 on D3R, are green here); trace-capture rc=0 procs 2/2; null control LIVES over 18 fast drivers; positive control 2/2 ledger-pinned sites KILLED by tests/manual_plan.py. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final"
+    },
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_gate_table.py",
+     "value": "(a) quiet-box gate table, 27 of 27 closure scripts, one at a time, GOLDEN_MODE=drift invocation, ref HEAD^1 (state/gate_table.jsonl): all rc=0 failed=0; sum wall 2388.9 s, child CPU 2310.6 s vs closures.json recorded 3051.3 s. wall/CPU/recorded s: arch_score_head 48.7/48.4/31.8; backtest 52.1/51.3/61.6; block_duty 6.3/6.0/8.3; boost_drift_replay 174.7/150.3/341.1; config_flow_steps 18.7/18.6/32.5; debug_collect 1.2/1.0/1.5; deployment_shape 2.1/2.1/3.3; doc_claims 9.7/9.7/11.4; edge 19.1/18.4/21.5; entities 495.5/498.4/867.9; env_drift 85.6/82.5/1.0; features 690.0/636.8/473.9; finite_boundary 91.8/90.8/90.4; golden 88.7/85.6/1.2; guard_pins 3.8/3.7/8.2; harness_headers 124.3/119.2/327.6; manual_plan 5.6/4.8/6.5; optimality 94.2/89.1/142.5; plan_view 0.9/0.9/1.8; solar_alignment 0.6/0.6/1.2; stress 237.0/246.4/463.0; structure 16.3/16.2/21.1; typing_ruler 17.8/18.0/20.8; validate 19.4/18.8/21.5; wood_advisor 0.5/0.5/1.4; card.mjs 79.6/86.7/82.3; card_drift.mjs 4.7/5.8/6.0. Over the record: env_drift 85.6x and golden 73.9x (closures.json times `env_drift.py --cache-key <ref> --all`, a key print, by design: tests/closure.py CLOSURES_COMMENT, #934; golden.py's default mode execs that same env_drift --all), features 1.46x and arch_score_head 1.53x (inside closure.py's SECONDS_BAND 2.0, so the record is kept). Perturbation: `--slow tests/plan_view.py=5` moves plan_view wall 0.9 -> 5.8 s with CPU flat (0.9 -> 0.8); null solar_alignment 0.6 -> 0.7 s (state/m5-gate-table-perturb.out). load1 0.36-1.29 per row, swapins 0. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final"
+    },
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_matrix.py table",
+     "value": "(b) kill-overlap matrix (C9): 38 of 38 mutants (12 C2 + 8 C3/C6 + 18 pre-screen survivors) driven through every drivable closure script of the mutated file, no early stop, D3S1_RELAX=0, only the gate's reach_skip (prescreen.py run --full --sub matrix, 4 workers): 34 KILLED, 528 SURVIVED, 244 SKIPPED (reach_skip), 1 TIMEOUT pairs. 22 of 38 mutants killed, 7 by two or more scripts (duplicate kills), 15 by exactly one; 16 survive every script. Kills/unique: features.py 21/14, harness_headers.py 4/1, entities.py 3/0, env_drift.py 2/0, stress.py 2/0, finite_boundary.py 1/0, optimality.py 1/0. Scripts with kills but no unique kill: entities, env_drift, finite_boundary, optimality, stress. Scripts killing none of the 38: arch_score_head, backtest, block_duty, boost_drift_replay, config_flow_steps, debug_collect, deployment_shape, doc_claims, edge, guard_pins, manual_plan, plan_view, solar_alignment, structure, typing_ruler, validate, wood_advisor. 19 of the 35 fast-net survivors in the sample are killed by the full net, 18 of them by features.py (defrost.py:419, coordinator.py:422 re-confirm the carried complete drives). The one TIMEOUT: features.py on thermal_model.py:270 (GUARD_OFF clamp) past its 2148 s bound; the mutant is KILLED by harness_headers.py. Node programs and golden.py are not drivable (mutation_table.DRIVER_EXCLUSIONS) and are out of the matrix. Perturbation --drop-script tests/features.py: killed_mutants 22 -> 8. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final"
+    },
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py --scripts tests/env_drift.py,tests/stress.py",
+     "value": "(c) checks per solve (C4): env_drift.py --all HEAD^1 39 checks / 50 solves = 0.78 (60 multi-starts; the solves are the --capture --all child's, run directly under the hook because the parent drops it: D3-s1-01's mechanism, cited not re-reported; parent traced solves 0); stress.py 116 checks / 131 solves = 0.885 (139 multi-starts, 10 processes). CPU 84.8 s and 248.3 s (provisional). Perturbation --double-solve: env_drift solves 50 -> 100 (ratio 0.39), stress 131 -> 370 (ratio 0.314; stress goes red on its own CPU budget), checks flat. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final"
+    },
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table",
+     "value": "(d) closure over-approximation (C7): boost_drift_replay.py's traced run executes all 12 of its 12 closure cell files (coordinator 2070, optimizer 1651, thermal_model 1060, sysid 180, defrost 240, flow_lift 48, process_worker 37, batchmath 19, price_model 131, tariff 161, grid_fee 99, dhw_planner 155 lines); stress.py executes all 6 of its 6 (optimizer 2339, thermal_model 1610, flow_lift 25, batchmath 28, tariff 276, dhw_planner 911), its gate reach row refused only for git (24 started / 12 recorded Python + git); 0 over-approximated pairs of 52 (and 0 of 252 usable pairs over the 24 drivers: m5_closure_reach.py, 9 rows reach-refused). Perturbation --drop tariff.py: over_approx_pairs 0 -> 3. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final"
+    },
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py trace && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table",
+     "value": "(e) the four scripts no earlier run traced: card.mjs (rc 0, wall 81.4 s) and card_drift.mjs (rc 0, 4.3 s) start no Python process; their 11 cell edges each are producer edges through plan_view.py's payload, and plan_view.py's traced run executes all 11 (coordinator 792 ... dhw_planner 826 lines), so none is over-approximated; golden.py (GOLDEN_MODE=strict, the mode run.sh runs it in) executes all 12 cells (optimizer 2366, thermal_model 1718, coordinator 1918 ...) and is red on this box, 55 of 56 golden scenarios changed (strict fixtures recorded on another BLAS: the non-portability DRIVER_EXCLUSIONS names), 86.4 s; stress.py rc 0, 178.8 s traced. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final"
+    },
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py",
+     "value": "D3-s1-01 re-measured on this box's baselines: capture_never_executes=681, gate_skippable=0, null 0 of 579 (same as D3R and local); cited, not re-reported."
+    }
+   ]
+  }
+ ],
+ "unfinished": [],
+ "findings": [],
+ "non_findings": [
+  {
+   "claim": "Every closure script of the cell files is green, unmutated, on box D3-m5 (gate table)",
+   "command": "cat dev/audit/rounds/round11/D3/s1/state/gate_table.jsonl",
+   "value": "27 of 27 rc=0 failed=0"
+  },
+  {
+   "claim": "boost_drift_replay.py's closure does not over-approximate for the cell files",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table",
+   "value": "12 of 12 cell files executed by its traced run"
+  },
+  {
+   "claim": "stress.py's closure does not over-approximate for the cell files",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table",
+   "value": "6 of 6 cell files executed (git-only reach refusal; all Python processes recorded)"
+  },
+  {
+   "claim": "card.mjs and card_drift.mjs closure edges to the 11 cell files are honest producer edges",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table",
+   "value": "plan_view.py, their producer, executes all 11; the Node programs start no Python"
+  },
+  {
+   "claim": "stress.py and env_drift.py do not solve far more than they assert (unlike the R10 boost_drift_replay ratio 0.058)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py --scripts tests/env_drift.py,tests/stress.py",
+   "value": "0.885 and 0.78 checks per solve"
+  },
+  {
+   "claim": "closures.json's 1.0 s for env_drift.py and 1.2 s for golden.py are the documented --cache-key stub timing, not a mis-recording",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_gate_table.py --scripts tests/env_drift.py,tests/golden.py",
+   "value": "85.6 s and 88.7 s measured; tests/closure.py CLOSURES_COMMENT (#934) states the record times the key print; mutation_table REF_DRIVEN keeps env_drift eager for that reason"
+  },
+  {
+   "claim": "The fast pre-screen net's survivors overstate the suite's gaps: the full net kills most of them",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_matrix.py table",
+   "value": "19 of 35 fast-net survivors killed by the full net, 18 by features.py; a pre-screen survivor is a candidate only (D3.md step 3), and the gate's scoped run always includes features.py for these files"
+  },
+  {
+   "claim": "The pre-screen harness can kill on this box (positive control) and lives on the unmutated tree (null)",
+   "command": "cat dev/audit/rounds/round11/D3/s1/state/m5-posctl.out dev/audit/rounds/round11/D3/s1/state/m5-null.out",
+   "value": "2/2 KILLED by tests/manual_plan.py; null LIVES over 18 drivers"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/enumerate.py",
+  "dev/audit/rounds/round11/D3/s1/prescreen.py",
+  "dev/audit/rounds/round11/D3/s1/tabulate.py",
+  "dev/audit/rounds/round11/D3/s1/m5_closure_reach.py",
+  "dev/audit/rounds/round11/D3/s1/m5_solves.py",
+  "dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py",
+  "dev/audit/rounds/round11/D3/s1/build_report.py",
+  "dev/audit/rounds/round11/D3/s1/finalize.py",
+  "dev/audit/rounds/round11/D3/s1/m5_gate_table.py",
+  "dev/audit/rounds/round11/D3/s1/m5_matrix.py",
+  "dev/audit/rounds/round11/D3/s1/m5_trace_extra.py",
+  "dev/audit/rounds/round11/D3/s1/m5_box_report.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "tests/gate_lock.py",
+   "symbol": "needs_lease / _recorded_seconds",
+   "what": "needs_lease reads closures.json recorded.seconds (env_drift.py 1.0 s, the --cache-key stub) against SLOT_MIN_SECONDS=69, so env_drift.py --all, measured 85.6 s here, is classed 'none' (unleased) in a scoped gate; D11 universe, not measured by this seat"
+  }
+ ],
+ "report_md": "# D3-s1 round 11, box D3-m5 report (baseline 92d38ecb)\n\nThis box's slice: D3.M5 (a)-(e) on a quiet box. Seat run inline in the box session (orchestrator inbox 1: no Agent spawn). Carried evidence restored from box D3R's return (c0adbc19); rows D3.M1-M4 are carried as D3R left them, their remainder assigned to boxes D3-top6 and D3-u1a..d. D3-s1-01 is cited, not re-reported. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final.\n\n## Method\n\nR1: traced baselines of 24 drivers re-taken on this box, null and positive controls re-run. (a) m5_gate_table.py runs each of the 27 closure scripts alone as run.sh invokes it. (b) prescreen.py run --full --sub matrix with relaxation off over 38 mutants (m5_matrix.py builds the sample and tables it). (c) m5_solves.py, now running env_drift's capture child under the hook. (d)/(e) m5_trace_extra.py traces card.mjs, card_drift.mjs, golden.py, stress.py (and plan_view.py as the Node programs' producer) and tests each closure edge against executed lines.\n\n## Coverage\n\n- D3.M1: universe 1260, examined 1260, not reached 0 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned`\n- D3.M2: universe 1260, examined 34, not reached 10 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned`\n- D3.M3: universe 35, examined 2, not reached 33 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'`\n- D3.M4: universe 35, examined 35, not reached 0 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'`\n- D3.M5: universe 27, examined 27, not reached 0 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts`\n\n## D3.M5 evidence (this box)\n\n- `cat dev/audit/rounds/round11/D3/s1/state/m5-baseline.out dev/audit/rounds/round11/D3/s1/state/m5-baseline2.out dev/audit/rounds/round11/D3/s1/state/m5-null.out dev/audit/rounds/round11/D3/s1/state/m5-posctl.out`: R1 on box D3-m5: 24 drivers' traced baselines re-taken here (prescreen.py baseline; D3S1_ALL_DRIVERS=1 adds stress/edge/backtest), all rc=0 failed=0 (entities.py and optimality.py, red 1/2722 and 1/84 on D3R, are green here); trace-capture rc=0 procs 2/2; null control LIVES over 18 fast drivers; positive control 2/2 ledger-pinned sites KILLED by tests/manual_plan.py. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final\n- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_gate_table.py`: (a) quiet-box gate table, 27 of 27 closure scripts, one at a time, GOLDEN_MODE=drift invocation, ref HEAD^1 (state/gate_table.jsonl): all rc=0 failed=0; sum wall 2388.9 s, child CPU 2310.6 s vs closures.json recorded 3051.3 s. wall/CPU/recorded s: arch_score_head 48.7/48.4/31.8; backtest 52.1/51.3/61.6; block_duty 6.3/6.0/8.3; boost_drift_replay 174.7/150.3/341.1; config_flow_steps 18.7/18.6/32.5; debug_collect 1.2/1.0/1.5; deployment_shape 2.1/2.1/3.3; doc_claims 9.7/9.7/11.4; edge 19.1/18.4/21.5; entities 495.5/498.4/867.9; env_drift 85.6/82.5/1.0; features 690.0/636.8/473.9; finite_boundary 91.8/90.8/90.4; golden 88.7/85.6/1.2; guard_pins 3.8/3.7/8.2; harness_headers 124.3/119.2/327.6; manual_plan 5.6/4.8/6.5; optimality 94.2/89.1/142.5; plan_view 0.9/0.9/1.8; solar_alignment 0.6/0.6/1.2; stress 237.0/246.4/463.0; structure 16.3/16.2/21.1; typing_ruler 17.8/18.0/20.8; validate 19.4/18.8/21.5; wood_advisor 0.5/0.5/1.4; card.mjs 79.6/86.7/82.3; card_drift.mjs 4.7/5.8/6.0. Over the record: env_drift 85.6x and golden 73.9x (closures.json times `env_drift.py --cache-key <ref> --all`, a key print, by design: tests/closure.py CLOSURES_COMMENT, #934; golden.py's default mode execs that same env_drift --all), features 1.46x and arch_score_head 1.53x (inside closure.py's SECONDS_BAND 2.0, so the record is kept). Perturbation: `--slow tests/plan_view.py=5` moves plan_view wall 0.9 -> 5.8 s with CPU flat (0.9 -> 0.8); null solar_alignment 0.6 -> 0.7 s (state/m5-gate-table-perturb.out). load1 0.36-1.29 per row, swapins 0. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final\n- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_matrix.py table`: (b) kill-overlap matrix (C9): 38 of 38 mutants (12 C2 + 8 C3/C6 + 18 pre-screen survivors) driven through every drivable closure script of the mutated file, no early stop, D3S1_RELAX=0, only the gate's reach_skip (prescreen.py run --full --sub matrix, 4 workers): 34 KILLED, 528 SURVIVED, 244 SKIPPED (reach_skip), 1 TIMEOUT pairs. 22 of 38 mutants killed, 7 by two or more scripts (duplicate kills), 15 by exactly one; 16 survive every script. Kills/unique: features.py 21/14, harness_headers.py 4/1, entities.py 3/0, env_drift.py 2/0, stress.py 2/0, finite_boundary.py 1/0, optimality.py 1/0. Scripts with kills but no unique kill: entities, env_drift, finite_boundary, optimality, stress. Scripts killing none of the 38: arch_score_head, backtest, block_duty, boost_drift_replay, config_flow_steps, debug_collect, deployment_shape, doc_claims, edge, guard_pins, manual_plan, plan_view, solar_alignment, structure, typing_ruler, validate, wood_advisor. 19 of the 35 fast-net survivors in the sample are killed by the full net, 18 of them by features.py (defrost.py:419, coordinator.py:422 re-confirm the carried complete drives). The one TIMEOUT: features.py on thermal_model.py:270 (GUARD_OFF clamp) past its 2148 s bound; the mutant is KILLED by harness_headers.py. Node programs and golden.py are not drivable (mutation_table.DRIVER_EXCLUSIONS) and are out of the matrix. Perturbation --drop-script tests/features.py: killed_mutants 22 -> 8. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final\n- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py --scripts tests/env_drift.py,tests/stress.py`: (c) checks per solve (C4): env_drift.py --all HEAD^1 39 checks / 50 solves = 0.78 (60 multi-starts; the solves are the --capture --all child's, run directly under the hook because the parent drops it: D3-s1-01's mechanism, cited not re-reported; parent traced solves 0); stress.py 116 checks / 131 solves = 0.885 (139 multi-starts, 10 processes). CPU 84.8 s and 248.3 s (provisional). Perturbation --double-solve: env_drift solves 50 -> 100 (ratio 0.39), stress 131 -> 370 (ratio 0.314; stress goes red on its own CPU budget), checks flat. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final\n- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table`: (d) closure over-approximation (C7): boost_drift_replay.py's traced run executes all 12 of its 12 closure cell files (coordinator 2070, optimizer 1651, thermal_model 1060, sysid 180, defrost 240, flow_lift 48, process_worker 37, batchmath 19, price_model 131, tariff 161, grid_fee 99, dhw_planner 155 lines); stress.py executes all 6 of its 6 (optimizer 2339, thermal_model 1610, flow_lift 25, batchmath 28, tariff 276, dhw_planner 911), its gate reach row refused only for git (24 started / 12 recorded Python + git); 0 over-approximated pairs of 52 (and 0 of 252 usable pairs over the 24 drivers: m5_closure_reach.py, 9 rows reach-refused). Perturbation --drop tariff.py: over_approx_pairs 0 -> 3. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final\n- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py trace && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table`: (e) the four scripts no earlier run traced: card.mjs (rc 0, wall 81.4 s) and card_drift.mjs (rc 0, 4.3 s) start no Python process; their 11 cell edges each are producer edges through plan_view.py's payload, and plan_view.py's traced run executes all 11 (coordinator 792 ... dhw_planner 826 lines), so none is over-approximated; golden.py (GOLDEN_MODE=strict, the mode run.sh runs it in) executes all 12 cells (optimizer 2366, thermal_model 1718, coordinator 1918 ...) and is red on this box, 55 of 56 golden scenarios changed (strict fixtures recorded on another BLAS: the non-portability DRIVER_EXCLUSIONS names), 86.4 s; stress.py rc 0, 178.8 s traced. box D3-m5: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, alone on the box (load1 0.05-1.3 during timed measures, 4.0 during the 4-worker matrix); every wall/CPU number provisional, counts final\n- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py`: D3-s1-01 re-measured on this box's baselines: capture_never_executes=681, gate_skippable=0, null 0 of 579 (same as D3R and local); cited, not re-reported.\n\n## Findings\n\n- none new on this box; D3-s1-01 (already judged) reproduced, cited not re-reported\n\n## Non-findings\n\n- Every closure script of the cell files is green, unmutated, on box D3-m5 (gate table): 27 of 27 rc=0 failed=0 (`cat dev/audit/rounds/round11/D3/s1/state/gate_table.jsonl`)\n- boost_drift_replay.py's closure does not over-approximate for the cell files: 12 of 12 cell files executed by its traced run (`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table`)\n- stress.py's closure does not over-approximate for the cell files: 6 of 6 cell files executed (git-only reach refusal; all Python processes recorded) (`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table`)\n- card.mjs and card_drift.mjs closure edges to the 11 cell files are honest producer edges: plan_view.py, their producer, executes all 11; the Node programs start no Python (`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_extra.py table`)\n- stress.py and env_drift.py do not solve far more than they assert (unlike the R10 boost_drift_replay ratio 0.058): 0.885 and 0.78 checks per solve (`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py --scripts tests/env_drift.py,tests/stress.py`)\n- closures.json's 1.0 s for env_drift.py and 1.2 s for golden.py are the documented --cache-key stub timing, not a mis-recording: 85.6 s and 88.7 s measured; tests/closure.py CLOSURES_COMMENT (#934) states the record times the key print; mutation_table REF_DRIVEN keeps env_drift eager for that reason (`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_gate_table.py --scripts tests/env_drift.py,tests/golden.py`)\n- The fast pre-screen net's survivors overstate the suite's gaps: the full net kills most of them: 19 of 35 fast-net survivors killed by the full net, 18 by features.py; a pre-screen survivor is a candidate only (D3.md step 3), and the gate's scoped run always includes features.py for these files (`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_matrix.py table`)\n- The pre-screen harness can kill on this box (positive control) and lives on the unmutated tree (null): 2/2 KILLED by tests/manual_plan.py; null LIVES over 18 drivers (`cat dev/audit/rounds/round11/D3/s1/state/m5-posctl.out dev/audit/rounds/round11/D3/s1/state/m5-null.out`)\n\n## Leads\n\n- unknown tests/gate_lock.py needs_lease / _recorded_seconds: needs_lease reads closures.json recorded.seconds (env_drift.py 1.0 s, the --cache-key stub) against SLOT_MIN_SECONDS=69, so env_drift.py --all, measured 85.6 s here, is classed 'none' (unleased) in a scoped gate; D11 universe, not measured by this seat\n\n## Redispatched\n\n- D3.M5: C1, C4, C7, C9 examined (box D3-m5)\n\nMatrix table: {\"matrix_mutants\": \"38\", \"matrix_driven\": \"38\", \"killed_mutants\": \"22\", \"killed_by_two_or_more\": \"7\", \"killed_by_exactly_one\": \"15\", \"pairs_absent\": \"105\", \"pairs_killed\": \"34\", \"pairs_skipped\": \"244\", \"pairs_survived\": \"528\", \"pairs_timeout\": \"1\", \"scripts_with_kills_but_no_unique_kill\": \"5 tests/entities.py,tests/env_drift.py,tests/finite_boundary.py,tests/optimality.py,tests/stress.py\", \"scripts_killing_nothing\": \"17 tests/arch_score_head.py,tests/backtest.py,tests/block_duty.py,tests/boost_drift_replay.py,tests/config_flow_steps.py,tests/debug_collect.py,tests/deployment_shape.py,tests/doc_claims.py,tests/edge.py,tests/guard_pins.py,tests/manual_plan.py,tests/plan_view.py,tests/solar_alignment.py,tests/structure.py,tests/typing_ruler.py,tests/validate.py,tests/wood_advisor.py\", \"load1\": \"0.15\", \"thread_factor\": \"1.00\"}\n"
+}
