@@ -33,12 +33,18 @@
 1794992631 HB alive
 1794993236 HB alive
 1794993841 HB alive
-1794994000 RESUMED from 7dcf29116c37
-1794994000 INIT box D3-top6
-1794994071 HB LOCAL re-run of D3-top6 on the orchestrator machine (cloud refused twice by frugal guard). BLOCKED.md removed. R1 machine: nproc=8, 8192 MB RAM, Apple M1 macOS, free 12Gi on HOME, load1 2.18. T1 kept from the cloud fire (M22 SURVIVED). R1 baselines re-take starting.
-1794994076 CKPT D3-s1 136 file(s)
-1794995679 HB R1 local: baselines re-taken; controls RESULT null_verdict=LIVES RESULT null_drivers_run=16 RESULT load1=2.86 RESULT thread_factor=1.00  posctl 2/2 KILLED
-1794995686 CKPT D3-s1 145 file(s)
-1794999959 HB gate done: null RESULT gate_rc=1 code 
-1794999967 CKPT D3-s1 147 file(s)
-1795000401 HB T2: null full gate at node default heap: card.mjs OOM (also standalone); re-running null + 6 gates with node --max-old-space-size=5120 (card.mjs passes standalone with it). Null-red at baseline locally (env): closure.py selftest 2, entities.py 2, optimality.py 1; kill = more failed checks than null.
+1794994445 HB alive
+1794994708 CKPT D3-s1 135 file(s)
+1794994713 HB T2 gate done: null
+1794995055 HB alive
+1794995660 HB alive
+1794996265 HB alive
+1794996870 HB alive
+1794997475 HB alive
+1794998080 HB alive
+1794998117 CKPT D3-s1 137 file(s)
+1794998121 HB T2 gate done: pre:fb16c7b0cbbfc63d
+1794998685 HB alive
+1794999289 HB alive
+1794999896 HB alive
+1795000501 HB alive
