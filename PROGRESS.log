@@ -163,3 +163,5 @@
 1795034926 CKPT D3-s1 540 file(s)
 1795035003 CKPT D3-s1 540 file(s)
 1795035037 HB container restart killed the D3-s1 subagent; its K2 full-net chain (prescreen.py complete, 245 survivor keys, ~84 done) survived and keeps checkpointing; stale comms lock cleared. Seat subagent will be re-fired to resume and report once the chain logs CHAIN DONE.
+1795035082 HB alive
+1795035114 HB alive (after transient push failure)
