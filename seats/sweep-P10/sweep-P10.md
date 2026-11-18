@@ -106,7 +106,7 @@ There is 1 instance seam, the judged site, and 0 beyond it. Both round-10 instan
 are now guarded. The class still has no barrier. Proposed barrier: gate on
 `p10_loop_reach.py` exiting with `loop_reachable_seams` equal to an allow-list
 (today `_whatif_solve:simulate_wood_slots` and `drift._positive_definite`, both
-not applicable). Its cost is one AST pass over the package ( s wall here). Alongside it, add a
+not applicable). Its cost is one AST pass over the package (1.3 s wall here). Alongside it, add a
 steady what-if arm to `tests/replay.py:KERNEL_ARMS` so the dynamic route count covers
 `async_simulate`. The arms `D14/s1/p10_kernels.py` lists (base, fallback, sysid,
 away, learner) include no what-if.
