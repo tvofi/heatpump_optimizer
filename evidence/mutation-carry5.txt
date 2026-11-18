@@ -1,11 +1,8 @@
-== head
-PASS ['dev/audit/README.md                              309  321     5926  6059   key tools/audit/README.md', 'tests/README.md                                  461  800     6677  6686 ']
-== M0 revert change to merge base
-FAIL ['tools/audit/README.md                            309  321     5926  6059 ', 'tests/README.md                                  461  800     6677  6686 ']
-== M1 const live = r.file
-FAIL ['tools/audit/README.md                            309  321     5926  6059 ', 'tests/README.md                                  461  800     6677  6686 ']
-== M2 key on every row
-FAIL ['dev/audit/README.md                              309  321     5926  6059   key tools/audit/README.md', 'tests/README.md                                  461  800     6677  6686   key tests/README.md']
-== M3 key dropped from printed row
-FAIL ['dev/audit/README.md                              309  321     5926  6059 ', 'tests/README.md                                  461  800     6677  6686 ']
-== restored:
+head: PASS
+M1 live=r.file: FAIL
+ tools/policy/policy_lint.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M2 key on every row: FAIL
+ tools/policy/policy_lint.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M3 key dropped: FAIL
