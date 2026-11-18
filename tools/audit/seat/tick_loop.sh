@@ -20,19 +20,31 @@
 #      the checkout this script runs from, and behind = the commits in HEAD..origin/main
 #      touching tools/audit/seat, tools/pr or tools/audit/carry_audit.py (the code the loop
 #      runs). Past HPO_TICK_STALE_BOUND (default 25), or on any commit touching tick_loop.sh
-#      or cloud_relay.sh, the loop restarts: with the relay lock free and the tree clean and
-#      detached, it checks out origin/main detached, runs `bash -n` on the new tick_loop.sh
-#      and execs it with the same arguments -- between passes, at most once per pass, never
-#      a fast-forward in place (bash reads a running script as it goes). When it cannot, one
+#      or cloud_relay.sh, the loop restarts: with the relay lock free and the tree clean, it
+#      checks out origin/main -- detached, or for a branch-backed checkout holding no commit
+#      outside origin/main (worktree_gc.sh leaves those), `checkout -B <its branch> origin/main`
+#      -- runs `bash -n` on the new tick_loop.sh and execs it with the same arguments -- between
+#      passes, at most once per pass, never a fast-forward in place (bash reads a running script
+#      as it goes). A branch with commits of its own is never moved. When it cannot, one
 #        TICK-STALE <utc> code=<sha7> behind=<n>: <why>; the relay and sweep arms are skipped
 #      line precedes the banner, the arms that act are skipped (relay=stale) and the board
-#      is still written: never exit, never act from stale code. A failed fetch is
-#      behind=unknown and the pass runs as before. HPO_TICK_CODE_DIR replaces the checkout.
+#      is still written: never exit, never act from stale code. A stale state persisting into
+#      a second consecutive pass (counted in <out>.stale) also ends the board with
+#        -> OWED relay-skipped code=<sha7> behind=<n>: <why> (stale <k> consecutive passes)
+#      so the board says what only the loop log said (S14-TICK-STALE-SILENT: ~4 h of relay dark
+#      over three episodes); one stale pass (a relay holding the lock) raises none. A failed
+#      fetch is behind=unknown and the pass runs as before. HPO_TICK_CODE_DIR replaces the checkout.
 # One banner line per pass on stdout:
 #   TICK-PASS <utc> relay=<ok|rc=N|running|absent|stale> tick=<rc> code=<sha7|none> behind=<n|unknown> out=<file>
 # The relay's output is printed when it is reaped; one that finished after its
 # pass's wait is reaped by the next pass, with its own line before that banner:
 #   TICK-RELAY <utc> relay=<ok|rc=N> started=<utc>
+# THE RELAY GAP (S14-RELAY-CADENCE). In the sleep between passes the loop reaps a finished
+# relay (its TICK-RELAY line) and starts the next one under the same lock once
+# HPO_TICK_RELAY_GAP seconds (default 120, digits only) have passed since that relay ended,
+# so a relay that ends early does not sit idle until the next tick pass (7 min observed).
+# The tick keeps --interval: a tick pass costs ~290 core API calls, a relay pass far fewer.
+# A stale pass starts none in its sleep; a relay still in flight is left alone.
 # A failing relay pass is reported and the tick still runs; a failing tick is
 # reported and the loop goes on. The loop drives; the tick itself stays read-only.
 #   3. --sweep only (R10-FLOW-AUTOTRAIN; off by default, and the first live sweep
@@ -97,7 +109,7 @@ if os.path.exists(r + ".rc"): sys.exit(76)
 t = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 with open(r + ".log", "w") as log:
     rc = subprocess.call(sys.argv[2:], stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
-with open(r + ".rc.part", "w") as o: o.write("%d %s\n" % (rc, t))
+with open(r + ".rc.part", "w") as o: o.write("%d %s %d\n" % (rc, t, int(time.time())))
 os.replace(r + ".rc.part", r + ".rc")'
 
 # The relay lock is free: rc 0 (the holder's flock, tried and released at once).
@@ -114,7 +126,7 @@ behind_count() { # <checkout> <paths...>: the commits in HEAD..origin/main touch
 }
 
 fresh_check() { # <out>: sets code, behind and stale (the acting arms are skipped); may exec the new loop
-  local top self why bound=${HPO_TICK_STALE_BOUND:-25}
+  local top self why bound=${HPO_TICK_STALE_BOUND:-25} br own
   case $bound in ''|*[!0-9]*) bound=25 ;; esac
   code=none behind=unknown stale=
   top=$(git -C "${HPO_TICK_CODE_DIR:-$HERE}" rev-parse --show-toplevel 2>/dev/null) || return 0
@@ -126,43 +138,65 @@ fresh_check() { # <out>: sets code, behind and stale (the acting arms are skippe
   self=$(behind_count "$top" "${SELF_PATHS[@]}") || self=1  # never-empty: SELF_PATHS is the literal two-path list above
   [ "$behind" -gt "$bound" ] || [ "$self" -gt 0 ] || return 0  # mut:bound
   stale=1
+  # A branch-backed checkout (worktree_gc.sh removes clean old detached worktrees) restarts on its own
+  # branch when it holds no commit outside origin/main; one with commits of its own is never moved.
+  br=$(git -C "$top" symbolic-ref -q --short HEAD 2>/dev/null) || br=
+  [ -z "$br" ] || own=$(git -C "$top" rev-list --count origin/main..HEAD 2>/dev/null) || own=unknown
   if [ -n "${HPO_TICK_RESTARTED:-}" ]; then why="restarted once this pass"
   elif ! python3 -I -c "$LOCK_FREE" "$1.relay.lock"; then why="a relay is in flight (the lock is held)"  # mut:lock
-  elif git -C "$top" symbolic-ref -q HEAD >/dev/null; then why="a branch is checked out, not a detached head"
+  elif [ -n "$br" ] && [ "$own" != 0 ]; then why="the branch $br holds $own commit(s) origin/main lacks; it is never moved"  # mut:branchown
   elif [ -n "$(git -C "$top" status --porcelain --untracked-files=no)" ]; then why="the tree is dirty"  # mut:dirty
   elif ! git -C "$top" show origin/main:tools/audit/seat/tick_loop.sh | bash -n 2>/dev/null; then  # mut:syntax
     why="bash -n refuses origin/main's tick_loop.sh"
-  elif ! git -C "$top" checkout -q --detach origin/main; then why="the checkout failed"
+  elif ! if [ -n "$br" ]; then git -C "$top" checkout -q -B "$br" origin/main; else git -C "$top" checkout -q --detach origin/main; fi; then  # mut:branchrestart
+    why="the checkout failed"
   else
     printf 'TICK-RESTART %s code=%s behind=%s -> %s\n' "$(date -u +%FT%TZ)" "$code" "$behind" \
       "$(git -C "$top" rev-parse --short=7 HEAD)"
     HPO_TICK_RESTARTED=1 exec bash "$top/tools/audit/seat/tick_loop.sh" ${ARGV[@]+"${ARGV[@]}"}  # mut:exec
   fi
+  stale_why=$why
   printf 'TICK-STALE %s code=%s behind=%s: %s; the relay and sweep arms are skipped\n' \
     "$(date -u +%FT%TZ)" "$code" "$behind" "$why"
 }
 
-relay_reap() { # <r> [late]: print a finished relay's output; sets rrc. 1: nothing to reap
-  local r=$1 st
+relay_reap() { # <r> [late]: print a finished relay's output; sets rrc and relay_ended (its end epoch). 1: nothing to reap
+  local r=$1 st en
   [ -f "$r.rc" ] || return 1
-  read -r rrc st < "$r.rc"
+  read -r rrc st en < "$r.rc"
+  case $en in ''|*[!0-9]*) en=$(date +%s) ;; esac; relay_ended=$en  # an rc from before the end field: ended by now
   cat "$r.log" 2>/dev/null; rm -f "$r.rc"
   [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"
   [ -z "${2:-}" ] || printf 'TICK-RELAY %s relay=%s started=%s\n' "$(date -u +%FT%TZ)" "$rrc" "$st"
 }
 
-relay_start() { # <r> <relay>: start the relay detached, wait for it at most the bound; sets rrc
+relay_start() { # <r> <relay> [late]: start the relay detached, wait for it at most the bound; sets rrc
   local r=$1 relay=$2 hp hrc k=0 wait=${HPO_TICK_RELAY_WAIT:-30}
   case $wait in ''|*[!0-9]*) wait=30 ;; esac
+  relay_ended=
   python3 -I -c "$RELAY_HOLDER" "$r" bash "$relay" pass --confirm </dev/null >/dev/null 2>&1 & hp=$!  # mut:confirm
   while kill -0 "$hp" 2>/dev/null && [ $k -lt $((wait * 10)) ]; do sleep 0.1; k=$((k + 1)); done
   if kill -0 "$hp" 2>/dev/null; then rrc=running; return 0; fi  # mut:detach
   wait "$hp"; hrc=$?
   case $hrc in
-    0) relay_reap "$r" || rrc="rc=lost" ;;
+    0) relay_reap "$r" ${3:-} || rrc="rc=lost" ;;
     75) rrc=running ;;
     *) rrc="rc=holder-$hrc" ;;
   esac
+}
+
+relay_gap_sleep() { # <out> <seconds>: the inter-pass sleep, starting the next relay HPO_TICK_RELAY_GAP s after one ends
+  local r=$1.relay end=$(( $(date +%s) + $2 )) gap=${HPO_TICK_RELAY_GAP:-120} relay=${HPO_TICK_RELAY:-$HERE/cloud_relay.sh} rrc
+  case $gap in ''|*[!0-9]*) gap=120 ;; esac
+  while [ "$(date +%s)" -lt "$end" ]; do
+    if [ -z "$last_stale" ] && [ -f "$relay" ]; then
+      [ ! -f "$r.rc" ] || relay_reap "$r" late
+      if [ -n "$relay_ended" ] && [ $(( $(date +%s) - relay_ended )) -ge "$gap" ] && python3 -I -c "$LOCK_FREE" "$r.lock"; then
+        relay_start "$r" "$relay" late  # mut:gapstart
+      fi
+    fi
+    sleep 1
+  done
 }
 
 sweep_pass() { # <out>: one merge-train sweep when one is due; prints its TICK-SWEEP line
@@ -177,7 +211,7 @@ sweep_pass() { # <out>: one merge-train sweep when one is due; prints its TICK-S
 }
 
 tick_pass() { # <out> [tick args...]: one pass; prints the banner
-  local out=$1 relay rrc trc tmp now code behind stale g; shift
+  local out=$1 relay rrc trc tmp now code behind stale stale_why sn g; shift
   relay=${HPO_TICK_RELAY:-$HERE/cloud_relay.sh}
   # GH-BUCKET-SPENDER-UNLOGGED: a pass whose children's gh is not the shim spends unlogged.
   g=$(command -v gh)
@@ -186,8 +220,10 @@ tick_pass() { # <out> [tick args...]: one pass; prints the banner
       "$(date -u +%FT%TZ)" "${g:-none}" "$SEAT_BIN"
   mkdir -p "$(dirname -- "$out")"
   fresh_check "$out"
+  last_stale=$stale
   if [ -n "$stale" ]; then
     rrc=stale  # mut:skip
+    sn=$(cat "$out.stale" 2>/dev/null); case $sn in ''|*[!0-9]*) sn=0 ;; esac; sn=$((sn + 1)); echo "$sn" > "$out.stale"
   elif [ -f "$relay" ]; then
     relay_start "$out.relay" "$relay"
     # 76: an earlier pass's relay finished after its wait; reap it, then start this pass's.
@@ -195,9 +231,12 @@ tick_pass() { # <out> [tick args...]: one pass; prints the banner
   else
     rrc=absent
   fi
+  [ -n "$stale" ] || rm -f "$out.stale"
   tmp="$out.part.$$"
   if [ -n "${HPO_TICK_CMD:-}" ]; then $HPO_TICK_CMD "$@" > "$tmp" 2>&1; trc=$?
   else python3 "$HERE/orchestrator_tick.py" "$@" > "$tmp" 2>&1; trc=$?; fi
+  [ -z "$stale" ] || [ "$sn" -lt 2 ] || printf -- '-> OWED relay-skipped code=%s behind=%s: %s (stale %s consecutive passes)\n' \
+    "$code" "$behind" "$stale_why" "$sn" >> "$tmp"  # mut:staleowed
   mv -f "$tmp" "$out"
   now=$(date -u +%FT%TZ)
   printf 'TICK-PASS %s relay=%s tick=%s code=%s behind=%s out=%s\n' "$now" "$rrc" "$trc" "$code" "$behind" "$out"
@@ -301,6 +340,21 @@ done" ]
   k=0; while [ ! -f "$t/g.txt.relay.rc" ] && [ $k -lt 100 ]; do sleep 0.1; k=$((k + 1)); done
   [ -f "$t/g.txt.relay.rc" ]
   ck "a TERM to the loop's process group leaves the in-flight relay to write its rc" $?
+  # S14-RELAY-CADENCE: a relay that ends during the sleep is followed by the next after HPO_TICK_RELAY_GAP s, no tick between.
+  # Wall-clock rows (about 10 s): the outer run alone, as the nesting block is, so the nested copies stay inside the step's bound.
+  if [ -z "$nested" ]; then
+  rm -f "$t/order" "$t/gap.txt"*
+  out=$(HPO_TICK_RELAY_GAP=1 HPO_TICK_RELAY_WAIT=2 HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" timeout 4 bash "$0" --interval 60 --out "$t/gap.txt")
+  [ "$(sed -n 1,3p "$t/order")" = "relay pass --confirm
+tick 
+relay pass --confirm" ] && [ "$(grep -c '^tick' "$t/order")" = 1 ] && printf '%s\n' "$out" | grep -Eq '^TICK-RELAY [0-9T:-]+Z relay=ok started='
+  ck "a relay that ends during the sleep is followed by another after the gap, with no tick pass between" $?
+  rm -f "$t/slow" "$t/order" "$t/gap.txt"*
+  out=$(RELAY_SLEEP=5 HPO_TICK_RELAY_GAP=1 HPO_TICK_RELAY_WAIT=1 HPO_TICK_RELAY=$t/slow.sh HPO_TICK_CMD="bash $t/tick.sh" timeout 4 bash "$0" --interval 60 --out "$t/gap.txt")
+  [ "$(cat "$t/slow")" = start ] && [ "$(cat "$t/order")" = "tick " ]
+  ck "null control: a relay still in flight at the gap starts none" $?
+  k=0; while [ ! -f "$t/gap.txt.relay.rc" ] && [ $k -lt 80 ]; do sleep 0.1; k=$((k + 1)); done
+  fi
   # Stubbed and --once, so a mutant that accepts the interval cannot loop on the real tick.
   HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --interval x --out "$t/b.txt" > "$t/e" 2>&1
   [ $? = 2 ] && grep -q 'interval' "$t/e"
@@ -389,9 +443,22 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
   printf '%s\n' "$out" | grep -q '^TICK-STALE .*: the tree is dirty' && printf '%s\n' "$out" | grep -q 'relay=stale' \
     && [ "$(cat "$t/order")" = "tick " ] && [ "$(git -C "$t/c" rev-parse --short=7 HEAD)" = "$at0" ]
   ck "freshness: a dirty tree prints the banner, skips the relay and is never moved" $?
-  git -C "$t/c" checkout -q -b local; out=$(fr); git -C "$t/c" checkout -q --detach; git -C "$t/c" branch -qD local
-  printf '%s\n' "$out" | grep -q '^TICK-STALE .*: a branch is checked out' && [ "$(git -C "$t/c" rev-parse --short=7 HEAD)" = "$at0" ]
-  ck "freshness: a checked-out branch is never moved (restart needs a detached head)" $?
+  # S14-TICK-STALE-SILENT: a stale state into a second consecutive pass ends the board with one OWED line
+  rm -f "$t/f.txt.stale"; echo dirty >> "$t/c/tools/pr/x"; out=$(fr); b1=$(cat "$t/f.txt"); out=$(fr); git -C "$t/c" checkout -q -- tools/pr/x
+  [ "$b1" = BOARD ]
+  ck "freshness null control: one stale pass writes no OWED line on the board" $?
+  [ "$(grep -c '^-> OWED relay-skipped ' "$t/f.txt")" = 1 ] \
+    && grep -qx -- "-> OWED relay-skipped code=$at0 behind=2: the tree is dirty (stale 2 consecutive passes)" "$t/f.txt" \
+    && [ "$(head -n 1 "$t/f.txt")" = BOARD ]
+  ck "freshness: a second consecutive stale pass ends the board with one '-> OWED relay-skipped' line: why, code and behind" $?
+  out=$(HPO_TICK_CODE_DIR=$t/nogit HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/f.txt")  # no checkout: never stale
+  [ "$(cat "$t/f.txt")" = BOARD ] && [ ! -e "$t/f.txt.stale" ] && printf '%s\n' "$out" | grep -q 'relay=ok'
+  ck "freshness: a fresh pass clears the count, and its board carries no OWED line" $?
+  git -C "$t/c" checkout -q -b local; echo own > "$t/c/own"; git -C "$t/c" add own; git -C "$t/c" commit -qm own; own=$(git -C "$t/c" rev-parse HEAD)
+  out=$(fr); git -C "$t/c" checkout -q --detach "$at0"; git -C "$t/c" branch -qD local
+  printf '%s\n' "$out" | grep -q '^TICK-STALE .*: the branch local holds 1 commit(s) origin/main lacks; it is never moved' \
+    && printf '%s\n' "$out" | grep -q 'relay=stale' && [ ! -f "$t/order" -o "$(cat "$t/order" 2>/dev/null)" = "tick " ] && [ -n "$own" ]
+  ck "freshness: a branch holding a commit origin/main lacks is never moved, and says why" $?
   out=$(HPO_TICK_RESTARTED=1 fr)
   printf '%s\n' "$out" | grep -q '^TICK-STALE .*: restarted once this pass' && [ "$(git -C "$t/c" rev-parse --short=7 HEAD)" = "$at0" ]
   ck "freshness: a pass already restarted does not exec again (at most once per pass)" $?
@@ -404,6 +471,12 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     && printf '%s\n' "$out" | grep -qx "NEW-LOOP --once --out $t/f.txt --sweep" \
     && [ "$(git -C "$t/c" rev-parse HEAD)" = "$(git -C "$t/c" rev-parse origin/main)" ] && [ ! -f "$t/order" ]
   ck "freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args" $?
+  git -C "$t/c" checkout -q -b local "$at0"; out=$(fr --sweep)
+  printf '%s\n' "$out" | grep -q "^TICK-RESTART .* code=$at0 behind=4 -> " \
+    && printf '%s\n' "$out" | grep -qx "NEW-LOOP --once --out $t/f.txt --sweep" \
+    && [ "$(git -C "$t/c" symbolic-ref --short HEAD)" = local ] && [ "$(git -C "$t/c" rev-parse HEAD)" = "$(git -C "$t/c" rev-parse origin/main)" ]
+  ck "freshness: a clean branch-backed checkout behind origin/main with no commit of its own restarts on its branch at origin/main" $?
+  git -C "$t/c" checkout -q --detach; git -C "$t/c" branch -qD local
   # The self-test run as a live seat runs it -- from a checkout behind origin/main on the watched
   # paths, a branch and then a detached head, its state dir's bin holding the gh shim -- reads nothing of
   # that checkout and leaves its HEAD where it was; so does one a git hook's GIT_DIR names. (The
@@ -497,6 +570,7 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
 )
 
 ARGV=("$@")  # a restart execs the new loop with these
+relay_ended= last_stale=  # the relay gap's clock and the last pass's staleness (relay_gap_sleep)
 once=; sweep=; every=300; out=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/tick.txt
 while [ $# -gt 0 ]; do
   case $1 in
@@ -515,5 +589,5 @@ while :; do
   tick_pass "$out" "$@"
   unset HPO_TICK_RESTARTED  # once per pass: the next pass may restart again
   [ -n "$once" ] && exit 0
-  sleep "$every"
+  relay_gap_sleep "$out" "$every"
 done

@@ -2,7 +2,7 @@
 
 You run **P3** of every audit round from round 11 (decision 0015): after the
 judge has verified the register (P2), before any fixer dispatches (P4). One
-opus seat, read-only on code, writing only the plan. The plan goes to
+opus seat, writing only the plan. The plan goes to
 `plan-review.md`, then to the owner; the orchestrator's P4 executes the
 approved plan and records each deviation against it (`orchestrator.md`
 section 2b).
@@ -12,9 +12,10 @@ class-grouped draft roster, an input never dispatched as is; the D7 brief and
 findings; `dev/audit/config/bugclasses.json`; the archscore vector, counters
 and tripwires at the round's fork SHA (`tools/audit/archscore/`);
 `tests/structure_budgets.json`; last round's plan, move ledger and re-chain
-history; the owner's dimension briefs.
+history; the owner's dimension briefs; the cards and roster groups open at P3's
+start (`check_scopes.py --round <N> --open-cards`).
 
-**Method:** ATAM scenarios (sensitivity, tradeoff points), fitness functions,
+**Method:** ATAM scenarios, fitness functions,
 a Mikado prerequisite graph, ADRs, a C4 component view.
 
 1. **Draw the component view** at the fork SHA from the code, not last round's
@@ -24,8 +25,8 @@ a Mikado prerequisite graph, ADRs, a C4 component view.
    name, marking the sensitivity and tradeoff points touched.
 3. **Triage every verified finding** as keep, merge (same root at one seam),
    defer (to which round and why) or refuse (back to the judge, with the
-   reason, which only the judge undoes). Every finding appears in the plan
-   once; none is dropped silently.
+   reason, which only the judge undoes). Every finding, open card and open group
+   appears in the plan exactly once.
 4. **Group by owning seam, not by file or class.** Each group carries its
    findings, size, seam, hot files and an architect note; its edges come from
    the prerequisite graph. Two groups touching one file is a hot-file order
@@ -74,11 +75,15 @@ weights. It is met only when every condition holds, whatever dS reads:
 - **spread**: at least three scored classes improve, and no metric supplies
   more than 40% of the dS;
 - **checked against holdouts the score does not contain**, none regressing:
-  structure budgets, the tripwires, the behaviour inventory, mutation kill
-  rate and change coupling.
+  the first five fitness functions step 7 names.
 
 The target binds this plan, never a seat: a seat aims at sounder code and is
 never credited for dS alone (`fixer.md` step 17).
+
+Decision 0018's objective ranks the work and the target is its floor: the
+plan's `objective` block predicts each term, ranks and keys each group and
+pins the projection; `plan_audit.py objective-check` passes before the
+push; its guide holds the grammar.
 
 **You do not** write production code, dispatch seats, edit the scorer, or
 carry a target for any single pull request.

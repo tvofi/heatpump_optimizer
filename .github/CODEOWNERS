@@ -65,10 +65,17 @@
 /dev/audit/config/objective.json          @tvofi
 /dev/audit/yardstick/                     @tvofi
 /tools/audit/check_scopes.py              @tvofi
+# Decision 0018's escapes, injected and refix reads and card L1's loop
+# (R11-PRE-ROUND-METRICS part 2): the convergence record's enumerator.
+/tools/audit/seat/loop_ledger.py          @tvofi
 # Decision 0018's enumerators are code-owned (section 5): the two held-out
 # instruments R11-PRE-ROUND-METRICS builds.
 /tools/audit/seat/plant_recall.py         @tvofi
 /tools/audit/seat/finder_overlap.py       @tvofi
+# and its flow reads: lead_time, product_green (scorecard.py's A_gate and the
+# round lines), restore, runner seconds and tokens.
+/tools/audit/seat/round_metrics.py        @tvofi
+/tools/audit/seat/scorecard.py            @tvofi
 /dev/audit/harnesses/README.md            @tvofi
 /.github/CODEOWNERS                       @tvofi
 # The ratchet caps (`*_budgets.json`) carry no owner (decision 0013 as amended

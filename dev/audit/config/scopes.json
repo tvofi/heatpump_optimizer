@@ -5,7 +5,7 @@
   "_rule": "Tracked paths no dimension measures, each with its reason; check_scopes.py refuses a path in no universe and not here, an entry here that also names a covered path, and an entry that names nothing.",
   "dev/audit/{rounds,yardstick}/**": "evidence records of past rounds (reports, verdicts, the harnesses findings ran) and each round's objective record and start evaluation, which check_scopes.py --round reads: a finding re-measures one by its own harness, and a seat audits the mechanism, not the records it left (D11.md)",
   "dev/archive/**": "retired records and carries kept for history; no seat acts on them",
-  "dev/programme/{delivery,register,round9,round10,triage}/**": "delivery rows, the register, round notes and triage records: records of decisions the mechanism already made",
+  "dev/programme/{delivery,register,round9,round10,round11,triage}/**": "delivery rows, the register, round notes and triage records: records of decisions the mechanism already made",
   "docs/design/**": "dated design records of shipped features; the user docs D5 and D6 measure are what describes them now",
   "docs/site/fonts/**": "vendored font files and their SIL OFL licence texts; no behaviour and no claim",
   "tests/golden/**": "value-bearing golden fixtures, claimed and never re-derived by a finder (CLAUDE.md rule 3); the scripts that read them are in D3's and D11's universes",
@@ -26,7 +26,8 @@
    "M4",
    "M5",
    "M6",
-   "M7"
+   "M7",
+   "M8"
   ],
   "axis": {
    "profile": [
@@ -93,7 +94,8 @@
       "**"
      ],
      "steps": [
-      "M7"
+      "M7",
+      "M8"
      ]
     }
    ]
@@ -309,7 +311,7 @@
   "mode": "cells",
   "universe": [
    "README.md",
-   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,heat-curve,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/*.py",
    "custom_components/heatpump_optimizer/www/*.js",
    "tools/**.{py,sh,js,mjs}",
@@ -479,12 +481,13 @@
   "mode": "files",
   "universe": [
    "README.md",
+   "ROADMAP.md",
    "DISCLAIMER.md",
    "RELEASE_NOTES.md",
    "docs/index.html",
    "docs/site/*.css",
    "tools/site/build_docs.mjs",
-   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,heat-curve,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
    "hacs.json",
    "blueprints/**",
@@ -495,9 +498,11 @@
    "CLAUDE.md",
    "AGENTS.md",
    "SECURITY.md",
+   "CODE_OF_CONDUCT.md",
    "dev/README.md",
-   "dev/governance/{dimensions,roles,rules}/*.md",
+   "dev/governance/{dimensions,dimensions/criteria,roles,rules}/*.md",
    "dev/programme/HANDOVER.md",
+   "dev/programme/RULINGS.md",
    "dev/programme/plan-*.md",
    "dev/audit/README.md",
    "tests/README.md",
@@ -524,7 +529,7 @@
   "static": {
    "dev/audit/{rounds,rca}/**": "round evidence and root-cause records: what a round or a seat found then, re-measured by its own harness, never re-verified as current text",
    "dev/archive/**": "retired records kept for history",
-   "dev/programme/{delivery,register,round9,round10,triage}/**": "delivery rows, the register, round notes and triage records: records of decisions already made",
+   "dev/programme/{delivery,register,round9,round10,round11,triage}/**": "delivery rows, the register, round notes and triage records: records of decisions already made",
    "dev/governance/decisions/**": "decision records, history of what was decided and why; the role contracts and rules they changed are measured",
    "docs/design/**": "dated design records of shipped features; the user docs that describe them now are measured",
    "{.claude,.cursor}/rules/**": "generated from dev/governance/rules/ by tools/policy/rules_sync.mjs, whose --check refuses drift; the source is measured",
@@ -535,12 +540,13 @@
     {
      "files": [
       "README.md",
+      "ROADMAP.md",
       "DISCLAIMER.md",
       "RELEASE_NOTES.md",
       "docs/index.html",
       "docs/site/*.css",
       "tools/site/build_docs.mjs",
-      "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md"
+      "docs/{architecture,automations,configuration,dashboard-card,ecl110,heat-curve,how-it-works,setup}.md"
      ],
      "steps": [
       "M1",
@@ -556,7 +562,7 @@
       "hacs.json",
       "blueprints/**",
       "docs/img/**",
-      "dev/governance/{dimensions,roles}/*.md"
+      "dev/governance/{dimensions,dimensions/criteria,roles}/*.md"
      ],
      "steps": [
       "M1",
@@ -597,9 +603,11 @@
       "CLAUDE.md",
       "AGENTS.md",
       "SECURITY.md",
+      "CODE_OF_CONDUCT.md",
       "dev/README.md",
       "dev/governance/rules/*.md",
       "dev/programme/HANDOVER.md",
+      "dev/programme/RULINGS.md",
       "dev/audit/README.md",
       "tests/README.md",
       "tools/{audit,pr}/**.md",
@@ -1132,7 +1140,8 @@
    "M5",
    "M6",
    "M7",
-   "M8"
+   "M8",
+   "M9"
   ],
   "seats": {
    "s1": [
@@ -1166,7 +1175,132 @@
      ],
      "steps": [
       "M7",
-      "M8"
+      "M8",
+      "M9"
+     ]
+    }
+   ]
+  }
+ },
+ "D16": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M5",
+      "M6"
+     ]
+    }
+   ]
+  }
+ },
+ "D17": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/{services.yaml,strings.json}",
+   "blueprints/**"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3"
+  ],
+  "axis": {
+   "kind": [
+    "option",
+    "options-step",
+    "config-field",
+    "config-step",
+    "service",
+    "entity",
+    "blueprint"
+   ]
+  },
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "axis": [
+      "option",
+      "options-step"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "axis": [
+      "config-field",
+      "config-step"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "axis": [
+      "service",
+      "entity",
+      "blueprint"
      ]
     }
    ]

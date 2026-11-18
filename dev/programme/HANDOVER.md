@@ -1488,7 +1488,7 @@ Older traps, still live:
 - **A worktree shares the repository's config and refs with every other
   worktree.** `git remote remove origin` inside one repointed the main
   checkout. A throwaway git experiment goes in a standalone clone under
-  `mktemp -d`. `worktree_gc.sh --apply` collects a detached, clean worktree
+  `mktemp -d`. `worktree_gc.sh <owner/repo>` (`--dry-run` previews) collects a detached, clean worktree
   over an hour old that is not an open pull request's head: claim a root-cause
   or audit seat's with `git worktree lock`, not an untracked marker at the root
   (`closure.py select` turns `MODE: SCOPED` into `MODE: FULL` naming it). The

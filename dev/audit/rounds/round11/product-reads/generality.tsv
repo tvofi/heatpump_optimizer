@@ -1,0 +1,8 @@
+# Seed ledger for `product_reads.py generality`: rows are `<d12-cells level>\t<source>\t<script>::<check>`.
+level two_zone_mode=off	simulation	tests/config_flow_steps.py::'flow' with two_zone_mode=off is refused even with zone keys present (D12-01)
+level two_zone_mode=on	simulation	tests/config_flow_steps.py::'flow' with two_zone_mode=on saves cleanly even without zone keys (D12-01)
+level CONF_DHW_SETPOINT_ENTITY=present	simulation	tests/config_flow_steps.py::clearing the DHW set-point entity writes None
+level CONF_WOOD_TANK_TOP_ENTITY=present	simulation	tests/config_flow_steps.py::a stored top probe infers the wood block on
+level space_setpoint_unit=flow	simulation	tests/config_flow_steps.py::clearing the space set-point entity writes None
+level structure=timber_slab	simulation	tests/config_flow_steps.py::the top menu offers the revisited pages plus Quick setup and Advanced, in order
+level CONF_INDOOR_TEMP_ENTITY=present	simulation	tests/config_flow_steps.py::'flow' with two_zone_mode=off is refused even with zone keys present (D12-01)

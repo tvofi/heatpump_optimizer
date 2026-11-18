@@ -6,10 +6,13 @@ Exit 0 only if every dimension passes and coverage passes; each failure prints t
 twice or not at all. Coverage: every tracked path at --ref is in some dimension's universe or
 matches one entry of scopes.json's `_coverage_excluded` (glob -> reason), never both, and every
 entry matches some path; a path in neither is refused by name, so no path goes unmeasured.
-Null control: --self-test duplicates one seat's block and empties another's, drops D10's
+An axis tools/audit/enumerate.py also prints (D17's `kind`, its d17-features prefixes) must name
+exactly those prefixes: a value in one copy alone is refused.
+Null control: --self-test duplicates one seat's block and empties another's (D1 and D2, then D16
+and D17, with a kind planted in either copy of D17's axis), drops D10's
 universe, strips the tests/ and blueprints/ globs, and excludes a covered path; it exits 0 only
 when the checker refuses each perturbed file by the path it names. It also runs the default
-invocation as a subprocess, on the live scopes (rc 0) and without D4's and D6's blueprints globs (rc 1).
+invocation as a subprocess, on the live scopes (rc 0) and with every universe's blueprints glob dropped (rc 1).
 Ledger dimensions (D5, D6): a dimension's `ledger` {step, max_units} caps each seat's text units
 (tools/audit/text_ledger.py, the dimension's own rule) over the files its blocks hold for that step,
 so a seat's cell is finishable; a seat over the cap is refused by name. Its `classify` globs and
@@ -30,8 +33,14 @@ round on rc != 0.
 N starts only when round N-1's OBJECTIVE.json and round N's EVALUATION.json are in the tree at
 --ref, every term is read or NO-READ with its reason, every object file has a verdict with
 evidence from an evaluator who is not its reviewer, and every card carries the owner's decision,
-an accepted one merged at --ref. Each gap is refused by the path or id it names; audit-find.js
-passes its round. --self-test drives a complete record (passes) and one perturbation per rule.
+an accepted one merged at --ref unless the owner's ruling sets its `gates_finders` false: such a
+card unmerged is no gap, printed `PARALLEL <card>` since it builds beside the finders. Each gap is
+refused by the path or id it names; audit-find.js passes its round. --open-cards (with --round)
+prints P3's input as JSON {round, ref, roster_ref, open_cards, unmarked_cards, open_groups,
+unmarked_groups} and exits: the accepted cards that gate no finder and are unmerged at --ref, and
+the open groups of the roster (roster_lib's reader, or --roster-ref) whose `gates_finders` is not
+true; rc 1, with an `UNMARKED <card|group>` line, while an accepted card or open group carries no
+boolean. Run when the finders finish, it is the architect's input. --self-test drives a complete record (passes) and one perturbation per rule.
 The record also needs: an approving review at a commit in --ref's history whose EVALUATION.json
 graded the same objects, a ruling on every decided card, an accepted card's commit after that review
 and changing the card's file, reads that are numbers with a tracked enumerator, NO-READs that name
@@ -55,6 +64,11 @@ import roster_lib
 _spec = importlib.util.spec_from_file_location("text_ledger", Path(__file__).with_name("text_ledger.py"))
 text_ledger = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(text_ledger)
+_spec = importlib.util.spec_from_file_location("audit_enumerate", Path(__file__).with_name("enumerate.py"))
+audit_enumerate = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(audit_enumerate)
+# An axis whose values are a second copy of an enumerator's line prefixes: (dimension, axis) -> the prefixes.
+AXIS_SOURCES = {("D17", "kind"): lambda: audit_enumerate.KINDS}
 
 def expand_braces(p):
     m = re.search(r"\{([^{}]*)\}", p)
@@ -116,6 +130,17 @@ def classify_errors(d, tree, uni, dim=None):
     return errs
 
 
+def axis_errors(dim, d):
+    """An axis the enumerator also prints must name exactly the enumerator's prefixes: a kind in one
+    copy alone is a cell no seat can print, or a line no seat owns."""
+    errs = []
+    for name, vals in d.get("axis", {}).items():
+        src = AXIS_SOURCES.get((dim, name))
+        if src and set(vals) != set(src()):
+            errs.append(f"axis {name} {sorted(set(vals) ^ set(src()))} in scopes.json or tools/audit/enumerate.py, not both")
+    return errs
+
+
 def check(scopes, tree, loc, units=lambda dim, f: 0):
     ok = True
     for dim, d in scopes.items():
@@ -147,7 +172,7 @@ def check(scopes, tree, loc, units=lambda dim, f: 0):
             dup = {k: v for k, v in owners.items() if len(v) > 1 and k[0] != "step"}
         missing = want - set(owners)
         extra = set(owners) - want
-        over, cls_errs, per_seat = [], classify_errors(d, tree, uni, dim), {}
+        over, cls_errs, per_seat = [], classify_errors(d, tree, uni, dim) + axis_errors(dim, d), {}
         if "ledger" in d:
             per_seat = ledger_units(dim, d, files_of, units)
             over = [s for s, n in per_seat.items() if n > d["ledger"]["max_units"]]
@@ -292,14 +317,16 @@ def open_builders(tree, show):
     return {k for k, g in groups.items() if roster_lib.carry_receivable(g)}
 
 
-def evaluation_gaps(rnd, tree, show, merged, anc, changed):
+def evaluation_gaps(rnd, tree, show, merged, anc, changed, parallel=None):
     """Why round `rnd` may not start, one line per gap, [] when it may.
     `show(path, at=None)` is the file's text at the ref (or at commit `at`);
     `merged(sha)` says whether the ref contains that commit, `anc(a, b)` whether
     a is an ancestor of or equal to b, `changed(sha)` the paths it changed
     against its first parent. The terms and the object globs come from
     OBJECTIVE at the ref, so the record is checked against the definition it
-    was written under, and neither list is carried here."""
+    was written under, and neither list is carried here. An accepted card
+    whose `gates_finders` (the owner's ruling) is false and that is not merged
+    at the ref is no gap: its id is appended to `parallel`, when given."""
     spec = json.loads(show(OBJECTIVE))
     prev, path = records(rnd)
     gaps, terms, builders, groups = [], {}, [], open_builders(tree, show)
@@ -331,7 +358,7 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed):
     ev = json.loads(show(path))
     if ev.get("round") != rnd or ev.get("reads") != prev:
         gaps.append(f"{path} is not round {rnd}'s evaluation of {prev}")
-    seat, rev = (norm(ev.get(k, "")) for k in ("evaluator", "reviewer"))
+    seat, rev = (norm(ev[k]) if full(ev.get(k)) else "" for k in ("evaluator", "reviewer"))
     if not seat or not rev or seat == rev or "orchestrator" in seat or "orchestrator" in rev:
         gaps.append(f"{path} evaluator {seat!r} and reviewer {rev!r} must be two seats, neither the orchestrator")
     cards, rows = ev.get("cards", {}), ev.get("objects", {})
@@ -373,6 +400,13 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed):
             continue
         c = card.get("merged")
         want = {x for x in (card.get("object"), *(card.get("paths") or ())) if x}
+        gating = card.get("gates_finders")
+        if not isinstance(gating, bool):
+            gaps.append(f"{path} card {cid} is accepted and carries no boolean gates_finders (the owner's ruling on whether it gates the finders)")
+        elif not gating and not (c and merged(c)):
+            if parallel is not None:
+                parallel.append(cid)
+            continue
         if not (c and merged(c)):
             gaps.append(f"{path} card {cid} is accepted and not merged at this ref")
         elif revsha and anc(c, revsha):
@@ -406,6 +440,79 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed):
     if isinstance(u, dict) and isnum(u.get("value")) and n < u["value"]:
         gaps.append(f"{path} carries {n} card(s) with an unowned item but {prev} counts {u['value']}")
     return gaps
+
+
+def open_cards_report(rnd, tree, show, merged, anc, changed):
+    """--open-cards: (JSON object, rc, UNMARKED lines). The accepted cards that
+    gate no finder and are unmerged at the ref are P3's input; an accepted card
+    with no boolean `gates_finders` could be either, so it is named and the
+    listing fails (rc 1) rather than printing a list that omits it."""
+    out = []
+    evaluation_gaps(rnd, tree, show, merged, anc, changed, out)
+    cards = json.loads(show(records(rnd)[1])).get("cards", {})
+    unmarked = sorted(cid for cid, c in cards.items()
+                      if c.get("decision") == "accepted" and not isinstance(c.get("gates_finders"), bool))
+    lines = [f"UNMARKED {cid}: accepted, no boolean gates_finders (the owner's ruling on finder gating)" for cid in unmarked]
+    return {"round": rnd, "open_cards": sorted(out), "unmarked_cards": unmarked}, 1 if unmarked else 0, lines
+
+
+def architect_groups_report(roster):
+    """--open-cards' group half: (JSON fields, rc, UNMARKED lines). The roster's
+    open groups that gate no finder (roster_lib.architect_groups) are P3's input
+    with the open cards; an unmarked one is listed and named, rc 1."""
+    groups, unmarked = roster_lib.architect_groups(roster)
+    lines = [f"UNMARKED {g}: open, no boolean gates_finders (roster_edit.py set-field {g} gates_finders true|false)" for g in unmarked]
+    return {"open_groups": groups, "unmarked_groups": unmarked}, 1 if unmarked else 0, lines
+
+
+def p3_input(rnd, tree, show, merged, anc, changed, roster):
+    """--open-cards whole: the card half and the group half, (JSON fields, rc,
+    UNMARKED lines); rc 1 when either half names an unmarked card or group."""
+    cards, crc, clines = open_cards_report(rnd, tree, show, merged, anc, changed)
+    groups, grc, glines = architect_groups_report(roster)
+    return {**cards, **groups}, max(crc, grc), clines + glines
+
+
+def open_cards_cli():
+    """(marked, unmarked): `--open-cards --round 8` run whole, as a subprocess
+    of this file, on two commits of a scratch repository whose round-8 record
+    differs only in C2 and C3's `gates_finders`: booleans in the first, absent
+    and the string "true" in the second. C1 is accepted, non-gating, unmerged.
+    Both commits carry one roster whose open group G1 is marked non-gating, so
+    the group half lists G1 and names nothing UNMARKED: the exit code and the
+    UNMARKED lines measured here are the card half's alone."""
+    prev, path = records(8)
+    cards = {"C1": {"decision": "accepted", "ruling": "R1", "gates_finders": False, "merged": "0" * 40},
+             "C2": {"decision": "accepted", "ruling": "R2", "gates_finders": True},
+             "C3": {"decision": "accepted", "ruling": "R3", "gates_finders": True},
+             "C4": {"decision": "rejected", "ruling": "R4"}}
+    unmarked = copy.deepcopy(cards)
+    del unmarked["C2"]["gates_finders"]
+    unmarked["C3"]["gates_finders"] = "true"
+    from throwaway_git import throwaway_git_init  # the one way to build a scratch repo; main() put tests/ on the path
+    with tempfile.TemporaryDirectory() as d:
+        env = throwaway_git_init(d, "-q")
+        git = lambda *a: subprocess.run(["git", "-C", d, *a], env=env, capture_output=True, text=True, check=True).stdout.strip()
+        runs = []
+        for cs in (cards, unmarked):
+            for f, body in ((OBJECTIVE, {"terms": [], "objects": {}}), (prev, {"terms": {}}),
+                            (path, {"round": 8, "reads": prev, "cards": cs}),
+                            (f"{roster_lib.ROSTERS_DIR}/wave-r8-groups.json",
+                             {"groups": [{"group": "G1", "gates_finders": False, "resume": {"stage": "not-started"}}]})):
+                (Path(d) / f).parent.mkdir(parents=True, exist_ok=True)
+                (Path(d) / f).write_text(json.dumps(body))
+            git("add", "-A")
+            git("commit", "-q", "-m", "record")
+            runs.append(subprocess.run([sys.executable, str(Path(__file__).resolve()), "--repo", d, "--ref", git("rev-parse", "HEAD"),
+                                        "--roster-ref", git("rev-parse", "HEAD"), "--round", "8", "--open-cards"], env=env, capture_output=True, text=True))
+    return tuple(runs)
+
+
+def json_or_none(text):
+    try:
+        return json.loads(text)
+    except ValueError:
+        return None
 
 
 def population(axes, tree, show):
@@ -546,16 +653,22 @@ def evaluation_self_test(tree, show):
     good = {"round": 8, "reads": prev, "evaluator": "evaluator-r8", "reviewer": "plan-review-r8",
             "review": {"verdict": "approve", "sha": "rev"},
             "objects": {f: {"verdict": "keep", "evidence": "e"} for f in objs},
-            "cards": {"C1": {"decision": "accepted", "ruling": "R1", "merged": "abc", "object": ME},
+            "cards": {"C1": {"decision": "accepted", "ruling": "R1", "gates_finders": True, "merged": "abc", "object": ME},
                       "C2": {"decision": "rejected", "ruling": "R2", "unowned": "u", "threshold": "floor", "criterion": "D4"}}}
     good["objects"][objs[0]] = {"verdict": "change", "evidence": "e", "card": "C1"}
     # commits: old is an ancestor of the review rev, abc is after it
-    def run(ev=good, tm=terms, drop=(), sp=spec, revdoc=None, merged=lambda sha: sha in ("abc", "rev", "old")):
+    def run(ev=good, tm=terms, drop=(), sp=spec, revdoc=None, merged=lambda sha: sha in ("abc", "rev", "old"), parallel=None, check=None):
         files = {OBJECTIVE: json.dumps(sp), prev: json.dumps({"terms": tm}), path: json.dumps(ev), roster: json.dumps(groups)}
         sh = lambda f, at=None: (revdoc or json.dumps({"objects": ev.get("objects")})) if at else files[f]
-        return evaluation_gaps(8, (tree | set(files)) - set(drop), sh, merged,
-                               lambda a, b: (a, b) in (("old", "rev"), ("rev", "rev")),
-                               lambda c: {"abc": {ME}, "old": {ME}}.get(c, set()))
+        args = (8, (tree | set(files)) - set(drop), sh, merged, lambda a, b: (a, b) in (("old", "rev"), ("rev", "rev")),
+                lambda c: {"abc": {ME}, "old": {ME}}.get(c, set()))
+        return check(*args) if check else evaluation_gaps(*args, parallel)
+    # --open-cards' report, the function main() prints: (JSON object, rc, UNMARKED lines).
+    report = lambda ev=good, **kw: run(ev, check=open_cards_report, **kw)
+    def beside(ev=good, **kw):
+        """(gaps, ids of the cards building beside the finders) of one run."""
+        out = []
+        return run(ev, parallel=out, **kw), out
     def edit(fn, base=good):
         c = copy.deepcopy(base)
         fn(c)
@@ -585,6 +698,58 @@ def evaluation_self_test(tree, show):
         "a change with no card is refused": only(run(edit(lambda c: c["objects"][objs[0]].pop("card"))), objs[0] + " names no card"),
         "an undecided card is refused": only(run(edit(lambda c: c["cards"]["C2"].pop("decision"))), "card C2 carries no owner decision"),
         "an accepted card not merged is refused": only(run(merged=lambda sha: sha != "abc"), "card C1 is accepted and not merged"),
+        # Finder gating (tvofi 2026-11-15): only a card the owner's ruling makes
+        # gate the finders (`gates_finders` true) holds the round's start; one
+        # that does not, unmerged, builds beside the finders, never a gap.
+        "a complete record lists nothing beside the finders": beside() == ([], []),
+        "a gating accepted card not merged is refused and not listed beside":
+            (lambda r: only(r[0], "card C1 is accepted and not merged") and r[1] == [])(beside(merged=lambda sha: sha != "abc")),
+        "a non-gating accepted card not merged passes and is listed beside":
+            beside(card("C1", gates_finders=False), merged=lambda sha: sha != "abc") == ([], ["C1"]),
+        "a non-gating unmerged card's unset value is no gap, it builds with the card":
+            beside(card("C1", gates_finders=False, threshold="floor"), merged=lambda sha: sha != "abc") == ([], ["C1"]),
+        "a non-gating merged card is checked as any accepted card":
+            only(run(card("C1", gates_finders=False, merged="old")), "is not after the review") and beside(card("C1", gates_finders=False)) == ([], []),
+        "an accepted card with no boolean gates_finders is refused, in every shape":
+            all(only(run(ev), "card C1 is accepted and carries no boolean gates_finders")
+                for ev in [edit(lambda c: c["cards"]["C1"].pop("gates_finders"))] + [card("C1", gates_finders=v) for v in (None, "yes", "no", 0, 1, "false")]),
+        "an accepted card with no gates_finders is refused even unmerged, and never listed beside":
+            (lambda r: len(r[0]) == 2 and r[1] == [])(beside(edit(lambda c: c["cards"]["C1"].pop("gates_finders")), merged=lambda sha: sha != "abc")),
+        # --open-cards, P3's input (fix review 3620): it lists what is open and
+        # never prints an empty list over cards that carry no gates_finders.
+        "--open-cards lists a non-gating unmerged card, rc 0":
+            report(card("C1", gates_finders=False), merged=lambda sha: sha != "abc") == ({"round": 8, "open_cards": ["C1"], "unmarked_cards": []}, 0, []),
+        "--open-cards lists nothing on a complete record whose gating card is merged (null control)":
+            report() == ({"round": 8, "open_cards": [], "unmarked_cards": []}, 0, []),
+        "--open-cards refuses an accepted card with no boolean gates_finders by name, rc 1":
+            all(report(ev, merged=m)[1:] == (1, ["UNMARKED C1: accepted, no boolean gates_finders (the owner's ruling on finder gating)"])
+                and report(ev, merged=m)[0]["unmarked_cards"] == ["C1"]
+                for ev in (edit(lambda c: c["cards"]["C1"].pop("gates_finders")), card("C1", gates_finders="no"))
+                for m in (lambda sha: sha != "abc", lambda sha: True)),
+        "a rejected or deferred card needs no gates_finders": "gates_finders" not in good["cards"]["C2"] and run(card("C2", decision="deferred")) == [],
+        # P3's input when the finders finish (tvofi 2026-11-15): the open cards
+        # and every open roster group the finders do not wait for. An unmarked
+        # group is listed and flagged, and the listing fails until it is marked.
+        "P3's group half lists the open non-gating groups, rc 0 when all are marked":
+            architect_groups_report({"groups": [{"group": "G", "gates_finders": True, "resume": {"stage": "in-progress"}},
+                                                {"group": "N", "gates_finders": False, "resume": {"stage": "not-started"}},
+                                                {"group": "D", "gates_finders": False, "resume": {"stage": "done"}}]})
+            == ({"open_groups": ["N"], "unmarked_groups": []}, 0, []),
+        "an unmarked open group is listed, named and fails the listing":
+            architect_groups_report({"groups": [{"group": "U", "resume": {"stage": "not-started"}}]})
+            == ({"open_groups": ["U"], "unmarked_groups": ["U"]}, 1,
+                ["UNMARKED U: open, no boolean gates_finders (roster_edit.py set-field U gates_finders true|false)"]),
+        "--open-cards whole: a marked record and roster pass with both halves listed, rc 0":
+            run(card("C1", gates_finders=False), merged=lambda sha: sha != "abc", check=lambda *a: p3_input(*a, {"groups": [
+                {"group": "N", "gates_finders": False, "resume": {"stage": "not-started"}}]}))
+            == ({"round": 8, "open_cards": ["C1"], "unmarked_cards": [], "open_groups": ["N"], "unmarked_groups": []}, 0, []),
+        "--open-cards whole fails on an unmarked group alone, or an unmarked card alone":
+            run(check=lambda *a: p3_input(*a, {"groups": [{"group": "U", "resume": {"stage": "not-started"}}]}))[1:]
+            == (1, ["UNMARKED U: open, no boolean gates_finders (roster_edit.py set-field U gates_finders true|false)"])
+            and run(edit(lambda c: c["cards"]["C1"].pop("gates_finders")), check=lambda *a: p3_input(*a, {"groups": []}))[1] == 1,
+        "a null, absent, blank or non-string reviewer or evaluator is refused":
+            all(only(run(ev), "two seats") for ev in [edit(lambda c: c.update(**{k: v})) for k in ("reviewer", "evaluator") for v in (None, "", "  ", 0, [], 1, ["x"])]
+                + [edit(lambda c: c.pop(k)) for k in ("reviewer", "evaluator")]),
         "B1 a disguised orchestrator or the same seat respelled is refused":
             all(only(run(edit(lambda c: c.update(**{k: v}))), "two seats") for k, v in (
                 ("evaluator", "orchestrator-r10"), ("evaluator", "the orchestrator"), ("reviewer", "Orchestrator"), ("reviewer", "Evaluator R8"))),
@@ -708,6 +873,9 @@ def main():
     ap.add_argument("--seat", help="print the cells this seat (D<k>-s<n>) owns and exit")
     ap.add_argument("--round", type=int, help="also refuse this round's start without its start evaluation")
     ap.add_argument("--population", action="store_true", help="print the install population's levels read at --ref and exit")
+    ap.add_argument("--open-cards", action="store_true",
+                    help="with --round: print, as JSON, P3's input (open non-gating cards at --ref, open non-gating roster groups) and exit; rc 1 naming any unmarked card or group")
+    ap.add_argument("--roster-ref", help="the roster's ref for --open-cards (default: roster_lib.reader_ref)")
     a = ap.parse_args()
     show = lambda f, at=None: subprocess.check_output(["git", "-C", a.repo, "show", f"{at or a.ref}:{f}"], text=True)
     anc = lambda x, y: subprocess.run(["git", "-C", a.repo, "merge-base", "--is-ancestor", str(x), y],
@@ -716,6 +884,17 @@ def main():
     changed = lambda c: set(subprocess.run(["git", "-C", a.repo, "diff", "--name-only", f"{c}^1", str(c)],
                                            capture_output=True, text=True).stdout.split())
     tree = set(subprocess.check_output(["git", "-C", a.repo, "ls-tree", "-r", "--name-only", a.ref], text=True).split())
+    if a.open_cards:
+        if a.round is None or records(a.round)[1] not in tree:
+            print(f"--open-cards needs --round <N> and {records(a.round or 0)[1]} tracked at {a.ref}", file=sys.stderr)
+            sys.exit(2)
+        rref = roster_lib.reader_ref(a.repo, a.roster_ref)
+        listing, rc, lines = p3_input(a.round, tree, show, merged, anc, changed, roster_lib.show_roster(a.repo, rref))
+        for line in lines:
+            print(line, file=sys.stderr)
+        rev = lambda r: subprocess.check_output(["git", "-C", a.repo, "rev-parse", r], text=True).strip()
+        print(json.dumps({**listing, "ref": rev(a.ref), "roster_ref": rev(rref)}))
+        sys.exit(rc)
     if a.population:
         lines, ok = population(json.loads(show(OBJECTIVE)).get("population", []), tree, show)
         print("\n".join(lines))
@@ -755,6 +934,38 @@ def main():
         none = copy.deepcopy(scopes)
         none["D2"]["seats"][list(none["D2"]["seats"])[-1]] = [{"files": ["**"], "steps": []}]
         res = [check(bad, tree, loc) for bad in (twice, none)]
+        # The same two on the plan-oracle dimensions, each refused by what it names, and the axis
+        # D17 shares with the enumerator: a kind planted in either copy alone is refused.
+        def _dim(bad, dim):
+            o = io.StringIO()
+            with contextlib.redirect_stdout(o):
+                r = check({dim: bad[dim]}, tree, loc)
+            return r, o.getvalue()
+        twice16 = copy.deepcopy(scopes)
+        a16, b16 = list(twice16["D16"]["seats"])[:2]
+        twice16["D16"]["seats"][b16].append(copy.deepcopy(twice16["D16"]["seats"][a16][0]))
+        none17 = copy.deepcopy(scopes)
+        none17["D17"]["seats"][list(none17["D17"]["seats"])[-1]] = [{"files": ["**"], "steps": []}]
+        kind17 = copy.deepcopy(scopes)
+        kind17["D17"]["axis"]["kind"].append("planted-kind")
+        kind17["D17"]["seats"][list(kind17["D17"]["seats"])[0]][0]["axis"].append("planted-kind")
+        r_t16, o_t16 = _dim(twice16, "D16")
+        r_n17, o_n17 = _dim(none17, "D17")
+        r_k17, o_k17 = _dim(kind17, "D17")
+        real_kinds = audit_enumerate.KINDS
+        try:
+            audit_enumerate.KINDS = real_kinds + ("planted-prefix",)
+            r_e17, o_e17 = _dim(scopes, "D17")
+        finally:
+            audit_enumerate.KINDS = real_kinds
+        new_dims = {
+            "null control: the live D16 and D17 pass": _dim(scopes, "D16")[0] is True and _dim(scopes, "D17")[0] is True,
+            "a D16 block owned by two seats is refused": not r_t16 and f"by ['{a16}', '{b16}']" in o_t16,
+            "a D17 seat emptied leaves its cells unowned": not r_n17 and "   unowned (" in o_n17,
+            "a D17 kind the enumerator does not print is refused": not r_k17 and "axis kind ['planted-kind']" in o_k17,
+            "a prefix the enumerator prints and no D17 seat owns is refused": not r_e17 and "axis kind ['planted-prefix']" in o_e17,
+        }
+        print(f"   D16 and D17 arms: {sum(new_dims.values())}/{len(new_dims)} held")
         # Coverage arms, each refused by the path it must name, so a broad
         # exclusion cannot satisfy an arm by rc alone. D10 is the one universe
         # that alone holds py.typed; stripping every tests/ and blueprints/ glob
@@ -775,7 +986,7 @@ def main():
             "drop D10's universe": (no_d10, [PKG + "py.typed"]),
             "strip tests/ and blueprints/ globs": (bare, ["tests/closure.py", "blueprints/automation/notifications.yaml"]),
         }
-        cov = {}
+        cov = dict(new_dims)
         for name, (bad, must) in arms.items():
             ok, unc = coverage(bad, tree, quiet=True)
             cov[name] = (not ok) and all(m in unc for m in must) and nulls not in unc
@@ -866,12 +1077,13 @@ def main():
                     "and refuses an uncited brief-named harness": uncited_refused})
         print(f"   default verdict: live {live}, no D10 refused {no_d10_refused}, uncited refused {uncited_refused}")
         # The default invocation, run whole as a subprocess of this file with
-        # --repo/--ref: the live scopes exit 0, and the scopes with D4's and D6's
-        # blueprints/** globs dropped exit 1 naming a blueprint, both printing
+        # --repo/--ref: the live scopes exit 0, and the scopes with the blueprints/**
+        # glob dropped from every universe that names one exit 1 naming a blueprint, both printing
         # verdict()'s citation line. So coverage cannot fall out of main()'s exit
         # code, and that exit is verdict()'s, whose citation arm is pinned above.
         no_bp = copy.deepcopy(scopes)
-        for k in ("D4", "D6"):
+        bp_dims = [k for k, d in scopes.items() if not k.startswith("_") and any(g.startswith("blueprints/") for g in d["universe"])]
+        for k in bp_dims:
             no_bp[k]["universe"] = [g for g in no_bp[k]["universe"] if not g.startswith("blueprints/")]
         def default_run(sc, *more):
             with tempfile.NamedTemporaryFile("w", suffix=".json") as fh:
@@ -882,7 +1094,7 @@ def main():
         run_live, run_bp = default_run(scopes), default_run(no_bp)
         cited = " harness citations: "
         cov["the default invocation exits 0 on the live scopes"] = run_live.returncode == 0 and cited in run_live.stdout
-        cov["and exits 1 without D4's and D6's blueprints globs"] = (run_bp.returncode == 1 and cited in run_bp.stdout
+        cov["and exits 1 with the blueprints globs dropped from every universe that names one"] = (run_bp.returncode == 1 and cited in run_bp.stdout
             and "in no universe and not excluded: blueprints/" in run_bp.stdout)
         print(f"   default invocation: live rc={run_live.returncode}, blueprints dropped rc={run_bp.returncode}")
         # The start evaluation: the rules as a function, then the default
@@ -905,7 +1117,23 @@ def main():
         run_r1 = default_run(scopes, "--round", "1")
         cov["--round exits 1 with no evaluation in the tree"] = (run_r1.returncode == 1 and cited in run_r1.stdout
             and "FAIL start evaluation" in run_r1.stdout and "round1/EVALUATION.json is not in the tree" in run_r1.stdout)
-        print(f"   evaluation arms: {sum(ev.values())}/{len(ev)} held; --round 1 rc={run_r1.returncode}")
+        run_oc = default_run(scopes, "--round", "1", "--open-cards")
+        cov["--open-cards refuses a round with no evaluation, never an empty list"] = (run_oc.returncode == 2
+            and "round1/EVALUATION.json tracked" in run_oc.stderr and "open_cards" not in run_oc.stdout)
+        # --open-cards run whole on a record with and without a boolean
+        # gates_finders on C2 and C3 (fix review 3620): main()'s exit code and
+        # its UNMARKED stderr lines, which the function arms above cannot reach.
+        oc_marked, oc_unmarked = open_cards_cli()
+        unmarked_lines = [l.split(":")[0] for l in oc_unmarked.stderr.splitlines() if l.startswith("UNMARKED")]
+        cov["--open-cards exits 0 with no UNMARKED line when every accepted card carries a boolean (null control)"] = (
+            oc_marked.returncode == 0 and "UNMARKED" not in oc_marked.stderr
+            and (json_or_none(oc_marked.stdout) or {}).get("open_cards") == ["C1"]
+            and (json_or_none(oc_marked.stdout) or {}).get("open_groups") == ["G1"])
+        cov["--open-cards exits 1 naming on stderr each accepted card with no boolean gates_finders"] = (
+            oc_unmarked.returncode == 1 and unmarked_lines == ["UNMARKED C2", "UNMARKED C3"]
+            and (json_or_none(oc_unmarked.stdout) or {}).get("unmarked_cards") == ["C2", "C3"])
+        print(f"   evaluation arms: {sum(ev.values())}/{len(ev)} held; --round 1 rc={run_r1.returncode}; --open-cards rc={run_oc.returncode}, "
+              f"marked rc={oc_marked.returncode}, unmarked rc={oc_unmarked.returncode} {unmarked_lines}")
         pop = population_self_test()
         cov.update({"population: " + k: v for k, v in pop.items()})
         print(f"   population arms: {sum(pop.values())}/{len(pop)} held")
@@ -915,10 +1143,13 @@ def main():
         sys.exit(0 if good else 1)
     ok = verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree), units=units)
     if a.round is not None:
-        gaps = evaluation_gaps(a.round, tree, show, merged, anc, changed)
-        print(f"{'ok' if not gaps else 'FAIL'} start evaluation round={a.round}: {len(gaps)} gap(s)")
+        beside = []
+        gaps = evaluation_gaps(a.round, tree, show, merged, anc, changed, beside)
+        print(f"{'ok' if not gaps else 'FAIL'} start evaluation round={a.round}: {len(gaps)} gap(s), {len(beside)} card(s) beside the finders")
         for g in gaps:
             print(f"   {g}")
+        for cid in sorted(beside):
+            print(f"   PARALLEL {cid} accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)")
         ok = ok and not gaps
     sys.exit(0 if ok else 1)
 

@@ -6,15 +6,14 @@ real lane reaches for it, and which refusal saves you. The obligations live in
 runs offline. Each linked line below indexes one instrument; its text is
 `instruments/<name>.md`, beside this file.
 
-Directories here that are records, not instruments: `round3/`..`round9/`,
-`round5-fix/`, `round7-fix/`, `round8-fix/`, `handoff/`, `rca/`,
-`w5-partition/`, `w5-g5-195-coverage/`, `briefs/` (the seat contracts and
-dimension briefs), `archscore/`, `ci-version-edit/`, `ledger-layout/`,
-`record-predicate/` (sub-tools with their own READMEs), and the JSON/schema
-files (`bugclasses.json`, `scopes.json`, `rotation.json`,
-`finding.schema.json`), which the instruments read. `harnesses/` holds the
-re-runnable measurement harnesses a fixer or judge lands with a PR — its
-`README.md` indexes them; anything a later seat must rerun belongs there
+The records are not here: round evidence is under `dev/audit/rounds/`,
+root-cause analyses under `dev/audit/rca/`, the seat contracts and dimension
+briefs under `dev/governance/`, the architecture score under
+`tools/audit/archscore/`, and the JSON and schema files the instruments read
+(`bugclasses.json`, `scopes.json`, `rotation.json`, `finding.schema.json`)
+under `dev/audit/config/`. `dev/audit/harnesses/` holds the
+re-runnable measurement harnesses a fixer or judge lands with a PR — 
+`dev/audit/README.md` indexes them; anything a later seat must rerun belongs there
 (fixer contract step 18), not in a session's scratch.
 
 ## tools/audit/
@@ -29,6 +28,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - [`role_pack.py` (tools/policy/)](instruments/role_pack.py.md) — renders one seat's policy pack: its role contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim, in one file
 - [`approve_held_runs.sh`](instruments/approve_held_runs.sh.md) — approves the workflow runs GitHub holds `action_required` on a branch
 - [`check_scopes.py`](instruments/check_scopes.py.md) — proves the finder scopes are disjoint and complete within each dimension
+- [`enumerate.py`](instruments/enumerate.py.md) — prints one audit universe, one item per line, so a finder reports examined over a command's output
+- [`product_reads.py`](instruments/product_reads.py.md) — reads `operation` and `generality` off a cell ledger, counting a row only on the read's own witness
+- [`regret_oracle.py`](instruments/regret_oracle.py.md) — reads `regret` per grid cell against the same-information oracle, and the cost record per install-day from a bundle
 - [`text_ledger.py`](instruments/text_ledger.py.md) — enumerates every unit a D5 or D6 seat judges and refuses a ledger that skips one
 - [`fold_ledger.py`](instruments/fold_ledger.py.md) — folds a round's JUDGE.json and sweeps into `bugclasses.json`
 - [`judge_batch.py`](instruments/judge_batch.py.md) — re-runs every finding's harness, perturbation and null control serially under the gate lease
@@ -83,7 +85,7 @@ standing-seat liveness step keep the seats alive.
 - [`open_pr.sh`](instruments/open_pr.sh.md) — opens a draft PR from `handoff/<topic>` as `hpo-author`, adds its own delivery row, re-pushes, prints N and the head
 - [`orchestrator_tick.py`](instruments/orchestrator_tick.py.md) — the heartbeat's dispatch list
 - [`owed_unactioned.py`](instruments/owed_unactioned.py.md) — says which tick owed lines have outlived a sweep with no live acknowledgement
-- [`plan_audit.py`](instruments/plan_audit.py.md) — P3's measuring half (R10-FLOW-AUDIT-PLAN), beside the `audit-plan` workflow
+- [`plan_audit.py`](instruments/plan_audit.py.md) — P3's measuring half (R10-FLOW-AUDIT-PLAN, R11-ARCH-OBJECTIVE), beside the `audit-plan` workflow
 - [`plan_page.py`](instruments/plan_page.py.md) — renders the round's plan page (HTML) from `tools/plan/replan.py`'s plan.json, the roster through `roster_lib`
 - [`plan_table.py`](instruments/plan_table.py.md) — renders the plan artifact from a wave-groups roster
 - [`policy_reread_check.py`](instruments/policy_reread_check.py.md) — says whether a session owes a policy re-read
@@ -121,9 +123,15 @@ standing-seat liveness step keep the seats alive.
 - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
 - [`plan_public.py`](instruments/plan_public.py.md) — stages the ongoing round's plan page from the newest state ref for the public site, refusing a page that would publish a host path or a tool's attribution
 - [`bottleneck_check.py`](instruments/bottleneck_check.py.md) — prints one `BOTTLENECK:` line per flow metric past the owner's threshold, with a suggested action the orchestrator decides on, and nothing when none is
-- [`scorecard.py`](instruments/scorecard.py.md) — ten report-only convergence lines (gate and run health, first-verdict yield, machinery blocks, train skips, hotfix share, size, escapes, detection delay, seat cost), each but the hotfix naming measure held to a null control, written daily to `S/beatd/scorecard.txt`
+- [`scorecard.py`](instruments/scorecard.py.md) — report-only convergence lines (gate and run health, first-verdict yield, machinery blocks, train skips, hotfix share, size, escapes, detection delay, seat cost, and round_metrics.py's reads over the open round), each but the hotfix naming measure held to a null control, written daily to `S/beatd/scorecard.txt`
+- [`round_metrics.py`](instruments/round_metrics.py.md) — decision 0018's flow reads per round and per week (merges by class, lead_time from the roster-entry commit per class, product_green with the gate's check count, restore, runner seconds and tokens per merge), unread on no input, and the producer of the scorecard's inputs
+- [`toolchain.py`](instruments/toolchain.py.md) — the stable tools ref `toolchain/stable`: `behind` counts what the ref holds over a checkout on the seat paths, `promote` moves it along main to the newest commit whose push run reads MACHINERY green, and prints `PROMOTE-HELD` when the newest three past it do not
 - [`plant_recall.py`](instruments/plant_recall.py.md) — plants a held-out seat's objective bugs into the baseline export before the finders, refusing an unsound plant list, and counts recall after the judge (found / planted, whole, per space and per kind), unread on no input
 - [`finder_overlap.py`](instruments/finder_overlap.py.md) — seats a twin finder on one scopes.json seat's universe and estimates the bugs there from the two seats' judged-real overlap, with both models, unread on no input
+- [`owner_only.py`](instruments/owner_only.py.md) — launches a session of an owner-only audit dimension under a seat account and an allow-listed environment, and probes that the account can publish nothing
+- [`corpus_mirror.py`](instruments/corpus_mirror.py.md) — reads every published source once into the private root for an owner-only dimension, one serial stream under `gh_read.py`'s budget floor, pausing at its cursor
+- [`leak_detectors.py`](instruments/leak_detectors.py.md) — candidate spans of already-published data by class, written only under the private root, and the location harness a finding cites
+- [`loop_ledger.py`](instruments/loop_ledger.py.md) — the convergence record per round and week: escapes by found_by and owning dimension, injected, refix and card L1's countermeasure loop, read from the roster fields `roster_edit.py set-field` validates; unread on a partial ledger
 - [`outside_intake.py`](instruments/outside_intake.py.md) — lists submissions by outside users since a cursor with what each is owed (triage, answer, reply), and answers or refuses one, marked so none is answered twice
 - [`postmerge.py`](instruments/postmerge.py.md) — after a merge: the record-issue line, the roster stage and main's suite state (the state docs are the plan-beat's); a failed step is printed OWED and opens the ledger's `postmerge-owed`
 - [`record_beat.py`](instruments/record_beat.py.md) — one merged pull request's record-issue line from a fixed template, the full merge sha, read back byte-identical
@@ -134,6 +142,7 @@ standing-seat liveness step keep the seats alive.
 - [`verdict_audit.py`](instruments/verdict_audit.py.md) — maps every open PR to its latest verdict and holder; prints `UNHELD` lines
 - [`survivor_list.py`](instruments/survivor_list.py.md) — refuses a `mutation-vacuous` verdict that omits a survivor its evidence's driver output reports; `bus.sh push-verdict` runs it
 - [`bare_array.py`](instruments/bare_array.py.md) — refuses two macOS bash 3.2 failures in tracked `tools/**/*.sh`: a bare `"${name[@]}"` (empty under a caller's `set -u`) and a `case` pattern lacking its `(` in `$( )` (`--check`, `--self-test`)
+- [`shell_hazard.py`](instruments/shell_hazard.py.md) — refuses a raw `wc -l` string compare, a padded-`wc` stub and an early-exit pipe under `pipefail` on lines a branch adds to `tools/**/*.sh` (`--check`, `--self-test`)
 - [`tmp_paths.py`](instruments/tmp_paths.py.md) — refuses a tracked script, workflow or decision record that depends on a temp or machine path (`--check`, `--self-test`)
 - [`update_pr.sh`](instruments/update_pr.sh.md) — brings an open PR branch to its head + a code SHA (merge) + origin/main (merge), adds the PR's own delivery row when the head lacks it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as `hpo-author`
 - [`wt_sync.sh`](instruments/wt_sync.sh.md) — snapshots every worktree whose state is not already on origin (unpushed commits, uncommitted or untracked files) to `origin/wip-sync/<slug>`

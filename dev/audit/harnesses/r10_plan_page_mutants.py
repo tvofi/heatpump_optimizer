@@ -3,7 +3,8 @@
 
 Each mutant is one exact one-occurrence replacement in
 tools/audit/seat/plan_page.py, tools/plan/replan.py (the freshness rule the
-page shares) or tools/audit/seat/state_docs.py (which publishes the page).
+page shares), tools/audit/seat/state_docs.py (which publishes the page) or
+tools/audit/seat/plan_phases.py (the round's phases section the page draws).
 The driver applies one, runs `plan_page.py --self-test` (and the mutated
 file's own `--self-test` too, and every one for M0), restores
 the file byte for byte, and refuses to start on a file with uncommitted edits.
@@ -42,6 +43,7 @@ ROOT = repo_root(__file__)
 PAGE = "tools/audit/seat/plan_page.py"
 PLAN = "tools/plan/replan.py"
 STATE = "tools/audit/seat/state_docs.py"
+PHASES = "tools/audit/seat/plan_phases.py"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 
@@ -132,6 +134,56 @@ MUTANTS = [
     ("unavailable-no-figures", PAGE,
      "f'<div class=\"stat\"><b>—</b><span>{e(v)}</span></div>'",
      "f'<div class=\"stat\"><b>0</b><span>{e(v)}</span></div>'"),
+    # R11-PRE-PLAN-RENDER: one mutant per predicate of the phases file and section.
+    ("phases-unknown-status", PHASES,
+     "    if not isinstance(st, str) or st not in STATUSES:\n", "    if False:\n"),
+    ("phases-status-unhashable", PHASES,
+     "    if not isinstance(st, str) or st not in STATUSES:\n", "    if st not in STATUSES:\n"),
+    ("phases-text-typed", PHASES,
+     "if x.get(k) is not None and not isinstance(x[k], str)]", "if False]"),
+    ("phases-items-list", PHASES,
+     "if items is not None and not isinstance(items, list):", "if False:"),
+    ("phases-item-name-text", PHASES,
+     'isinstance(it.get("name"), str) and it["name"].strip()', 'it.get("name")'),
+    ("phases-waiting-named", PHASES,
+     'if st == "waiting" and not (isinstance(wo, str) and wo.strip()):', "if False:"),
+    ("phases-unknown-phase", PHASES,
+     "            bad.append(f\"{where}: unknown phase (one of {', '.join(order)})\")\n", ""),
+    ("phases-order", PHASES, "if order.index(pid) <= last:", "if False:"),
+    ("phases-iso-date", PHASES, "if ph.get(k) is not None and not _date_ok(ph[k]):", "if False:"),
+    ("phases-not-started-date", PHASES,
+     'if st == "not-started" and (ph.get("started") or ph.get("finished")):', "if False:"),
+    ("phases-finished-not-done", PHASES, 'if ph.get("finished") and st != "done":', "if False:"),
+    ("phases-forecast-basis", PHASES,
+     'if not (isinstance(fc, dict) and isinstance(fc.get("basis"), str) and fc["basis"].strip()):',
+     "if not isinstance(fc, dict):"),
+    ("phases-unlisted-drawn", PHASES, "            for pid, title in PHASES]",
+     "            for pid, title in PHASES if pid in given]"),
+    ("phases-items-under-open", PHASES, 'if r.get("items") and r["status"] != "done":',
+     'if r.get("items"):'),
+    ("phases-waiting-label", PHASES,
+     "return f\"waiting on {x['waiting_on']}\" if st == \"waiting\" else STATUSES[st]",
+     "return STATUSES[st]"),
+    ("phases-forecast-basis-shown", PHASES,
+     "f'<div class=\"lanec\">{e(fc[\"basis\"])}</div>' if fc else", "'' if fc else"),
+    ("phases-unavailable", PHASES, "    if bad:\n        return (f'<section>",
+     "    if False:\n        return (f'<section>"),
+    ("phases-newest-round", PHASES, "return max(found)[1] if found else None",
+     "return min(found)[1] if found else None"),
+    ("phases-no-host-path", PHASES, "        return p.name\n", "        return str(p)\n"),
+    ("phases-drawn", PAGE,
+     '"phases": plan_phases.section(*phases, axis=time_axis(plan)) if phases else "",',
+     '"phases": "",'),
+    ("phases-shared-axis", PAGE, "plan_phases.section(*phases, axis=time_axis(plan))",
+     "plan_phases.section(*phases, axis=None)"),
+    ("phases-keep-groups-page", PAGE, '        "flow": flow_section(plan, rows, flow),',
+     '        "flow": "" if phases else flow_section(plan, rows, flow),'),
+    ("phases-cut-off-axis", PHASES, "if b < t0 or a > t_end:", "if False:"),
+    ("phases-cut-since", PHASES, "f'{_when(r[\"started\"])}</text>' if a < t0 else \"\")",
+     "f'{_when(r[\"started\"])}</text>' if False else \"\")"),
+    ("phases-forecast-past-axis", PHASES, "            if a > t_end:\n", "            if False:\n"),
+    ("phases-now-on-axis", PHASES, "    if t0 <= now <= t_end:\n", "    if True:\n"),
+    ("phases-discovered", PAGE, "pf = a.phases or plan_phases.discover(a.repo)", "pf = a.phases"),
 ]
 
 
@@ -143,7 +195,7 @@ def fail_name(line: str) -> str:
 
 def main(argv: list[str]) -> int:
     want = set(argv)
-    mutant_guard.arm([PAGE, PLAN, STATE])
+    mutant_guard.arm([PAGE, PLAN, STATE, PHASES])
     survived = 0
     for name, rel, old, new in MUTANTS:
         if want and name not in want:

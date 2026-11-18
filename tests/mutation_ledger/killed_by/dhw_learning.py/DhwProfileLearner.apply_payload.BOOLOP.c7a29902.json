@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.apply_payload BOOLOP c7a29902",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        if isinstance(hourly, list) and len(hourly) == 24:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if isinstance(hourly, list) or len(hourly) == 24:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

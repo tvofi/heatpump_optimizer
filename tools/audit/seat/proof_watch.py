@@ -460,6 +460,7 @@ def self_test() -> int:
     APPR = {"login": "hpo-approver[bot]", "type": "Bot", "id": 330097732}
 
     W = Path(tempfile.mkdtemp(prefix="proof-watch-selftest."))
+    os.environ["HPO_STATE_DIR"] = str(W / "state")  # the fake ruleset's ETag files stay in the self-test's dir
     fails, n = 0, 0
 
     def st(got, want, why):
@@ -528,10 +529,9 @@ def self_test() -> int:
                 return self.merge_rc, self.merge_out
             if "headRefOid" in argv:
                 return 0, self.pr_head + "\n"
-            if any(a == f"repos/{REPO}/rulesets" for a in argv):
-                return 0, "23698884\n"
-            if any(a.startswith(f"repos/{REPO}/rulesets/") for a in argv):
-                return 0, self.required + "\n"
+            if any(a.startswith(f"repos/{REPO}/rulesets") for a in argv):
+                import gh_read  # merge_train's own reader parses this wire form (ETag-conditional)
+                return gh_read.fake_ruleset(argv, "23698884", self.required)
             if any("actions/workflows/ci.yml/runs" in a for a in argv):
                 return 0, "".join(json.dumps(r) + "\n" for r in self.ci_runs)
             if any(a.startswith("repos/") and "/check-runs" in a for a in argv):

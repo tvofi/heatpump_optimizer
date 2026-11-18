@@ -62,9 +62,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.0.1
+# claims-for: 10.1.0
 #
-# v10.0.1: Compressor starts counted from running-signal edges; COP learner draw floor. The stamp empties the list; the
+# v10.1.0: learned pump minimum, clamped start price, self-setting pump test, valve reference, generic heat-curve text. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
@@ -772,3 +772,26 @@
 # baseline_cost is a judged key a may-drift entry cannot excuse, so the six
 # with one are suspended above for this release (the wood_coil precedent).
 # Direction per fixture, branch vs base:
+# R11-OUTSIDE-HONEST-STARTS-RUNS (pull request 3529, Bankaifan): a start is
+# priced as one start (`runs.start_count`) in place of the swing of the
+# combined draw, and a solve that prices a start, or whose install cannot
+# duty-cycle, ships the lowest-scoring of its relaxed plan's committed runs.
+# Measured with tests/env_drift.py --all against the merge base in one
+# environment: exactly the two plan fixtures that set a cycling cost move, and
+# every other fixture is byte-identical, which is the null. The third fixture
+# with a cycling cost, coord_all_features, is byte-identical too and is not
+# claimed: a coord capture holds no plan. Both entries were may-drift, which a
+# claim cannot stand beside, so they are suspended above for this release.
+# Direction per fixture, base -> head, one box; the space plan's steps between
+# the running rule and the 1.0 kW floor, starts by the edge count
+# (`runs.edge_count`), energy, predicted_cost, lowest room. Hot-water levels
+# under the floor are the planner's and are not committed here.
+# R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): the model status sensor
+# publishes which electrical minimum the plan used, so every coord capture gains,
+# under `sensors.model_status.extra_state_attributes`, `pump_min_power`,
+# `pump_min_power_reason` and `pump_min_power_source`. Those three leaves are
+# the whole diff in each fixture, each "present on one side only" and ADDED at
+# this head (the direction); no other leaf moves (tests/env_drift.py --all
+# against the merge base, one environment). Claimed rather than re-recorded, as
+# R10-COP-GATE-D's keys were: the committed files were patched in those three
+# paths alone, each null because a coord fixture holds no plan.

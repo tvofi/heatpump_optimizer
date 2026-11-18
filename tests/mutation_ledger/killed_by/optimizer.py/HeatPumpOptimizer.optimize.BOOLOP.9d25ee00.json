@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize BOOLOP 9d25ee00",
+  "killed_by": "tests/manual_plan.py",
+  "old": "                if not rel_s and not rel_d:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if not rel_s or not rel_d:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=9."
+}

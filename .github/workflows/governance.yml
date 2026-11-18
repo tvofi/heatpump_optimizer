@@ -497,12 +497,30 @@ jobs:
         if: steps.scope.outputs.bottleneck-alert == 'true'
         run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
 
-      # The convergence scorecard's ten report-only lines: each rule held to its
+      # The convergence scorecard's report-only lines: each rule held to its
       # null control over planted inputs, offline, and one mutant per predicate.
-      - name: Show the scorecard holding each of its ten lines to its null control
+      - name: Show the scorecard holding each of its lines to its null control
         id: scorecard
         if: steps.scope.outputs.scorecard == 'true'
         run: python3 -I tools/audit/seat/scorecard.py --self-test
+
+      # The stable tools ref (R11-PRE-TOOLCHAIN-PIN): behind's count over the
+      # seat paths and promote's refusals (absent, off main, not a fast-forward,
+      # machinery not green, a push that moved nothing), each beside the case
+      # that moves the ref, over a throwaway origin; GitHub is a fake.
+      - name: Show the stable tools ref promoting only a machinery-green commit of main, fast-forward
+        id: toolchain
+        if: steps.scope.outputs.toolchain == 'true'
+        run: python3 -I tools/audit/seat/toolchain.py --self-test
+
+      # Decision 0018's flow reads per round and week (R11-PRE-ROUND-METRICS):
+      # lead_time from the roster-entry commit, product_green with the gate's
+      # check count, restore, runner seconds and tokens; an empty input reads
+      # unread, never a value, and one mutant per predicate is killed, offline.
+      - name: Show the round metrics reading unread on an empty input and each read on a planted one
+        id: round-metrics
+        if: steps.scope.outputs.round-metrics == 'true'
+        run: python3 -I tools/audit/seat/round_metrics.py --self-test
 
       # Decision 0018 section 5's two held-out checks (R11-PRE-ROUND-METRICS):
       # planted-defect recall's refusals and its count after the judge, and the
@@ -517,6 +535,35 @@ jobs:
         id: finder-overlap
         if: steps.scope.outputs.finder-overlap == 'true'
         run: python3 -I tools/audit/seat/finder_overlap.py --self-test
+
+      # The owner-only channel (R11-PRE-SECURITY-PRIVACY): a dimension whose
+      # scopes.json entry carries `owner_only: true` publishes nothing. The
+      # launcher's probe over a fixture view of an account, the corpus mirror
+      # over a stub of gh, git and HTTPS, the candidate detectors, and the
+      # harness that plants a canary on every public path of the pipeline.
+      - name: Show the owner-only launcher's probe refusing an account that can publish
+        id: owner-only-launcher
+        if: steps.scope.outputs.owner-only-launcher == 'true'
+        run: python3 -I tools/audit/seat/owner_only.py --self-test
+      - name: Show the corpus mirror pausing at its cursor under a rate limit and resuming exactly
+        id: corpus-mirror
+        if: steps.scope.outputs.corpus-mirror == 'true'
+        run: python3 -I tools/audit/seat/corpus_mirror.py --self-test
+      - name: Show the leak detectors firing on a planted twin and quiet once it is masked
+        id: leak-detectors
+        if: steps.scope.outputs.leak-detectors == 'true'
+        run: python3 -I tools/audit/leak_detectors.py --self-test
+      - name: Show a planted owner-only canary reaching no public path of the audit pipeline
+        id: owner-only-channel
+        if: steps.scope.outputs.owner-only-channel == 'true'
+        run: python3 -I dev/audit/harnesses/owner_only_channel.py
+      # The convergence record's loop ledger (R11-PRE-ROUND-METRICS part 2; cards
+      # P7 and L1): escapes by found_by and owning dimension, injected, refix and
+      # the countermeasure loop per round and week; a partial ledger reads unread.
+      - name: Show the loop ledger reading unread on an empty or partial ledger and each read on a recorded one
+        id: loop-ledger
+        if: steps.scope.outputs.loop-ledger == 'true'
+        run: python3 -I tools/audit/seat/loop_ledger.py --self-test
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
@@ -737,6 +784,7 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/seat/bare_array.py --self-test
           python3 -I tools/audit/seat/bare_array.py --check
+          python3 -I tools/audit/seat/shell_hazard.py --self-test
 
       # A push whose ref name or commit message names the host (#2310: 70
       # wip-sync refs carried the account name). The self-test drives the
@@ -840,6 +888,29 @@ jobs:
           python3 -I tools/audit/seat/carry_fold.py --self-test | tee "$RUNNER_TEMP/carry-fold-self-test.txt"
           grep -Eq '^carry_fold self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/carry-fold-self-test.txt"
 
+      # Decision 0018's regret oracle solves, so its self-test needs the
+      # pinned solver stack this job's python3 lacks: an interpreter of its
+      # own (update-environment false, so every other step keeps the job's),
+      # installed from the same hashes as the test gate, both gated by the
+      # step's measured read set like every step here.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: regret-oracle-python
+        if: ${{ !cancelled() && steps.scope.outputs.regret-oracle == 'true' }}
+        with:
+          python-version: "3.14"
+          update-environment: false
+
+      - name: Show the regret oracle reading its planted and null controls
+        id: regret-oracle
+        if: ${{ !cancelled() && steps.scope.outputs.regret-oracle == 'true' }}
+        env:
+          PY: ${{ steps.regret-oracle-python.outputs.python-path }}
+        run: |
+          set -euo pipefail
+          PY=${PY:-python3}  # the set-up interpreter; unset only where a tool replays this step outside CI
+          "$PY" -m pip install --quiet --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+          "$PY" -I tools/audit/regret_oracle.py --self-test
+
       # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
       # wiring check above counts every tools/ file now, so each of these has
       # a step here or it reddens that check; four that the carry's weaker
@@ -854,6 +925,8 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/archscore/gate.py --self-test
           python3 -I tools/audit/check_scopes.py --self-test --repo .
+          python3 -I tools/audit/enumerate.py --self-test
+          python3 -I tools/audit/product_reads.py --self-test
           python3 -I tools/audit/text_ledger.py --self-test
           # merge_throughput.py's `flow` subcommand (R10-FLOW-BOARD) rides
           # this same self-test: the fixture's exact counts, the unchanged
@@ -1444,7 +1517,7 @@ jobs:
           python3 -I tools/audit/seat/sweep_driver.py --self-test | tee "$RUNNER_TEMP/sweep-driver-self-test.txt"
           grep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"
 
-      - name: Show the beat's Gantt and verdict-audit instruments (sweep_gantt.py, verdict_audit.py) refusing their own fixtures
+      - name: Show the beat's Gantt, verdict-audit and owed-watch instruments (sweep_gantt.py, verdict_audit.py, owed_watch.py) refusing their own fixtures
         id: gantt-and-verdict-audit
         if: ${{ !cancelled() && steps.scope.outputs.gantt-and-verdict-audit == 'true' }}
         run: |
@@ -1453,6 +1526,8 @@ jobs:
           grep -Eq '^sweep_gantt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-gantt-self-test.txt"
           python3 -I tools/audit/seat/verdict_audit.py --self-test | tee "$RUNNER_TEMP/verdict-audit-self-test.txt"
           grep -Eq '^verdict_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/verdict-audit-self-test.txt"
+          python3 -I tools/audit/seat/owed_watch.py --self-test | tee "$RUNNER_TEMP/owed-watch-self-test.txt"
+          grep -Eq '^owed_watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/owed-watch-self-test.txt"
 
       - name: Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures
         id: survivor-list

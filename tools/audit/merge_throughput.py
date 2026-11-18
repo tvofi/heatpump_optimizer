@@ -48,6 +48,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import statistics
 import subprocess
 import sys
 from collections import Counter
@@ -180,6 +181,50 @@ def render_report(report: dict, out) -> None:
         print(f"RESULT duration_p50_s={percentile(durs, 0.5):.0f} s", file=out)
         print(f"RESULT duration_max_s={max(durs):.0f} s", file=out)
     print(f"RESULT wait_busy={1 if report['wait_busy'] else 0} bool", file=out)
+
+
+def _bench_self_test(check) -> None:
+    """Carry 0's benchmark rule over planted rows: the start is the later of the
+    verdict and GREEN, the path is the train log's, and the decision rule is
+    the one fixed in BENCH_MIN_PRS / BENCH_MARGIN."""
+    t0 = datetime(2026, 11, 20, 10, tzinfo=timezone.utc)
+
+    def rows(n, path_base, wait_min, wrong=False):
+        return [{"pr": path_base + i, "verdict_at": t0, "merged": t0 + timedelta(minutes=5 + wait_min),
+                 "wrong": wrong and i == 0} for i in range(n)]
+
+    def run(chain_wait, train_wait, n=10, wrong=False, green_after=5):
+        rs = rows(n, 100, chain_wait, wrong) + rows(n, 200, train_wait)
+        green = {r["pr"]: t0 + timedelta(minutes=green_after) for r in rs}
+        return merge_wait_bench(rs, green, {200 + i: "f" * 40 for i in range(n)}, 3)
+    b = run(10, 20)
+    check("carry 0 bench: the wait starts at the later of verdict and GREEN; chains 50% below the train over "
+          "10 each, no wrong merge: a proposal",
+          (b["median"], b["decision"], b["refusals"]),
+          ({"train": 20.0, "chain": 10.0}, "proposal into P750 and P754", {"train": 3, "chain": None}))
+    check("carry 0 bench: GREEN before the verdict leaves the verdict as the start",
+          run(10, 20, green_after=-30)["median"], {"train": 25.0, "chain": 15.0})
+    check("carry 0 bench null: chains only 15% below the train are retired", run(17, 20)["decision"],
+          "retire the chains")
+    check("carry 0 bench: chains 25% below the train clear the 20% margin; exactly 20% below does not "
+          "(the rule is MORE than BENCH_MARGIN below)", (run(15, 20)["decision"], run(16, 20)["decision"]),
+          ("proposal into P750 and P754", "retire the chains"))
+    check("carry 0 bench null: nine pull requests each are retired, whatever the margin",
+          run(1, 20, n=9)["decision"], "retire the chains")
+    check("carry 0 bench: one wrong chain merge retires the chains and is counted",
+          (run(1, 20, wrong=True)["decision"], run(1, 20, wrong=True)["wrong"]),
+          ("retire the chains", {"train": 0, "chain": 1}))
+    rs = rows(2, 100, 10)
+    b = merge_wait_bench(rs, {100: t0}, {}, None)
+    check("carry 0 bench: a merge with no GREEN instant is unmatched, never a zero wait",
+          (b["waits"], b["unmatched"]), ({"train": [], "chain": [15.0]}, 1))
+    log = f"#7 MERGED {'a' * 40}\n#8 OPEN None\nx #9 MERGED {'b' * 40}\n"
+    check("carry 0 bench: the train log's merged lines name the train's landings (an OPEN line, or one not "
+          "at a line start, is none)", train_merged(log), {7: "a" * 40})
+    src = (Path(__file__).resolve().parent / "seat" / "merge_train.py").read_text(encoding="utf-8")
+    check("carry 0 bench: TRAIN_MERGED_RE reads the line `land` writes (its log call and its state read are "
+          "in merge_train.py)", ('self.log(f"#{pr} {st}")' in src, '"\\\\(.state) \\\\(.mergeCommit.oid)"' in src),
+          (True, True))
 
 
 def self_test() -> int:
@@ -336,6 +381,7 @@ def self_test() -> int:
 
     failures += flow_self_test()
     failures += bottleneck_self_test()
+    _bench_self_test(check)
 
     print(f"{'FAILED' if failures else 'ok'}: merge_throughput.py self-test")
     return 1 if failures else 0
@@ -556,6 +602,13 @@ def flow_self_test() -> int:
         mw = flow_merge_wait(ctx, a, b)[0]
         check("merge-wait: a verdict on another head is read, not at head",
               [(r["pr"], r["hours"], r["at_head"]) for r in mw[0]], [(1, 0.08, False)])
+        check("carry 0: a merge whose newest verdict before it is the merge verdict is not a wrong merge, "
+              "and the row carries that verdict's instant",
+              [(r["wrong"], r["verdict_at"] == r["merged"] - timedelta(minutes=5)) for r in mw[0]], [(False, True)])
+        verdict(1, "blocked", "e" * 40, T(1, 58))
+        mw = flow_merge_wait(ctx, a, b)[0]
+        check("carry 0: a merge after a newer blocked verdict is a WRONG merge (its wait still reads the "
+              "merge verdict)", [(r["pr"], r["hours"], r["wrong"]) for r in mw[0]], [(1, 0.08, True)])
 
         # PERTURBATION 1 -- the record key is `record_prefix`, not a name.
         ctx_fix = replace(ctx, record_prefix="fix/")
@@ -1182,19 +1235,82 @@ def flow_merge_wait(ctx: FlowCtx, a: datetime, b: datetime):
         return _na("no review/verdict bus refs")
     by_pr: dict = {}
     for v in verdicts:
-        if v[2] == "merge":
-            by_pr.setdefault(v[0], []).append(v)
+        by_pr.setdefault(v[0], []).append(v)
     rows, unmatched = [], 0
     for move in moves[0]["moves"]:
-        before = [v for v in by_pr.get(move["pr"], []) if v[1] <= move["t"]]
+        seen = [v for v in by_pr.get(move["pr"], []) if v[1] <= move["t"]]
+        before = [v for v in seen if v[2] == "merge"]
         if not before:
             unmatched += 1
             continue
         last = before[-1]
         rows.append({"pr": move["pr"], "kind": move["kind"],
                      "hours": round((move["t"] - last[1]).total_seconds() / 3600, 2),
-                     "at_head": last[4] == move["head"], "merged": move["t"]})
+                     "at_head": last[4] == move["head"], "merged": move["t"],
+                     # carry 0: the wait's verdict start, and a WRONG merge -- the newest
+                     # verdict of any kind before the merge is not a merge verdict
+                     "verdict_at": last[1], "wrong": seen[-1][2] != "merge"})
     return _ok((rows, unmatched))
+
+
+#: The landing-path benchmark's rule (R11-PRE-PARALLEL-PIPELINE carry 0, owner
+#: ruling C9), fixed before any data: the chains' median merge wait more than
+#: BENCH_MARGIN below the train's, over at least BENCH_MIN_PRS pull requests
+#: each, with no wrong merge, makes their posting-at-GREEN behaviour a proposal
+#: into P750 and P754; otherwise the chains are retired.
+BENCH_MIN_PRS = 10
+BENCH_MARGIN = 0.20
+#: `land`'s merged line (`self.log(f"#{pr} {st}")`, st from `"\(.state) \(.mergeCommit.oid)"`).
+TRAIN_MERGED_RE = re.compile(r"^#(\d+) MERGED ([0-9a-f]{40})\b", re.M)
+
+
+def train_merged(text: str) -> "dict[int, str]":
+    """{pr: merge commit} for every merge a train log records."""
+    return {int(m.group(1)): m.group(2) for m in TRAIN_MERGED_RE.finditer(text)}
+
+
+def merge_wait_bench(rows: list, green_at: dict, by_train: dict, train_skips: int | None) -> dict:
+    """Carry 0's benchmark over `flow_merge_wait`'s rows: per pull request, the
+    minutes from the later of its merge verdict (`verdict_at`; a verdict the
+    train carried counts) and `merge_train.py classify` reading GREEN
+    (`green_at[pr]`, recorded by the benchmark's seat -- this script reads no
+    network) to its merge commit's committer time. The landing path is `train`
+    when the train log records that merge (`by_train`), else `chain` (the
+    session-local landers, never tracked: C9). A row with no GREEN instant is
+    unmatched, never a zero wait. The train's rows in the same window are the
+    chains' null control."""
+    waits: dict = {"train": [], "chain": []}
+    wrong = {"train": 0, "chain": 0}
+    unmatched = 0
+    for r in rows:
+        path = "train" if by_train.get(r["pr"]) else "chain"
+        wrong[path] += bool(r.get("wrong"))
+        g = green_at.get(r["pr"])
+        if g is None:
+            unmatched += 1
+            continue
+        waits[path].append(round((r["merged"] - max(r["verdict_at"], g)).total_seconds() / 60, 1))
+    med = {p: statistics.median(v) if v else None for p, v in waits.items()}
+    beats = (all(len(v) >= BENCH_MIN_PRS for v in waits.values()) and not any(wrong.values())
+             and med["chain"] < (1 - BENCH_MARGIN) * med["train"])
+    return {"waits": waits, "median": med, "wrong": wrong, "unmatched": unmatched,
+            "refusals": {"train": train_skips, "chain": None},
+            "decision": "proposal into P750 and P754" if beats else "retire the chains"}
+
+
+def render_bench(b: dict) -> str:
+    """The benchmark's lines: per path its count, median minutes, wrong merges and refusals."""
+    out = []
+    for p in ("chain", "train"):
+        med = b["median"][p]
+        ref = b["refusals"][p]
+        out.append(f"bench {p}: n={len(b['waits'][p])} median_merge_wait_min="
+                   f"{'n/a' if med is None else med} wrong={b['wrong'][p]} "
+                   f"refusals={'n/a (not logged in the tree)' if ref is None else ref}")
+    out.append(f"bench unmatched (no GREEN instant): {b['unmatched']}")
+    out.append(f"bench decision (>= {BENCH_MIN_PRS} each, chains > {int(BENCH_MARGIN * 100)}% below, "
+               f"no wrong merge): {b['decision']}")
+    return "\n".join(out) + "\n"
 
 
 #: The train log's lines, as `merge_train.py` writes them (`Train.batch`'s
@@ -1494,6 +1610,11 @@ def flow_main(argv: list[str]) -> int:
                     help="fetch the review/verdict/probe refs and tags first")
     ap.add_argument("--out")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--bench-green", metavar="JSON",
+                    help="carry 0: {pr: ISO instant classify read GREEN}; prints the merge-wait "
+                         "benchmark over --bench-since..until instead of the board")
+    ap.add_argument("--bench-since", metavar="ISO")
+    ap.add_argument("--train-log", metavar="FILE")
     a = ap.parse_args(argv)
     if a.self_test:
         return self_test()
@@ -1550,6 +1671,20 @@ def flow_main(argv: list[str]) -> int:
     if until is not None and until.tzinfo is None:
         until = until.replace(tzinfo=timezone.utc)
 
+    if a.bench_green:
+        if until is None or not a.bench_since or not a.train_log:
+            print("flow --bench-green needs --bench-since, --train-log and a window end", file=sys.stderr)
+            return 2
+        since = parse_iso(a.bench_since)
+        mw = flow_merge_wait(ctx, since if since.tzinfo else since.replace(tzinfo=timezone.utc), until)
+        if mw[0] is None:
+            print(f"flow: merge wait UNAVAILABLE: {mw[1]}", file=sys.stderr)
+            return 1
+        log = Path(a.train_log).read_text(encoding="utf-8")
+        green = {int(k): parse_iso(v) for k, v in json.loads(Path(a.bench_green).read_text()).items()}
+        skips = sum(len(b["skips"]) for b in train_batches(log))
+        sys.stdout.write(render_bench(merge_wait_bench(mw[0][0], green, train_merged(log), skips)))
+        return 0
     text = render_board(board(ctx, until))
     if a.out:
         Path(a.out).write_text(text, encoding="utf-8")

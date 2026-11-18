@@ -99,6 +99,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
 import proof_watch  # noqa: E402  (the one Python reader of the verdict grammar)
 import ref_privacy  # noqa: E402
+import topic_grammar  # noqa: E402  (the handoff topics a PR branch carries)
 
 class Unavailable(Exception):
     """The packet's INPUTS are absent in this seat, not its facts bad.
@@ -324,11 +325,9 @@ def handoff_hot(touched: set[str], open_prs: list[dict], boarded: set[int], topi
     return hot_file_refusals(touched, open_prs, boarded, this_pr) + ([note] if note else [])
 
 
-def handoff_topics(branch: str) -> list[str]:
-    """The handoff topics a pull request's branch can carry: `fix/<t>` or
-    `fix/<t>-pr`, `open_pr.sh`'s two spellings; none for any other shape."""
-    t = branch[len("fix/"):] if branch.startswith("fix/") else ""
-    return [x for x in ([t, t[:-len("-pr")]] if t.endswith("-pr") else [t]) if x]
+# The handoff topics a pull request's branch can carry: the topic grammar's, which
+# cloud_relay.sh's handoff arm reads too (one owner, so the two cannot disagree on #3358's shape).
+handoff_topics = topic_grammar.handoff_topics
 
 
 def head_note_repair(head: str, branch: str | None) -> str:

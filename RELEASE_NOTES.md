@@ -1,3 +1,93 @@
+## v10.1.0
+
+**Minor stamp: 18 merges since v10.0.3 (`git log --first-parent --merges --format=%h v10.0.3..HEAD | wc -l`): the plan learns the pump's real minimum power from the meter and publishes it; an install that cannot run below its minimum power prices a compressor start by default; the COP learner tests whether a pump that sets its own power follows the plan before learning from it; the savings reference behind a single-zone mixing valve reaches its setpoint; heat-curve control is described generically; two service fields are corrected; the rest is tooling and records.**
+
+### Action needed
+
+Only if an automation or script calls `set_thermal_parameters` with `dhw_legionella_temperature` above 70 °C: that call is now refused, so set 55 to 70 °C (#3700, below). Nothing else asks anything of you: no store needs a migration, no option is added, no entity id changes and no option default changes. Three changes you may notice without acting: on an install that cannot run below its minimum power and leaves "Cost of one compressor start" at 0, the plan now prices each start at 0.1 (#3697); on a single-zone house behind a throttling mixing valve, the month open at the upgrade shows "old basis" on the Savings tab (#3685); two sensors show new display names, with their entity ids unchanged (#3663).
+
+### #3670 The plan learns the pump's minimum power from the meter (R11-OUTSIDE-HONEST-METERED-FLOOR)
+
+Where the plan keeps the pump within its power range, the minimum it plans with is now learned from the meter. Once 48 runs asked at the minimum in force are metered, the low end of their draw becomes the learned minimum where it is more than 15 % above **Heat pump min power**; it rises or falls when later runs at it draw more than 15 % above or below it, never goes below **Heat pump min power** nor above the maximum in use, and does not lapse with age. Changing **Heat pump min power** or **Heat pump max power** clears it. The **Learning Model Status** sensor publishes the minimum in use, where it came from and why (`pump_min_power`, `pump_min_power_source`, `pump_min_power_reason`). Built on outside pull request 3529 by Bankaifan, with thanks for the finding and its measurements.
+
+### #3697 A clamped install that prices no start plans each start at 0.1 (R11-OUTSIDE-HONEST-STARTS-RUNS-P3)
+
+On an install that cannot run below its minimum power, "Cost of one compressor start" at 0 now plans each start at 0.1, so committing the plan to whole runs (#3602, in v10.0.3) no longer plans more starts than the plan it replaced. Any value above 0 is used as set; installs that can run below their minimum power are unchanged. From Bankaifan's outside pull request 3529; thanks.
+
+### #3662 The COP learner tests a pump that sets its own power before learning from it (R11-OUTSIDE-SELF-SETTING-PUMP)
+
+A pump that chooses its own power, whatever the plan asks, could teach the COP learner a false efficiency. Until the learner has decided whether the metered draw follows the plan's ask, it now holds new intervals instead of learning from them, and tests the question by moving the plan's COP scale a small step (about 7 %) up and down around its usual value, about a day per test. If the draw follows, the held intervals are learned; if not, they are dropped and the scale returns to its usual value. A restart starts the test over.
+
+### #3685 The savings reference behind a single-zone mixing valve reaches its setpoint (R11-VALVE-REFERENCE)
+
+On a single-zone house behind a throttling mixing valve, the valve curve the savings reference uses held the room 2 to 5 K short of its target, because it left out the floor slab between the water and the room. The curve now reaches the target, so the booked reference changes on these installs and its basis marker moves from 3 to 4. A month first booked before this update that is still open shows "old basis" on the Savings tab: it keeps its baseline and paid columns but states no saving, and next month states its saving again. Two-zone houses and installs without a throttling valve are unchanged.
+
+### #3663 Heat-curve control is described generically (R11-OWNER-GENERIC-CONTROL-TEXT)
+
+The settings, services, card, README and docs now present heat-curve control in its three ways (over MQTT, through an offset number entity, or through a stored curve parameter), with the Danfoss ECL110 as an example rather than the subject; every other vendor name in the user-facing text is marked as an example or a real restriction. The two heat-curve sensors are now named "Heat-Curve Displace" and "Heat-Curve Effective Displace"; their entity ids do not change. `docs/ecl110.md` is now `docs/heat-curve.md`, and the old page and link still lead there. The price source is named as Tibber or a price sensor, and English text says "more expensive" instead of "dearer" (#3643, raised by rasenschachmatt; thanks). No option, entity id or behaviour changes.
+
+### #3700 Two service fields corrected (R11-SERVICE-SCHEMA-P2)
+
+`set_thermal_parameters` now refuses a `dhw_legionella_temperature` above 70 °C, the hard maximum no cycle ever wrote above; the service form and the settings already stopped at 70, and a 71 to 75 °C value stored by an earlier release is still capped at 70 as before. Sending `silent_mode_power_fraction: 1.0` to `apply_schedule`, `simulate_plan` or `set_thermal_parameters` now sets 1.0 and replaces a lower stored fraction; before, it kept the stored one. Leaving the field out still keeps it. The card's quiet-window save sends the slider's value, so an install that stored a fraction below 1.0 and then removed every quiet window stores the 1.0 the slider shows on its next save.
+
+### Development process
+
+Developer tooling, CI, audit machinery, tests and records only, no change to the integration: #3667 (rooms, part 1: one added check for a Fahrenheit room sensor; its production code shipped in #3678), #3688 (machinery limiter, part 2), #3705 (toolchain pin, part 3), #3679 (owner-only security and privacy audit dimension), #3703 (architecture objective), #3676 (plan render), #3701 (handoff bookkeeping, part 2), #3684 (self-test table drift root cause), #3707 (self-test red on main, re-record), #3704 (product reads, part 2), #3712 (delivery rows, autofix), #3710 (delivery rows, autofix).
+
+## v10.0.3
+
+**Patch stamp: 45 merges since v10.0.2 (`git log --first-parent --merges --format=%h v10.0.2..HEAD | wc -l`): an optional list of room thermometers, with an opt-in toggle that lets a cold room raise the planned minimum; a compressor start is priced as one start, and a solve that prices starts ships runs the pump can run; the `simulate_plan` service holds its number fields to the ranges their settings accept; the COP learner reads whether the metered draw follows the plan across the whole range of asks; the rest is tooling and records.**
+
+### Action needed
+
+Only if an automation or script calls `simulate_plan` with a number outside the range of the setting it stands in for (for example `min_temp` outside 14 to 25 °C, or `comfort_weight` outside 0.1 to 20): that call is now refused, so move the value inside the range the service form shows (#3677, below). Nothing else asks anything of you: no store needs a migration, no entity is renamed, and no default changes. The room thermometers page is optional and its room lift is off by default.
+
+### #3678 Room thermometers, and an opt-in room lift (R11-OUTSIDE-ROOMS-P2, issue #3616)
+
+A new options page, **Room thermometers** under Advanced settings, takes up to 32 room thermostats (climate entities) or temperature sensors, one per room. With a list set, two sensors are added: Room Average Temperature and Room Temperature Spread, the spread between the coldest and the warmest room. A room that is unavailable, stale or out of range is left out and never raises an input problem. With no list set, nothing changes.
+
+A toggle on the same page, "Let a cold room raise the planned minimum", is off by default. When on, a room thermostat in heat or auto mode that reads further below its own target than the house reads below its comfort target raises the plan's minimum temperature by at most 1 °C, never above the comfort target, rising at most 0.25 °C per hour. A room that is off or cooling is ignored. The lift yields to Economy mode, an open window, away, a holiday, a manually planned space heating, and the two-zone model. Room Temperature Spread carries the lift, the room that set it and the condition that held it at zero. The what-if panel uses the lift its baseline plan was solved with. Issue #3616 stays open for its third phase.
+
+### #3602 A compressor start is priced as one start (R11-OUTSIDE-HONEST-STARTS-RUNS)
+
+Where "Cost of one compressor start" is above zero, or the install cannot run the compressor below its minimum power, the solve now prices each start as one start rather than through a term on the change in power between steps, and ships a plan of runs the pump can run: every step at zero or between the minimum and maximum power. It solves the plan without the start price first, commits it to runs, re-solves the two best candidates inside their own runs and ships the cheapest. A switch between hot water and heating is weighed in starts. The published start count is the number of off-to-on edges and, on every install, counts a compressor already running at the start of the plan as no new start. On an install that cannot run below its minimum power and prices no start, a plan may hold more starts than before, at a lower cost. Built on outside pull request #3529 by Bankaifan, with thanks for the finding, the start count and the commit program. #3693 adds the checks and the measuring harness for it; no production line changes there.
+
+### #3659 The COP learner reads whether the draw follows the ask across the range of asks (R10-DRAW-MAP-EVIDENCE, issue #3106)
+
+The COP learner now treats the metered draw as following the plan's ask only where the draw rises with the ask and the ratio of drawn to asked power at the high and the low end of the asks agree within the factor that already marks one sample as a disagreement. Where the draw does not follow, a departure from the planned power is not learned as an efficiency change, and the diagnostics download shows `draw_follows_ask` as false. No plan or cost figure changes at a fixed learned state.
+
+### #3677 `simulate_plan` holds its fields to the settings' ranges; dated service examples removed (R11-SERVICE-SCHEMA)
+
+Each number field of `simulate_plan` now accepts the range of the path that saves that setting: `target_temp` and `comfort_temp_day` 5 to 30 °C, `dhw_setpoint` 30 to 75 °C and `dhw_min_temperature` 35 to 55 °C (as `apply_schedule`), and `min_temp` 14 to 25 °C, `max_temp` 18 to 28 °C, `comfort_weight` 0.1 to 20 and `comfort_temp_night` 15 to 24 °C (as the options). The five service-form selectors that showed other ranges now match. The examples of `apply_manual_plan` (its slots and expiry) and of `set_away` (its return time) were fixed dates now in the past, which the service refuses or acts on at once, and are removed; the field descriptions state the format.
+
+### Documentation
+
+#3674: the dashboard-card page says the two-plan figure for the comfort weight or the lowest allowed temperature moves with the hour asked, with or without a tank, and can read as a saving at one hour and a cost at another. #3630: ROADMAP.md, linked from the README, lists where the integration is heading. #3628: issue templates for bug reports, feature requests, feature designs, hardware support and documentation, and a code of conduct.
+
+### Development process
+
+Developer tooling, CI, audit machinery and records only, no change to the integration: #3682 (cheaper GitHub reads, part 3), #3690 (evaluation, part 3), #3698 (self-test red on main, product reads), #3675 (parallel pipeline), #3639 (macOS self-test lane in the pre-PR check), #3691 (advisor measurements, part 2), #3689 (acknowledgement completion, part 2), #3694 (briefs census, part 2), #3633 (round check gate, part 2), #3654 (toolchain pin, part 2), #3665 (product reads), #3658 (round metrics, part 3), #3668 (nudge retirement), #3686 (evaluation, part 2), #3680 (nightly month-boundary check), #3683 (builders that read no tree), #3672 (new audit dimensions, part 2), #3669 (evaluation, part 1), #3664 (handoff bookkeeping), #3671 (self-test scope re-record), #3657 (round metrics, part 2), #3645 (toolchain pin), #3641 (owner criteria), #3661 (tick seat window), #3647 (finder contract), #3635 (acknowledgement completion), #3651 (standing scripts), #3625 (briefs census), #3620 (round check gate), #3627 (machinery limiter), #3648 (relay rebuild), #3653 (outside contributor cycle, part 3), #3644 (round metrics), #3702 (delivery rows, autofix), #3692 (delivery rows, autofix), #3681 (delivery rows, autofix), #3660 (delivery rows, autofix).
+
+## v10.0.2
+
+**Patch stamp: 12 merges since v10.0.1 (`git log --first-parent --merges --format=%h v10.0.1..HEAD | wc -l`): the card's "Apply this plan" now works when the published plan runs past the manual-plan window, and a floor-return reading far above the room no longer seeds the slab estimate; the rest is tooling and records.**
+
+### Action needed
+
+None: no step is asked of you. No option is added, no default changed, no entity renamed, and no store needs a migration. If a "floor return implausible" repair appears after the upgrade, it names the sensor to check (#3640, below).
+
+### #3649 "Apply this plan" applies the plan only up to the manual-plan window (R11-OUTSIDE-APPLY-PLAN-CEILING, issue #3636)
+
+"Apply this plan" failed whenever the published plan had a run starting 20 hours or more from now, because the card sent runs that start past the manual-plan window and the service refuses any such slot. The card now drops every run starting at or after now plus the published manual-plan window, less one plan step for clock skew between the browser and the server. A run that straddles the window is still sent whole, and a zoomed-in view does not change what is applied. Reported, with the suggested fix, by rasenschachmatt in issue #3636; thanks.
+
+### #3640 A floor-return reading far above the room no longer seeds the slab estimate (R11-OUTSIDE-SLAB-SEED-GUARD, issue #3616)
+
+A heat-pump return reading wired to the floor-return field, far above any floor loop, was believed as stored heat and the plan held none. A reading more than 12 K above the room, or one taken during a hot-water run or a defrost, is now refused and the slab follows the model's own estimate, as on an install with no floor-return sensor. A new repair, `floor_return_implausible`, names the sensor, its reading, the room and the bound, and clears on the next plausible cycle. The floor-return option text (en, de, sv) and the README say which sensor belongs there. Issue #3616's multi-zone request stays open.
+
+### Development process
+
+Developer tooling, CI, audit machinery and records only, no change to the integration: #3652 (self-test scope re-record, part 4), #3629 (self-test red on main), #3622 (plan render), #3642 (brief texts), #3638 (RCA latch clauses), #3646 (new audit dimensions), #3626 (rulings file), #3566 (nudge retirement), #3650 (delivery rows, autofix), #3634 (delivery rows, autofix).
+
 ## v10.0.1
 
 **Patch stamp: 20 merges since v10.0.0 (`git log --first-parent --merges --format=%h v10.0.0..HEAD | wc -l`): compressor starts are counted from the running signal's own on and off edges, so a short cycle between two refreshes is no longer missed, and the COP learner's power floor follows what the pump is metered drawing; the rest is tooling and records.**

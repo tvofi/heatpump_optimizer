@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "10.0.1";
+const CARD_VERSION = "10.1.0";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -483,10 +483,10 @@ const STRINGS = {
     "why.sub_other": "the other channel has the capacity",
     "why.sub_fuse": "the fuse limit caps heating",
     "why.sub_solar": "the plan is waiting for solar",
-    "why.sub_dearer": "this hour is dearer than the hours the plan uses",
+    "why.sub_dearer": "this hour is pricier than the hours the plan uses",
     "why.sub_coasting": "the temperature is above the floor, so the plan is coasting",
     "why.price_rank":
-      "{price} {unit} is among the dearest {pct} % of the plan " +
+      "{price} {unit} is among the most expensive {pct} % of the plan " +
       "(cheapest {min})",
     "why.coast_space": "the house is coasting on heat stored {from}\u2013{to}",
     "why.coast_dhw": "the tank was heated {from}\u2013{to}",
@@ -629,7 +629,7 @@ const STRINGS = {
     // cost delta row
     "stats.no_plan_to_compare": "No plan data to compare against yet.",
     "stats.cheaper": "cheaper",
-    "stats.dearer": "dearer",
+    "stats.dearer": "pricier",
     "stats.the_same": "the same",
     "stats.delta_detail":
       "{verdict} than the saved plan ({planned} → {edited}&nbsp;{currency}, " +
@@ -919,7 +919,7 @@ const STRINGS = {
     "whynow.weight": "{sign}{w}%",
     "whynow.driver_price_rank": "Price rank",
     "whynow.explain_price_rank":
-      "How cheap this slot is against the rest of the plan: the cheapest slot pushes fully toward running, the dearest toward idle.",
+      "How cheap this slot is against the rest of the plan: the cheapest slot pushes fully toward running, the most expensive toward idle.",
     "whynow.driver_comfort_floor": "Comfort floor",
     "whynow.explain_comfort_floor":
       "How far the room is from the middle of its comfort band, above the comfort floor: below the middle pushes toward running, above it toward idle.",
@@ -3062,6 +3062,13 @@ const AUTOPAN_INTERVAL_MS = 90;
 // used before the first plan has been received. A copy that could drift from the
 // service's expiry default is exactly the bug the published attribute prevents.
 const MANUAL_PLAN_WINDOW_FALLBACK_H = 20;
+
+// How far ahead of the server's clock the browser's may run before "Apply this
+// plan" sends a slot the service refuses: the card trims at its own `now` plus
+// the window, the service at the server's. One plan step, because runs start
+// on step boundaries: holding back a run that starts within the last step costs
+// at most one step's pin before the expiry, and tolerates a clock a step fast.
+const APPLY_CLOCK_SKEW_MS = PLAN_STEP_MS;
 
 // Range of the hot water minimum slider. The floor matches the options flow so
 // the two editors of the same setting agree. There is deliberately no margin
@@ -11570,13 +11577,17 @@ class ManualPlan {
 
   /** Pin the current arrangement for the manual-plan window.
    *
-   * Only the editable part of the horizon is sent: the past cannot be
-   * rescheduled, and pinning a slot that has already happened would be
-   * meaningless.
+   * Only the part of the horizon the window covers is sent: the past cannot
+   * be rescheduled, and `build_override` refuses any slot starting beyond now
+   * plus the window, so one run past it would fail the whole apply (#3636).
+   * The ceiling is the window alone (`applyEnd`), not `editCeiling`, which
+   * also carries the zoomed visible end; a run straddling it is sent whole,
+   * since the backend frees every step past the expiry itself.
    */
   apply() {
     if (!this.host.hass || !this.host.hass.callService) return;
-    const [lo] = this.bounds();
+    const lo = this.editFloor();
+    const hi = this.ceilingParts().applyEnd - APPLY_CLOCK_SKEW_MS;
     const runs = this.draft();
     const payload = {};
     for (const spec of this.laneSpecs()) {
@@ -11587,7 +11598,7 @@ class ManualPlan {
       // off for the rest of the day.
       if (!this.host.plan.forecastOf(spec.channel).length) continue;
       payload[`${spec.channel}_slots`] = (runs[spec.channel] || [])
-        .filter((r) => r.end > lo)
+        .filter((r) => r.end > lo && r.start < hi)
         .map((r) => ({
           start: new Date(Math.max(r.start, lo)).toISOString(),
           end: new Date(r.end).toISOString(),

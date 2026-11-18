@@ -205,6 +205,7 @@ from .inputs import (
     age_of,
     normalize_price_per_kwh,
     parse_bool,
+    read_rooms,
     read_start_hysteresis,
     price_per_kwh,
     stale_summary,
@@ -261,6 +262,7 @@ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
+from . import rooms, slab_seed
 from . import price_tiles
 from . import whatif
 from .pump_mode import ModeCapability
@@ -353,6 +355,7 @@ from .thermal_model import (
     learner_room_unread,
     mold_safe_room_floor,
     learner_unmetered,
+    levels_clamped,
     immersion_level_kw,
     immersion_over,
     plan_step_runs,
@@ -557,6 +560,12 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float | 
 #: One forecast step, as the clock ``drift.utc_step_starts`` walks; its
 #: width is the plan's (``plan_step.PLAN_STEP_MINUTES``).
 FORECAST_STEP = timedelta(minutes=PLAN_STEP_MINUTES)
+
+
+def _humidity_with_data(series: np.ndarray) -> np.ndarray | None:
+    """#21: a solve's humidity series only when it carries data, which keeps
+    the solve's inner loop free of dead lookups."""
+    return series if series.size and bool(np.any(np.isfinite(series))) else None
 
 
 def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
@@ -926,11 +935,10 @@ def _cop_fold_blocked(coord: Any) -> bool:
 def _fold_flow_lift(coord: Any, now: datetime) -> None:
     """#1067: fold this interval's supply-vs-curve residual into the bias.
 
-    Module-level on ``_cop_fold_blocked``'s precedent: a method here would
-    cost ``coordinator_methods`` and a seam edge for a function that reads
-    four things off the coordinator and calls one learner.
+    Module-level on ``_cop_fold_blocked``'s precedent: as a method it would cost
+    ``coordinator_methods`` and a seam edge for four reads and one learner call.
 
-    Five gates, and each is somebody else's question already answered:
+    Six gates, and each is somebody else's question already answered:
 
     * a FRESH supply reading — ``last_supply_c`` is cleared every cycle the
       slot is unconfigured, unreadable or past its horizon, so this is also
@@ -945,13 +953,12 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     * a space-dominant interval by its attribution (the mode dwell where
       observed, else the commanded split), at the efficiency reference's
       ``_COP_CURVE_SHARE``: the curve is a SPACE heating curve, and a hot-water
-      interval runs the supply at the tank's charge temperature.
+      interval runs the supply at the tank's charge temperature;
+    * no throttling valve on a single-zone house: its supply is the valve's tank charge.
 
-    ``now`` is unused for arithmetic and taken anyway: this is called from
-    ``_record_accuracy``'s per-cycle block beside ``_observe_frequency``,
-    which is the one place a cycle's observations are booked, and every
-    observer there carries the cycle's timestamp so none of them can
-    disagree about when "this cycle" was.
+    ``now`` is unused and taken anyway: ``_record_accuracy``'s per-cycle block,
+    the one place a cycle's observations are booked, gives every observer the
+    cycle's timestamp so none can disagree about when "this cycle" was.
     """
     del now  # the fold is not time-weighted; see the docstring
     ctx = getattr(coord, "_ctx", coord)
@@ -959,6 +966,8 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     if supply is None:
         return
     params = ctx._thermal_params
+    if mixing_valve.is_throttling(params.mixing_valve_mode) and not params.two_zone_enabled:
+        return
     commanded = coord._commanded_power()
     if commanded < draw_range.power_floor_kw(coord._accuracy.draw, params):
         return
@@ -2423,14 +2432,18 @@ def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float
 
 
 def _solve_band(draw: draw_range.DrawRange, hub: ThermalParameters, config: Any) -> draw_range.SolveBand:
-    """This moment's ``draw_range.solve_band`` from the hub and the store."""
-    return draw_range.solve_band(draw, hub, probe_install(config), dt_util.now().timestamp())
+    """This moment's ``draw_range.solve_band`` from the hub and the store;
+    the learned floor applies where the plan's levels are clamped to the band."""
+    return draw_range.solve_band(
+        draw, hub, probe_install(config), dt_util.now().timestamp(),
+        applies_floor=levels_clamped(config),
+    )
 
 
 def _band_fields(band: draw_range.SolveBand) -> dict[str, float]:
-    """The solve copy's power range under ``band``; none where configured,
-    so a configured band leaves the copy the hub's figures byte for byte."""
-    if band.source == "configured":
+    """The solve copy's power range under ``band``; none where both ends are
+    configured, so such a band leaves the copy the hub's figures byte for byte."""
+    if band.source == "configured" and band.min_source == "configured":
         return {}
     return {"max_electrical_power": band.max_kw, "min_electrical_power": band.min_kw}
 
@@ -5322,11 +5335,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
-        params = ctx._thermal_params
-        # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release`` lets out.
-        for row in self._measured_cop.release(draw, params, dt_util.now()):
+        params, measured_heat, priced = ctx._thermal_params, probe_install(ctx._config).measured_heat, self._cop_scale
+        # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release``
+        # lets out, then the scale its heat-ask probe owes this cycle (``owed_scale``; owner ruling D4).
+        for row in self._measured_cop.release(draw, params, dt_util.now(), measured_heat):
             self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
-        if self._measured_power is not None and (refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw)):
+        if (owed := self._measured_cop.owed_scale(lambda: ctx._config.cop_scale, dt_util.now())) is not None:
+            self._apply_cop_scale(owed)
+        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw):
             return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
@@ -5350,14 +5366,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # v4.0.5: without a heat reading this ratio trains the scale only while the pump
         # plausibly runs the plan: outliers are judged against a walking ratio EWMA (a fixed gate
         # deadlocks past it), a draw off the ask on draw_range's evidence; heat skips both.
-        row = CopInterval(commanded, cast(float, self._measured_power), self._cop_reference_curve(), self._cop_scale, dt_util.now())
+        row = CopInterval(commanded, cast(float, self._measured_power), self._cop_reference_curve(), priced, dt_util.now())
         ewma = self._measured_cop.walk_ratio(row.ratio)
-        if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw)):
-            _LOGGER.debug(
-                "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
-                "against the running ratio %.2f -- not an efficiency reading",
-                refusal, commanded, self._measured_power, ewma,
-            )
+        if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw, measured_heat)):
             return refusal
         return self._fold_cop_evidence(commanded, row.drawn_kw, heat_kw, row.reference)
 
@@ -6296,10 +6307,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if env_caps is not None:
             caps = env_caps if caps is None else np.minimum(caps, env_caps)
         quiet = quiet_windows.compose_with_silent(caps, ctx._config, ctx.hass.states.get, solve_now, n, config.dt_hours, params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
-        humidity = horizon.humidity
         return SolveRecord(config, params, SolveInputs(
             state=state,
             start_time=solve_now,
+            compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
@@ -6309,12 +6320,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 price_known=horizon.price_known,
                 pv_surplus=horizon.pv_surplus,
                 price_sigma=horizon.price_sigma,
-                # #21: the humidity series only when it carries data, which
-                # keeps the solve's inner loop free of dead lookups.
-                humidity=(
-                    humidity if humidity.size
-                    and bool(np.any(np.isfinite(humidity))) else None
-                ),
+                humidity=_humidity_with_data(horizon.humidity),
                 external_heat_kw=self._external_heat_forecast(n),
             ),
             limits=SolveLimits(
@@ -6322,7 +6328,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 dhw_pins=dhw_pins,
                 power_caps_extra=quiet.caps,
                 # T5 (#16 #54): the comfort floor's gated adjustments; None is byte-inert.
-                min_temp_margins=self._confidence_margins(n),
+                min_temp_margins=rooms.lifted(rooms.hold(self, rooms.resolve(  # #3616: plus a short room's lift
+                    rooms.readings_of(self), rooms.lift_of(self), rooms.gate(enabled=ctx._config.room_lift_enabled, economy=self._mode == MODE_ECONOMY, open_window=self._vent_cusum.tripped, away=self._away_state.active, manual_pin=space_pins is not None, two_zone=params.two_zone_enabled),
+                    config, state.room_temperature, solve_now)), self._confidence_margins(n), config, solve_now, n),
                 min_temp_floors=self._mold_floor_series(horizon.outdoor_temps),
                 away_floor_drop_c=away_mode.floor_drop_c(ctx._opt_config, self._away_state),
                 # v5.3.0: never promise heat the pump's current mode cannot
@@ -6664,8 +6672,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
         if floor_return.ok:
             self._floor_return_temp = floor_return.value
-            # The slab estimate advances from the reading and records it.
-            self._thermal_model.update_slab_from_return_temp(state, self._floor_return_temp)
+            slab_seed.seed(self._thermal_model, state, floor_return.value, self._pump_signals)
 
         # The lower zone's room temperature: only a real thermometer carries
         # information about it. The floor return is a WATER temperature,
@@ -6764,6 +6771,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
         # not given, and a fresh supply reading gates the flow-bias fold.
         observe_water(self._flow_bias, reader, self.effective_config)
+        rooms.record(self, read_rooms(reader, ctx._config.room_temperature_entities))
 
         # The four heat-pump signals (v5.3.0), read through the same reader
         # as everything else, so all four appear in this cycle's health with
@@ -6828,23 +6836,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
             await self._async_learn_buffer_cooling(buffer_value)
 
+        slab_sensed = slab_seed.judge(self._config_notices, self.hass, floor_return,
+                                      _ctx_of(self)._current_state.room_temperature, self._pump_signals)
         # The fabric model refined by how the interval went: last, on the full state.
-        seed = await self._async_learn_interval(prior, slab_unsensed=not floor_return.ok)
+        seed = await self._async_learn_interval(prior, slab_unsensed=not slab_sensed)
 
         state = replace(_ctx_of(self)._current_state)
         # Update ECL110 effective displace state (PID/PI lag approximation)
-        if "displace_value" in self._current_action:
-            displace_cmd = float(self._current_action.get("displace_value", 0.0))
-            dt_h = _ctx_of(self)._opt_config.dt_hours
-            self._thermal_model.update_ecl110_displace_state(state, displace_cmd, dt_h)
+        if (displace_cmd := self._current_action.get("displace_value")) is not None:
+            self._thermal_model.update_ecl110_displace_state(state, float(displace_cmd), _ctx_of(self)._opt_config.dt_hours)
             self._ecl110_current_displace = state.ecl110_displace_command
 
         # Last resort: seed the slab, and the lower zone if nothing better
         # has been read, from the room temperature. Both guards are on the
-        # READING, not the entity being set: a stale sensor takes the same
-        # path as an absent one. The room+1 K seed runs only until the slab
-        # can be advanced (``_propagated_slab``); it used to freeze forever.
-        if not floor_return.ok:
+        # READING: a stale or refused one (slab_seed) takes the absent path.
+        # The room+1 K seed runs only until ``_propagated_slab`` advances it.
+        if not slab_sensed:
             if seed is not None:
                 state.slab_temperature = seed
                 self._slab_temp_initialized = True
@@ -8225,6 +8232,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._mixing_valve_view,
         ):
             data = {**data, **view()}
+        data = {**data, **rooms.published(rooms.readings_of(self), rooms.lift_of(self))}
         data["heat_pump_power_series"], data["house_power_series"] = _power_windows(self)
         data = {**data, **_fold_away(self._away_state, data)}
         data = {**data, **_energy_totals_view(self._energy_totals)}
@@ -11310,12 +11318,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if wood_err:
             raise whatif.Refused(wood_err)
-        humidity = horizon.humidity
         return HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config), SolveInputs(
             # Shallow deliberately: ``ThermalState`` is scalars only.
             state=replace(state),
             start_time=solve_at,
             held_start=held_start,
+            compressor_running=duty_switch.record_for(self).solved_running,
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
@@ -11330,10 +11338,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 price_sigma=horizon.price_sigma,
                 # #21: the what-if is compared against a plan that saw
                 # the humidity series, so it must see the same one.
-                humidity=(
-                    humidity if humidity.size
-                    and bool(np.any(np.isfinite(humidity))) else None
-                ),
+                humidity=_humidity_with_data(horizon.humidity),
                 external_heat_kw=(
                     np.asarray(wood_kw, dtype=float)
                     if wood_kw is not None else None
@@ -11345,9 +11350,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # except the mold cap follows the SIMULATED target, so
                 # a what-if dragging the target down sees the floor
                 # that choice would actually get.
-                min_temp_margins=self._confidence_margins(
-                    len(horizon.prices)
-                ),
+                min_temp_margins=rooms.lifted(rooms.lift_of(self), self._confidence_margins(len(horizon.prices)), scratch_config, solve_at, len(horizon.prices)),  # the baseline's lift, #3616
                 min_temp_floors=self._mold_floor_series(
                     horizon.outdoor_temps,
                     target_cap=float(scratch_config.target_temp),

@@ -61,8 +61,9 @@ and a cool-only heat-curve correction are all estimated
 from your own house. Every learner is snapshotted weekly (the last eight are
 kept), and a drift watchdog can roll them back to the last healthy snapshot.
 
-**Knows what your electricity actually costs.** Tibber spot prices, time-of-use
-grid transfer fees, the monthly capacity (*effekt*) tariff and its billing clock,
+**Knows what your electricity actually costs.** Spot prices from Tibber or a
+price sensor, time-of-use grid transfer fees, the monthly capacity (*effekt*)
+tariff and its billing clock,
 PV self-consumption priced at what consuming actually costs you, and a learned
 diurnal price prior for the part of the horizon that has not been published yet.
 A live peak guard and a main-fuse headroom advisor act inside the metering window
@@ -128,7 +129,7 @@ or history. Monetary units follow your instance currency.
 ```mermaid
 flowchart LR
     subgraph inputs["Inputs"]
-        tibber["Tibber API<br/>hourly prices"]
+        tibber["Tibber API or a price sensor<br/>hourly prices"]
         weather["HA weather entity<br/>temperature, wind,<br/>rain, irradiance"]
         meteo["Open-Meteo<br/>optional irradiance"]
         ha["Your HA sensors<br/>temps, power, presence"]
@@ -150,7 +151,7 @@ flowchart LR
     subgraph out["Outputs"]
         ent["Entities<br/>sensors, binary sensors,<br/>buttons, switches,<br/>climate, datetime"]
         card["Dashboard card<br/>plan chart + editor"]
-        ctl["Heat pump switch /<br/>ECL110 displace /<br/>frequency advisor"]
+        ctl["Heat pump switch /<br/>heat-curve displace /<br/>frequency advisor"]
     end
 
     tibber --> pm
@@ -240,9 +241,9 @@ act on" — pricing and planning without actuating anything.
 | Control path | You provide | The optimizer writes |
 |---|---|---|
 | **On/off switch** | a `switch` that turns the heat pump on and off | may turn it off during expensive hours |
-| **ECL110 heat curve** | a Danfoss ECL110-compatible weather-compensated controller, reachable over MQTT | a heat-pump on/off decision and an integer parallel shift (*displace*) onto the controller's own heat curve |
-| **Heat-curve offset entity** | a controller whose volatile whole-curve offset is a `number` entity (for example a Luxtronik SHI heating offset) | the same displace as a temperature difference via `number.set_value`, bounded to ±3 K by default; 0 again when the optimizer is turned off or unloaded |
-| **Heat-curve stored parameter** | a controller with no volatile offset, whose stored curve setting is a `number` entity (kind *persistent*) | its value before the first write plus the displace, within ±3 K and at most 12 writes a day by default; that value written back when the optimizer is turned off or unloaded |
+| **Heat curve, over MQTT** | a weather-compensated controller that takes its curve offset over MQTT (for example a Danfoss ECL110 through an MQTT bridge) | a heat-pump on/off decision and an integer parallel shift (*displace*) onto the controller's own heat curve |
+| **Heat curve, offset entity** | a controller whose volatile whole-curve offset is a `number` entity (for example a Luxtronik SHI heating offset) | the same displace as a temperature difference via `number.set_value`, bounded to ±3 K by default; 0 again when the optimizer is turned off or unloaded |
+| **Heat curve, stored parameter** | a controller with no volatile offset, whose stored curve setting is a `number` entity (kind *persistent*) | its value before the first write plus the displace, within ±3 K and at most 12 writes a day by default; that value written back when the optimizer is turned off or unloaded |
 | **Compressor frequency** | the compressor frequency exposed as a `number` entity (typically from Modbus or ESPHome) | the recommended frequency via `number.set_value` — but only once you switch the mode to Control |
 
 The boundaries of each path — what it can reach and what it cannot — are
@@ -252,8 +253,9 @@ limitations that apply to the integration as a whole.
 Each path in full: [Switch and climate entity](#switches-climate-and-datetime-entities),
 [Inverter frequency: observe first, control if you say
 so](#inverter-frequency-observe-first-control-if-you-say-so),
-[ECL110 heat-curve control](#ecl110-heat-curve-control); the setup fields for
-all three live in [docs/configuration.md](./docs/configuration.md).
+[Heat-curve control](#heat-curve-control) (three ways: MQTT topics, an offset
+entity, a stored curve parameter); the setup fields for all three paths live
+in [docs/configuration.md](./docs/configuration.md).
 
 ## Known limitations
 
@@ -272,16 +274,17 @@ installing rather than discover it after:
   broadest path — any on/off `switch` will do, and the only one of the three
   that needs nothing from the pump's electronics — but any control finer than
   on-and-off needs one of the other paths.
-- **ECL110 control is MQTT-only; other controllers need an offset entity.** The
-  ECL110 path is for installs that have such a controller on MQTT, and
-  publishing goes through Home Assistant's own `mqtt.publish` service, "so the
-  MQTT integration has to be set up". The two command topics ship empty, so an
-  install without an ECL110 has nothing to clear on the options page. Without
-  MQTT, the displace reaches only a controller whose heat-curve offset is a
-  volatile `number` entity, 0 neutral; an absolute or stored curve parameter
-  is not supported in this version. Details in
-  [ECL110 heat-curve control](#ecl110-heat-curve-control) and
-  [docs/ecl110.md](./docs/ecl110.md).
+- **Heat-curve control needs MQTT or a `number` entity on your controller.**
+  Over MQTT, publishing goes through Home Assistant's own `mqtt.publish`
+  service, "so the MQTT integration has to be set up"; the two command topics
+  ship empty, so an install whose controller takes nothing over MQTT has
+  nothing to clear on the options page. Without MQTT, the displace reaches a
+  controller only through a `number` entity: a volatile offset, 0 neutral, or
+  a curve setting the controller stores, which wears its memory and is capped
+  at a few writes a day. An absolute curve point (an entity whose range
+  excludes 0) is refused as an offset. Details in
+  [Heat-curve control](#heat-curve-control) and
+  [docs/heat-curve.md](./docs/heat-curve.md).
 - **Frequency control needs a `number` entity and your explicit say-so.** The
   path exists only if the compressor frequency is exposed as a `number`
   entity (Modbus, ESPHome). The default Observe mode "learns and recommends
@@ -318,6 +321,9 @@ installing rather than discover it after:
   gated on the window's own residual noise staying under ~0.02 °C, refusing
   by name where it does not. The slab constants themselves are always
   trusted from configuration.
+
+Where the integration is heading, by what it will do, is in
+[ROADMAP.md](./ROADMAP.md).
 
 ## Installation
 
@@ -369,7 +375,7 @@ and every one of its entities and stops every command to the heat pump. Three
 things are left behind on purpose, because deleting them is your call:
 
 - **The heat pump keeps its last command.** The last setpoint the optimizer
-  wrote to your thermostat, or the last ECL110 displacement it published, stays
+  wrote to your thermostat, or the last heat-curve displacement it published over MQTT, stays
   in force until you set the pump's own controls back. Nothing else is restored on
   removal: a heat-curve entity is the one exception, written back when the
   integration unloads (0 for an offset, the value it held before the first
@@ -563,7 +569,7 @@ every sensor is created on every install regardless of which group it is in.
 |---|---|---|---|
 | Optimization Mode | — | Current mode: auto, comfort, economy, boost or off | |
 | Heat Pump Action | — | What the plan is doing now: `off` (neither circuit runs), `hot_water` (only the tank heats), `eco`, `normal`, `pre_heat` or `boost`, `comfort` while comfort mode holds, `idle` before there is a plan to run or once it is empty, and `system_identification` while the step-response experiment drives the pump | |
-| Optimal Setpoint | °C | The setpoint the current plan step asks for | |
+| Optimal Setpoint | °C | The current plan step's heating power, written as a temperature: the coldest acceptable temperature at no heat, the warmest acceptable at full power, linear between. It is not the room temperature the plan aims for; the comfort settings are | Read Recommended Power for the power itself |
 | Recommended Power | kW | The electrical power the current plan step asks for | |
 | Cost Electricity Price (now) | CUR/kWh | The price the plan is being made against right now | |
 | Plan Narrative | — | The plan told in sentences, grouped by reason | Card headline |
@@ -652,8 +658,8 @@ every sensor is created on every install regardless of which group it is in.
 |---|---|---|---|
 | Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic; unavailable until an interval has been scored |
 | Learning Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
-| ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default unless an ECL110 MQTT topic is configured at setup; unavailable without one |
-| ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default unless an ECL110 MQTT topic is configured at setup; unavailable without one |
+| Heat-Curve Displace | °C | The parallel shift commanded to the controller's heat curve, over MQTT or to the heat-curve entity | Diagnostic; disabled by default unless a heat-curve MQTT topic or entity is configured at setup; unavailable without one |
+| Heat-Curve Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default unless a heat-curve MQTT topic or entity is configured at setup; unavailable without one |
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default and unavailable until a throttling mixing-valve mode is configured (manual, smart read or smart write) — a valve-less install gets neither a hidden sensor nor one stuck at unknown |
 | Sensor-Gap Advisor | CUR | Estimated extra cost per month, in your currency, from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
@@ -662,7 +668,8 @@ every sensor is created on every install regardless of which group it is in.
 Disabled by default: Buffer Tank Temperature, Compressor Frequency
 Advisor, Compressor Starts, Cost Contract Comparison, Cost Monthly Peak Power,
 Cost Power Headroom, DHW Heavy Day Demand, DHW Mixed Water, DHW Temperature,
-ECL110 Displace, ECL110 Effective Displace, Floor Heating Return Temperature,
+Floor Heating Return Temperature, Heat-Curve Displace, Heat-Curve Effective
+Displace,
 Lower Floor Temperature, Measured Power, Slab Temperature (Estimated), Solar
 Surplus Forecast, Upper Floor Temperature, Valve Target Recommendation,
 Wood-Burn Night Advisor and Wood Cheaper Than Heat Pump.
@@ -849,7 +856,7 @@ hard-coded to the entity ids the examples assume.
 sequenceDiagram
     autonumber
     participant C as Coordinator
-    participant P as Prices (Tibber + learned prior)
+    participant P as Prices (Tibber or a price sensor, + learned prior)
     participant W as Weather entity (HA)
     participant S as Your sensors
     participant M as Thermal model
@@ -868,7 +875,7 @@ sequenceDiagram
     O->>O: solve: minimize cost + comfort penalty<br/>subject to comfort floor, tank limits,<br/>legionella clock, fuse and peak caps
     O-->>C: space + DHW slot plan
     C->>C: apply manual-plan pins,<br/>safety releases pinned-off slots
-    C->>E: publish plan sensors, switch the heat pump,<br/>ECL110 displace / frequency advice
+    C->>E: publish plan sensors, switch the heat pump,<br/>heat-curve displace / frequency advice
     Note over C: between plans the peak guard folds power-meter events<br/>and flips a flag (2 agree to engage, 2 to clear).<br/>It never solves — the next solve only reads the flag
     Note over M: afterwards: compare prediction against reality,<br/>nudge the learned parameters
 ```
@@ -924,7 +931,7 @@ Full theory, with every mechanism and its defaults:
 ## Changing settings after setup
 
 Open the integration and choose **Configure**. Instead of one long form you get a
-menu of 24 pages — 23 you can edit plus a read-only overview — and each can be
+menu of 25 pages — 24 you can edit plus a read-only overview — and each can be
 edited independently. The pages you revisit sit at the top; everything you
 typically set once lives one click further, under **Advanced settings**.
 
@@ -944,6 +951,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Sensors and entities | Tibber token, weather entity, room and tank sensors, the on/off switch |
 | Power and solar sensors | Irradiance, the three power/energy meters, compressor frequency |
 | Heat pump telemetry | Mode, defrost, online, fault |
+| Room thermometers | Optional room thermostats or sensors, one per room: their average and the spread between the coldest and warmest room, as two sensors; optionally a room below its own target raises the planned minimum |
 | Heating system and heat storage | Mixing valve, buffer tank, wood furnace, the heating circulation pump |
 | Building type and emitters | Structure, era, foundation, area and emitters, plus windows and wind/rain sensitivity |
 | Thermal model (expert) | The raw single-zone numbers — heat pump power and COP, masses, losses |
@@ -1073,6 +1081,7 @@ Each clears itself once the cause is gone.
 - **A configured grid fee is negative** — almost always a sign slip. Correct it on **Transfer fees and contract**.
 - **The downstairs temperature is modelled, not measured** — two-zone planning without a lower-floor thermometer. Assign the *Lower floor temperature sensor* to remove it.
 - **Your comfort temperatures contradict each other** — the stored band cannot all be met at once, for example a target above the warmest acceptable temperature. Fix the band on **Comfort and temperatures**.
+- **The floor return sensor reads far warmer than any floor loop** — the floor return field reads more than 12 K above the room, almost always the heat pump's own return or a buffer-tank sensor. The reading is ignored and the slab is estimated as with no sensor; pick a sensor in the floor loop itself, after any buffer tank or mixing valve, or leave the field empty.
 - **Valve target above comfort** — the mixing-valve target is read as the room temperature the circuit holds, not a water temperature, and it is above the top of your comfort band. Nothing is changed (it can be deliberate, for example slab charging); if it is a flow temperature, set the room temperature or 0 on **Mixing valve**.
 - **The heat pump's hot water set-point is below the configured temperature** — the pump's own set-point stops it reaching the disinfection or minimum temperature. The notice's fix writes the needed value to the pump's entity.
 - **The space-heating set-point entity is not reporting** — the set-point entity is missing or unreadable. Check it, or clear the slot.
@@ -1081,16 +1090,30 @@ Each clears itself once the cause is gone.
 - **Silent windows are not enforced** — the capacity-limited slot is not a switch the integration can hold. Assign the pump's own night-mode switch, or remove the silent windows.
 - **The heat pump cannot hold the hot water minimum** — You named a *Hot water start hysteresis* entity, and the hot water minimum sits above the temperature the pump starts a charge at (its hot water target less that hysteresis). The plan places no charge the pump would not start, so it shows the tank falling under the minimum before each charge. Lower the minimum to the start temperature or less, raise the hot water set-point, or reduce the hysteresis on the pump.
 
-## ECL110 heat-curve control
+## Heat-curve control
 
-The integration can drive a Danfoss ECL110-compatible controller over MQTT,
-publishing a heat-pump on/off decision and an integer parallel shift (*displace*)
-onto the controller's own heat curve. The ECL110 settings live only
-on the **Heat curve control** options page, not in initial setup, and
-both ECL110 sensors are disabled by default. The MQTT topics ship empty;
-nothing is published or subscribed until you set a topic, so an install without
-an ECL110 never touches the topics at all. Topics, payloads, options and the
-PI/PID lag handling are documented in [docs/ecl110.md](./docs/ecl110.md).
+<a id="ecl110-heat-curve-control"></a>
+
+The integration can shift a weather-compensated controller's own heat curve:
+up in cheap hours, down in expensive ones, as an integer parallel shift
+(*displace*). It reaches the controller one of three ways:
+
+- **Over MQTT**, to a controller that takes its offset there — for example a
+  Danfoss ECL110 through the strutsfarm/ecl110 bridge — with a heat-pump
+  on/off decision beside the displace;
+- **to an offset entity**, a volatile whole-curve offset Home Assistant
+  exposes as a `number` (for example a Luxtronik SHI heating offset), written
+  back to 0 when the optimizer is turned off or unloaded;
+- **to a stored curve parameter**, a `number` the controller keeps in memory,
+  displaced from its own value at most a few times a day and written back on
+  off.
+
+The settings live only on the **Heat curve control** options page, not in
+initial setup, and both heat-curve sensors are disabled by default. The MQTT
+topics ship empty; nothing is published or subscribed until you set a topic,
+so an install whose controller takes nothing over MQTT never touches the
+topics at all. The three ways, their options, payloads and the PI/PID lag
+handling are documented in [docs/heat-curve.md](./docs/heat-curve.md).
 
 ## Project status
 
@@ -1154,7 +1177,7 @@ before installing; it applies with full force.
 | [docs/dashboard-card.md](./docs/dashboard-card.md) | The card: options, interactions, editing limits |
 | [docs/automations.md](./docs/automations.md) | Complete automation examples using only the entities and services the integration creates |
 | [docs/architecture.md](./docs/architecture.md) | Module map and how a plan is made, for anyone reading or changing the code |
-| [docs/ecl110.md](./docs/ecl110.md) | ECL110 MQTT control |
+| [docs/heat-curve.md](./docs/heat-curve.md) | Heat-curve control, three ways: MQTT topics (for example a Danfoss ECL110), an offset entity, a stored curve parameter |
 | [DISCLAIMER.md](./DISCLAIMER.md) | The full disclaimer |
 
 ## Disclaimer

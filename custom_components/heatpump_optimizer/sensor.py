@@ -274,6 +274,10 @@ async def async_setup_entry(
         WoodBurnAdvisorSensor(coordinator, entry),
         ModelRestartAdvisorSensor(coordinator, entry),
     ]
+    # The room list's two sensors exist only where a list is configured
+    # (#3616); an options save reloads the entry, so the set holds for its life.
+    if EntryConfig.from_mapping(coordinator.effective_config).room_temperature_entities:
+        entities += [RoomAverageTempSensor(coordinator, entry), RoomSpreadSensor(coordinator, entry)]
 
     async_add_entities(entities)
 
@@ -724,6 +728,54 @@ class IndoorTempSensor(_PayloadNumberMixin, _MeasuredTemperatureMixin, HeatPumpO
         """
         config = self.coordinator.effective_config
         return {"source_entity": EntryConfig.from_mapping(config).indoor_temp_entity}
+
+
+class RoomAverageTempSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+    """The mean over the room list's readable rooms (#3616).
+
+    Unknown under the list's quorum (``rooms.summarize``). Each readable
+    room's temperature (and a thermostat's target, whether it calls for heat
+    and its HVAC mode), and each dropped room's problem word, keyed by entity
+    id: a dead thermostat shows here, never as an input problem.
+    """
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
+
+    _payload_path = ("rooms", "average")
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(coordinator, entry, "room_average_temp", "room_average_temperature")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        block = _mapping(self._data().get("rooms"))
+        return {key: block.get(key) for key in ("valid_count", "configured_count", "per_room", "dropped")}
+
+
+class RoomSpreadSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+    """The warmest readable room less the coldest, K (#3616).
+
+    A temperature difference: no temperature device class, which Home
+    Assistant would convert as a temperature. Unknown under the quorum.
+    ``lift`` is the floor lift the last solve was given (``rooms.HeldLift``).
+    """
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "K"
+    _attr_suggested_display_precision = 1
+
+    _payload_path = ("rooms", "spread")
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(coordinator, entry, "room_spread", "room_temperature_spread")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        block = _mapping(self._data().get("rooms"))
+        return {key: block.get(key) for key in ("coldest_entity", "warmest_entity", "lift")}
 
 
 class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
@@ -2089,20 +2141,40 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
             "system_identification_outcome": _sysid_outcome(data.get("system_identification")),
             "learner_progress": data.get("learner_progress"),
             **_pump_max_power(data.get("pump_max_power")),
+            **_pump_min_power(data.get("pump_max_power")),
         }
 
 
 def _pump_max_power(band: Any) -> dict[str, Any]:
     """Which electrical maximum the live plan booked, and why (R10-COP-GATE
-    part D). ``source`` and ``reason`` are top-level codes, so the entity's
+    part D)."""
+    return _pump_power_end(band, "max", _MAX_ROW, "source", "reason")
+
+
+def _pump_min_power(band: Any) -> dict[str, Any]:
+    """Which electrical minimum the live plan booked, and why
+    (R11-OUTSIDE-HONEST-METERED-FLOOR), read off the same stamp."""
+    return _pump_power_end(band, "min", _MIN_ROW, "min_source", "min_reason")
+
+
+#: Each end's evidence row: the attribute key and the stamp key it reads.
+_MAX_ROW = {k: k for k in ("configured_max_kw", "planned_max_kw", "learned_max_kw", "samples", "since_s")}
+_MIN_ROW = {
+    "configured_min_kw": "configured_min_kw", "planned_min_kw": "planned_min_kw",
+    "learned_min_kw": "learned_min_kw", "samples": "min_samples",
+}
+
+
+def _pump_power_end(band: Any, end: str, row: dict[str, str], source: str, reason: str) -> dict[str, Any]:
+    """One end of the band stamped on the live plan (``draw_range.SolveBand``).
+    The source and reason are top-level codes, so the entity's
     ``state_attributes`` translations render them; the evidence rides the
-    ``pump_max_power`` row. No plan publishes all three as ``None``."""
+    ``pump_<end>_power`` row. No plan publishes all three as ``None``."""
     b = _mapping(band)
-    row = {k: b.get(k) for k in ("configured_max_kw", "planned_max_kw", "learned_max_kw", "samples", "since_s")}
     return {
-        "pump_max_power": row if b else None,
-        "pump_max_power_source": b.get("source"),
-        "pump_max_power_reason": b.get("reason"),
+        f"pump_{end}_power": {k: b.get(v) for k, v in row.items()} if b else None,
+        f"pump_{end}_power_source": b.get(source),
+        f"pump_{end}_power_reason": b.get(reason),
     }
 
 

@@ -55,7 +55,7 @@ survivable — a wrong guess about hour 20 is corrected forty times before hour
 sequenceDiagram
     autonumber
     participant C as Coordinator
-    participant P as Prices (Tibber + learned prior)
+    participant P as Prices (Tibber or a price sensor, + learned prior)
     participant W as Weather entity (HA)
     participant S as Your sensors
     participant M as Thermal model
@@ -74,7 +74,7 @@ sequenceDiagram
     O->>O: solve: hot water first (LP + repair),<br/>then space heating around it,<br/>then one co-optimization pass
     O-->>C: space + DHW slot plan
     C->>C: apply manual-plan pins (≤20 h),<br/>safety releases pinned-off slots
-    C->>E: publish plan sensors, switch heat pump,<br/>ECL110 displace / frequency advice
+    C->>E: publish plan sensors, switch heat pump,<br/>heat-curve displace / frequency advice
     Note over C: between plans the peak guard folds power-meter events<br/>and flips a flag (2 agree engage / 2 clear).<br/>It never solves — the next solve only reads the flag
     Note over M: afterwards: compare prediction vs reality,<br/>nudge learned parameters
 ```
@@ -88,8 +88,8 @@ repair passes against the real tank simulation — and space heating is then
 optimized around the fixed DHW blocks by multi-start L-BFGS-B.
 
 Solving them in sequence would let hot water fill the cheapest hours to the
-compressor ceiling and push space heating into dearer ones. Two things prevent
-that:
+compressor ceiling and push space heating into more expensive ones. Two
+things prevent that:
 
 - **A congestion premium** inside the DHW program. Taking compressor capacity
   in a step where space heating also wants it is charged the extra price of
@@ -124,7 +124,7 @@ What the space heating solve minimizes:
 |---|---|
 | `grid_cost(P_space + P_dhw)` | Electricity, piecewise in PV surplus, × `price_weight` |
 | comfort terms | Pull toward the target, plus penalties for breaching the floor/ceiling |
-| cycling cost | Compressor start-stop wear, × `price_weight` |
+| cycling cost | Compressor wear: the cost of one start × the plan's starts, × `price_weight` |
 | capacity tariff | The month's peak charge exposure, × `price_weight` |
 | terminal cost | The value of heat left stored at the end of the horizon |
 
@@ -157,7 +157,19 @@ trade off.
 would be priced in invented units, and measured, it costs about 5% of the
 two-zone winter bill for no reduction in compressor starts. Discouraging
 chatter is the cycling cost's job, and that is denominated in currency per
-start-stop cycle.
+compressor start.
+
+**A priced start is counted as one start.** A start is an off-to-on edge of the
+compressor, whatever level it starts to; changing level inside a run is free.
+A level under the pump's minimum power is a duty-cycle average, so the solve
+counts it as the starts it is. With a start priced, or on an install that
+cannot duty-cycle, the solve first plans without the start cost, then commits
+that plan to whole runs at or above the minimum power, at the same energy: a
+step lifted to the minimum is paid for by a step left out. Several such plans
+are scored with the start cost included, and the cheapest ships. An install
+that cannot duty-cycle and prices no start is planned at a start price of 0.1,
+so that commit does not ship more starts than the plan it replaced. (Finding and
+method: Bankaifan, pull request 3529.)
 
 ### Weather anticipation is emergent, not a bonus
 
@@ -736,7 +748,8 @@ zero confidence.
 
 Added per kWh moved through the grid, and increasingly by time of day: several
 Swedish grid companies charge roughly 25 öre/kWh more on winter weekdays 06–22.
-Tibber's price does not include it. Configure it on the Grid costs page — as
+Tibber's price does not include it, and a price sensor includes it only if you
+added it there yourself. Configure it on the Grid costs page — as
 time-of-use rules like `Nov-Mar Mon-Fri 06:00-22:00 = 0.25`, as a flat figure,
 or as a live sensor — and every planned hour is priced at spot *plus* fee, which
 moves load to nights and weekends in winter even when spot alone would not. The
@@ -1220,6 +1233,22 @@ at most every 7 days until a maximum is learned and every 30 days after. The
 from (`pump_max_power`, `pump_max_power_source`, `pump_max_power_reason`), and
 the last experiment's kind, phase and result in `system_identification_outcome`.
 
+The minimum is learned from the meter too, from the runs the plan asked at the
+minimum in force: the configured **Heat pump min power**, or the learned
+minimum once there is one. Once 48 such runs are metered, the low end of their
+draw (the 10th percentile) is the learned minimum where it is more than 15 %
+above **Heat pump min power**, and the plan books it where its levels are
+clamped to the pump's range (a plan that cycles the pump below its minimum is
+left as it is). It is never below **Heat pump min power** nor above the maximum
+in use, and it does not lapse with age: a learned minimum moves only on the
+runs asked at it, so it rises when they draw more than 15 % above it and comes
+down when they draw more than 15 % below it, and changing **Heat pump min
+power** or **Heat pump max power** clears it. A pump whose least draw falls
+below a learned minimum is never asked to run there, so the way down is to
+change **Heat pump min power**. The **Learning Model Status** sensor publishes
+the minimum in use and where it came from (`pump_min_power`,
+`pump_min_power_source`, `pump_min_power_reason`).
+
 The fit regresses the room's rate of change on `(T_room − T_out)`, applied power
 and a **constant**, over both the step and relaxation phases: relaxation carries
 the cleanest information about the loss coefficient (no input to confound it),
@@ -1440,5 +1469,5 @@ does raising your minimum temperature. Both work.
 - [architecture.md](architecture.md) — module layout and the internal data flow.
 - [dashboard-card.md](dashboard-card.md) — the card, its options, the plan
   editor and the Setup page.
-- [ecl110.md](ecl110.md) — the optional ECL110 MQTT control path.
+- [heat-curve.md](heat-curve.md) — the optional heat-curve control path, three ways: MQTT topics (for example a Danfoss ECL110), an offset entity, a stored curve parameter.
 - [the archive](../dev/archive/backlog.md) — the delivered archive and the open findings.

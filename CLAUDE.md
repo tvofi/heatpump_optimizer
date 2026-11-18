@@ -77,8 +77,8 @@ rewrite looks like a correction from the inside; if the honest description is
 `node tools/policy/rules_sync.mjs`; never edit it — `--check` refuses drift
 and an orphan `.mdc`.
 
-`AGENTS.md` is the entry point for a harness auto-loading that name (ZCode,
-Codex); it states no policy and binds the seat to this file.
+`AGENTS.md` binds a harness that auto-loads that name (ZCode, Codex) to this
+file.
 
 | rule | what it binds |
 |---|---|
@@ -97,8 +97,7 @@ Codex); it states no policy and binds the seat to this file.
 
 `.claude/skills/steward/SKILL.md` — read before acting on a CI failure or a
 review comment; only where this repository differs from a session's default, and
-nothing in it loosens a rule stated here. No `babysit/` counterpart: a session
-prefers `steward/`, so a second would bind nobody.
+nothing in it loosens a rule stated here.
 `.claude/workflows/web-fragments.md` — the MCP mapping for a seat with no `gh`
 binary, the one file allowed to name those commands.
 `.github/PULL_REQUEST_TEMPLATE.md` — the headings `checkPrBody` requires;
@@ -110,7 +109,7 @@ Under `dev/governance/roles/`.
 
 | contract | the role |
 |---|---|
-| `orchestrator.md` | dispatches, merges, holds the freeze, records, stamps; Cursor turn `nudge.md` |
+| `orchestrator.md` | dispatches, merges, holds the freeze, records, stamps |
 | `fixer.md` | owns one architecturally sound fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim; steps 2–8 re-execute after any rebase or merge, and the handoff to review freezes the branch |
 | `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; blocks on code, tests and harness, paperwork is a note; a verdict carries while the PR's own diff is unchanged |
 | `designer.md` | designs an L or XL group with no approved design before its fixer, pipelined behind its last predecessor: the architect note at `design/<group>`, never production code |
@@ -128,13 +127,12 @@ Under `dev/governance/roles/`.
 | `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |
 | `COMMON.md` | **the finder's contract** — every audit dimension: what a finding is, what a non-finding is, and the report shape |
 
-**There is exactly one `COMMON.md`, and it is the finder's contract.** A running
-session may also hand its seats an out-of-tree shared block, named
-`SEAT-BLOCK.md`; that one is **not** policy but a convenience copy.
+**There is exactly one `COMMON.md`.** `SEAT-BLOCK.md`, an out-of-tree block a
+running session hands its seats, is a convenience copy, **not** policy.
 
 ### Dimension briefs — the audit rounds
 One per dimension, under `dev/governance/dimensions/`, in the owner's own words. Named
-individually, because a range reads as complete while covering a fraction:
+individually, never as a range:
 
 | brief | dimension |
 |---|---|
@@ -154,6 +152,11 @@ individually, because a range reads as complete while covering a fraction:
 | `D13.md` | process yield and cost |
 | `D14.md` | recurring bug classes |
 | `D15.md` | debugging run from a live diagnostics bundle |
+| `D16.md` | actuator writes, holds and releases against the plan |
+| `D17.md` | feature behaviour against its documented effect |
+
+Finder criteria (`owner_criteria`): `D4-criteria.md`,
+`D5-criteria.md`, `D9-criteria.md`, `D10-criteria.md`.
 
 ### Instruments
 
@@ -164,10 +167,12 @@ architecture score in `tools/audit/archscore/`, per-group harnesses in
 any merge, push, body, gate or watch loop; new reusable instruments land here,
 never only in /tmp (decision 0013).
 
-### The suite, the register, the handover
+### The suite, the register, the rulings, the handover
 
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
+- `dev/programme/RULINGS.md` — the owner's rulings, verbatim and dated: they bind
+  every seat, though the file is not policy.
 - `dev/audit/README.md` — how a round is run and where its evidence lands.
 - `dev/programme/HANDOVER.md` — the one durable handover, ruled by
   `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
@@ -202,12 +207,11 @@ is recorded as `pending owner confirmation`, quoting the rule it would change;
 the seat neither acts on that half nor writes it as direction until the owner or
 the contract moves.
 
-## Root-cause remediation
+## What the repository may carry
 
-A qualifying defect owes its cause and the **process** that let the cause get
-that far, established in its own seat beside the fix and never inside it. The
-two triggers, the four process states, the cost test, when recording that no
-countermeasure is worth building is a legitimate result, and the demonstration a
-check-shaped countermeasure owes are in `defect-root-cause.md` and
-`root-cause.md`. The fixer answers a red check in the pull-request body; an
-unanswered one is a reviewer's note resolved at merge (card C5).
+Opinions are private data (tvofi, 2026-11-15). Nothing pushed states or implies
+an opinion of the owner, a contributor or an agent on anything but the code, the
+product and how they work. A decision is described by what it
+does; an owner ruling is quoted only for what it decides. Findings of the
+security-and-privacy audit dimension go to the owner directly, never to an issue
+or anything else on origin.

@@ -86,7 +86,9 @@ A `fixer` dispatch for an L or XL group is refused unless
 `design-verdict/<group>` reads `Design review: approve <sha>` at the current
 design tip, or `--design-exempt <reason>` names an approved design, pre-study
 or prototype already on record. The tick board's `DESIGN OWED:` line lists the
-groups whose designer is due.
+groups whose designer is due. A fixer dispatched on an approved design is given
+it in one generated line, `Approved design (decision 0014): design.md at <sha>,
+the design/<group> tip`, with the fetch command; a design-exempt dispatch gets none.
 `--role reviewer --topic <t> --head <handoff tip>` with no `--pr` renders a reviewer at the
 handoff: it reads `handoff-body/<t>`, renders no packet, waits on no CI and returns
 `probe/revt-<t>-<nonce8>` (subject `verdict <t> <head>`). With `--group`, an omitted `--model`
@@ -98,5 +100,8 @@ A `fixer` for a group holding more than five pending carries (`roster_lib.pendin
 is refused, and the refusal prints the split: index-ordered fives, a remainder of one or two
 folded into the last part. `--part <k>` dispatches part k under topic `<topic>-p<k>` (k over 1)
 with one generated line naming its carries; dispatch each part at the previous part's handoff.
+The split is by carry index and an approved design's parts are by seam, so a part's design
+line adds that the design's parts are not the part line's: the part line is what the seat
+builds, in the shape the design gives it.
 Every reviewer stop path, a setup refusal and a bounded CI wait included, pushes a verdict to
 its probe ref and reads it back.

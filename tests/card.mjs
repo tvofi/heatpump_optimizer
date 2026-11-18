@@ -816,7 +816,7 @@ check("an unknown reason code still shows something",
   check("UX-1 the explanation names the step's own quarter hour",
     dear.includes(`${clk(45)}\u2013${clk(60)}`), dear);
   check("UX-1 a dear idle step gives its price rank within the horizon",
-    dear.includes("3.00 SEK/kWh") && dear.includes("dearest 25 %") &&
+    dear.includes("3.00 SEK/kWh") && dear.includes("most expensive 25 %") &&
       dear.includes("cheapest 0.50"), dear);
   check("UX-1 it names the run it coasts on and the next run",
     dear.includes(`${clk(0)}\u2013${clk(30)}`) &&
@@ -829,14 +829,14 @@ check("an unknown reason code still shows something",
   check("UX-1 both channels idle share one block and one price line",
     (both.match(/class="tt-why"/g) || []).length === 1 &&
       /Space heating and hot water off/.test(both) &&
-      (both.match(/dearest/g) || []).length === 1 &&
+      (both.match(/most expensive/g) || []).length === 1 &&
       /next heating run/.test(both) &&
       /tank was heated/.test(both), both);
   check("UX-1 nothing is claimed the published fields cannot show",
     !/floor|fuse/i.test(dear), dear);
   const cheap = idleWhyHtml([row("space_power", 2, 0, "idle")], ctx);
   check("UX-1 a step in the cheaper half claims no price reason",
-    /Likely because/.test(cheap) && !/dearest/.test(cheap), cheap);
+    /Likely because/.test(cheap) && !/most expensive/.test(cheap), cheap);
   check("UX-1 an active step is not explained here",
     idleWhyHtml([row("space_power", 0, 2, "cheap_price")], ctx) === "");
   // A DHW step classified off the DHW path publishes no reason at all, so
@@ -862,7 +862,7 @@ check("an unknown reason code still shows something",
   const fused = idleWhyHtml([row("space_power", 3, 0, "idle_fuse")], ctx);
   check("UX-5 a published sub-code says because and replaces the inferred lines",
     /Because:/.test(fused) && !/Likely because/.test(fused) &&
-      /fuse limit caps heating/.test(fused) && !/dearest/.test(fused), fused);
+      /fuse limit caps heating/.test(fused) && !/most expensive/.test(fused), fused);
   check("UX-5 an idle step with no sub-code still says likely because",
     /Likely because/.test(dear) && !/Because:/.test(dear));
   check("UX-5 an idle sub-code is not also a reason label",
@@ -2114,6 +2114,122 @@ const editable = () => {
   check("slots are sent as ISO timestamps",
     !iso || (!Number.isNaN(Date.parse(iso.start)) && /T/.test(iso.start)),
     JSON.stringify(iso));
+}
+
+// #3636: a published plan reaching past the manual-plan window made "Apply this
+// plan" fail every time, because `build_override` refuses a slot starting
+// beyond now plus the window. The card trimmed at the edit floor only, so it
+// sent runs the editor itself would not let the user touch. The captured plan
+// is extended to 48 h past its first step with runs before, across, just
+// inside and past the ceiling: the published window (`applyEnd`), not the
+// zoomed visible end `editCeiling` also carries.
+{
+  const STEP = 15 * 60000;
+  const ceiling = FROZEN + 20 * HOUR;
+  const at = (h) => ceiling + h * HOUR;
+  // The forecast's `t` is local wall time with no offset, as the sensor
+  // publishes it, so extended steps are written the same way.
+  const local = (ms) => {
+    const d = new Date(ms);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` +
+      `T${p(d.getHours())}:${p(d.getMinutes())}:00`;
+  };
+  // [start, end) in hours from the ceiling, per channel.
+  const runs = {
+    dhw_power: [[-4, -3], [-2, 0.5], [1, 2], [4, 6]],
+    // Starts one step short of the ceiling: inside it on this clock, but past
+    // the server's on a browser clock a step ahead -- the skew allowance.
+    space_power: [[-4, -3], [-0.25, 1], [4, 6]],
+  };
+  const extended = (windowHours, seeded = runs) => {
+    const st = JSON.parse(JSON.stringify(slotStates));
+    const first = Date.parse(plan.dhw_plan.forecast[0].t);
+    for (const [id, field] of [[DEFAULT_DHW, "dhw_power"],
+                               [DEFAULT_SPACE, "space_power"]]) {
+      if (windowHours !== undefined) {
+        st[id].attributes.manual_plan_window_hours = windowHours;
+      }
+      const fc = st[id].attributes.forecast;
+      const last = fc[fc.length - 1];
+      for (let t = Date.parse(last.t) + STEP; t < first + 48 * HOUR; t += STEP) {
+        fc.push({ ...last, t: local(t) });
+      }
+      for (const f of fc) {
+        const t = Date.parse(f.t);
+        if (t < at(-4.5)) continue;
+        f[field] = seeded[field].some(([a, b]) => t >= at(a) && t < at(b)) ? 3 : 0;
+      }
+    }
+    return st;
+  };
+  const applied = (states, geom) => {
+    const c = build(states, { what_if: true });
+    c._hass = mkHass(states);
+    c._onCardClick({});
+    if (geom) c.geomAt = () => geom;
+    called = null;
+    c.manual.apply();
+    return { card: c, data: (called && called.data) || {} };
+  };
+  const { card, data } = applied(extended());
+  const drafted = [...card.manual.draft().dhw, ...card.manual.draft().space];
+  check("the extended plan drafts runs at and past the window (#3636)",
+    drafted.some((r) => r.start >= ceiling), JSON.stringify(drafted));
+  // Only the seeded tail: the captured plan's own earlier runs are untouched.
+  const span = (slots) => (slots || [])
+    .filter((sl) => Date.parse(sl.start) >= at(-4.5))
+    .map((sl) => [Date.parse(sl.start), Date.parse(sl.end)].map(
+      (ms) => (ms - ceiling) / HOUR));
+  check("no slot sent starts at or after the manual-plan window (#3636)",
+    [...(data.dhw_slots || []), ...(data.space_slots || [])]
+      .every((sl) => Date.parse(sl.start) < ceiling),
+    JSON.stringify(data));
+  check("a run straddling the window is sent whole, later ones dropped (#3636)",
+    JSON.stringify(span(data.dhw_slots)) === JSON.stringify([[-4, -3], [-2, 0.5]]),
+    JSON.stringify(span(data.dhw_slots)));
+  check("a run starting within one step of the window is held back for clock skew (#3636)",
+    JSON.stringify(span(data.space_slots)) === JSON.stringify([[-4, -3]]),
+    JSON.stringify(span(data.space_slots)));
+  // The ceiling is the window, not the zoomed view: zoomed in so the visible
+  // end falls 3 h before the window, `editCeiling` would drop the run that
+  // straddles the window and the one before it. Design choice: what is applied
+  // does not depend on the zoom.
+  const zoomed = applied(extended(), { windowStart: 0, windowEnd: at(-3) });
+  check("a zoomed-in view does not change the applied runs (#3636)",
+    zoomed.card.manual.editCeiling() <= at(-3) &&
+      JSON.stringify(span(zoomed.data.dhw_slots)) ===
+        JSON.stringify([[-4, -3], [-2, 0.5]]),
+    JSON.stringify({ editCeiling: (zoomed.card.manual.editCeiling() - ceiling) / HOUR,
+                     dhw: span(zoomed.data.dhw_slots) }));
+  // The skew allowance is one step, not more: a run starting two steps
+  // before the window is inside the server's acceptance and is sent.
+  const twoSteps = applied(extended(undefined, {
+    dhw_power: [],
+    space_power: [[-4, -3], [-0.5, 1]],
+  })).data;
+  check("a run starting two steps before the window is sent (#3636)",
+    JSON.stringify(span(twoSteps.space_slots)) ===
+      JSON.stringify([[-4, -3], [-0.5, 1]]),
+    JSON.stringify(span(twoSteps.space_slots)));
+
+  // Null control: the captured plan ends inside the window, so the payload
+  // must be byte-identical to the one a window too wide to bind produces.
+  check("the captured plan ends inside the window (#3636)",
+    drag.manual.planEnd() < ceiling - STEP,
+    new Date(drag.manual.planEnd()).toISOString());
+  const inside = applied(slotStates).data;
+  const unbound = (() => {
+    const st = JSON.parse(JSON.stringify(slotStates));
+    for (const id of [DEFAULT_DHW, DEFAULT_SPACE]) {
+      st[id].attributes.manual_plan_window_hours = 1000;
+    }
+    return applied(st).data;
+  })();
+  check("a plan wholly inside the window sends the same payload (#3636)",
+    (inside.dhw_slots || []).length > 0 &&
+      JSON.stringify(inside) === JSON.stringify(unbound),
+    JSON.stringify({ inside, unbound }));
 }
 
 // Prices are shown in the user's currency, not the author's.

@@ -41,7 +41,8 @@ so a write on a step boundary after a step-long run or pause is never held.
 (:data:`FREEZE_HELD`), as ``early_cutoff`` freezes a cut one.
 
 The minimums are constants, not options, for the reason ``early_cutoff``
-gives for its margin; ``early_cutoff`` reads them too.
+gives for its margin; they are ``runs``', which ``early_cutoff`` and the
+optimizer read too.
 """
 from __future__ import annotations
 
@@ -55,10 +56,7 @@ from .const import MODE_AUTO, MODE_ECONOMY
 from .entry_config import EntryConfig
 from .plan_step import PLAN_STEP_MINUTES, plan_step_start
 from .pump_arbiter import ArbiterInputs, ArbiterState, step_duty, step_supply, supply_switch
-
-#: The shortest run and pause the gate lets a write end; the early cut-off's too.
-MIN_RUN = timedelta(minutes=10)
-MIN_PAUSE = timedelta(minutes=10)
+from .runs import MIN_PAUSE, MIN_RUN
 
 #: The ``_learning_frozen`` reason for an interval in which a write was held.
 FREEZE_HELD = "supply_held"

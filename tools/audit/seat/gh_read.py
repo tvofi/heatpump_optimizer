@@ -28,16 +28,44 @@ status refuses or retries by its code alone, whatever bucket it carries.
 
 `tools/pr/app_approve.sh`'s `gh_transient` is this classifier's bash twin;
 its self-test drives both over its alternatives table and compares them.
+
+THE BULK READ (the corpus mirror, tools/audit/seat/corpus_mirror.py; tvofi
+2026-11-15: a scan of every pull request, comment and run must not starve the
+shared token). Three things, each used by that one stream:
+  read_conditional  one `gh api -i` read under this file's retry, sent with
+                    `If-None-Match` when an ETag is cached. A 304 is
+                    `unchanged`, an answer and never a failure -- gh exits
+                    non-zero on it, so it is read off the status line before
+                    the classifier sees the output -- and costs nothing
+                    against the primary limit.
+  budget/below_floor  `gh api rate_limit` (free) and the buckets under a
+                    floor. A scan on the shared token starts a batch only
+                    while core and graphql each keep FLOOR_SHARED of their
+                    limit: the three existing refusers trip at 20 %, and
+                    dev/audit/rca/ratelimit-recur.md records two readers
+                    taking 82 % of an hour, so a scan capped at 40 % leaves
+                    the train and the seats twice their refusal margin. On a
+                    read-only identity of its own the floor is FLOOR_OWN.
+                    An unreadable answer is below every floor.
+  rate_wait         the wait a failed read names when it is a rate-limit
+                    answer (a secondary limit's Retry-After, a spent bucket's
+                    reset): the scan pauses at its cursor on one, whatever the
+                    wait, where `retry` would refuse a long one.
+BATCH reads between two budget checks and MIN_GAP_S between two reads are the
+scan's pace; `is_query` admits a GraphQL document that only queries.
 """
 from __future__ import annotations
 
 import email.utils
+import hashlib
 import json
+import os
 import http.client
 import re
 import sys
 import time
 import urllib.error
+from pathlib import Path
 from typing import Callable
 
 READ_TRIES = 4
@@ -66,6 +94,14 @@ RATE_LIMIT = "rate limit"
 #: short one alone or attached (`-fbody=x`), a long one alone or with `=`.
 SHORT_FIELD_FLAGS = ("-f", "-F")
 LONG_FIELD_FLAGS = ("--field", "--raw-field", "--input")
+
+
+#: The bulk read's pace and floors (the docstring argues them).
+BATCH = 200
+MIN_GAP_S = 1.0
+FLOOR_SHARED = 0.60
+FLOOR_OWN = 0.10
+GATED = ("core", "graphql")
 
 
 #: R10-TRAIN-MERGE-LOOP-2: a `git fetch`/`git push` is GitHub transport too.
@@ -240,6 +276,118 @@ def read_pages(read, path: str, key: str = "", per_page: int = PER_PAGE, max_pag
     return 1, None, f"{path}: more than {max_pages} pages of {per_page}: refused, not truncated"
 
 
+# ----------------------------------------------------- conditional (ETag) reads
+# (no module-level re.compile here: ALTERNATIVES() reads those as the bash twin's table)
+#: A conditional read the server answers 304 costs no core-bucket call (P596 measured
+#: five of them moving `used` by 0, five plain reads by 6). The stored ETag and body sit
+#: under the caller's state directory ($HPO_STATE_DIR, default ~/.local/state/hpo), one file
+#: per path, shared by every process reading under that same directory; a process under
+#: another state directory keeps its own store and pays its own first plain read per path.
+
+
+def etag_dir() -> Path:
+    return Path(os.environ.get("HPO_STATE_DIR") or Path.home() / ".local/state/hpo") / "gh-etag"
+
+
+def parse_include(out: str) -> "tuple[int | None, dict, str]":
+    """`gh api -i`'s output -> (status, lower-cased headers, body); status None when the
+    output holds no response status line (a transport failure, or an error gh printed itself)."""
+    head, _, body = out.replace("\r\n", "\n").partition("\n\n")
+    lines = head.splitlines()
+    m = re.match(r"HTTP/\S+ (?P<code>[0-9]{3})\b", lines[0]) if lines else None
+    if m is None:
+        m2 = [GH_STATUS.search(x) for x in out.splitlines()]
+        code = next((int(x.group("code")) for x in reversed(m2) if x), None)
+        return code, {}, ""
+    headers = {k.strip().lower(): v.strip() for k, _, v in (x.partition(":") for x in lines[1:])}
+    return int(m.group("code")), headers, body
+
+
+def _etag_file(path: str, cache: Path) -> Path:
+    return cache / (hashlib.sha256(path.encode()).hexdigest()[:32] + ".json")
+
+
+def conditional_get(run, path: str, cache: "Path | None" = None) -> "tuple[int, str]":
+    """The body of the single-page GET at <path> -> (code, body); code != 0 is UNREADABLE and
+    the body then holds gh's output. `run(argv)` -> (code, output) is the caller's runner.
+
+    With an ETag stored for <path> the read sends If-None-Match: a 304 serves the stored
+    body, a 200 replaces both. With none stored (or a stored file that does not parse) it
+    is the plain read. Any other status, or a transport failure, is UNREADABLE as a plain
+    read's: a stale body is never served on a failure. A page past one page is no caller's:
+    it reads one page and no Link header is followed."""
+    cache = cache or etag_dir()
+    f = _etag_file(path, cache)
+    stored = None
+    try:
+        got = json.loads(f.read_text())
+        if isinstance(got.get("etag"), str) and isinstance(got.get("body"), str) and got["etag"]:
+            stored = got
+    except (OSError, ValueError, AttributeError):
+        pass
+    argv = ["gh", "api", "-i"] + (["-H", f"If-None-Match: {stored['etag']}"] if stored else []) + [path]
+    code, out = run(argv)
+    status, headers, body = parse_include(out)
+    if status == 304 and stored:
+        return 0, stored["body"]
+    if code or status != 200:
+        return code or 1, out
+    etag = headers.get("etag", "")
+    if etag:
+        try:
+            cache.mkdir(parents=True, exist_ok=True)
+            tmp = f.with_name(f"{f.name}.{os.getpid()}.tmp")
+            tmp.write_text(json.dumps({"etag": etag, "body": body}))
+            os.replace(tmp, f)
+        except OSError:
+            pass  # an unwritable state dir is the plain read, never a failure
+    return 0, body
+
+
+def ruleset_checks(run, repo: str, name: str, cache: "Path | None" = None) -> "tuple[bool, dict]":
+    """(read ok, the `required_status_checks` rule's parameters) of the ruleset called <name>,
+    both reads conditional (`conditional_get`). A ruleset list holding the name other than
+    once, or a body that is not the shape GitHub sends, is not read."""
+    code, out = conditional_get(run, f"repos/{repo}/rulesets", cache)
+    try:
+        ids = [r["id"] for r in json.loads(out) if r.get("name") == name] if not code else []
+        if len(ids) != 1 or not isinstance(ids[0], int):
+            return False, {}
+        code, out = conditional_get(run, f"repos/{repo}/rulesets/{ids[0]}", cache)
+        if code:
+            return False, {}
+        rules = [r for r in json.loads(out)["rules"] if r.get("type") == "required_status_checks"]
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return False, {}
+    return True, (rules[0].get("parameters") or {}) if rules else {}
+
+
+def required_contexts(params: dict) -> "set[str]":
+    """The context names a `required_status_checks` rule's parameters require."""
+    return {c["context"].strip() for c in params.get("required_status_checks") or []
+            if isinstance(c, dict) and isinstance(c.get("context"), str) and c["context"].strip()}
+
+
+def fake_ruleset(argv, rid: str, contexts: str, strict: "str | None" = None, name: str = "main-protect-checks"):
+    """The self-tests' GitHub for the two ruleset paths: <contexts> (newline-separated, "" the
+    ruleset unreadable, a 404) answered as `gh api -i`, with an ETag a matching If-None-Match
+    turns into a 304 -- gh's own rc 1. The one fake both instruments' self-tests share."""
+    if not contexts:
+        return 1, "gh: Not Found (HTTP 404)"
+    path = next(a for a in argv if a.startswith("repos/"))
+    if path.endswith("/rulesets"):
+        body = json.dumps([{"id": int(rid), "name": name}])
+    else:
+        params = {"required_status_checks": [{"context": c} for c in contexts.splitlines() if c.strip()]}
+        if strict in ("true", "false"):  # anything else: the key absent, an unreadable policy
+            params["strict_required_status_checks_policy"] = strict == "true"
+        body = json.dumps({"rules": [{"type": "required_status_checks", "parameters": params}]})
+    etag = '"' + hashlib.sha256(body.encode()).hexdigest()[:16] + '"'
+    if f"If-None-Match: {etag}" in argv:
+        return 1, f"HTTP/2.0 304 Not Modified\nEtag: {etag}\n\ngh: HTTP 304"
+    return 0, f"HTTP/2.0 200 OK\nEtag: {etag}\nContent-Type: application/json\n\n{body}"
+
+
 def one_line(failure) -> str:
     return " ".join(str(failure).split())
 
@@ -263,6 +411,118 @@ def is_read(argv) -> bool:
         elif a[:2] in SHORT_FIELD_FLAGS or a.split("=", 1)[0] in LONG_FIELD_FLAGS:
             return False
     return method.upper() == "GET"
+
+
+def is_query(argv) -> bool:
+    """A `gh api graphql` call that only queries: every field a raw `-f`, exactly one of
+    them `query=`, its document read from the line (no `@file`) and naming no mutation
+    or subscription. A read by content, where `is_read` judges by method."""
+    argv = list(argv)
+    if argv[:3] != ["gh", "api", "graphql"]:
+        return False
+    rest, docs, k = argv[3:], [], 0
+    while k < len(rest):
+        if rest[k] != "-f" or k + 1 >= len(rest) or "=" not in rest[k + 1]:
+            return False
+        name, value = rest[k + 1].split("=", 1)
+        if value.startswith("@"):
+            return False
+        if name == "query":
+            docs.append(value)
+        k += 2
+    return len(docs) == 1 and not any(w in docs[0].lower() for w in ("mutation", "subscription"))
+
+
+def parse_included(out: str):
+    """`gh api -i` output -> (status, headers with lower-case names, body); (None, {}, out)
+    when it opens with no status line."""
+    head, _, body = out.replace("\r\n", "\n").partition("\n\n")
+    lines = head.split("\n")
+    first = lines[0].split()
+    if len(first) < 2 or not first[0].startswith("HTTP/") or not first[1].isdigit():
+        return None, {}, out
+    headers = {}
+    for ln in lines[1:]:
+        name, colon, value = ln.partition(":")
+        if colon:
+            headers[name.strip().lower()] = value.strip()
+    return int(first[1]), headers, body
+
+
+def _included(out: str, now: float):
+    """(status, body, spent, the wait the response names) of a `gh api -i` answer."""
+    status, h, body = parse_included(out)
+    if status is None:
+        return None, out, False, None
+    spent = rate_limited(status, body) and h.get("x-ratelimit-remaining") == "0"
+    wait = named_wait({"Retry-After": h.get("retry-after", ""), "x-ratelimit-reset": h.get("x-ratelimit-reset", "")}, now, spent)
+    return status, body, spent, wait
+
+
+def included_wait(out: str, now: Callable[[], float] = time.time) -> float | None:
+    """`retry`'s classifier for `gh api -i` output, which carries the headers gh's plain
+    output drops: urllib_wait's rule, read off the response text."""
+    status, body, spent, wait = _included(out, now())
+    if status is None:
+        return gh_wait(out)
+    if spent:
+        return wait
+    if not http_transient(status, body):
+        return None
+    return wait or 0.0
+
+
+def rate_wait(out: str, now: Callable[[], float] = time.time) -> float | None:
+    """The wait (s) a failed `gh api -i` read names when it is a rate-limit answer, at
+    least 0; None for any other failure. A scan pauses on it; it never sleeps it out."""
+    status, body, spent, wait = _included(out, now())
+    if status is None or not (rate_limited(status, body) or (status == 403 and SECONDARY in body.lower())):
+        return None
+    return max(wait or 0.0, 0.0)
+
+
+def read_conditional(run, path: str, etag: str = "", sleep=time.sleep, note=lambda line: None,
+                     now: Callable[[], float] = time.time):
+    """One page under the read rule -> (state, body, etag, raw): `fresh` with the body and
+    its ETag, `unchanged` (a 304 to `If-None-Match: <etag>`; the cached page stands), or
+    `failed` with the last output in `raw`, for `rate_wait` and the caller's report."""
+    argv = ["gh", "api", "-i", path] + (["-H", f"If-None-Match: {etag}"] if etag else [])
+
+    def attempt():
+        code, out = run(argv)
+        status, h, body = parse_included(out)
+        if status == 304:
+            return ("unchanged", "", etag), None
+        if code == 0 and status is not None and 200 <= status < 300:
+            return ("fresh", body, h.get("etag", "")), None
+        return None, out
+
+    value, failure, _, _ = retry(attempt, lambda f: included_wait(f, now), sleep, note)
+    if failure is None:
+        return (*value, "")
+    return "failed", "", etag, failure
+
+
+def budget(run):
+    """{bucket: (limit, remaining, reset)} from `gh api rate_limit`, which costs nothing;
+    None when it cannot be read or holds no bucket."""
+    code, out = run(["gh", "api", "rate_limit"])
+    if code:
+        return None
+    try:
+        res = json.loads(out).get("resources") or {}
+        got = {k: (int(v["limit"]), int(v["remaining"]), int(v["reset"])) for k, v in res.items() if isinstance(v, dict)}
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return None
+    return got or None
+
+
+def below_floor(buckets, floor: float, names=GATED) -> list[str]:
+    """The gated buckets with less than `floor` of their limit left; an unread budget, or
+    a gated bucket it does not hold, is below every floor."""
+    if not buckets:
+        return ["unread"]
+    return [n for n in names if n not in buckets or buckets[n][1] < floor * buckets[n][0]]
 
 
 def _alternatives(pattern: str) -> list[str]:
@@ -632,6 +892,154 @@ def self_test() -> int:
     check("an unparseable page is a failure (rc 1), never an empty list",
           code == 1 and items is None and why.startswith("page 1 of repos/o/r/x is not JSON"))
 
+    # THE BULK READ: the conditional read, the rate-limit wait, the budget and its floor.
+    def inc(status, headers=(), body="", tail=""):
+        return f"HTTP/2.0 {status}\r\n" + "".join(f"{k}: {v}\r\n" for k, v in headers) + "\r\n" + body + tail
+
+    def cond(queue, etag=""):
+        """read_conditional over a queue of (code, output); a spent queue answers a 200."""
+        calls, sleeps = [], []
+
+        def run_(argv):
+            calls.append(argv)
+            return queue.pop(0) if queue else (0, inc(200, [("Etag", 'W/"new"')], "[1]"))
+        return read_conditional(run_, "repos/o/r/issues?per_page=100&page=1", etag, sleeps.append, now=lambda: 1000.0), calls, sleeps
+
+    got, calls, _ = cond([(0, inc(200, [("Etag", 'W/"a1"'), ("X-Ratelimit-Remaining", "4000")], '[{"n": 1}]'))])
+    check("a first conditional read is fresh, with its body and ETag, and sends no If-None-Match",
+          got == ("fresh", '[{"n": 1}]', 'W/"a1"', "") and calls == [["gh", "api", "-i", "repos/o/r/issues?per_page=100&page=1"]])
+    got, calls, sleeps = cond([(1, inc(304, [("Etag", 'W/"a1"')], "", "gh: HTTP 304\n"))], 'W/"a1"')
+    check("a 304 to the cached ETag is unchanged: an answer on the first call, though gh exits non-zero on it",
+          got == ("unchanged", "", 'W/"a1"', "") and len(calls) == 1 and sleeps == []
+          and calls[0][-2:] == ["-H", 'If-None-Match: W/"a1"'])
+    check("null control: the same exit status with no 304 status line is a failure, not unchanged",
+          cond([(1, inc(404, [], '{"message": "Not Found"}', "gh: Not Found (HTTP 404)\n"))], 'W/"a1"')[0][0] == "failed")
+    got, calls, sleeps = cond([(1, inc(502, [], "", "gh: Bad Gateway (HTTP 502)\n"))])
+    check("a 5xx is read again under the schedule, then answers", got[0] == "fresh" and len(calls) == 2 and sleeps == [READ_SLEEP_S])
+    sec = inc(403, [("Retry-After", "7")], '{"message": "You have exceeded a secondary rate limit."}', "gh: (HTTP 403)\n")
+    got, calls, sleeps = cond([(1, sec)])
+    check("a secondary limit naming a short Retry-After is read again no sooner than it", got[0] == "fresh" and sleeps == [7.0])
+    long_sec = sec.replace("Retry-After: 7", "Retry-After: 600")
+    got, calls, sleeps = cond([(1, long_sec)])
+    check("...and one naming a wait past the cap fails after its one call, with the wait readable for the scan's pause",
+          got[0] == "failed" and len(calls) == 1 and sleeps == [] and rate_wait(got[3], lambda: 1000.0) == 600.0)
+    spent = inc(403, [("X-Ratelimit-Remaining", "0"), ("X-Ratelimit-Reset", "4600")], '{"message": "API rate limit exceeded"}', "gh: (HTTP 403)\n")
+    got, calls, sleeps = cond([(1, spent)])
+    check("a spent core bucket fails after one call and names its reset as the wait",
+          got[0] == "failed" and len(calls) == 1 and sleeps == [] and rate_wait(got[3], lambda: 1000.0) == 3600.0)
+    got, calls, sleeps = cond([(1, spent.replace("4600", "1009"))])
+    check("...while one resetting inside the schedule is read again after its reset, not refused",
+          got[0] == "fresh" and len(calls) == 2 and sleeps == [9.0])
+    perm = inc(403, [("X-Ratelimit-Remaining", "0"), ("X-Ratelimit-Reset", "4600")], '{"message": "Resource not accessible"}', "gh: (HTTP 403)\n")
+    check("null control: a permission 403, a 404 and output with no status line name no rate-limit wait",
+          rate_wait(perm, lambda: 1000.0) is None and rate_wait(inc(404, [], "{}"), lambda: 1000.0) is None
+          and rate_wait("gh: Not Found (HTTP 404)", lambda: 1000.0) is None and cond([(1, perm)])[0][0] == "failed")
+    check("parse_included reads the status, lower-cases header names and keeps the body; no status line gives None",
+          parse_included(inc(200, [("ETag", "x"), ("Link", "<u>; rel=next")], "b\n\nc")) == (200, {"etag": "x", "link": "<u>; rel=next"}, "b\n\nc")
+          and parse_included("[1]\n")[0] is None)
+    rl = json.dumps({"resources": {"core": {"limit": 5000, "remaining": 3000, "reset": 9}, "graphql": {"limit": 5000, "remaining": 2999, "reset": 9},
+                                   "search": {"limit": 30, "remaining": 0, "reset": 9}}})
+    b = budget(lambda argv: (0, rl) if argv == ["gh", "api", "rate_limit"] else (1, ""))
+    check("the budget is read from rate_limit alone, per bucket", b == {"core": (5000, 3000, 9), "graphql": (5000, 2999, 9), "search": (30, 0, 9)})
+    check("a bucket exactly at the floor passes and one request under it does not; search is not gated",
+          below_floor(b, FLOOR_SHARED) == ["graphql"] and below_floor({**b, "graphql": (5000, 3000, 9)}, FLOOR_SHARED) == []
+          and below_floor(b, FLOOR_OWN) == [])
+    check("an unreadable budget, or one missing a gated bucket, is below every floor (null control: never read as plenty)",
+          budget(lambda argv: (1, "gh: (HTTP 502)")) is None and budget(lambda argv: (1, rl)) is None and budget(lambda argv: (0, "<html>")) is None
+          and budget(lambda argv: (0, "{}")) is None and below_floor(None, FLOOR_OWN) == ["unread"]
+          and below_floor({"core": (5000, 5000, 9)}, FLOOR_OWN) == ["graphql"])
+    check("the scan's pace is declared: a positive batch and gap, and a shared floor above the own-identity floor",
+          BATCH > 0 and MIN_GAP_S >= 1.0 and 0 < FLOOR_OWN < FLOOR_SHARED < 1)
+    q = ["gh", "api", "graphql", "-f", "query=query($n:Int!){repository(owner:\"o\",name:\"r\"){id}}", "-f", "n=3"]
+    check("is_query admits a document that only queries",
+          is_query(q) and not is_read(q))
+    check("...and refuses a mutation, a subscription, a document from a file, a typed field, a second document, or another path",
+          not any(is_query(a) for a in (
+              ["gh", "api", "graphql", "-f", "query=mutation{addComment(input:{})}"],
+              ["gh", "api", "graphql", "-f", "query=subscription{x}"],
+              ["gh", "api", "graphql", "-f", "query=@q.graphql"],
+              ["gh", "api", "graphql", "-F", "query=query{viewer{login}}"],
+              ["gh", "api", "graphql", "-f", "query=query{a}", "-f", "query=query{b}"],
+              ["gh", "api", "graphql", "--input", "f.json"],
+              ["gh", "api", "graphql"],
+              ["gh", "api", "repos/o/r/issues", "-f", "query=query{a}"])))
+
+    # ---- conditional reads (P596, P625): one helper, the ETag and body under the state dir
+    import tempfile
+    with tempfile.TemporaryDirectory() as cd:
+        cache = Path(cd)
+        seen: list = []
+        world = {"body": '{"v": 1}', "etag": '"e1"', "rc": 0}
+
+        def gh_(argv):
+            seen.append(list(argv))
+            inm = next((a for a in argv if a.startswith("If-None-Match: ")), None)
+            if world["rc"]:
+                return 1, "gh: Bad Gateway (HTTP 502)"
+            if inm == f"If-None-Match: {world['etag']}":
+                return 1, f"HTTP/2.0 304 Not Modified\nEtag: {world['etag']}\n\ngh: HTTP 304"
+            return 0, f"HTTP/2.0 200 OK\r\nEtag: {world['etag']}\r\nX-A: b\r\n\r\n{world['body']}"
+
+        P = "repos/o/r/rulesets"
+        check("null control: with no stored ETag the plain read is made (no If-None-Match)",
+              conditional_get(gh_, P, cache) == (0, '{"v": 1}') and not any("If-None-Match" in a for a in seen[0]))
+        code, body = conditional_get(gh_, P, cache)
+        check("a 304 serves the stored body, from one request that carried the stored ETag",
+              (code, body) == (0, '{"v": 1}') and len(seen) == 2 and "If-None-Match: \"e1\"" in seen[1])
+        world.update(body='{"v": 2}', etag='"e2"')
+        check("a 200 replaces the stored body and ETag", conditional_get(gh_, P, cache) == (0, '{"v": 2}')
+              and json.loads(_etag_file(P, cache).read_text()) == {"etag": '"e2"', "body": '{"v": 2}'})
+        check("and the next read is the 304 of the new ETag", conditional_get(gh_, P, cache) == (0, '{"v": 2}')
+              and "If-None-Match: \"e2\"" in seen[-1])
+        world["rc"] = 1
+        code, out = conditional_get(gh_, P, cache)
+        check("any other failure is UNREADABLE, the stored body never served", code != 0 and "502" in out)
+        world["rc"] = 0
+        _etag_file(P, cache).write_text("{not json")
+        n0 = len(seen)
+        check("a corrupt stored file is the plain read", conditional_get(gh_, P, cache)[0] == 0
+              and not any("If-None-Match" in a for a in seen[n0]))
+        check("one stored file per path", conditional_get(gh_, P + "/7", cache)[0] == 0
+              and len(list(cache.glob("*.json"))) == 2)
+        check("a 304 with nothing stored is UNREADABLE, never an empty body",
+              conditional_get(lambda argv: (1, "HTTP/2.0 304 Not Modified\n\ngh: HTTP 304"), "repos/o/r/x", cache)[0] != 0)
+        # the ruleset reads: two reads each cold, none warm; the shared fake is the server
+        calls = []
+
+        def srv(argv):
+            calls.append(argv)
+            return fake_ruleset(argv, "7", "tests\nclosures\n", "true")
+        with tempfile.TemporaryDirectory() as cd2:
+            ok, params = ruleset_checks(srv, "o/r", "main-protect-checks", Path(cd2))
+            ok2, params2 = ruleset_checks(srv, "o/r", "main-protect-checks", Path(cd2))
+            check("ruleset_checks reads the required set and the strict flag",
+                  ok and [c["context"] for c in params["required_status_checks"]] == ["tests", "closures"]
+                  and params["strict_required_status_checks_policy"] is True and (ok2, params2) == (ok, params))
+            check("a warm ruleset read serves both reads as 304s: 4 calls, the second pair conditional",
+                  len(calls) == 4 and all("If-None-Match" in " ".join(c) for c in calls[2:])
+                  and not any("If-None-Match" in " ".join(c) for c in calls[:2]))
+            check("a ruleset by another name is not read",
+                  ruleset_checks(srv, "o/r", "other", Path(cd2)) == (False, {}))
+            check("an unreadable ruleset is not read", ruleset_checks(lambda a: (1, "HTTP 404"), "o/r", "x", Path(cd2)) == (False, {}))
+        # the store's scope is the caller's $HPO_STATE_DIR (etag_dir), not the host
+        saved = os.environ.get("HPO_STATE_DIR")
+        try:
+            def under(state):
+                os.environ["HPO_STATE_DIR"] = str(state)
+                n0 = len(seen)
+                conditional_get(gh_, P)
+                return any("If-None-Match" in a for a in seen[n0])
+            (cache / "s1").mkdir()
+            (cache / "s2").mkdir()
+            cold1, warm1, other = under(cache / "s1"), under(cache / "s1"), under(cache / "s2")
+            check("the ETag store is $HPO_STATE_DIR/gh-etag: a second read under the same state dir is conditional",
+                  not cold1 and warm1 and etag_dir() == cache / "s2" / "gh-etag")
+            check("and a read under another state dir finds nothing stored: its first read is plain", not other)
+        finally:
+            if saved is None:
+                os.environ.pop("HPO_STATE_DIR", None)
+            else:
+                os.environ["HPO_STATE_DIR"] = saved
     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 

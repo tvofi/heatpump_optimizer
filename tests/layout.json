@@ -10,6 +10,8 @@
     "NOTICE",
     "DISCLAIMER.md",
     "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "ROADMAP.md",
     "RELEASE_NOTES.md",
     "VERSION",
     "hacs.json",
@@ -29,7 +31,7 @@
    "name": "docs",
    "why": "product documentation, read by users; the page URLs stay stable for users and HACS",
    "globs": [
-    "docs/{setup,configuration,automations,dashboard-card,ecl110,how-it-works,architecture,CONTRIBUTING}.md",
+    "docs/{setup,configuration,automations,dashboard-card,ecl110,heat-curve,how-it-works,architecture,CONTRIBUTING}.md",
     "docs/img/brand/*",
     "docs/img/card/*",
     "docs/img/model/*",
@@ -61,21 +63,24 @@
     "dev/governance/rules/*.md",
     "dev/governance/roles/*.md",
     "dev/governance/dimensions/*.md",
+    "dev/governance/dimensions/criteria/*.md",
     "dev/governance/decisions/*.md",
     "dev/governance/config/*.json"
    ]
   },
   {
    "name": "dev/programme",
-   "why": "the fix programme record: the living handover, the plan of record, delivery rows, live carries, rosters, the register, proposal-triage rulings",
+   "why": "the fix programme record: the living handover, the owner's standing rulings, the plan of record, delivery rows, live carries, rosters, each round's phases file, the register, proposal-triage rulings",
    "globs": [
     "dev/programme/HANDOVER.md",
+    "dev/programme/RULINGS.md",
     "dev/programme/plan-*.md",
     "dev/programme/delivery/*.md",
     "dev/programme/carries/carry-*.json",
     "dev/programme/rosters/*.json",
     "dev/programme/round9/**",
     "dev/programme/round10/**",
+    "dev/programme/round*/phases.json",
     "dev/programme/register/*.md",
     "dev/programme/triage/*.md"
    ]
@@ -107,7 +112,7 @@
     "tools/policy/**",
     "tools/pr/**",
     "tools/ci/**",
-    "tools/audit/{judge_batch.py,check_scopes.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py}",
+    "tools/audit/{judge_batch.py,check_scopes.py,enumerate.py,product_reads.py,regret_oracle.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py,leak_detectors.py}",
     "tools/audit/seat/**",
     "tools/audit/archscore/**",
     "tools/plan/**",
@@ -761,11 +766,6 @@
   {
    "old": "tools/audit/briefs/judge.md",
    "new": "dev/governance/roles/judge.md",
-   "since": null
-  },
-  {
-   "old": "tools/audit/briefs/nudge.md",
-   "new": "dev/governance/roles/nudge.md",
    "since": null
   },
   {

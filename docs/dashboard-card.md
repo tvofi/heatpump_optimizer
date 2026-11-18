@@ -260,13 +260,13 @@ space heating and hot water together above 0.1 kW, and that channel's own
 share is above 0.05 kW; a smaller planned draw is idle, not a slow run. When the plan publishes an exact reason for that step the heading says
 *Because* and the list is that reason: the other channel has the capacity,
 the fuse limit caps heating, the plan is waiting for solar, the hour is
-dearer than the hours used, or the temperature is above the floor and the
-plan is coasting. Otherwise the heading says *Likely because*, and each line
+more expensive than the hours used, or the temperature is above the floor
+and the plan is coasting. Otherwise the heading says *Likely because*, and each line
 comes from what the plan sensors publish for that step and nothing else:
 
-- the step's price, when it is among the dearer half of the plan's horizon,
-  with the share of the horizon that is at least as dear and the cheapest
-  price in it;
+- the step's price, when it is among the more expensive half of the plan's
+  horizon, with the share of the horizon that is at least as dear and the
+  cheapest price in it;
 - the last run before it, which the house is coasting on, or when the tank
   was last heated;
 - the next run of that channel, with its time and price;
@@ -533,7 +533,13 @@ with how warm the tank is when you ask and with the hour you ask at, because
 both plans start from the tank as measured and a day's plan ends at a
 different point of the tank's cycle: a few degrees on the hot water setpoint
 can read as a saving at one hour and a cost at another, so read it as an
-indication for the coming day. On a two-zone house the schedule estimate
+indication for the coming day. The two-plan figure for the comfort weight or
+the lowest allowed temperature moves with the hour you ask at too, with or
+without a tank: each plan is one day's, so the figure carries how that day's
+prices fall from that hour, and a lighter weight or a lower floor can read as
+a saving at one hour, a cost at another, and at some hour as many times what
+it reads at the rest. Ask at a few hours before acting on its sign.
+On a two-zone house the schedule estimate
 keeps a few tenths a month of the buffer tank's temperature. The Advisor's price tile for a degree
 prices the same thermostat at each hour's own price, so the two differ by
 how the day's prices fall on its heating hours. On an install with a wood

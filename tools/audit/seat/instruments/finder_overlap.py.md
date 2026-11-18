@@ -17,7 +17,8 @@
     report joins `audit-verify.js`'s input like any seat's.
   - **Estimate, after the judge:**
 
-        python3 -I tools/audit/seat/finder_overlap.py estimate --pair ../audit-r<N>-overlap.json \
+        python3 -I tools/audit/seat/finder_overlap.py estimate --scopes dev/audit/config/scopes.json \
+          --pair ../audit-r<N>-overlap.json \
           --report-a dev/audit/rounds/round<N>/reports-<box>.json \
           --report-b dev/audit/rounds/round<N>/<dim>/<key>-twin/REPORT.json \
           --judge dev/audit/rounds/round<N>/JUDGE.json
@@ -26,5 +27,14 @@
     unseen count over judged-real bugs (a judge merge is the shared bug), and
     both models, with `biased low` when they are one. A missing pair, report
     or judge verdict prints `overlap unread (<why>)`.
+  - **Owner-only dimensions are never twinned.** A dimension whose
+    `dev/audit/config/scopes.json` entry carries `owner_only: true` publishes
+    nothing, and a twin's report path is in the tree: `seat` refuses a seat
+    of one, and `estimate` refuses a pair naming one before it opens a report
+    or the judge record. Each prints `REFUSED`, the seat id and that its
+    dimension is owner-only, never a path or a count. `--scopes` is required
+    by both commands, and admission is scopes.json membership alone.
   `--self-test`: the seating refusals, the count rules, the null controls,
-  and one mutant per predicate.
+  the owner-only arms (a canary seat and a nonce drawn per run; null: the
+  flag removed or false, and a D15 seat, are admitted with the twin path
+  printed), and one mutant per predicate.

@@ -268,6 +268,10 @@ INERT = (
     # reads it. Same class as LICENSE / DISCLAIMER.md: an unclassified root
     # file forced the FULL suite and failed the orphan check on #819.
     "SECURITY.md",
+    # The community-standards files GitHub renders (owner's item, round 11):
+    # the code of conduct and the issue forms. No gate script reads them.
+    "CODE_OF_CONDUCT.md",
+    ".github/ISSUE_TEMPLATE/",
     "NOTICE",
     # docs/ except the handover (HANDOVER_DIR below) and the pages a gate
     # script pins (INERT_EXCEPT below, #937 and #939) -- the same split
@@ -362,6 +366,8 @@ INERT = (
     # it -- only this gate has no dependency on it beyond that.
     "AGENTS.md",
     "DISCLAIMER.md",
+    # The long-term direction page (#3616): prose linked from README.md, read by no gate script.
+    "ROADMAP.md",
     # The quality-scale register (#229) sat here from #229 to #951: no gate
     # script read it, so the INERT listing was honest. #951 ended that --
     # tests/entities.py now reads the register to pin its coverage-bearing
@@ -592,11 +598,24 @@ INERT_EXCEPT = (
     # R10-CI-PRIORITY-PAUSE: that self-test reads the tier setting (owed-line ranks);
     # dev/audit/ is INERT by prefix, so the file moves to the recorded closure.
     "dev/audit/config/ci_priority.json",
+    # R11-PRE-SECURITY-PRIVACY: tests/entities.py runs check-wave-script.mjs,
+    # which reads each dimension's owner_only flag here; CI's closures job said
+    # INERT READS UNDER-APPROXIMATED, and inert_reads alone leaves it UNDER-SCOPED.
+    # It moves to the recorded closure, so a scopes edit selects tests/entities.py.
+    "dev/audit/config/scopes.json",
     # ... and that file's own readers: tests/entities.py loads the two new
     # R10-CI-PRIORITY-PAUSE modules (ci_priority.py, ci_pause.py) and runs
     # their self-tests, so the tools/audit/seat/ INERT prefix must not hide them.
     "tools/audit/seat/ci_priority.py",
     "tools/audit/seat/ci_pause.py",
+    # R11-PRE-STANDING-SCRIPTS: the tick loads the owed watch (its fired-ledger,
+    # seat-on and FIRE-OWED reads moved there), so that self-test reads it. Same
+    # route as ci_priority.py: the prefix stays INERT, the file joins the closure.
+    "tools/audit/seat/owed_watch.py",
+    # R11-PRE-ACK-COMPLETION part 2: the tick's self-test feeds the lines it emits through
+    # owed_unactioned's reader (the cap line, the design-review line), so that self-test reads it;
+    # ci_predict's self-test-reads arm names it UNDER-SCOPED. Same route as owed_watch.py.
+    "tools/audit/seat/owed_unactioned.py",
     # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
     # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
     "tools/audit/seat/pr_cap.py",
@@ -644,6 +663,9 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
+    # R11-PRE-PLAN-RENDER: plan_page.py imports the round's phases section, so
+    # the same self-test opens it; it joins the recorded closure beside it.
+    "tools/audit/seat/plan_phases.py",
     # R10-TICK-LEVELS P2: roster_sync.py (already a recorded read above) imports
     # the topic grammar's one owner in-process, so tests/entities.py's load of it
     # opens this file. CI's closures job 128825445404 was UNDER-SCOPED on it and
@@ -691,6 +713,7 @@ INERT_EXCEPT = (
     # dependency, not inert prose, whatever directory it lives in.
     "docs/dashboard-card.md",
     "docs/ecl110.md",
+    "docs/heat-curve.md",
     "docs/how-it-works.md",
     "docs/setup.md",
     # R10-OUTSIDE-CONTRIBUTOR-CYCLE: the contributor guide is a reader doc
@@ -776,6 +799,7 @@ INERT_EXCEPT = (
     "tools/audit/seat/instruments/beatd.py.md",
     "tools/audit/seat/instruments/cloud_dispatch.py.md",
     "tools/audit/seat/instruments/heartbeat.sh.md",
+    "tools/audit/seat/instruments/merge_train.py.md",
     "tools/audit/seat/instruments/tick_loop.sh.md",
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/postmerge.py",
@@ -1123,6 +1147,7 @@ _CITATION_POLICY = (
     r"\.claude/rules/[a-z0-9-]+\.md",
     r"dev/governance/roles/[A-Za-z0-9_.-]+\.md",
     r"dev/governance/dimensions/[A-Za-z0-9_.-]+\.md",
+    r"dev/governance/dimensions/criteria/[A-Za-z0-9_.-]+\.md",
 )
 
 

@@ -43,9 +43,17 @@
   and `behind`, the commits in `HEAD..origin/main` touching `tools/audit/seat`,
   `tools/pr` or `tools/audit/carry_audit.py`. Past `HPO_TICK_STALE_BOUND`
   (default 25) or on a commit touching `tick_loop.sh` or `cloud_relay.sh`, it
-  restarts between passes, at most once a pass: lock free, tree clean and
-  detached, `bash -n` passing on origin/main's copy, then a detached checkout
-  of origin/main and an exec with the same args (`TICK-RESTART`). Otherwise
+  restarts between passes, at most once a pass: lock free, tree clean,
+  `bash -n` passing on origin/main's copy, then a checkout of origin/main --
+  detached, or `checkout -B <branch> origin/main` for a branch-backed checkout
+  holding no commit outside origin/main -- and an exec with the same args
+  (`TICK-RESTART`). A branch with commits of its own is never moved. Otherwise
   a `TICK-STALE` line names why, the relay and sweep arms are skipped
-  (`relay=stale`) and the board is still written. Never a fast-forward in
-  place. `HPO_TICK_CODE_DIR` replaces the checkout.
+  (`relay=stale`) and the board is still written; from the second consecutive
+  stale pass (`<out>.stale`) the board ends with
+  `-> OWED relay-skipped code=<sha7> behind=<n>: <why> (stale <k> consecutive passes)`.
+  Never a fast-forward in place. `HPO_TICK_CODE_DIR` replaces the checkout.
+  Relay gap (S14-RELAY-CADENCE): in the sleep between passes the loop reaps a
+  finished relay (its `TICK-RELAY` line) and starts the next under the same lock
+  once `HPO_TICK_RELAY_GAP` s (default 120) have passed since it ended; the tick
+  keeps `--interval`. A stale pass starts none in its sleep, nor does a relay in flight.

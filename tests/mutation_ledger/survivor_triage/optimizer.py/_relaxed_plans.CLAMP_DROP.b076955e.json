@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_relaxed_plans CLAMP_DROP b076955e",
+  "old": "            pair[0], [np.minimum(x, free_room) for x in starts], free[0], args=(dhw_plan,),",
+  "reason": "Survived tests/features.py, the one driver run, under `mutation_table.py --pin-killed --scripts tests/features.py` at 3f0149a81b (R11-OUTSIDE-HONEST-STARTS-RUNS, repair round 4; pull request 3602, the build of Bankaifan's pull request 3529); the other drivers of the file's closure were not run. The mutant hands the second descent's multi-start its starts unclipped to the bound no stop cuts. The plan it returns is clipped to that bound on the next line and L-BFGS-B projects a start into its bounds, so no shipped plan moved on the block's priced installs; not shown equivalent on a start far outside the bound. A check that reads the starts the second multi-start is handed would kill it; none is recorded.",
+  "verdict": "gap"
+}

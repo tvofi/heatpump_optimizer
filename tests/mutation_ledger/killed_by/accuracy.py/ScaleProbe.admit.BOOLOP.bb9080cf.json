@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleProbe.admit BOOLOP bb9080cf",
+  "killed_by": "tests/features.py",
+  "old": "            if not self.reseeded and not COP_SCALE_MIN < row.cop_scale < COP_SCALE_MAX:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if not self.reseeded or not COP_SCALE_MIN < row.cop_scale < COP_SCALE_MAX:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}

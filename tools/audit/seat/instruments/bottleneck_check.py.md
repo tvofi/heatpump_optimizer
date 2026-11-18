@@ -17,7 +17,9 @@
   row runs it every 30 minutes with `--train-log` (the overlay's
   `train_log`), `--wip-cap` (`plan_slots`) and `--memory`, which re-prints a
   held breach's first line verbatim so the digest's wake fires once per trip
-  and again only after a recovery. `--self-test`: a null control, one planted
+  and again only after a recovery, except while the live value is more than a
+  quarter worse than the first line's (lower is worse for yield and
+  throughput): then the live line prints. `--self-test`: a null control, one planted
   case per rule, each rule's boundary and minimum sample, a running batch not
   read, the UNREADABLE arm per rule, the trip memory, and one mutant per rule
   predicate; the beat row's arms are mutated in

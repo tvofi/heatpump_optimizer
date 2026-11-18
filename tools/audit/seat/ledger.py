@@ -37,7 +37,7 @@ where its rewritten level `<log>.level` already lives:
 
 KINDS. DERIVED kinds are recomputed every pass from the live world and never
 accumulate: the relay rewrites them into `<log>.level` (`handoff-no-pr` through
-`level` here), the tick computes `design-build` and `review-owed`. EVENT kinds
+`level` here), the tick computes `design-build`, `design-review` and `review-owed`. EVENT kinds
 cannot be recomputed and live in events.tsv: an `open` at a new sha supersedes
 the subject's open entry (a moved subject closes the old one and opens one); a
 `close` at its sha, or at `-`, is the producer's disposal. The PR-keyed events
@@ -104,8 +104,8 @@ from merge_train import is_sha  # noqa: E402
 ROOT = Path(__file__).resolve().parents[3]
 KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
-    "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived", "handoff-body-unapplied": "derived", "handoff-hold-stale": "derived",
-    "design-build": "derived", "review-owed": "derived", "record-owed": "derived",
+    "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived", "handoff-body-unapplied": "derived", "handoff-hold-stale": "derived", "handoff-skipped": "derived",
+    "design-build": "derived", "design-review": "derived", "review-owed": "derived", "record-owed": "derived",
     "probe-refused": "derived", "handoff-verdict-held": "derived", "confirm-owed": "derived", "push-stuck": "derived",
     "seat-no-return": "derived", "carry-fold": "derived",
     "fixer-round": "derived", "recut": "derived", "train-parked": "derived", "dirty": "derived",
@@ -116,6 +116,7 @@ KINDS = {
 PR_KEYED = ("reviewer-fire", "verdict-unposted", "approve-held-runs", "dispatch")
 ARMS = (("refs/heads/probe/", "probe-ref"), ("refs/heads/handoff-body/", "handoff-no-pr"),
         ("refs/heads/handoff/", "handoff-no-pr"), ("refs/heads/design-verdict/", "design-build"),
+        ("refs/heads/design/", "design-review"),
         ("refs/heads/review/", "confirm-owed"), ("refs/heads/handoff-wip/", "blocked-stop"))
 STATE_REF = re.compile(r"^audit-r\d+-(?:plan|roster)$")
 RELAY_WRITE = re.compile(r"\b(ledger_open|level_line) ([a-z-]+) ")
@@ -648,6 +649,35 @@ def design_builds(verdicts: dict, designs: dict, stage_of, disp: dict) -> list[s
     return out
 
 
+DESIGN_REVIEW_STAGES = NOT_DISPATCHED + ("design", "design-review")
+VERDICT_SHA = re.compile(r"^Design review: (\S+) ([0-9a-f]{40})")
+
+
+def design_reviews_owed(designs: dict, firsts: dict, tip_at: dict, review_at: dict, stage_of,
+                        disp: dict, now: float, critical=()) -> list[str]:
+    """`DESIGN-REVIEW OWED` lines: a design/<t> tip that its design-verdict/<t>
+    does not name, with no design-reviewer dispatch committed since the tip.
+    designs {t: tip sha}, firsts {t: (verdict sha, verdict.md first line)},
+    tip_at {t: tip commit epoch}, review_at {t: epoch of the newest
+    dispatch/design-reviewer-<t> commit, absent with no ref}, all keyed
+    lowercased; stage_of(t) -> (group, stage), stage "closed" for a group that
+    is not open. A tip already disposed at its own sha is not owed."""
+    out = []
+    for t, tip in sorted(designs.items()):
+        group, stage = stage_of(t)
+        m = VERDICT_SHA.match(firsts.get(t, ("", ""))[1])
+        if (m and m.group(2) == tip) or stage not in DESIGN_REVIEW_STAGES \
+                or disp.get(f"refs/heads/design/{t}", ("",))[0] == tip:
+            continue
+        if t in review_at and review_at[t] >= tip_at[t]:
+            continue
+        out.append(f"DESIGN-REVIEW OWED:{' CP' if group in critical else ''} {group or '?'} design/{t} {tip[:12]} "
+                   f"-- verdict {m.group(1) if m else 'none'} {m.group(2)[:12] if m else '-'}, "
+                   f"no dispatch/design-reviewer-{t} since the tip ({(now - tip_at[t]) / 3600:.1f}h); "
+                   "dispatch the design reviewer")
+    return out
+
+
 def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_branch=None,
                 recarry=None) -> list[str]:
     """`REVIEW OWED: #N <head12>` per open non-draft PR whose comments were
@@ -854,6 +884,8 @@ def self_test() -> int:
         check("each of the five arms classifies", [classify(f"refs/heads/{p}/x") for p in
               ("probe", "handoff", "handoff-body", "design-verdict", "review")]
               == ["probe-ref", "handoff-no-pr", "handoff-no-pr", "design-build", "confirm-owed"])
+        check("a design tip classifies as design-review, beside the verdict arm's design-build",
+              classify("refs/heads/design/x") == "design-review" and classify("refs/heads/design-verdict/x") == "design-build")
         check("a ref of no arm is refused, not guessed", refuses(lambda: classify("refs/heads/main")) == "Refused")
         h = D / "imp"
         h.mkdir()
@@ -888,6 +920,16 @@ def self_test() -> int:
             del os.environ["HPO_STATE_DIR"]
         check("null control: dispose into the default home prints nothing and writes",
               rc_d == 0 and err.getvalue() == "" and dispositions(dflt)["refs/heads/probe/n"][0] == C)
+        dispose(h, "refs/heads/design/g1", C, "test")
+        check("dispose records a design tip, and a disposition at its sha silences DESIGN-REVIEW OWED",
+              design_reviews_owed({"g1": C}, {}, {"g1": 0}, {}, lambda t: ("R10-G1", "not-started"), {}, 3600.0) != []
+              and design_reviews_owed({"g1": C}, {}, {"g1": 0}, {}, lambda t: ("R10-G1", "not-started"),
+                                      dispositions(h), 3600.0) == [])
+        dro = lambda crit: design_reviews_owed({"g1": C}, {}, {"g1": 0}, {}, lambda t: ("R10-G1", "not-started"), {}, 3600.0, crit)
+        check("DESIGN-REVIEW OWED carries the CP mark for a critical group, as DESIGN OWED does",
+              [x.startswith("DESIGN-REVIEW OWED: CP R10-G1 ") for x in dro({"R10-G1"})] == [True])
+        check("null control: a group off the critical path prints no CP mark",
+              [x.startswith("DESIGN-REVIEW OWED: R10-G1 ") for x in dro(set())] == [True])
         check("dispose refuses a ref of no arm", refuses(lambda: dispose(h, "refs/heads/main", A)) == "Refused")
         check("a missing store with no legacy file is first run: empty", dispositions(D / "none") == {})
         (D / "bad").mkdir()

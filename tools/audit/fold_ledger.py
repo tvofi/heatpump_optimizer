@@ -5,6 +5,7 @@
   fold_ledger.py check [--root DIR] [--ledger FILE] [--judge FILE ...]
   fold_ledger.py refresh [--root DIR]
   fold_ledger.py sync [--root DIR]
+  fold_ledger.py yield [--root DIR] [--ref REF] [--instances]
   fold_ledger.py --self-test
 
 `fold` is run by .claude/workflows/audit-verify.js after the class sweep. It
@@ -48,6 +49,13 @@ second) and refuses, printing one line each:
                       while not barriered, or any instance of a barriered
                       class) and carries neither a barrier nor an rca whose
                       document is in dev/audit/rca;
+  OWNER-ONLY          a record of a dimension whose dev/audit/config/scopes.json
+                      entry carries `owner_only: true`: a verdict of any kind in
+                      an in-tree JUDGE.json, a class instance, or an
+                      `_unclassified` row. Such a dimension publishes nothing,
+                      so the line names the file or the class and the
+                      dimension, never the id; `fold` refuses the same round
+                      before it writes;
   UNKNOWN-RCA/DANGLING  a cited rca not in `_rca`, or an `in_tree_home` that is
                       not an existing file under dev/audit/rca;
   MISSING-PATH        a path-shaped token of a class's `barrier` or `detector`
@@ -61,6 +69,41 @@ second) and refuses, printing one line each:
                       names the class id: a barrier shipped there is named as
                       the class's barrier, or the refusal says why it does not
                       qualify under `_status`.
+`yield` (card E11-N-RULE-YIELD; decision 0018 section 3 scores a rule by "its
+bug class's instances after the rule merged") is report-only and derives
+every date from git at `--ref` (default HEAD), storing none: the instance
+grammar and each of its readers stay as they are, and `check` reads the same
+before and after.
+  - An instance's date is the committer time of the first first-parent commit
+    of REF whose ledger adds the instance string, read from one `git log -p`
+    walk that follows the ledger's own renames. A `non_round_instances` row
+    is dated by the commit its leading SHA names; one naming none is
+    `undated`, counted and never dropped.
+    The date is when the ledger RECORDED the instance, not when the defect
+    happened: an instance back-filled by the commit that created the ledger
+    carries that commit's date, so a rule older than the ledger reads
+    before 0 whatever happened before it.
+  - A rule's date is its first add under `git log --follow
+    --diff-filter=A`, not the add at its present path: a rule moved between
+    directories existed before the move. `--follow` traces a copy as well
+    as a rename, and that is the design choice here, not an accident: the
+    rules came to dev/governance/rules/ as copies of `.claude/rules/`,
+    which stayed behind as the generated copy, so a renames-only walk
+    would stop at that move and date every rule by it. The cost is a rule
+    drafted from another file taking that file's date, so a row whose date
+    comes from another path names it (`as <path>`).
+  - A class names its rules in `rules`, a list of paths (empty is a value),
+    each of which `check` resolves (MISSING-PATH). The rule rows are the
+    files of dev/governance/rules/ at REF, CLAUDE.md and AGENTS.md where
+    REF has them, and any other path a class names.
+It prints one `RULE <path> added <date> [as <first path>] classes <ids>:
+before B after A undated U` row per rule, an instance recorded in the commit that adds the
+rule or earlier counting before; `no-class` in place of the counts when no
+class names the rule, never 0, which decision 0018 would read as a rule to
+remove; `--instances` adds one `INSTANCE <class> <instance> <date>` row
+each. A shallow repository refuses: its history starts where the clone was
+cut, so every date read off it would be the cut's.
+
 The default root is the repository this file lives in. The wave-script lane runs
 the branch's own copy of this file, not a pinned one, so a branch could edit the
 grader it is graded by; the only protection is ownership (CODEOWNERS names it).
@@ -81,8 +124,14 @@ RCA_DIR = "dev/audit/rca"
 LEDGER = "dev/audit/config/bugclasses.json"
 SCHEMA = "dev/audit/config/finding.schema.json"
 FIND_WORKFLOW = ".claude/workflows/audit-find.js"
+SCOPES = "dev/audit/config/scopes.json"
+DIM_OF = re.compile(r"^(D[0-9]+)(?:[-.]|$)")
 BLOCK_BEGIN = "// FINDING-SCHEMA:BEGIN"
 BLOCK_END = "// FINDING-SCHEMA:END"
+RULES_DIR = "dev/governance/rules"
+RULE_FILES = ("CLAUDE.md", "AGENTS.md")
+LEADING_SHA = re.compile(r"^([0-9a-f]{7,40})\b")
+JSON_STRING = re.compile(r'"(?:[^"\\]|\\.)*"')
 
 
 def classes(led):
@@ -155,6 +204,44 @@ def refresh(root):
     return 0
 
 
+def owner_only(root):
+    """The dimensions `root`'s scopes.json declares owner-only (`owner_only: true`): the one declaration.
+    A tree with no scopes.json declares none."""
+    try:
+        table = json.load(open(os.path.join(root, SCOPES)))
+    except (OSError, ValueError):
+        return set()
+    return {d for d, e in table.items() if isinstance(e, dict) and e.get("owner_only") is True} if isinstance(table, dict) else set()
+
+
+def owner_only_dim(text, dims):
+    """The owner-only dimension a finding id, a seat or a step names, or None."""
+    m = DIM_OF.match(str(text or ""))
+    return m.group(1) if m and m.group(1) in dims else None
+
+
+def owner_only_records(root, led, judge_files=None):
+    """One line per place the tree holds a record of an owner-only dimension: where and which dimension, never the id."""
+    dims = owner_only(root)
+    out = set()
+    files = judge_files if judge_files is not None else sorted(glob.glob(os.path.join(root, "dev/audit/rounds/round*/JUDGE.json")))
+    for f in files:
+        for v in json.load(open(f)).get("verdicts", []):
+            for d in {owner_only_dim(v.get(k), dims) for k in ("id", "into", "scope", "step", "dimension")} - {None}:
+                out.add(f"OWNER-ONLY: {os.path.relpath(f, root)} holds a verdict of {d}, an owner-only dimension: no tree carries one")
+    for cid, e in classes(led).items():
+        for s in e.get("instances", []):
+            p = parse(s)
+            d = owner_only_dim(p[1], dims) if p else None
+            if d:
+                out.add(f"OWNER-ONLY: class {cid} holds an instance of {d}, an owner-only dimension: no tree carries one")
+    for u in led.get("_unclassified", []):
+        d = owner_only_dim(u.get("finding_id"), dims)
+        if d:
+            out.add(f"OWNER-ONLY: _unclassified holds a row of {d}, an owner-only dimension: no tree carries one")
+    return sorted(out)
+
+
 def survivors(root, judge_files=None):
     """{(round, id): file} of every judge survivor in the tree."""
     out = {}
@@ -181,8 +268,11 @@ def check(root, ledger_path=None, judge_files=None):
     for u in led.get("_unclassified", []):
         if _has(u.get("reason")):
             where.setdefault((int(u["round"][1:]), u["finding_id"]), []).append("_unclassified")
+    bad += owner_only_records(root, led, judge_files)
     surv = survivors(root, judge_files)
     for (r, i), f in sorted(surv.items()):
+        if owner_only_dim(i, owner_only(root)):
+            continue  # refused above, by dimension: an UNPLACED line would print its id
         w = where.get((r, i), [])
         if not w:
             bad.append(f"UNPLACED: R{r} {i} ({os.path.relpath(f, root)}) is in no class")
@@ -208,10 +298,10 @@ def check(root, ledger_path=None, judge_files=None):
             bad.append(f"OWED: {cid} met a trigger ({_why(t)}) and has no barrier and no rca document in {RCA_DIR}")
     tops = _tops(root)
     for cid, e in classes(led).items():
-        for fld in ("barrier", "detector"):
-            for tok in path_tokens(e.get(fld), tops):
-                if not os.path.exists(os.path.join(root, tok)):
-                    bad.append(f"MISSING-PATH: {cid}.{fld} cites {tok}, which is not at {root}")
+        cited = [(fld, tok) for fld in ("barrier", "detector") for tok in path_tokens(e.get(fld), tops)]
+        for fld, tok in cited + [("rules", r) for r in e.get("rules", [])]:
+            if not os.path.exists(os.path.join(root, tok)):
+                bad.append(f"MISSING-PATH: {cid}.{fld} cites {tok}, which is not at {root}")
     arms = _test_scripts(root)
     for cid, e in classes(led).items():
         home = [r for r in e.get("rca", []) if _intree(root, led.get("_rca", {}).get(r, {}).get("in_tree_home"))]
@@ -272,6 +362,81 @@ def _why(t):
     return ", ".join(k for k in ("per_round", "cross_round", "barriered_any") if t[k])
 
 
+def _git(root, *args, check=True):
+    """git's stdout at root; a failing call refuses with git's own words (check=False: None)."""
+    r = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True)
+    if r.returncode and check:
+        raise SystemExit(f"fold_ledger: git {' '.join(args[:2])} failed at {root}: {r.stderr.strip()[:200]}")
+    return None if r.returncode else r.stdout
+
+
+def instance_dates(root, ref):
+    """{string: committer time} for every JSON string a first-parent commit of ref added to the
+    ledger, at the oldest such commit, the ledger followed through its renames."""
+    log = _git(root, "log", "--follow", "--first-parent", "--diff-merges=first-parent", "-p", "--format=%x00%ct", ref, "--", LEDGER)
+    dates = {}
+    for chunk in log.split("\0")[1:]:
+        stamp, _, patch = chunk.partition("\n")
+        for line in patch.splitlines():
+            if line.startswith("+") and not line.startswith("+++"):
+                for lit in JSON_STRING.findall(line):
+                    # the walk runs newest first, so the oldest add is the one left standing
+                    dates[json.loads(lit)] = int(stamp)
+    return dates
+
+
+def rule_date(root, ref, path):
+    """(committer time, path) of the rule's first add under `--follow` (a rename or a copy is traced
+    to its source); (None, path) when ref never added it."""
+    adds = _git(root, "log", "--follow", "--diff-filter=A", "--format=%ct", "--name-only", ref, "--", path).split("\n")
+    adds = [x for x in adds if x]
+    return (int(adds[-2]), adds[-1]) if adds else (None, path)
+
+
+def _iso(t):
+    import datetime
+    return "undated" if t is None else datetime.datetime.fromtimestamp(t, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def rule_yield(root, ref="HEAD", instances=False):
+    if _git(root, "rev-parse", "--is-shallow-repository").strip() == "true":
+        raise SystemExit(f"fold_ledger: {root} is a shallow repository: its history starts at the cut, so no date read "
+                         "off it is an instance's or a rule's (git fetch --unshallow)")
+    led = json.loads(_git(root, "show", f"{ref}:{LEDGER}"))
+    added = instance_dates(root, ref)
+    dated = {}
+    for cid, e in classes(led).items():
+        dated[cid] = [(s, added.get(s)) for s in e.get("instances", [])]
+        for s in e.get("non_round_instances", []):
+            m = LEADING_SHA.match(s)
+            stamp = _git(root, "show", "-s", "--format=%ct", f"{m.group(1)}^{{commit}}", check=False) if m else None
+            dated[cid].append((s, int(stamp) if stamp else None))
+    if instances:
+        for cid, rows in dated.items():
+            for s, t in rows:
+                print(f"INSTANCE {cid} {s} {_iso(t)}")
+    linked = {}
+    for cid, e in classes(led).items():
+        for r in e.get("rules", []):
+            linked.setdefault(r, []).append(cid)
+    rules = _git(root, "ls-tree", "--name-only", ref, RULES_DIR + "/").split()
+    rules += [f for f in RULE_FILES if _git(root, "cat-file", "-e", f"{ref}:{f}", check=False) is not None]
+    for r in sorted(set(rules) | set(linked)):
+        t, first = rule_date(root, ref, r)
+        head = f"RULE {r} added {_iso(t)}" + (f" as {first}" if first != r else "")
+        if r not in linked:
+            print(f"{head} no-class")
+            continue
+        rows = [x for cid in linked[r] for x in dated[cid]]
+        after = sum(1 for _, x in rows if x is not None and t is not None and x > t)
+        undated = sum(1 for _, x in rows if x is None or t is None)
+        print(f"{head} classes {','.join(linked[r])}: before {len(rows) - after - undated} after {after} undated {undated}")
+    every = [t for rows in dated.values() for _, t in rows]
+    print(f"fold_ledger yield at {_git(root, 'rev-parse', '--short=12', ref).strip()}: {len(set(rules) | set(linked))} rule(s), "
+          f"{len(linked)} linked; {len(every)} instance(s), {sum(t is not None for t in every)} dated, {every.count(None)} undated")
+    return 0
+
+
 def fold(root, rnd, dry=False):
     d = os.path.join(root, f"dev/audit/rounds/round{rnd}")
     jp = os.path.join(d, "JUDGE.json")
@@ -281,6 +446,9 @@ def fold(root, rnd, dry=False):
     j = json.load(open(jp))
     if int(j.get("round", -1)) != rnd:
         raise SystemExit(f"REFUSE: {jp} is round {j.get('round')}, not {rnd}")
+    private = owner_only_records(root, led, [jp])
+    if private:
+        raise SystemExit("REFUSE: " + "; ".join(private) + " (nothing written)")
     surv = [v for v in j.get("verdicts", []) if v.get("verdict") in SURVIVES]
     new = {}
     for v in surv:
@@ -307,7 +475,7 @@ def fold(root, rnd, dry=False):
                   "mechanism": got["class_mechanism"], "rounds": [], "instances": [], "per_round": {}, "total": 0,
                   "max_per_round": 0, "detector": None, "barrier": None, "status": "open",
                   "nearest_existing": got["nearest"], "mechanism_difference": got["differs"], "minted": f"R{rnd}",
-                  "aliases": [], "rca": [], "rca_planned": [], "trigger": {}}
+                  "aliases": [], "rca": [], "rules": [], "rca_planned": [], "trigger": {}}
     placed = {}
     for cid, e in classes(led).items():
         for s in e["instances"]:
@@ -607,6 +775,7 @@ def self_test():
     err, led, schema, _ = run_fold(base, {"round": 2, "verdicts": [{"id": "D1-01", "verdict": "verified", "class": "P7", "class_mechanism": "m7", "nearest": "P2", "differs": "d"}]})
     expect("a new class with nearest and differs is minted, marked, and lands in the schema enum before 'new'",
            err is None and led["P7"]["nearest_existing"] == "P2" and led["P7"]["minted"] == "R2" and '"P7", "new"' in schema)
+    expect("a minted class names no rule yet: its rules list is empty, a value yield reads", err is None and led["P7"]["rules"] == [])
     err, *_ = run_fold(base, {"round": 2, "verdicts": [{"id": "D1-01", "verdict": "verified"}]})
     expect("a survivor with no class is refused", err and "has no class" in err)
     err, *_ = run_fold(base, jv, {"class": "P1", "instance_list": [{"file": "a.py", "symbol": "f"}]})
@@ -646,17 +815,198 @@ def self_test():
            err is None and "\nconst CLASS_GUESS = /^((P1|P2|new))$/\n" in wf)
     err, *_ = run_sync(base, mint, wf="const a = 1\n")
     expect("a workflow with no generated block is refused, never skipped", err and "no // FINDING-SCHEMA:BEGIN" in err)
+
+    # OWNER-ONLY (row P4 of the owner-only channel). The dimension, the finding number and the
+    # nonce are drawn per run: no fixed id of an owner-only dimension sits in this file.
+    import contextlib
+    import io
+    import secrets
+    odim, nn, nonce = f"D{200 + secrets.randbelow(700)}", f"{secrets.randbelow(100):02d}", secrets.token_hex(12)
+
+    def owned(flag, dim, verdict="verified", ledger=None, mode="check"):
+        """check or fold over a tree whose scopes declare `odim` by `flag` and whose JUDGE.json holds one verdict of `dim`."""
+        fid = f"{dim}-s1-{nn}"
+        jv = {"round": 2, "verdicts": [{"id": fid, "verdict": verdict, "class": "P1", "note": nonce, "title": nonce}]}
+        led = ledger(fid) if ledger else _settle({"P1": _entry([f"R2 {fid}"] if mode == "check" and verdict in SURVIVES else []),
+                                                  "_rca": {}, "_unclassified": [], "_excluded": []})
+        with tempfile.TemporaryDirectory() as t:
+            _plant(t, led, jv)
+            os.makedirs(os.path.dirname(os.path.join(t, SCOPES)), exist_ok=True)
+            json.dump({"_note": ["x"], "D15": {"seats": {}}, odim: {"seats": {}, **({} if flag is None else {"owner_only": flag})}},
+                      open(os.path.join(t, SCOPES), "w"))
+            before = open(os.path.join(t, LEDGER)).read()
+            buf, err = io.StringIO(), ""
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                try:
+                    rc = check(t) if mode == "check" else fold(t, 2)
+                except SystemExit as e:
+                    rc, err = 1, str(e)
+            return rc, buf.getvalue() + err, fid, open(os.path.join(t, LEDGER)).read() != before
+
+    rc, out, fid, _ = owned(True, odim)
+    expect("check refuses a judge verdict of an owner-only dimension, naming the file and the dimension and never the id or its text",
+           rc == 1 and "OWNER-ONLY: dev/audit/rounds/round2/JUDGE.json holds a verdict of " + odim in out
+           and fid not in out and nonce not in out and "UNPLACED" not in out)
+    rc, out, fid, _ = owned(True, odim, ledger=lambda f: _settle({"P1": _entry([]), "_rca": {}, "_unclassified": []}))
+    expect("...and a survivor of one that no class holds is not listed UNPLACED under its id",
+           rc == 1 and "OWNER-ONLY" in out and fid not in out and "UNPLACED" not in out)
+    rc, out, fid, _ = owned(True, odim, verdict="refuted")
+    expect("...whatever the verdict: a refuted one is a record too", rc == 1 and "OWNER-ONLY" in out and fid not in out)
+    rc, out, fid, _ = owned(True, "D15", ledger=lambda f: _settle({"P1": _entry([f"R2 {f}", f"R1 {odim}-{nn}"]), "_rca": {},
+                                                                   "_unclassified": [{"round": "R1", "finding_id": f"{odim}-s2-{nn}", "reason": "r"}]}))
+    expect("...and a class instance or an _unclassified row of one, by class and by dimension",
+           rc == 1 and f"OWNER-ONLY: class P1 holds an instance of {odim}" in out and f"OWNER-ONLY: _unclassified holds a row of {odim}" in out
+           and f"{odim}-{nn}" not in out and f"{odim}-s2-{nn}" not in out)
+    rc, out, fid, wrote = owned(True, odim, mode="fold")
+    expect("fold refuses the round before it writes, by the same line",
+           rc == 1 and "REFUSE: OWNER-ONLY:" in out and not wrote and fid not in out and nonce not in out)
+    for label, flag in (("removed", None), ("false", False)):
+        rc, out, fid, _ = owned(flag, odim)
+        expect(f"null control: the same record with the flag {label} passes check", rc == 0 and "OWNER-ONLY" not in out and "0 violation" in out)
+    rc, out, fid, _ = owned(True, "D15")
+    rc2, out2, fid2, wrote2 = owned(True, "D15", mode="fold")
+    expect("null control: a D15 record beside an owner-only dimension passes check, and fold writes it",
+           rc == 0 and "0 violation" in out and rc2 == 0 and wrote2 and "OWNER-ONLY" not in out2)
+    _self_test_yield(expect)
     return 1 if fails else 0
+
+
+def _self_test_yield(expect):
+    """`yield` over a planted history: the dates it derives, each row, and its null controls."""
+    import contextlib
+    import io
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
+    body = lambda word: "".join(f"{word} line {i}\n" for i in range(40))
+    day = lambda n: f"2026-01-{n:02d}T00:00:00Z"
+    with tempfile.TemporaryDirectory() as t:
+        env = throwaway_git_init(t, "-q", "-b", "main")
+
+        def g(*a, d=None):
+            e = {**env, **({"GIT_COMMITTER_DATE": d, "GIT_AUTHOR_DATE": d} if d else {})}
+            return subprocess.run(["git", "-C", t, *a], capture_output=True, text=True, check=True, env=e).stdout.strip()
+
+        def put(rel, text):
+            os.makedirs(os.path.dirname(os.path.join(t, rel)) or t, exist_ok=True)
+            open(os.path.join(t, rel), "w").write(text)
+
+        def commit(msg, d):
+            g("add", "-A")
+            g("commit", "-q", "-m", msg, d=d)
+            return g("rev-parse", "HEAD")
+
+        def ledger(path, **cls):
+            put(path, json.dumps({**cls, "_rca": {}}, indent=2))
+
+        R = RULES_DIR
+        old = "first/ledger.json"
+        # day 1: the rule under another directory, the copy decoy's source, the ledger at its first path.
+        put("notes/rule.md", body("rule"))
+        put("old/twin-src.md", body("twin"))
+        put("CLAUDE.md", body("claude"))
+        ledger(old, C=_entry([]), Q=_entry(["R9 Q-1"]))
+        commit("day 1", day(1))
+        # day 2 on a side branch, merged on day 3: the instance lands on the first parent at the merge.
+        g("checkout", "-q", "-b", "side")
+        ledger(old, C=_entry(["R9 X-1"]), Q=_entry(["R9 Q-1"]))
+        side = commit("X-1 on the side branch", day(2))
+        g("checkout", "-q", "main")
+        g("merge", "-q", "--no-ff", "-m", "Merge pull request #1 from x/side", "side", d=day(3))
+        # day 4: the ledger moves to its present path, byte for byte.
+        os.makedirs(os.path.join(t, os.path.dirname(LEDGER)))
+        g("mv", old, LEDGER)
+        commit("move the ledger", day(4))
+        # day 5: the rule moves into the rules directory; a copy of a file that stays, and two fresh rules, are added.
+        os.makedirs(os.path.join(t, R))
+        g("mv", "notes/rule.md", f"{R}/rule.md")
+        put(f"{R}/twin.md", body("twin"))
+        put(f"{R}/late.md", body("late"))
+        put(f"{R}/unlinked.md", body("unlinked"))
+        links = dict(rules=[f"{R}/rule.md", f"{R}/twin.md", f"{R}/late.md"])
+        ledger(LEDGER, C=_entry(["R9 X-1"], **links), Q=_entry(["R9 Q-1"]))
+        d5 = commit("move the rule", day(5))
+        # day 6: a second instance, two non-round rows (one by SHA, one with none) and a rule added with them.
+        put(f"{R}/same.md", body("same"))
+        links["rules"].append(f"{R}/same.md")
+        ledger(LEDGER, C=_entry(["R9 X-1", "R9 X-2"], non_round_instances=[f"{side[:9]} a red", "#12 no sha", "deadbeef0 gone"], **links),
+               Q=_entry(["R9 Q-1"]))
+        commit("X-2", day(6))
+        # day 7: a rule linked to a class whose only instance is older than it.
+        put(f"{R}/quiet.md", body("quiet"))
+        ledger(LEDGER, C=_entry(["R9 X-1", "R9 X-2", "R5 X-3"], non_round_instances=[f"{side[:9]} a red", "#12 no sha", "deadbeef0 gone"], **links),
+               Q=_entry(["R9 Q-1"], rules=[f"{R}/quiet.md"]))
+        commit("quiet", day(7))
+
+        def run(*argv, root=t):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                try:
+                    rc = main(["yield", "--root", root, *argv])
+                except SystemExit as exc:
+                    rc = exc.code
+            return rc, buf.getvalue()
+
+        rc, out = run("--ref", d5)
+        expect("yield: an instance recorded after the rule's first add under another directory reads after 1 "
+               "(the add at the rule's present path, day 5, would read before 1)",
+               rc == 0 and f"RULE {R}/rule.md added {day(1)} as notes/rule.md classes C: before 0 after 1 undated 0\n" in out)
+        rc, out = run("--instances")
+        rows = dict(l[5:].split(" added ", 1) for l in out.splitlines() if l.startswith("RULE "))
+        expect("yield: an instance is dated at the first-parent commit that first holds it: the merge (day 3), "
+               "never the side commit (day 2), and through the ledger's own move",
+               f"INSTANCE C R9 X-1 {day(3)}\n" in out and f"INSTANCE C R9 X-2 {day(6)}\n" in out
+               and f"INSTANCE C R5 X-3 {day(7)}\n" in out
+               and f"INSTANCE Q R9 Q-1 {day(1)}\n" in out)
+        expect("yield: a non-round row is dated by its own SHA's commit; one naming no commit, or a SHA the repository "
+               "lacks, is undated, never dropped and never a refusal",
+               f"INSTANCE C {side[:9]} a red {day(2)}\n" in out and "INSTANCE C #12 no sha undated\n" in out
+               and "INSTANCE C deadbeef0 gone undated\n" in out)
+        expect("yield: a path the history never added has no date", rule_date(t, "HEAD", "no/such.md") == (None, "no/such.md"))
+        expect("yield: every instance at or before the rule's add is before, each later one after",
+               rows.get(f"{R}/rule.md") == f"{day(1)} as notes/rule.md classes C: before 0 after 4 undated 2"
+               and rows.get(f"{R}/late.md") == f"{day(5)} classes C: before 2 after 2 undated 2")
+        expect("yield: a rule copied from a file that stays is dated at that file's add (a design choice: the rules "
+               "directory was itself copied), and the row names the path the date came from",
+               rows.get(f"{R}/twin.md") == f"{day(1)} as old/twin-src.md classes C: before 0 after 4 undated 2")
+        expect("yield: an instance recorded in the commit that adds the rule is before it",
+               rows.get(f"{R}/same.md") == f"{day(6)} classes C: before 3 after 1 undated 2")
+        expect("yield, the null control: a linked rule with no later instance reads after 0",
+               rows.get(f"{R}/quiet.md") == f"{day(7)} classes Q: before 1 after 0 undated 0")
+        expect("yield: a rule no class names reads no-class, never 0; CLAUDE.md is a rule row, an absent AGENTS.md is none",
+               rows.get(f"{R}/unlinked.md") == f"{day(5)} no-class" and rows.get("CLAUDE.md") == f"{day(1)} no-class"
+               and "AGENTS.md" not in rows and len(rows) == 7)
+        expect("yield: the closing line counts the rules, the linked ones and the instances it dated",
+               out.rstrip().endswith("7 rule(s), 5 linked; 7 instance(s), 5 dated, 2 undated"))
+        rc, out = run(root=os.path.join(t, "nowhere"))
+        expect("yield outside a repository refuses", rc not in (0, None) and "RULE" not in out)
+        with tempfile.TemporaryDirectory() as c:
+            throwaway_git_clone(f"file://{t}", c, "-q", "--depth", "1")
+            rc, out = run(root=c)
+            expect("yield on a shallow clone refuses, never a date read off a truncated history",
+                   "shallow" in str(rc) and "RULE" not in out)
+        refresh(t)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = check(t)
+        expect("check: a class's rules that are files at the root pass", rc == 0 and "0 violation" in buf.getvalue())
+        os.remove(os.path.join(t, R, "late.md"))
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = check(t)
+        expect("check: a rules entry that is no file at the root is MISSING-PATH",
+               rc == 1 and f"MISSING-PATH: C.rules cites {R}/late.md" in buf.getvalue())
 
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("mode", nargs="?", choices=("fold", "check", "refresh", "sync"))
+    ap.add_argument("mode", nargs="?", choices=("fold", "check", "refresh", "sync", "yield"))
     ap.add_argument("--root", default=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     ap.add_argument("--round", type=int)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--ledger")
     ap.add_argument("--judge", action="append")
+    ap.add_argument("--ref", default="HEAD", help="yield: the commit whose ledger, rules and history are read")
+    ap.add_argument("--instances", action="store_true", help="yield: also print each instance with its date")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
     if a.self_test:
@@ -668,9 +1018,11 @@ def main(argv):
     if a.mode == "sync":
         sync(a.root)
         return 0
+    if a.mode == "yield":
+        return rule_yield(a.root, a.ref, a.instances)
     if a.mode == "fold" and a.round:
         return fold(a.root, a.round, a.dry_run)
-    ap.error("a mode (fold --round N, check, refresh or sync) or --self-test")
+    ap.error("a mode (fold --round N, check, refresh, sync or yield) or --self-test")
 
 
 if __name__ == "__main__":

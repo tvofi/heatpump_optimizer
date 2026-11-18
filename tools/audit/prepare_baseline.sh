@@ -7,9 +7,9 @@
 #
 # Run from any checkout of the repository. Creates, beside the repository's
 # worktrees directory:
-#   ../audit-r<round>-baseline        the export (D1, D2, D4, D5, D6, D7, D8, D10, D12)
+#   ../audit-r<round>-baseline        the export (D1, D2, D4, D5, D6, D7, D8, D10, D12, D17)
 #   ../audit-r<round>-<dim>           a worktree per dimension in ISOLATED_DIMS below
-#                                     (the instrumenting finders, D14, D15, and D11 and D13, which
+#                                     (the instrumenting finders, D14, D15, D16, and D11 and D13, which
 #                                      audit the process and read `main`'s history and
 #                                      the API, so they need .git)
 # and writes dev/audit/rounds/round<round>/BASELINE.md into each with the paths the
@@ -246,7 +246,10 @@ strip_earlier_rounds "$EXPORT"
 # drifting apart again. D14 joined because it mutates production to prove its
 # detectors move and runs them at pre-fix commits (dev/governance/dimensions/D14.md).
 # D15 joined because its perturbations edit production (dev/governance/dimensions/D15.md).
-ISOLATED_DIMS="D0 D3 D9 D11 D13 D14 D15"
+# D16 joined because its perturbations edit the write path and its upgrade state reads the
+# previous tag's package from .git. Its entry here led the driver's ISOLATED and its brief by
+# one merge: CI grades with the base's copy of this file (check-wave-script.mjs, `pending`).
+ISOLATED_DIMS="D0 D3 D9 D11 D13 D14 D15 D16"
 
 for dim in $ISOLATED_DIMS; do
   wt="$PARENT/audit-r${ROUND}-${dim}"

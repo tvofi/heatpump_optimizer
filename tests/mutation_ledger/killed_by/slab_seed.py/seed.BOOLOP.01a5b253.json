@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/slab_seed.py:seed BOOLOP 01a5b253",
+  "killed_by": "tests/features.py",
+  "old": "    if return_c is not None and refusal(return_c, state.room_temperature, signals) is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if return_c is not None or refusal(return_c, state.room_temperature, signals) is None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

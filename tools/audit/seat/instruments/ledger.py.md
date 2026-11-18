@@ -5,7 +5,7 @@
   (`dispositions.tsv`, written only by `dispose`; `events.tsv`, append-only
   `open`/`close`/`attempt`) and one fold. Derived kinds are recomputed each pass
   (`level` derives `handoff-no-pr` for the relay; the tick derives
-  `design-build` and `review-owed`); event kinds are keyed on kind, subject and
+  `design-build`, `design-review` and `review-owed`); event kinds are keyed on kind, subject and
   sha, an open at a new sha superseding the old, and close by the producer's
   `close`, a moved or closed pull request, or the tick's read-back of the
   approver's comment (`verdict-unposted` only on its own first line: a relayed

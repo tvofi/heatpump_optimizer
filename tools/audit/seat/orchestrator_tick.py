@@ -24,14 +24,14 @@ Sections, each measured:
   TRAIN   is `merge_train.py` alive (pgrep, self excluded); the active queue's
           entries vs merged-into-main (an entry whose PR is already MERGED is
           stale, to drop); the log tail (--train-log, last 5 lines) and its
-          sibling .rc; prepr.sh slots (nudge.md step 8's cap, mechanically).
+          sibling .rc; prepr.sh slots (gate-scoping.md's heavy-slot cap).
   PRS     every open PR: the latest check-run per name at its head (transport
           truth: lowercase conclusions, latest-run-wins) as GREEN / RUN / RED;
           a RED in `merge_train.py owed-reds`' set not answered in the body's
           ## Red checks (every RED when that set is unreadable); missing
           delivery row in the three-dot diff; a queue verdict with the head moved past it
           and no carry; DIRTY/BLOCKED mergeable state; ZERO check runs at a
-          head (the bot-push shape -- approve_held_runs.sh, nudge.md step 11);
+          head (the bot-push shape -- approve_held_runs.sh);
           required contexts absent at the head; twin open PRs at one head
           (the shared-head class); a claim-file touch whose `claims-for:` is
           not VERSION; a head left behind main by more than --behind-max
@@ -50,7 +50,7 @@ Sections, each measured:
           40-55 m). No PR yet is OK inside --stall-hours and STALLED?
           beyond it.
   PLAN    roster groups not done whose predecessors are all done (newly
-          unblocked -- start a fixer; nudge.md step 16) and groups blocked,
+          unblocked -- start a fixer; orchestrator.md section 5) and groups blocked,
           naming the blocker. Read through roster_lib, the one schema reader.
   STATE   state-doc staleness, read-only: the handover's updated-for sha vs
           origin/main's tip, and merged PRs since it with no delivery row
@@ -70,7 +70,7 @@ Sections, each measured:
           the tick's roster ref; exit 1 is one dispatch line and the sweep's
           unowned lines, anything else without its summary is UNREADABLE.
   MAIN    main's tip sha; any non-green required context (the ruleset re-read
-          every tick -- nudge.md step 4: never a remembered list); EVERY
+          every tick: never a remembered list); EVERY
           completed-with-failure lane at the tip, required or not, becomes a
           fixer DISPATCH BRIEF (context, job id + error line, suspected class,
           dispatch instruction; bot lanes lead with the ci-autofix rule) --
@@ -83,10 +83,9 @@ Sections, each measured:
           (one action pinned at two refs across the workflow set); how far
           the checkout sits behind origin/main.
 
-Ported from dev/governance/roles/nudge.md (superseded here where mechanical):
-steps 3 (train status, stale queues), 4 (ruleset re-read), 8 (prepr slots),
-11/15 (zero-runs stall, latest-per-name, pending is not a pass), 16 (unblocked
-groups, deferred stays deferred), 17 (an ancestor checkout is not current).
+Mechanical here: train status and stale queues, the ruleset re-read, prepr
+slots, the zero-runs stall, latest-per-name with pending not a pass, unblocked
+groups (deferred stays deferred), and an ancestor checkout not being current.
 Left behind as the orchestrator's judgement, not reportable from tree/API
 reads: verdict-bus watching, reviewer-owed dispatch, the 15-minute
 worktree-recency rules, post-merge duties, stamps, hold overlays.
@@ -111,6 +110,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import fnmatch
+import hashlib
 import importlib.util
 import json
 import os
@@ -122,13 +122,12 @@ from pathlib import Path
 
 SELF = "tools/audit/seat/orchestrator_tick.py"
 SEAT = Path(__file__).resolve().parent
+sys.path.insert(0, str(SEAT))
+import gh_read  # noqa: E402  the conditional (ETag) read every instrument shares
 ROOT = Path(__file__).resolve().parents[3]
 RULESET = "main-protect-checks"
 STUCK_FACTOR = 2  # a lane pending past this many critical-path medians is stuck (ETA and WAITING share it)
 RECUT_BLOCKED = 3          # the owner's three-round rule: the third blocked verdict owes a re-cut
-SEAT_WINDOW_MIN = 120      # "a seat is on it": a fire or a handoff ref move inside this window
-FIRE_GRACE_MIN = 15        # a rendered payload this old with no FIRED line is FIRE-OWED
-FIRED_STAMP = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d)?Z?)")
 GATE_CONTEXTS = {"gate", "pr-contract"}  # the contexts an early-gate race reddens
 STALL_MINUTES = 90  # P328: p95 dispatch-to-verdict is 70 min; 90 fires on ~2.6% of reviews
 #: Per merge_train.py (its self-test pins the two equal): under the umbrella
@@ -213,9 +212,16 @@ BRIEF_CAP = 5
 HEARTBEAT_SECONDS = 480
 CI_BUDGETS = "tests/ci_budgets.json"
 BOT_LANE = re.compile(r"autofix|nightly|record", re.I)
+ANSI_ESC = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 ERR_LINE = re.compile(r"error|FAILED|refused|fail", re.I)
 DEFERRED_STAGES = ("deferred", "refused")
 UNBLOCKABLE_STAGES = (None, "", "not-started")
+#: UNDISPATCHED reads these too: a `carries-open` group's own part merged and
+#: its carries still owe a seat, which UNBLOCKABLE_STAGES (not-started) never named.
+SEATLESS_STAGES = UNBLOCKABLE_STAGES + ("carries-open",)
+START_AFTER = re.compile(r"start after #(\d+)")
+SEAT_REFS = ("refs/heads/dispatch/fixer-*", "refs/heads/handoff/*", "refs/heads/handoff-wip/*",
+             "refs/heads/handoff-body/*", "refs/heads/fix/*")
 #: The shared actions whose pin the whole lane rides; a pin drift on one of
 #: these is the class that reddened a composed proof on a twin SHA.
 STATE_ACTIONS = ("actions/checkout", "actions/setup-node", "actions/cache",
@@ -253,13 +259,16 @@ def _module(name: str, *candidates: str):
 mt = _module("merge_train_tick", "tools/audit/seat/merge_train.py")
 #: The CI-priority rule (owner, tvofi 2026-10-28): the one order owed PRs print in.
 cpri = _module("ci_priority_tick", "tools/audit/seat/ci_priority.py")
+#: The owed-event watch (R11-PRE-STANDING-SCRIPTS): the one owner of the fired-ledger read,
+#: "a seat is on it" and FIRE-OWED; the methods below delegate to it.
+owatch = _module("owed_watch_tick", "tools/audit/seat/owed_watch.py")
 #: A paused.json record older than this with no train running is owed (P267).
 PAUSED_OWED_MIN = 60
 
 
 def verdict_kind(line: str, head: str) -> "str | None":
     """'merge' or 'blocked' when the approver verdict line names exactly `head`."""
-    m = re.match(r"^Fix review: (merge|blocked) ([0-9a-f]{40})(?: |$)", line)
+    m = owatch.FIX_VERDICT.match(line)  # the one verdict-line grammar
     return m.group(1) if m and m.group(2) == head else None
 
 
@@ -276,7 +285,7 @@ class Tick:
                  mandate_id: int | None = None, stall_hours: float = 2.0,
                  grace_hours: float = 0.5, behind_max: int = 25,
                  mandate_since_days: int = 14,
-                 relay_log: str | None = None,
+                 relay_log: str | None = None, state_dir: str | None = None,
                  bus_state: str | None = None,
                  now: datetime.datetime | None = None,
                  gh=None, git=None, proc=None, bus=None, carry=None,
@@ -294,9 +303,8 @@ class Tick:
         self.stall_hours, self.grace_hours = stall_hours, grace_hours
         self.behind_max = behind_max
         # cloud_relay.sh's own default log (#2419): POSTED/OWED lines.
-        self.relay_log = relay_log or os.path.join(
-            os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"),
-            "cloud-relay.log")
+        self.state_dir = state_dir or os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo")
+        self.relay_log = relay_log or os.path.join(self.state_dir, "cloud-relay.log")
         # bus.sh's dispatch record (`pr head thread nonce`), REVIEW OWED's "no live dispatch".
         self.bus_state = bus_state or os.environ.get("HPO_BUS_STATE") or os.path.expanduser("~/.zcode/bus")
         self.now = now or datetime.datetime.now(datetime.timezone.utc)
@@ -313,6 +321,12 @@ class Tick:
             return self._gh(argv)
         r = subprocess.run(["gh", *argv], capture_output=True, text=True)
         return r.returncode, r.stdout + r.stderr
+
+    def conditional(self, path: str) -> tuple[int, str]:
+        """The body of the single-page GET at <path>, ETag-conditional and shared with every
+        process under the same $HPO_STATE_DIR (`gh_read.conditional_get`, `gh_read.etag_dir`;
+        a 304 costs no core call)."""
+        return gh_read.conditional_get(lambda argv: self.gh(argv[1:]), path)
 
     def git(self, argv: list[str]) -> tuple[int, str]:
         if self._git is not None:
@@ -381,8 +395,15 @@ class Tick:
     def check_runs(self, sha: str) -> "list[dict] | None":
         """Every check run at <sha>, one object per line across pages; the
         caller judges them through the train's classifier (`mt`)."""
-        code, raw = self.gh(["api", "--paginate", "--jq", ".check_runs[]",
-                             f"repos/{self.repo}/commits/{sha}/check-runs?per_page=100"])
+        path = f"repos/{self.repo}/commits/{sha}/check-runs?per_page=100"
+        code, raw = self.conditional(path)
+        try:  # one conditional page; a head with more runs than it holds is read in full
+            page = json.loads(raw) if code == 0 else None
+            if isinstance(page, dict) and page.get("total_count", 0) <= len(page.get("check_runs") or []):
+                return list(page.get("check_runs") or [])
+        except (ValueError, TypeError):
+            pass
+        code, raw = self.gh(["api", "--paginate", "--jq", ".check_runs[]", path])
         if code:
             return None
         try:
@@ -432,7 +453,7 @@ class Tick:
     @staticmethod
     def judge(runs_by_name: dict) -> tuple[list[str], list[str], list[str]]:
         """(green, running, red) over every lane, each by the train's
-        run_state: latest-run-wins, pending is not a pass (nudge.md step 15)."""
+        run_state: latest-run-wins, pending is not a pass."""
         by = {"green": [], "pending": [], "red": []}
         for n, c in runs_by_name.items():
             by[mt.run_state(c)].append(n)
@@ -619,7 +640,8 @@ class Tick:
         HPO_WIP_CAP -- at the cap a new group is not dispatched, while opening
         and merging are always allowed; and the counted PRs whose three-dot
         diff touches the coordinator, against its cap of 2. A diff one_pr
-        could not read leaves the second count a floor: flagged. A roster or a
+        could not read leaves the second count a floor: flagged. Then the open
+        PRs by class against the machinery slots (`pr_cap.class_line`). A roster or a
         cap it cannot read is UNREADABLE, never a clean zero."""
         cap_mod = _module("pr_cap_tick", "tools/audit/seat/pr_cap.py")
         if cap_mod is None:
@@ -643,6 +665,11 @@ class Tick:
         if unread:
             text += f"; diff UNREADABLE at {', '.join('#' + str(x) for x in unread)}, so at least {k}"
         self.line(S, text, flag=k > kcap or bool(unread))
+        rule, slots = cap_mod.product_rule(), cap_mod.open_slots()
+        if rule is None or slots is None:
+            self.unreadable(S, "PR classes", "machinery_ratchet.is_product or replan.DEFAULT_CAPS")
+        else:
+            self.line(S, *cap_mod.class_line(cap_mod.by_class(counted, files, rule), slots))
 
     def _verdict_authors(self, pw) -> "tuple[set, int] | None":
         """The approver App's identity off app_approve.sh, through
@@ -714,10 +741,13 @@ class Tick:
         lg, dispatched = _module("ledger_tick", "tools/audit/seat/ledger.py"), self._dispatched(S)
         for pr in sorted(prs, key=lambda p: p["number"]):
             n, head = pr["number"], pr.get("headRefOid") or ""
-            code, o = self.gh(["api", "--paginate", "--slurp",
-                               f"repos/{self.repo}/issues/{n}/comments?per_page=100"])
-            try:
-                cs = [c for page in json.loads(o) for c in page] if code == 0 else None
+            path = f"repos/{self.repo}/issues/{n}/comments?per_page=100"
+            code, o = self.conditional(path)
+            try:  # the conditional first page; a full page may have a next one: read them all
+                cs = json.loads(o) if code == 0 else None
+                if not isinstance(cs, list) or len(cs) >= gh_read.PER_PAGE:
+                    code, o = self.gh(["api", "--paginate", "--slurp", path])
+                    cs = [c for page in json.loads(o) for c in page] if code == 0 else None
             except (ValueError, TypeError):
                 cs = None
             if cs is None:
@@ -816,27 +846,8 @@ class Tick:
             return None
 
     def _fired(self) -> "list[tuple]":
-        """[(utc or None, line)] for each FIRED line of the dispatch seat's ledger."""
-        try:
-            with open(self.fired_log, encoding="utf-8", errors="replace") as fh:
-                rows = [l.strip() for l in fh if "FIRED" in l]
-        except (OSError, TypeError):
-            return []
-        out = []
-        for l in rows:
-            m = FIRED_STAMP.match(l)
-            when = None
-            if m:
-                when = datetime.datetime.fromisoformat(m.group(1).rstrip("Z")).replace(
-                    tzinfo=datetime.timezone.utc)
-            out.append((when, l))
-        return out
-
-    def _fire_names(self, n: int, topics: list, line: str) -> bool:
-        """A FIRED line names a PR by number, topic or its payload file
-        (`payload-fix-<n>-r<k>.json`, `payload-<n>-r<k>.json`)."""
-        return bool(re.search(rf"#{n}(?!\d)|payload-(?:fix-)?{n}-r\d+\.json", line)) or any(
-            t and re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", line, re.I) for t in topics)
+        """[(utc or None, line)] for each FIRED line of the dispatch seat's ledger (owed_watch.fired)."""
+        return owatch.fired(self.fired_log)
 
     def _disposed(self, ref: str, sha: str) -> bool:
         """The obligations ledger holds a disposition for `ref` at exactly `sha` (an older sha
@@ -855,27 +866,8 @@ class Tick:
         return text if code == 0 else None
 
     def _seat_on(self, n: int, topics: list, heads: dict, kinds=("handoff-wip", "handoff", "handoff-body")) -> bool:
-        """A seat is on a PR when, inside SEAT_WINDOW_MIN, a FIRED line names it, or a
-        handoff-wip/, handoff/ or handoff-body/<topic> ref moved (`kinds` narrows the refs)."""
-        cutoff = self.now - datetime.timedelta(minutes=SEAT_WINDOW_MIN)
-        for when, l in self._fired():
-            if (when is None or when >= cutoff) and self._fire_names(n, topics, l):
-                return True
-        tg = _module("topic_grammar_tick", "tools/audit/seat/topic_grammar.py")
-        for t in topics:
-            for fam in kinds:
-                refs = [f"{fam}/{t}"]
-                if fam == "handoff-wip":  # a split seat step-pushes under the family's topic (topic-family.md)
-                    refs += sorted(k for k in heads if k.startswith("handoff-wip/")
-                                   and k != refs[0] and tg.family(t).fullmatch(k[len("handoff-wip/"):]))  # mut:wipfamily
-                for ref in refs:
-                    sha = heads.get(ref)
-                    if fam == "handoff-wip" and sha and self._blocked_md(sha) is not None:  # mut:blockedseat
-                        continue  # a stop on a question is owed by blocked_stops, not a seat on the PR
-                    age = self._age_min(ref, sha) if sha else None
-                    if age is not None and age <= SEAT_WINDOW_MIN:
-                        return True
-        return False
+        """owed_watch.seat_on over this tick's ledger, clock and git reads."""
+        return owatch.seat_on(n, topics, heads, self._fired(), self.now, self._age_min, self._blocked_md, kinds)
 
     @staticmethod
     def _topics(branch: str) -> list:
@@ -1031,6 +1023,9 @@ class Tick:
         v = queue.get(n)
         if v and (v == head or self.git(["merge-base", "--is-ancestor", v, head])[0] == 0):
             return "train", "", ""
+        m = owatch.FIX_VERDICT.match(last)
+        if m and m.group(1) == "merge" and m.group(2) != head and self._carries(m.group(2), head):  # mut:carriedverdict
+            return "verdicted", "", ""  # P657: the head only main-remerges a merge-verdicted head
         blocked = sum(1 for l in lines if l.startswith("Fix review: blocked "))
         if blocked >= RECUT_BLOCKED and "## Re-cut" not in (pr.get("body") or ""):
             return "owed", f"{blocked} blocked verdicts, head is not a re-cut or a split", "recut"
@@ -1085,15 +1080,11 @@ class Tick:
         return "review-owed", "", ""
 
     def payloads(self, S: str) -> None:
-        """FIRE-OWED: a rendered payload file older than FIRE_GRACE_MIN that no FIRED line names."""
+        """FIRE-OWED (owed_watch.fire_owed): a rendered payload past its grace that no FIRED line names."""
         if not self.payload_dir:
             return
-        fired = self._fired()
-        for f in sorted(Path(self.payload_dir).glob("payload-*.json")):
-            age = (self.now.timestamp() - f.stat().st_mtime) / 60
-            if age > FIRE_GRACE_MIN and not any(f.name in l for _, l in fired):
-                self.line(S, f"OWED fire-owed {f.name} rendered {int(age)}m ago, no FIRED line "
-                             "(firing is a RemoteTrigger call: the orchestrator's turn)", flag=True)
+        for text in owatch.fire_owed(self.payload_dir, self._fired(), self.now):
+            self.line(S, text, flag=True)
 
     def _reviewer_ref_age(self, n: int) -> "int | None":
         """Minutes since the tip of `dispatch/reviewer-rev-<n>` (cloud_dispatch.py's
@@ -1327,8 +1318,13 @@ class Tick:
                                  f"({latest[name]['conclusion']}) -- not red, "
                                  "not pending, but it blocks the merge "
                                  "invisibly", flag=True)
-        state = "GREEN" if not run and not red else (
-            f"RUN:{','.join(run)}" if run else f"RED:{','.join(red)}")
+        # GREEN is `classify_at`'s reading over the required contexts (P436's barrier;
+        # carry 2): every lane concluded green also reads WAIT while a required one has no run.
+        reading = (self._classify_reading(head, runs, getattr(self, "_req_pr", None) or required)
+                   if not run and not red and runs and required is not None else None)
+        state = (f"RUN:{','.join(run)}" if run else f"RED:{','.join(red)}" if red else
+                 "GREEN" if reading is not None and reading[0] == "green" else
+                 f"WAIT:{','.join(reading[1])}" if reading is not None else "UNJUDGED")
         self.line(S, f"#{n} [{pr.get('headRefName')}] {state}")
         # Only a red in the set `merge_train.py owed-reds` prints is owed an
         # answer (defect-root-cause.md); an unreadable set keeps every red.
@@ -1658,6 +1654,7 @@ class Tick:
         groups = rl.groups_of(roster)
         open_g = rl.open_groups(roster)
         self.line(S, f"{len(open_g)} open group(s) of {len(groups)}")
+        self.outside_chain_idle(S, rl, roster)
         for gid, g in groups.items():
             stage = (g.get("resume") or {}).get("stage")
             # roster_lib closes refused and deferred groups (is_open is
@@ -1678,6 +1675,125 @@ class Tick:
                 self.line(S, f"{gid}: in progress (stage {stage})")
         self.design_builds(S, rl, roster)
         self.designs_owed(S, rl, roster)
+        self.undispatched(S, rl, roster)
+
+    def undispatched(self, S: str, rl, roster: dict) -> None:
+        """`UNDISPATCHED:[ CP] <group> <age>`: an open group in SEATLESS_STAGES
+        whose `after` groups are all done or carries-open (a) or whose pending
+        carry reads `start after #N` with #N merged (b), and that no seat ref
+        (dispatch/fixer-<topic>, handoff/<topic>, handoff-wip/<topic>) has
+        touched since its gate opened: its own merge (`resume.commit`) or #N's.
+        A ref whose time cannot be read counts as a live seat; a failed ref
+        listing is UNREADABLE, never an empty list."""
+        seats = self._seats(S, rl, roster, "undispatched groups")
+        if seats is None:
+            return
+        groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
+        critical = set(rl.critical_path(roster))
+        clear = rl.RELEASING_STAGES + ("carries-open",)
+        for gid, g in groups.items():
+            res = g.get("resume") or {}
+            if gid not in open_g or res.get("stage") not in SEATLESS_STAGES:
+                continue
+            opened = None
+            if res.get("stage") == "carries-open" and all(
+                    (groups[a].get("resume") or {}).get("stage") in clear for a in g.get("after") or [] if a in groups):
+                opened = self._commit_at(res.get("commit"))
+            for c in g.get("carry") or []:
+                m = START_AFTER.search(c) if rl.carry_mark(c) is None else None
+                if m and opened is None:
+                    opened = self._merged_at(m.group(1))
+            if opened is None:
+                continue
+            if any((at := self._commit_at("origin/" + r)) is None or at >= opened for r in seats.get(gid, [])):
+                continue
+            hours = (self.now - opened).total_seconds() / 3600.0
+            self.line(S, f"UNDISPATCHED:{' CP' if gid in critical else ''} {gid} {hours:.1f}h -- no dispatch, "
+                         "handoff or handoff-wip ref since its gate opened; dispatch the next part", flag=True)
+
+    def _opener_last(self, od: Path, topic: str) -> str:
+        """` -- opener last: <log line>` (open_driver's own open-driver.log, its newest
+        line naming `topic`) and ` -- STUCK after <n>` from fails.json; empty when the
+        opener has no state or never touched the topic. Read, never written."""
+        try:
+            with open(od / "open-driver.log", "rb") as fh:
+                fh.seek(0, 2)
+                fh.seek(max(0, fh.tell() - 262144))
+                last = [x for x in fh.read().decode("utf-8", "replace").splitlines() if f" {topic} " in x or x.endswith(f" {topic}")]
+        except OSError:
+            last = []
+        try:
+            fails = [f for k, f in json.loads((od / "fails.json").read_text()).items() if k.split()[0] == topic]
+        except (OSError, ValueError, IndexError, AttributeError):
+            fails = []
+        stuck = f" -- STUCK after {max(f.get('n', 0) for f in fails)}" if any(f.get("n", 0) >= 3 for f in fails) else ""
+        return (f" -- opener last: {last[-1]}" if last else "") + stuck
+
+    def _seats(self, S: str, rl, roster: dict, what: str):
+        """{group: [seat refs]} over SEAT_REFS, one ls-remote; None (after the
+        UNREADABLE line) when it fails, never an empty map."""
+        code, o = self.git(["ls-remote", "origin", *SEAT_REFS])
+        if code:
+            return self.unreadable(S, what, o.strip()[-100:])
+        seats: dict = {}
+        for l in o.splitlines():
+            ref = l.split()[1] if len(l.split()) >= 2 else ""
+            t = ref.removeprefix("refs/heads/").split("/", 1)[-1].removeprefix("fixer-") if "/" in ref else ""
+            if t and (gid := rl.group_for_branch(roster, "x/" + t)):
+                seats.setdefault(gid, []).append(ref.removeprefix("refs/heads/"))
+        return seats
+
+    def outside_chain_idle(self, S: str, rl, roster: dict) -> None:
+        """`OUTSIDE-CHAIN-IDLE <G> (#issue): <path> idle <h>h`, flagged: an open
+        `source: outside` group G, each `after` edge walked transitively over
+        the groups that still gate (roster_lib.gates), prints one line per
+        deepest group of a blocking path that no seat ref (SEAT_REFS) has
+        moved inside owed_watch.SEAT_WINDOW_MIN. A path ending in a live seat prints
+        nothing; an unreadable ref listing is UNREADABLE, never a clean chain."""
+        groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
+        outside = [g for g in open_g if open_g[g].get("source") == "outside"]
+        seats = self._seats(S, rl, roster, "outside chains") if outside else {}
+        if seats is None:
+            return
+        window = datetime.timedelta(minutes=owatch.SEAT_WINDOW_MIN)
+
+        def idle(gid):
+            at = [self._commit_at("origin/" + r) for r in seats.get(gid, [])]
+            if any(a is None or self.now - a <= window for a in at):
+                return None  # a live seat, or a ref whose time cannot be read: not provably idle
+            return (self.now - max(a for a in at if a)).total_seconds() / 3600.0 if at else float("inf")
+
+        for gid in outside:
+            deepest, stack = {}, [[gid]]
+            while stack:
+                path = stack.pop()
+                up = [a for a in groups[path[-1]].get("after") or []
+                      if a in groups and a not in path and a in open_g and rl.gates(groups[a])]
+                if up:
+                    stack += [path + [a] for a in sorted(up, reverse=True)]
+                else:
+                    deepest.setdefault(path[-1], path)
+            for last, path in sorted(deepest.items()):
+                h = idle(last)
+                if h is not None:
+                    issues = open_g[gid].get("issues") or ["?"]
+                    self.line(S, f"OUTSIDE-CHAIN-IDLE {gid} (#{str(issues[0]).lstrip('#')}): {' <- '.join(path)} idle "
+                                 f"{'with no seat ref' if h == float('inf') else f'{h:.1f}h'}", flag=True)
+
+    def _commit_at(self, ref):
+        """The committer instant of `ref`, or None (no ref, or unreadable)."""
+        code, o = self.git(["log", "-1", "--format=%cI", ref]) if ref else (1, "")
+        try:
+            return None if code else datetime.datetime.fromisoformat(o.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+
+    def _merged_at(self, pr):
+        code, o = self.gh(["api", f"repos/{self.repo}/pulls/{pr}", "--jq", ".merged_at"])
+        try:
+            return None if code else datetime.datetime.fromisoformat(o.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
 
     def designs_owed(self, S: str, rl, roster: dict) -> None:
         """`DESIGN OWED:` an eligible group (size L or XL, decision 0014) whose
@@ -1738,13 +1854,15 @@ class Tick:
         reads `Design review: approve <sha>` at `design/<g>`'s tip. The verdict
         and design refs are read over git; a read that fails is UNREADABLE."""
         lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
-        code, o = self.git(["ls-remote", "origin", "refs/heads/design/*", "refs/heads/design-verdict/*"])
+        code, o = self.git(["ls-remote", "origin", "refs/heads/design/*", "refs/heads/design-verdict/*",
+                            "refs/heads/dispatch/design-reviewer-*"])
         if lg is None or code:
             self.unreadable(S, "approved designs", "ledger.py absent" if lg is None else o.strip()[-100:])
             return
-        designs, verdicts, names = {}, {}, {}
+        designs, verdicts, reviewers, names = {}, {}, {}, {}
         for sha, ref in (l.split()[:2] for l in o.splitlines() if len(l.split()) >= 2):
-            for prefix, into in (("refs/heads/design-verdict/", verdicts), ("refs/heads/design/", designs)):
+            for prefix, into in (("refs/heads/design-verdict/", verdicts), ("refs/heads/design/", designs),
+                                 ("refs/heads/dispatch/design-reviewer-", reviewers)):
                 if ref.startswith(prefix):
                     into[ref[len(prefix):].lower()] = sha
                     names[(prefix, ref[len(prefix):].lower())] = ref
@@ -1770,6 +1888,36 @@ class Tick:
             self.unreadable(S, "obligations ledger", str(e)[:100])
             return
         for text in lg.design_builds(firsts, designs, stage_of, disp):
+            self.line(S, text, flag=True)
+        self.design_reviews_owed(S, rl, roster, lg, (designs, reviewers, firsts, disp), names)
+
+    def design_reviews_owed(self, S: str, rl, roster: dict, lg, seen: tuple, names: dict) -> None:
+        """`DESIGN-REVIEW OWED:` every pass (ledger.design_reviews_owed): the
+        design tips and design-reviewer dispatch tips are fetched once for their
+        committer times; a failed read is UNREADABLE, never an empty list."""
+        designs, reviewers, firsts, disp = seen
+        if not designs:
+            return
+        refs = [names[("refs/heads/design/", t)] for t in designs] \
+            + [names[("refs/heads/dispatch/design-reviewer-", t)] for t in reviewers]
+        if self.git(["fetch", "-q", "origin", *refs])[0]:
+            return self.unreadable(S, "design reviews owed", "could not fetch the design refs")
+        times = {}
+        for sha in {*designs.values(), *reviewers.values()}:
+            code, o = self.git(["log", "-1", "--format=%ct", sha])
+            if code or not o.strip().isdigit():
+                return self.unreadable(S, "design reviews owed", f"no commit time for {sha[:12]}")
+            times[sha] = int(o.strip())
+        groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
+
+        def stage_of(t):
+            gid = rl.group_for_branch(roster, f"design/{t}")
+            if gid not in open_g:
+                return gid, "closed"
+            return gid, (groups[gid].get("resume") or {}).get("stage")
+        for text in lg.design_reviews_owed(designs, firsts, {t: times[s] for t, s in designs.items()},
+                                           {t: times[s] for t, s in reviewers.items()}, stage_of, disp,
+                                           self.now.timestamp(), set(rl.critical_path(roster))):
             self.line(S, text, flag=True)
 
     # ---------------------------------------------------------------- MAIN
@@ -1908,28 +2056,21 @@ class Tick:
                 self.unreadable(S, "policy state file", str(e)[:80])
 
     def required(self, S: str) -> "list[str] | None":
-        """The ruleset's required contexts, re-read every tick (nudge.md step
-        4: never a remembered list); merge_train.required's own route. One
+        """The ruleset's required contexts, re-read every tick (never a
+        remembered list); merge_train.required's own route. One
         read per tick: MAIN and PRS share it."""
         if getattr(self, "_req", None) is not None:
             return self._req
-        code, rid = self.gh(["api", f"repos/{self.repo}/rulesets", "--jq",
-                             f'.[] | select(.name == "{RULESET}") | .id'])
-        if code == 0 and rid.strip().isdigit():
-            code2, o = self.gh(["api", f"repos/{self.repo}/rulesets/{rid.strip()}",
-                                "--jq", '.rules[] | select(.type == '
-                                '"required_status_checks") | .parameters.'
-                                'required_status_checks[].context'])
-            if code2 == 0:
-                names = sorted({x.strip() for x in o.splitlines() if x.strip()}
-                               - set(PR_ONLY))
-                if names:
-                    self.line(S, f"required contexts ({RULESET}): "
-                                 f"{len(names)} read live")
-                    self._req = names
-                    # A pull request's head also carries PR_ONLY (K15 (d)).
-                    self._req_pr = sorted({x.strip() for x in o.splitlines() if x.strip()})
-                    return names
+        ok, params = gh_read.ruleset_checks(lambda argv: self.gh(argv[1:]), self.repo, RULESET)
+        every = sorted(gh_read.required_contexts(params))
+        names = sorted(set(every) - set(PR_ONLY))
+        if ok and names:
+            self.line(S, f"required contexts ({RULESET}): "
+                         f"{len(names)} read live")
+            self._req = names
+            # A pull request's head also carries PR_ONLY (K15 (d)).
+            self._req_pr = every
+            return names
         self.unreadable(S, "required contexts",
                         f"ruleset {RULESET} could not be read; "
                         "required-absence arms skipped, never guessed")
@@ -1954,6 +2095,10 @@ class Tick:
                 except ValueError:
                     pass
         blob = summary + "\n" + text
+        if cid and not blob.strip():  # P541: an Actions job publishes no output; its log holds the error line
+            log = mt.job_log(lambda argv: self.gh(argv[1:]), self.repo, cid)  # mut:redlog
+            blob = ANSI_ESC.sub("", log or "")
+            summary = ""
         err = next((l.strip() for l in blob.splitlines() if ERR_LINE.search(l)),
                    (summary or text or "no error line read"))[:160]
         if re.search(r"closures\.json|UNDER-SCOPED|closure", blob, re.I):
@@ -2404,10 +2549,8 @@ class Tick:
                 if not v or h is None or v != h:
                     continue
                 runs = self.check_runs(h)
-                if runs is None:
-                    continue
-                green, run, red = self.judge(self.latest(runs))
-                if run or red:
+                req = getattr(self, "_req_pr", None) or self.required(S)
+                if not runs or req is None or self._classify_reading(h, runs, req)[0] != "green":
                     continue
                 code, o = self.git(["log", "-1", "--format=%cI", "origin/main"])
                 try:
@@ -2495,12 +2638,21 @@ class Tick:
             return
         stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))  # stable: held last, each group in bus order
         held = sum(bool(HELD_TOPIC.match(l)) for l in stranded)
+        od = Path(self.state_dir) / "open-driver"
+        if stranded and not od.is_dir():
+            self.line(S, "OPENER ABSENT: open_driver.py has no state under $HPO_STATE_DIR -- a session-local "
+                         "opener is a defect (orchestrator.md 13)", flag=True)
         for l in stranded[:CAP_ORPHANS]:
-            self.line(S, f"OWED handoff: {l[len('ORPHAN '):]} -- no PR head "
+            body = l[len('ORPHAN '):]
+            if HELD_TOPIC.match(l):
+                body = body.replace("repair=opener", "held by ruling")
+            self.line(S, f"OWED handoff: {body} -- no PR head "
                          "carries it: open_pr.sh (opener), update_pr.sh "
-                         "(update) or a human decision (review)", flag=True)
+                         f"(update) or a human decision (review){self._opener_last(od, l.split()[1])}", flag=True)
         if len(stranded) > CAP_ORPHANS:
-            self.line(S, f"OWED handoffs capped at {CAP_ORPHANS} of "
+            # a summary, not an owed item: it opens with no owed-family word (no topic, never
+            # acknowledgeable), so owed_unactioned never reads it as an obligation
+            self.line(S, f"HANDOFF LIST CAPPED at {CAP_ORPHANS} of "
                          f"{len(stranded)} ({held} held, listed last); the rest print next pass once "
                          "these are discharged", flag=True)
         for l in out:
@@ -2755,17 +2907,50 @@ class Stub:
         self.h.append((match, rc, out))
         return self
 
+    def on_ruleset_list(self, rid="42"):
+        """The ruleset list read, which names RULESET's id (the id read lives at rulesets/<id>)."""
+        return self.on(lambda argv: any(a.endswith("/rulesets") for a in argv), out=rid)
+
     def __call__(self, argv):
         self.calls.append(list(argv))
         hay = " ".join(argv)
         for m, rc, out in self.h:
             if callable(m):
                 if m(argv):
-                    return rc, out
+                    return self.wire(argv, rc, out)
             elif all(x in hay for x in
                      (m if isinstance(m, (tuple, list)) else (m,))):
-                return rc, out
+                return self.wire(argv, rc, out)
         return 1, f"NO STUB for {' '.join(argv[:5])}"
+
+    @staticmethod
+    def wire(argv, rc, out):
+        """A conditional read (`gh api -i`) gets the wire form of what a handler holds: the
+        handlers state the body in the shape of the older jq/slurp read of the same path.
+        An ETag of the body's hash lets a matching If-None-Match answer 304, as gh does (rc 1)."""
+        if rc or "-i" not in argv:
+            return rc, out
+        path = next((a for a in argv if a.startswith("repos/")), "")
+        if path.endswith("/rulesets"):
+            body = [{"id": int(out), "name": RULESET}]
+        elif "/rulesets/" in path:
+            body = {"rules": [{"type": "required_status_checks", "parameters": {
+                "required_status_checks": [{"context": c} for c in out.splitlines() if c.strip()]}}]}
+        elif "/check-runs?" in path:
+            runs = [json.loads(x) for x in out.splitlines() if x.strip()]
+            # a handler holding one page object (`check_runs` keyed) states that page as is
+            one = len(runs) == 1 and "check_runs" in runs[0]
+            body = runs[0] if one else {"total_count": len(runs), "check_runs": runs}
+        elif "/comments?" in path:
+            pages = json.loads(out)
+            body = pages[0] if pages and isinstance(pages[0], list) else pages
+        else:
+            return rc, out
+        text = json.dumps(body)
+        etag = '"' + hashlib.sha256(text.encode()).hexdigest()[:16] + '"'
+        if f"If-None-Match: {etag}" in argv:
+            return 1, f"HTTP/2.0 304 Not Modified\nEtag: {etag}\n\ngh: HTTP 304"
+        return 0, f"HTTP/2.0 200 OK\nEtag: {etag}\n\n{text}"
 
 
 NOW = datetime.datetime(2026, 10, 12, 18, 0, 0, tzinfo=datetime.timezone.utc)
@@ -2854,7 +3039,7 @@ def self_test() -> int:
         gh.on(("pr", "list"), out=json.dumps(prs))
         gh.on("commits/main", out=H1)
         if required_names is not None:
-            gh.on(".[] | select(.name", out="42")
+            gh.on_ruleset_list()
             gh.on("rulesets/42", out="\n".join(required_names))
         else:
             gh.on("rulesets", rc=1, out="no ruleset")
@@ -2898,6 +3083,7 @@ def self_test() -> int:
         gh.on(lambda argv: any(x.endswith("/comments?per_page=100") for x in argv), out="[]")
         git = Stub()
         git.on(("fetch",), out="")
+        git.on(("ls-remote", "refs/heads/dispatch/fixer-*"), out="")  # UNDISPATCHED: no seat refs unless an arm says
         git.on(("merge-base", "--is-ancestor"), rc=0)
         git.on(("merge-base", "origin/main"), out=V)
         git.on(("diff", "--no-renames", "--name-only"), out=kw.pop("files", "dev/programme/delivery/9.md"))
@@ -2931,6 +3117,9 @@ def self_test() -> int:
                out=str(behind_handover))
         git.on(("cat-file", "-e"), rc=1)  # rows missing unless a stub says otherwise
         kw.setdefault("relay_log", os.devnull)  # hermetic: never the host's relay log
+        if "state_dir" not in kw:  # nor its opener's state: a present, empty open-driver dir
+            (tmp / "state-ok" / "open-driver").mkdir(parents=True, exist_ok=True)
+            kw["state_dir"] = str(tmp / "state-ok")
         kw.setdefault("bus_state", str(tmp / "no-bus"))  # nor its dispatch record
         # hermetic: never the real carry_audit; the routing-invariants read is clean
         kw.setdefault("carry", lambda argv: (0, ["CARRY-ROSTER: stub; 0 stranded carry(ies)"]))
@@ -3435,7 +3624,7 @@ def self_test() -> int:
         # ---- MAIN ----
         gh = Stub()
         gh.on("commits/main", out=H1)
-        gh.on(".[] | select(.name", out="42")
+        gh.on_ruleset_list()
         gh.on("rulesets/42", out="tests\nclosures\n")
         gh.on(f"commits/{H1}/check-runs",
               out=json.dumps(run_obj("tests", conclusion="failure")) + "\n"
@@ -3471,7 +3660,7 @@ def self_test() -> int:
                 on_push.append(job)
         gh = Stub()
         gh.on("commits/main", out=H1)
-        gh.on(".[] | select(.name", out="42")
+        gh.on_ruleset_list()
         gh.on("rulesets/42", out="tests\nclosures\n")
         gh.on(f"commits/{H1}/check-runs",
               out="\n".join(json.dumps(run_obj(n)) for n in ("tests", "closures"))
@@ -3498,7 +3687,7 @@ def self_test() -> int:
         def umbrella(names_red):
             gh = Stub()
             gh.on("commits/main", out=H1)
-            gh.on(".[] | select(.name", out="42")
+            gh.on_ruleset_list()
             gh.on("rulesets/42", out="gate\n")
             gh.on(f"commits/{H1}/check-runs", out="\n".join(
                 json.dumps(run_obj(n, conclusion="failure" if n in names_red else "success"))
@@ -3536,7 +3725,7 @@ def self_test() -> int:
                 ("annotations unreadable (fails closed)", None, True)):
             gh = Stub()
             gh.on("commits/main", out=H1)
-            gh.on(".[] | select(.name", out="42")
+            gh.on_ruleset_list()
             gh.on("rulesets/42", out="tests\n")
             gh.on(f"commits/{H1}/check-runs",
                   out=json.dumps(run_obj("tests")) + "\n" + json.dumps(
@@ -3564,7 +3753,7 @@ def self_test() -> int:
         # verdict: still REQUIRED not green, and its annotations never read.
         gh = Stub()
         gh.on("commits/main", out=H1)
-        gh.on(".[] | select(.name", out="42")
+        gh.on_ruleset_list()
         gh.on("rulesets/42", out="tests\n")
         gh.on(f"commits/{H1}/check-runs", out=json.dumps(
             run_obj("tests", conclusion="cancelled", cid=119215715286)))
@@ -3935,18 +4124,75 @@ def self_test() -> int:
         t = tick(bus_refs=held14 + live11 + [summ25], bus_rc=1)
         t.orphans("REPLAN")
         owed = [x["text"] for x in t.findings if x["text"].startswith("OWED handoff: ")]
-        capl = [x["text"] for x in t.findings if x["text"].startswith("OWED handoffs capped at")]
+        capl = [x["text"] for x in t.findings if x["text"].startswith("HANDOFF LIST CAPPED at")]
+        ou_cap = _module("owed_unactioned_cap", "tools/audit/seat/owed_unactioned.py")
+        def cap_family(tt):  # every flagged line the orphan section emits, through owed_unactioned's reader
+            fl = ["-> " + x["text"] for x in tt.findings]
+            keyed, unreadable = [], False
+            try:
+                keyed = [ou_cap.key_of(l) for l in fl if ou_cap.FAMILY.match(l)]
+                ou_cap.board("BOARD measured from origin/main at " + "a" * 40 + ", 2026-11-15T01:00:00Z\n" + "\n".join(fl))
+            except ou_cap.Unreadable:
+                unreadable = True
+            return fl, keyed, unreadable
         a, f = check("OWED handoffs held-last", [
             ("25 stranded with 14 held: all 11 others print within the cap, held ones after them",
              len(owed) == CAP_ORPHANS and all(f"r10-live-{i} " in owed[i] for i in range(11))
              and "triage-s14-batch0 " in owed[11]),
             ("the cap line counts the held refs",
-             len(capl) == 1 and "capped at 20 of 25 (14 held" in capl[0]),
+             len(capl) == 1 and "CAPPED at 20 of 25 (14 held" in capl[0]),
+            ("the cap line is no owed-family line, and every family line the section emits keys: not UNREADABLE",
+             (lambda r: not any(ou_cap.FAMILY.match(l) for l in r[0] if "CAPPED" in l)
+              and len(r[1]) == CAP_ORPHANS and not r[2])(cap_family(t))),
+            ("null control: exactly CAP_ORPHANS stranded print no cap line and are not UNREADABLE",
+             (lambda tt: (tt.orphans("REPLAN"), (lambda r: not any("CAPPED" in l for l in r[0]) and len(r[1]) == CAP_ORPHANS
+                                                  and not r[2])(cap_family(tt)))[1])(
+                 tick(bus_refs=live11 + held14[:CAP_ORPHANS - 11] + [summ25.replace("25", str(CAP_ORPHANS))], bus_rc=1))),
             ("null control: 11 live refs and no held ones print in bus order, no cap line",
              (lambda t2: [x["text"].split()[2] for x in t2.findings if x["text"].startswith("OWED handoff: ")]
               == [f"r10-live-{i}" for i in range(11)] and not any("capped" in x["text"] for x in t2.findings))(
                  (lambda tt: (tt.orphans("REPLAN"), tt)[1])(
                      tick(bus_refs=live11 + [summ25.replace("25", "11")], bus_rc=1)))),
+        ])
+        total, failed = total + a, failed + f
+        # ---- OWED handoffs carry the opener's last result; OPENER ABSENT; held by ruling ----
+        op_dir = tmp / "state-op" / "open-driver"
+        op_dir.mkdir(parents=True)
+        (op_dir / "open-driver.log").write_text(
+            "2026-11-15T01:00:00Z START r10-live-0 bbbbbbbb\n"
+            "2026-11-15T01:02:00Z RESULT r10-live-0 bbbbbbbb rc=1 REFUSE: merge conflicts\n"
+            "2026-11-15T01:03:00Z NEEDS-TITLE r10-live-1 bbbbbbbb\n")
+        (op_dir / "fails.json").write_text(json.dumps({f"r10-live-0 {'b' * 40}": {"n": 3, "rc": 1, "why": "x"}}))
+        stk = tmp / "state-stuck"
+        stk.mkdir()
+        (stk / "fails.json").write_text(json.dumps({f"r10-t{n} {'b' * 40}": {"n": n, "rc": 1, "why": "x"} for n in (1, 2, 3)}))
+        mk = lambda sd, refs: (lambda tt: (tt.orphans("REPLAN"), tt)[1])(
+            tick(bus_refs=refs + [summ25.replace("25", str(len(refs)))], bus_rc=1, state_dir=str(sd)))
+        two = [live11[0], live11[1], held14[0]]
+        t_op, t_ab = mk(tmp / "state-op", two), mk(tmp / "state-none", two)
+        ow_op = [x["text"] for x in t_op.findings if x["text"].startswith("OWED handoff: ")]
+        ow_ab = [x["text"] for x in t_ab.findings if x["text"].startswith("OWED handoff: ")]
+        a, f = check("OWED handoffs opener state", [
+            ("a line carries the opener's newest log line for its topic and its STUCK count",
+             "opener last: 2026-11-15T01:02:00Z RESULT r10-live-0 bbbbbbbb rc=1 REFUSE: merge conflicts" in ow_op[0]
+             and ow_op[0].endswith("STUCK after 3")),
+            ("a NEEDS-TITLE result is carried and, below three failures, no STUCK",
+             "opener last: 2026-11-15T01:03:00Z NEEDS-TITLE r10-live-1" in ow_op[1] and "STUCK" not in ow_op[1]),
+            ("a triage topic reads `held by ruling`, not `repair=opener`",
+             "held by ruling" in ow_op[2] and "repair=opener" not in ow_op[2]),
+            ("a topic the opener never touched carries no opener clause",
+             "opener last" not in ow_op[2]),
+            ("below three failures there is no STUCK (n=1 and n=2); at three there is",
+             not any("STUCK" in t_op._opener_last(stk, f"r10-t{n}") for n in (1, 2))
+             and "STUCK after 3" in t_op._opener_last(stk, "r10-t3")),
+            ("with the state directory present no OPENER ABSENT prints",
+             not any(x["text"].startswith("OPENER ABSENT") for x in t_op.findings)),
+            ("null control: with no open-driver directory, one flagged OPENER ABSENT line prints and the owed lines still do",
+             sum(x["text"].startswith("OPENER ABSENT: open_driver.py has no state") for x in t_ab.findings) == 1
+             and len(ow_ab) == 3),
+            ("null control: an all-clear bus prints no OPENER ABSENT with no state directory",
+             not any(x["text"].startswith("OPENER ABSENT") for x in
+                     (lambda tt: (tt.orphans("REPLAN"), tt)[1])(tick(bus_refs=[BUS_CLEAR], state_dir=str(tmp / "state-none"))).findings)),
         ])
         total, failed = total + a, failed + f
         t = tick(bus_refs=[BUS_CLEAR])
@@ -4207,6 +4453,31 @@ def self_test() -> int:
                 total, failed = total + a_, failed + f_
         finally:
             mt.Train.classify_at = _was_ca
+        # Carry 2 (P436 residual a): GREEN on the board and in the throughput stall is classify_at's
+        # reading over the required contexts, never the per-lane run_state alone: every lane at the
+        # head concluded green while a required context has no run yet is WAIT, not GREEN.
+        both = [run_obj("tests"), run_obj("closures")]
+        for label, runs, want in (("a required context with no run reads WAIT", [run_obj("tests")], "WAIT:closures"),
+                                  ("null: every required context green reads GREEN", both, "GREEN")):
+            t = tick(prs=[pr_obj(78, H1)], runs_at={H1: runs})
+            t.one_pr("PRS", pr_obj(78, H1), None, t.required("PRS"))
+            got = [l["text"] for l in t.sections["PRS"] if l["text"].startswith("#78 [fix/78] ")]
+            a_, f_ = check(f"carry 2 one_pr state line: {label}", [
+                (f"the line reads {want}", got == [f"#78 [fix/78] {want}"])])
+            total, failed = total + a_, failed + f_
+        q78 = tmp / "q78.json"
+        q78.write_text(json.dumps([{"pr": 78, "verdict": H1}]))
+        for label, runs, want in (("a required context with no run is no stall", [run_obj("tests")], False),
+                                  ("null: verdicted and green at the head, no train, main idle: STALL", both, True)):
+            t = tick(prs=[pr_obj(78, H1)], queue=str(q78), states={78: ("open", H1)}, runs_at={H1: runs},
+                     procs=lambda pattern: [])
+            t._git.h[:0] = [(("log", "-1", "--format=%cI", "origin/main"), 0,
+                             iso(NOW - datetime.timedelta(hours=2)))]
+            t.replan()
+            st = [x["text"] for x in t.findings if x["text"].startswith("THROUGHPUT STALL: #78")]
+            a_, f_ = check(f"carry 2 throughput stall: {label}", [
+                ("STALL " + ("raised" if want else "not raised"), bool(st) == want)])
+            total, failed = total + a_, failed + f_
         # Carry 8: a reviewer's `merge_train.py --self-test` is not a second train; a null
         # started_at cannot bound a run, so stuck() reads True (split_absent then reads ABSENT).
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
@@ -4223,7 +4494,7 @@ def self_test() -> int:
         def oboard2(specs, red=None, fired=None, refs=(), cts=None, files=None, queue_v=None,
                     train=None, body=None, bodies=None, disp=(), newer=None, newer_fail=(),
                     extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False,
-                    show=None, dref=None, disposed=()):
+                    show=None, dref=None, disposed=(), carries=None):
             """specs [(n, ms, [verdict lines], verdict_age_min)] -> (tick, owed lines).
             disp: PR numbers on bus.sh's dispatch record at their head; newer {n: minutes ago}: a
             handoff/<n> tip committed that long ago; newer_fail: PRs whose handoff ls-remote fails;
@@ -4272,6 +4543,8 @@ def self_test() -> int:
                 t._git.h[:0] = [(("ls-remote", "origin", "refs/heads/dispatch/fixer-"), 0, "")]
             if not ancestor:
                 t._git.h.insert(0, (("merge-base", "--is-ancestor"), 1, ""))
+            if carries is not None:  # the train's carry predicate, stubbed: (verdict sha, head) -> bool
+                t._carries = carries
             t._readback = {str(n): ls for n, _, ls, _ in specs}
             t._readback.update({str(n): [] for n in extra_read})
             t._verdict_at = {n: iso(NOW - timedelta(minutes=a)) for n, _, ls, a in specs if ls}
@@ -4339,6 +4612,15 @@ def self_test() -> int:
         t_tr, o_tr = oboard2([(87, "DIRTY", [], 0)], red=gate_red(87), queue_v={87: h(87)},
                              train="STARTED train.sh pid 1 over #87\n")
         t_vd, o_vd = oboard2([(88, "DIRTY", [f"Fix review: merge {h(88)}"], 5)], red=gate_red(88))
+        # P657: a head that only main-remerges a merge-verdicted head is verdicted when the train's carry predicate holds
+        cv_asked = []
+        cv_line = lambda n: f"Fix review: merge {h(n + 1000)}"
+        t_cv, o_cv = oboard2([(95, "CLEAN", [cv_line(95)], 5)], red=gate_red(95),
+                             carries=lambda v, hd: cv_asked.append((v, hd)) or True)
+        t_cv0, o_cv0 = oboard2([(95, "CLEAN", [cv_line(95)], 5)], red=gate_red(95), carries=lambda v, hd: False)
+        cvb_asked = []
+        t_cvb, o_cvb = oboard2([(95, "CLEAN", [f"Fix review: blocked {h(1095)} x: y"], 5)], red=gate_red(95),
+                               carries=lambda v, hd: cvb_asked.append((v, hd)) or True)
         t_vp, o_vp = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89), disp=(89,))
         t_vp0, o_vp0 = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89))
         t_wf, o_wf = oboard2([(90, "CLEAN", [], 0), (91, "DIRTY", [], 0)], red=gate_red(91),
@@ -4395,13 +4677,13 @@ def self_test() -> int:
             fl.write_text(fired)
             tf = tick(prs=[], fired_log=str(fl), payload_dir=str(pd))
             tf.payloads("PRS")
-            return [x["text"] for x in tf.sections.get("PRS", []) if x["text"].startswith("OWED fire-owed")]
+            return [x["text"] for x in tf.sections.get("PRS", []) if x["text"].startswith("OWED fire-owed") and x["flag"]]
         fo, fo0 = fire_owed(""), fire_owed("FIRED payload-fix-86-r1.json\n")
         pd2 = tmp / "payloads-young"
         pd2.mkdir()
         pf2 = pd2 / "payload-fix-86-r2.json"
         pf2.write_text("{}")
-        os.utime(pf2, ((NOW - timedelta(minutes=FIRE_GRACE_MIN - 5)).timestamp(),) * 2)
+        os.utime(pf2, ((NOW - timedelta(minutes=owatch.FIRE_GRACE_MIN - 5)).timestamp(),) * 2)
         tfy = tick(prs=[], fired_log=os.devnull, payload_dir=str(pd2))
         tfy.payloads("PRS")
         fo_young = [x["text"] for x in tfy.sections.get("PRS", []) if x["text"].startswith("OWED fire-owed")]
@@ -4440,6 +4722,13 @@ def self_test() -> int:
              len(fo) == 1 and "payload-fix-86-r1.json" in fo[0] and fo0 == [] and fo_young == []),
             ("null: a DIRTY, red PR in train (a queue verdict, no merge verdict) prints no OWED, names the bucket",
              o_tr == [] and "train 1" in bk_of(t_tr)),
+            ("P657: a red PR whose head carries an older merge verdict is verdicted, no RED-UNOWNED line",
+             o_cv == [] and "verdicted 1" in bk_of(t_cv) and cv_asked == [(h(1095), h(95))]),
+            ("P657 null control: the same PR with the carry predicate refusing is still RED-UNOWNED",
+             len(o_cv0) == 1 and o_cv0[0].startswith("OWED red-unowned #95")),
+            ("P657 merge guard: a carried *blocked* verdict at an older head is not verdicted, still RED-UNOWNED",
+             "verdicted" not in bk_of(t_cvb) and len(o_cvb) == 1 and o_cvb[0].startswith("OWED red-unowned #95")
+             and cvb_asked == []),
             ("null: a DIRTY, red PR with a merge verdict at its head is verdicted, owed nothing",
              o_vd == [] and "verdicted 1" in bk_of(t_vd)),
             ("null: a DIRTY, red PR on the dispatch record is verdict-pending; off it, it is owed",
@@ -4592,12 +4881,13 @@ def self_test() -> int:
         # ---- main-red dispatch briefs: required lane, bot lane ----
         gh = Stub()
         gh.on("commits/main", out=H1)
-        gh.on(".[] | select(.name", out="42")
+        gh.on_ruleset_list()
         gh.on("rulesets/42", out="tests\nclosures\n")
         gh.on(f"commits/{H1}/check-runs",
               out=json.dumps(run_obj("tests", conclusion="failure", cid=424242))
               + "\n" + json.dumps(run_obj("record-autofix",
-                                           conclusion="failure", cid=424243)))
+                                           conclusion="failure", cid=424243))
+              + "\n" + json.dumps(run_obj("closures", conclusion="failure", cid=424245)))
         # the stub answers what `gh api --jq .output` returns: the output
         # object itself, not the response body
         gh.on("check-runs/424242", out=json.dumps(
@@ -4607,6 +4897,10 @@ def self_test() -> int:
         gh.on("check-runs/424243", out=json.dumps(
             {"summary": "skip-failed-recording: no bot commit is coming",
              "text": ""}))
+        # an Actions job publishes no check-run output: the output object is all null, the job's log holds the line
+        gh.on("check-runs/424245", out=json.dumps({"title": None, "summary": None, "text": None}))
+        gh.on("actions/jobs/424245/logs",
+              out="\x1b[36;1mrun gate\x1b[0m\nstep ok\n\x1b[31;1mERROR: closure drift in tests/closures.json\x1b[0m\nafter\n")
         gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         gh.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
         t = Tick("o/r", str(version), gh=gh, git=Stub(),
@@ -4617,7 +4911,13 @@ def self_test() -> int:
                   or l["text"].startswith("main-red ")]
         tests_brief = next((b for b in briefs if "main-red tests" in b), "")
         bot_brief = next((b for b in briefs if "record-autofix" in b), "")
+        log_brief = next((b for b in briefs if "main-red closures" in b), "")
         a, f = check("main-red briefs", [
+            ("P541: a check-run with null output quotes the error line of the job's log, escapes stripped",
+             'error line: "ERROR: closure drift in tests/closures.json"' in log_brief and "\x1b" not in log_brief),
+            ("P541 null control: a check-run with its own output makes no log read",
+             not any("actions/jobs/424242/logs" in " ".join(c) for c in gh.calls)
+             and any("actions/jobs/424245/logs" in " ".join(c) for c in gh.calls)),
             ("required-lane brief has the four fields",
              all(k in tests_brief for k in
                  ("main-red tests", "job 424242", "error line:",
@@ -4862,6 +5162,14 @@ def self_test() -> int:
             ("a diff it cannot read flags the coordinator count as a floor",
              one(unread, "coordinator.py PRs: ")["flag"] is True
              and "UNREADABLE at #2, so at least 0" in one(unread, "coordinator.py PRs: ")["text"]),
+            ("open PRs by class: the three touching a product path are production",
+             one(at, "open PRs by class: ") == {"flag": False, "text": "open PRs by class: 3 production, "
+                                                "3 machinery; machinery slots 3/10 (10 of 20 reserved for production)"}),
+            ("an unread diff is its own class, counted against the machinery slots",
+             one(unread, "open PRs by class: ")["text"].startswith(
+                 "open PRs by class: 0 production, 1 machinery, 1 unread; machinery slots 2/10")),
+            ("twenty machinery PRs fill the machinery slots: flagged (null: six above are not)",
+             one(board, "open PRs by class: ")["flag"] is True),
             ("an invalid HPO_WIP_CAP is UNREADABLE, never a count",
              any(l["flag"] and "UNREADABLE: WIP cap" in l["text"] for l in badcap)
              and not any(l["text"].startswith("WIP: ") for l in badcap)),
@@ -5248,6 +5556,7 @@ def self_test() -> int:
                                 f"{A40}\trefs/heads/design/R10-G1\n{B40}\trefs/heads/design-verdict/r10-g1\n"
                                 f"{A40}\trefs/heads/design/r10-g2\n{B40}\trefs/heads/design-verdict/r10-g2\n"))
             t._git.h.insert(0, ((f"{B40}:verdict.md",), 0, verdict_text))
+            t._git.h.insert(0, (("log", "-1", "--format=%ct"), 0, str(int(NOW.timestamp()))))
             t.design_builds("PLAN", rlm, droster)
             return flagged(t.sections.get("PLAN", []))
         db = dboard(f"Design review: approve {A40}\n- point\n")
@@ -5256,6 +5565,7 @@ def self_test() -> int:
         t_pl._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), 0,
                                f"{A40}\trefs/heads/design/R10-G1\n{B40}\trefs/heads/design-verdict/r10-g1\n"))
         t_pl._git.h.insert(0, ((f"{B40}:verdict.md",), 0, f"Design review: approve {A40}\n"))
+        t_pl._git.h.insert(0, (("log", "-1", "--format=%ct"), 0, str(int(NOW.timestamp()))))
         t_pl.plan()
         db_plan = flagged(t_pl.sections.get("PLAN", []))
         db_rev = dboard(f"Design review: revise {A40} class-open\n")
@@ -5293,6 +5603,224 @@ def self_test() -> int:
             ("an unreadable ref listing is UNREADABLE and owes nothing it cannot know",
              any("UNREADABLE: designs owed" in x for x in ow_un) and not any(x.startswith("DESIGN OWED") for x in ow_un)),
         ])
+        total, failed = total + a, failed + f
+
+        # ---- DESIGN-REVIEW OWED: a design tip no verdict names, no reviewer dispatched since ----
+        C40, D40, OLD40 = "c" * 40, "d" * 40, "1" * 40
+        hr = int(NOW.timestamp()) - 3 * 3600
+        rroster = {"groups": [{"group": "R10-G1", "resume": {"stage": "not-started"}},
+                              {"group": "R10-G9", "resume": {"stage": "done"}}]}
+
+        def rboard(verdict_text, reviewer_at=hr - 3600, stage="not-started", gid="R10-G1", disp=None):
+            hd = tmp / f"rb{len(list(tmp.glob('rb*')))}"
+            hd.mkdir()
+            for r, v in (disp or {}).items():  # through ledger.dispose, so a ref of no ledger arm is refused here too
+                _module("ledger_tick", "tools/audit/seat/ledger.py").dispose(hd, r, v[0])
+            t = tick(relay_log=str(hd / "relay.log"))
+            ls = f"{A40}\trefs/heads/design/{gid}\n"
+            if verdict_text is not None:
+                ls += f"{B40}\trefs/heads/design-verdict/{gid.lower()}\n"
+            if reviewer_at is not None:
+                ls += f"{D40}\trefs/heads/dispatch/design-reviewer-{gid.lower()}\n"
+            t._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), 0, ls))
+            t._git.h.insert(0, ((f"{B40}:verdict.md",), 0, verdict_text or ""))
+            t._git.h.insert(0, (("log", "-1", "--format=%ct", A40), 0, str(hr)))
+            t._git.h.insert(0, (("log", "-1", "--format=%ct", D40), 0, str(reviewer_at or 0)))
+            tr = {"groups": [dict(rroster["groups"][0], group=gid, resume={"stage": stage})]}
+            t.design_builds("PLAN", rlm, tr)
+            return flagged(t.sections.get("PLAN", []))
+        ou = _module("owed_unactioned_tick", "tools/audit/seat/owed_unactioned.py")
+        _rv = rboard
+        rboard = lambda *a, **k: [x for x in _rv(*a, **k) if x.startswith("DESIGN-REVIEW OWED:")]
+        r_rev, r_none = rboard(f"Design review: revise {OLD40} class-open\n"), rboard(None, reviewer_at=None)
+        r_ok, r_new = rboard(f"Design review: approve {A40}\n"), rboard(f"Design review: revise {OLD40}\n", reviewer_at=hr + 60)
+        r_done, r_disp = rboard(f"Design review: revise {OLD40}\n", stage="done"), \
+            rboard(f"Design review: revise {OLD40}\n", disp={"refs/heads/design/r10-g1": (A40, "t", "h")})
+        r_dr = rboard(f"Design review: revise {OLD40}\n", stage="design-review")
+        def unread(**extra):  # raw PLAN lines of a board whose design-ref fetch or a commit-time read fails
+            hd = tmp / f"rbu{len(list(tmp.glob('rbu*')))}"
+            hd.mkdir()
+            t = tick(relay_log=str(hd / "relay.log"))
+            t._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), 0, f"{A40}\trefs/heads/design/R10-G1\n"))
+            t._git.h.insert(0, (("log", "-1", "--format=%ct", A40), 0, str(hr)))
+            for m, rc2 in extra.items():
+                t._git.h.insert(0, (tuple(m.split("|")), rc2, "fatal: unreadable"))
+            t.design_builds("PLAN", rlm, {"groups": [{"group": "R10-G1", "resume": {"stage": "not-started"}}]})
+            return flagged(t.sections.get("PLAN", []))
+        r_ok0 = unread()
+        r_fetch = unread(**{"fetch|-q|origin|refs/heads/design/R10-G1": 1})
+        r_time = unread(**{f"log|-1|--format=%ct|{A40}": 1})
+        cproster = {"groups": [{"group": "R10-G1", "resume": {"stage": "not-started"}},
+                               {"group": "R10-G2", "after": ["R10-G1"], "resume": {"stage": "not-started"}},
+                               {"group": "R10-G3", "resume": {"stage": "not-started"}}]}
+        cpt = tick(relay_log=str(tmp / "cprb.log"))
+        cpt._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), 0,
+                              f"{A40}\trefs/heads/design/R10-G2\n{C40}\trefs/heads/design/R10-G3\n"))
+        for sha_ in (A40, C40):
+            cpt._git.h.insert(0, (("log", "-1", "--format=%ct", sha_), 0, str(hr)))
+        cpt.design_builds("PLAN", rlm, cproster)
+        cp_lines = [x for x in flagged(cpt.sections.get("PLAN", [])) if x.startswith("DESIGN-REVIEW OWED:")]
+        a, f = check("DESIGN-REVIEW OWED", [
+            ("a critical-path group's line carries the CP mark, as DESIGN OWED does",
+             any(x.startswith("DESIGN-REVIEW OWED: CP R10-G2 design/r10-g2 ") for x in cp_lines)),
+            ("null control: a group off the critical path prints no CP mark",
+             any(x.startswith("DESIGN-REVIEW OWED: R10-G3 design/r10-g3 ") for x in cp_lines) and len(cp_lines) == 2),
+            ("null control: with both reads answering the tip is owed and nothing is UNREADABLE",
+             any(x.startswith("DESIGN-REVIEW OWED:") for x in r_ok0) and not any("UNREADABLE" in x for x in r_ok0)),
+            ("a failed fetch of the design refs is UNREADABLE and owes no line",
+             any(x.startswith("UNREADABLE: design reviews owed") and "fetch the design refs" in x for x in r_fetch)
+             and not any(x.startswith("DESIGN-REVIEW OWED:") for x in r_fetch)),
+            ("a failed commit-time read is UNREADABLE naming the sha, and owes no line",
+             any(x.startswith("UNREADABLE: design reviews owed") and f"no commit time for {A40[:12]}" in x for x in r_time)
+             and not any(x.startswith("DESIGN-REVIEW OWED:") for x in r_time)),
+            ("a revise verdict naming an older sha, a newer tip and an older reviewer dispatch give exactly one line",
+             len(r_rev) == 1 and f" R10-G1 design/r10-g1 {A40[:12]} " in r_rev[0]
+             and f"verdict revise {OLD40[:12]}" in r_rev[0] and "(3.0h)" in r_rev[0]),
+            ("no verdict and no reviewer ref is owed too, and reads `verdict none`",
+             len(r_none) == 1 and "verdict none -" in r_none[0]),
+            ("null controls: a verdict at the tip, a reviewer dispatched after the tip and a done group print nothing",
+             r_ok == [] and r_new == [] and r_done == []),
+            ("null control: a disposition at the tip's sha silences it", r_disp == []),
+            ("the stage `design-review` is owed too", len(r_dr) == 1),
+            ("the emitted line keys in owed_unactioned on design/<g> and the tip",
+             ou.key_of("-> " + r_rev[0]) == ("design/r10-g1", [A40[:12]]) and bool(ou.FAMILY.match("-> " + r_rev[0]))),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- UNDISPATCHED: a group whose gate is open and that no seat touched ----
+        ud_at = NOW - datetime.timedelta(hours=8)
+        udr = {"groups": [
+            {"group": "R10-DONE", "resume": {"stage": "done"}},
+            {"group": "R10-OI", "after": ["R10-DONE"], "carry": ["part 2 builds the intake"],
+             "resume": {"stage": "carries-open", "commit": "e" * 40}},
+            {"group": "R10-LATE", "carry": ["start after #3262, the second part"],
+             "resume": {"stage": "not-started"}},
+            {"group": "R10-HELD", "after": ["R10-OI", "R10-NEW"], "resume": {"stage": "carries-open", "commit": "e" * 40}},
+            {"group": "R10-NEW", "resume": {"stage": "in-progress"}}]}
+
+        def uboard(refs="", stage_of_oi="carries-open", ref_at=None, ls_rc=0):
+            t = tick()
+            t._git.h.insert(0, (("ls-remote", "refs/heads/dispatch/fixer-*"), ls_rc, refs))
+            t._git.h.insert(0, (("log", "-1", "--format=%cI", "e" * 40), 0, iso(ud_at) + "\n"))
+            if ref_at:
+                t._git.h.insert(0, (("log", "-1", "--format=%cI", "origin/"), 0, iso(ref_at) + "\n"))
+            t._gh.h.insert(0, (("pulls/3262", ".merged_at"), 0, iso(ud_at) + "\n"))
+            ro = json.loads(json.dumps(udr))
+            ro["groups"][1]["resume"]["stage"] = stage_of_oi
+            t.undispatched("PLAN", rlm, ro)
+            return [x for x in flagged(t.sections.get("PLAN", [])) if x.startswith(("UNDISPATCHED", "UNREADABLE"))]
+        u_none = uboard()
+        u_live = uboard(f"{A40}\trefs/heads/dispatch/fixer-r10-oi\n", ref_at=NOW - datetime.timedelta(hours=1))
+        u_old = uboard(f"{A40}\trefs/heads/dispatch/fixer-r10-oi\n", ref_at=NOW - datetime.timedelta(hours=20))
+        u_un = uboard(ls_rc=1)
+
+        class SeatStub(Stub):  # ls-remote answers only the planted refs the argv's patterns match, as origin does
+            planted = ""
+
+            def __call__(self, argv):
+                if argv[:2] == ["ls-remote", "origin"] and any("fixer-" in a for a in argv):
+                    self.calls.append(list(argv))
+                    rows = [l for l in self.planted.splitlines()
+                            if any(fnmatch.fnmatch(l.split()[1], pat) for pat in argv[2:])]
+                    return 0, "".join(r + "\n" for r in rows)
+                return super().__call__(argv)
+
+        def sboard(ref):  # one planted ref, a minute old, for R10-OI's topic
+            t = tick()
+            st = SeatStub()
+            st.h, st.planted = t._git.h, f"{A40}\t{ref}\n"
+            t._git = st
+            t._git.h.insert(0, (("log", "-1", "--format=%cI", "e" * 40), 0, iso(ud_at) + "\n"))
+            t._git.h.insert(0, (("log", "-1", "--format=%cI", "origin/"), 0, iso(NOW - datetime.timedelta(hours=1)) + "\n"))
+            ro = json.loads(json.dumps(udr))
+            t.undispatched("PLAN", rlm, ro)
+            return [x for x in flagged(t.sections.get("PLAN", [])) if x.startswith(("UNDISPATCHED", "UNREADABLE"))]
+        seat_fams = ("dispatch/fixer-", "handoff/", "handoff-wip/", "handoff-body/", "fix/")
+        seat_lines = {fam: sboard(f"refs/heads/{fam}r10-oi") for fam in seat_fams}
+        u_probe = sboard("refs/heads/probe/r10-oi")
+        a, f = check("UNDISPATCHED", [
+            ("a carries-open group whose gate is open and that has no seat ref prints the line with its age",
+             any(x.startswith("UNDISPATCHED: CP R10-OI 8.0h") for x in u_none)),
+            ("null control: a group off the critical path prints no CP mark",
+             any(x.startswith("UNDISPATCHED: R10-LATE 8.0h") for x in u_none)),
+            ("a `start after #N` carry whose #N merged prints it too", any(" R10-LATE 8.0h" in x for x in u_none)),
+            ("null control: a group held behind an unfinished after-group prints nothing",
+             not any("R10-HELD" in x for x in u_none)),
+            ("null control: a dispatch ref newer than the gate opening prints nothing for that group",
+             not any("R10-OI" in x for x in u_live) and any("R10-LATE" in x for x in u_live)),
+            ("a dispatch ref older than the gate opening is no seat", any("R10-OI" in x for x in u_old)),
+            ("every SEAT_REFS family is a seat: a fresh ref of each alone silences its group",
+             all(not any("R10-OI" in x for x in ls_) for ls_ in seat_lines.values())),
+            ("null control: a fresh ref of a family that is no seat leaves the group listed",
+             any("R10-OI" in x for x in u_probe)),
+            ("a group at stage `in-progress` with no start-after carry prints nothing",
+             not any("R10-NEW" in x for x in u_none) and not any("R10-DONE" in x for x in u_none)),
+            ("an unreadable ref listing is UNREADABLE", any("UNREADABLE: undispatched groups" in x for x in u_un)
+             and not any(x.startswith("UNDISPATCHED") for x in u_un)),
+            ("the emitted line keys in owed_unactioned on its group",
+             ou.key_of("-> " + u_none[0])[0] in ("R10-OI", "R10-LATE") and bool(ou.FAMILY.match("-> " + u_none[0]))),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- OUTSIDE-CHAIN-IDLE: an outside group's blocking path ends in no live seat ----
+        ocr = {"groups": [
+            {"group": "R10-OUT", "source": "outside", "issues": [3401], "after": ["R10-MID", "R10-FIN"], "resume": {"stage": "not-started"}},
+            {"group": "R10-MID", "after": ["R10-LEAF"], "resume": {"stage": "not-started"}},
+            {"group": "R10-LEAF", "resume": {"stage": "in-progress"}},
+            {"group": "R10-FIN", "resume": {"stage": "done"}},
+            {"group": "R10-PLAIN", "after": ["R10-LEAF"], "resume": {"stage": "not-started"}}]}
+
+        def cboard(refs, leaf_age_h=None, ls_rc=0, roster=ocr):
+            t = tick()
+            t._git.h.insert(0, (("ls-remote", "refs/heads/dispatch/fixer-*"), ls_rc, refs))
+            if leaf_age_h is not None:
+                t._git.h.insert(0, (("log", "-1", "--format=%cI", "origin/handoff/r10-leaf"), 0,
+                                    iso(NOW - datetime.timedelta(hours=leaf_age_h)) + "\n"))
+            t.outside_chain_idle("PLAN", rlm, roster)
+            return flagged(t.sections.get("PLAN", []))
+        leaf_ref = f"{A40}\trefs/heads/handoff/r10-leaf\n"
+        c_old, c_live, c_none, c_un = cboard(leaf_ref, 8.4), cboard(leaf_ref, 0.5), cboard(""), cboard("", ls_rc=1)
+        a, f = check("OUTSIDE-CHAIN-IDLE", [
+            ("an outside group blocked through MID by a LEAF whose seat ref is 8.4 h old prints the whole path and the idle hours",
+             c_old == ["OUTSIDE-CHAIN-IDLE R10-OUT (#3401): R10-OUT <- R10-MID <- R10-LEAF idle 8.4h"]),
+            ("a leaf with no seat ref at all says so, not a number",
+             c_none == ["OUTSIDE-CHAIN-IDLE R10-OUT (#3401): R10-OUT <- R10-MID <- R10-LEAF idle with no seat ref"]),
+            ("null control: a path ending in a seat ref inside the window prints nothing", c_live == []),
+            ("null control: a plain (non-outside) group's chain onto the same idle leaf prints nothing",
+             not any("R10-PLAIN" in x for x in c_old + c_none)),
+            ("an unreadable ref listing is UNREADABLE and owes nothing it cannot know",
+             any("UNREADABLE: outside chains" in x for x in c_un) and not any(x.startswith("OUTSIDE") for x in c_un)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- class barrier (R10-RCA-TICK-BLIND section 2): a repair-discharges-line arm per owed-family kind ----
+        # The census reads owed_unactioned's FAMILY, the one list of lines an operator is told to repair:
+        # a kind is ARMED (an arm below runs its named repair in the fakes and the line goes, and one
+        # where the repair cannot run changes the line to say so) or is DEBT, owed an arm; a kind in
+        # neither, or in both, or one the family no longer holds, is a failure of the census itself.
+        fam = set(re.match(r"\^-> \((.*)\)$", ou.FAMILY.pattern).group(1).split("|"))
+        owed_ok = tick(bus_refs=[BUS_CLEAR], state_dir=str(tmp / "state-op"))
+        owed_ok.orphans("REPLAN")
+        armed = {
+            "OWED": [("the opener's repair (the ref carried) removes the OWED handoff line",
+                      not any(x["text"].startswith("OWED handoff:") for x in owed_ok.findings)),
+                     ("the repair that cannot run (3 failures) changes the line to say STUCK", ow_op[0].endswith("STUCK after 3")),
+                     ("the repair skipped by ruling changes it to `held by ruling`", "held by ruling" in ow_op[2]),
+                     ("the repair's missing precondition prints OPENER ABSENT",
+                      any(x["text"].startswith("OPENER ABSENT") for x in t_ab.findings))],
+            "DESIGN-REVIEW OWED:": [("dispatching the reviewer after the tip removes the line", r_new == []),
+                                    ("a verdict at the tip removes it", r_ok == []),
+                                    ("a precondition gone (the group done) removes it", r_done == [])],
+            "UNDISPATCHED:": [("a dispatch ref after the gate opened removes the line for its group",
+                               not any("R10-OI" in x for x in u_live))],
+            "DESIGN-BUILD:": [("a dispatched build removes the line", [x.split()[1] for x in db] == ["R10-G1"])],
+        }
+        debt = {"REVIEW OWED:", "RECORD-OWED:", "DISPATCH:", "OWNER FLAG:", "MERGE-READY:", "BLOCKED-UNFIXED:",
+                "APPROVAL-OWED:", "UNLEVELLED:", "REVIEW STALLED:"}
+        a, f = check("repair-discharges-line census", [
+            ("every owed-family kind is armed or debt, none both, none stale", set(armed) | debt == fam and not set(armed) & debt),
+            ("every armed kind has at least one arm and each arm holds", all(arms and all(ok for _, ok in arms) for arms in armed.values())),
+        ] + [(f"{k}: {label}", ok) for k, arms in sorted(armed.items()) for label, ok in arms])
         total, failed = total + a, failed + f
 
         # ---- DESIGN OWED carries the dispatch age and a CP mark ----
@@ -5350,6 +5878,88 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+    # R10-GH-READ-RESIDUE-P3 item 1 (P596, P625): the tick's comment, check-run and ruleset
+    # reads are conditional and their ETag and body shared through the state dir.
+    with tempfile.TemporaryDirectory() as st_dir:
+        saved_state = os.environ.get("HPO_STATE_DIR")
+        os.environ["HPO_STATE_DIR"] = st_dir
+        try:
+            h70 = f"{70:040x}"
+            runs70 = [run_obj("tests"), run_obj("closures")]
+            vcom = {"id": 9, "user": {"login": "x", "id": 1, "type": "User"}, "created_at": iso(NOW), "body": "hi"}
+
+            def pass_(comments, runs=None):
+                board = [pr_obj(70, h70)]
+                t = tick(prs=board, runs_at={H1: runs or runs70},
+                         gh_extra=[(("issues/70/comments?per_page=100",), 0, json.dumps(comments))])
+                t._git.on(("ls-remote",), out="")
+                t._git.on(("log", "-1", "--format=%ct"), out="0")
+                t.verdict_levels("PRS", board)
+                got = t.check_runs(H1)
+                req = t.required("PRS")
+                return t, got, req
+
+            def inm(t, frag):
+                return [any("If-None-Match" in a for a in c) for c in t._gh.calls
+                        if "-i" in c and any(frag in a for a in c)]
+            t1, runs1, req1 = pass_([[vcom]])
+            t2, runs2, req2 = pass_([[vcom]])
+            a, f = check("conditional reads (the tick's three single-page reads)", [
+                ("cold: comments, check-runs and both ruleset reads are plain (null control: no stored ETag)",
+                 inm(t1, "/comments?") == [False] and inm(t1, "/check-runs?") == [False]
+                 and inm(t1, "/rulesets") == [False, False]),
+                ("warm, another Tick object on the same state dir: all four are conditional and answered 304",
+                 inm(t2, "/comments?") == [True] and inm(t2, "/check-runs?") == [True]
+                 and inm(t2, "/rulesets") == [True, True]),
+                ("a 304 serves the stored bodies: the same runs and the same required set",
+                 runs2 == runs1 and len(runs1) == 2 and req2 == req1 == ["closures", "tests"]),
+            ])
+            total, failed = total + a, failed + f
+            t3, runs3, _ = pass_([[vcom]], runs=[run_obj("tests", conclusion="failure")])
+            a, f = check("a changed body is a 200 that replaces the stored one", [
+                ("the new check-run page is read, not the stored one",
+                 [r["conclusion"] for r in runs3] == ["failure"]),
+            ])
+            total, failed = total + a, failed + f
+            full = [[dict(vcom, id=i) for i in range(gh_read.PER_PAGE)]]
+            t4 = tick(prs=[pr_obj(71, f"{71:040x}")],
+                      gh_extra=[(lambda argv: "--slurp" in argv and "issues/71/comments" in " ".join(argv), 0,
+                                 json.dumps(full + [[dict(vcom, id=999)]])),
+                                (("issues/71/comments?per_page=100",), 0, json.dumps(full))])
+            t4._git.on(("ls-remote",), out="")
+            t4._git.on(("log", "-1", "--format=%ct"), out="0")
+            t4.verdict_levels("PRS", [pr_obj(71, f"{71:040x}")])
+            a, f = check("a full first page is read through to the end", [
+                ("the paginated slurp read follows the 100-comment conditional page",
+                 any("--slurp" in c and "issues/71/comments?per_page=100" in " ".join(c) for c in t4._gh.calls)),
+            ])
+            total, failed = total + a, failed + f
+
+            def runs_page(sha, page_total):
+                """check_runs(<sha>) over a 100-run conditional page stating <page_total>, and a
+                paginated read holding 101 runs -> (runs read, whether the --paginate read ran)."""
+                page = {"total_count": page_total, "check_runs": [run_obj(f"r{i}") for i in range(100)]}
+                t_ = tick(gh_extra=[
+                    (lambda argv: "-i" in argv and f"commits/{sha}/check-runs" in " ".join(argv), 0, json.dumps(page)),
+                    (("--paginate", f"commits/{sha}/check-runs"), 0,
+                     "\n".join(json.dumps(run_obj(f"r{i}")) for i in range(101)))])
+                got_ = t_.check_runs(sha)
+                return got_, any("--paginate" in c and f"commits/{sha}/check-runs" in " ".join(c) for c in t_._gh.calls)
+            more, more_pg = runs_page(f"{72:040x}", 101)
+            one, one_pg = runs_page(f"{73:040x}", 100)
+            a, f = check("a check-run page holding fewer runs than its total_count is read through to the end", [
+                ("the paginated read follows a 100-run page whose total_count is 101, and its 101 runs are returned",
+                 more_pg and more is not None and len(more) == 101),
+                ("null control: a page holding its whole total_count is the one read, no --paginate call",
+                 not one_pg and one is not None and len(one) == 100),
+            ])
+            total, failed = total + a, failed + f
+        finally:
+            if saved_state is None:
+                os.environ.pop("HPO_STATE_DIR", None)
+            else:
+                os.environ["HPO_STATE_DIR"] = saved_state
+
     print(f"orchestrator_tick self-test: {total} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -5389,7 +5999,9 @@ def main() -> int:
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
     if a.self_test:
-        return self_test()
+        with tempfile.TemporaryDirectory() as st:  # the fakes' ETag files never reach the host's state dir
+            os.environ["HPO_STATE_DIR"] = st
+            return self_test()
     if not a.workers_file and a.queue:
         sib = Path(a.queue[0]).parent / "workers.json"
         if sib.exists():

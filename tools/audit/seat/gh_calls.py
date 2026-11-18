@@ -5,9 +5,20 @@
     gh_calls.py --coverage [PID ...]
     gh_calls.py --self-test
 
---top ranks callers (the parent command) and endpoints (subcommand + target)
-by call count, over $HPO_STATE_DIR/gh-calls.log and its rotated .1 (default
-state root $HOME/.local/state/hpo). `--since` keeps lines whose UTC stamp is
+--top ranks callers (the parent command), endpoints (subcommand + target) and
+rate-limit buckets by call count. A call's bucket is derived from what the
+shim logged: `api graphql` and the commands gh serves over GraphQL (pr, issue,
+repo, label, project) are `graphql`; `api search/...` and `gh search` are
+`search`; `api rate_limit` is `free`; any other readable `api` path, and
+run, workflow, release, cache, secret, variable and ruleset, are `core`; a
+target the shim could not log, or a subcommand outside these, is
+`unattributed`, never core. It counts calls, not cost: a GraphQL query's cost
+is in its own response. Ranked over the host-wide log the shim writes,
+$HOME/.local/state/hpo/gh-calls.log (the token and its core bucket are
+host-wide), plus a distinct $HPO_STATE_DIR/gh-calls.log an older shim left,
+each with its rotated .1. With more than one source holding calls the report
+ends with a `sources:` table of each log's own count in the window; `--log
+PATH` reads that one file alone. `--since` keeps lines whose UTC stamp is
 not before it; a stamp is the shim's `YYYY-MM-DDTHH:MM:SSZ`, and a value that
 is not one is refused, never read as "everything". A line the shim did not
 write is counted and reported, not ranked. With no call logged in the window
@@ -50,6 +61,26 @@ def state_dir():
     return Path(os.environ.get("HPO_STATE_DIR") or Path.home() / ".local/state/hpo")
 
 
+def host_log() -> Path:
+    """The one host-wide log the installed shim writes (P669)."""
+    return Path.home() / ".local/state/hpo" / "gh-calls.log"
+
+
+def log_sources() -> "list[Path]":
+    """The logs --top reads: the host-wide one, then the caller's $HPO_STATE_DIR one
+    when it is a different file (a shim from before the host-wide log wrote there)."""
+    host, extra = host_log(), state_dir() / "gh-calls.log"
+    return [host] if extra.resolve() == host.resolve() else [host, extra]
+
+
+def source_table(logs, since, limit) -> str:
+    """The `sources:` table, or "" while at most one log holds a call in the window."""
+    rows = [(top(read_lines(p), since, limit)[3], p) for p in logs]
+    if sum(1 for n, _ in rows if n) < 2:
+        return ""
+    return "\n".join(["sources:"] + [f"  {n:6d}  {p}" for n, p in rows])
+
+
 def read_lines(log: Path):
     out = []
     for p in (Path(f"{log}.1"), log):
@@ -57,6 +88,40 @@ def read_lines(log: Path):
             out += p.read_text(errors="replace").splitlines()
         except OSError:
             pass
+    return out
+
+
+GRAPHQL_CMDS = frozenset({"pr", "issue", "repo", "label", "project"})
+CORE_CMDS = frozenset({"run", "workflow", "release", "cache", "secret", "variable", "ruleset"})
+
+
+def bucket(sub: str, target: str) -> str:
+    """The rate-limit bucket a logged call draws on: core, graphql, search, free or unattributed."""
+    if sub == "api":
+        path = target.lstrip("/")
+        if path == "graphql":
+            return "graphql"
+        if path == "search" or path.startswith("search/"):
+            return "search"
+        if path == "rate_limit":
+            return "free"
+        return "core" if re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_./:-]*", path) else "unattributed"
+    if sub == "search":
+        return "search"
+    if sub in GRAPHQL_CMDS:
+        return "graphql"
+    return "core" if sub in CORE_CMDS else "unattributed"
+
+
+def buckets(lines, since=None) -> Counter:
+    """Calls per bucket over the window `top` reads."""
+    if since is not None and not STAMP.fullmatch(since):
+        raise ValueError(f"--since wants YYYY-MM-DDTHH:MM:SSZ, got {since!r}")
+    out = Counter()
+    for ln in lines:
+        m = LINE.fullmatch(ln)
+        if m and (since is None or m.group(1) >= since):
+            out[bucket(m.group(4), m.group(5))] += 1
     return out
 
 
@@ -84,6 +149,8 @@ def render_top(lines, since=None, limit=10):
     for title, c in (("callers", callers), ("endpoints", endpoints)):
         out.append(f"{title}:")
         out += [f"  {n:6d}  {k}" for k, n in c.most_common(limit)] or ["  (none)"]
+    out.append("buckets:")
+    out += [f"  {n:6d}  {k}" for k, n in sorted(buckets(lines, since).items())] or ["  (none)"]
     return "\n".join(out)
 
 
@@ -183,9 +250,10 @@ def self_test():
         gcs = w / "gh_comment.py"  # stands for the tree's tools/pr/gh_comment.py: the installer bakes its path in
         gcs.write_text("import subprocess, sys\nsys.exit(subprocess.run(['gh', *sys.argv[1:]]).returncode)\n")
 
-        def install(src_text):
+        def install(src_text, logdir=None):
             dst = w / "own" / "gh"
-            dst.write_text(src_text.replace("gcpy=@HPO_GH_COMMENT@\n", f"gcpy={gcs}\n"))
+            dst.write_text(src_text.replace("gcpy=@HPO_GH_COMMENT@\n", f"gcpy={gcs}\n")
+                           .replace("loghome=@HPO_GH_LOG_HOME@\n", f"loghome='{logdir or w / 'state'}'\n"))
             dst.chmod(0o700)
 
         # Hermetic PATH: the shim and the stub, plus a dir of symlinks to the few
@@ -213,10 +281,9 @@ def self_test():
         (w / "state").mkdir()
 
         def run(args, state=None, shim_text=None, stdin=b"IN\n", env_extra=None, path=None, via=None):
-            if shim_text is not None:
-                install(shim_text)
-            env = {"PATH": path or hermetic,
-                   "HPO_STATE_DIR": str(state or w / "state"), "HOME": str(w)}
+            # the installer fixes the log's directory in the shim: `state` is that directory
+            install(good if shim_text is None else shim_text, state or w / "state")
+            env = {"PATH": path or hermetic, "HPO_STATE_DIR": str(w / "ignored"), "HOME": str(w)}
             env.update(env_extra or {})
             cmd = [str(w / "own" / "gh"), *args] if via is None else ["sh", "-c", via]
             r = subprocess.run(cmd, input=stdin, capture_output=True, env=env, timeout=60)
@@ -230,6 +297,8 @@ def self_test():
         m = LINE.fullmatch(text.strip())
         check("one log line naming parent and path", bool(m) and m.group(4) == "api" and m.group(5) == "repos/o/r/pulls"
               and text.count("\n") == 1 and int(m.group(2)) == os.getpid() and "python" in m.group(3))
+        check("the call is logged at the install-fixed host log and never at the caller's HPO_STATE_DIR",
+              log.exists() and not (w / "ignored").exists())
         check("a -f body=secret argument never reaches the log", "secret" not in text and "body" not in text)
 
         run(["api", "-X", "POST", "repos/o/r/issues?per_page=9", "--input", "tokfile"])
@@ -798,6 +867,47 @@ def self_test():
                            capture_output=True, text=True, env={"PATH": f"{w / 'real'}:{tools}", "HOME": str(w)}, timeout=60)
         check("the CLI exits 3 with the line on an empty window",
               r.returncode == 3 and r.stdout.startswith("gh_calls: UNATTRIBUTED: no call logged since "))
+    stamp = "2026-11-15T00:00:%02dZ 7 scan.py "
+    planted = [stamp % i + tail for i, tail in enumerate(
+        ("api repos/o/r/issues", "api repos/o/r/actions/runs", "api graphql", "pr view", "api search/issues", "search issues",
+         "api rate_limit", "api ?", "api -", "frobnicate -", "run view", "release list"))]
+    b = buckets(planted)
+    check("calls are counted per bucket: REST paths core, graphql and the GraphQL-served commands graphql, search search, rate_limit free",
+          b == Counter({"core": 4, "graphql": 2, "search": 2, "free": 1, "unattributed": 3}))
+    check("null control: a target the shim could not log, or an unknown subcommand, is unattributed and never core",
+          bucket("api", "?") == bucket("api", "-") == bucket("frobnicate", "-") == bucket("api", "") == "unattributed"
+          and bucket("api", "repos/o/r/pulls") == "core" and bucket("api", "/graphql") == "graphql" and bucket("api", "searching") == "core")
+    check("--top prints the bucket table, and --since bounds it like the other two",
+          render_top(planted).endswith("buckets:\n       4  core\n       1  free\n       2  graphql\n       2  search\n       3  unattributed")
+          and buckets(planted, "2026-11-15T00:00:10Z") == Counter({"core": 2}) and "buckets:\n  (none)" in render_top(planted, "2026-11-16T00:00:00Z"))
+
+    # P669: one host-wide log, read whatever the reader's HPO_STATE_DIR
+    with tempfile.TemporaryDirectory() as h_:
+        h_ = Path(h_)
+        host = h_ / ".local/state/hpo"
+        host.mkdir(parents=True)
+        other = h_ / "session"
+        other.mkdir()
+        (host / "gh-calls.log").write_text("2026-11-11T06:30:00Z 1 merge_train.py api repos/o/r/rulesets\n" * 3)
+        (other / "gh-calls.log").write_text("2026-11-11T06:31:00Z 2 orchestrator_tick.py api repos/o/r/pulls\n")
+
+        def top_cli(state, *extra):
+            env = {"PATH": os.environ.get("PATH", ""), "HOME": str(h_)}
+            if state:
+                env["HPO_STATE_DIR"] = str(state)
+            return subprocess.run([sys.executable, "-I", __file__, "--top", *extra], capture_output=True, text=True,
+                                  env=env, timeout=60)
+        a_, b_ = top_cli(None), top_cli(other)
+        check("a call written with HPO_STATE_DIR unset is counted by --top with it set to another dir",
+              "gh calls: 4" in b_.stdout and "merge_train.py" in b_.stdout and "orchestrator_tick.py" in b_.stdout)
+        check("a call under another HPO_STATE_DIR is counted by --top with HPO_STATE_DIR unset: the host log alone reads 3",
+              "gh calls: 3" in a_.stdout)
+        check("the report labels each source's own count", "sources:" in b_.stdout
+              and f"       3  {host / 'gh-calls.log'}" in b_.stdout and f"       1  {other / 'gh-calls.log'}" in b_.stdout)
+        check("null control: one log with one call prints today's tables, no sources table",
+              "sources:" not in a_.stdout and "gh calls: 3" in a_.stdout
+              and a_.stdout.rstrip("\n") == render_top(read_lines(host / "gh-calls.log")))
+        check("--log reads that file alone", "gh calls: 1" in top_cli(None, "--log", str(other / "gh-calls.log")).stdout)
     print(f"gh_calls self-test: {pass_n + fail_n} checks, {fail_n} failed")
     return 1 if fail_n else 0
 
@@ -806,12 +916,12 @@ def main(argv):
     a = list(argv)
     if "--self-test" in a:
         return self_test()
-    log = state_dir() / "gh-calls.log"
+    logs = log_sources()
     since = None
     limit = 10
     try:
         if "--log" in a:
-            log = Path(a[a.index("--log") + 1])
+            logs = [Path(a[a.index("--log") + 1])]
         if "--since" in a:
             since = a[a.index("--since") + 1]
         if "--limit" in a:
@@ -828,7 +938,9 @@ def main(argv):
         return 0
     if "--top" in a:
         try:
-            rc, text = top_report(read_lines(log), since, limit, os.environ.get("PATH", ""))
+            rc, text = top_report([x for p in logs for x in read_lines(p)], since, limit, os.environ.get("PATH", ""))
+            table = source_table(logs, since, limit) if rc == 0 else ""
+            text += f"\n{table}" if table else ""
         except ValueError as e:
             print(f"gh_calls: {e}", file=sys.stderr)
             return 2
