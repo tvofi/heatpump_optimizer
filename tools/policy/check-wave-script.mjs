@@ -1662,19 +1662,19 @@ await block('the P3 plan workflow', async () => {
   // to the base's copy in CI) passes both before and after that refusal lands.
   const OPEN = { open: { open_cards: ['E11-X'], open_groups: ['R11-G'], unmarked: [] }, open_rc: 0 }
   const MOVES = (extra = {}) => ({ groups: [{ group: 'A', findings: ['D7-s1-01'], open_items: ['E11-X'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }],
-    dropped: [{ id: 'R11-G', reason: 'merged while the finders ran' }], projected_dS: 23, critical_chain: ['A'], depth: 1, hours: 8, risks: [], ...extra })
+    dropped: [{ id: 'R11-G', reason: 'merged while the finders ran' }], projected_dS: 23, objective: { groups: { A: { rank: 1, removes: ['D7-s1-01'] } } }, critical_chain: ['A'], depth: 1, hours: 8, risks: [], ...extra })
   const drive = async (over = {}) => {
     const calls = []
     let cur = over.publish?.sha ?? SHA('b')
     let rev = 0
     const agent = async (prompt, o) => {
-      calls.push({ label: o.label, prompt })
+      calls.push({ label: o.label, prompt, schema: o.schema })
       const label = o.label
       if (label === 'plan/read') return over.read ?? { groups: [G('A')], findings: [FIND('D7-s1-01')], holdouts_path: 'h.json', ...OPEN }
       if (label === 'plan/architect') return over.architect ?? { components: ['coordinator'], scenarios: [{ quality: 'q', scenario: 's' }], triage: (over.read?.findings ?? [FIND('D7-s1-01')]).map((f) => ({ id: f.id, verdict: 'keep' })) }
       if (label === 'plan/moves') return over.moves ?? MOVES()
       if (label === 'plan/write') return over.write ?? { brief_lint_rc: 0 }
-      if (label === 'plan/publish') return over.publish ?? { sha: cur, pushed: true }
+      if (label === 'plan/publish') return over.publish ?? { sha: cur, objective_rc: 0, pushed: true }
       if (/^plan\/review-/.test(label)) {
         const r = over.reviewImpl ? over.reviewImpl(label, cur) : null
         return r ?? { verdict: 'approve', sha: cur, points: [] }
@@ -1708,7 +1708,13 @@ await block('the P3 plan workflow', async () => {
   await pthrows('a group with no move entry stops P3', /no move entry/,
     { moves: { groups: [{ group: 'A' }, { group: 'B' }], moves: [{ group: 'A', metrics: {} }], projected_dS: 23 } })
   await pthrows('a publish that is not a 40-hex commit stops P3', /not a 40-hex commit/,
-    { publish: { sha: 'abc', pushed: true } })
+    { publish: { sha: 'abc', objective_rc: 0, pushed: true } })
+  // R11-ARCH-OBJECTIVE: decision 0018's check gates the publish; its twin is
+  // the approved run below, whose publish reports rc 0.
+  await pthrows('a plan the objective check refuses is not published (P3 stops)', /objective check refused the plan \(rc=1\)/,
+    { publish: { sha: SHA('b'), objective_rc: 1, objective_fails: ['RANK edge A after B'], pushed: false } })
+  // An absent objective_rc is refused by the publish schema's `required`
+  // (the runtime validates it); this pins that the schema carries it.
   await pthrows('a reviewer answering for another tree stops P3', /answered for/,
     { reviewImpl: () => ({ verdict: 'approve', sha: SHA('c'), points: [] }) })
   await pthrows('a recorded verdict that is not a 40-hex commit stops P3', /not a 40-hex commit/,
@@ -1725,7 +1731,20 @@ await block('the P3 plan workflow', async () => {
   const read = ok.calls.find((c) => c.label === 'plan/read')?.prompt ?? ''
   t('the read step is pointed at the audit-verify draft and measures the fork holdouts',
     read.includes('wave-r11-groups.json') && read.includes('plan_audit.py snapshot --ref deadbeefcafe'))
+  const movesP = ok.calls.find((c) => c.label === 'plan/moves')?.prompt ?? ''
+  const publishP = ok.calls.find((c) => c.label === 'plan/publish')?.prompt ?? ''
+  t('the architect returns the objective block and the publish runs objective-check before the push (R11-ARCH-OBJECTIVE)',
+    /objective block/.test(movesP) && /no hour, chain or date/.test(movesP)
+    && publishP.indexOf('plan_audit.py objective-check') >= 0
+    && publishP.indexOf('plan_audit.py objective-check') < publishP.indexOf('git push origin HEAD:refs/heads/plan/r11'), publishP.slice(0, 200))
+  t('and the PLAN.json written carries the block the architect returned',
+    (ok.calls.find((c) => c.label === 'plan/write')?.prompt ?? '').includes('"removes": [\n     "D7-s1-01"'))
+  t('and the publish schema requires objective_rc, so a publish that reports no check is refused',
+    (ok.calls.find((c) => c.label === 'plan/publish')?.schema?.required ?? []).includes('objective_rc'))
+  t('and the moves schema requires the objective block, so a reply without one is refused',
+    (ok.calls.find((c) => c.label === 'plan/moves')?.schema?.required ?? []).includes('objective'))
   const review1 = ok.calls.find((c) => c.label === 'plan/review-1')?.prompt ?? ''
+  t('the reviewer re-runs objective-check at the plan SHA', review1.includes('objective-check --ref ' + SHA('b')))
   t('the reviewer is pointed at the published plan ref and its SHA',
     review1.includes('plan/r11 = ' + SHA('b')) && /plan-review\.md/.test(review1))
   const verdict = ok.calls.find((c) => c.label === 'plan/verdict')?.prompt ?? ''

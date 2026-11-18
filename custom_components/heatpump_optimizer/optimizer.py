@@ -198,7 +198,7 @@ def _engaged(opt: HeatPumpOptimizer) -> bool:
     :func:`_commit_runs`' candidates; unengaged it is the duty-cycle reading,
     with no start term to price.
     """
-    return opt.config.cycling_cost > 0 or opt.config.clamp_planned_levels
+    return opt.config.start_price > 0 or opt.config.clamp_planned_levels
 
 
 def _charge_runs(opt: HeatPumpOptimizer, running: bool) -> ChargeRuns | None:
@@ -253,7 +253,7 @@ def _relaxed_plans(
     res = _multi_start_minimize(
         pair[0], starts, scope[0], args=(dhw_plan,), maxiter=300, batch_objective=pair[1])
     plans = [np.clip(res.x, 0.0, headroom)]
-    if opt.config.cycling_cost > 0 and _priced_stops(opt) is not None:
+    if opt.config.start_price > 0 and _priced_stops(opt) is not None:
         free_room, free = rescope(None)
         pair = _descent_pair(opt, free[1], free[2], _UNPRICED)
         plans.append(np.clip(_multi_start_minimize(
@@ -266,7 +266,7 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
     """The learned stop probability per switch direction, ``None`` when no direction stops.
 
     The lost running time is charged on this alone; the price is this times
-    ``cycling_cost``, so an install that prices no cycle prices no switch.
+    ``start_price``, so an install that prices no start prices no switch.
     """
     stops = duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0)
     return stops if max(stops) > 0 else None
@@ -368,7 +368,7 @@ def _switch_cost_fn(
     floor, where the running share is flat; the unpriced descent has none.
     """
     stops, floor, rule = _priced_stops(opt), _duty_floor(opt), _leg_rule(opt)
-    p_max, cost = opt.model.params.max_electrical_power, opt.config.cycling_cost
+    p_max, cost = opt.model.params.max_electrical_power, opt.config.start_price
     p_min = opt.model.params.min_electrical_power
 
     def switch_cost(space: np.ndarray, dhw: np.ndarray | None, descent: str | None = None) -> Any:
@@ -389,13 +389,13 @@ def _with_switch_cost(level_cost: Any, switch_cost: Any) -> Any:
 
 
 def _start_cost_fn(opt: HeatPumpOptimizer, running: bool) -> Callable[[np.ndarray, str | None], Any]:
-    """The start term: ``cycling_cost`` per start of the combined draw (``runs``).
+    """The start term: ``start_price`` per start of the combined draw (``runs``).
 
     One entry per row of a ``[B, n]`` batch, a float for one plan. ``None``
     at zero cost and on a descent (:func:`_descent_pair`), and
     :func:`_with_switch_cost` then adds no operand.
     """
-    cost, p_min = opt.config.cycling_cost, opt.model.params.min_electrical_power
+    cost, p_min = opt.config.start_price, opt.model.params.min_electrical_power
 
     def start_cost(power: np.ndarray, descent: str | None) -> Any:
         if descent or not cost > 0:
@@ -455,7 +455,7 @@ def _avoid_priced_switches(
     """
     space, dhw, _ = incumbent
     stops = _priced_stops(opt)
-    if stops is None or not opt.config.cycling_cost > 0 or opt.model.params.dhw_store.combi:
+    if stops is None or not opt.config.start_price > 0 or opt.model.params.dhw_store.combi:
         return incumbent
     floor = _duty_floor(opt)
     shipped, tank = _realize_joint(
@@ -547,7 +547,7 @@ def _run_plans(
     floor = runs.floor_kw(opt.model.params.min_electrical_power)
     heats = (hi >= floor) & ((other <= 0.0) | (space >= floor / 2.0))
     masks = runs.candidates(
-        space + other, h.prices, floor, hi + other, opt.config.cycling_cost,
+        space + other, h.prices, floor, hi + other, opt.config.start_price,
         dt=h.dt, running=h.compressor_running,
         forced=np.where((other > 0.0) | (lo > 0.0), 1.0, np.where(hi + other <= 0.0, 0.0, np.nan)),
     )
@@ -690,8 +690,8 @@ def _commit_runs(
     """A solve's relaxed plans as runs the pump can run, and the scope the
     plan that ships was scored in (Bankaifan, pull request 3529).
 
-    Identity on the first relaxed plan unengaged, and where no start has a
-    price and the projection changes nothing. Each relaxed plan is committed
+    Identity on the first relaxed plan unengaged; an engaged solve always
+    prices a start (:attr:`OptimizationConfig.start_price`). Each relaxed plan is committed
     on its own (:func:`_best_runs`) and the lowest score ships: a committed
     plan never scores above the first plan's projection, one more relaxed
     plan never raises the score, and a failure anywhere in this stage ships
@@ -701,8 +701,6 @@ def _commit_runs(
         return relaxed[0], scope
     _, hi, _, cycled = _stage_box(opt, scope[0], dhw)
     first = _projection(opt, relaxed[0], dhw, hi, cycled)
-    if not opt.config.cycling_cost > 0 and np.array_equal(first, relaxed[0]):
-        return relaxed[0], scope
     try:
         return min((
             _best_runs(
@@ -2680,6 +2678,17 @@ class OptimizationResult:
         return self.room_temp_trajectory
 
 
+#: Currency per start a clamped install plans at when it prices no start
+#: (owner ruling Q2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3). A clamped plan is
+#: committed to whole runs, and at no start price nothing stops that commit
+#: from shipping more starts than the duty-cycle plan it replaced; this is the
+#: smallest value on the ``defaults`` ladder of
+#: ``dev/audit/harnesses/r11_honest_starts_runs.py`` that returns both
+#: regressed rows to their start count before that commit, without lowering the
+#: lowest room. A configured price above zero is used as configured.
+CLAMPED_DEFAULT_START_PRICE: float = 0.1
+
+
 @dataclass
 class OptimizationConfig:
     """Configuration for the optimizer."""
@@ -2719,7 +2728,8 @@ class OptimizationConfig:
     # as a minimum-runtime constraint: that would make it a MILP, which is not
     # affordable inside a 30-second Home Assistant update on the hardware
     # this usually runs on.
-    #: Currency cost attributed to one compressor start.
+    #: Currency the user configured for one compressor start; every solve
+    #: prices ``start_price``, which reads it.
     #: Mirrors ``const.DEFAULT_CYCLING_COST`` rather than restating it, so the
     #: objective a harness builds directly is the objective that ships. The two
     #: had silently drifted apart once before, which meant the tests were
@@ -2773,6 +2783,17 @@ class OptimizationConfig:
     #: Default off: a direct config and a fully metered install keep the
     #: duty-cycle bounds, so their plans stay byte-identical.
     clamp_planned_levels: bool = False
+
+    @property
+    def start_price(self) -> float:
+        """Currency one planned compressor start costs: what every solve prices.
+
+        The configured ``cycling_cost``, except on a clamped install that
+        prices no start, which plans at :data:`CLAMPED_DEFAULT_START_PRICE`.
+        """
+        if self.clamp_planned_levels and not self.cycling_cost > 0:
+            return CLAMPED_DEFAULT_START_PRICE
+        return self.cycling_cost
 
     @property
     def n_steps(self) -> int:
