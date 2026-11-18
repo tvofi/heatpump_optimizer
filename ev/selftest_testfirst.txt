@@ -1,0 +1,60 @@
+ok   REFUSE pred: exit code (1)
+ok   ... and the output names the refusal REFUSED PREDICTOR
+ok   ... and the refused body is kept at handoff-wip/t-body
+ok   ... and the keep line names the ref and sha
+ok   ... as a parentless commit
+ok   (null) the kept body is not in the code head's ancestry
+ok   MUTANT keep deleted (pred): nothing is kept, so the arm above would fail
+ok   REFUSE lint: exit code (1)
+ok   ... and the output names the refusal REFUSED BODY-LINT
+ok   ... and the refused body is kept at handoff-wip/t-body
+ok   ... and the keep line names the ref and sha
+ok   ... as a parentless commit
+ok   (null) the kept body is not in the code head's ancestry
+ok   MUTANT keep deleted (lint): nothing is kept, so the arm above would fail
+ok   REFUSE packet: exit code (1)
+ok   ... and the output names the refusal REFUSED REVIEW-PACKET
+ok   ... and the refused body is kept at handoff-wip/t-body
+ok   ... and the keep line names the ref and sha
+ok   ... as a parentless commit
+ok   (null) the kept body is not in the code head's ancestry
+ok   MUTANT keep deleted (packet): nothing is kept, so the arm above would fail
+ok   REFUSE landed: exit code (4)
+ok   ... and the output names the refusal REFUSED CARRY-LANDED
+ok   ... and the refused body is kept at handoff-wip/t-body
+ok   ... and the keep line names the ref and sha
+ok   ... as a parentless commit
+ok   (null) the kept body is not in the code head's ancestry
+ok   MUTANT keep deleted (landed): nothing is kept, so the arm above would fail
+ok   PRIVACY: a lint-refused body naming this host still refuses, exit 1
+FAIL ... and nothing is kept on origin (got '2370dba76b7187c144ccb358ab5f0d3e3781e590', want 'none')
+FAIL ... and the output says so and names the local body (got '0', want '1')
+FAIL ... and prints no keep line (got '1', want '0')
+FAIL PRIVACY: the predictor arm keeps nothing either (got '12370dba76b7187c144ccb358ab5f0d3e3781e590', want '1none')
+FAIL PRIVACY: a RESUME note naming this host keeps nothing either (got '10dc4f4a2ee0212181fd503bd2db819355ad8b65f', want '1none')
+ok     null control: the same body under another host is a non-privacy BODY-LINT refusal, kept on origin
+ok     MUTANT mut:privacy (its predicate never true): the privacy body is kept, so the arms above would fail
+ok   a second refusal fast-forwards the keep ref
+ok   a keep whose push fails leaves the same refusal
+ok   ... and says the keep failed
+ok   a refusal is kept before the healthy run
+ok   the healthy run pushes
+ok   ... to handoff-body/t
+ok   ... and the keep ref is gone
+ok   the seat-side figure-block refresh ran
+ok   MUTANT refresh deleted: the arm above would fail
+ok   (null) the published body is not in the code head's ancestry
+ok   precondition: the stub's recorded base is not origin/main's tip
+ok   no fix/t on origin (no pull request yet): the refresh renders against origin/main
+ok   a pull request exists: the refresh renders against its recorded base.sha, not origin/main
+ok     null control: equal bases render the one sha, as before
+ok     MUTANT mut:bpbase (its line deleted): the refresh falls back to origin/main, so the arm above would fail
+ok   an unreadable recorded base refuses before the refresh
+ok   ... and pushes nothing
+ok   fix/t on origin but no open pull request: origin/main
+fatal: --negotiate-only needs one or more --negotiation-tip=*
+warning: push negotiation failed; proceeding anyway with push
+ok   REFUSE head-stale: a stale ## Head is refused, naming both shas
+ok   ... and nothing is pushed to handoff-body/t
+ok   (null) a ## Head naming the code sha passes the head check
+body_push self-test: 57 checks, 5 failed
