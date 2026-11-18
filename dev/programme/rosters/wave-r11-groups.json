@@ -3293,7 +3293,8 @@
    "issues": [],
    "fixes": [],
    "after": [
-    "R11-OUTSIDE-ROOMS-P1"
+    "R11-OUTSIDE-ROOMS-P1",
+    "R11-READS-RESIDUE"
    ],
    "files": [
     "custom_components/heatpump_optimizer/setpoint_check.py",
