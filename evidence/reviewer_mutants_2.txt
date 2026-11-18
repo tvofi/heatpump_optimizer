@@ -1,2 +1,0 @@
-KILLED status all in_progress | loop_ledger self-test: 1 failed | ["FAIL  reds: a push run's row prints gate.status's pair over the red attempt's own jobs"]
-SURVIVED event != pull_request | loop_ledger self-test: 0 failed | []

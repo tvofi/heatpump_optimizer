@@ -56,6 +56,10 @@ ok    reds: a red attempt's failed jobs split as gate.machinery_line splits them
 ok    reds: a push run's row prints gate.status's pair over the red attempt's own jobs
 ok    NULL reds: the same listing on a pull-request run reads the column unread, never a verdict of the push class
 ok    reds: a member with no conclusion, or not listed at the attempt, reads unread in its verdict, never red or green
+ok    reds: the summary counts a verdict red only where it reads red: an unread verdict is no red, and the product count reads the product verdict
+ok    NULL reds: a merge_group run reads the column unread, never a verdict of the push class
+ok    NULL reds: a workflow_dispatch run reads the column unread, never a verdict of the push class
+ok    reds: the summary's unread column counts the reds read, never a run with no job listing
 ok    reds: git_subject reads a commit's subject line, and None for no sha and for one the repository lacks
 ok    reds: --runs prints the read after the roster reads; without it the read is unread
 ok    mutant killed: later attempt (by 'reds: a gate red at attempt 1 and green at attempt 2')
@@ -79,6 +83,11 @@ ok    mutant killed: prelude and gate owed (by 'reds: a failed prelude is a requ
 ok    mutant killed: main row's own spell (by 'reds: a main run red at an earlier attempt and unconcluded at its latest')
 ok    mutant killed: edge spell (by 'reds: a main red spell already open at the first main run read')
 ok    mutant killed: column class from the event (by 'NULL reds: the same listing on a pull-request run')
+ok    mutant killed: column event a push alone (by 'NULL reds: a merge_group run reads the column unread')
+ok    mutant killed: summary product reads product (by 'reds: the summary counts a verdict red only where it reads red')
+ok    mutant killed: summary product unread no red (by 'reds: the summary counts a verdict red only where it reads red')
+ok    mutant killed: summary machinery unread no red (by 'reds: the summary counts a verdict red only where it reads red')
+ok    mutant killed: summary unread over reds (by 'reds: the summary's unread column counts the reds read')
 ok    mutant killed: column member unconcluded (by 'reds: a member with no conclusion')
 ok    mutant killed: stale listing (by 'reds: a listing cached at an older attempt')
 ok    mutant killed: listing owed past one attempt (by 'reds: the same run with no job listing')
@@ -89,4 +98,7 @@ ok    mutant killed: required split (by 'reds: a red attempt's failed jobs')
 ok    mutant killed: found_by on main alone (by 'reds: found_by ci-main on a main row')
 ok    mutant killed: subject of a missing commit (by 'reds: git_subject reads')
 loop_ledger self-test: 0 failed
-rc=0
+
+real	0m13.442s
+user	0m8.966s
+sys	0m1.987s
