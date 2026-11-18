@@ -1,0 +1,2 @@
+{"class":"N-event-misattribution","instances":0,"barriered":false,"enumerator":"bash dev/audit/rounds/round11/D14/enum_event_misattribution.sh",
+ "instance_list":[{"file":"custom_components/heatpump_optimizer/dhw_learning.py","symbol":"DhwProfileLearner.async_fold_draw_stats / ChargeSettle.advance","probe":"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s3/m5_tankfall.py  (booked_kwh_long_max=3.0160, identity 0)","beyond_finding":false}]}

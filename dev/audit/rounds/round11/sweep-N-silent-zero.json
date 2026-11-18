@@ -1,0 +1,62 @@
+{
+  "class": "N-silent-zero",
+  "instances": 2,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-N-silent-zero/enumerate.py (controls: python3 dev/audit/rounds/round11/D14/sweep-N-silent-zero/controls.py)",
+  "instance_list": [
+    {
+      "file": "custom_components/heatpump_optimizer/services.py",
+      "symbol": "SET_AWAY schema return_time (cv.string) -> coordinator.async_set_away",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s1/svc_set_away.py",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/button.py",
+      "symbol": "SystemIdentificationButton.async_press",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s1/btn_actions.py",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/button.py",
+      "symbol": "DiagnoseIntervalButton.async_press",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s1/btn_actions.py",
+      "beyond_finding": false
+    },
+    {
+      "file": "tools/replay/debug_ingest.py",
+      "symbol": "main: stages_ok / smoke_verdict (replay-clean)",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B --empty replay",
+      "beyond_finding": false
+    },
+    {
+      "file": "tools/replay/dbg_bundle_gen.py",
+      "symbol": "bundle generation without SnapshotRing.observe_bias",
+      "probe": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_null_ring.py --days 2",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/debugger.py",
+      "symbol": "_solver_smoke week_solve_ms spread",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_rowscan.py --bundle B",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/snapshots.py",
+      "symbol": "SnapshotRing.best_restore",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s3/f03_restore_unevidenced.py",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/switch.py",
+      "symbol": "TimedDutySwitch._press -> boost.set_block (refused on-press)",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-silent-zero/probe_block_refusal.py",
+      "beyond_finding": true
+    },
+    {
+      "file": "tools/replay/debug_replay.py",
+      "symbol": "main: counts.get(name, 0) / smoke_verdict",
+      "probe": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-silent-zero/probe_replay_empty_window.py",
+      "beyond_finding": true
+    }
+  ]
+}

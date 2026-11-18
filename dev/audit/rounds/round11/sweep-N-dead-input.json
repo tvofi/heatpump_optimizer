@@ -1,0 +1,10 @@
+{
+ "class": "N-dead-input",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "python3 -I dev/audit/rounds/round11/D14/sweep-N-dead-input/dead_input_enum.py custom_components/heatpump_optimizer  (controls: bash dev/audit/rounds/round11/D14/sweep-N-dead-input/controls.sh)",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._weather_series", "probe": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/outdoor_sensor.py (step0_outdoor_spread_K=0.0 with a forecast; must be >0)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/silent_mode.py", "symbol": "compose (CONF_SILENT_MODE_FRACTION default 1.0 gates CONF_SILENT_MODE_WINDOWS)", "probe": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/silent_prefill.py (kept_schedule_cap_delta_kW=0.0; must be <0)", "beyond_finding": false}
+ ]
+}
