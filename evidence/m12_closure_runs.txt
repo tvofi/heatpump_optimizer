@@ -1,0 +1,10 @@
+== hd (head)
+solar_alignment rc=0 ALL SOLAR ALIGNMENT CHECKS PASSED
+features block P1/P2 rc=1 NameError: name '_si_json' is not defined
+open_meteo rc=0 ALL OPEN-METEO CHECKS PASSED
+== hm (head + len(kept) < 1)
+solar_alignment rc=0 ALL SOLAR ALIGNMENT CHECKS PASSED
+features block P1/P2 rc=1 NameError: name '_si_json' is not defined
+open_meteo rc=0 ALL OPEN-METEO CHECKS PASSED
+hd features P1/P2 block (prelude import json as _si_json): ALL 7 FEATURES BLOCK PASSED
+hm features P1/P2 block (prelude import json as _si_json): ALL 7 FEATURES BLOCK PASSED

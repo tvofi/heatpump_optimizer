@@ -1,0 +1,12 @@
+# clean head 98cb43e750457b41ae6feb9a0c56cf1d6728e201 (git archive)
+series () () 1:00:00
+23:00:00 00:00:00 None
+23:30:00 00:00:00 None
+22:00:00 01:00:00 None
+empty None
+# head + mutant 'len(kept) < 2' -> '< 1'
+series (datetime.datetime(2026, 8, 21, 0, 0, tzinfo=datetime.timezone.utc),) (100.0,) 739848 days, 0:00:00
+23:00:00 00:00:00 100.0
+23:30:00 00:00:00 100.0
+22:00:00 01:00:00 100.0
+empty None

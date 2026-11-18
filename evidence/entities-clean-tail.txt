@@ -1,3 +1,0 @@
-  ok   `policy_lint.mjs --budgets` prints a moved policy file at its live path, naming the old-path key its caps sit under; an unmoved file names no key
-
-ALL 2737 ENTITY CHECKS PASSED
