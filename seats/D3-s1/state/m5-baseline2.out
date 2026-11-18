@@ -1,0 +1,9 @@
+2026-11-18T08:31:16Z BASELINE tests/edge.py rc=0 failed=0 wall=19.6s reach_ok=True
+2026-11-18T08:31:49Z BASELINE tests/backtest.py rc=0 failed=0 wall=52.1s reach_ok=True
+2026-11-18T08:34:09Z BASELINE tests/stress.py rc=0 failed=0 wall=192.5s reach_ok=False
+RESULT load1=1.18
+RESULT thread_factor=1.00
+2026-11-18T08:35:36Z TRACE-CAPTURE rc=0 wall=84.7s problems=[] procs={'started': 2, 'recorded': 2}
+RESULT load1=1.02
+RESULT thread_factor=1.00
+EXIT2 0
