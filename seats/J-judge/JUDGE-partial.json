@@ -940,5 +940,105 @@
   "class_mechanism": "A constant in a production data table (preset, coefficient, rule) is wrong, so every install that selects it computes from a false number",
   "nearest": "I5",
   "differs": "the false value is production data the code computes with, not prose describing it"
+ },
+ {
+  "id": "D2-s3-01",
+  "verdict": "weakened",
+  "severity": "medium",
+  "value": "planted copy: savings_inflation_lambda1_price_risk=12.4574, max 25.0586 currency; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-objective-as-money",
+  "note": "reproduced exactly (runner in worktree read 30.86 on its own arm). Needs price_risk_lambda > 0, so medium as the verifier. Votes: 1 weaken (medium).",
+  "class_mechanism": "A solve-only adjustment (a risk premium or penalty weight) is carried into a figure published or booked as currency, so cost, baseline and savings include a number no meter bills",
+  "nearest": "P8",
+  "differs": "no divergent unit precedence: an objective term crosses into the money surface"
+ },
+ {
+  "id": "D2-s3-02",
+  "verdict": "verified",
+  "severity": "critical",
+  "value": "planted copy: unit_mismatches=8; --perturb minor -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-missing-unit-scale",
+  "note": "reproduced exactly. A 100x price on every minor-unit install. Votes: 1 verify (critical).",
+  "class_mechanism": "A declared unit (a minor currency unit, a prefixed energy unit) is recognised but its scale factor is never applied, so the value reaches the plan off by that factor",
+  "nearest": "P8",
+  "differs": "one surface and one resolution: the conversion is missing, not resolved differently elsewhere"
+ },
+ {
+  "id": "D2-s3-03",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: tibber_rows_dropped=96, known steps at 14h 40; --perturb tomorrow -> 0 dropped, 96 known",
+  "stop_rule_class": "bug",
+  "class": "N-partial-payload-parse",
+  "note": "reproduced exactly. Votes: 1 verify (high).",
+  "class_mechanism": "A parser reads one part of an external payload and silently drops a sibling part the producer delivers, so the horizon or set it builds is short",
+  "nearest": "P6",
+  "differs": "the key exists and the producer writes it; the reader never looks for it"
+ },
+ {
+  "id": "D2-s3-04",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: fee_mismatch_steps=192; --perturb weekday -> 0",
+  "stop_rule_class": "bug",
+  "class": "I4",
+  "note": "reproduced exactly. Two weekday numberings of one concept, I4, as the verifier. Votes: 1 verify (high).",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D2-s3-05",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: tracker_peak_err_max=2.1268 kW; --perturb oneperday -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-inverted-aggregate",
+  "note": "reproduced exactly. Votes: 1 verify (high).",
+  "class_mechanism": "An aggregate takes the wrong order statistic (the minimum for a peak, the k smallest for the k largest), so the billed or tracked figure is understated",
+  "nearest": "P2",
+  "differs": "no sibling disagreement is needed: the single rule selects the wrong end of the distribution"
+ },
+ {
+  "id": "D2-s3-06",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: peak_cost_err_max=41.4976 currency; --perturb topk -> 0.0004",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. Merged D7-s3-07. Votes: 1 verify (P2).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D2-s3-07",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: coverage_full_23h=1.001346; perturb -> 1.000000; 25 h month 1.000000",
+  "stop_rule_class": "bug",
+  "class": "P7",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Naive wall-clock datetime arithmetic across a DST transition"
+ },
+ {
+  "id": "D2-s3-08",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: booked_kwh_long_max=3.0160 kWh (short 0.0389); perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-event-misattribution",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A sensor signature of one physical event is classified as another (a charge-start dip as a hot-water draw), so a counter or statistic books events that did not happen",
+  "nearest": "N-confounded-learner",
+  "differs": "a discrete event label is wrong; no learned parameter absorbs a covariate"
+ },
+ {
+  "id": "D2-s3-09",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: narrowing_censored_kw=4.100; uncensored agree 0.000; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-confounded-learner",
+  "note": "reproduced exactly. The learned top absorbs floor-censored intervals, N-confounded-learner. Votes: 1 verify.",
+  "class_mechanism": "An online estimator absorbs the error of an unmodelled or mis-modelled covariate into the parameter it learns"
  }
 ]
