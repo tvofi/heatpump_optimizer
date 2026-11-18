@@ -6,3 +6,4 @@
 1795006353 HB alive
 1795006359 INBOX acked through 1
 1795006364 CKPT setup done, worktree ../wt-solver at bc658f9d snapshot 8794e9590807
+1795006650 CKPT failing tests written: 4 FAIL at base bc658f9d snapshot 7ba044c632b3
