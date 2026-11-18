@@ -45,4 +45,3 @@ ok   mutant killed: owner-only seat name (by 'owner-only seat's name is refused'
 ok   mutant killed: scopes required (by 'no --scopes is refused')
 ok   mutant killed: round required (by 'no --round')
 finder_overlap self-test: ok (with mutants)
-rc=0

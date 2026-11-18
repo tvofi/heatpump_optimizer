@@ -1,3 +1,0 @@
-review_packet: REFUSE structure: tests/structure.py refuses the head merged with main: head does not merge cleanly with origin/main: ['100644 54890ec847a4cdb460e0d56345949f1204e1a128 1\ttests/layout.json', '100644 a9072f00db3f65727fefbf39679cfb1aae3f01f3 2\ttests/layout.json']
-review_packet: REFUSE red-unanswered: concluded red check `tests / closures` is not named in ## Red checks
-review_packet: REFUSE introduced-red: unreadable: head governance / instrument-self-tests job 133685231995: in_progress has not concluded: an introduced red cannot be ruled out (fail closed)

@@ -1,18 +1,2 @@
-head d40c045119e3dd9f00a88ded4ec109e2d617f545
-origin/main 54cb7211642364d762ba47f42d5f7b8a5953f742
-merge-base b425502da8d15c43f9494412e686a3d852b74358
-LEDGER-MERGE: resolved tests/closures.json
-  inert_reads.tests/harness_headers.py: merged as a set (1046 entries)
-  re-run the gate that owns this file before pushing
-991308ef24888659e7d8bcb4df977fdc6443c28c
-100644 54890ec847a4cdb460e0d56345949f1204e1a128 1	tests/layout.json
-100644 a9072f00db3f65727fefbf39679cfb1aae3f01f3 2	tests/layout.json
-100644 37c55df288b0dfa6420bfe136859c26e1f48a082 3	tests/layout.json
-
-Auto-merging .github/workflows/governance.yml
-Auto-merging tests/closures.json
-Auto-merging tests/layout.json
-CONFLICT (content): Merge conflict in tests/layout.json
-Auto-merging tools/audit/seat/INSTRUMENTS.md
-Auto-merging tools/ci/selftest_closures.json
-rc=1
+merge-tree rc=0
+7ae657e0e2bf42731c902f5aebf1d20d3e76d348
