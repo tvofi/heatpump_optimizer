@@ -1,0 +1,1 @@
+IDENTICAL: union_entries+write_table at base == head table

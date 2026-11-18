@@ -1,0 +1,6 @@
+control (head table unmutated): 0 refusal(s) []
+M1 drop scopes.json from plan-public: 1 refusal(s) ["UNDER-SCOPED step plan-public: files misses ['dev/audit/config/scopes.json']"]
+M2 drop dirs ['.'] from owner-only-launcher: 1 refusal(s) ["UNDER-SCOPED step owner-only-launcher: dirs misses ['.']"]
+M3 drop owner_only.py from open-pr: 1 refusal(s) ["UNDER-SCOPED step open-pr: files misses ['tools/audit/seat/owner_only.py']"]
+M4 drop leak_detectors.py from pr-args: 1 refusal(s) ["UNDER-SCOPED step pr-args: files misses ['tools/audit/leak_detectors.py']"]
+M5 drop instruments/** glob from owner-only-launcher's sibling: 3 refusal(s) ["UNDER-SCOPED step owner-only-channel: files misses ['tools/audit/seat/instruments/**']"]

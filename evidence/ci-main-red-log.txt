@@ -1,0 +1,1 @@
+job 134592553541 (run 44242125570, main 7c2f4c30): 2026-11-18T06:37:04Z selftest_scope check: 127 gated step(s), 33 refusal(s)
