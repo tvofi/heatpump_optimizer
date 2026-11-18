@@ -1780,5 +1780,155 @@
   "class_mechanism": "One rule is written as several agreeing copies where a single-owner prototype is admissible, so a later fix to one copy silently forks the rule",
   "nearest": "P2",
   "differs": "the copies agree today: the defect is the unowned duplication, not a divergence already present"
+ },
+ {
+  "id": "D7-s1-06",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: layer_violations=13 at the issues cut (11 single-carrier); verifier 13 -> 6 with the seven imports moved",
+  "stop_rule_class": "hygiene",
+  "class": "N-leaf-imports-solver",
+  "note": "reproduced the 13; the move arm is the verifier's (my main arm re-ran the shared prototype census). Votes: 1 verify (low).",
+  "class_mechanism": "A leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve"
+ },
+ {
+  "id": "D7-s2-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: away intervals ingested by comfort, DHW draws and internal gains (3 of 21 learners); perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-confounded-learner",
+  "note": "reproduced exactly. Votes: 1 verify (medium).",
+  "class_mechanism": "An online estimator absorbs the error of an unmodelled or mis-modelled covariate into the parameter it learns"
+ },
+ {
+  "id": "D7-s2-02",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: biased_admitted=3 (first-order 0); --perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "P5",
+  "note": "reproduced the 3 cells; the verifier's 3 of 57 admitted above 10 % UA bias. Votes: 1 weaken (low).",
+  "class_mechanism": "A sysid/adoption gate keyed on a quantity other than the bias it gates"
+ },
+ {
+  "id": "D7-s2-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: holder_torn_fields=2 (reuse divergence 0); --perturb-ctx -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-shared-config",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Solve-scoped state is mutated on, or read from, live shared objects while the solve runs off the loop, so a concurrent reader publishes it or a concurrent writer is reverted"
+ },
+ {
+  "id": "D8-s1-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: no_dhw_priced=12 of 22 no-DHW pairs; null 0",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. Votes: 1 verify (P2).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D8-s1-02",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: first_scale=2688 (Feb), swing 1728.39 currency",
+  "stop_rule_class": "bug",
+  "class": "N-partial-window-extrapolation",
+  "note": "reproduced exactly; runner too (avail metric). Medium as the verifier. Votes: 1 verify (medium).",
+  "class_mechanism": "A window or period figure is projected linearly from its elapsed part with no minimum-coverage rule, so early projections swing by orders of magnitude",
+  "nearest": "N-period-rollover",
+  "differs": "no reset ordering is involved: the projection itself is unguarded against a tiny elapsed sample"
+ },
+ {
+  "id": "D8-s1-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: avail_none_cycles=1 of 17",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly; runner too. Votes: 1 verify (P2).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D8-s2-02",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: fam_runs_excess_entity_id_sensor=2 (3 runs); perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-name-sort",
+  "note": "reproduced exactly. The split is by entity_id, not display name, but the mechanism (a family that does not lead with a shared token splits under a sort) is N-name-sort's. Legacy installs only. Votes: 1 weaken (low).",
+  "class_mechanism": "An entity family's display names do not lead with a shared token, so the name sort Home Assistant and the card use splits the family, per language"
+ },
+ {
+  "id": "D8-s3-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: state_class_impossible=36 (3 accumulators x 6 cells x 2 cycles); perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-entity-metadata",
+  "note": "reproduced exactly. Merged D10-s2-02. Votes: 1 verify (medium).",
+  "class_mechanism": "An entity declares a device_class, state_class or unit that does not describe its value, so Home Assistant converts, aggregates or offers it wrongly",
+  "nearest": "P8",
+  "differs": "the defect is in the metadata Home Assistant reads off one entity, not a precedence between surfaces"
+ },
+ {
+  "id": "D9-s1-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: 2 _multi_start_minimize per diagnose press, 3 worker jobs incl optimize_in_process, 1.05 s process CPU",
+  "stop_rule_class": "bug",
+  "class": "N-solve-recompute",
+  "note": "reproduced; the solve is work the analysis does not need. Votes: 1 verify.",
+  "class_mechanism": "The solve recomputes interpreter-bound work per iterate or per row that is invariant or vectorisable (per-row Python loops, uncached parameter derivations, scalar re-evaluation, polishes whose result is discarded)"
+ },
+ {
+  "id": "D9-s1-02",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: fuse-advisor arm worst cycle 9.44 s host = 47.2 Pi-s at F=5 (B1 60), mean 6.67 s; default arm max 4.05 s; msm per cycle 4 vs 2",
+  "stop_rule_class": "bug",
+  "class": "N-unbudgeted-background",
+  "note": "stacking reproduced (cycle CPU 2.3x the default, drop-one 8.83 s), but the B1 breach did not: 0 cycles over 60 Pi-s here vs the verifier's 120. Votes: 1 verify (low).",
+  "class_mechanism": "Background solves (what-ifs, advisors) stack onto the main solve with no per-cycle budget or in-flight guard, so a burst multiplies worker jobs and delays the scheduled solve",
+  "nearest": "P10",
+  "differs": "the work runs off the event loop as intended; the defect is its unbounded count per cycle"
+ },
+ {
+  "id": "D9-s1-03",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: K=4 -> 12 worker jobs, scheduled solve latency 12.04x solo; in-flight guard -> 3 jobs, 4.43x",
+  "stop_rule_class": "bug",
+  "class": "N-unbudgeted-background",
+  "note": "reproduced (finder 12.4x, verifier 13.1x); null arm 11.1x. Votes: 1 verify (medium).",
+  "class_mechanism": "Background solves (what-ifs, advisors) stack onto the main solve with no per-cycle budget or in-flight guard, so a burst multiplies worker jobs and delays the scheduled solve",
+  "nearest": "P10",
+  "differs": "the work runs off the event loop as intended; the defect is its unbounded count per cycle"
+ },
+ {
+  "id": "D9-s1-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: 384 loop simulate_step calls per steady what-if; loop CPU median 19.9 ms host (null arm 11.6 ms)",
+  "stop_rule_class": "bug",
+  "class": "P10",
+  "note": "reproduced the verifier's 384 (finder's 960 is the weekend arm). Votes: 1 verify (low).",
+  "class_mechanism": "CPU work (a model kernel, a fit, a batch simulation) runs outside the process worker, on the event loop or on a GIL-holding executor thread, and starves the loop"
+ },
+ {
+  "id": "D9-s2-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: retained_rows_slope=1448 rows/day (log 476, action 152, seen 628); null 0",
+  "stop_rule_class": "bug",
+  "class": "N-unbounded-retention",
+  "note": "reproduced exactly; runner too. Votes: 1 verify (new).",
+  "class_mechanism": "A buffer or cache that serves a fixed time window never evicts rows older than the window, so retained memory grows linearly with uptime",
+  "nearest": "N-no-expiry",
+  "differs": "nothing stale is published; the cost is memory growth on a long-lived client"
  }
 ]
