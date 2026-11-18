@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:commit_charges RETURN_DEL 6881576e",
+  "killed_by": "tests/features.py",
+  "old": "    return min((c for c in proposed if isinstance(c, np.ndarray)), key=cost, default=plan)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
