@@ -38,3 +38,4 @@
 1794994071 HB LOCAL re-run of D3-top6 on the orchestrator machine (cloud refused twice by frugal guard). BLOCKED.md removed. R1 machine: nproc=8, 8192 MB RAM, Apple M1 macOS, free 12Gi on HOME, load1 2.18. T1 kept from the cloud fire (M22 SURVIVED). R1 baselines re-take starting.
 1794994076 CKPT D3-s1 136 file(s)
 1794995679 HB R1 local: baselines re-taken; controls RESULT null_verdict=LIVES RESULT null_drivers_run=16 RESULT load1=2.86 RESULT thread_factor=1.00  posctl 2/2 KILLED
+1794995686 CKPT D3-s1 145 file(s)

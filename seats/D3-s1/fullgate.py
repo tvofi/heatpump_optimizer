@@ -84,7 +84,19 @@ def gate(key, mutant, msg):
     text = log.read_text(errors="replace")
     failed = sorted(set(re.findall(r"^>>> (?:FAILED|ENDED BEFORE ITS SUMMARY): ([^\n(]+?)\s*(?:\(|$)", text, re.M)))
     summary = [ln for ln in text.splitlines() if re.search(r"TEST SCRIPT\(S\)|ALL TEST SCRIPTS PASSED", ln)]
-    rec = {"key": key, "mutant": mutant, "gate_rc": rc, "failed_scripts": failed, "summary": summary[-1:] ,
+    # Per-script FAIL-line counts (sections open with "########## <cmd> ##########"): a script red
+    # in the null control too (local macOS: optimality.py's claimed cell closes under Accelerate)
+    # kills a mutant only by failing MORE checks than the null, mutation_table.killed's own rule.
+    fails, cur = {}, None
+    for ln in text.splitlines():
+        mm = re.match(r"^#{10} (.+?) #{10}$", ln)
+        if mm:
+            cur = mm.group(1)
+            continue
+        if cur and re.match(r"^\s+FAIL\b", ln):
+            fails[cur] = fails.get(cur, 0) + 1
+    rec = {"key": key, "mutant": mutant, "gate_rc": rc, "failed_scripts": failed, "fail_lines": fails,
+           "summary": summary[-1:] ,
            "wall_s": round(wall, 1), "child_cpu_s": round((c1.children_user + c1.children_system) - (c0.children_user + c0.children_system), 1),
            "load1_start": l0, "load1_end": l1, "provisional": True, "baseline": BASE,
            "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=%s GATE_JOBS=1 ./tests/run.sh" % BASE}
@@ -110,6 +122,11 @@ def main():
         rec = gate(a.key, m, f"D3-s1 full-gate mutant {a.key} {m['file']}:{m['line']}")
         null = json.loads((GATES / "null.json").read_text()) if (GATES / "null.json").exists() else {"failed_scripts": []}
         new = sorted(set(rec["failed_scripts"]) - set(null["failed_scripts"]))
+        nf = null.get("fail_lines", {})
+        more = sorted(c for c, n in rec.get("fail_lines", {}).items() if n > nf.get(c, 0)
+                      and any(c.endswith(" " + f) or f in c for f in null["failed_scripts"]))
+        rec["more_fails_than_null"] = more
+        new = sorted(set(new) | set(more))
         rec["killed_by"] = new
         rec["verdict"] = "KILLED" if (rec["gate_rc"] != 0 and new) else ("SURVIVED" if rec["gate_rc"] == 0 else "RED-AS-NULL")
         (GATES / f"{a.key}.json").write_text(json.dumps(rec, indent=1) + "\n")
