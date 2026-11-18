@@ -507,3 +507,5 @@
 2026-11-18T20:59:37Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_action GUARD_OFF 0aa06ef6 L7794 by=tests/features.py ran=13 wall=1369.7s
 2026-11-18T21:06:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_price_ranked_start CMP_BOUND 26c7dead L2130 by=- ran=17 wall=1508.0s
 2026-11-18T21:09:33Z COMPLETE queued=149 from=pre
+2026-11-18T21:31:37Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._freq_mode GUARD_OFF 0c9c87c1 L10766 by=tests/features.py ran=13 wall=1321.4s
+2026-11-18T21:31:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling GUARD_OFF 343ca3c4 L5663 by=- ran=13 wall=1325.4s

@@ -118,3 +118,4 @@
 1795036186 HB restore incident: old K2 survived the restart; my worker-tree cleanup crashed 4 in-flight mutants (no results written, re-queued). K2 resumed 84/233 done, 149 queued
 1795036775 HB alive
 1795037381 HB alive
+1795037503 CKPT D3-s1 530 file(s)
