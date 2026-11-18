@@ -481,3 +481,4 @@
 2026-11-18T18:52:04Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_coil_wood_forecast GUARD_OFF e5c24a19 L882 by=tests/features.py ran=16 wall=1521.0s
 2026-11-18T18:52:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostWindow.peek GUARD_OFF ea64107d L802 by=- ran=13 wall=1871.7s
 2026-11-18T19:16:47Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements GUARD_OFF 71cd0ad3 L1346 by=- ran=12 wall=1572.0s
+2026-11-18T19:18:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements GUARD_OFF f02474b2 L1184 by=- ran=16 wall=1686.9s
