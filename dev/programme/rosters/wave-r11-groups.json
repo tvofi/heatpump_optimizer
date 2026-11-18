@@ -4375,7 +4375,7 @@
     "From r11-pre-product-reads, body item 94f5e481: n11: `dev/audit/rounds/round10/objective/escapes_hand.tsv` is a hand-read escapes ledger with owner and ruling columns; the round-metrics instrument should read rows of that shape; routed as n6. Carry: R11-PRE-PRODUCT-READS (items 94f5e481)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-round-metrics",
     "commit": null,
     "last_step": null,
