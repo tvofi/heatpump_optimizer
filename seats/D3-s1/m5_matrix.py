@@ -35,6 +35,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
 import argparse
+import re
 import hashlib
 import json
 import sys
@@ -75,9 +76,28 @@ def cmd_build(_a) -> int:
     return 0
 
 
+GOLDEN_CHANGED = re.compile(r"(\d+) of (\d+) GOLDEN SCENARIOS CHANGED")
+
+
+def golden_count(stdout: str, stderr: str) -> int:
+    """golden.py strict prints `N of M GOLDEN SCENARIOS CHANGED`, a form
+    mutation_table.failing_count does not read (golden.py is one of its
+    DRIVER_EXCLUSIONS); a traceback adds one, as failing_count does."""
+    m = GOLDEN_CHANGED.findall(stdout)
+    return (int(m[-1][0]) if m else 0) + int("Traceback (most recent call last):" in stderr)
+
+
+def golden_base() -> int | None:
+    b = json.loads((HERE / "state" / "baselines.json").read_text()).get("tests/golden.py")
+    if not b:
+        return None
+    return golden_count(b["run"].get("stdout_tail", ""), b["run"].get("stderr_tail", ""))
+
+
 def load(subs: list[str]) -> dict[str, dict]:
     """key -> {mutant, cells: {script: verdict}, secs: {script: s}}."""
     rows: dict[str, dict] = {}
+    gb = golden_base()
     for sub in subs:
         d = RESULTS / sub
         if not d.exists():
@@ -91,7 +111,13 @@ def load(subs: list[str]) -> dict[str, dict]:
             for s in r.get("relaxed_skipped", []):
                 row["cells"].setdefault(s, "X")
             for s, j in r["runs"].items():
-                row["cells"][s] = ("K" if j.get("killed") else
+                k = j.get("killed")
+                if s == "tests/golden.py" and gb is not None and not j.get("timed_out"):
+                    # re-judged on golden's own verdict form (kill = red AND
+                    # more scenarios changed than the unmutated baseline's)
+                    k = j["rc"] != 0 and golden_count(
+                        j.get("stdout_tail", ""), j.get("stderr_tail", "")) > gb
+                row["cells"][s] = ("K" if k else
                                    "T" if j.get("timed_out") else "S")
                 row["secs"][s] = j.get("seconds", 0.0)
     return rows

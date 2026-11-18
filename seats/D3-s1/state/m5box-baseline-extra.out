@@ -1,2 +1,6 @@
 2026-11-18T10:17:06Z BASELINE tests/edge.py rc=0 failed=0 wall=25.2s reach_ok=True
 2026-11-18T10:17:40Z BASELINE tests/backtest.py rc=0 failed=0 wall=59.2s reach_ok=True
+2026-11-18T10:18:13Z BASELINE tests/card.mjs rc=0 failed=0 wall=93.0s reach_ok=True
+2026-11-18T10:19:58Z BASELINE tests/golden.py rc=1 failed=0 wall=93.7s reach_ok=False
+RESULT load1=1.16
+RESULT thread_factor=1.00
