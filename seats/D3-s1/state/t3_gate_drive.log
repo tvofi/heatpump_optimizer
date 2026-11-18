@@ -1,0 +1,8 @@
+START pre:121362d48b408236 2026-11-18T21:09:11Z
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3306 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.0
+RESULT killed=0 count
+VERDICT 121362d48b408236 SURVIVED 
