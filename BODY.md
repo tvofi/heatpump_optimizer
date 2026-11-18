@@ -11,7 +11,9 @@ Release notes (the step owed first, design §7 T7): the Monthly Savings entity i
 
 ## Head
 
-`8a45dca30381e402fd092bca57c4be0fa86d3f07`, measured at it against the merge base `bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f`; `origin/main` at `7938522854d4ffb6be3c42bb227caab87b4ec66b` (2026-11-18T13:10Z), which `git merge-tree --write-tree origin/main HEAD` merges with no conflict, so the branch is not merged (fixer.md step 6).
+`c898e61cd30cc6dc3a2d5a4d9dae7d033ec1ecd9`, measured at it against the merge base `7938522854d4ffb6be3c42bb227caab87b4ec66b`; `origin/main` at `8751943e17ef4d3ec699e7859ae829b4528d8ce7` (2026-11-18T15:42Z), which `git merge-tree --write-tree origin/main HEAD` merges with no conflict, so the branch is not merged (fixer.md step 6). This head is `949beadd37d773a04a066a769563ab0db83e23b8` (the orchestrator's merge of `origin/main` and the delivery row over `8a45dca30381e402fd092bca57c4be0fa86d3f07`) plus `mutation-autofix`'s `ci: pin killed mutants` (c898e61cd3, 16:00Z), which adds the 25 `killed_by` rows; it changes no production line and no check. This seat's own `--pin-killed` drive at `949beadd` wrote the same 25 rows (its commit `30d7794dcc4fe80a70c633af7c4811f1c2edb4ef`, tree equal to this head's: `git diff --quiet 30d7794dcc4f c898e61cd3` exits 0), so that commit is dropped for the bot's (ci-autofix.md: wait for the bot commit, do not duplicate).
+
+prepr: passed rc=0 at c898e61cd30cc6dc3a2d5a4d9dae7d033ec1ecd9
 
 ## Mutation proof
 
@@ -56,7 +58,7 @@ Harness export: `git archive e7a8c56f51ae4dc40a6093cd0e1c715556cfb80a dev/audit/
 - `PYTHONPATH=tests/hastub python3 tests/structure.py`: `duplication_copies` 8 to 7 (re-recorded, commit message carries it); `class_excess_loc` and `functions_cc_over_15` at their budgets (the open-month floor first read +5 and +1; paid in `MonthlyLedger`: one factor for every row, `_entry` for the reference-basis stamp, `_month` assigning once).
 - Sibling sites (design §5's enumerators, re-run at the head): `git grep -n 'resolve_currency(' custom_components/heatpump_optimizer/` lists the coordinator notice's two reads (kept on purpose), `currency.figure_currency`'s fallback and the definition; `git grep -n 'monthrange\|month_hours(\|pro_rata_factor(\|coverage_factor(' custom_components/heatpump_optimizer/` lists `ledger.py` only; `git grep -n '_entity_price_source\|_feed_currency\|_price_feed' custom_components/` prints nothing.
 
-<!-- figure-block: scope-line mb=bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f head=8a45dca30381e402fd092bca57c4be0fa86d3f07 -->
+<!-- figure-block: scope-line mb=7938522854d4ffb6be3c42bb227caab87b4ec66b head=c898e61cd30cc6dc3a2d5a4d9dae7d033ec1ecd9 -->
 ~~~text
 MODE: SCOPED -- 22 script(s) run, 11 scoped out.
 ~~~
@@ -67,37 +69,39 @@ MODE: SCOPED -- 22 script(s) run, 11 scoped out.
 
 ## Unpinned sites
 
-Step 6d's 25 sites the diff adds, each in `custom_components/`, so each is `mutation-autofix`'s to pin once CI's `tests / mutation` kills it; the check named is the one this branch's run shows (or, where marked, the one that reads the mutated value):
+none. `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 4` at `949beadd` (inbox line 3) drove the 25 sites this diff adds against the ratchet base `7938522854d4ffb6be3c42bb227caab87b4ec66b`: `PIN KILLED -- 25 new unpinned site(s)`, 25 `pinned` lines, 0 `UNPINNED` lines (`grep -c UNPINNED` on its log: 0), exit 0. Null control: its `currency.py:25 NULL_COMMENT` mutant survived every driver run beside the kills. Each site's row is under `tests/mutation_ledger/killed_by/` at the head, its killer read from the row's `killed_by` field (`jq -r '.anchor, .killed_by'` over the commit's files): 21 `tests/features.py`, 2 `tests/entities.py`, 1 `tests/guard_pins.py`, 1 `tests/structure.py`. No site survived, so none is owed a new check or a triage. Disclosed self-correction: this seat's dropped pin commit `30d7794dcc4f` stated 24 kills by `tests/features.py` and one by `tests/structure.py`; the rows read as above.
 
-- `custom_components/heatpump_optimizer/currency.py:73 RETURN_DEL`: pinned by mutation-autofix; `feed_currency` returns None, the instance currency wins: "on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR".
-- `custom_components/heatpump_optimizer/currency.py:85 RETURN_DEL`: pinned by mutation-autofix; `figure_currency` returns None, the unit reads `None/kWh`: "on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR".
-- `custom_components/heatpump_optimizer/ledger.py:142 CONST`: pinned by mutation-autofix; `MIN_COVERAGE_HOURS` changed: "coverage_factor is None a quarter-hour under MIN_COVERAGE_HOURS and scales at it" (asserts 24.0).
-- `custom_components/heatpump_optimizer/ledger.py:153 GUARD_OFF`: pinned by mutation-autofix; `if False`: aware datetimes subtract as wall clock, March reads 744: "month_hours counts a month's real hours in its zone (743 / 745 across DST, 744 in UTC)".
-- `custom_components/heatpump_optimizer/ledger.py:155 RETURN_DEL`: pinned by mutation-autofix; `_real_hours` returns None: "month_hours counts a month's real hours in its zone (743 / 745 across DST, 744 in UTC)".
-- `custom_components/heatpump_optimizer/ledger.py:164 RETURN_DEL`: pinned by mutation-autofix; `month_hours` returns None: "month_hours counts a month's real hours in its zone (743 / 745 across DST, 744 in UTC)".
-- `custom_components/heatpump_optimizer/ledger.py:188 CLAMP_DROP`: pinned by mutation-autofix; `max(1.0, …)` dropped: the existing "a month that settled more hours than it has is never scaled down".
-- `custom_components/heatpump_optimizer/ledger.py:188 CMP_BOUND`: pinned by mutation-autofix; `<` to `<=`: 24 settled hours read None: "coverage_factor is None a quarter-hour under MIN_COVERAGE_HOURS and scales at it".
-- `custom_components/heatpump_optimizer/ledger.py:189 CMP_BOUND`: pinned by mutation-autofix; `<` to `<=`: 2 February 00:00 (exactly 24 h run) reads None: "the calendar-day fallback is None before the month has run MIN_COVERAGE_HOURS".
-- `custom_components/heatpump_optimizer/ledger.py:189 GUARD_OFF`: pinned by mutation-autofix; `if False`: 8 h into the month reads 28.0: "the calendar-day fallback is None before the month has run MIN_COVERAGE_HOURS".
-- `custom_components/heatpump_optimizer/ledger.py:310 RETURN_DEL`: pinned by mutation-autofix; `_entry` returns None: `add` raises on the first booking, an uncaught exception (`failing_count` adds one).
-- `custom_components/heatpump_optimizer/ledger.py:541 GUARD_OFF`: pinned by mutation-autofix; `if False`: `None * float` raises in `savings_months`: "one settled quarter gives the open month no row; the closed month's row is unchanged" (uncaught exception).
-- `custom_components/heatpump_optimizer/price_model.py:160 GUARD_OFF`: pinned by mutation-autofix; `if False`: a day of the wrong length is learned. Not driven on this branch; the same guard sat in `observe_day` and `observe_day_quarters` at the base, where it carried no pin of its own either, so CI's `tests / mutation` decides it.
-- `custom_components/heatpump_optimizer/price_model.py:163 CMP_BOUND`: pinned by mutation-autofix; `<= 1e-6` to `< 1e-6`: "a day of prices averaging exactly the 1e-6 floor is not learned; 2e-6 is" (run above).
-- `custom_components/heatpump_optimizer/price_model.py:163 GUARD_OFF`: pinned by mutation-autofix; `if False`: a non-finite or non-positive day is learned; the same check (1e-6 day learned).
-- `custom_components/heatpump_optimizer/price_model.py:165 RETURN_DEL`: pinned by mutation-autofix; `_usable_day` returns None: every day refused; the same check (2e-6 day not learned).
-- `custom_components/heatpump_optimizer/price_model.py:213 GUARD_OFF`: pinned by mutation-autofix; `if False`: `observe_day` takes `np.mean(None)` on a refused day and raises: the same check (uncaught exception).
-- `custom_components/heatpump_optimizer/price_model.py:255 GUARD_OFF`: pinned by mutation-autofix; `if False`: `observe_day_quarters` on a refused day raises (`np.mean(None)`). Not driven on this branch; CI's `tests / mutation` decides it.
-- `custom_components/heatpump_optimizer/price_model.py:854 RETURN_DEL`: pinned by mutation-autofix; `entity_priced` returns None: `price_feed` reads no feed: "on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR".
-- `custom_components/heatpump_optimizer/price_model.py:860 RETURN_DEL`: pinned by mutation-autofix; `price_feed` returns None: "on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR".
-- `custom_components/heatpump_optimizer/price_model.py:867 GUARD_OFF`: pinned by mutation-autofix; `if False`: an entity source is pulled from Tibber. Not driven on this branch; at the base the same branch's `if source == PRICE_SOURCE_ENTITY:` GUARD_OFF was pinned `killed_by` `tests/features.py` (the pin deleted here as stale), so the kill is expected, not measured.
-- `custom_components/heatpump_optimizer/sensor.py:536 GUARD_OFF`: pinned by mutation-autofix; `if False`: no rows reads `open_month_coverage`: "MonthlySavingsSensor waits for open_month_coverage while only closed months have rows".
-- `custom_components/heatpump_optimizer/sensor.py:538 BOOLOP`: pinned by mutation-autofix; `and` to `or`: every dict row reads estimated: "MonthlySavingsSensor waits for open_month_coverage while only closed months have rows".
-- `custom_components/heatpump_optimizer/sensor.py:538 GUARD_OFF`: pinned by mutation-autofix; `if False`: an open row still waits: "MonthlySavingsSensor waits for open_month_coverage while only closed months have rows".
-- `custom_components/heatpump_optimizer/sensor.py:540 RETURN_DEL`: pinned by mutation-autofix; closed rows only read available: "MonthlySavingsSensor waits for open_month_coverage while only closed months have rows".
+- `custom_components/heatpump_optimizer/currency.py:feed_currency RETURN_DEL 91689472`: `tests/structure.py`
+- `custom_components/heatpump_optimizer/currency.py:figure_currency RETURN_DEL 36a02816`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:<module> CONST fa5d67d0`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._entry RETURN_DEL e72609eb`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.savings_months GUARD_OFF fce38e32`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:_real_hours GUARD_OFF f5785201`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:_real_hours RETURN_DEL 27e1c8b2`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:coverage_factor CLAMP_DROP 9ebe940e`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:coverage_factor CMP_BOUND 95590cad`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:coverage_factor CMP_BOUND 9ebe940e`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:coverage_factor GUARD_OFF 95590cad`: `tests/features.py`
+- `custom_components/heatpump_optimizer/ledger.py:month_hours RETURN_DEL 7a222690`: `tests/features.py`
+- `custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF 83e9a6c1`: `tests/features.py`
+- `custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day_quarters GUARD_OFF 83e9a6c1`: `tests/features.py`
+- `custom_components/heatpump_optimizer/price_model.py:_usable_day CMP_BOUND fc735ea9`: `tests/features.py`
+- `custom_components/heatpump_optimizer/price_model.py:_usable_day GUARD_OFF 325aaa0c`: `tests/features.py`
+- `custom_components/heatpump_optimizer/price_model.py:_usable_day GUARD_OFF fc735ea9`: `tests/features.py`
+- `custom_components/heatpump_optimizer/price_model.py:_usable_day RETURN_DEL 48a5ee56`: `tests/guard_pins.py`
+- `custom_components/heatpump_optimizer/price_model.py:entity_priced RETURN_DEL 0fc043ce`: `tests/features.py`
+- `custom_components/heatpump_optimizer/price_model.py:price_feed RETURN_DEL 1dff343e`: `tests/features.py`
+- `custom_components/heatpump_optimizer/price_model.py:pull_prices GUARD_OFF f4d5e0a3`: `tests/features.py`
+- `custom_components/heatpump_optimizer/sensor.py:MonthlySavingsSensor._waiting_for BOOLOP 1ba360a6`: `tests/features.py`
+- `custom_components/heatpump_optimizer/sensor.py:MonthlySavingsSensor._waiting_for GUARD_OFF 1ba360a6`: `tests/entities.py`
+- `custom_components/heatpump_optimizer/sensor.py:MonthlySavingsSensor._waiting_for GUARD_OFF e9869136`: `tests/entities.py`
+- `custom_components/heatpump_optimizer/sensor.py:MonthlySavingsSensor._waiting_for RETURN_DEL 2c97a7fe`: `tests/features.py`
+
+`currency.py:feed_currency RETURN_DEL` (line 73) is recorded as killed by `tests/structure.py`, the first driver to go red, not by the precedence check the inbox names. The ruling assigns a new check only to a survivor, so none is added for it here; the precedence check "on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR" reads `feed_currency`'s value at the head.
 
 ## Red checks
 
-- `mutation` at 8a45dca30381: red by construction on the 25 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `tests / mutation` at `949beadd37d773a04a066a769563ab0db83e23b8` (run 44313318084, job 134835674252, `MUTATION TABLE REFUSED`): the 25 sites this diff added were unpinned. Repaired at `c898e61cd30cc6dc3a2d5a4d9dae7d033ec1ecd9` by the 25 `killed_by` rows above, which `mutation-autofix` committed and this seat's own drive reproduced row for row from measured kills. Cheaper detector: `tools/pr/ci_predict.py` already predicted these 25 sites before the push at `8a45dca3`; the local `--pin-killed` drive takes over two hours on 4 cores (the `tests/features.py` baseline alone took 684 s), so the earlier detector existed and CI's `mutation-autofix` is the lane the contract gives the kill; no countermeasure is built.
 
 ## Forward-carry
 
