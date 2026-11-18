@@ -48382,6 +48382,29 @@ R.check(
         "meter_calibration": None, "calibration_basis": None, "stored_heat_sek": 0.0, "comfort_sek": 0.0},
     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
 )
+def _st_cal_row(planned_kw):
+    led = _SavLedger()
+    for _hh in range(2):
+        led.add_savings_settlement(
+            _SavDT(2026, 1, 3, _hh), baseline_kw=1.0, actual_kwh=3.0, spot=2.0, dt=1.0,
+            planned_kw=planned_kw, stored_kw_th=-1.0, steady_cop=2.0, comfort_kw=0.25,
+        )
+    return led.savings_months(_SavDT(2026, 2, 10))[0]
+
+
+_st_c1, _st_c15 = _st_cal_row(3.0), _st_cal_row(2.0)  # meter calibration 1.0 and 1.5
+R.check(
+    "R11-SEAM-tests (carry 0, M9): a calibrated month scales the stored-heat line as it scales the thermostat",
+    _st_c1["meter_calibration"] == 1.0 and _st_c15["meter_calibration"] == 1.5
+    and _st_c1["stored_heat_sek"] < 0.0
+    and _st_c15["stored_heat_sek"] == round(1.5 * _st_c1["stored_heat_sek"], 2),
+    f"{_st_c1} / {_st_c15}",
+)
+R.check(
+    "R11-SEAM-tests (carry 0, M10): a calibrated month scales the comfort line as it scales the thermostat",
+    _st_c1["comfort_sek"] > 0.0 and _st_c15["comfort_sek"] == round(1.5 * _st_c1["comfort_sek"], 2),
+    f"{_st_c1} / {_st_c15}",
+)
 _st_z = _SavLedger()
 _st_z.add_savings_settlement(
     _SavDT(2026, 1, 3), baseline_kw=2.0, actual_kwh=1.0, spot=2.0, dt=1.0,
