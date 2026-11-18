@@ -1,0 +1,15 @@
+SKIP done null
+SKIP done fb16c7b0cbbfc63d
+SKIP done 4b3795aece73ba73
+SKIP done bdcf7589b0a0a6df
+SKIP done 0e172028a23d9372
+SKIP done d931ab195b940b0c
+START c2:8e82d7a0b3617003 2026-11-18T15:31:20Z
+RESULT gate_rc=1 code
+RESULT failed_scripts=3 count
+RESULT wall=3106 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.04
+RESULT killed=1 count
+VERDICT 8e82d7a0b3617003 KILLED python3 tests/closure.py selftest,python3 tests/entities.py,python3 tests/features.py
+T2-DONE

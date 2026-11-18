@@ -1,0 +1,30 @@
+{
+ "key": "8e82d7a0b3617003",
+ "mutant": {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/sysid.py",
+  "line": 1549,
+  "old": "            in_window = hour >= cfg.start_hour or hour < cfg.end_hour",
+  "new": "            in_window = hour > cfg.start_hour or hour < cfg.end_hour",
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:R10-C2 M26",
+  "c2_id": "M26"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/features.py"
+ ],
+ "summary": [
+  "1 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3029.9,
+ "child_cpu_s": 4168.1,
+ "load1_start": 0.03,
+ "load1_end": 0.0,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "killed_by": [
+  "python3 tests/features.py"
+ ],
+ "verdict": "KILLED"
+}
