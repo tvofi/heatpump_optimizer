@@ -103,6 +103,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ".github/workflows/governance.yml"
 JOB = "instrument-self-tests"
+BOT_JOB = "selftest-absorb"  # the bot's half on main: `absorb` over the drift step's artifact
 TABLE = "tools/ci/selftest_closures.json"
 WRAPPER = "tools/ci/selftest_step.sh"
 SELF = "tools/ci/selftest_scope.py"
@@ -2191,6 +2192,49 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
                                                         str(pr.parent / "o.json"))[0] == 0
            and (pr / TABLE).read_bytes() == before
            and "docs/d.md" in load_table(pr.parent / "o.json")["steps"]["a"]["files"])
+        # The job that runs the bot's half on main, BOT_JOB of the live
+        # workflow: its own `absorb` run text, executed over that red run's
+        # artifact, then over an artifact holding nothing the table misses.
+        # The fixture's tools/ci/selftest_scope.py is a shim into this module
+        # rooted at the fixture, so the text runs unedited.
+        live = workflow.read_text()
+        bot = [s for s in job_steps(live, BOT_JOB) if s.run and "selftest_scope.py absorb" in s.run]
+        (pr / "tools/ci/selftest_scope.py").write_text(
+            f"import sys\nfrom pathlib import Path\nsys.path.insert(0, {str(Path(__file__).resolve().parent)!r})\n"
+            f"import selftest_scope\nsys.exit(selftest_scope.main(sys.argv[1:], Path({str(pr)!r})))\n")
+
+        def bot_run(artifact: Path) -> tuple[int, str, Path]:
+            rt = Path(tempfile.mkdtemp(dir=pr.parent))
+            (rt / "measured").mkdir()
+            shutil.copy(artifact, rt / "measured" / "selftest_closures.json")
+            p = subprocess.run(["bash", "--noprofile", "--norc", "-c", bot[0].run], cwd=pr,
+                               env={**os.environ, "RUNNER_TEMP": str(rt),
+                                    "GITHUB_STEP_SUMMARY": str(rt / "summary.md")},
+                               capture_output=True, text=True)
+            return p.returncode, p.stdout + p.stderr, rt / "absorbed" / "selftest_closures.json"
+        if len(bot) != 1:
+            ck(f"the bot's job: {BOT_JOB} of {WORKFLOW} has exactly one step running `absorb`", False)
+        else:
+            rc_bj, out_bj, kept = bot_run(art)
+            ck(f"the bot's job: {BOT_JOB}'s absorb step over a red run's artifact prints the read it adds, "
+               "keeps the absorbed table for the commit and leaves the checkout's table as it was",
+               rc_bj == 0 and "  + step a: files docs/d.md" in out_bj and kept.is_file()
+               and "docs/d.md" in ((load_table(kept) or {}).get("steps", {}).get("a", {}).get("files", []))
+               and (pr / TABLE).read_bytes() == before)
+            rc_bn, out_bn, kept_n = bot_run(pr / TABLE)
+            ck(f"the bot's job: {BOT_JOB}'s absorb step over an artifact the table already holds adds "
+               "nothing, keeps no table and is red, naming the re-record (null control)",
+               rc_bn == 1 and "0 read(s) added to 0 step(s)" in out_bn and not kept_n.exists()
+               and "re-record the refused steps" in out_bn and (pr / TABLE).read_bytes() == before)
+        # It runs only where the drift step refused on a push, read from the
+        # drift step's outcome: a green push, or a pull request, never starts
+        # it, so it writes nothing.
+        ck(f"the bot's job: {BOT_JOB} runs only after a push whose drift step failed, read from "
+           f"{JOB}'s `drift` output",
+           re.search(rf"^  {BOT_JOB}:\n    needs: {JOB}\n    if: \$\{{\{{ !cancelled\(\) && github\.event_name == "
+                     rf"'push' && needs\.{JOB}\.outputs\.drift == 'failure' \}}\}}$", live, re.M) is not None
+           and re.search(r"^    outputs:\n      drift: \$\{\{ steps\.drift\.outcome \}\}$", live, re.M)
+           is not None)
 
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
