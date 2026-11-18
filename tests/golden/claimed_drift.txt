@@ -62,19 +62,14 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.0.3
+# claims-for: 10.1.0
 #
-# v10.0.3: Self-test hotfix and round-11 preparation. The stamp empties the list; the
+# v10.1.0: learned pump minimum, clamped start price, self-setting pump test, valve reference, generic heat-curve text. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
-coord_all_features  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
-coord_dhw  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
-coord_grid_fee  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
-coord_minimal  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
-coord_two_zone  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
 # BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
 # price_known/baseline_cost) still fail. Remove when drift lanes are pinned
 # or the polish improvement scale leaves 5e-5-2e-2.
