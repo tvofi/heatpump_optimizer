@@ -1,0 +1,31 @@
+### wtbase ae0ed64af898d8923ac35afe6e9c031ac1e6b111
+RESULT ref_paths=908
+RESULT ref_now=682
+RESULT ref_moved=182
+RESULT ref_gone=0
+RESULT ref_never=33
+RESULT ref_unknown=11
+RESULT ref_shas=717
+RESULT ref_sha_ok=0
+DUP	dev/governance/dimensions/D11.md | dev/programme/RULINGS.md	this means reusable instrument before policy only policy if no robust script could be built at a reasonable cost tokens 
+RESULT dup_units=16 count
+RESULT rulings_live=88 count
+RESULT rulings_bytes=26389 bytes
+RESULT rulings_overlap=1 count
+### wt3727 6a229a2817f0974cc6603eea47a951ef724884d6
+RESULT ref_paths=910
+RESULT ref_now=685
+RESULT ref_moved=181
+RESULT ref_gone=0
+RESULT ref_never=33
+RESULT ref_unknown=11
+RESULT ref_shas=717
+RESULT ref_sha_ok=0
+RESULT dup_units=10 count
+RESULT rulings_live=87 count
+RESULT rulings_bytes=26045 bytes
+RESULT rulings_overlap=0 count
+### wtbase
+RESULT wrong_rows=35 rows
+### wt3727
+RESULT wrong_rows=26 rows

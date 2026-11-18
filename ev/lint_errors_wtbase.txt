@@ -1,0 +1,6 @@
+  ERROR   [citations] tools/audit/README.md: path `round2/HARNESSES.md`: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [citations] tools/audit/README.md: path `triage-quiet-judges.json`: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [citations] tools/audit/README.md: path `wave-1b-groups.json`: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [citations] tools/audit/README.md: path `wave-2-groups.json`: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [citations] tools/audit/README.md: path `wave-3-groups.json`: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [citations] tools/audit/README.md: path `web-phase0.js`: not in the tree, and no tag SHA is cited alongside it

@@ -1,0 +1,24 @@
+## c_mock
+ANCHOR dev/audit/README.md 'the third is the only `unittest.mock` use in the suite' matched 0 units
+RESULT checked_units=0
+## c_fix_review_j5
+ANCHOR dev/audit/README.md '`briefs/fix-review.md` §9 sends a fix reviewer to it' matched 0 units
+RESULT checked_units=0
+## c_round4_d6
+ANCHOR dev/governance/rules/gate-scoping.md 'A gate run rewrites `tools/audit/round4/D6/`' matched 0 units
+RESULT checked_units=0
+## c_brief_exclude
+ANCHOR dev/governance/rules/brief-citations.md '(not `.claude/` or `tools/audit/round2/`)' matched 0 units
+RESULT checked_units=0
+## c_unleased
+ANCHOR tests/README.md 'every other script runs unleased' matched 0 units
+RESULT checked_units=0
+## c_instrument_dirs
+ANCHOR tools/audit/seat/INSTRUMENTS.md 'Directories here that are records, not instruments' matched 0 units
+RESULT checked_units=0
+## c_worktree_apply
+ANCHOR dev/programme/HANDOVER.md '`worktree_gc.sh --apply` collects' matched 0 units
+RESULT checked_units=0
+## c_handover_docs
+ANCHOR dev/governance/rules/writing-for-agents.md 'exactly one handover under `docs/`' matched 0 units
+RESULT checked_units=0

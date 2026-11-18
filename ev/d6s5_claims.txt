@@ -1,0 +1,82 @@
+### ref ae0ed64af898d8923ac35afe6e9c031ac1e6b111
+CHECK true   dev/audit/README.md#939ed70096 c_slow_gated: 1 code lines, 0 asserting the run.sh gate; SLOW_GATED=['rolling.py']
+CHECK true   dev/audit/README.md#9f5c1e7863 c_gil: 3 calls in ['_lbfgsb_restart', '_multi_start_minimize', '_optimize_with_dhw']
+fatal: path 'tools/audit/round2/JUDGE.md' does not exist in 'd5d8c4a72fa7be7aebecc9e58d55002be17cac08'
+CHECK false  dev/audit/README.md#129b603c9c c_judge_sha: rc=128
+ANCHOR tests/README.md 'every other script runs unleased' matched 0 units
+CHECK true   tests/README.md#2266dd14a1 c_scope_default: full
+CHECK true   tests/README.md#d96a6dd1ea c_rcs: 75, 76
+CHECK true   tests/README.md#99321b5687 c_lockdir: /tmp/hpo-gate.lock
+ANCHOR dev/governance/rules/gate-scoping.md 'A gate run rewrites `tools/audit/round4/D6/`' matched 0 units
+CHECK true   dev/governance/rules/gate-scoping.md#0e3b8ebbfa c_measuring: lease, lease; slots 4 via HPO_HEAVY_SLOTS
+CHECK true   dev/governance/rules/gate-scoping.md#daf9105b8b c_python_order: python3
+CHECK true   dev/governance/rules/gate-scoping.md#600e46f68a c_lease_minutes: 1800
+CHECK true   dev/governance/rules/gate-scoping.md#21eca4594d c_rcs: 75, 76
+CHECK true   dev/governance/rules/claim-files.md#5c6cfc766a c_claimnotes: routed=True flag=True
+ANCHOR dev/governance/rules/writing-for-agents.md 'exactly one handover under `docs/`' matched 0 units
+ANCHOR dev/governance/rules/brief-citations.md '(not `.claude/` or `tools/audit/round2/`)' matched 0 units
+ANCHOR tools/audit/seat/INSTRUMENTS.md 'Directories here that are records, not instruments' matched 0 units
+ANCHOR dev/programme/HANDOVER.md '`worktree_gc.sh --apply` collects' matched 0 units
+CHECK stale  tools/audit/archscore/ABOUT.md#7b7543dab1 c_event_hub: exact=False nearest=['dev/audit/harnesses/r10_livestate_event_hub_writes.py']
+CHECK true   CLAUDE.md#f454fd77ac c_budget_count: metrics=18 ok_lines=23 rc=0
+CHECK true   CLAUDE.md#81f2a08396 c_mode_lines: both present
+CHECK true   CLAUDE.md#0ffff50463 c_full_orphan: present
+CHECK true   CLAUDE.md#fb9fd4678f c_rules_sync: rc=0 RULES-SYNC ok: every generated rule is the generated form of its source
+CHECK true   CLAUDE.md#75ca6a2b45 c_tables: dev/governance/rules: files=10 unnamed=[] named_missing=[] | dev/governance/roles: files=18 unnamed=[] named_missing=[] | dev/governance/dimensions: files=18 un
+CHECK true   AGENTS.md#d5cdffe751 c_rules_sync: rc=0 RULES-SYNC ok: every generated rule is the generated form of its source
+RESULT event_hub_cited_name_files=0
+RESULT structure_metrics=18
+RESULT structure_ok_lines=23
+RESULT false_or_stale[AGENTS.md]=0
+RESULT false_or_stale[CLAUDE.md]=0
+RESULT false_or_stale[dev/audit/README.md]=1
+RESULT false_or_stale[dev/governance/rules/claim-files.md]=0
+RESULT false_or_stale[dev/governance/rules/gate-scoping.md]=0
+RESULT false_or_stale[tests/README.md]=0
+RESULT false_or_stale[tools/audit/archscore/ABOUT.md]=1
+RESULT checked_units=22
+RESULT thread_factor=1.00
+RESULT load1=0.58
+RESULT swapins=0
+RESULT cpu_s=7.45 provisional
+### ref 6a229a2817f0974cc6603eea47a951ef724884d6
+CHECK true   dev/audit/README.md#939ed70096 c_slow_gated: 1 code lines, 0 asserting the run.sh gate; SLOW_GATED=['rolling.py']
+CHECK true   dev/audit/README.md#9f5c1e7863 c_gil: 3 calls in ['_lbfgsb_restart', '_multi_start_minimize', '_optimize_with_dhw']
+fatal: path 'tools/audit/round2/JUDGE.md' does not exist in 'd5d8c4a72fa7be7aebecc9e58d55002be17cac08'
+CHECK false  dev/audit/README.md#129b603c9c c_judge_sha: rc=128
+ANCHOR tests/README.md 'every other script runs unleased' matched 0 units
+CHECK true   tests/README.md#2266dd14a1 c_scope_default: full
+CHECK true   tests/README.md#d96a6dd1ea c_rcs: 75, 76
+CHECK true   tests/README.md#99321b5687 c_lockdir: /tmp/hpo-gate.lock
+ANCHOR dev/governance/rules/gate-scoping.md 'A gate run rewrites `tools/audit/round4/D6/`' matched 0 units
+CHECK true   dev/governance/rules/gate-scoping.md#0e3b8ebbfa c_measuring: lease, lease; slots 4 via HPO_HEAVY_SLOTS
+CHECK true   dev/governance/rules/gate-scoping.md#daf9105b8b c_python_order: python3
+CHECK true   dev/governance/rules/gate-scoping.md#600e46f68a c_lease_minutes: 1800
+CHECK true   dev/governance/rules/gate-scoping.md#21eca4594d c_rcs: 75, 76
+CHECK true   dev/governance/rules/claim-files.md#5c6cfc766a c_claimnotes: routed=True flag=True
+ANCHOR dev/governance/rules/writing-for-agents.md 'exactly one handover under `docs/`' matched 0 units
+ANCHOR dev/governance/rules/brief-citations.md '(not `.claude/` or `tools/audit/round2/`)' matched 0 units
+ANCHOR tools/audit/seat/INSTRUMENTS.md 'Directories here that are records, not instruments' matched 0 units
+ANCHOR dev/programme/HANDOVER.md '`worktree_gc.sh --apply` collects' matched 0 units
+CHECK stale  tools/audit/archscore/ABOUT.md#7b7543dab1 c_event_hub: exact=False nearest=['dev/audit/harnesses/r10_livestate_event_hub_writes.py']
+CHECK true   CLAUDE.md#f454fd77ac c_budget_count: metrics=18 ok_lines=23 rc=0
+CHECK true   CLAUDE.md#81f2a08396 c_mode_lines: both present
+CHECK true   CLAUDE.md#0ffff50463 c_full_orphan: present
+CHECK true   CLAUDE.md#fb9fd4678f c_rules_sync: rc=0 RULES-SYNC ok: every generated rule is the generated form of its source
+CHECK true   CLAUDE.md#75ca6a2b45 c_tables: dev/governance/rules: files=10 unnamed=[] named_missing=[] | dev/governance/roles: files=18 unnamed=[] named_missing=[] | dev/governance/dimensions: files=18 un
+CHECK true   AGENTS.md#d5cdffe751 c_rules_sync: rc=0 RULES-SYNC ok: every generated rule is the generated form of its source
+RESULT event_hub_cited_name_files=0
+RESULT structure_metrics=18
+RESULT structure_ok_lines=23
+RESULT false_or_stale[AGENTS.md]=0
+RESULT false_or_stale[CLAUDE.md]=0
+RESULT false_or_stale[dev/audit/README.md]=1
+RESULT false_or_stale[dev/governance/rules/claim-files.md]=0
+RESULT false_or_stale[dev/governance/rules/gate-scoping.md]=0
+RESULT false_or_stale[tests/README.md]=0
+RESULT false_or_stale[tools/audit/archscore/ABOUT.md]=1
+RESULT checked_units=22
+RESULT thread_factor=1.00
+RESULT load1=0.82
+RESULT swapins=0
+RESULT cpu_s=6.60 provisional

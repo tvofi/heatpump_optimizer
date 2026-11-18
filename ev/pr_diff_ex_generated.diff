@@ -1,0 +1,350 @@
+diff --git a/.claude/skills/steward/SKILL.md b/.claude/skills/steward/SKILL.md
+index 738bf996..7ac2e58d 100644
+--- a/.claude/skills/steward/SKILL.md
++++ b/.claude/skills/steward/SKILL.md
+@@ -39,9 +39,8 @@ files runs only in a clone that installed it, and a runner is not one.
+ This happens without anyone touching your branch: a merge to the default
+ branch that moves a claim file flips every open pull request at once.
+ 
+-Confirm a conflict is real before treating it as one:
+-
+-    git merge-tree --write-tree origin/main HEAD
++Confirm a conflict is real before treating it as one, by the `merge-tree`
++check `claim-files.md` gives.
+ 
+ Install the driver once per clone; a worktree shares its checkout's config.
+ 
+diff --git a/dev/audit/README.md b/dev/audit/README.md
+index 0017e0d4..182656da 100644
+--- a/dev/audit/README.md
++++ b/dev/audit/README.md
+@@ -236,7 +236,7 @@ moves.
+ | The card in Node | `tests/card_rig.mjs:buildCard`, `planStates`, `makeCardContext`, `qaTopologies` | the DOM stub returns a constant 900×400 rectangle: no geometry |
+ | The card's drift states | `tests/card_drift.mjs:STATES` — run it with `--list` rather than carrying a count | drive both a working-tree card and a `git show` card |
+ | Real geometry | `tests/card_browser.mjs` | Playwright resolved from `NODE_PATH`; Chromium under `PLAYWRIGHT_BROWSERS_PATH` |
+-| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third is the only `unittest.mock` use in the suite; the first two are cited by search text, not line number |
++| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third uses `unittest.mock`; the first two are cited by search text, not line number |
+ 
+ **Traps**
+ 
+@@ -303,7 +303,7 @@ evidence is archived, instruments are kept.
+ 
+ | file | metric | added by | who re-runs it |
+ |---|---|---|---|
+-| `j5_gil.py` | starvation share = sum(heartbeat gaps > 5 ms) / solve wall, on a real asyncio loop with a 1 ms heartbeat and `HeatPumpOptimizer.optimize` submitted the way production submits it | `8542e51` (W3-G3, #290 #199) | the #290 judge built it; `briefs/fix-review.md` §9 sends a fix reviewer to it |
++| `j5_gil.py` | starvation share = sum(heartbeat gaps > 5 ms) / solve wall, on a real asyncio loop with a 1 ms heartbeat and `HeatPumpOptimizer.optimize` submitted the way production submits it | `8542e51` (W3-G3, #290 #199) | the #290 judge built it |
+ | `h8_single_scenario.py` | whether the stress gate detects a 2x regression confined to one scenario, and stays quiet on a multi-start basin flip (#346) | `291ae76` (#378) | anyone changing `tests/stress.py`'s per-scenario or solver-work rules |
+ | `h9_basin_coverage.py` | how many of the 51 sweep scenarios the solver-work rule judges rather than exempts, against the tree's own floor (#387) | `32f309f` (#388) | the same |
+ | `k1725_blas_kernel_gap.py` | the ftol check's arms and the R9-F2.1 P3 margins, per OpenBLAS kernel via `OPENBLAS_CORETYPE` | `613bff1b` (#1726, #1725) | anyone adding a knife-edge optimizer comparison (`tests/README.md`'s kernel rule) |
+diff --git a/dev/governance/dimensions/D15.md b/dev/governance/dimensions/D15.md
+index 60dc6092..f6630b08 100644
+--- a/dev/governance/dimensions/D15.md
++++ b/dev/governance/dimensions/D15.md
+@@ -21,7 +21,7 @@ a lead.
+ ## Method
+ 
+ 1. **Intake and version seam.** Unwrap `debug`; a row's `version` is its release. For a row without one (`integration_version` is the download's): restart gaps are what `PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/d15_restart_gaps.py --bundle B` prints; a cycle ran the newest tag (`git for-each-ref refs/tags`) dated before its last gap; a tag after that gap leaves it unknown, never the older. Attribute each anomaly so and re-check it at the baseline; old-version-only is a non-finding, with evidence. A gap is downtime, not a lead, unless the integration ran through it. A real download whose replay half is empty because one entity id escapes the mask is a finding here.
+-2. **Privacy gate.** `tests/replay.py`'s `LEAK_PROBES` controls green, then `export.violations` over the bundle with a planted-credential arm; either failing stops the run.
++2. **Privacy gate.** `tests/replay.py`'s `LEAK_PROBES` controls green, then `debug_ingest.py` stage 2 (replay half); elsewhere credential keys hold only `**REDACTED**`. Either failing stops the run.
+ 3. **Ingest.** `tools/replay/debug_ingest.py --bundle`; `--corrupt accuracy` is its perturbation; a check passing on an empty section is vacuous.
+ 4. **Store replay.** Each store document through its loader and `store._sanitize` against `store.DOMAINS`: quarantined leaves, refused versions.
+ 5. **Timeline replay.** `tools/replay/debug_replay.py --bundle`, stores seeded, over the replay half: the lane's judges, offenders per cycle.
+diff --git a/dev/governance/dimensions/criteria/D4-criteria.md b/dev/governance/dimensions/criteria/D4-criteria.md
+index 47e7d7eb..312d615d 100644
+--- a/dev/governance/dimensions/criteria/D4-criteria.md
++++ b/dev/governance/dimensions/criteria/D4-criteria.md
+@@ -1,9 +1,6 @@
+ # D4 acceptance criteria: the card and the config flow
+ 
+-> UI/UX — the card and the config flow, including grouping and setup
+-> ergonomics. It should be intuitive, user friendly and look professional.
+-
+-— the owner, `D4.md`. Each statement below quotes the words it tests.
++The owner's brief is quoted in `D4.md`. Each statement below quotes the words it tests.
+ 
+ Drafted by a fixer seat under mandate 6893738184 (scope all);
+ binding as the owner's words until the owner rewrites them.
+diff --git a/dev/governance/dimensions/criteria/D5-criteria.md b/dev/governance/dimensions/criteria/D5-criteria.md
+index 1d41d881..55270358 100644
+--- a/dev/governance/dimensions/criteria/D5-criteria.md
++++ b/dev/governance/dimensions/criteria/D5-criteria.md
+@@ -1,9 +1,6 @@
+ # D5 acceptance criteria: docs structure and code comments
+ 
+-> Docs structure, flow and content. Verify claims in docs.
+-> Comments in code should be concise but precise and easy to understand.
+-
+-— the owner, `D5.md`. Claims in docs are D6's (`D6.md`).
++The owner's brief is quoted in `D5.md`. Claims in docs are D6's (`D6.md`).
+ 
+ Drafted by a fixer seat under mandate 6893738184 (scope all);
+ binding as the owner's words until the owner rewrites them.
+diff --git a/dev/governance/roles/root-cause.md b/dev/governance/roles/root-cause.md
+index bc5d05a7..367a1a16 100644
+--- a/dev/governance/roles/root-cause.md
++++ b/dev/governance/roles/root-cause.md
+@@ -45,7 +45,7 @@ of the deliverable, whether or not it finds anything.
+ 
+ ## 4. Run the cost test, with numbers
+ 
+-    cost(countermeasure, recurring) < cost(defect) x P(recurrence)
++The inequality and its units are `defect-root-cause.md`'s cost test.
+ 
+ For `P(recurrence)`, a **measured** class frequency over a guess: the escape
+ record, `RELEASE_NOTES.md` (every shipped fix is a bug that escaped) with the
+diff --git a/dev/governance/roles/standing-roster.md b/dev/governance/roles/standing-roster.md
+index 46d7698c..7e14a4d0 100644
+--- a/dev/governance/roles/standing-roster.md
++++ b/dev/governance/roles/standing-roster.md
+@@ -3,5 +3,5 @@
+ Retired (tvofi, 2026-10-24 card 1) into the `roster-drain` row of
+ `tools/audit/seat/beatd.jobs.json` (`standing.md`): queue
+ `tools/audit/seat/roster_edit.py` ops for it; a refusal is never retried past
+-the lint gate. The owner's constraint binds: the retirement
+-must not "cause you to run things inline" (`dev/audit/README.md`).
++the lint gate. The owner's constraint on the
++retirement is `standing-tick.md`'s.
+diff --git a/dev/governance/rules/brief-citations.md b/dev/governance/rules/brief-citations.md
+index 6b9b7824..ac11b5c4 100644
+--- a/dev/governance/rules/brief-citations.md
++++ b/dev/governance/rules/brief-citations.md
+@@ -18,7 +18,7 @@ paths:
+ 
+ 1. **Paths** (`dir/file.ext` or a unique basename) — in the tree, or in the same brief as a tag SHA (7–40 hex, at least one `a-f`) or `audit-round2-evidence` that actually carries them. A tag-only path without its tag is an error. Negation ("does not exist") is skipped.
+ 2. **`path:line`** (`foo.py:123` or `foo.py:123-145`) — the range exists, and a quoted phrase, a keyword (`return`/`raise`/`assert`/…), or a nearby snake_case identifier is found there or in the enclosing `def`/`class`. No extractable anchor is only a warning. Bare `:123` works only next to a `module.symbol`.
+-3. **Symbols** — `snake_case` (≥2 segments), `SCREAMING_SNAKE`, or `module.symbol`, found in the tracked tree (not `.claude/` or `tools/audit/round2/`) or at a cited tag. Probe-output names (`min_ink_gap`) fail unless tagged.
++3. **Symbols** — `snake_case` (≥2 segments), `SCREAMING_SNAKE`, or `module.symbol`, found in the tracked tree (not `.claude/`) or at a cited tag. Probe-output names (`min_ink_gap`) fail unless tagged.
+ 4. **Metrics and counts** — a metric names a key of `tests/structure_budgets.json`; a literal (`coordinator_loc 10394 <= 10394`) is always an error, and a stated count the tree answers must equal what it answers. Re-measure at your merge base; derive a count, never carry one (#581).
+ 
+ **VERSION** — `VERSION x.y.z` or `VERSION a -> b` must match the live `VERSION` file (arrow checks `b`). Do not pin a version a later stamp will invalidate.
+diff --git a/dev/governance/rules/gate-scoping.md b/dev/governance/rules/gate-scoping.md
+index 93ec7b4e..3a8a9703 100644
+--- a/dev/governance/rules/gate-scoping.md
++++ b/dev/governance/rules/gate-scoping.md
+@@ -32,7 +32,7 @@ waits: finish, release, take again behind it. `run.sh` under `HPO_GATE_LOCK_LABE
+ refuses every leased script at once if that label holds none: `take` first (#2368).
+ 
+ **The mypy census runs here, given pins**: `HPO_TYPING_PYTHON` names one carrying them; unset it prints the install command, unpinned it fails.
+-**A gate run rewrites `tools/audit/round4/D6/`**: check it out before any `git add -A`.
++**A gate run rewrites `dev/audit/rounds/round4/D6/`**: check it out before any `git add -A`.
+ **`instrument-self-tests` is scoped too**: `tools/ci/selftest_scope.py` states its rule and re-record (#201 comment 6707834331).
+ 
+ ## `prepr.sh` is not CI
+diff --git a/dev/governance/rules/writing-for-agents.md b/dev/governance/rules/writing-for-agents.md
+index 5bdaba19..aef9a9cb 100644
+--- a/dev/governance/rules/writing-for-agents.md
++++ b/dev/governance/rules/writing-for-agents.md
+@@ -56,7 +56,7 @@ an abort, which an unpushed in-tree edit does not.
+ 
+ **Nothing goes in both.**
+ 
+-`tests/entities.py` enforces it: exactly one handover under `docs/`, and an
++`tests/entities.py` enforces it: exactly one handover, and an
+ `updated-for:` naming a commit reachable from `HEAD`. Handover files are
+ deliberately *not* on `tests/closure.py`'s `INERT` list, so editing the living
+ one selects that script and adding a second forces `MODE: FULL` — either way
+diff --git a/dev/programme/HANDOVER.md b/dev/programme/HANDOVER.md
+index 8e94241e..02d3d1c0 100644
+--- a/dev/programme/HANDOVER.md
++++ b/dev/programme/HANDOVER.md
+@@ -1489,7 +1489,7 @@ Older traps, still live:
+ - **A worktree shares the repository's config and refs with every other
+   worktree.** `git remote remove origin` inside one repointed the main
+   checkout. A throwaway git experiment goes in a standalone clone under
+-  `mktemp -d`. `worktree_gc.sh --apply` collects a detached, clean worktree
++  `mktemp -d`. `worktree_gc.sh <owner/repo>` (`--dry-run` previews) collects a detached, clean worktree
+   over an hour old that is not an open pull request's head: claim a root-cause
+   or audit seat's with `git worktree lock`, not an untracked marker at the root
+   (`closure.py select` turns `MODE: SCOPED` into `MODE: FULL` naming it). The
+diff --git a/dev/programme/RULINGS.md b/dev/programme/RULINGS.md
+index 3d0a3a7d..1403bdcc 100644
+--- a/dev/programme/RULINGS.md
++++ b/dev/programme/RULINGS.md
+@@ -85,8 +85,7 @@ divergence"). Re-read on change after every compaction
+ 
+ - 2026-11-13: "Also verify that the other dimensions also covers the full
+   codebase in their contracts, I want future rounds to always check everything
+-  in their dimension, not only small samples". 2026-11-13: "I would like the
+-  scope of d5 and d6 to always cover that full scope". Where `D3.md` and `D11.md`
++  in their dimension, not only small samples" (for D5 and D6, `D6.md` states it). Where `D3.md` and `D11.md`
+   still sample, the change is owned by R11-PRE-BRIEFS-TEXT part 2.
+ - 2026-11-15: "As soon as everything that is critical to land before the finder
+   phase, the finding phase can start in parallel with the remaining groups";
+@@ -126,10 +125,6 @@ divergence"). Re-read on change after every compaction
+   owed" (product and release defects and outages; tooling friction is counted by
+   family and analysed at round end, L8). The trigger and the separate seat are
+   `CLAUDE.md`'s and `defect-root-cause.md`'s.
+-- 2026-10-24: "each operation or shape that is not clearly a one shot and could
+-  be mechanical should be mechanical and wired into the machinery. This means
+-  reusable instrument before policy, only policy if no robust script could be
+-  built at a reasonable cost (tokens, time, complexity)".
+ - 2026-11-13: "you may have a fixer have more carries based on their kind,
+   locally for now and filed as a permanent proposal" (operational until the
+   round-end proposal triage rules PC-1113-08).
+diff --git a/dev/programme/delivery/3727.md b/dev/programme/delivery/3727.md
+new file mode 100644
+index 00000000..0a75165c
+--- /dev/null
++++ b/dev/programme/delivery/3727.md
+@@ -0,0 +1 @@
++- [#3727](https://github.com/tvofi/heatpump_optimizer/pull/3727) — **open**, R11-SEAM-governance-text: governance text (R11-SEAM-governance-text)
+diff --git a/dev/programme/plan-2026-09-open-issues.md b/dev/programme/plan-2026-09-open-issues.md
+index ca17fb67..fae78a88 100644
+--- a/dev/programme/plan-2026-09-open-issues.md
++++ b/dev/programme/plan-2026-09-open-issues.md
+@@ -2059,11 +2059,11 @@ session reads this file first.
+   through the gate lock; never `VERSION`, the manifest version or the
+   `RELEASE_NOTES.md` heading. **After any rebase, steps 2–8 are re-executed** —
+   the evidence describes one tree and a rebase makes a new one.
+-- **Reviewer** (`tools/audit/briefs/fix-review.md`): a fresh worktree at the
++- **Reviewer** (`dev/governance/roles/fix-review.md`): a fresh worktree at the
+   head SHA, the mutation proof re-run, the measurement taken with the
+   **finder's** harness rather than the fixer's, `env_drift.py --all` against
+-  the claims, and an attack at other configurations. Verdict `Fix review:
+-  merge` or `Fix review: blocked — <why>`. A reviewer never ranks below its
++  the claims, and an attack at other configurations. Verdict lines
++  take the grammar `bus.sh`'s `verdict_sha` accepts. A reviewer never ranks below its
+   fixer.
+ - **Claims.** A branch that moves fixtures claims them with a direction; the
+   check is three-dot, never two-dot. A name cannot be both claimed and
+@@ -2087,9 +2087,7 @@ session reads this file first.
+   sloppiness, an unexamined refactor or an unmeasured feature — the first
+   question is still whether the lines can be paid for elsewhere — but a metric
+   at zero headroom is not a veto on new capability either (#398 read it as
+-  one). `cross_seam_fraction` carries a
+-  tolerance band and is never re-recorded: within the band there is nothing to
+-  record, outside it the gate fails, so a re-record can only loosen.
++  one).
+ - **Ownership.** `owner:<session>` and a `claimed-by:` comment before a branch
+   is cut. An unlabelled issue is *unknown*, not free.
+ - **Filing is the last resort**, `CLAUDE.md`'s fix-verify-file order, and this
+@@ -2139,11 +2137,9 @@ reviewer, which is Opus 5 already. The absence is a decision, not an oversight.
+ tokens stay as they are: `opus` → Opus 5, `sonnet` → Sonnet 5, `haiku` →
+ Haiku 4.5 (unused today). `tierOk` still applies. The tokens do not need editing.
+ 
+-**`.cursor/rules/*.mdc` still hold three `alwaysApply: true` policies, and
+-nothing loads them for a Claude seat.** Cursor applied them automatically;
+-Claude Code loads `CLAUDE.md` and nothing else. The files and every pointer to
+-them stay — every seat is told to open all three at seat start, and `CLAUDE.md`'s
+-summaries are not a substitute.
++**`.cursor/rules/*.mdc` and `.claude/rules/` are generated from
++`dev/governance/rules/`** by `tools/policy/rules_sync.mjs`. Claude Code loads
++`CLAUDE.md` and each `.claude/rules/` file whose `paths:` globs a read matches.
+ 
+ **An architectural reviewer on the same model as its fixer is still a fresh
+ agent, not the fixer continuing.** Independence here is procedural, not
+@@ -2167,13 +2163,9 @@ to reach for. The rest still stands and is why it is kept.
+   fork pays a full baseline capture — hence one fork per wave;
+ - at most two agents run at once, and anything needing a quiet box (the
+   stress ruler, the timing judges) runs alone;
+-- **the gate lock is scoped to the runs that need it.** `fixer.md` step 5
+-  mandates it for every local gate; that was written for a dedicated
+-  eight-core machine, and on a shared container it serialises every agent.
+-  The lock exists for one script — `tests/stress.py`, whose solve-time guard
+-  measures the machine while it solves — so the rule now asks
+-  `closure.py select` what the diff actually runs and takes the lock only
+-  when the answer includes `stress.py`, reports `MODE: FULL`, or fails.
++- **the gate lock is scoped to the runs that need it.** The rule is
++  `gate-scoping.md`'s: `tests/gate_lock.py needs-lease` names each script's
++  exclusive lease, heavy slot or none, for what `closure.py select` runs.
+   Measured on this tree: a test file selects one script, the card five, and
+   none of them `stress.py`; `optimizer.py` and `coordinator.py` select
+   sixteen and do. The trap the rule is written around is that a gate file or
+@@ -2188,8 +2180,9 @@ to reach for. The rest still stands and is why it is kept.
+ ## When a merge turns main red
+ 
+ The programme has been in this state, so it gets a written answer rather than a
+-judgement call each time. `web-fix-wave.js` logs `MAIN IS RED after <group>` and
+-stops merging. What follows:
++judgement call each time. `web-fix-wave.js` logs `MAIN IS RED after <group>`, but
++its merge chain does not read that gate: nothing in the script stops the next
++merge. What follows:
+ 
+ 1. **A behaviour change in the merged diff → revert first, diagnose after.** The
+    revert is cheap and main being trustworthy is what every later merge is judged
+@@ -2279,7 +2272,7 @@ and editing one selects no gate script. Under `tools/` a generator is an orphan
+ until `closure.py` names it, and `closure.py` is a `GATE_FILE`: classifying it
+ would force `MODE: FULL` on every documentation branch that touched the list.
+ 
+-**Still unfixed, and outside every lane item so far:** the `[![License: MIT]…](LICENSE)`
++**Since fixed — the badge's target is absolute now; the defect as found:** the `[![License: MIT]…](LICENSE)`
+ badge. Its cause is the "first `(` of the matched span" clause above, not — as
+ this paragraph said until #567's second review — a rule about link targets and
+ `.md` extensions: the span the rewriter matches runs from the wrapping `[` to
+@@ -2289,16 +2282,12 @@ badge comes out of the HACS pipeline as
+ — so the badge image itself does not load, not merely its link. Control: the
+ same badge with an **absolute** target renders correctly, so it is the relative
+ target that pulls the whole construct into one span. Reproduced on 2026-09-07
+-by rendering `README.md` through the pipeline. It needs a lane-B item; it is
+-not one today. A relative target also leaves the `<a>` with no `href` at all
++by rendering `README.md` through the pipeline. A relative target also leaves the `<a>` with no `href` at all
+ (measured), which is a second, smaller defect on the same construct.
+ 
+-**Also stale, and also nobody's item:** `docs/architecture.md`'s outputs node
+-still reads `65 entities / 55 sensors, 4 binary sensors, 4 buttons, 1 switch,
+-1 climate`. It predates this programme (v5.1.0, #69), it is wrong at
+-`origin/main` today, and no check reads it — `tests/entities.py`'s census
+-covers `README.md` only. Extending that census to the architecture figure is
+-the obvious repair and is a lane-B item, not a side-effect of one.
++**Since fixed:** `docs/architecture.md`'s outputs node carried entity counts
++from before this programme (v5.1.0, #69); `tests/entities.py` now checks that
++file's counts.
+ 
+ **Delivery-status row.** No longer this PR's to add: #531 landed a truthed
+ `| UX |` row on `main` while #567 was in review, and the merge that brought it
+diff --git a/tests/README.md b/tests/README.md
+index 190570ca..986ac5fc 100644
+--- a/tests/README.md
++++ b/tests/README.md
+@@ -43,8 +43,8 @@ name.
+ ### The gate lock on a shared box
+ 
+ `tests/stress.py` measures this machine while it solves, so only one agent on
+-a box may run it at a time. `run.sh` takes the lease for each `stress.py` run
+-alone and releases it after; every other script runs unleased. By hand, to
++a box may run it at a time. `run.sh` takes the lease or slot
++`tests/gate_lock.py needs-lease` names, or none (`gate-scoping.md`). By hand, to
+ measure across commands, use `tests/gate_lock.py` — not `mkdir /tmp/hpo-gate.lock`
+ and a shell pid:
+ 
+diff --git a/tools/audit/archscore/ABOUT.md b/tools/audit/archscore/ABOUT.md
+index 6a00e41e..29718fc4 100644
+--- a/tools/audit/archscore/ABOUT.md
++++ b/tools/audit/archscore/ABOUT.md
+@@ -183,7 +183,7 @@ reads 41 -> 41 (40 with `C16b` off). Attempt 20b. F2 is a precision note, not cl
+ to ANY call outside the package is a root, including one that never calls it (`_LOGGER.debug("%r",
+ self.async_update_thermal_params)` reads 41 -> 48). The census cannot tell a subscription from a log argument,
+ and it over-counts rather than misses the subscription. R10-LIVESTATE carries the 41 -> 38 control
+-(`event_hub_writes.py`).
++(`dev/audit/harnesses/r10_livestate_event_hub_writes.py`).
+ 
+ ### What R10-ARCHSCORE-COVERAGE part 3 moved (layering: `layer_violations`, `private_cross_module`)
+ 
+diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
+index 590293ce..ecd654f7 100644
+--- a/tools/audit/seat/INSTRUMENTS.md
++++ b/tools/audit/seat/INSTRUMENTS.md
+@@ -6,15 +6,14 @@ real lane reaches for it, and which refusal saves you. The obligations live in
+ runs offline. Each linked line below indexes one instrument; its text is
+ `instruments/<name>.md`, beside this file.
+ 
+-Directories here that are records, not instruments: `round3/`..`round9/`,
+-`round5-fix/`, `round7-fix/`, `round8-fix/`, `handoff/`, `rca/`,
+-`w5-partition/`, `w5-g5-195-coverage/`, `briefs/` (the seat contracts and
+-dimension briefs), `archscore/`, `ci-version-edit/`, `ledger-layout/`,
+-`record-predicate/` (sub-tools with their own READMEs), and the JSON/schema
+-files (`bugclasses.json`, `scopes.json`, `rotation.json`,
+-`finding.schema.json`), which the instruments read. `harnesses/` holds the
+-re-runnable measurement harnesses a fixer or judge lands with a PR — its
+-`README.md` indexes them; anything a later seat must rerun belongs there
++The records are not here: round evidence is under `dev/audit/rounds/`,
++root-cause analyses under `dev/audit/rca/`, the seat contracts and dimension
++briefs under `dev/governance/`, the architecture score under
++`tools/audit/archscore/`, and the JSON and schema files the instruments read
++(`bugclasses.json`, `scopes.json`, `rotation.json`, `finding.schema.json`)
++under `dev/audit/config/`. `dev/audit/harnesses/` holds the
++re-runnable measurement harnesses a fixer or judge lands with a PR — 
++`dev/audit/README.md` indexes them; anything a later seat must rerun belongs there
+ (fixer contract step 18), not in a session's scratch.
+ 
+ ## tools/audit/
