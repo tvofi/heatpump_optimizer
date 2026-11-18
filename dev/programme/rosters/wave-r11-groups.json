@@ -6182,6 +6182,59 @@
     "next_step": "fixer per the architect note (ADR-009)",
     "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-ratchet-raise",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D7-s1-01",
+    "D7-s1-04"
+   ],
+   "merged": {},
+   "classes": [
+    "N-structure-blind"
+   ],
+   "seam": "test suite",
+   "hot_files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json"
+   ],
+   "fixture": false,
+   "owner_gate": "owner decision: D7-s1-04's limit, confirmed by the owner before the push (ADR-009 part 2; budget-raise-gate)",
+   "rca": [],
+   "architect_note": "The two rows whose value the owner sets: const fan-out read through a module binding (the corrected row reads 4 against a budget of 3) and module lines outside the class, whose limit the owner chooses. Cut from the other ratchet rows so the owner's confirmation holds only these two findings. 2 findings (0 merged in), size S; class tags N-structure-blind. Plan: ADR-009 part 2. The owner's confirmation is obtained before the branch is pushed. No edge: each row is recorded at the value measured when the owner confirms it, and a later merge that lowers it re-records the row downward.",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json"
+   ],
+   "brief": "The two rows whose value the owner sets: const fan-out read through a module binding (the corrected row reads 4 against a budget of 3) and module lines outside the class, whose limit the owner chooses. Cut from the other ratchet rows so the owner's confirmation holds only these two findings. 2 findings (0 merged in), size S; class tags N-structure-blind. Plan: ADR-009 part 2. The owner's confirmation is obtained before the branch is pushed. No edge: each row is recorded at the value measured when the owner confirms it, and a later merge that lowers it re-records the row downward. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-ratchet-raise",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-009)",
+    "note": "overlap admitted (R11-SEAM-ratchets): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
