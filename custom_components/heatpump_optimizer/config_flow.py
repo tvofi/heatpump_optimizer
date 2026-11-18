@@ -2274,7 +2274,7 @@ def _prefill_page(
     window placeholders are the night-mode and hot-water fields' own. A
     refusal passes the preview's ``notes``, so it renders what the preview did.
     """
-    return flow.async_show_form(  # type: ignore[attr-defined]
+    return flow.async_show_form(
         step_id=step_id,
         errors=errors,
         description_placeholders={

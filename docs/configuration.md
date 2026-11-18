@@ -150,6 +150,7 @@ empty skips the screen. Where each suggestion comes from is listed under
 | When you need hot water | read from the device | The pump's hot water schedule. Keeping it turns hot water planning on. |
 | Anti-legionella interval | read from the device | The pump's anti-legionella schedule. |
 | Pump's own night-mode schedule | read from the device | When the pump limits itself to its quiet mode. |
+| Power kept in silent mode | the value in force | Shown beside the night-mode schedule: the share of the pump's maximum power it runs at inside it. At 1.0 the schedule caps nothing, so keeping a schedule with 1.0 is refused; lower it or clear the schedule. |
 | Heat pump max power (kW) | read from the device | The unit's capacity divided by the nominal COP. |
 | What that set-point entity expects | read from the device | Flow temperature when the pump runs on water temperature control. |
 | What the control entity expects | read from the device | The same, for a mixing valve, only where the two-zone model is configured. |
