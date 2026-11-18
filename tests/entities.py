@@ -15634,6 +15634,21 @@ R.check(
     f"moved: {_mig_moved}",
 )
 
+# sweep-P1 (early_cutoff.arm): a re-solve interval outside (0, a day] is no
+# interval; the parse reads it as the default.
+_mig_iv = {v: _MigEC.from_mapping({"optimization_interval": v}).optimization_interval
+           for v in (0, -5, 0.0, 1e12, 1440.5, "nan", 10, 120, 1440)}
+R.check(
+    "an optimization interval outside (0, a day] parses as the default",
+    all(_mig_iv[v] == const.DEFAULT_OPTIMIZATION_INTERVAL for v in (0, -5, 0.0, 1e12, 1440.5, "nan")),
+    f"{_mig_iv}",
+)
+R.check(
+    "and one inside it, both ends' neighbours included, is read as stored (null control)",
+    _mig_iv[10] == 10.0 and _mig_iv[120] == 120.0 and _mig_iv[1440] == 1440.0,
+    f"{_mig_iv}",
+)
+
 _new = FakeEntry()
 _new.version = const.CONFIG_ENTRY_VERSION + 1
 R.check(

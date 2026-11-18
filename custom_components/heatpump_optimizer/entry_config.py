@@ -36,6 +36,24 @@ def _nonzero_number(value: Any, default: float) -> float:
     return finite_float(value, default) or default
 
 
+#: The longest re-solve interval that is still a plan, minutes: past a day the
+#: plan outlives the day-ahead prices it was solved against.
+_MAX_INTERVAL_MINUTES = 24 * 60.0
+
+
+def _interval_minutes(value: Any, default: float) -> float:
+    """A re-solve interval in minutes inside ``(0, a day]``, else ``default``.
+
+    Zero or a negative interval stamps a cycle's end at or before its start,
+    and 1e12 minutes overflows the datetime it is added to (sweep-P1,
+    ``early_cutoff.arm``): neither is an interval.
+    """
+    minutes = finite_float(value)
+    if minutes is None or not 0.0 < minutes <= _MAX_INTERVAL_MINUTES:
+        return default
+    return minutes
+
+
 def _whole(value: Any, default: int | None) -> int | None:
     try:
         return int(value)
@@ -188,7 +206,7 @@ class EntryConfig(Mapping[str, Any]):
     min_temperature: float = _key(const.DEFAULT_MIN_TEMP, finite_float)
     mixing_valve_target: float = _key(const.DEFAULT_MIXING_VALVE_TARGET, finite_float)
     mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, finite_float)
-    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, finite_float)
+    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, _interval_minutes)
     peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, finite_float)
     peak_tariff_offpeak_factor: float = _key(const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, finite_float)
     peak_tariff_peaks_averaged: float = _key(const.DEFAULT_PEAK_TARIFF_COUNT, finite_float)
@@ -296,7 +314,7 @@ class EntryConfig(Mapping[str, Any]):
 
 #: The parses that read a value they refuse as the key's default, so a refused
 #: stored value and an absent key parse alike.
-_DEFAULTED_NUMBERS: tuple[Parse, ...] = (finite_float, _nonzero_number)
+_DEFAULTED_NUMBERS: tuple[Parse, ...] = (finite_float, _nonzero_number, _interval_minutes)
 
 
 def number_repairs(stored: Mapping[str, Any]) -> dict[str, float | None]:
