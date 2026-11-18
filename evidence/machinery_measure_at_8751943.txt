@@ -1,0 +1,1 @@
+{"churn_per_kilo_product_lines": 34898, "exempted": [], "head": "30ae44cd94c646684357b486ade679a2f1270b98", "machinery": 354, "merges_past_anchor": 94, "nonproduct_lines": 805126, "nonproduction_merges": 478, "product_lines": 23071, "production": 102, "record": 124, "target": 478, "window": 580}
