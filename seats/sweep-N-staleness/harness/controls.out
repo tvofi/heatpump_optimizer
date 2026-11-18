@@ -1,0 +1,4 @@
+positive: D14-s2-01's six pump flags flagged=6/6
+null: clean fixture table flagged=0
+perturbation: one-line re-introduction flagged=1
+controls OK
