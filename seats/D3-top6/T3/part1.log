@@ -1,4 +1,4 @@
-# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=0.87 at 2026-11-18T21:33:40Z
+# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=0.97 at 2026-11-18T21:43:44Z
 ## run.log (driver steps + controls)
 === 2026-11-18T18:51:31Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.18 :: STEP baseline
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
@@ -75,6 +75,10 @@ RESULT load1=1.91
 RESULT thread_factor=1.00
 === 2026-11-18T21:16:58Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.91 :: STEP complete src=c3c6
 2026-11-18T21:16:59Z COMPLETE queued=1 from=c3c6
+2026-11-18T21:43:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:R10-C3C6 M19 L1559 by=- ran=16 wall=1600.1s
+RESULT load1=1.06
+RESULT thread_factor=1.00
+=== 2026-11-18T21:43:39Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.06 :: STEP ALLDONE
 ## prescreen.log
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
 2026-11-18T18:57:42Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=155.7s reach_ok=False
@@ -113,3 +117,4 @@ RESULT thread_factor=1.00
 2026-11-18T21:16:54Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:R10-C2 M32 L783 by=tests/features.py ran=12 wall=1599.5s
 2026-11-18T21:16:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:R10-C2 M34 L252 by=- ran=12 wall=1604.2s
 2026-11-18T21:16:59Z COMPLETE queued=1 from=c3c6
+2026-11-18T21:43:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:R10-C3C6 M19 L1559 by=- ran=16 wall=1600.1s
