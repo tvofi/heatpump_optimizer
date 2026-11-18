@@ -3,3 +3,4 @@
 1795004808 CKPT read brief, ADR-002, findings D7-s1-06 and D5-s3-01 snapshot c5c93a6e37e0
 1795005029 CKPT fix + pin committed 65395c04b0, pushed handoff-wip snapshot 6b58f9e8d438
 1795005371 HB alive
+1795005452 CKPT pin derived from tree, committed 14fb25f70c snapshot 49b285c58541
