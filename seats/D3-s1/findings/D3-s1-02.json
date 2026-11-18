@@ -1,0 +1,49 @@
+{
+ "id": "D3-s1-02",
+ "scope": "D3-s1",
+ "step": "D3.M3",
+ "title": "tariff._smooth_topk_sum's k<=0 guard arm survives the full gate: no check pins k=0, and no caller can reach it",
+ "severity": "low",
+ "claim": "Changing tariff.py:744 `if x.size == 0 or k <= 0:` to `k < 0` makes _smooth_topk_sum bill the soft top-1 (20.0 kW) instead of 0.0 for k=0, and the full GATE_SCOPE=full GOLDEN_MODE=drift gate stays green.",
+ "mechanism": "Both production callers (tariff._peak_charge at tariff.py:982 and peak_cost_batch at :1204) clamp k onto 1..n before the top-k, so the k<=0 arm of the line-744 guard is unreachable through production inputs. tests/features.py pins the in-function clamp's arms (#932: k=8, k=2.5, k=0.5) but never k=0, the one value the guard and the clamp disagree on (guard: 0.0; clamp's stated contract 'a count under one bills the single largest window': top-1).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m31_topk_zero.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key d931ab195b940b0c",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/m31_topk_zero.py",
+  "value": 19.9986,
+  "unit": "kW (topk_k0_mutant; baseline 0.0; full gate under the mutant: rc 0, 0 failing scripts)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-top6: 4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux, venv-ci CPython 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "T3 prescreen complete workers (3) running during the harness; the counts are contention-immune. The full gate ran alone (wall 3404.7 s, provisional).",
+  "tolerance": "exact (counts); topk value +-0.05 kW",
+  "load1": 2.07,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:_smooth_topk_sum",
+ "perturbation": {
+  "change": "tariff.py:744 `k <= 0` -> `k < 0` (R10 C2 M31), in memory in the harness and committed on a gate commit in fullgate.py",
+  "expected_direction": "up",
+  "observed_value": "topk_k0 0.0 -> 19.9986 kW; full-gate failing scripts 0 -> 0"
+ },
+ "metric_definition": "soft top-k sum _smooth_topk_sum returns for k=0 on the bill [10,10,10,20,20] kW; plus calls reaching it with k<=0 via peak_cost_smooth/peak_cost_batch at peaks_averaged -2..7",
+ "phenomenon_property": "Every arm of a production guard is either reachable from a production input and pinned by a gate check, or removed; a guard arm that disagrees with the function's own pinned contract is not left unpinned.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m31_topk_zero.py",
+  "value": "null_delta=0.0 kW; reach_calls_k_le_0=0 of 111",
+  "note": "k=1 and k=3 on the same bill: mutant and baseline identical, so the edit only moves the k<=0 arm; 111 smooth-arm calls through the public entries, peaks_averaged -2..7, none with k<=0. Full-gate null (comment-only marker commit) rc 0, 3446.2 s."
+ },
+ "reproduction_steps": [
+  "git checkout --detach 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m31_topk_zero.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key d931ab195b940b0c"
+ ],
+ "proposed_fix_scope": "Decide k=0's contract once: either drop the `k <= 0` arm (the clamp then bills top-1, matching the #932 'count under one' pin) or keep it and pin `_smooth_topk_sum(x, 0, tau) == 0.0` beside the #932 checks in tests/features.py (the check that should have failed: features.py's #932 clamp block, tests/features.py:4241-4270). The batch twin _smooth_topk_sum_batch (tariff.py:800) shares the question.",
+ "files": [
+  "custom_components/heatpump_optimizer/tariff.py",
+  "tests/features.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "hygiene",
+ "class_guess": "I1"
+}
