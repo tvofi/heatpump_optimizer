@@ -66,3 +66,11 @@
 2026-11-18T19:20:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fetch_weather_forecast GUARD_OFF 203fbdb5 L7056 by=- ran=13 wall=1344.5s
 2026-11-18T19:22:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison GUARD_OFF 450b12c2 L10433 by=- ran=13 wall=1263.8s
 2026-11-18T19:25:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND cd97bc87 L6632 by=- ran=12 wall=1350.5s
+2026-11-18T19:33:08Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF 582cce74 L783 by=tests/entities.py,tests/features.py ran=13 wall=1249.1s
+2026-11-18T19:36:30Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 7c1bc4f5 L2137 by=tests/features.py ran=12 wall=834.9s
+2026-11-18T19:42:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability CMP_BOUND f4619cef L677 by=- ran=12 wall=1353.6s
+2026-11-18T19:48:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostDerate._decide CMP_BOUND 6dd9fd41 L313 by=- ran=12 wall=1380.6s
+2026-11-18T19:54:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_apply_pins_to_bounds CLAMP_DROP aea7690f L2418 by=- ran=13 wall=1289.2s
+2026-11-18T19:59:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CLAMP_DROP e8d1b88d L2162 by=- ran=12 wall=1366.1s
+2026-11-18T20:03:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:dhw_coil_draw_reduction CMP_BOUND 356d41c6 L2998 by=- ran=12 wall=1255.9s
+2026-11-18T20:09:01Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_due GUARD_OFF cd6ee8cf L642 by=tests/features.py ran=13 wall=1243.8s
