@@ -5571,6 +5571,88 @@
     "next_step": "fixer per the architect note (ADR-001, ADR-004)",
     "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-guards, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-cycle-solve",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D1-s1-01",
+    "D1-s1-03",
+    "D1-s3-04",
+    "D9-s1-01",
+    "D9-s1-02",
+    "D9-s1-03",
+    "D9-s1-04",
+    "D17-s3-01"
+   ],
+   "merged": {},
+   "classes": [
+    "N-dropped-refresh",
+    "N-solve-recompute",
+    "N-unbudgeted-background",
+    "N-uncleared-issue",
+    "P10",
+    "P2"
+   ],
+   "seam": "cycle",
+   "hot_files": [
+    "coordinator.py",
+    "services.py",
+    "whatif.py",
+    "process_worker.py",
+    "price_tiles.py",
+    "optimizer.py",
+    "button.py",
+    "strings.json",
+    "README.md",
+    "docs/configuration.md"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Plan: no ADR fixes the shape of the one in-flight guard and budget; designer.md is dispatched before the fixer.",
+   "effort": "high",
+   "model": {
+    "designer": "fable",
+    "design_reviewer": "fable",
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/whatif.py",
+    "custom_components/heatpump_optimizer/process_worker.py",
+    "custom_components/heatpump_optimizer/price_tiles.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "README.md",
+    "docs/configuration.md"
+   ],
+   "brief": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Plan: no ADR fixes the shape of the one in-flight guard and budget; designer.md is dispatched before the fixer. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-cycle-solve",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "designer (designer.md) first; design review; fixer only on approve",
+    "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-solver, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
