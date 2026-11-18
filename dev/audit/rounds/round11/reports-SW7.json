@@ -1,0 +1,174 @@
+{
+  "box": "SW7",
+  "missing": [],
+  "reports": {
+    "sweep-P1": {
+      "class": "P1",
+      "instances": 10,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P1/p1_seams.py (controls: --plant re-flags all 7 judged sites; --null 0; --perturb <family> 1 for each of 7 families)",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/store.py",
+          "symbol": "_poisoned",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/nan_boundary.py --stores accuracy,dhw_profile (judge: planted copy 3 of 515 leaves; 0 at register head 28b864af, which guards the float branch; python3 dev/audit/rounds/round11/D14/sweep-P1/p1_seams.py --plant re-flags it)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/thermal_model.py",
+          "symbol": "ThermalParameters.from_config",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py --versions 1 (build_fail on a wrong-typed max_temperature/target_temperature)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/thermal_model.py",
+          "symbol": "_flow_curve_values",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py --versions 1 (target_temperature 'abc' -> ValueError)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/comfort_band.py",
+          "symbol": "effective",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py --versions 1 (same population; comfort_band.errors raises from the options flow)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/boost.py",
+          "symbol": "_restore_settle",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/boost_settle.py (restarts_raising=8 at register head; --fix 0)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/inputs.py",
+          "symbol": "plausible_c",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/leads/plausible_upper.py (judge: above_max_accepted=15 of 15; 0 at register head, now two-sided; python3 dev/audit/rounds/round11/D14/sweep-P1/p1_seams.py --plant re-flags it)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/inputs.py",
+          "symbol": "parse_bool",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm pump (pump_nonfinite_flag_true=10 at register head)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_parse_ecl110_state",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110 (bool payloads stored as displacement)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/open_meteo.py",
+          "symbol": "_parse_block",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo (openmeteo_all_variants_solve_failures=3 at register head)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/config_flow.py",
+          "symbol": "_effective",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (config_effective_stored_wrong_type_raised=20; null 0; --perturb config-effective 0)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/topology.py",
+          "symbol": "describe_setup",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (opt_other topology.describe_setup stored_wrong_type_raised=3, null 0)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/topology.py",
+          "symbol": "_slot_extras",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (opt_other topology._slot_extras stored_wrong_type_raised=3, null 0)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/quiet_windows.py",
+          "symbol": "measured_ceiling_kw",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (opt_other quiet_windows.silent_cap_kw->measured_ceiling_kw stored_wrong_type_raised=3, null 0)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/dhw_draws.py",
+          "symbol": "DrawStats.from_dict",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (store_bool_admitted_as_number: a stored true loads as a 1.0 kWh draw)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/tariff.py",
+          "symbol": "_stored_peaks",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (store_bool_admitted_as_number: a stored true loads as a 1.0 kW billed peak)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/off_restore.py",
+          "symbol": "_entry_of",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (store_bool_admitted_as_number: a stored true loads as baseline 1.0)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._async_load_energy_totals",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (store_bool_admitted_as_number: a stored true loads as 1.0 kWh)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._async_load_ledger",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (store_bool_admitted_as_number: a stored true loads as operation score 1.0)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/legionella.py",
+          "symbol": "LegionellaGuard.async_load",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P1/p1_probes.py (store_bool_admitted_as_number: a stored true loads as attempt peak 1.0 degC)",
+          "beyond_finding": true
+        }
+      ]
+    },
+    "sweep-P10": {
+      "class": "P10",
+      "instances": 0,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P10/p10_loop_reach.py (controls: --null 0, --perturb 1, --seam optimizer.py:_compute_baseline_power exits 1; --through-hops names each seam's guard)",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer._compute_baseline_power (via coordinator.async_simulate -> whatif.schedule_days -> HeatPumpOptimizer.reference_day; also thermal_model.valve_top_equilibrium's solve on the same route)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep-P10/p10_loop_reach.py --seam optimizer.py:_compute_baseline_power (exit 1); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s1/h_whatif_loop_block.py (loop_simulate_step_calls=384 per steady what-if at register head, 960 weekend; null steady=False 0; perturbed_offloop 0)",
+          "beyond_finding": false
+        }
+      ]
+    },
+    "sweep-P11": {
+      "class": "P11",
+      "instances": 3,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P11/p11_write_records.py (controls: --null 0, --perturb 1; re-finds pump_arbiter._write)",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "_write (via _lead_mode)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates (unavailable_recorded=5 rigs at register head; --perturb write_skips_unavailable 0; --perturb ha_skip_off 0)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._async_set_pump",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P11/p11_probes.py (set_pump_lost_command=1; --double fake 0; --perturb 0)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._command_frequency",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P11/p11_probes.py (frequency_lost_command=1; --double fake 0; --perturb 0)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._command_valve_target",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P11/p11_probes.py (valve_lost_command=1; --double fake 0; --perturb 0)",
+          "beyond_finding": true
+        }
+      ]
+    }
+  }
+}

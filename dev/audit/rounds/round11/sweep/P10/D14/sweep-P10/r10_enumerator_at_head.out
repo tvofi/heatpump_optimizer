@@ -1,0 +1,3 @@
+LOOP coordinator.py:_whatif_solve:simulate_wood_slots  via coordinator.py:async_simulate / _whatif_solve->coordinator.py:_whatif_solve
+LOOP whatif.py:steady_pair:solve  via whatif.py:steady_pair
+RESULT loop_reachable_seams=2
