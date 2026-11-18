@@ -5653,6 +5653,98 @@
     "next_step": "designer (designer.md) first; design review; fixer only on approve",
     "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-solver, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-cycle-reporting",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D1-s3-05",
+    "D1-s3-06",
+    "D1-s3-07",
+    "D10-s1-01",
+    "D7-s2-03",
+    "D10-s3-02",
+    "D10-s3-01"
+   ],
+   "merged": {},
+   "classes": [
+    "I5",
+    "N-log-flood",
+    "N-shared-config",
+    "N-silent-zero",
+    "N-swallowed-failure"
+   ],
+   "seam": "cycle",
+   "hot_files": [
+    "coordinator.py",
+    "away.py",
+    "services.py",
+    "datetime.py",
+    "boost.py",
+    "dhw_learning.py",
+    "duty_switch.py",
+    "legionella.py",
+    "notifier.py",
+    "off_restore.py",
+    "pump_arbiter.py",
+    "debugger.py",
+    "diagnostics.py",
+    "optimizer.py",
+    "strings.json",
+    "quality_scale.yaml",
+    "manifest.json"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Plan: ADR-003 (both writers of the shared optimization config publish a replaced context) and ADR-008 (away owns the return-time parser as a public function, read by the service, the coordinator and the datetime entity). The fall in private_cross_module is banked only when the reviewer finds the service's new call in the PR. Acceptance check for ADR-003's stale holders: early_cutoff.arm stores the handed OptimizationConfig in held.wiring (CutoffInputs); after a comfort-weight or target change publishes a replaced context, the held cutoff reads the new values, not the old ones, before the next cycle re-arms; a test pins it (decided 2026-11-18, orchestrator under mandate, pending owner confirmation).",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/datetime.py",
+    "custom_components/heatpump_optimizer/boost.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/duty_switch.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/notifier.py",
+    "custom_components/heatpump_optimizer/off_restore.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/debugger.py",
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/quality_scale.yaml",
+    "custom_components/heatpump_optimizer/manifest.json"
+   ],
+   "brief": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Plan: ADR-003 (both writers of the shared optimization config publish a replaced context) and ADR-008 (away owns the return-time parser as a public function, read by the service, the coordinator and the datetime entity). The fall in private_cross_module is banked only when the reviewer finds the service's new call in the PR. Acceptance check for ADR-003's stale holders: early_cutoff.arm stores the handed OptimizationConfig in held.wiring (CutoffInputs); after a comfort-weight or target change publishes a replaced context, the held cutoff reads the new values, not the old ones, before the next cycle re-arms; a test pins it (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-cycle-reporting",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-003, ADR-008)",
+    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-solver, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
