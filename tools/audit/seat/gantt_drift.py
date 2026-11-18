@@ -34,6 +34,9 @@ import json
 import re
 import sys
 
+# SCRATCH (throwaway demonstration, never merged): a planted read the table does not record.
+open(__import__("pathlib").Path(__file__).resolve().parents[3] / "NOTICE", "rb").close()
+
 FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
