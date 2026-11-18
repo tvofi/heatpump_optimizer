@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:_shift RETURN_DEL f8e0538e",
+  "killed_by": "tests/features.py",
+  "old": "    return lambda bal, _ran: (bal + change, paid)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}

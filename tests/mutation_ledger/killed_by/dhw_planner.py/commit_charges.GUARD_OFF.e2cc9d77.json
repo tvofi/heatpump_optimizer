@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:commit_charges GUARD_OFF e2cc9d77",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    if charge is None or ctx.p_dhw_max < floor or ctx.c_dhw <= 0.0 or not np.any(plan > 0.0):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+}
