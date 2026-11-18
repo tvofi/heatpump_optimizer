@@ -344,7 +344,7 @@ disposed() { ledger disposed "$1" "$2"; }  # the orchestrator ran `dispose` on t
 dispose() { # dispose <ref> <sha>: a probe or handoff ref at that sha is handled; it is OWED again once it moves
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
   [ $# = 2 ] || { echo "usage: cloud_relay.sh dispose <ref> <sha40>" >&2; return 2; }
-  case $1 in refs/heads/probe/?*|refs/heads/handoff/?*|refs/heads/handoff-body/?*|refs/heads/review/?*) ;; *) die "'$1' is not a refs/heads/probe/, handoff/, handoff-body/ or review/ ref"; return;; esac
+  case $1 in refs/heads/probe/?*|refs/heads/handoff/?*|refs/heads/handoff-body/?*|refs/heads/handoff-wip/?*|refs/heads/review/?*) ;; *) die "'$1' is not a refs/heads/probe/, handoff/, handoff-body/, handoff-wip/ or review/ ref"; return;; esac
   printf '%s' "$2" | grep -Eq '^[0-9a-f]{40}$' || { die "sha must be 40 lowercase hex"; return; }
   ledger dispose "$1" "$2" relay-dispose >/dev/null || return $?
   local lv; lv=$(relay_log).level   # owed no longer: off the level now, not at the next pass
@@ -700,7 +700,8 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     fi
     # Its output is kept until it ends, so a failure records its reason: the last REFUSE line, else the last line.
     # A body-only move skipped the review freeze, so update_pr.sh refuses one that would move the head.
-    HPO_UPDATE_BODY_ONLY=$bonly pr_own_group "${upd[@]}" "$br" "$([ -n "$bonly" ] && echo - || echo "$hs")" "$body" $iss > "$bd/update.out" 2>&1 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
+    # Scoped prepr for relay updates (tvofi 2026-11-15: openers and updates run prepr scoped; CI is the authority). Local fix, P-R11-08.
+    PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-1} PREPR_SKIP_CODE=${PREPR_SKIP_CODE:-1} HPO_UPDATE_BODY_ONLY=$bonly pr_own_group "${upd[@]}" "$br" "$([ -n "$bonly" ] && echo - || echo "$hs")" "$body" $iss > "$bd/update.out" 2>&1 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
     [ -n "${HPO_RELAY_UPDATE:-}" ] || rm -rf "$state/relay-tools.lock"
     cat "$bd/update.out" >&2
@@ -883,6 +884,7 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
   while read -r sha ref; do
     case $ref in refs/heads/handoff-wip/*) topic=${ref#refs/heads/handoff-wip/};; *) continue;; esac
     case $topic in ''|*/*|*-body|*-carries|*-body-*) continue;; esac
+    disposed "$ref" "$sha" && continue  # mut:folddispose -- the orchestrator disposed this stop at this sha (local fix, P-R11-08); owed again once it moves
     bsha=$(awk -v r="refs/heads/handoff-wip/$topic-body" '$2 == r { print $1; exit }' "$state/cloud-wip.$$")
     htip=$(awk -v r="refs/heads/handoff/$topic" '$2 == r { print $1; exit }' "$state/cloud-wip.$$"); blob=-
     mo= me= ml= mb= mh=; [ -f "$memo" ] && read -r _ _ _ mo me mb mh ml < <(awk -v t="$topic" -v w="$sha" -v b="${bsha:--}" '$1 == t && $2 == w && $3 == b { print; exit }' "$memo")
@@ -1231,6 +1233,7 @@ EOF
   chk "a failed listing leaves the level as it was (unknown is not 'nothing owed')" 0 grep -q "probe-ref refs/heads/probe/scan-x $PX$" "$LV"
   chk "dispose refuses a ref outside probe/ and handoff" 2 dispose refs/heads/main "$PX"
   chk "dispose refuses a short sha" 2 dispose refs/heads/probe/scan-x "${PX%?}"
+  chk "dispose takes a handoff-wip ref (a blocked stop)" 0 dispose refs/heads/handoff-wip/scan-x "$PX"
   chk "dispose takes a probe ref at its sha" 0 dispose refs/heads/probe/scan-x "$PX"
   chk "and drops its level line at once, not at the next pass" 1 grep -q "probe-ref refs/heads/probe/scan-x" "$LV"
   probe_arm >/dev/null 2>&1
