@@ -1,0 +1,8 @@
+RESULT no_dhw_pairs=22 count
+RESULT no_dhw_priced=12 count
+RESULT no_dhw_top=12 count
+RESULT dhw_null_pairs=6 count
+RESULT dhw_null=4 count
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0
