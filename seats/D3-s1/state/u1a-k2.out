@@ -27,3 +27,4 @@
 2026-11-18T18:12:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_fd_steps CLAMP_DROP 78426205 L1571 by=- ran=17 wall=2155.3s
 2026-11-18T18:18:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 036bc6d8 L2126 by=- ran=12 wall=1915.8s
 2026-11-18T18:36:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify BOOLOP e0931a59 L2187 by=- ran=12 wall=1890.6s
+2026-11-18T18:37:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:mold_safe_room_floor CLAMP_DROP b6999962 L2851 by=- ran=12 wall=1894.1s
