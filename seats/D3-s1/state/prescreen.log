@@ -179,3 +179,4 @@
 2026-11-18T18:42:56Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846 L539 by=tests/features.py ran=13 wall=1340.9s
 2026-11-18T18:52:48Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0 L64 by=tests/features.py ran=17 wall=1486.8s
 2026-11-18T19:14:20Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.clamp GUARD_OFF 55e7d0fb L270 by=tests/harness_headers.py ran=20 wall=3237.9s
+2026-11-18T19:14:29Z COMPLETE queued=11 from=c2
