@@ -1,3 +1,4 @@
 1795004749 INIT r11-seam-ratchet-raise
 1795004766 HB alive
 1795004980 CKPT BLOCKED.md pushed 2947b8bdbf: owner confirmation owed for const raise and module-span limit snapshot c26b4e862766
+1795004988 DONE blocked: BLOCKED.md at 2947b8bdbf on handoff-wip/r11-seam-ratchet-raise, owner confirmation owed
