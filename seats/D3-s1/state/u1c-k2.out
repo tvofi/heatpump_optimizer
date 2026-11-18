@@ -1,0 +1,15 @@
+2026-11-18T12:50:36Z COMPLETE queued=245 from=pre
+2026-11-18T13:11:57Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:<module> CONST d4d92013 L106 by=tests/features.py ran=19 wall=1279.7s
+2026-11-18T13:13:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._unadoptable CMP_BOUND 9330e956 L1708 by=- ran=12 wall=1361.8s
+2026-11-18T13:16:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.seasonal_inlet_temp CMP_BOUND 855229b8 L835 by=- ran=15 wall=1545.7s
+2026-11-18T13:16:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_savings_percentage CMP_BOUND 8d209fd1 L2144 by=- ran=17 wall=1552.3s
+2026-11-18T13:37:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostWindow.peek GUARD_OFF ea64107d L802 by=- ran=13 wall=1515.8s
+2026-11-18T13:38:45Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._max_pump_rise CMP_BOUND 9f0fd699 L5108 by=- ran=15 wall=1525.3s
+2026-11-18T13:39:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CLAMP_DROP bea40588 L2010 by=- ran=12 wall=1364.5s
+2026-11-18T13:42:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair GUARD_OFF 22a69ea5 L2796 by=- ran=13 wall=1555.9s
+2026-11-18T13:59:13Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views.price_known_at CMP_BOUND c3e4b79c L4893 by=tests/features.py ran=14 wall=1013.7s
+2026-11-18T13:59:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_outage_reading CMP_BOUND ad0739c1 L900 by=- ran=13 wall=1345.7s
+2026-11-18T14:01:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_slab_refusal CMP_BOUND ebe7af8b L892 by=- ran=12 wall=1368.6s
+2026-11-18T14:01:59Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._run_system_identification CLAMP_DROP b4fd5e0d L11091 by=- ran=13 wall=1364.4s
+2026-11-18T14:22:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CLAMP_DROP f29a02b3 L2232 by=- ran=16 wall=1385.3s
+2026-11-18T14:22:33Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_apply_result_payload CMP_BOUND e6d706d3 L3168 by=tests/features.py ran=13 wall=1374.0s
