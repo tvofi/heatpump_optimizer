@@ -470,3 +470,4 @@
 2026-11-18T18:04:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.buffer_tank_heat_loss_coefficient CLAMP_DROP 581f45bc L677 by=- ran=14 wall=1920.9s
 2026-11-18T18:05:31Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_mark_manual_reasons CLAMP_DROP c87a208a L2492 by=- ran=14 wall=2070.9s
 2026-11-18T18:12:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_fd_steps CLAMP_DROP 78426205 L1571 by=- ran=17 wall=2155.3s
+2026-11-18T18:18:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 036bc6d8 L2126 by=- ran=12 wall=1915.8s
