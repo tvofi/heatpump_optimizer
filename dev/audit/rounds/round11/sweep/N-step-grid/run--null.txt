@@ -1,0 +1,7 @@
+SITE fixture.py:3 write snapped
+SITE fixture.py:5 off non-numeric
+RESULT seams_selectors=0 sites
+RESULT seams_card=0 inputs
+RESULT seams_writes=0 call sites
+RESULT write_sites=2 async_call sites
+RESULT seams_total=0

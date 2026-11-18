@@ -1,0 +1,100 @@
+== const-respell
+RESULT ratchet_class_excess_loc=17385 count
+RESULT ratchet_const_modules_over_50=2 count
+RESULT ratchet_duplication_copies=8 count
+RESULT any_spelling_const_modules_over_50=4 count
+RESULT const_unseen_modules=2 count
+RESULT in_function_copies=6 count
+RESULT unused_package_imports=11 count
+RESULT ratchet_rows_off_budget=2 count  (const_modules_over_50 3->2, dead_top_level_symbols 1->2)
+RESULT coordinator_py_unpriced_loc=2981 lines
+== clone-same-fn
+RESULT ratchet_class_excess_loc=17385 count
+RESULT ratchet_const_modules_over_50=3 count
+RESULT ratchet_duplication_copies=8 count
+RESULT any_spelling_const_modules_over_50=4 count
+RESULT const_unseen_modules=1 count
+RESULT in_function_copies=7 count
+RESULT unused_package_imports=14 count
+RESULT ratchet_rows_off_budget=1 count  (dead_top_level_symbols 1->2)
+RESULT coordinator_py_unpriced_loc=2981 lines
+== clone-two-fns
+RESULT ratchet_class_excess_loc=17385 count
+RESULT ratchet_const_modules_over_50=3 count
+RESULT ratchet_duplication_copies=9 count
+RESULT any_spelling_const_modules_over_50=4 count
+RESULT const_unseen_modules=1 count
+RESULT in_function_copies=6 count
+RESULT unused_package_imports=14 count
+RESULT ratchet_rows_off_budget=2 count  (dead_top_level_symbols 1->3, duplication_copies 8->9)
+RESULT coordinator_py_unpriced_loc=2981 lines
+== unused-import
+RESULT ratchet_class_excess_loc=17385 count
+RESULT ratchet_const_modules_over_50=3 count
+RESULT ratchet_duplication_copies=8 count
+RESULT any_spelling_const_modules_over_50=4 count
+RESULT const_unseen_modules=1 count
+RESULT in_function_copies=6 count
+RESULT unused_package_imports=15 count
+RESULT ratchet_rows_off_budget=0 count
+RESULT coordinator_py_unpriced_loc=2981 lines
+== use-import
+RESULT ratchet_class_excess_loc=17385 count
+RESULT ratchet_const_modules_over_50=3 count
+RESULT ratchet_duplication_copies=8 count
+RESULT any_spelling_const_modules_over_50=4 count
+RESULT const_unseen_modules=1 count
+RESULT in_function_copies=6 count
+RESULT unused_package_imports=14 count
+RESULT ratchet_rows_off_budget=1 count  (dead_top_level_symbols 1->2)
+RESULT coordinator_py_unpriced_loc=2981 lines
+== module-growth
+RESULT ratchet_class_excess_loc=17385 count
+RESULT ratchet_const_modules_over_50=3 count
+RESULT ratchet_duplication_copies=8 count
+RESULT any_spelling_const_modules_over_50=4 count
+RESULT const_unseen_modules=1 count
+RESULT in_function_copies=6 count
+RESULT unused_package_imports=14 count
+RESULT ratchet_rows_off_budget=0 count
+RESULT coordinator_py_unpriced_loc=4404 lines
+== class-growth
+RESULT ratchet_class_excess_loc=18785 count
+RESULT ratchet_const_modules_over_50=3 count
+RESULT ratchet_duplication_copies=8 count
+RESULT any_spelling_const_modules_over_50=4 count
+RESULT const_unseen_modules=1 count
+RESULT in_function_copies=6 count
+RESULT unused_package_imports=14 count
+RESULT ratchet_rows_off_budget=2 count  (class_excess_loc 17385->18785, dead_methods 0->10)
+RESULT coordinator_py_unpriced_loc=2981 lines
+== m6_inner
+RESULT universe=16383 items
+RESULT write_only_attributes=0 attributes
+RESULT test_read_only_attributes=8 attributes
+RESULT framework_read_attributes=4 attributes
+RESULT unread_params=16 parameters
+RESULT protocol_params=19 parameters
+RESULT unread_locals=7 locals
+RESULT unread_fields=1 fields
+RESULT test_read_only_fields=8 fields
+RESULT masked_functions=8 functions
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.99 load
+RESULT swapins=0 count
+== m6_inner --perturb
+RESULT universe=16383 items
+RESULT write_only_attributes=0 attributes
+RESULT test_read_only_attributes=8 attributes
+RESULT framework_read_attributes=4 attributes
+RESULT unread_params=16 parameters
+RESULT protocol_params=19 parameters
+RESULT unread_locals=7 locals
+RESULT unread_fields=1 fields
+RESULT test_read_only_fields=8 fields
+RESULT masked_functions=8 functions
+RESULT planted_delta=1 attributes
+RESULT write_only_after_readers=0 attributes
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.99 load
+RESULT swapins=0 count

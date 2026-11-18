@@ -1,0 +1,7 @@
+SEAM fixture.py:17 narrow ? level=0 carried=False awaits=False persist=False life=- local=-
+SEAM fixture.py:22 broad ? level=0 carried=True awaits=True persist=False life=- local=-
+RESULT handlers=4
+RESULT seams=2
+RESULT seams_broad=1
+RESULT seams_persist=0
+RESULT seams_not_carried_not_narrow_parse=0
