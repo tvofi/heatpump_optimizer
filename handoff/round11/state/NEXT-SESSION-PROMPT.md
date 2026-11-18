@@ -16,13 +16,12 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-NUDGE-RETIRE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R11-PRE-SHARED-FILES (stage in-progress, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `fix/r11-pre-handoff-bookkeeping-p2`): `git fetch origin fix/r11-pre-handoff-bookkeeping-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-DRAW-MAP-EVIDENCE (stage carries-open, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (stage carries-open, branch `handoff/r11-outside-honest-starts-runs-p3`): `git fetch origin handoff/r11-outside-honest-starts-runs-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-DHW-RUNS (stage in-progress, branch `handoff/r11-outside-honest-dhw-runs`): `git fetch origin handoff/r11-outside-honest-dhw-runs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-METERED-FLOOR (stage carries-open, branch `handoff/r11-outside-honest-metered-floor`): `git fetch origin handoff/r11-outside-honest-metered-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-SECURITY-PRIVACY (stage in-progress, branch `handoff/r11-pre-security-privacy`): `git fetch origin handoff/r11-pre-security-privacy && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-SECURITY-PRIVACY (stage carries-open, branch `fix/r11-pre-security-privacy-p2`): `git fetch origin fix/r11-pre-security-privacy-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-ROOMS-P3 (stage in-progress, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OUTSIDE-SELF-SETTING-PUMP (stage in-progress, branch `fix/r11-outside-self-setting-pump`): `git fetch origin fix/r11-outside-self-setting-pump && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OUTSIDE-SELF-SETTING-PUMP (stage carries-open, branch `fix/r11-outside-self-setting-pump-p2`): `git fetch origin fix/r11-outside-self-setting-pump-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-VALVE-REFERENCE (stage carries-open, branch `fix/r11-valve-reference`): `git fetch origin fix/r11-valve-reference && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-OBJECTIVE (stage carries-open, branch `fix/r11-arch-objective`): `git fetch origin fix/r11-arch-objective && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
