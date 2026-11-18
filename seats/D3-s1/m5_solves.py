@@ -15,18 +15,9 @@ Perturbation: `--double-solve` makes the hook call the original optimize twice
 per call (same result returned) -> solves for every script doubles (direction
 up) and checks stay flat, so checks_per_solve halves; identity run = null.
 
-Box D3-m5 (D3.M5(c)): `--hastub-hook` for the ref-driven drivers
-(tests/env_drift.py, tests/stress.py), whose production-executing children
-are started with PYTHONPATH rebuilt to `<tree>/tests/hastub` (tests/env_drift.py
-capture loop; tests/stress.py capture_work_rows / capture_calls_pair), which
-drops a PYTHONPATH-prepended hook. The hook is written as
-`tests/hastub/sitecustomize.py` into the worker tree (untracked) AND into a
-synthetic comparison commit = HEAD^1's tree + that one file (production
-byte-identical to HEAD^1), passed as the ref, so both sides' children count.
-A synthetic ref misses env_drift's baseline cache, so env_drift's row is the
-COLD cost (both captures); `--warm-split` also prints the tree-side share.
-
-Run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py [--scripts a,b] [--double-solve] [--hastub-hook]
+Run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py [--scripts a,b] [--double-solve]
+Box D3-m5 (C4): for tests/env_drift.py the --capture --all child is also run
+directly under the hook (the parent drops it) and its solves added.
 Writes only under a mkdtemp root and its own worker tree under $TMPDIR.
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: owner macOS arm64, shared box.
 Expected: exact counts (contention-immune); CPU seconds provisional.
@@ -105,12 +96,6 @@ TALLY = [re.compile(r"(\d+) of (\d+) .*FAILED"),
 
 
 def tally(out: str):
-    # tests/env_drift.py prints no harness tally: its checks are the scenarios
-    # it compares against the ref plus the committed fixtures it re-checks.
-    sc = re.findall(r"(\d+) scenario\(s\) checked", out)
-    fx = re.findall(r"(\d+) committed fixture\(s\)", out)
-    if sc:
-        return int(sc[-1]) + (int(fx[-1]) if fx else 0)
     m = None
     for m in TALLY[0].finditer(out):
         pass
@@ -130,7 +115,6 @@ def main() -> int:
     ap.add_argument("--double-solve", action="store_true")
     ap.add_argument("--tree", default=str(Path(tempfile.gettempdir()) / "d3s1-workers" / "w5"))
     ap.add_argument("--out", help="append JSON lines here")
-    ap.add_argument("--hastub-hook", action="store_true")
     a = ap.parse_args()
     here = Path(__file__).resolve().parent
     if a.scripts:
@@ -146,36 +130,16 @@ def main() -> int:
     hook = root / "_hook"
     hook.mkdir()
     (hook / "sitecustomize.py").write_text(HOOK)
-    ref = "HEAD^1"
-    if a.hastub_hook:
-        (t / "tests" / "hastub" / "sitecustomize.py").write_text(HOOK)
-        g = lambda *c, **k: subprocess.run(["git", *c], cwd=t, capture_output=True,
-                                            text=True, check=True, **k).stdout.strip()
-        blob = g("hash-object", "-w", "--stdin", input=HOOK)
-        idx = root / "idx"
-        env_i = {**os.environ, "GIT_INDEX_FILE": str(idx)}
-        subprocess.run(["git", "read-tree", "HEAD^1"], cwd=t, env=env_i, check=True)
-        subprocess.run(["git", "update-index", "--add", "--cacheinfo",
-                        f"100644,{blob},tests/hastub/sitecustomize.py"], cwd=t,
-                       env=env_i, check=True)
-        tree_sha = subprocess.run(["git", "write-tree"], cwd=t, env=env_i,
-                                  capture_output=True, text=True, check=True).stdout.strip()
-        ref = subprocess.run(["git", "-c", "user.name=d3s1", "-c", "user.email=d3s1@invalid",
-                              "commit-tree", tree_sha, "-p", g("rev-parse", "HEAD^1"),
-                              "-m", "d3s1 solve-count ref: HEAD^1 + hastub hook"],
-                             cwd=t, capture_output=True, text=True, check=True).stdout.strip()
-        print(f"# synthetic ref {ref} (HEAD^1 + tests/hastub/sitecustomize.py)")
     for s in scripts:
         out = root / s.replace("/", "_")
         out.mkdir()
-        args, env = mt.drive_spec(s, ref)
-        pp = "tests/hastub" if a.hastub_hook else f"{hook}{os.pathsep}tests/hastub"
-        env = {**os.environ, **env, "PYTHONPATH": pp,
+        args, env = mt.drive_spec(s, "HEAD^1")
+        env = {**os.environ, **env, "PYTHONPATH": f"{hook}{os.pathsep}tests/hastub",
                "D3S1_SOLVE_OUT": str(out), "D3S1_DOUBLE": "1" if a.double_solve else "0"}
         r0 = resource.getrusage(resource.RUSAGE_CHILDREN)
         t0 = time.monotonic()
         p = subprocess.run([sys.executable, s, *args], cwd=t, env=env,
-                           capture_output=True, text=True, timeout=14400)
+                           capture_output=True, text=True, timeout=7200)
         wall = time.monotonic() - t0
         r1 = resource.getrusage(resource.RUSAGE_CHILDREN)
         cpu = (r1.ru_utime + r1.ru_stime) - (r0.ru_utime + r0.ru_stime)
@@ -186,10 +150,36 @@ def main() -> int:
             ms += d["multi_start"]
             procs += 1
         checks = tally(p.stdout)
-        row = {"script": s, "rc": p.returncode, "checks": checks, "solves": opt,
-               "ref": ref, "hastub_hook": a.hastub_hook,
-               "per_proc": sorted((json.loads(f.read_text())["optimize"] for f in out.glob("*.json")), reverse=True)[:12],
-               "stdout_tail": p.stdout[-800:],
+        cap_opt = cap_ms = cap_procs = None
+        if s == "tests/env_drift.py":
+            # Box D3-m5 (C4): env_drift.py starts its --capture child with
+            # PYTHONPATH reset to <tree>/tests/hastub, which drops this hook
+            # (D3-s1-01's mechanism), so the parent run counts no solve. Run
+            # that child directly under the hook, exactly as the parent
+            # launches it (--capture <tree> <out> --all), and count its solves.
+            cout = root / "capture"
+            cout.mkdir()
+            cenv = {**env, "D3S1_SOLVE_OUT": str(cout),
+                    "PYTHONPATH": f"{hook}{os.pathsep}{t / 'tests' / 'hastub'}"}
+            r2 = resource.getrusage(resource.RUSAGE_CHILDREN)
+            subprocess.run([sys.executable, "tests/env_drift.py", "--capture", str(t),
+                            str(root / "capture.json"), "--all"], cwd=t, env=cenv,
+                           capture_output=True, text=True, timeout=7200)
+            r3 = resource.getrusage(resource.RUSAGE_CHILDREN)
+            cap_opt = cap_ms = cap_procs = 0
+            for f in cout.glob("*.json"):
+                d = json.loads(f.read_text())
+                cap_opt += d["optimize"]
+                cap_ms += d["multi_start"]
+                cap_procs += 1
+            print(f"RESULT env_drift_capture_cpu_s={(r3.ru_utime + r3.ru_stime) - (r2.ru_utime + r2.ru_stime):.1f} s (provisional)")
+        if cap_opt is not None:
+            row_extra = {"solves_parent_traced": opt, "capture_solves": cap_opt,
+                         "capture_multi_starts": cap_ms, "capture_procs": cap_procs}
+            opt, ms = opt + cap_opt, ms + cap_ms
+        else:
+            row_extra = {}
+        row = {"script": s, "rc": p.returncode, "checks": checks, "solves": opt, **row_extra,
                "multi_starts": ms, "procs_recorded": procs,
                "cpu_s": round(cpu, 1), "wall_s": round(wall, 1),
                "checks_per_solve": (round(checks / opt, 3) if checks and opt else None)}
@@ -201,8 +191,6 @@ def main() -> int:
         print(f"RESULT {key}_solves={opt}")
         print(f"RESULT {key}_checks={checks}")
         print(f"RESULT {key}_cpu_s={cpu:.1f} s (provisional)")
-    if a.hastub_hook:
-        (t / "tests" / "hastub" / "sitecustomize.py").unlink(missing_ok=True)
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
     print("RESULT thread_factor=1.00")
     return 0
