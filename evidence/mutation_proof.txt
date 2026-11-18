@@ -1,0 +1,53 @@
+== revert currency.py to merge base
+  FAIL grid_fee.py says grid_fee is free of Home Assistant imports, and it imports without it (D5-s3-01)  [grid_fee: 'NEEDS_HA homeassistant refused: homeassistant']
+  FAIL a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)  [reached beyond the set: ['grid_fee']]
+2 of 28 checks FAILED
+== revert tariff.py to merge base
+  FAIL topology.py says topology is free of Home Assistant imports, and it imports without it (D5-s3-01)  [topology: 'NEEDS_HA homeassistant refused: homeassistant']
+  FAIL a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)  [reached beyond the set: ['optimizer', 'tariff', 'topology']]
+2 of 28 checks FAILED
+== revert power_guard.py to merge base
+  FAIL a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)  [reached beyond the set: ['power_guard']]
+1 of 28 checks FAILED
+== revert comfort_learning.py to merge base
+  FAIL a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)  [reached beyond the set: ['comfort_learning']]
+1 of 28 checks FAILED
+== revert external_heat.py to merge base
+  FAIL a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)  [reached beyond the set: ['external_heat']]
+1 of 28 checks FAILED
+== revert sysid.py to merge base
+  FAIL a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)  [reached beyond the set: ['sysid']]
+1 of 28 checks FAILED
+== revert store.py to merge base
+ALL 28 checks PASSED
+== revert accuracy.py to merge base
+ALL 28 checks PASSED
+== revert const.py to merge base
+  FAIL topology.py says topology is free of Home Assistant imports, and it imports without it (D5-s3-01)  [topology: "NEEDS_HA cannot import name 'HISTORY_LENGTH' from 'custom_components.heatpump_optimizer.const' (/root/wt/custom_components/heatpump_optimizer/const.py)"]
+  FAIL a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)  [reached beyond the set: ['optimizer', 'tariff', 'topology']]
+2 of 28 checks FAILED
+== revert all production files
+  FAIL grid_fee.py says grid_fee is free of Home Assistant imports, and it imports without it (D5-s3-01)  [grid_fee: 'NEEDS_HA homeassistant refused: homeassistant']
+  FAIL topology.py says topology is free of Home Assistant imports, and it imports without it (D5-s3-01)  [topology: 'NEEDS_HA homeassistant refused: homeassistant']
+  FAIL a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)  [reached beyond the set: ['comfort_learning', 'external_heat', 'grid_fee', 'optimizer', 'power_guard', 'sysid', 'tariff', 'topology']]
+3 of 28 checks FAILED
+== control currency if TYPE_CHECKING -> if True
+  FAIL grid_fee.py says grid_fee is free of Home Assistant imports, and it imports without it (D5-s3-01)  [grid_fee: 'NEEDS_HA homeassistant refused: homeassistant']
+  FAIL a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)  [reached beyond the set: ['grid_fee']]
+2 of 28 checks FAILED
+== GUARD_OFF currency if TYPE_CHECKING -> if False
+ALL 28 checks PASSED
+== test mutant: _imports_ha_itself ignores TYPE_CHECKING exemption removed
+ALL 28 checks PASSED
+== test mutant: refusal finder disabled
+ALL 28 checks PASSED
+== test mutant: stale-entry arm: add grid_fee to glue set
+  FAIL every entry of ADR-002's glue-reached set still needs Home Assistant (a cleared entry leaves the set)  [cleared, remove from the set: ['grid_fee']]
+1 of 28 checks FAILED
+== plant: new HA-free claim on a glue module (coordinator docstring)
+"""Kept free of Home Assistant imports. Data coordinator for Heat Pump Cost Optimizer.
+
+The coordinator manages:
+1. Fetc
+  FAIL coordinator.py says coordinator is free of Home Assistant imports, and it imports without it (D5-s3-01)  [coordinator: 'NEEDS_HA homeassistant refused: homeassistant']
+1 of 29 checks FAILED

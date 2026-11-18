@@ -1,0 +1,9 @@
+## structure
+  ok   seam_cut_total 415 <= 415
+
+STRUCTURE RATCHET PASSED
+## archscore
+Architecture score: dS +1.0000 IMPROVES
+  layer_violations 13 -> 6  +1.0000
+## claim/version files three-dot
+(empty = untouched)
