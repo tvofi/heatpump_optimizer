@@ -78,28 +78,19 @@
 1795012602 HB alive
 1795013207 HB alive
 1795013812 HB alive
-1795014226 RESUMED from fef691f050b1
-1795014226 INIT box D3-top6
-1795014243 HB alive
-1795014358 HB drift warm skipped: HEAD is the baseline
-1795014365 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
-1795014373 HB prepared
-1795014393 SEAT D3-s1 running
-1795014398 HB R0 restored from checkpoint into fresh container; PREPARE redone; R1 baseline re-take starting
-1795014412 HB alive
-1795014857 CKPT D3-s1 152 file(s)
-1795015018 HB alive
-1795015624 HB alive
-1795015866 CKPT D3-s1 153 file(s)
-1795015871 HB R1 re-fire: baselines re-taken on this container (nproc 4, load1~1), null LIVES (16 drivers), posctl 2/2 KILLED; T2 last gate c2:8e82d7a0b3617003 next
-1795016217 HB alive
-1795016822 HB alive
-1795017429 HB alive
-1795018034 HB alive
-1795018640 HB alive
-1795018987 CKPT D3-s1 156 file(s)
-1795018992 HB T2 gate done: c2:8e82d7a0b3617003
-1795019248 HB alive
-1795019852 HB alive
-1795020457 HB alive
-1795021063 HB alive
+1795014417 HB alive
+1795014741 CKPT D3-s1 147 file(s)
+1795014746 HB T2 gate done: c2:8e82d7a0b3617003
+1795014885 CKPT D3-s1 150 file(s)
+1795014890 HB T2 done: 5 of 6 KILLED (features.py), tariff.py:744 M31 SURVIVED -> finding D3-s1-02 (low). T3 complete net running.
+1795015023 HB alive
+1795015628 HB alive
+1795016233 HB alive
+1795016839 HB alive
+1795017444 HB alive
+1795018049 HB alive
+1795018655 HB alive
+1795019261 HB alive
+1795019866 HB alive
+1795020471 HB alive
+1795021076 HB alive
