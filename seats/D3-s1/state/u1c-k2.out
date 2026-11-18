@@ -65,3 +65,4 @@
 2026-11-18T18:56:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize GUARD_OFF dd7f271c L1996 by=- ran=17 wall=1506.7s
 2026-11-18T19:12:49Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor GUARD_OFF 0cdf6545 L1893 by=- ran=16 wall=1329.6s
 2026-11-18T19:14:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.update_ecl110_displace_state CLAMP_DROP c141a98b L3569 by=- ran=13 wall=1488.8s
+2026-11-18T19:15:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_shutdown GUARD_OFF 49b44a5c L6615 by=- ran=13 wall=1327.9s
