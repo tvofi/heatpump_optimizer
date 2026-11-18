@@ -35,6 +35,8 @@ ok    reds: the pull request's green before the red clears nothing
 ok    reds: a red inherited from main reads the pull request merged at main's first red push run after its last green, on the head row and on both main rows
 ok    reds: found_by ci-main on a main row and on no head row; ci-main is a found_by word
 ok    reds: a head red after main went green again is not main's
+ok    reds: a main red spell already open at the first main run read has no opener: unread on the main row and on a head row after it, never the first pull request merged in the window
+ok    reds: the edge spell ends at the first green main run read, and the next red after it opens a spell
 ok    reds: a merge subject naming no pull request reads unread: the row stays and the count is whole
 ok    reds: a derived word the cause test refuses reads unread, never the word
 ok    is_cause: a pull request, external, original or another roster group; never the group itself or a bare word
@@ -46,34 +48,15 @@ ok    reds: a red naming no pull request takes the one a run at its head_sha nam
 ok    NULL reds: a green-only directory reads 0 and no row; a first-attempt success needs no listing
 ok    NULL reds: no --runs directory reads unread, and so does a directory with no ci_runs.json
 ok    reds: a gate job listed with no attempt is the run's first
-ok    reds: a red attempt's failed jobs split as gate.machinery_line splits them, per attempt; the column unread
+ok    reds: a failed job that is not `gate`, at an attempt whose gate did not fail, is no red
+ok    reds: a failed prelude is a required failure, never a machinery job
+ok    reds: a job that did not fail at the red attempt is on neither list of its row
+ok    reds: a main run red at an earlier attempt and unconcluded at its latest joins no red spell: uncleared, never the spell's pull request
+ok    reds: a red attempt's failed jobs split as gate.machinery_line splits them, per attempt; a head row's column unread, naming gate.status and the class it lacks
+ok    reds: a push run's row prints gate.status's pair over the red attempt's own jobs
+ok    NULL reds: the same listing on a pull-request run reads the column unread, never a verdict of the push class
+ok    reds: a member with no conclusion, or not listed at the attempt, reads unread in its verdict, never red or green
 ok    reds: git_subject reads a commit's subject line, and None for no sha and for one the repository lacks
 ok    reds: --runs prints the read after the roster reads; without it the read is unread
-ok    mutant killed: later attempt (by 'reds: a gate red at attempt 1 and green at attempt 2')
-ok    mutant killed: attempt order (by 'reds: a green attempt before the red one')
-ok    mutant killed: red is failure (by 'reds: a gate that did not conclude failure')
-ok    mutant killed: cause call (by 'reds: a derived word the cause test refuses')
-ok    mutant killed: pr key from head_branch (by 'reds: a reused head_branch never lends')
-ok    mutant killed: pr key without sibling (by 'reds: a red naming no pull request takes')
-ok    mutant killed: own commit, any pull request (by 'reds: another pull request's green')
-ok    mutant killed: clearing run later (by 'reds: a green run before the red at its head_sha')
-ok    mutant killed: clearing run green (by 'reds: a red naming no pull request takes')
-ok    mutant killed: clearing run same head (by 'reds: a red cleared by a later commit')
-ok    mutant killed: spell opener (by 'reds: a red inherited from main')
-ok    mutant killed: spell closes (by 'reds: a head red after main went green again')
-ok    mutant killed: main at the red (by 'reds: a red inherited from main')
-ok    mutant killed: main is a push (by 'reds: a run on the branch main that is no push')
-ok    mutant killed: main uncleared (by 'reds: a main red with no later green')
-ok    mutant killed: stale listing (by 'reds: a listing cached at an older attempt')
-ok    mutant killed: listing owed past one attempt (by 'reds: the same run with no job listing')
-ok    mutant killed: listing owed on a failure (by 'reds: a failed first attempt with no job listing')
-ok    mutant killed: blind count (by 'reds: the same run with no job listing')
-ok    mutant killed: failed jobs per attempt (by 'reds: a red attempt's failed jobs')
-ok    mutant killed: required split (by 'reds: a red attempt's failed jobs')
-ok    mutant killed: found_by on main alone (by 'reds: found_by ci-main on a main row')
-ok    mutant killed: subject of a missing commit (by 'reds: git_subject reads')
 loop_ledger self-test: 0 failed
-
-real	0m8.201s
-user	0m6.619s
-sys	0m1.270s
+rc=0
