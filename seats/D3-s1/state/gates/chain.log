@@ -1,8 +1,0 @@
-2026-11-18T11:05:59Z GATE null :: RESULT gate_rc=1 code RESULT failed_scripts=4 count RESULT wall=4268 s RESULT thread_factor=1.0 ratio RESULT load1=14.05 
-/dev/disk3s5   228Gi   189Gi   9.2Gi    96%    3.3M   96M    3%   /System/Volumes/Data
-2026-11-18T11:13:14Z chain aborted after null (card.mjs OOM at node default heap, standalone 5120 MB passes); first mutant gate fb16 aborted at 18 s, moved to superseded/gates-aborted; restarting with D3S1_NODE_HEAP=5120
-2026-11-18T13:00:13Z GATE null :: RESULT gate_rc=1 code RESULT failed_scripts=3 count RESULT wall=6418 s RESULT thread_factor=1.0 ratio RESULT load1=6.26 
-/dev/disk3s5   228Gi   187Gi    11Gi    95%    3.2M  116M    3%   /System/Volumes/Data
-2026-11-18T14:06:35Z GATE pre:fb16c7b0cbbfc63d :: RESULT gate_rc=1 code RESULT failed_scripts=4 count RESULT wall=3968 s RESULT thread_factor=1.0 ratio RESULT load1=6.36 RESULT killed=1 count VERDICT fb16c7b0cbbfc63d KILLED python3 tests/features.py 
-/dev/disk3s5   228Gi   186Gi    12Gi    94%    3.2M  126M    2%   /System/Volumes/Data
-2026-11-18T15:30:51Z GATE pre:4b3795aece73ba73 :: RESULT gate_rc=1 code RESULT failed_scripts=5 count RESULT wall=4927 s RESULT thread_factor=1.0 ratio RESULT load1=5.33 RESULT killed=1 count VERDICT 4b3795aece73ba73 KILLED python3 tests/features.py,python3 tests/structure.py 
