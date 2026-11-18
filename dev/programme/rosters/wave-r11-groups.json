@@ -6694,6 +6694,52 @@
     "next_step": "designer (ADR-007) in the first wave; design review; the fixer waits on R11-SEAM-learners and an approve",
     "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-entity-service, R11-SEAM-ratchets, R11-SEAM-ratchet-raise, R11-ARCH-cycle-surface): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-READS-RESIDUE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "low",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/product_reads.py",
+    "tools/audit/seat/plant_recall.py",
+    "dev/audit/rounds/round11/product-reads/operation.tsv"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null
+   },
+   "carry": [
+    "From r11-pre-briefs-census-p2, body item c9cc8bee: `tools/audit/seat/plant_recall.py` `population` reads the text `--population` prints and takes a level only from a line whose second field is a count, so a config plant whose `cell` is a declared level of tank volume or house size is refused as `no population level`. It closes with no change there once `--population` prints those levels, the build `objective.json` records for both axes; until then a plant cannot sit in those six cells. Carry: R11-INTAKE-R10-RESIDUE (items c9cc8bee)",
+    "From #3698 (r11-hotfix-selftest-scopes), body item c3a1b4ef: Out of scope: the committed round-11 seed ledger `dev/audit/rounds/round11/product-reads/operation.tsv` (from #3665) still holds 6 rows in the retired `duty=control | running` cell format, so `product_reads.py operation --ledger` refuses it at this head. It was already broken at the base. Re-cutting each row needs a judgement, because `running` has no 1:1 successor among the plan-state tokens. That makes it the product-reads owner's work, not this hotfix's. R11-PRE-PRODUCT-READS is at carries-open, which carry_audit refuses as a destination, so the residual goes to the round-11 holding group, which re-homes it. Carry: R11-INTAKE-R10-RESIDUE (operation.tsv seed re-cut to per-state cells) (items c3a1b4ef)"
+   ],
+   "brief": "Round 11. Finish the product reads decision 0018's terms are first read from at this round's close: the two carries below. Re-measure each at your own merge base. Owner exception to the P11 freeze, tvofi 2026-11-18: this instrument group is built in round 11.",
+   "resume": {
+    "stage": "not-started",
+    "commit": null,
+    "branch": "handoff/r11-reads-residue",
+    "last_step": null,
+    "next_step": "dispatch the fixer",
+    "note": "cut by plan revision 4; owner exception to the P11 freeze, tvofi 2026-11-18",
+    "pr": null
+   },
+   "source": "programme",
+   "findings": [],
+   "architect_note": "Cut by plan revision 4 from the intake group's two carries on the product reads (card E11-N-INTAKE-BUILDER): the population levels of both axes and the operation seed ledger re-cut to per-state cells."
   }
  ]
 }
