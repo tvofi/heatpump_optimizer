@@ -1,2 +1,0 @@
-2026-11-18T19:14:29Z COMPLETE queued=11 from=c2
-2026-11-18T19:32:04Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M26 L1549 by=tests/harness_headers.py,tests/features.py ran=12 wall=1054.6s
