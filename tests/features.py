@@ -2895,7 +2895,8 @@ for _r9p8_inst in ("EUR", "HUF", "SEK"):
     _r9p8_h = _r9p8_hass(_r9p8_inst)
     for _r9p8_row in _r9p8_flow._OPTION_FIELDS:
         if _r9p8_row.key in (_r9p8_WOOD, "grid_fee_fixed"):
-            _r9p8_w = _r9p8_row.widget.of(_r9p8_h)
+            # An entry with no price entity: the figures are the instance currency's.
+            _r9p8_w = _r9p8_row.widget.of(_r9p8_h, {})
             _r9p8_widgets[(_r9p8_inst, _r9p8_row.key)] = (
                 _r9p8_w.config.get("unit_of_measurement"), _r9p8_w.config.get("max")
             )
@@ -47658,6 +47659,18 @@ R.check(
     "R11-SEAM-money: a Monday fee rule applies on a Monday and on neither neighbour (D2-s3-04, pinned)",
     [_r11m_mon.applies(datetime(2026, 1, d, 12, tzinfo=_r11m_sth)) for d in (11, 12, 13)] == [False, True, False],
     repr([_r11m_mon.applies(datetime(2026, 1, d, 12, tzinfo=_r11m_sth)) for d in (11, 12, 13)]),
+)
+# R11-SEAM-money (ADR-001 arm day): price_model._usable_day is the one test of
+# a learnable day for both resolutions; a day whose mean sits on the 1e-6
+# floor is not learned, one just above it is (np.mean of 24 x 1e-6 is 1e-6
+# exactly, so the boundary is the comparison's own).
+from heatpump_optimizer.price_model import PriceShapeModel as _R11mShape  # noqa: E402
+
+_r11m_shape = _R11mShape()
+R.check(
+    "R11-SEAM-money: a day of prices averaging exactly the 1e-6 floor is not learned; 2e-6 is",
+    [_r11m_shape.observe_day(datetime(2026, 1, 14), [1e-6] * 24),
+     _r11m_shape.observe_day(datetime(2026, 1, 15), [2e-6] * 24)] == [False, True],
 )
 # R10-HOTFIX-SAV-ESTIMATE: a month's reference basis. Totals cannot be rebooked,
 # so a month booked against a retired reference keeps its columns and states no
