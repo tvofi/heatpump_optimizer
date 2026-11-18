@@ -14,3 +14,13 @@ After: none
 Valid `Carry:` targets (live consumers of R11-SEAM-cycle-solve: groups after it or sharing its files): R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-ROOMS-P3, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-solver, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-reporting, R11-SEAM-entity-service, R11-SEAM-product-text, R11-SEAM-docs, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner
 
 Approved design (decision 0014): design.md at 29f8ba81157134ab65ab38a45c4668b6c4834ef5, the design/R11-SEAM-cycle-solve tip (`git fetch origin 29f8ba81157134ab65ab38a45c4668b6c4834ef5 && git show 29f8ba81157134ab65ab38a45c4668b6c4834ef5:design.md`).
+
+Plan: plan/r11 at 819aa2e354b4e5baaf824b8568fd72bea8168a75 (`git fetch origin 819aa2e354b4e5baaf824b8568fd72bea8168a75`; dev/audit/rounds/round11/PLAN/PLAN.md, PLAN.json and the ADR your group names). Its "Hot-file order" table is the merge order on every shared file.
+
+Owner precedents 2026-11-18, binding: (1) a finding that reads 0 at main gets a regression pin only, recorded "not reproduced at main, pinned"; (2) a move that only changes the architecture score is refused: build only what improves the code; (3) ADR-006 part 2 is dropped: build none of it.
+
+Pre-PR gate: scoped prepr only, `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh`; CI is the authority.
+
+Do your work inline, with no subagents: this replaces the Agent-subagent routing line above for this seat.
+
+Comms (owner ruling, every cloud seat): also follow ADDENDUM.md at commit 6a8f03aab598618b91df39a2905ef226622a7dd8 of dispatch/comms-r11 (`git fetch origin 6a8f03aab598618b91df39a2905ef226622a7dd8 && git show 6a8f03aab598618b91df39a2905ef226622a7dd8:ADDENDUM.md`), with topic `r11-seam-cycle-solve`. It adds a heartbeat and an inbox and never overrides this brief.
