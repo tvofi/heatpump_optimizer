@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_StoreProgram.__init__ CLAMP_DROP 073c5b69",
+  "killed_by": "tests/features.py",
+  "old": "            self.lo, float(np.ceil(max(self.initial, float(np.max(self.ceilings))))) + 2.0 * _COP_KNOT_K, _COP_KNOT_K)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`self.lo, float(np.ceil((self.initial))) + 2.0 * _COP_KNOT_K, _COP_KNOT_K)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+}
