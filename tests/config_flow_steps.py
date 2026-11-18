@@ -5429,15 +5429,20 @@ async def self_check():
     # REAL identity before delegating, which is exactly what deleting the
     # ``self._reconfigure_entry is None or ...`` condition does to the
     # reconfigure path (the production-edit proof is in the PR body).
-    real_user = config_flow.HeatPumpOptimizerConfigFlow.async_step_user
+    # The guard sits on the sensors screen since the credentials/sensors
+    # split (#198): wrapping async_step_user ran it on the credentials
+    # alone, whose identity is not the entry's, and the mutation survived.
+    real_sensors = config_flow.HeatPumpOptimizerConfigFlow.async_step_user_sensors
 
     async def guard_before_exemption(self, user_input=None):
         if user_input is not None and self._reconfigure_entry is not None:
-            await self.async_set_unique_id(config_flow.entry_identity(user_input))
+            await self.async_set_unique_id(
+                config_flow.entry_identity({**self._data, **user_input})
+            )
             self._abort_if_unique_id_configured()
-        return await real_user(self, user_input)
+        return await real_sensors(self, user_input)
 
-    config_flow.HeatPumpOptimizerConfigFlow.async_step_user = guard_before_exemption
+    config_flow.HeatPumpOptimizerConfigFlow.async_step_user_sensors = guard_before_exemption
     try:
         real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
         flow, _, _, _ = rc_setup()
@@ -5453,7 +5458,7 @@ async def self_check():
         )
         config_flow.async_get_clientsession = real
     finally:
-        config_flow.HeatPumpOptimizerConfigFlow.async_step_user = real_user
+        config_flow.HeatPumpOptimizerConfigFlow.async_step_user_sensors = real_sensors
 
     # Mutation 5: the peak-hours field validated with the fee-RULES grammar
     # instead of the window one -- the defect #327 reported, which did not
