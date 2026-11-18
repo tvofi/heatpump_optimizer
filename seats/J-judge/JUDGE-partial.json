@@ -432,5 +432,265 @@
   "class": "I5",
   "note": "reproduced exactly. Duplicated policy text is a drift precondition, I5. Votes: 1 verify.",
   "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D11-s3-02",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: rosters_linted=1 (.claude/workflows only), live rosters in dev/programme/rosters unlinted 2; gap arms TOTAL=0; perturb lints rosters/ and gap arms go red (TOTAL=4)",
+  "stop_rule_class": "bug",
+  "class": "I3",
+  "note": "reproduced; main and perturb arms ran past my 600 s cap but printed every arm; the null arm completed with the same counts. Votes: 1 verify.",
+  "class_mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary"
+ },
+ {
+  "id": "D11-s3-03",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: gap_noop_accepted=4 of 4; controls refused 3/3; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "I1",
+  "note": "reproduced exactly, tf 1.000. Votes: 1 weaken (low).",
+  "class_mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green"
+ },
+ {
+  "id": "D12-s1-01",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: zone_plants=2, zone_rows=192 on single-zone installs; control two-zone 96 rows",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced the export number; the verifier showed 0 under --gate and 8/8 under --presence-rule, so reach depends on the presence rule (merged family of D12-s2-01). Votes: 1 weaken (low).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D12-s2-01",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: invented_zone_cells=47/47, heat_loss_response_kwh=0.000; --perturb -> 0/47 and 32.661 kWh response",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly; null equals main (its own reference arm). Class P2: the two-zone switch and the heat-loss input decide one fact twice. Merged D12-s1-02, D10-s1-04, D17-s2-01, D7-s3-09. Votes: 1 verify (high).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D12-s3-01",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: on_off_clamped_cells=0/10 (166 sub-minimum steps); --perturb doc-modulation -> 10/10, 0 sub-minimum",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. The declared modulation and the planner's model decide one fact twice, P2. Merged D17-s1-04, D2-s2-03. Votes: 1 verify (high).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D12-s3-02",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: bad_fix_writes=8 of 12; --perturb entity-cap -> 0",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly, tf 1.000. Votes: 1 verify (P2).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D12-s3-03",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: inflated_spans_folded=2, space_spans_folded 6; --perturb unobserved-no-space -> 0 and 0",
+  "stop_rule_class": "bug",
+  "class": "N-confounded-learner",
+  "note": "reproduced with a larger count than the finder's 1 (this arm adds the DHW timer); perturbation to zero. The fabric learner absorbs a mis-attributed DHW charge, N-confounded-learner. Votes: 1 verify.",
+  "class_mechanism": "An online estimator absorbs the error of an unmodelled or mis-modelled covariate into the parameter it learns"
+ },
+ {
+  "id": "D13-s2-02",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: one_file 69 of 174 accepted entries (0.397), no_file 105; perturb readme -> 68 (0.391), down as stated",
+  "stop_rule_class": "hygiene",
+  "class": "N-vocabulary-drift",
+  "note": "reproduced exactly, tf 1.00. Votes: 1 verify.",
+  "class_mechanism": "A record's writer holds one vocabulary and its reader holds another, so the writer accepts a word no read can close: roster_edit.py wrote stages as free strings (`459ef684a` appended a group in `in-review`; `94ece3d08` set R10-HOUSE-GRADE to `in-review` again) while roster_sync.p"
+ },
+ {
+  "id": "D14-s1-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: seams_total=40 (options widen 28 + services 12); --perturb-svc -> services 0, total 28",
+  "stop_rule_class": "bug",
+  "class": "N-step-grid",
+  "note": "reproduced; low as the verifier (validation flags only). Votes: 1 verify (low).",
+  "class_mechanism": "A number selector's minimum or default is not on its own step grid, so native validity flags legal values and a spinner click lands off-grid"
+ },
+ {
+  "id": "D14-s1-02",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: seams_baseline=1 (coordinator.py:1943), runtime_swallowed_reintroduced=1, control 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-finally-return",
+  "note": "reproduced. One live seam that swallows only on re-introduction; verifier's info maps to low. Votes: 1 weaken (info).",
+  "class_mechanism": "A return inside finally swallows an in-flight exception, cancellation included"
+ },
+ {
+  "id": "D14-s1-03",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: money_seams=5 with feed EUR on a SEK instance; null (feed SEK) 0; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "P8",
+  "note": "reproduced exactly. Merged D14-s3-01. Votes: 1 verify.",
+  "class_mechanism": "A currency or unit resolved by divergent precedence on different surfaces"
+ },
+ {
+  "id": "D14-s2-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: quiet_stale_flags=6, input_problem_on=1; polled and null 0; perturb inf -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-staleness",
+  "note": "reproduced exactly; the runner's 'no' compared against a header value '6,'. Votes: 1 verify.",
+  "class_mechanism": "A staleness limit is shorter than a report-on-change source's legitimate quiet interval, so a valid unchanged reading is declared stale or unavailable"
+ },
+ {
+  "id": "D14-s2-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: wind_mismatch_hours=72 of 72; perturb covering -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-no-expiry",
+  "note": "reproduced exactly; runner too. Low as the verifier: wind enters a small term. Votes: 1 verify.",
+  "class_mechanism": "A last-known value is published and booked as current with no age bound once its source stops updating"
+ },
+ {
+  "id": "D14-s2-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: barrier counts warning 1, exception/critical 0; live_blind_sites=1 of 71",
+  "stop_rule_class": "bug",
+  "class": "N-log-flood",
+  "note": "reproduced. Votes: 1 verify.",
+  "class_mechanism": "A persisting condition is logged at WARNING on every cycle instead of once per transition"
+ },
+ {
+  "id": "D15-s1-02",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "verifier: 72 privacy-gate violations over the whole synthetic bundle, 0 over the replay half",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "bundle: local re-run owed. Judged on record and the verifier's executed number. Votes: 1 weaken (low).",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D15-s1-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "verifier: verdict 12/12 with checks_run=11",
+  "stop_rule_class": "hygiene",
+  "class": "N-silent-zero",
+  "note": "bundle: local re-run owed. Runner here rc=127 (needs the bundle). Judged on the verifier's executed number. Votes: 1 verify.",
+  "class_mechanism": "A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero"
+ },
+ {
+  "id": "D15-s1-04",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "verifier: 0 of 192 rows kept by the debug ring loader",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "bundle: local re-run owed. Judged on record. Votes: 1 verify (medium).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D15-s1-05",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "verifier: 1 count-0 bucket written and lost at reload; runner here fold_written=1 before rc=1",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "bundle: local re-run owed; the runner got the fold half (fold_written=1) before needing the bundle. Votes: 1 verify.",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D15-s2-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "verifier: 2 learners voided, 42 samples lost",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "bundle: local re-run owed. Judged on record. Merged D15-s3-03. Votes: 1 verify (low).",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D15-s2-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "verifier: 142 of 192 accuracy samples postdate the replay clock",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "bundle: local re-run owed. Judged on record. Votes: 1 verify (low, I4).",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D15-s2-04",
+  "verdict": "unreproduced",
+  "severity": "low",
+  "value": "verifier: shipped arm timed out at 2400 s, fixed arm 0 differing; debug_replay.py has 0 occurrences of HASTUB_TZ",
+  "stop_rule_class": "bug",
+  "class": "P7",
+  "note": "bundle: local re-run owed. Neither the verifier nor this box measured the shipped arm; the missing HASTUB_TZ is confirmed by text only. Votes: 1 unresolved.",
+  "class_mechanism": "Naive wall-clock datetime arithmetic across a DST transition"
+ },
+ {
+  "id": "D15-s2-05",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "verifier: lane_red_judges=0 over 8 cycles; 5 judges printed, 4 graded, 8 counted",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "bundle: local re-run owed. Structural gap confirmed on record, no hidden red judge in the measured window. Votes: 1 weaken (low).",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D15-s2-06",
+  "verdict": "unreproduced",
+  "severity": "low",
+  "value": "verifier: no_default=0 in a 2 h window (finder's window not reached under load)",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "bundle: local re-run owed. Not measured at the finder's window by anyone but the finder. Votes: 1 unresolved.",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D15-s2-07",
+  "verdict": "unreproduced",
+  "severity": "low",
+  "value": "verifier: not_frozen=0 in a 2 h window (finder's window not reached under load)",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "bundle: local re-run owed. Not measured at the finder's window by anyone but the finder. Votes: 1 unresolved.",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D15-s3-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "verifier: self-test min 0 ms from 10 not-run rows; perturbation 0 -> 9806 ms",
+  "stop_rule_class": "hygiene",
+  "class": "N-silent-zero",
+  "note": "bundle: local re-run owed; runner rc=1 without the bundle. Judged on the verifier's executed number. Votes: 1 verify.",
+  "class_mechanism": "A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero"
+ },
+ {
+  "id": "D15-s3-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree runner: rows_diverging_from_cycle_row=48 of 48 (expected 48, reproduced, tf 1.001); verifier: feed_health TypeError, perturbation completes",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "reproduced by the runner. Class I4 (two copies of one row definition), as the verifier. Votes: 1 verify (low).",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
  }
 ]
