@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/draw_range.py b/custom_components/heatpump_optimizer/draw_range.py
+index 31f668c4a3..47eff34774 100644
+--- a/custom_components/heatpump_optimizer/draw_range.py
++++ b/custom_components/heatpump_optimizer/draw_range.py
+@@ -880,7 +880,7 @@ def fold(
+     they never reach the window.
+     """
+     space, dhw = split
+-    draw.map.commit_runs(keep=not (frozen or distorted))
++    draw.map.commit_runs(keep=True)
+     if drawn_kw is not None and not (frozen or distorted or defrost) and command is not None and command.written_c <= command.gate_c + GATE_TOLERANCE_K and not planned_draw_runs(dhw, modulation_floor=0.0):
+         draw.observe_idle(drawn_kw)
+     if drawn_kw is None or not is_running_space(

@@ -1,0 +1,5 @@
+  ok   an experiment interval drawing exactly its ask reads draw_off_ask and folds nothing; the same interval under the plan folds
+  ok   r13: on a heat-metered install an experiment interval is refused too, and the same interval under the plan folds its measured COP
+  ok   a heat counter span holding an experiment cycle folds no COP, that cycle reading draw_off_ask; the same span with none folds one
+
+ALL 5933 FEATURE CHECKS PASSED

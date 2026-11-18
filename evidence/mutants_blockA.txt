@@ -1,0 +1,45 @@
+M1 owed_scale not experiment->True: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the row before it admitted, takes no dither step inside it -- the scale in force is the probe's base and the dither holds no r
+M2 judge_floor experiment guard off: rc=1 fails=6 last=6 of 32 FEATURES BLOCK FAILED
+    FAIL judge_floor: an experiment interval is draw_off_ask whatever its figures, with or without a per-cycle draw; a plan interval with no draw is judged on nothing and passes
+    FAIL null: a run with an experiment interval leaves the sample count, the COP scale, the walking ratio, the hold, the envelope and the health baseline byte-identical to the same run with that interval frozen, and to the 
+    FAIL the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the row before it admitted, takes no dither step inside it -- the scale in force is the probe's base and the dither holds no r
+M3 judge_floor caller drops experiment: rc=1 fails=5 last=5 of 32 FEATURES BLOCK FAILED
+    FAIL null: a run with an experiment interval leaves the sample count, the COP scale, the walking ratio, the hold, the envelope and the health baseline byte-identical to the same run with that interval frozen, and to the 
+    FAIL the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the row before it admitted, takes no dither step inside it -- the scale in force is the probe's base and the dither holds no r
+    FAIL an experiment interval drawing exactly its ask reads draw_off_ask and folds nothing; the same interval under the plan folds
+M4 experiment flag False: rc=1 fails=5 last=5 of 32 FEATURES BLOCK FAILED
+    FAIL null: a run with an experiment interval leaves the sample count, the COP scale, the walking ratio, the hold, the envelope and the health baseline byte-identical to the same run with that interval frozen, and to the 
+    FAIL the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the row before it admitted, takes no dither step inside it -- the scale in force is the probe's base and the dither holds no r
+    FAIL an experiment interval drawing exactly its ask reads draw_off_ask and folds nothing; the same interval under the plan folds
+M5 owed_scale read ignored: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the row before it admitted, takes no dither step inside it -- the scale in force is the probe's base and the dither holds no r
+M6 arbiter inputs draw dropped: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL the coordinator hands its own running-draw window to the arbiter on every pass (ArbiterInputs.draw)
+M7 action kind dropped: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL the experiment's override action carries its kind  [{'power': 0.0, 'heat_pump_on': False, 'power_normalized': 0.0, 'mode': 'system_identification', 'space_reason': 'system_identification', 'dhw_reason': 'system_iden
+M8 _note_pass call dropped: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL with the feedback option on the passes carry the loop's start hold and moved target; off, none does and the plan's open-loop write is the origin; the last pass is on the arbiter state, its written set-point the held
+M9 commit_runs keep always: rc=0 fails=0 last=ALL 32 FEATURES BLOCK PASSED
+M10 space-only filter off: rc=1 fails=2 last=2 of 32 FEATURES BLOCK FAILED
+    FAIL a change of written set-point, level, origin or duty closes the run (the duty case keeps only its space-only run)  [{'written': [(29470080, 7), (29470090, 7)], 'level': [(29470080, 7), (29470090, 7)], 'origin': [(29
+    FAIL the fold commits the closed space-only runs and clears the rest; a frozen or distorted interval commits none  [[(29470080, 7, 35.0, 25.0, 45.0, 31.0, 2.0, 0.5, 4.0, 45.0, 30.0, 0.0, 4.0, 2.0, 0.0, 'plan', 'space'), 
+M11 map rows not persisted: rc=1 fails=0 last=KeyError: 'map_rows'
+M12 map rows not restored: rc=1 fails=4 last=4 of 32 FEATURES BLOCK FAILED
+    FAIL the rows are stored as one comma-separated string per column, every column, and read back as the same rows  [{'start_min': '29470080,29470080,29470080', 'steady_min': '2,22,5', 'written_c': ',35.0,40.5', 'gate_c': '
+    FAIL an unreadable or non-finite cell drops its row alone; columns of unequal length cannot be aligned and drop every row; a column that is not a string drops every row
+    FAIL an unread cell is a stored value: a single row with unread cells, a column unread in every row (no inlet sensor) and one row unread among read ones each read back as the same rows  [[[], [], []] / []]
+M13 probe origin -> fit: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL pass_origin: the experiment's kind first (probe, fit, and fit with no kind); the baseline holds; a step that does not heat writes the gate; a boost's ceiling; the plan open-loop with no running loop; the loop's star
+M14 settle filter off: rc=1 fails=5 last=5 of 32 FEATURES BLOCK FAILED
+    FAIL a ten-minute run at one set-point is one row: started at its first pass, 7 steady minutes (3 to 9), its map inputs the first pass's, inlet mean and change and draw mean and spread over the steady minutes  [[(2947008
+    FAIL a run of five passes keeps two steady minutes and is a row; one of four keeps one and is none
+    FAIL a forty-minute run closes at thirty minutes and the next pass opens a new run: steady minutes 27 and 7
+M15 stopped-close off: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL a defrost pass, a draw at RUNNING_FLOOR_KW and an unread draw each close the run and join none: steady minutes 7 and 6 (minutes 0-9, 11-19)  [{'defrost': [17], 'stop': [17], 'unread': [17]}]
+M16 max-run close off: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL a forty-minute run closes at thirty minutes and the next pass opens a new run: steady minutes 27 and 7
+M17 boost origin off: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL pass_origin: the experiment's kind first (probe, fit, and fit with no kind); the baseline holds; a step that does not heat writes the gate; a boost's ceiling; the plan open-loop with no running loop; the loop's star
+M18 unequal-column guard off: rc=1 fails=1 last=1 of 32 FEATURES BLOCK FAILED
+    FAIL an unreadable or non-finite cell drops its row alone; columns of unequal length cannot be aligned and drop every row; a column that is not a string drops every row
