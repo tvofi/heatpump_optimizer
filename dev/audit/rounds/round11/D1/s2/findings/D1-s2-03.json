@@ -1,0 +1,45 @@
+{
+  "id": "D1-s2-03",
+  "scope": "D1-s2",
+  "step": "D1.M3",
+  "title": "A weather forecast that stopped advancing is read as a recovery: published fresh while every row lies in the past",
+  "severity": "high",
+  "claim": "_fetch_weather treats any non-empty plausible get_forecasts reply as a successful fetch (_weather_fetch_recovered clears _weather_stale_since) without checking that its rows reach now, so in 5 of 5 cells where the provider keeps returning the same 48 rows and the clock is 1 to 48 h past the last row, the real cycle publishes weather_forecast_stale_hours=None (fresh) while the plan's outdoor array is the last row's 0.7 C held flat (the live weather entity says -3.0 C).",
+  "mechanism": "coordinator._plausible_forecast_rows filters non-dict rows and out-of-window field values only; a stale-but-well-formed forecast passes, `if forecast_data:` takes the success branch and calls _weather_fetch_recovered, which sets _weather_stale_since=None. _forecast_arrays then extrapolates the last row across the horizon. The empty-forecast and exception branches do mark the data stale (price_weather.py: weather_empty_hidden=0), so the staleness signal exists and only this branch skips it. A weather integration that stops refreshing its forecast (a cached provider, an expired API key that keeps serving the last answer) leaves the plan on a days-old trajectory while the published freshness says nothing is wrong.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/weather_stuck.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s2/weather_stuck.py",
+    "value": 5,
+    "unit": "cells (of 5) with every forecast row in the past published as fresh (stale_hours None)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 (orchestrator box B4, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, other seats running; a count",
+    "tolerance": "exact",
+    "load1": 218.38,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fetch_weather (via _async_update_data; _plausible_forecast_rows, _weather_fetch_recovered; published weather_forecast_stale_hours)",
+  "perturbation": {
+    "change": "--fix: coordinator._plausible_forecast_rows also drops a row whose hour (datetime + 1 h) has ended, patched in memory, so an all-past reply is an empty one and takes the existing stale branch",
+    "expected_direction": "to_zero",
+    "observed_value": "stuck_published_fresh=0; stale_hours 0.0, 5.0, 11.0, 23.0, 47.0 across the cells"
+  },
+  "metric_definition": "Of 5 cells 1/6/12/24/48 h past the last row of a non-advancing forecast, cycles publishing weather_forecast_stale_hours None.",
+  "phenomenon_property": "A feed reply that does not cover now is not a fresh fetch: the forecast's staleness (weather_forecast_stale_hours) is set whenever the forecast the plan stands on no longer reaches the current step, whatever branch delivered it.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/price_weather.py  (each external feed's success branch -- weather, Tibber, price entity -- driven with a reply that no longer covers now; the price feeds hold, weather does not)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/weather_stuck.py --advancing",
+    "value": 0,
+    "note": "the provider's rows start at the current hour at the same five instants: no cell has every row in the past, stale_hours None is right, outdoor array -4.0 from the live rows"
+  },
+  "leave_one_out": {"cells": 5, "min": 1, "max": 1, "drop_most_favourable": 4},
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/weather_stuck.py            -> stuck_published_fresh=5",
+    "... --advancing -> 0 (null control); ... --fix -> 0 (perturbation)"
+  ],
+  "proposed_fix_scope": "coordinator.py:_fetch_weather: a reply whose rows end before the current step is a failed fetch (_weather_fetch_failed), so stale_hours and the plan's stale marking apply.",
+  "files": ["custom_components/heatpump_optimizer/coordinator.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}

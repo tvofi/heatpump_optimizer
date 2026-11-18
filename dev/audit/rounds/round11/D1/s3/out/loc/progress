@@ -1,0 +1,7 @@
+done tests/entities.py
+done tests/config_flow_steps.py
+done tests/features.py
+done tests/open_meteo.py
+done tests/debug_collect.py
+done tests/manual_plan.py
+done tests/finite_boundary.py
