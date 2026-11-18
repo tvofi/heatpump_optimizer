@@ -2599,9 +2599,9 @@
     "From r11-pre-security-privacy, body item 2a416932: Whether a temporary private fork's merge honours the ruleset on `main` (design note n4) was not confirmed: it needs a scratch advisory, which this seat cannot open. Carry: R11-PRE-SECURITY-PRIVACY (items 2a416932)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-pre-security-privacy",
-    "commit": null,
+    "commit": "99a4010e479f04af984c30a4b5cfc2f98d3736ad",
     "last_step": null,
     "next_step": "designer revise running (23:11); owner 2026-11-15 ~23:25Z: the dimension is named DX0, outside the D0..Dn sequence, not D18; the design and every id pattern carry DX0 explicitly",
     "note": "owner item tvofi 2026-11-15; design first; overlap admitted (R11-PRE-RULINGS-FILE): owner item tvofi 2026-11-15: security and privacy dimension, findings to the owner only",
@@ -3030,9 +3030,9 @@
     "From #3662, body item 26742487: ffb019e7: on an admitted install the fabric replays (`thermal_model.simulate_step` through `_async_learn_house_heat_loss` and `_async_learn_lower_floor_loss`) price pump heat at the dither level of the interval they replay; read from the code, unmeasured for want of a full-cycle instrument (`## Figures`). The measurement belongs to the closed-loop harness of the note's follow-up; what it must separate is a stored fabric value under the dither against null control 1 (`ScaleDither.levels` returning the base twice). Carry: R11-OUTSIDE-SELF-SETTING-PUMP (items 26742487)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "fix/r11-outside-self-setting-pump",
-    "commit": null,
+    "commit": "3f7f29e778e009f12a2008318b1f879f531ef3a1",
     "last_step": null,
     "next_step": "designer first (L, decision 0014)",
     "note": "created 2026-11-15 for owner ruling D4 (self-setting pump residual of PR 3593), design first",
