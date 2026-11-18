@@ -491,3 +491,5 @@
 2026-11-18T19:24:43Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_slab_refusal CMP_BOUND f262c256 L890 by=- ran=12 wall=1364.2s
 2026-11-18T19:29:55Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_inlet_reference GUARD_OFF dae1661e L820 by=tests/features.py ran=19 wall=1541.6s
 2026-11-18T19:40:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_due CLAMP_DROP a586f6d3 L658 by=- ran=13 wall=1285.9s
+2026-11-18T19:47:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.dhw_coast_hours CMP_BOUND fd0497c0 L3640 by=- ran=16 wall=1391.7s
+2026-11-18T19:48:33Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:_bounds_supported_by_batch GUARD_OFF 58d599ba L1816 by=tests/features.py ran=17 wall=1569.5s
