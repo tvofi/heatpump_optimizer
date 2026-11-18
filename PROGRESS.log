@@ -8,9 +8,8 @@
 1794988643 INIT box D3-u1a
 1794988694 CKPT D3-s1 126 file(s)
 1794989077 HB alive
-1794989477 RESUMED from e73ec4902167
-1794989477 INIT box D3-u1a
-1794989499 HB alive
-1794989540 HB re-fired: inline seat per inbox 1; export+worktree rebuilt on fresh container; evidence restored
-1794990103 HB alive
-1794990709 HB alive
+1794989681 HB alive
+1794989699 HB cannot: CMD 1 arrived after D3-s1 had already started (frugal:builder subagent at model opus = claude-opus-5-5; no FRUGAL_ALLOW_EXPENSIVE set). Brief step 3 forbids killing a running subagent, so it runs to completion; no further Agent spawns will be made. Inline execution is pending owner confirmation.
+1794989773 CKPT D3-s1 134 file(s)
+1794990278 HB alive
+1794990884 HB alive
