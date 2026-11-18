@@ -1,0 +1,15 @@
+{
+ "round": 11,
+ "verdicts": [
+  {
+   "id": "D3-s1-01",
+   "verdict": "weakened",
+   "severity": "low",
+   "value": "681 of 1260 unpinned D3-s1 cell sites never executed by env_drift's --capture --all child, gate_skippable 0 (0 -> 681 under --as-if-fixed); independent recorder 682",
+   "stop_rule_class": "hygiene",
+   "class": "I2",
+   "note": "reproduced exact (load1 3.15, thread_factor 1.00); perturbation moved 0 -> 681 in the stated direction, harness not void; null 0 of 579 both arms; LOO by file: drop coordinator.py (289) -> 392. Costs mutation-lane time, never misses a kill, so low and hygiene, as D3-s2-01. Fix must key on the null control's file-level diff, not read git as tree-blind. Votes: 1 weaken (low, I2). Late intake, owner-approved 2026-11-18.",
+   "class_mechanism": "A measured closure or scope diverges from the real dependency graph"
+  }
+ ]
+}
