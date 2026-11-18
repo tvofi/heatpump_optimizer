@@ -1,4 +1,4 @@
-# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=3.00 at 2026-11-18T19:52:56Z
+# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=2.97 at 2026-11-18T19:58:00Z
 ## run.log (driver steps + controls)
 === 2026-11-18T18:51:31Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.18 :: STEP baseline
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
@@ -57,6 +57,9 @@ RESULT thread_factor=1.00
 === 2026-11-18T19:29:15Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.09 :: STEP posctl_done killed=2 of=2
 === 2026-11-18T19:29:15Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.09 :: STEP complete src=pre
 2026-11-18T19:29:16Z COMPLETE queued=8 from=pre
+2026-11-18T19:57:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe GUARD_OFF 336a6ca0 L183 by=- ran=12 wall=1671.4s
+2026-11-18T19:57:13Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846 L539 by=tests/features.py ran=13 wall=1677.1s
+2026-11-18T19:57:16Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_best_effort_cycle_step GUARD_OFF d02b7542 L687 by=tests/entities.py,tests/features.py ran=13 wall=1680.1s
 ## prescreen.log
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
 2026-11-18T18:57:42Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=155.7s reach_ok=False
@@ -83,3 +86,6 @@ RESULT thread_factor=1.00
 2026-11-18T19:29:15Z POSCTL-T3 KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=8.9s
 2026-11-18T19:29:15Z POSCTL-T3 KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=2 skip=5 wall=9.3s
 2026-11-18T19:29:16Z COMPLETE queued=8 from=pre
+2026-11-18T19:57:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe GUARD_OFF 336a6ca0 L183 by=- ran=12 wall=1671.4s
+2026-11-18T19:57:13Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846 L539 by=tests/features.py ran=13 wall=1677.1s
+2026-11-18T19:57:16Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_best_effort_cycle_step GUARD_OFF d02b7542 L687 by=tests/entities.py,tests/features.py ran=13 wall=1680.1s
