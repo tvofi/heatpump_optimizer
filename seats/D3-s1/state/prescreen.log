@@ -534,3 +534,4 @@
 2026-11-18T23:35:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._immersion_dhw_margin CMP_BOUND 0c70935f L9294 by=- ran=13 wall=1273.2s
 2026-11-18T23:38:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CLAMP_DROP e0d7cd6a L2307 by=- ran=16 wall=1291.6s
 2026-11-18T23:46:59Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization CMP_BOUND e2921a12 L6454 by=- ran=13 wall=1306.2s
+2026-11-18T23:48:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:<module> CONST 04ed0184 L1622 by=- ran=19 wall=1390.8s
