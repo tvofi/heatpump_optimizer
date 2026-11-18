@@ -10,3 +10,4 @@
 1795006976 HB alive
 1795007052 CKPT structure rows + log barrier written; harnesses re-run base/head; entities.py running snapshot 8424a3ca161c
 1795007581 HB alive
+1795007999 CKPT step pushed c6fd5139 to handoff-wip; mutants + archscore running snapshot dd3b39ad37cf
