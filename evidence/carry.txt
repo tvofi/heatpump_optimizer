@@ -1,2 +1,0 @@
-                            [--branch BRANCH] [--pr-group PR_GROUP]
-carry_audit.py check: error: the following arguments are required: --body
