@@ -1,0 +1,26 @@
+42,44c42,44
+< RESULT sub_min_true_0.6_x384=0/384_scale=1.000 lowest=0.933 highest=1.072 off5=16 probes=1 band=0.500 verdict=pending
+< RESULT sub_min_true_0.6_x480=0/480_scale=1.000 lowest=0.933 highest=1.072 off5=48 probes=1 band=0.500 verdict=pending
+< RESULT sub_min_true_0.6_x1440=0/1440_scale=1.000 lowest=0.933 highest=1.072 off5=335 probes=1 band=0.500 verdict=pending
+---
+> RESULT sub_min_true_0.6_x384=0/384_scale=0.933 lowest=0.933 highest=1.072 off5=48 probes=1 band=0.500 verdict=pending
+> RESULT sub_min_true_0.6_x480=0/480_scale=0.933 lowest=0.933 highest=1.072 off5=144 probes=1 band=0.500 verdict=pending
+> RESULT sub_min_true_0.6_x1440=470/1440_scale=0.599 lowest=0.597 highest=1.072 off5=1103 probes=1 band=0.500 verdict=follows
+56,57c56,57
+< RESULT heatled_true_0.45_flat_from0.5=657/672_scale=0.500 lowest=0.500 highest=1.072 off5=662 probes=1 band=0.500 verdict=follows
+< RESULT heatled_true_0.68_flat_from0.5=663/672_scale=0.680 lowest=0.500 highest=1.072 off5=662 probes=1 band=0.500 verdict=follows
+---
+> RESULT heatled_true_0.45_flat_from0.5=656/672_scale=0.500 lowest=0.500 highest=1.072 off5=670 probes=1 band=0.500 verdict=follows
+> RESULT heatled_true_0.68_flat_from0.5=662/672_scale=0.680 lowest=0.500 highest=1.072 off5=670 probes=1 band=0.500 verdict=follows
+59c59
+< RESULT selfset_2.2_flat_reload70_400_lost=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=121 probes=2 band=0.500 verdict=does_not_follow
+---
+> RESULT selfset_2.2_flat_reload70_400_lost=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=120 probes=2 band=0.500 verdict=does_not_follow
+96,98c96,98
+< RESULT selfset_2.2_swing0.4_p3_s1=3/672_scale=1.003 lowest=0.936 highest=1.076 off5=209 probes=1 band=0.500 verdict=pending
+< RESULT selfset_2.2_swing0.3_p4_s1=7/672_scale=0.994 lowest=0.927 highest=1.066 off5=335 probes=1 band=0.500 verdict=pending
+< RESULT repriced_heat1.2_true_0.8_x672=0/672_scale=0.933 lowest=0.933 highest=1.072 off5=140 probes=56 band=0.500 verdict=pending
+---
+> RESULT selfset_2.2_swing0.4_p3_s1=3/672_scale=1.000 lowest=0.936 highest=1.076 off5=279 probes=1 band=0.500 verdict=does_not_follow
+> RESULT selfset_2.2_swing0.3_p4_s1=7/672_scale=1.000 lowest=0.927 highest=1.066 off5=431 probes=1 band=0.500 verdict=does_not_follow
+> RESULT repriced_heat1.2_true_0.8_x672=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=20 probes=4 band=0.500 verdict=pending

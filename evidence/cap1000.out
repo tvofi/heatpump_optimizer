@@ -1,0 +1,106 @@
+RESULT duty_floor_kw=0.800
+RESULT on_threshold_kw=0.500
+RESULT min1_idle_folded=0/9
+RESULT min1_standby_folded=0/9
+RESULT min1_duty_cycled_folded=0/6
+RESULT min1_running_folded=15/15
+RESULT min3_idle_folded=0/9
+RESULT min3_standby_folded=0/9
+RESULT min3_duty_cycled_folded=0/6
+RESULT min3_running_folded=3/15
+RESULT selfmod_independent=5/96_scale=0.987
+RESULT selfmod_independent_4kw=5/96_scale=0.987
+RESULT selfmod_matched=96/96_scale=1.000
+RESULT true_0.6=282/288_scale=0.603
+RESULT true_0.7=285/288_scale=0.704
+RESULT true_0.8=288/288_scale=0.805
+RESULT true_1.3=288/288_scale=1.307
+RESULT true_0.7_4kw=285/288_scale=0.704
+RESULT fixed3_duty50=0/5_scale=1.000
+RESULT fixed3_duty70=0/5_scale=1.000
+RESULT fixed3_duty85=5/5_scale=1.000
+RESULT liveness_folded=3/3
+RESULT selfset_hourly=5/96_scale=0.985
+RESULT selfset_three_hour=0/96_scale=1.000
+RESULT selfset_flat=0/96_scale=1.072
+RESULT p4_follow_noise10=96/96_scale=1.028
+RESULT p4_follow_noise20=96/96_scale=1.116
+RESULT p4_eff0.8_noise5=96/96_scale=0.634
+RESULT p4_eff0.8_noise10=96/96_scale=0.614
+RESULT p4_follow_lag1tick=16/96_scale=1.006
+RESULT true_0.7_reload150=285/288_scale=0.704
+RESULT min3_running_warm_run_led_folded=9/15 per_draw=[0, 0, 3, 3, 3]
+RESULT min3_running_warm_run_low_folded=9/15 per_draw=[0, 0, 3, 3, 3]
+RESULT min3_running_warm_own_folded=3/15 per_draw=[0, 0, 0, 0, 3]
+RESULT min1_duty_cycled_warm_own_folded=0/6
+RESULT fixed3_duty50_warm_own=0/5_scale=1.000
+RESULT fixed3_duty70_warm_own=0/5_scale=1.000
+RESULT held_full=0/96_scale=1.000
+RESULT held_filling=0/96_scale=1.072
+RESULT true_0.6_max_cycle_move=0.292
+RESULT sub_min_true_0.6_x288=0/288_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=0 band=- verdict=pending
+RESULT sub_min_true_0.6_x384=0/384_scale=0.933 lowest=0.933 highest=1.072 off5=48 probes=1 band=0.500 verdict=pending
+RESULT sub_min_true_0.6_x480=0/480_scale=0.933 lowest=0.933 highest=1.072 off5=144 probes=1 band=0.500 verdict=pending
+RESULT sub_min_true_0.6_x1440=470/1440_scale=0.599 lowest=0.597 highest=1.072 off5=1103 probes=1 band=0.500 verdict=follows
+RESULT selfset_2.2_flat_x96=0/96_scale=1.072 lowest=0.933 highest=1.072 off5=48 probes=1 band=0.500 verdict=pending
+RESULT selfset_2.2_flat_x672=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_1.6_within_x672=47/672_scale=1.000 lowest=0.852 highest=1.000 off5=44 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_1.4_within_x672=47/672_scale=1.000 lowest=1.000 highest=1.183 off5=52 probes=1 band=0.500 verdict=does_not_follow
+RESULT heatled_true_0.68_flat_x672=667/672_scale=0.680 lowest=0.680 highest=1.072 off5=623 probes=1 band=0.500 verdict=follows
+RESULT heatled_true_0.8_flat_x672=672/672_scale=0.800 lowest=0.800 highest=1.072 off5=623 probes=1 band=0.500 verdict=follows
+RESULT heatled_true_0.68_flat_max_cycle_move=0.308
+RESULT selfset_2.2_flat_from0.5=0/672_scale=1.000 lowest=0.500 highest=1.072 off5=97 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_1.6_within_from0.5=47/672_scale=1.000 lowest=0.500 highest=1.072 off5=97 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_flat_from0.7=0/672_scale=1.000 lowest=0.653 highest=1.000 off5=97 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_1.6_within_from0.7=47/672_scale=1.000 lowest=0.596 highest=1.000 off5=97 probes=1 band=0.500 verdict=does_not_follow
+RESULT heatled_true_0.45_flat_from0.5=656/672_scale=0.500 lowest=0.500 highest=1.072 off5=670 probes=1 band=0.500 verdict=follows
+RESULT heatled_true_0.68_flat_from0.5=662/672_scale=0.680 lowest=0.500 highest=1.072 off5=670 probes=1 band=0.500 verdict=follows
+RESULT selfset_2.2_flat_reload70_400=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=71 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_flat_reload70_400_lost=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=120 probes=2 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0_control_s1=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p64_s1=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p80_s1=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.3_p96_s1=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p120_s1=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phasepi_s1=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phase0_s1=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0_control_s2=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p64_s2=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p80_s2=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.3_p96_s2=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p120_s2=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phasepi_s2=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phase0_s2=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0_control_s3=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p64_s3=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p80_s3=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.3_p96_s3=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p120_s3=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phasepi_s3=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phase0_s3=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0_control_s4=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p64_s4=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p80_s4=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.3_p96_s4=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p120_s4=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phasepi_s4=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phase0_s4=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0_control_s5=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p64_s5=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p80_s5=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.3_p96_s5=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p120_s5=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phasepi_s5=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phase0_s5=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.3_p2_s1=0/672_scale=1.000 lowest=0.933 highest=1.072 off5=49 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.4_p3_s1=3/672_scale=1.000 lowest=0.936 highest=1.076 off5=279 probes=1 band=0.500 verdict=does_not_follow
+RESULT selfset_2.2_swing0.3_p4_s1=7/672_scale=1.000 lowest=0.927 highest=1.066 off5=431 probes=1 band=0.500 verdict=does_not_follow
+RESULT repriced_heat1.2_true_0.8_x672=0/672_scale=0.933 lowest=0.933 highest=1.072 off5=140 probes=56 band=0.500 verdict=pending
+RESULT null_dither0_heatled_true_0.8=0/672_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=1 band=0.000 verdict=pending
+RESULT null_dither0_selfset_2.2=0/672_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=1 band=0.000 verdict=pending
+RESULT defrost_inferred_selfset_2.2_2C=factor=0.684_count=96
+RESULT defrost_inferred_matched_2C=factor=1.000_count=96
+RESULT defrost_inferred_selfset_2.2_8C=factor=1.000_count=0
+RESULT defrost_inferred_matched_8C=factor=1.000_count=0
+RESULT held_full_heatled_true_0.8=96/96_scale=0.810
+RESULT held_filling_heatled_true_0.8=0/96_scale=1.072
