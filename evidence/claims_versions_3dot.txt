@@ -1,0 +1,29 @@
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 85eaf6f5cf..82240a3542 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -70,6 +70,11 @@
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the
++coord_all_features  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
++coord_dhw  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
++coord_grid_fee  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
++coord_minimal  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
++coord_two_zone  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+ # BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
+ # price_known/baseline_cost) still fail. Remove when drift lanes are pinned
+ # or the polish improvement scale leaves 5e-5-2e-2.
+@@ -786,3 +791,12 @@
+ # the running rule and the 1.0 kW floor, starts by the edge count
+ # (`runs.edge_count`), energy, predicted_cost, lowest room. Hot-water levels
+ # under the floor are the planner's and are not committed here.
++# R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): the model status sensor
++# publishes which electrical minimum the plan used, so every coord capture gains,
++# under `sensors.model_status.extra_state_attributes`, `pump_min_power`,
++# `pump_min_power_reason` and `pump_min_power_source`. Those three leaves are
++# the whole diff in each fixture, each "present on one side only" and ADDED at
++# this head (the direction); no other leaf moves (tests/env_drift.py --all
++# against the merge base, one environment). Claimed rather than re-recorded, as
++# R10-COP-GATE-D's keys were: the committed files were patched in those three
++# paths alone, each null because a coord fixture holds no plan.

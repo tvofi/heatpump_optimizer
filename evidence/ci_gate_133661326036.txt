@@ -1,5 +1,0 @@
- * [new tag]               archive/handoff-body/pr-contract-closing-keyword -> archive/handoff-body/pr-contract-closing-keyword
- * [new tag]               archive/handoff/pr-contract-closing-keyword -> archive/handoff/pr-contract-closing-keyword
-[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
-FAIL tests / mutation: failure (run 43941602050)
-pr-contract: no run at this head judged base 'main'
