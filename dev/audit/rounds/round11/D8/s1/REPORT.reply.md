@@ -1,6 +1,6 @@
 # D8-s1 REPORT (audit round 11, dimension D8, seat D8-s1, steps M1 and M2)
 
-I found three defects, all on the Monthly Savings and Sensor Gap Advisor sensors. Everything else in my cells held, and both steps are covered in full except three translation cells outside D8's files. Baseline is `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`, measured in `/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`. Exposure: none.
+I found three defects, all on the Monthly Savings and Sensor Gap Advisor sensors. Everything else in my cells held, and both steps are covered in full except three translation cells outside D8's files. Baseline is `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`, measured in `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`. Exposure: none.
 
 ## Method
 

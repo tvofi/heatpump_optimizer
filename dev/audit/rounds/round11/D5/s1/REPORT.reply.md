@@ -1,6 +1,6 @@
 I walked the 17 cells you listed, so all 27 are now covered and nothing is left under `not_reached` or `unfinished`. The walk found two more doc errors, both low severity, so the report now has four findings. `REPORT.json` is updated in place and `check_report.mjs` still returns `ok D5-s1`.
 
-**REPORT.json:** `/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D5/s1/REPORT.json`. The four finding files are in `findings/` in that directory. I made no commits, no GitHub calls and did not read P.json.
+**REPORT.json:** `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D5/s1/REPORT.json`. The four finding files are in `findings/` in that directory. I made no commits, no GitHub calls and did not read P.json.
 
 ---
 

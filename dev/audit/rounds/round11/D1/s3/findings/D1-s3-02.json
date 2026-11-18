@@ -7,7 +7,7 @@
   "claim": "_parse_ecl110_state accepts the payloads 'true', 'false' and '{\"displace\": true}' as displacements 1.0, 0.0 and 1.0, and _async_handle_ecl110_state_message stores and publishes them as the measured ECL110 displacement, where const.finite_float refuses a bool as 'a guess, not a reading'.",
   "mechanism": "json.loads('true') is the bool True; `isinstance(data, (int, float))` admits it (bool subclasses int) and `float(raw)` turns True into 1.0, so a state topic pointed at a switch/flag topic (ON/true) or a hostile publisher sets _ecl110_current_displace and the published ecl110_displace_command/ecl110_effective_displace to a value no ECL110 reported. The plausibility window (round-9 D1-s2-02) does not catch it: 0 and 1 are inside every window.",
   "evidence": {
-    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110",
     "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
     "value": 3,
     "unit": "boolean payloads stored as a displacement (of 3 sent)",
@@ -29,7 +29,7 @@
   "phenomenon_property": "An external-input parser hands on only a finite real number as a measurement: a bool is never a displacement, a temperature or a power (const.finite_float's rule), at every external parser seam.",
   "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E '_parse_ecl110_state|parse_bool'",
   "null_control": {
-    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110 --perturb ecl110_refuse_bool",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110 --perturb ecl110_refuse_bool",
     "value": "RESULT ecl110_numeric_null_control=2 messages",
     "note": "the numeric payloads 7 and '{\"displace\": \"3\"}' are still accepted (2 of 2) under the perturbation: the fix refuses bools only"
   },

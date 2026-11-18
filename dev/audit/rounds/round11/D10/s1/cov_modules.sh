@@ -18,7 +18,7 @@
 # production module delivers when traced, not any recorded budget.
 #
 # Run (from the export root, never cd elsewhere):
-#   PYTHON=/Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+#   PYTHON=~/.local/state/hpo/venv-ci/bin/python3 \
 #     bash dev/audit/rounds/round11/D10/s1/cov_modules.sh [fast|e2e|stress|all]
 # Needs network once: pip installs coverage into a private --target dir
 # under $TMPDIR (the interpreter's own site-packages is not touched).

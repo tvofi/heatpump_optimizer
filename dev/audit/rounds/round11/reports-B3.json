@@ -12,7 +12,7 @@
       "coverage": [
         {
           "step": "D10.M1",
-          "enumerator": "python3 /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+          "enumerator": "python3 ~/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo ~/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
           "universe": 114,
           "examined": 114,
           "not_reached": [],
@@ -27,7 +27,7 @@
         },
         {
           "step": "D10.M2",
-          "enumerator": "python3 /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+          "enumerator": "python3 ~/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo ~/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
           "universe": 114,
           "examined": 114,
           "not_reached": [],

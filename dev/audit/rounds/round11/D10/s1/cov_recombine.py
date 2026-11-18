@@ -13,7 +13,7 @@ Instrumented symbols: every module of the package, as coverage.py traced it
 under each test script (the data is the production code's executed lines).
 
 Run (from the export root, after cov_modules.sh printed its "data root"):
-  PYTHONPATH=<root>/work/site /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+  PYTHONPATH=<root>/work/site ~/.local/state/hpo/venv-ci/bin/python3 \
       dev/audit/rounds/round11/D10/s1/cov_recombine.py <root> [--drop entities]
 Expected: with no --drop, the same numbers cov_modules.sh printed (exact).
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (the round's export tree). Machine: macOS arm64, venv-ci Python 3.14.

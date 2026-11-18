@@ -1208,7 +1208,7 @@
       "coverage": [
         {
           "step": "D7.M5",
-          "enumerator": "python3 dev/audit/rounds/round11/D7/s3/m5_train.py list  # the lines `git -C /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt diff --name-status --diff-filter=A 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -- 'custom_components/*.py'` printed (the export has no .git)",
+          "enumerator": "python3 dev/audit/rounds/round11/D7/s3/m5_train.py list  # the lines `git -C ~/hpo-orch/r10s6/r11/find-wt diff --name-status --diff-filter=A 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -- 'custom_components/*.py'` printed (the export has no .git)",
           "universe": 29,
           "examined": 29,
           "not_reached": [],

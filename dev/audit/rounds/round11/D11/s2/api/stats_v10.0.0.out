@@ -1,5 +1,5 @@
 GAP: 0 merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []
-WINDOW_CACHE: commit-to-PR map fetched, not served by; per-PR reads fetched, not served by /tmp/claude-0/wc.json
+WINDOW_CACHE: commit-to-PR map fetched, not served by; per-PR reads fetched, not served by $TMPDIR/wc.json
 STATS: 52 merged pull request(s) in v10.0.0..origin/main; verdict grammar ["blocked","merge"] over block classes ["mutation-vacuous","harness","null-control","claims","version","head-moved","carry-missing","root-cause-unanswered","preflight-mismatch","class-open","conflict","other","product-tradeoff-regression","metric-gamed","architecture-unsound","root-cause-detectable","root-cause-unrecorded"] read from .claude/workflows/web-fix-wave.js
 STATS COVERAGE: 46 of 52 merged pull request(s) in the window carried a parsable verdict; 6 carried none (#3660 #3650 #3634 #3618 #3617 #3610); the histogram's verdict denominator is 46, not the window's merge count
 STATS COVERAGE BY CLASS: merged pull request(s) carrying no parsable verdict, of each class's window, by the title's type -- record 4 of 5 (#3660 #3650 #3634 #3617); (untyped) 1 of 44 (#3618); build 1 of 1 (#3610); closure 0 of 1; triage 0 of 1

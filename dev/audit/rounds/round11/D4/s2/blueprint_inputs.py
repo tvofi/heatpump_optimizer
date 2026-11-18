@@ -3,7 +3,7 @@
 Metric: count of blueprint inputs lacking a name, lacking a description, or lacking a
 default where the input is not an entity/device/target picker (a picker has no safe default).
 Count key: blueprint.input.<key> (sections' nested input included) as Home Assistant reads it.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/blueprint_inputs.py [--perturb-drop FILE:INPUT]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/blueprint_inputs.py [--perturb-drop FILE:INPUT]
   --perturb-drop removes that input's description in memory; the no_description count goes up by 1.
 Expected: the RESULT counts printed at baseline, exact.
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: orchestrator Mac (darwin arm64).

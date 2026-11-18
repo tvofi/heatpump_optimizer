@@ -1,6 +1,6 @@
 # D10-s3 report: audit round 11, D10 platinum cells (steps M1 and M2)
 
-Baseline is `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`, measured in `/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`. Two low-severity findings: the `strict-typing: done` row is false at two places. Both steps cover all 114 cells, so `unfinished` is empty. The harness refuses report .md files from sub-seats, so this text is the REPORT.md. Its `report_path` is `dev/audit/rounds/round11/D10/s3/REPORT.md`.
+Baseline is `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`, measured in `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`. Two low-severity findings: the `strict-typing: done` row is false at two places. Both steps cover all 114 cells, so `unfinished` is empty. The harness refuses report .md files from sub-seats, so this text is the REPORT.md. Its `report_path` is `dev/audit/rounds/round11/D10/s3/REPORT.md`.
 
 ## Method
 
@@ -69,7 +69,7 @@ Both findings report exact counts that do not depend on machine load. The box wa
 
 Both are empty.
 
-Files are in `/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D10/s3/`:
+Files are in `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D10/s3/`:
 - `REPORT.json`
 - `findings/D10-s3-01.json`
 - `findings/D10-s3-02.json`

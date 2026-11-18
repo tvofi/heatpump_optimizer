@@ -13,7 +13,7 @@ Part B (I1 rubric, written here, applied to every rendered config/options form):
      token, e.g. dhw_, heat_pump_ -> first two tokens when the first is heat/pump/comfort)
      separated by a field of another family while that family also occurs elsewhere.
 Count key: rendered schema keys from the production step handlers.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_paths.py [--perturb]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_paths.py [--perturb]
   --perturb: patches HeatPumpOptimizerConfigFlow.async_step_finish_setup's menu to route
   quick_setup to finish_now (skipping the quick pages); quick path page count goes down.
 Expected: the RESULT counts printed at baseline, exact.

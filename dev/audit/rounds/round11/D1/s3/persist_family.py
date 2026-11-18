@@ -8,7 +8,7 @@ the fault-free control run.
 Count key: the integration's own log records, captured from its loggers.
 
 Command:
-    PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
         dev/audit/rounds/round11/D1/s3/persist_family.py [--perturb]
   --perturb  one production line, in memory at import (excepts_inject.py --edit): the ledger
              save handler logs at WARNING instead of DEBUG -> the count drops by one

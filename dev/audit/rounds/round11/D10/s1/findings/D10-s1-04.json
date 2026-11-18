@@ -7,7 +7,7 @@
   "claim": "For an entry with no zone key, with two_zone_mode absent or 'auto' (2 of 2 single-zone entries), ThermalParameters.from_config reports two_zone_enabled=True and the options flow's thermal_model page does not render house_heat_loss_coefficient. The questionnaire also derives zone masses for a single-storey answer set. So the UI cannot configure the parameter the single-zone model reads, a config-flow (Bronze) failure (D10-criteria Q2). Null controls: two_zone_mode 'off' renders the field (1), and zone keys present hide it by design (1).",
   "mechanism": "ThermalParameters.from_config tests `two_zone_mode in (const.TWO_ZONE_MODE_ON, const.DEFAULT_TWO_ZONE_MODE)`. DEFAULT_TWO_ZONE_MODE is 'auto', so 'auto' and every entry without the key take the forced-on branch, never the presence rule the function's own comment says 'auto' keeps. config_flow._single_zone, which gates the _OPTION_FIELDS row for house_heat_loss_coefficient (when=_single_zone), and presets.preset_from_config both read this predicate. The same predicate selects the model the solver runs; that consequence is outside this cell and is passed on as a lead.",
   "evidence": {
-    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
     "harness_path": "dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
     "value": 2,
     "unit": "single-zone entries (of 2) whose thermal_model options page hides house_heat_loss_coefficient",

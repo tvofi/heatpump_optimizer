@@ -16,7 +16,7 @@ The enumerator is an AST walk over the whole package. It returns a seam for any 
 | null | `--null` (a fixture where the writer re-indexes the plan at `now`) | COUNT 0 |
 | perturbation | `--perturb` (the same fixture plus one cycle writer reading `self._current_action.get("x")`) | COUNT 0 -> 1 |
 
-I re-ran both finder harnesses at this head (`/Users/timmalmstrom/hpo-orch/r10s6/venv-ci`, hastub). `timing.py`: mqtt 0.5732, curve 0.4644, frequency 0.4480; supply, mode, flow_class and space_pump 0. `disinfect.py` was also run. The findings reproduce exactly.
+I re-ran both finder harnesses at this head (`~/hpo-orch/r10s6/venv-ci`, hastub). `timing.py`: mqtt 0.5732, curve 0.4644, frequency 0.4480; supply, mode, flow_class and space_pump 0. `disinfect.py` was also run. The findings reproduce exactly.
 
 ## Disposition of every seam
 

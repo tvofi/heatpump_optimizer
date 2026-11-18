@@ -52,7 +52,20 @@ import time  # noqa: E402
 from contextlib import redirect_stdout  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[6]
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 for _p in (ROOT / "tests" / "hastub", ROOT / "tests", ROOT / "custom_components",
            ROOT / "tools" / "replay"):
     if str(_p) not in sys.path:

@@ -7,7 +7,7 @@
   "claim": "Under every default-gate test script, each traced on its own and combined (fast + e2e + stress, 25 scripts), 34 of 95 modules are below the Silver rule's 95% statement coverage. The lowest are duty_legs.py 31.78, heat_curve.py 38.28, repairs.py 44.12, disinfection.py 47.66 and services.py 56.06; the package is at 91.38%. config_flow.py is at 99.21% (8 statements missed) against config-flow-test-coverage's 100%. quality_scale.yaml marks both rows done (D10-criteria Q2/Q3).",
   "mechanism": "The register keys test-coverage to the recorded floors in tests/coverage_budgets.json (module_percent_floor 95.0, config_flow_percent_floor 100.0) rather than to a fresh measurement of the tree. On this tree 15 of the 25 measured scripts exit non-zero, tests/entities.py among them (it dies at import, see leads), and what a failing script leaves unexecuted is uncovered. Dropping entities alone moves only 34 -> 38 modules, so the shortfall is spread across the suite and not one crash.",
   "evidence": {
-    "command": "PYTHON=/Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 bash dev/audit/rounds/round11/D10/s1/cov_modules.sh all",
+    "command": "PYTHON=~/.local/state/hpo/venv-ci/bin/python3 bash dev/audit/rounds/round11/D10/s1/cov_modules.sh all",
     "harness_path": "dev/audit/rounds/round11/D10/s1/cov_modules.sh",
     "value": 34,
     "unit": "modules (of 95) below 95% statement coverage; package 91.38%; config_flow.py 99.21%",

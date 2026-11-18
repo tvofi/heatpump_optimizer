@@ -2,8 +2,8 @@
 
 The re-run is done and `REPORT.json` is updated in place: 12 of the 18 ratchet rows are now recounted and the other six driven, ten prototypes are built and scored, and `golden.py`, `optimality.py` and `backtest.py` were run on the six-prototype tree. Coverage is M1 95 of 95 and M7 78 of 95, with 17 named `not_reached`. No `REPORT.md` was written; this message is that text.
 
-- Tree: `/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`, baseline `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`
-- Report directory: `/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D7/s1/`
+- Tree: `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`, baseline `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`
+- Report directory: `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D7/s1/`
 - `REPORT.json` (hand-validated against `finding.schema.json`; the venv has no `jsonschema`) and `findings/D7-s1-01.json` to `D7-s1-06.json` are in that directory.
 - Box load1 ranged 16 to 350. Every number below is a static count or a deterministic score; suite wall figures are provisional.
 

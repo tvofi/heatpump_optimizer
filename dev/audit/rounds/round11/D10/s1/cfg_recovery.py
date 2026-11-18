@@ -24,7 +24,7 @@ unrecovered user-step triple (the same flow resubmitted with a good token
 and finished); the unrecovered count must fall by exactly that many (down).
 
 Run (from the export root):
-  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
       dev/audit/rounds/round11/D10/s1/cfg_recovery.py [--with-entities] [--perturb]
 Expected: see REPORT.md (exact count for the tree).
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: macOS arm64, venv-ci Python 3.14.

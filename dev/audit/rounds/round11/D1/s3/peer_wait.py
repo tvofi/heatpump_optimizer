@@ -12,7 +12,7 @@ whose comment names exactly this child and bounds its wait).
 Count key: the production function's own return and the production lock's state.
 
 Command:
-    PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
         dev/audit/rounds/round11/D1/s3/peer_wait.py [--cap 8] [--perturb]
   --perturb  the one-line production edit, in memory: the transport arm's `worker.wait()` becomes
              `worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)` (the timeout arm's own bound)

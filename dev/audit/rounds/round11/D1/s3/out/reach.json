@@ -2,7 +2,7 @@
  "rows": [
   {
    "id": "custom_components/heatpump_optimizer/__init__.py:195",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/__init__.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/__init__.py",
    "line": 195,
    "kind": "narrow",
    "func": "_take_fresh_handover",
@@ -14,7 +14,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/__init__.py:315",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/__init__.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/__init__.py",
    "line": 315,
    "kind": "broad",
    "func": "async_setup_entry",
@@ -26,7 +26,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/accuracy.py:1050",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
    "line": 1050,
    "kind": "narrow",
    "func": "MeasuredCop.from_dict",
@@ -38,7 +38,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/accuracy.py:489",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
    "line": 489,
    "kind": "narrow",
    "func": "AccuracyTracker.from_dict",
@@ -50,7 +50,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/accuracy.py:497",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
    "line": 497,
    "kind": "narrow",
    "func": "AccuracyTracker.from_dict",
@@ -62,7 +62,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/accuracy.py:505",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
    "line": 505,
    "kind": "narrow",
    "func": "AccuracyTracker.from_dict",
@@ -74,7 +74,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/accuracy.py:514",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
    "line": 514,
    "kind": "narrow",
    "func": "AccuracyTracker.from_dict",
@@ -86,7 +86,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/accuracy.py:563",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
    "line": 563,
    "kind": "narrow",
    "func": "plan_promise",
@@ -98,7 +98,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/accuracy.py:617",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
    "line": 617,
    "kind": "narrow",
    "func": "_stored_promise",
@@ -110,7 +110,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/away.py:439",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/away.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/away.py",
    "line": 439,
    "kind": "broad",
    "func": "persist_override",
@@ -122,7 +122,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/boost.py:574",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/boost.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/boost.py",
    "line": 574,
    "kind": "broad",
    "func": "persist",
@@ -134,7 +134,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/boost.py:734",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/boost.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/boost.py",
    "line": 734,
    "kind": "narrow",
    "func": "_due_inside_horizon",
@@ -146,7 +146,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/boost.py:745",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/boost.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/boost.py",
    "line": 745,
    "kind": "narrow",
    "func": "_window_open",
@@ -158,7 +158,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/climate.py:300",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/climate.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/climate.py",
    "line": 300,
    "kind": "broad",
    "func": "HeatPumpOptimizerClimate._async_publish_displace_from_current_action",
@@ -170,7 +170,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/comfort_learning.py:243",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/comfort_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/comfort_learning.py",
    "line": 243,
    "kind": "narrow",
    "func": "ComfortLearner.from_dict",
@@ -182,7 +182,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/comfort_learning.py:254",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/comfort_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/comfort_learning.py",
    "line": 254,
    "kind": "narrow",
    "func": "ComfortLearner.from_dict",
@@ -194,7 +194,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/config_flow.py:1106",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
    "line": 1106,
    "kind": "narrow",
    "func": "_valid_months_spec",
@@ -206,7 +206,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/config_flow.py:1342",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
    "line": 1342,
    "kind": "broad",
    "func": "_translated_menu",
@@ -218,7 +218,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/config_flow.py:2062",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
    "line": 2062,
    "kind": "narrow",
    "func": "_peak_window_as_int",
@@ -230,7 +230,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/config_flow.py:2418",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
    "line": 2418,
    "kind": "broad",
    "func": "_omit_unstored_computed",
@@ -242,7 +242,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/config_flow.py:2527",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
    "line": 2527,
    "kind": "narrow",
    "func": "_same_setting",
@@ -254,7 +254,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/config_flow.py:2532",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
    "line": 2532,
    "kind": "narrow",
    "func": "_same_setting",
@@ -266,7 +266,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/config_flow.py:529",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
    "line": 529,
    "kind": "broad",
    "func": "validate_tibber_token",
@@ -278,7 +278,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/config_flow.py:777",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
    "line": 777,
    "kind": "broad",
    "func": "_prefilled_values",
@@ -290,7 +290,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/config_flow.py:798",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
    "line": 798,
    "kind": "narrow",
    "func": "_widen_to_fit",
@@ -302,7 +302,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/const.py:1491",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/const.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/const.py",
    "line": 1491,
    "kind": "narrow",
    "func": "finite_float",
@@ -314,7 +314,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:10082",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 10082,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._record_accuracy",
@@ -326,7 +326,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:10642",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 10642,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._capture_diagnosis_inputs",
@@ -338,7 +338,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:10647",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 10647,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._capture_diagnosis_inputs",
@@ -350,7 +350,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:10709",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 10709,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._maybe_refresh_price_tile",
@@ -362,7 +362,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:1085",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 1085,
    "kind": "broad",
    "func": "_replay_interval",
@@ -374,7 +374,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:10876",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 10876,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._command_frequency",
@@ -386,7 +386,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:11230",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 11230,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator.async_simulate",
@@ -398,7 +398,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:11237",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 11237,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator.async_simulate",
@@ -410,7 +410,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:1912",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 1912,
    "kind": "broad",
    "func": "_shutdown_process_pool",
@@ -422,7 +422,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:1919",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 1919,
    "kind": "broad",
    "func": "_shutdown_process_pool",
@@ -434,7 +434,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:1925",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 1925,
    "kind": "broad",
    "func": "_shutdown_process_pool",
@@ -446,7 +446,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2040",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2040,
    "kind": "narrow",
    "func": "_read_reply",
@@ -458,7 +458,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2069",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2069,
    "kind": "broad",
    "func": "_run_in_process",
@@ -470,7 +470,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2082",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2082,
    "kind": "narrow",
    "func": "_run_in_process",
@@ -482,7 +482,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2090",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2090,
    "kind": "broad",
    "func": "_run_in_process",
@@ -494,7 +494,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2093",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2093,
    "kind": "narrow",
    "func": "_run_in_process",
@@ -506,7 +506,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2097",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2097,
    "kind": "broad",
    "func": "_run_in_process",
@@ -518,7 +518,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2107",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2107,
    "kind": "broad",
    "func": "_run_in_process",
@@ -530,7 +530,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2147",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2147,
    "kind": "narrow",
    "func": "_await_off_loop",
@@ -542,7 +542,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2150",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2150,
    "kind": "narrow",
    "func": "_await_off_loop",
@@ -554,7 +554,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2209",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2209,
    "kind": "broad",
    "func": "_with_sensor_advisor",
@@ -566,7 +566,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2275",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2275,
    "kind": "narrow",
    "func": "_worker_fallback_streak",
@@ -578,7 +578,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2319",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2319,
    "kind": "narrow",
    "func": "_await_optimize",
@@ -590,7 +590,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2328",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2328,
    "kind": "narrow",
    "func": "_await_optimize",
@@ -602,7 +602,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2692",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2692,
    "kind": "broad",
    "func": "CoordinatorDiagnostics.of",
@@ -614,7 +614,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:2768",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 2768,
    "kind": "narrow",
    "func": "_thermal_param_changes",
@@ -626,7 +626,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:3011",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 3011,
    "kind": "narrow",
    "func": "_plausible_forecast_rows",
@@ -638,7 +638,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:3054",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 3054,
    "kind": "broad",
    "func": "_stored_fuse_advisor",
@@ -650,7 +650,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:4173",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 4173,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription",
@@ -662,7 +662,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:4183",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 4183,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message",
@@ -674,7 +674,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:439",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 439,
    "kind": "narrow",
    "func": "_stored_isoformat",
@@ -686,7 +686,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:451",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 451,
    "kind": "narrow",
    "func": "_stored_learner",
@@ -698,7 +698,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:4564",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 4564,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_set_pump",
@@ -710,7 +710,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:4580",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 4580,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_load_thermal_learning",
@@ -722,7 +722,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:4604",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 4604,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._async_load_thermal_learning",
@@ -734,7 +734,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:4660",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 4660,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._load_t4b_learners",
@@ -746,7 +746,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:4677",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 4677,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._load_t4b_learners",
@@ -758,7 +758,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:4779",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 4779,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_save_thermal_learning",
@@ -770,7 +770,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:511",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 511,
    "kind": "narrow",
    "func": "_refuses_non_finite.guarded",
@@ -782,7 +782,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:582",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 582,
    "kind": "narrow",
    "func": "_comparable_ts",
@@ -794,7 +794,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:5992",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 5992,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._check_pump_mode_expired",
@@ -806,7 +806,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:6034",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 6034,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._dhw_effective_windows",
@@ -818,7 +818,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:6141",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 6141,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._async_update_data",
@@ -830,7 +830,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:6148",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 6148,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_update_data",
@@ -842,7 +842,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:6189",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 6189,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._async_first_refresh_light",
@@ -854,7 +854,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:6195",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 6195,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_first_refresh_light",
@@ -866,7 +866,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:628",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 628,
    "kind": "narrow",
    "func": "_peak_tariff_months",
@@ -878,7 +878,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:642",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 642,
    "kind": "narrow",
    "func": "_peak_tariff_hours",
@@ -890,7 +890,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:6507",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 6507,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator.async_run_optimization",
@@ -902,7 +902,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:685",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 685,
    "kind": "broad",
    "func": "_best_effort_cycle_step",
@@ -914,7 +914,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:6976",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 6976,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
@@ -926,7 +926,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:6978",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 6978,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
@@ -938,7 +938,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:6980",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 6980,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
@@ -950,7 +950,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:7103",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 7103,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
@@ -962,7 +962,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:7113",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 7113,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
@@ -974,7 +974,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:7168",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 7168,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._solar_location",
@@ -986,7 +986,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:745",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 745,
    "kind": "broad",
    "func": "_valve_write_problem",
@@ -998,7 +998,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:8293",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 8293,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_save_price_model",
@@ -1010,7 +1010,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:8328",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 8328,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._async_load_ledger",
@@ -1022,7 +1022,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:8365",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 8365,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_save_ledger",
@@ -1034,7 +1034,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:8403",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 8403,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_save_accuracy",
@@ -1046,7 +1046,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:8445",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 8445,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_save_energy_totals",
@@ -1058,7 +1058,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:8474",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 8474,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_load_manual_plan",
@@ -1070,7 +1070,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:8481",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 8481,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._async_load_manual_plan",
@@ -1082,7 +1082,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:8502",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 8502,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_save_manual_plan",
@@ -1094,7 +1094,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:893",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 893,
    "kind": "narrow",
    "func": "_outage_reading",
@@ -1106,7 +1106,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:9252",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 9252,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._track_curve_comfort",
@@ -1118,7 +1118,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:9290",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 9290,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._immersion_dhw_margin",
@@ -1130,7 +1130,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:9524",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 9524,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._raise_cop_issue",
@@ -1142,7 +1142,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:9773",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 9773,
    "kind": "broad",
    "func": "HeatPumpOptimizerCoordinator._async_save_snapshots",
@@ -1154,7 +1154,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/coordinator.py:9854",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
    "line": 9854,
    "kind": "narrow",
    "func": "HeatPumpOptimizerCoordinator._entity_state",
@@ -1166,7 +1166,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/curve_learning.py:162",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/curve_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/curve_learning.py",
    "line": 162,
    "kind": "narrow",
    "func": "CurveLearner.from_dict",
@@ -1178,7 +1178,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/curve_learning.py:171",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/curve_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/curve_learning.py",
    "line": 171,
    "kind": "narrow",
    "func": "CurveLearner.from_dict",
@@ -1190,7 +1190,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/curve_learning.py:175",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/curve_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/curve_learning.py",
    "line": 175,
    "kind": "narrow",
    "func": "CurveLearner.from_dict",
@@ -1202,7 +1202,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/debugger.py:199",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
    "line": 199,
    "kind": "narrow",
    "func": "_read_stores",
@@ -1214,7 +1214,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/debugger.py:209",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
    "line": 209,
    "kind": "narrow",
    "func": "_parsed",
@@ -1226,7 +1226,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/debugger.py:355",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
    "line": 355,
    "kind": "narrow",
    "func": "run_self_tests",
@@ -1238,7 +1238,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/debugger.py:357",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
    "line": 357,
    "kind": "broad",
    "func": "run_self_tests",
@@ -1250,7 +1250,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/debugger.py:523",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
    "line": 523,
    "kind": "broad",
    "func": "DebugCollector.async_save",
@@ -1262,7 +1262,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/debugger.py:674",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
    "line": 674,
    "kind": "narrow",
    "func": "DebugCollector._async_replay",
@@ -1274,7 +1274,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/debugger.py:676",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
    "line": 676,
    "kind": "broad",
    "func": "DebugCollector._async_replay",
@@ -1286,7 +1286,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/defrost.py:530",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/defrost.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/defrost.py",
    "line": 530,
    "kind": "narrow",
    "func": "DefrostDerate.from_dict._grid_of",
@@ -1298,7 +1298,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/defrost.py:737",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/defrost.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/defrost.py",
    "line": 737,
    "kind": "narrow",
    "func": "DefrostWindow._elapsed",
@@ -1310,7 +1310,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_draws.py:160",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_draws.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_draws.py",
    "line": 160,
    "kind": "narrow",
    "func": "DrawStats.from_dict",
@@ -1322,7 +1322,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_learning.py:234",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
    "line": 234,
    "kind": "narrow",
    "func": "DhwProfileLearner.normalize_profile",
@@ -1334,7 +1334,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_learning.py:254",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
    "line": 254,
    "kind": "broad",
    "func": "DhwProfileLearner.async_load_profile",
@@ -1346,7 +1346,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_learning.py:272",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
    "line": 272,
    "kind": "narrow",
    "func": "DhwProfileLearner.async_load_profile",
@@ -1358,7 +1358,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_learning.py:335",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
    "line": 335,
    "kind": "narrow",
    "func": "DhwProfileLearner.apply_payload",
@@ -1370,7 +1370,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_learning.py:355",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
    "line": 355,
    "kind": "narrow",
    "func": "DhwProfileLearner._restore_daytypes",
@@ -1382,7 +1382,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_learning.py:371",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
    "line": 371,
    "kind": "broad",
    "func": "DhwProfileLearner.async_save_profile",
@@ -1394,7 +1394,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_learning.py:384",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
    "line": 384,
    "kind": "broad",
    "func": "DhwProfileLearner.async_save_draws",
@@ -1406,7 +1406,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_planner.py:1032",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_planner.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_planner.py",
    "line": 1032,
    "kind": "narrow",
    "func": "DhwPlanner._dhw_window_floors",
@@ -1418,7 +1418,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_planner.py:1604",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_planner.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_planner.py",
    "line": 1604,
    "kind": "broad",
    "func": "DhwPlanner._plan_dhw_min_cost",
@@ -1430,7 +1430,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_schedule.py:123",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
    "line": 123,
    "kind": "narrow",
    "func": "_parse_day_selector",
@@ -1442,7 +1442,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_schedule.py:129",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
    "line": 129,
    "kind": "narrow",
    "func": "_parse_day_selector",
@@ -1454,7 +1454,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_schedule.py:537",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
    "line": 537,
    "kind": "narrow",
    "func": "is_valid_spec",
@@ -1466,7 +1466,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_schedule.py:577",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
    "line": 577,
    "kind": "narrow",
    "func": "spec_problem",
@@ -1478,7 +1478,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/dhw_schedule.py:674",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
    "line": 674,
    "kind": "narrow",
    "func": "parse_day_overrides",
@@ -1490,7 +1490,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/diagnosis.py:103",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
    "line": 103,
    "kind": "narrow",
    "func": "attribute",
@@ -1502,7 +1502,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/diagnosis.py:114",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
    "line": 114,
    "kind": "broad",
    "func": "attribute",
@@ -1514,7 +1514,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/diagnosis.py:151",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
    "line": 151,
    "kind": "broad",
    "func": "diagnose_record",
@@ -1526,7 +1526,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/diagnosis.py:93",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
    "line": 93,
    "kind": "broad",
    "func": "attribute",
@@ -1538,7 +1538,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/diagnostics.py:339",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnostics.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnostics.py",
    "line": 339,
    "kind": "broad",
    "func": "_coordinator_snapshot",
@@ -1550,7 +1550,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/diagnostics.py:367",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnostics.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnostics.py",
    "line": 367,
    "kind": "broad",
    "func": "_never_breaks",
@@ -1562,7 +1562,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/disinfection.py:225",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/disinfection.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/disinfection.py",
    "line": 225,
    "kind": "broad",
    "func": "DisinfectionSwitch._write",
@@ -1574,7 +1574,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/draw_range.py:373",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
    "line": 373,
    "kind": "narrow",
    "func": "DrawRange.from_dict",
@@ -1586,7 +1586,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/draw_range.py:388",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
    "line": 388,
    "kind": "narrow",
    "func": "DrawRange.from_dict",
@@ -1598,7 +1598,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/draw_range.py:456",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
    "line": 456,
    "kind": "narrow",
    "func": "_stored_ceiling",
@@ -1610,7 +1610,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/draw_range.py:473",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
    "line": 473,
    "kind": "narrow",
    "func": "_command_cells",
@@ -1622,7 +1622,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/drift.py:109",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/drift.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/drift.py",
    "line": 109,
    "kind": "narrow",
    "func": "stored_instant",
@@ -1634,7 +1634,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/drift.py:318",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/drift.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/drift.py",
    "line": 318,
    "kind": "narrow",
    "func": "Cusum.load",
@@ -1646,7 +1646,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/drift.py:360",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/drift.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/drift.py",
    "line": 360,
    "kind": "narrow",
    "func": "_positive_definite",
@@ -1658,7 +1658,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/duty_legs.py:144",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_legs.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_legs.py",
    "line": 144,
    "kind": "narrow",
    "func": "priced_pair",
@@ -1670,7 +1670,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/duty_switch.py:427",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_switch.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_switch.py",
    "line": 427,
    "kind": "narrow",
    "func": "DutySwitchLearner.from_record",
@@ -1682,7 +1682,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/duty_switch.py:504",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_switch.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_switch.py",
    "line": 504,
    "kind": "broad",
    "func": "_load",
@@ -1694,7 +1694,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/duty_switch.py:514",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_switch.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_switch.py",
    "line": 514,
    "kind": "broad",
    "func": "_persist",
@@ -1706,7 +1706,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/entry_config.py:42",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/entry_config.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/entry_config.py",
    "line": 42,
    "kind": "narrow",
    "func": "_whole",
@@ -1718,7 +1718,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/flow_lift.py:230",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/flow_lift.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/flow_lift.py",
    "line": 230,
    "kind": "narrow",
    "func": "FlowCurveBias.from_dict",
@@ -1730,7 +1730,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/freq_control.py:274",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/freq_control.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/freq_control.py",
    "line": 274,
    "kind": "narrow",
    "func": "FrequencyMap.from_dict",
@@ -1742,7 +1742,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/freq_control.py:280",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/freq_control.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/freq_control.py",
    "line": 280,
    "kind": "narrow",
    "func": "FrequencyMap.from_dict",
@@ -1754,7 +1754,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/frontend.py:170",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
    "line": 170,
    "kind": "broad",
    "func": "_register_lovelace_resource",
@@ -1766,7 +1766,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/frontend.py:54",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
    "line": 54,
    "kind": "narrow",
    "func": "_register_static_path",
@@ -1778,7 +1778,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/frontend.py:62",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
    "line": 62,
    "kind": "broad",
    "func": "_register_static_path",
@@ -1790,7 +1790,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/frontend.py:69",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
    "line": 69,
    "kind": "broad",
    "func": "_register_static_path",
@@ -1802,7 +1802,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/grid_fee.py:177",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
    "line": 177,
    "kind": "narrow",
    "func": "_parse_rule",
@@ -1814,7 +1814,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/grid_fee.py:195",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
    "line": 195,
    "kind": "narrow",
    "func": "_parse_rule",
@@ -1826,7 +1826,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/grid_fee.py:243",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
    "line": 243,
    "kind": "narrow",
    "func": "spec_problem",
@@ -1838,7 +1838,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/grid_fee.py:281",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
    "line": 281,
    "kind": "narrow",
    "func": "GridFeeSchedule.from_config",
@@ -1850,7 +1850,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/grid_fee.py:288",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
    "line": 288,
    "kind": "narrow",
    "func": "GridFeeSchedule.from_config",
@@ -1862,7 +1862,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/grid_fee.py:492",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
    "line": 492,
    "kind": "narrow",
    "func": "apply_catalog",
@@ -1874,7 +1874,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/heat_curve.py:245",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/heat_curve.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/heat_curve.py",
    "line": 245,
    "kind": "broad",
    "func": "publish_ecl110_topics",
@@ -1886,7 +1886,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/heat_curve.py:263",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/heat_curve.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/heat_curve.py",
    "line": 263,
    "kind": "broad",
    "func": "publish_ecl110_topics",
@@ -1898,7 +1898,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/heat_curve.py:397",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/heat_curve.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/heat_curve.py",
    "line": 397,
    "kind": "broad",
    "func": "_send",
@@ -1910,7 +1910,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/inputs.py:1115",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/inputs.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/inputs.py",
    "line": 1115,
    "kind": "narrow",
    "func": "InputReader.read",
@@ -1922,7 +1922,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/inputs.py:958",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/inputs.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/inputs.py",
    "line": 958,
    "kind": "narrow",
    "func": "parse_bool",
@@ -1934,7 +1934,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/issues.py:65",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/issues.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/issues.py",
    "line": 65,
    "kind": "broad",
    "func": "clear_issue",
@@ -1946,7 +1946,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/ledger.py:255",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/ledger.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/ledger.py",
    "line": 255,
    "kind": "narrow",
    "func": "_clean_month",
@@ -1958,7 +1958,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/ledger.py:729",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/ledger.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/ledger.py",
    "line": 729,
    "kind": "broad",
    "func": "roll_receipts",
@@ -1970,7 +1970,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/legionella.py:227",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/legionella.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/legionella.py",
    "line": 227,
    "kind": "broad",
    "func": "LegionellaGuard.async_load",
@@ -1982,7 +1982,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/legionella.py:262",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/legionella.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/legionella.py",
    "line": 262,
    "kind": "broad",
    "func": "LegionellaGuard.async_save",
@@ -1994,7 +1994,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/manual_plan.py:257",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/manual_plan.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/manual_plan.py",
    "line": 257,
    "kind": "narrow",
    "func": "ManualOverride.from_dict",
@@ -2006,7 +2006,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/manual_plan.py:267",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/manual_plan.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/manual_plan.py",
    "line": 267,
    "kind": "narrow",
    "func": "ManualOverride.from_dict",
@@ -2018,7 +2018,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/manual_plan.py:99",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/manual_plan.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/manual_plan.py",
    "line": 99,
    "kind": "narrow",
    "func": "_parse_dt",
@@ -2030,7 +2030,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/notifier.py:289",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/notifier.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/notifier.py",
    "line": 289,
    "kind": "broad",
    "func": "Notifier._async_save",
@@ -2042,7 +2042,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/off_restore.py:152",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
    "line": 152,
    "kind": "broad",
    "func": "_save",
@@ -2054,7 +2054,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/off_restore.py:218",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
    "line": 218,
    "kind": "broad",
    "func": "_restore_baseline",
@@ -2066,7 +2066,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/off_restore.py:252",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
    "line": 252,
    "kind": "broad",
    "func": "async_restore",
@@ -2078,7 +2078,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/off_restore.py:343",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
    "line": 343,
    "kind": "broad",
    "func": "async_forget",
@@ -2090,7 +2090,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/open_meteo.py:213",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
    "line": 213,
    "kind": "narrow",
    "func": "_parse_block",
@@ -2102,7 +2102,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/open_meteo.py:223",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
    "line": 223,
    "kind": "narrow",
    "func": "_parse_block",
@@ -2114,7 +2114,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/open_meteo.py:400",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
    "line": 400,
    "kind": "broad",
    "func": "OpenMeteoSolar._fenced",
@@ -2126,7 +2126,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/open_meteo.py:421",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
    "line": 421,
    "kind": "broad",
    "func": "OpenMeteoSolar._get_json",
@@ -2138,7 +2138,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:1468",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 1468,
    "kind": "narrow",
    "func": "<module>",
@@ -2150,7 +2150,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:1866",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 1866,
    "kind": "broad",
    "func": "_lbfgsb_restart",
@@ -2162,7 +2162,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:1944",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 1944,
    "kind": "broad",
    "func": "_multi_start_minimize",
@@ -2174,7 +2174,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:1970",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 1970,
    "kind": "broad",
    "func": "_multi_start_minimize",
@@ -2186,7 +2186,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:2849",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 2849,
    "kind": "broad",
    "func": "_solver_status",
@@ -2198,7 +2198,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:4000",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 4000,
    "kind": "broad",
    "func": "HeatPumpOptimizer._co_optimize",
@@ -2210,7 +2210,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:496",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 496,
    "kind": "broad",
    "func": "_avoid_priced_switches",
@@ -2222,7 +2222,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:4988",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 4988,
    "kind": "broad",
    "func": "HeatPumpOptimizer._solve_space",
@@ -2234,7 +2234,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:5575",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 5575,
    "kind": "broad",
    "func": "HeatPumpOptimizer._optimize_space_only",
@@ -2246,7 +2246,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/optimizer.py:705",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
    "line": 705,
    "kind": "broad",
    "func": "_commit_runs",
@@ -2258,7 +2258,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/price_model.py:113",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
    "line": 113,
    "kind": "narrow",
    "func": "_stored_rows",
@@ -2270,7 +2270,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/price_model.py:127",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
    "line": 127,
    "kind": "narrow",
    "func": "_stored_counts",
@@ -2282,7 +2282,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/price_model.py:484",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
    "line": 484,
    "kind": "narrow",
    "func": "_noon",
@@ -2294,7 +2294,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/price_model.py:584",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
    "line": 584,
    "kind": "narrow",
    "func": "_entries_by_day",
@@ -2306,7 +2306,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/price_model.py:749",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
    "line": 749,
    "kind": "narrow",
    "func": "_raw_start",
@@ -2318,7 +2318,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/price_model.py:772",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
    "line": 772,
    "kind": "narrow",
    "func": "apply_price_adjustments",
@@ -2330,7 +2330,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/price_model.py:862",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
    "line": 862,
    "kind": "narrow",
    "func": "pull_prices",
@@ -2342,7 +2342,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/price_tiles.py:307",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_tiles.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_tiles.py",
    "line": 307,
    "kind": "narrow",
    "func": "_aware",
@@ -2354,7 +2354,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/process_worker.py:25",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
    "line": 25,
    "kind": "narrow",
    "func": "_bootstrap",
@@ -2366,7 +2366,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/process_worker.py:40",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
    "line": 40,
    "kind": "broad",
    "func": "_describe",
@@ -2378,7 +2378,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/process_worker.py:52",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
    "line": 52,
    "kind": "broad",
    "func": "_dump",
@@ -2390,7 +2390,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/process_worker.py:74",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
    "line": 74,
    "kind": "narrow",
    "func": "run_worker",
@@ -2402,7 +2402,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/process_worker.py:76",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
    "line": 76,
    "kind": "broad",
    "func": "run_worker",
@@ -2414,7 +2414,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/process_worker.py:85",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
    "line": 85,
    "kind": "broad",
    "func": "run_worker",
@@ -2426,7 +2426,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/pump_arbiter.py:1483",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
    "line": 1483,
    "kind": "narrow",
    "func": "_observed",
@@ -2438,7 +2438,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/pump_arbiter.py:1613",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
    "line": 1613,
    "kind": "broad",
    "func": "_write",
@@ -2450,7 +2450,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/pump_arbiter.py:1970",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
    "line": 1970,
    "kind": "broad",
    "func": "switch_supply",
@@ -2462,7 +2462,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/pump_arbiter.py:2195",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
    "line": 2195,
    "kind": "broad",
    "func": "_persist",
@@ -2474,7 +2474,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/pump_arbiter.py:2214",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
    "line": 2214,
    "kind": "narrow",
    "func": "_load",
@@ -2486,7 +2486,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/quiet_windows.py:422",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/quiet_windows.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/quiet_windows.py",
    "line": 422,
    "kind": "narrow",
    "func": "silent_cap_kw",
@@ -2498,7 +2498,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/quiet_windows.py:601",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/quiet_windows.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/quiet_windows.py",
    "line": 601,
    "kind": "narrow",
    "func": "_parse_spec_pair",
@@ -2510,7 +2510,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/quiet_windows.py:634",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/quiet_windows.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/quiet_windows.py",
    "line": 634,
    "kind": "narrow",
    "func": "overlap_problem",
@@ -2522,7 +2522,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/repairs.py:54",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/repairs.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/repairs.py",
    "line": 54,
    "kind": "broad",
    "func": "DhwSetpointRepairFlow.async_step_confirm",
@@ -2534,7 +2534,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/replay_doc.py:185",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
    "line": 185,
    "kind": "narrow",
    "func": "numeric",
@@ -2546,7 +2546,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/replay_doc.py:197",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
    "line": 197,
    "kind": "narrow",
    "func": "json_decimal_places",
@@ -2558,7 +2558,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/replay_doc.py:218",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
    "line": 218,
    "kind": "narrow",
    "func": "text_ok",
@@ -2570,7 +2570,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/replay_doc.py:240",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
    "line": 240,
    "kind": "narrow",
    "func": "clean_value",
@@ -2582,7 +2582,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/services.py:1144",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
    "line": 1144,
    "kind": "narrow",
    "func": "handle_apply_manual_plan",
@@ -2594,7 +2594,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/services.py:1265",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
    "line": 1265,
    "kind": "narrow",
    "func": "handle_diagnose_interval",
@@ -2606,7 +2606,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/services.py:426",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
    "line": 426,
    "kind": "narrow",
    "func": "_refuse_quiet",
@@ -2618,7 +2618,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/services.py:657",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
    "line": 657,
    "kind": "narrow",
    "func": "handle_set_thermal_params",
@@ -2630,7 +2630,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/services.py:991",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
    "line": 991,
    "kind": "narrow",
    "func": "handle_apply_schedule",
@@ -2642,7 +2642,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/setpoint_check.py:88",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/setpoint_check.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/setpoint_check.py",
    "line": 88,
    "kind": "broad",
    "func": "evaluate",
@@ -2654,7 +2654,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/silent_mode.py:109",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/silent_mode.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/silent_mode.py",
    "line": 109,
    "kind": "narrow",
    "func": "compose",
@@ -2666,7 +2666,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/snapshots.py:230",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/snapshots.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/snapshots.py",
    "line": 230,
    "kind": "narrow",
    "func": "SnapshotRing.best_restore",
@@ -2678,7 +2678,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/snapshots.py:286",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/snapshots.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/snapshots.py",
    "line": 286,
    "kind": "narrow",
    "func": "SnapshotRing.from_dict",
@@ -2690,7 +2690,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/store.py:102",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
    "line": 102,
    "kind": "narrow",
    "func": "_poisoned",
@@ -2702,7 +2702,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/store.py:160",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
    "line": 160,
    "kind": "narrow",
    "func": "_bound_instants",
@@ -2714,7 +2714,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/store.py:217",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
    "line": 217,
    "kind": "narrow",
    "func": "_parses",
@@ -2726,7 +2726,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/store.py:247",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
    "line": 247,
    "kind": "narrow",
    "func": "in_domain",
@@ -2738,7 +2738,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/store.py:690",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
    "line": 690,
    "kind": "broad",
    "func": "load_mapping",
@@ -2750,7 +2750,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/store.py:72",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
    "line": 72,
    "kind": "narrow",
    "func": "<module>",
@@ -2762,7 +2762,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/store.py:750",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
    "line": 750,
    "kind": "narrow",
    "func": "QuarantiningStore.async_load",
@@ -2774,7 +2774,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/sysid.py:1843",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
    "line": 1843,
    "kind": "broad",
    "func": "SystemIdentification._finish",
@@ -2786,7 +2786,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/sysid.py:1981",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
    "line": 1981,
    "kind": "narrow",
    "func": "SystemIdentification.identify",
@@ -2798,7 +2798,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/sysid.py:2098",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
    "line": 2098,
    "kind": "narrow",
    "func": "SystemIdentification.identify",
@@ -2810,7 +2810,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/sysid.py:2112",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
    "line": 2112,
    "kind": "narrow",
    "func": "SystemIdentification.identify",
@@ -2822,7 +2822,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/sysid.py:826",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
    "line": 826,
    "kind": "narrow",
    "func": "_lm_solve",
@@ -2834,7 +2834,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/tariff.py:425",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
    "line": 425,
    "kind": "narrow",
    "func": "PeakTracker.from_dict",
@@ -2846,7 +2846,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/tariff.py:435",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
    "line": 435,
    "kind": "narrow",
    "func": "PeakTracker.from_dict",
@@ -2858,7 +2858,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/tariff.py:445",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
    "line": 445,
    "kind": "narrow",
    "func": "PeakTracker.from_dict",
@@ -2870,7 +2870,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/tariff.py:524",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
    "line": 524,
    "kind": "narrow",
    "func": "_stored_peaks",
@@ -2882,7 +2882,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/thermal_model.py:1148",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
    "line": 1148,
    "kind": "narrow",
    "func": "ThermalParameters.from_config",
@@ -2894,7 +2894,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/thermal_model.py:173",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
    "line": 173,
    "kind": "narrow",
    "func": "_holiday_dhw_windows",
@@ -2906,7 +2906,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/thermal_model.py:268",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
    "line": 268,
    "kind": "narrow",
    "func": "ThermalParameters.clamp",
@@ -2918,7 +2918,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/thermal_model.py:285",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
    "line": 285,
    "kind": "narrow",
    "func": "ThermalParameters.clamp",
@@ -2930,7 +2930,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/thermal_model.py:3540",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
    "line": 3540,
    "kind": "narrow",
    "func": "ThermalModel.internal_gains_at",
@@ -2942,7 +2942,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wear.py:225",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wear.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wear.py",
    "line": 225,
    "kind": "narrow",
    "func": "StartCounter.from_dict",
@@ -2954,7 +2954,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wear.py:233",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wear.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wear.py",
    "line": 233,
    "kind": "narrow",
    "func": "StartCounter.from_dict",
@@ -2966,7 +2966,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/whatif.py:127",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/whatif.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/whatif.py",
    "line": 127,
    "kind": "narrow",
    "func": "scratch_copies",
@@ -2978,7 +2978,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/whatif.py:213",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/whatif.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/whatif.py",
    "line": 213,
    "kind": "broad",
    "func": "steady_pair",
@@ -2990,7 +2990,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wood_fuel.py:129",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
    "line": 129,
    "kind": "narrow",
    "func": "wood_fuel_ready",
@@ -3002,7 +3002,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wood_fuel.py:291",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
    "line": 291,
    "kind": "narrow",
    "func": "_as_dt",
@@ -3014,7 +3014,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wood_fuel.py:318",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
    "line": 318,
    "kind": "narrow",
    "func": "wood_slots_to_kw",
@@ -3026,7 +3026,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wood_fuel.py:343",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
    "line": 343,
    "kind": "narrow",
    "func": "_wood_slots_error",
@@ -3038,7 +3038,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wood_fuel.py:369",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
    "line": 369,
    "kind": "narrow",
    "func": "_wood_override_fuel",
@@ -3050,7 +3050,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wood_fuel.py:420",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
    "line": 420,
    "kind": "narrow",
    "func": "detected_wood_slots",
@@ -3062,7 +3062,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wood_fuel.py:459",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
    "line": 459,
    "kind": "narrow",
    "func": "_cops",
@@ -3074,7 +3074,7 @@
   },
   {
    "id": "custom_components/heatpump_optimizer/wood_fuel.py:501",
-   "file": "/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
    "line": 501,
    "kind": "narrow",
    "func": "build_wood_fuel_view",

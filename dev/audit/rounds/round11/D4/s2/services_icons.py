@@ -8,7 +8,7 @@ translation_keys raised in services.py with no exceptions.<key>.message per lang
 {placeholders} those messages read that the raise does not pass.
 Count key: services.yaml top-level keys and field keys as Home Assistant loads them;
 icons.json keys; translation_key literals in services.py.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 -I dev/audit/rounds/round11/D4/s2/services_icons.py [--perturb-drop SERVICE] [--perturb-fix-de]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 -I dev/audit/rounds/round11/D4/s2/services_icons.py [--perturb-drop SERVICE] [--perturb-fix-de]
   --perturb-fix-de renames de exceptions.run_optimization_no_prices' {entry_id} to {entry_ids}: both mismatch counts go to 0.
   --perturb-drop removes that service's icon in memory: services_without_icon goes up by 1.
 Expected: the RESULT counts printed at baseline, exact.

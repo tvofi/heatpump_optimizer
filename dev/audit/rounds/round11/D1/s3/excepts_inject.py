@@ -11,7 +11,7 @@ an import-time AST rewrite, same line numbers), so the counts are keyed on what 
 with it, never on an input attribute.
 
 Command:
-    PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
         dev/audit/rounds/round11/D1/s3/excepts_inject.py [--reach] [--only ID ...] \
         [--shard i/n] [--out PATH]
   --reach   two fault-free runs (process worker; in-process solve): which handlers' try bodies

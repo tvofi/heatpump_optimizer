@@ -7,7 +7,7 @@
  "claim": "Of the 53 distinct (flow, step, error) triples that tests/config_flow_steps.py makes the flows render, 51 never appear in a flow that later finishes, and 49 never appear in a flow that even moves past the erroring page. Reauthentication (2 of 2) is the only kind tested to recovery. config-flow-test-coverage (Bronze) requires that after each error 'the test fixes the cause and finishes the flow' for the user, reconfigure, reauthentication and options flows.",
  "mechanism": "Each error branch is exercised on its own fresh flow (fresh_flow / fresh_options) that is dropped after the error assertion. Only the reauth test resubmits the same flow and finishes it (reauth_successful). So the row's done rests on statement coverage (config_flow_percent_floor 100.0) and does not show the recovery the rule asks for.",
  "evidence": {
-  "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
+  "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
   "harness_path": "dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
   "value": 51,
   "unit": "error triples (of 53) with no finishing flow; never_stepped_past=49 (config 15, options 32, reconfigure 2)",

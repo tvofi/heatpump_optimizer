@@ -26,7 +26,7 @@ presence branch the function's own comment documents; hidden_on_single_zone
 must fall to 0 (to_zero) while zone_keys still hides the field.
 
 Run (from the export root):
-  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
       dev/audit/rounds/round11/D10/s1/opt_two_zone.py [--perturb]
 Expected: see REPORT.md (exact).
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (the round's export tree). Machine: macOS arm64, venv-ci Python 3.14.

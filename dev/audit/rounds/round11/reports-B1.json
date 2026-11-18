@@ -244,7 +244,7 @@
       "dimension": "D10",
       "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
       "report_path": "dev/audit/rounds/round11/D10/s1/REPORT.md",
-      "exposure": "Read GitHub's public home-assistant/developers.home-assistant docs (quality-scale checklist tiers.json and 54 rule pages), which are the brief's step-1 source, not this repository's records. Once, at about 20:28 CET on 2026-11-16, to check whether the export was broken, this seat compared export files against the baseline SHA in /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt. It did that because tests/config_flow_steps.py failed 5 checks run bare. It told the orchestrator, which ruled: carry on with the export as is, make no further comparisons, and record nothing of what was seen. No finding was aimed by that comparison: D10-s1-01..03 were already written, and D10-s1-04/05 came from following the 5 config_flow_steps failures by this dimension's own checks, as the orchestrator directed.",
+      "exposure": "Read GitHub's public home-assistant/developers.home-assistant docs (quality-scale checklist tiers.json and 54 rule pages), which are the brief's step-1 source, not this repository's records. Once, at about 20:28 CET on 2026-11-16, to check whether the export was broken, this seat compared export files against the baseline SHA in ~/hpo-orch/r10s6/r11/find-wt. It did that because tests/config_flow_steps.py failed 5 checks run bare. It told the orchestrator, which ruled: carry on with the export as is, make no further comparisons, and record nothing of what was seen. No finding was aimed by that comparison: D10-s1-01..03 were already written, and D10-s1-04/05 came from following the 5 config_flow_steps failures by this dimension's own checks, as the orchestrator directed.",
       "coverage": [
         {
           "step": "D10.M1",
@@ -295,7 +295,7 @@
           "claim": "A schema-valid heatpump_optimizer.set_away call whose return_time is a non-empty string that is not a datetime (6 of 6 cases) returns without raising, turns or keeps away on with no return instant, and in 3 of 3 cases wipes a previously stored return time; action-exceptions (Silver) requires a ServiceValidationError for incorrect input (D10-criteria Q2: the done row fails at this site).",
           "mechanism": "SERVICE_SCHEMA_SET_AWAY admits return_time as cv.string; handle_set_away passes it to HeatPumpOptimizerCoordinator.async_set_away, which runs away._parse_return_time -> drift.stored_instant; datetime.fromisoformat raises ValueError, stored_instant returns None, and async_set_away stores iso=None (the clear value) instead of refusing. The sibling apply_manual_plan refuses the same shape (manual_plan_invalid_expires_at).",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/svc_set_away.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/svc_set_away.py",
             "harness_path": "dev/audit/rounds/round11/D10/s1/svc_set_away.py",
             "value": 6,
             "unit": "calls acknowledged of 6 unparseable return_time strings (cleared_existing_return=3 of 3; control_accepted=1)",
@@ -344,7 +344,7 @@
           "claim": "Pressing 'Run system identification' with the feature off (the default) arms nothing and returns without raising, and pressing 'Diagnose last interval' while the process worker is unavailable returns without raising while its background task raises ProcessWorkerUnavailable: 2 of 2 refused/failed presses are acknowledged, against action-exceptions (Silver), whose note extends the rule to platform actions; the compliant siblings (ForceOptimizationButton, the diagnose_interval service) raise under the same failure (2 of 2).",
           "mechanism": "SystemIdentificationButton.async_press and DiagnoseIntervalButton.async_press hand their work to entity.off_the_action (an entry background task) and return at once, so no outcome can reach the caller. SysID.arm returns False with only an INFO log when system_identification_enabled is False (DEFAULT_SYSID_ENABLED=False) while the button stays available; the diagnosis failure surfaces only as an unretrieved task exception. button.py's PARALLEL_UPDATES is 0, so off_the_action's stated reason (a held parallel-updates slot, RC2) no longer applies on this platform, and ForceOptimizationButton already awaits and raises.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/btn_actions.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/btn_actions.py",
             "harness_path": "dev/audit/rounds/round11/D10/s1/btn_actions.py",
             "value": 2,
             "unit": "refused/failed presses acknowledged of 2 (controls_raised=2 of 2; sysid_enabled_armed=1)",
@@ -392,7 +392,7 @@
           "claim": "Walking the setup wizard's 'Continue setup' path at the forms' own defaults creates an entry whose data holds 41 keys that are not asked on the two connection screens (comfort band, thermal model, hot water, weather sensitivity), every one of them also an options-flow field, and options={} -- against the config-flow (Bronze) subcheck 'Uses ConfigEntry.data and ConfigEntry.options correctly' (settings not needed for the connection belong in options); the null arm (Finish setup now) holds 0.",
           "mechanism": "HeatPumpOptimizerConfigFlow._create_setup_entry passes the whole wizard dict self._data as async_create_entry(data=...), with no options=. Every reader then merges {**entry.data, **entry.options}, so a wizard value can be overridden by an option but never removed by one; const.py's two-zone comment records that consequence (zone keys the initial flow wrote into entry.data 'where options cannot erase them'), which needed CONF_TWO_ZONE_MODE as a workaround.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
             "harness_path": "dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
             "value": 41,
             "unit": "non-connection setting keys in the created entry's data (continue walk); finish_now walk 0",
@@ -435,7 +435,7 @@
           "claim": "For an entry with no zone key, with two_zone_mode absent or 'auto' (2 of 2 single-zone entries), ThermalParameters.from_config reports two_zone_enabled=True and the options flow's thermal_model page does not render house_heat_loss_coefficient. The questionnaire also derives zone masses for a single-storey answer set. So the UI cannot configure the parameter the single-zone model reads, a config-flow (Bronze) failure (D10-criteria Q2). Null controls: two_zone_mode 'off' renders the field (1), and zone keys present hide it by design (1).",
           "mechanism": "ThermalParameters.from_config tests `two_zone_mode in (const.TWO_ZONE_MODE_ON, const.DEFAULT_TWO_ZONE_MODE)`. DEFAULT_TWO_ZONE_MODE is 'auto', so 'auto' and every entry without the key take the forced-on branch, never the presence rule the function's own comment says 'auto' keeps. config_flow._single_zone, which gates the _OPTION_FIELDS row for house_heat_loss_coefficient (when=_single_zone), and presets.preset_from_config both read this predicate. The same predicate selects the model the solver runs; that consequence is outside this cell and is passed on as a lead.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
             "harness_path": "dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
             "value": 2,
             "unit": "single-zone entries (of 2) whose thermal_model options page hides house_heat_loss_coefficient",
@@ -483,7 +483,7 @@
           "claim": "Of the 53 distinct (flow, step, error) triples that tests/config_flow_steps.py makes the flows render, 51 never appear in a flow that later finishes, and 49 never appear in a flow that even moves past the erroring page. Reauthentication (2 of 2) is the only kind tested to recovery. config-flow-test-coverage (Bronze) requires that after each error 'the test fixes the cause and finishes the flow' for the user, reconfigure, reauthentication and options flows.",
           "mechanism": "Each error branch is exercised on its own fresh flow (fresh_flow / fresh_options) that is dropped after the error assertion. Only the reauth test resubmits the same flow and finishes it (reauth_successful). So the row's done rests on statement coverage (config_flow_percent_floor 100.0) and does not show the recovery the rule asks for.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
             "harness_path": "dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
             "value": 51,
             "unit": "error triples (of 53) with no finishing flow; never_stepped_past=49 (config 15, options 32, reconfigure 2)",
@@ -527,7 +527,7 @@
           "claim": "Under every default-gate test script, each traced on its own and combined (fast + e2e + stress, 25 scripts), 34 of 95 modules are below the Silver rule's 95% statement coverage. The lowest are duty_legs.py 31.78, heat_curve.py 38.28, repairs.py 44.12, disinfection.py 47.66 and services.py 56.06; the package is at 91.38%. config_flow.py is at 99.21% (8 statements missed) against config-flow-test-coverage's 100%. quality_scale.yaml marks both rows done (D10-criteria Q2/Q3).",
           "mechanism": "The register keys test-coverage to the recorded floors in tests/coverage_budgets.json (module_percent_floor 95.0, config_flow_percent_floor 100.0) rather than to a fresh measurement of the tree. On this tree 15 of the 25 measured scripts exit non-zero, tests/entities.py among them (it dies at import, see leads), and what a failing script leaves unexecuted is uncovered. Dropping entities alone moves only 34 -> 38 modules, so the shortfall is spread across the suite and not one crash.",
           "evidence": {
-            "command": "PYTHON=/Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 bash dev/audit/rounds/round11/D10/s1/cov_modules.sh all",
+            "command": "PYTHON=~/.local/state/hpo/venv-ci/bin/python3 bash dev/audit/rounds/round11/D10/s1/cov_modules.sh all",
             "harness_path": "dev/audit/rounds/round11/D10/s1/cov_modules.sh",
             "value": 34,
             "unit": "modules (of 95) below 95% statement coverage; package 91.38%; config_flow.py 99.21%",
@@ -566,117 +566,117 @@
       "non_findings": [
         {
           "claim": "Q1: every Bronze/Silver checklist rule (30, HA tiers.json fetched 2026-11-16) has a row in quality_scale.yaml, each done or exempt",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "register-rows-missing_violations=0; register-not-done-or-exempt_violations=0"
         },
         {
           "claim": "action-setup: async_setup registers all 15 documented services before any entry; an entry's setup adds 0, its unload removes 0",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "action-setup_violations=0 (perturb async_setup -> 15)"
         },
         {
           "claim": "appropriate-polling: coordinator update_interval is 30 min by default",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "appropriate-polling_violations=0; update_interval_min=30.0"
         },
         {
           "claim": "brands: brand/ icon 256x256, icon@2x 512x512, dark variants alike; logos' shortest side within 128-256 / 256-512",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "brands_violations=0"
         },
         {
           "claim": "common-modules: coordinator in coordinator.py, base entity in entity.py, all 82 default entities derive from it",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "common-modules_violations=0"
         },
         {
           "claim": "config-flow data_description half: every config/options field labelled in strings.json and every _OPTION_FIELDS row has a data_description",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "config-flow_violations=0 (data_description half only; data/options half is D10-s1-03)"
         },
         {
           "claim": "dependency-transparency: requirements numpy, scipy, threadpoolctl are PyPI projects under BSD-3-Clause",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "dependency-transparency_violations=0"
         },
         {
           "claim": "docs-actions: all 15 services and every services.yaml field named in README/docs",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "docs-actions_violations=0"
         },
         {
           "claim": "docs-triggers / docs-conditions: 0 trigger and 0 condition platforms (vacuous)",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "0 / 0"
         },
         {
           "claim": "docs-high-level-description, docs-installation-instructions, docs-removal-instructions: README sections What it does (+tibber.com link), Requirements/Installation, Removal present",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "0 / 0 / 0"
         },
         {
           "claim": "docs-installation-parameters: every user and user_sensors field named in the docs; docs-configuration-parameters: all 227 options-registry rows named",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "0 missing / 0 missing"
         },
         {
           "claim": "entity-event-setup: 0 subscription calls in entity classes outside async_added_to_hass",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "entity-event-setup_violations=0"
         },
         {
           "claim": "entity-unique-id and has-entity-name: 410 entities over the 5 golden coordinator scenarios, all with a unique id (no duplicates) and has_entity_name True",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "0 / 0 (perturbations -> 815 / 410)"
         },
         {
           "claim": "runtime-data: coordinator lives on entry.runtime_data; the only hass.data writes are the documented reload handover and frontend's process-wide once-flag",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "runtime-data_violations=0"
         },
         {
           "claim": "test-before-configure: a 401 shows invalid_tibber_token and an unreachable API cannot_connect on the first screen",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "test-before-configure_violations=0"
         },
         {
           "claim": "unique-config-entry: the same first-screen answers twice abort already_configured, unique id set",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "unique-config-entry_violations=0"
         },
         {
           "claim": "test-before-setup: a failed price fetch at setup raises ConfigEntryNotReady; reauthentication-flow: a refused token raises ConfigEntryAuthFailed and starts reauth once",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "0 / 0 (perturb -> 2)"
         },
         {
           "claim": "config-entry-unloading: setup with indoor, switch and presence entities registers 2 state listeners + 1 bus listener; unload leaves 0",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "config-entry-unloading_violations=0"
         },
         {
           "claim": "entity-unavailable: with last_update_success False every one of 82 coord_all_features entities is unavailable",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "0 (perturb -> 45)"
         },
         {
           "claim": "integration-owner: manifest codeowners present",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "0"
         },
         {
           "claim": "log-when-unavailable: a 6-cycle price outage then recovery logs one line down and one up on the integration logger (down at ERROR, as HA's own coordinator does; the rule page names info)",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "0 (perturb -> 5)"
         },
         {
           "claim": "parallel-updates: all 6 entity platforms declare PARALLEL_UPDATES",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
           "value": "0 (perturb -> 1)"
         },
         {
           "claim": "strict-typing (M3): mypy --strict over the package, ruler arm (homeassistant-stubs 2026.9.3, mypy 2.3.1, no stub on path), 0 errors; hastub arm 471 package errors are the stub's untyped surface (no-untyped-call 244, attr-defined 133, misc 50, ...), not production defects",
-          "command": "/Users/timmalmstrom/.local/state/hpo/venv-ha/bin/python3 dev/audit/rounds/round11/D10/s1/mypy_strict.py",
+          "command": "~/.local/state/hpo/venv-ha/bin/python3 dev/audit/rounds/round11/D10/s1/mypy_strict.py",
           "value": "ruler_package_errors=0 (perturb -> 1 no-untyped-def); hastub_package_errors=471"
         }
       ],

@@ -46,7 +46,7 @@ All 21 gold rules for D10-s2 (D10.M1 and D10.M2) are measured, and 3 of them fai
 
 **Exposure:** I read `README.md` and `docs/how-it-works.md`, and fetched HA's developer docs and core source from upstream. I ran `tests/entities.py` once at the baseline. That run independently showed the energy state-class failure, but no finding rests on it. Two scratch diff files went to `/tmp`.
 
-Files are in `/Users/timmalmstrom/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D10/s2/`:
+Files are in `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D10/s2/`:
 - REPORT.json
 - findings/D10-s2-01.json … D10-s2-04.json
 - quality_scale.draft.yaml

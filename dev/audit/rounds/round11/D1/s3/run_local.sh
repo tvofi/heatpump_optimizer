@@ -5,7 +5,7 @@
 # Usage (from the export root): bash dev/audit/rounds/round11/D1/s3/run_local.sh OUTDIR [scripts...]
 set -u
 export PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
-P=/Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3
+P=~/.local/state/hpo/venv-ci/bin/python3
 D="$1"; shift
 mkdir -p "$D"
 L=dev/audit/rounds/round11/D1/s3/local_inject.py

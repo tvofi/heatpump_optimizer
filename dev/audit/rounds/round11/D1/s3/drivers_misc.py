@@ -3,7 +3,7 @@
 test script and no lifecycle phase reached (process worker, store loaders, small parse guards).
 
 Not a harness on its own: it only supplies calls. Run under the injection arm:
-    PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
         dev/audit/rounds/round11/D1/s3/local_inject.py --script dev/audit/rounds/round11/D1/s3/drivers_misc.py \
         --out dev/audit/rounds/round11/D1/s3/out/loc2/drivers_misc.jsonl
 Every call is wrapped so one raised call never stops the next: the arm records what the

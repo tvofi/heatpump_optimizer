@@ -15,7 +15,7 @@ async_setup (``-> bool``); the ruler arm's count must move up (no-untyped-def).
 Count key: mypy's own error lines whose path is under the package.
 
 Run (from the export root):
-  /Users/timmalmstrom/.local/state/hpo/venv-ha/bin/python3 \
+  ~/.local/state/hpo/venv-ha/bin/python3 \
       dev/audit/rounds/round11/D10/s1/mypy_strict.py [--perturb]
 Expected: see REPORT.md (exact count for the same mypy/stubs versions).
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: macOS arm64, venv-ha

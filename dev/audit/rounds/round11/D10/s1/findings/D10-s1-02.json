@@ -7,7 +7,7 @@
   "claim": "Pressing 'Run system identification' with the feature off (the default) arms nothing and returns without raising, and pressing 'Diagnose last interval' while the process worker is unavailable returns without raising while its background task raises ProcessWorkerUnavailable: 2 of 2 refused/failed presses are acknowledged, against action-exceptions (Silver), whose note extends the rule to platform actions; the compliant siblings (ForceOptimizationButton, the diagnose_interval service) raise under the same failure (2 of 2).",
   "mechanism": "SystemIdentificationButton.async_press and DiagnoseIntervalButton.async_press hand their work to entity.off_the_action (an entry background task) and return at once, so no outcome can reach the caller. SysID.arm returns False with only an INFO log when system_identification_enabled is False (DEFAULT_SYSID_ENABLED=False) while the button stays available; the diagnosis failure surfaces only as an unretrieved task exception. button.py's PARALLEL_UPDATES is 0, so off_the_action's stated reason (a held parallel-updates slot, RC2) no longer applies on this platform, and ForceOptimizationButton already awaits and raises.",
   "evidence": {
-    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/btn_actions.py",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/btn_actions.py",
     "harness_path": "dev/audit/rounds/round11/D10/s1/btn_actions.py",
     "value": 2,
     "unit": "refused/failed presses acknowledged of 2 (controls_raised=2 of 2; sysid_enabled_armed=1)",
