@@ -135,7 +135,7 @@ gantt
 | R11-HOTFIX-MAIN-SELFTEST-DRIFT | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
 | R11-RCA-SELFTEST-TABLE-DRIFT | IN | 1 | done | - | opus/opus | - | Root-cause record, S. |  |
 | R11-ARCH-OBJECTIVE | IN | 1 | done | - | opus/opus | yes: policy | Owner item (tvofi 2026-11-16 ~22:05Z): make decision 0018's objective function one of the round architect's goals beside the architecture score, so P3's plan... |  |
-| R11-CARRY-DRAWMAP | IN | 1 | not-started | #3106 | opus/opus | - | The unbuilt parts of the approved draw-map evidence design (tag archive/design/R10-DRAW-MAP-EVIDENCE): part A (the sweep and its routing), part B (the ceilin... |  |
+| R11-CARRY-DRAWMAP | IN | 1 | in-progress | #3106 | opus/opus | - | The unbuilt parts of the approved draw-map evidence design (tag archive/design/R10-DRAW-MAP-EVIDENCE): part A (the sweep and its routing), part B (the ceilin... |  |
 | R11-CARRY-ROOM-LIFT | IN | 1 | not-started | - | opus/opus | - | Two owner rulings the room phase-2 lift in custom_components/heatpump_optimizer/rooms.py still awaits: the 1.0 K lift cap with its opt-in toggle, and whether... |  |
 | R11-CARRY-MERGE-TRAIN | IN | 1 | deferred | - | opus/opus | - | The merge-train routing and shadow-benchmark residue of R11-PRE-PARALLEL-PIPELINE (PR #3675): the shadow benchmark of landing chains against the train's merg... |  |
 | R11-CARRY-ROSTER-WRITE | IN | 1 | deferred | - | opus/opus | - | One roster writer of record: tools/audit/seat/postmerge.py queues its stage op to the roster-drain on a lost race and derives keyed mark-carry ops from the m... |  |
