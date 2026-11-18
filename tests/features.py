@@ -35082,6 +35082,28 @@ for _fl_name, _fl_kwargs, _fl_mutate in (
         f"{_fl_blocked._flow_bias.as_dict()}",
     )
 
+# R11-VALVE-REFERENCE r1: behind a throttling valve on a single-zone house the
+# supply follows the valve's tank-charge temperature, not the space curve, so
+# the fold takes no sample. A two-zone valved install keeps folding (bitwise,
+# the architect note), as does a single-zone house with no valve (the control).
+_fl_valve = {}
+for _fl_zone in ("off", "on"):
+    for _fl_mode in ("none", "manual", "smart_read", "smart_write"):
+        _fl_v = _fl_coord(two_zone_mode=_fl_zone, mixing_valve_mode=_fl_mode)
+        _fold_flow_lift(_fl_v, _T6)
+        _fl_valve[(_fl_zone, _fl_mode)] = _fl_v._flow_bias.samples
+R.check(
+    "R11-VALVE-REFERENCE r1: a single-zone house behind a throttling valve folds "
+    "nothing; with no valve, and every two-zone install, it folds (null control)",
+    _fl_valve == {
+        ("off", "none"): 1, ("off", "manual"): 0,
+        ("off", "smart_read"): 0, ("off", "smart_write"): 0,
+        ("on", "none"): 1, ("on", "manual"): 1,
+        ("on", "smart_read"): 1, ("on", "smart_write"): 1,
+    },
+    f"{_fl_valve!r}",
+)
+
 # -- persistence is additive -------------------------------------------------
 _fl_store = _t2_coord()
 _fl_store._flow_bias.observe(40.0, 34.0)
