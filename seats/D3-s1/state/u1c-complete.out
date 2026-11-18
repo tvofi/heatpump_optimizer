@@ -1,0 +1,10 @@
+2026-11-18T14:22:15Z COMPLETE queued=245 from=pre
+2026-11-18T14:50:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_warm_seeded GUARD_OFF 6fee1acd L2360 by=- ran=13 wall=1702.0s
+2026-11-18T14:51:05Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units GUARD_OFF 7c5d6837 L2962 by=tests/features.py ran=13 wall=1729.4s
+2026-11-18T14:52:42Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_shutdown_process_pool GUARD_OFF 7b2fde58 L1915 by=tests/features.py ran=14 wall=1826.4s
+2026-11-18T14:52:48Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.__init__ GUARD_OFF 6335be05 L3560 by=tests/features.py ran=15 wall=1832.6s
+2026-11-18T15:19:56Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription GUARD_OFF 0284e2d5 L4168 by=tests/features.py ran=13 wall=1759.1s
+2026-11-18T15:20:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps GUARD_OFF ee9a2c4c L4497 by=- ran=13 wall=1740.8s
+2026-11-18T15:21:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps GUARD_OFF 8817ad76 L4538 by=- ran=13 wall=1751.9s
+2026-11-18T15:25:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._interval_space_power GUARD_OFF 1dc80a7a L5049 by=- ran=14 wall=1973.7s
+2026-11-18T15:51:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling GUARD_OFF 9be11266 L5658 by=- ran=13 wall=1766.8s
