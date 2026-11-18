@@ -56,3 +56,4 @@
 2026-11-18T18:09:05Z COMPLETE KILLED custom_components/heatpump_optimizer/grid_fee.py:GridFeeSchedule.fee_vector GUARD_OFF 5534a781 L331 by=tests/features.py ran=12 wall=1243.0s
 2026-11-18T18:09:56Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability CMP_BOUND f4619cef L677 by=- ran=12 wall=1343.4s
 2026-11-18T18:28:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:apply_catalog RETURN_DEL d7923b87#3 L496 by=- ran=12 wall=1356.8s
+2026-11-18T18:29:16Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps CMP_BOUND a1c68d69 L9360 by=tests/entities.py ran=13 wall=1358.0s
