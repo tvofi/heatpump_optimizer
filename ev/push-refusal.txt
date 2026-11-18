@@ -1,0 +1,4 @@
+First push of the parentless verdict commit c2f9e72227461f8ecdc941893435394d0e641393 to refs/heads/probe/rev-3662-7d5b5cf9 was refused:
+ ! [rejected]              c2f9e72227461f8ecdc941893435394d0e641393 -> probe/rev-3662-7d5b5cf9 (non-fast-forward)
+The ref held d23bc3a11e336c6bac9c7d7ffdc5594aeee8dce0, the round-4 verdict under this nonce ("Fix review: blocked 454d4fc425... red-check: ...").
+Not forced: a force-push would discard that earlier verdict. This round's verdict is pushed as a fast-forward child of d23bc3a11e, and its tree is this round's alone.
