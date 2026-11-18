@@ -534,3 +534,4 @@
 2026-11-18T21:11:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps CMP_BOUND 1a159a14 L5222 by=- ran=14 wall=1463.7s
 2026-11-18T21:12:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_step GUARD_OFF bf9c0638 L4140 by=- ran=17 wall=1567.2s
 2026-11-18T21:19:11Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CLAMP_DROP 4cc7cd0a L2581 by=- ran=12 wall=1263.1s
+2026-11-18T21:26:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability CMP_BOUND f4619cef L677 by=- ran=12 wall=1337.7s
