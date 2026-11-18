@@ -35,7 +35,7 @@ guard the rule saw.
     python3 enumerate_p2.py [--root DIR]     # seams of the tree (default: this repo)
     python3 enumerate_p2.py --control        # positive control: every judged site re-found
     python3 enumerate_p2.py --fixture        # null control: a clean synthetic package -> 0
-    python3 enumerate_p2.py --perturb        # one one-line re-introduction per family, +1 each
+    python3 enumerate_p2.py --perturb [--only F10_record_trust,...]   # one re-introduction per family, +1 each
     python3 enumerate_p2.py --json           # seams as JSON
 """
 from __future__ import annotations
@@ -776,7 +776,8 @@ PERTURB = {
     "F10_record_trust": None,
     "F11_computed_eval": None,
     "F12_wood_valve": None,
-    "F13_run_publish": ("button.py", "        off_the_action(self, self.coordinator.async_request_refresh())\n", ""),
+    "F13_run_publish": ("button.py", "reason = await self.coordinator.async_run_optimization()\n        off_the_action(self, self.coordinator.async_request_refresh())\n",
+                        "reason = await self.coordinator.async_run_optimization()\n"),
     "F14_flat_windows": None,
     "F15_twin_formula": ("tariff.py", "return float(np.sum(np.sort(excess)[-k:]))", "return float(np.sum(np.sort(excess)[:k]))"),
     "F16_small_rules": None,
@@ -785,10 +786,10 @@ PERTURB = {
 }
 
 
-def perturb(root: Path):
+def perturb(root: Path, only=None):
     base = counts(enumerate_all(root))
     bad = 0
-    for fam in sorted(PERTURB):
+    for fam in sorted(f for f in PERTURB if not only or f in only):
         tmp = _copy(root)
         try:
             spec = PERTURB[fam]
@@ -800,7 +801,7 @@ def perturb(root: Path):
         ok = d == 1
         bad += not ok
         print(f"PERTURB {fam} {base.get(fam, 0)}->{after.get(fam, 0)} {'+1' if ok else 'NOT +1'}")
-    print(f"RESULT perturb_families={len(PERTURB)}")
+    print(f"RESULT perturb_families={len(only) if only else len(PERTURB)}")
     print(f"RESULT perturb_not_plus_one={bad}")
     return bad
 
@@ -834,7 +835,8 @@ def _apply_perturb(tmp, fam, spec):
     elif fam == "F16_small_rules":
         _append(tmp, "flow_meter.py", "\n\ndef _p2_perturb_heat(litres, dk):\n    return litres * dk * 0.0011631\n")
     elif fam == "F17_gap_feature":
-        _edit(tmp, "topology.py", "CONF_HOUSE_POWER_ENTITY,", "CONF_DHW_TEMP_ENTITY,")
+        _edit(tmp, "topology.py", "        (\n            CONF_OUTDOOR_TEMP_ENTITY,\n            0.0\n",
+              "        (\n            CONF_DHW_TEMP_ENTITY,\n            0.0\n")
     elif fam == "F18_waiting_key":
         _append(tmp, "sensor.py", "\n\nclass _P2PerturbSensor:\n    @property\n    def _waiting_for(self):\n        return None if self._rows() else 'month'\n\n"
                 "    @property\n    def native_value(self):\n        return self._rows()[0].get('saving')\n")
@@ -852,7 +854,8 @@ def main(argv):
     if "--fixture" in argv:
         return 1 if fixture() else 0
     if "--perturb" in argv:
-        return 1 if perturb(root) else 0
+        only = argv[argv.index("--only") + 1].split(",") if "--only" in argv else None
+        return 1 if perturb(root, only) else 0
     seams = enumerate_all(root)
     if "--json" in argv:
         print(json.dumps(seams, indent=1))

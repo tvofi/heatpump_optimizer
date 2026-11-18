@@ -1,0 +1,206 @@
+{
+ "class": "P2",
+ "instances": 9,
+ "barriered": true,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P2/enumerate_p2.py  (--control: positive, re-plants the 5 planted findings first; --fixture: null; --perturb: one-line re-introduction per family); probes: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py [--perturb]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "HeatPumpOptimizerConfigFlow.async_step_reauth_confirm",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL config_flow.async_step_reauth_confirm (Entities page saved token 'token-old'; reauth -> reauth_successful; effective token 'token-old')",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_THERMAL_PARAM_FIELDS.upper_floor_thermal_mass",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL (single-zone install: accepted, plan delta 0.000 kW-steps, 0.000 after restart; house_thermal_mass on the same install moves 45.771)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_THERMAL_PARAM_FIELDS.lower_floor_thermal_mass",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL (single-zone install: accepted, plan delta 0.000 kW-steps, 0.000 after restart)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_THERMAL_PARAM_FIELDS.inter_zone_heat_transfer",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL (single-zone install: accepted, plan delta 0.000 kW-steps, 0.000 after restart)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_apply_result_payload (schedule upper_temp/lower_temp)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL (two_zone_enabled=False: 96 of 96 data['schedule'] rows publish a zone temperature)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/boost.py",
+   "symbol": "_window_open",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL boost._window_open (Saturday 07:00, 'weekdays 06:00-08:30, weekend 08:00-09:30', no plan: open=True, the weekday's window False)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_drive_pumps (VVC windows)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL (Saturday 07:00: circulation pump run=True on list(params.dhw_windows), False on the weekday's windows)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "symbol": "DhwProfileLearner.async_fold_draw_stats (draw label)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL (Saturday 07:00 draw labelled '06:00-09:30', the weekday's window '')",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/replay_doc.py",
+   "symbol": "_number",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL replay_doc._number (3 of 3 of nan/inf/-inf kept where finite_float refuses)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_run_in_process (transport-arm worker.wait())",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/peer_wait.py -> transport_unbounded_waits=1, transport_lock_held_after=1 (D1-s3-04)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._indoor_humidity_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/leads/humidity_reader_settings.py -> config_arms_disagree=2 (D1-s2-52)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "HeatPumpOptimizerConfigFlow._async_save_reconfigure",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/reconfig_shadow.py -> shadowed_options_saved=2 (D10-s2-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "_OPTION_FIELDS.CONF_HOUSE_THERMAL_MASS",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s1/h_zone.py -> two_zone_rendered_no_effect=1 ['house_thermal_mass'] (D17-s1-03)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_THERMAL_PARAM_FIELDS.house_heat_loss_coefficient",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s3/f02_two_zone_inert.py -> on.house_heat_loss_coefficient.plan_delta=0.000 (D17-s3-02)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_THERMAL_PARAM_FIELDS.house_thermal_mass",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s3/f02_two_zone_inert.py -> two-zone arm plan_delta 0.000 (D17-s3-02)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._build_plan_views",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s1/plan_zone.py -> zone_plants=8, zone_rows=768 (D12-s1-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/setpoint_check.py",
+   "symbol": "_dhw (hi_c=params.dhw_hard_max_temp)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s3/repairs_surfaces.py -> bad_fix_writes=8 (D12-s3-02)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/repairs.py",
+   "symbol": "DhwSetpointRepairFlow.async_step_confirm",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s3/repairs_surfaces.py -> bad_fix_writes=8 (D12-s3-02, the write)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/debugger.py",
+   "symbol": "_repair/_kept",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py -> synthetic_written_rows_kept=0/192 (D15-s1-04)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._fold_capacity_envelope / _load_t4b_learners",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py -> fold_written_count_zero=1, reloaded=0 (D15-s1-05)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_space_target (indoor branch)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates -> boost-partial indoor rigs (D16-s1-03; the judge's boost_indoor_between=2)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_write (recorded and not _differs)",
+   "probe": "D16-s2-03's switch-on sequence (judge: cell3530_record_wrong_mode_at_on=1); not re-run here",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "_omit_unstored_computed",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s1/h_computed.py -> computed_kept_value_lost=8 (D17-s1-02)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/quick_setup.py",
+   "symbol": "derive (wood furnace without a throttling valve)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s2/wood_quick.py -> quick_path_plan_kwh_spread=0.0000 vs valve arm 11.5119 (D17-s2-03)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "handle_run_optimization",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s3/f01_run_optimization.py -> service_published_price=0.5, button 2.0 (D17-s3-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._dhw_in_demand_window / _dhw_effective_windows",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/leads/dhw_window_weekday.py -> cells_wrong=18 of 336 (D17-s3-51)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "_gap_probe_terms (water 4.187 vs const 4.186)",
+   "probe": "python3  dev/audit/rounds/round11/D7/s3/m8_enum.py --list -> C003 4.186@const.py:205 ~ 4.187@sensor.py:3000 (D7-s3-04)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/open_meteo.py",
+   "symbol": "_ensure_utc (naive read as host-local)",
+   "probe": "D7-s3-04's naive-instant probe (judge: naive_instant 2); m8_enum D002",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/entity.py",
+   "symbol": "payload_number (passes nan/inf)",
+   "probe": "D7-s3-04's finite-number probes (judge: finite_number 9)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "_as_float (passes nan/inf)",
+   "probe": "D7-s3-04's finite-number probes",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/replay_doc.py",
+   "symbol": "numeric (passes True, 'nan', 'inf')",
+   "probe": "D7-s3-04's finite-number probes",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/topology.py",
+   "symbol": "rank_sensor_gaps.CONF_DHW_TEMP_ENTITY / sensor._gap_probe_terms",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/gapdhw.py -v -> no_dhw_priced=12 of 22 (D8-s1-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "MonthlySavingsSensor._waiting_for",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py -v -> avail_none_cycles=1 of 17 (D8-s1-03)",
+   "beyond_finding": false
+  }
+ ]
+}
