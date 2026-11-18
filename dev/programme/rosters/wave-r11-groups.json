@@ -4468,7 +4468,7 @@
     "Moved from R11-INTAKE-R10-RESIDUE carry 41 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-round-playbook-final-p2, body item 9502b215: The README cites the census directory, not its CENSUS.md file: policy_lint's named-docs check refuses a named file with no cap or exclusion, and dev/governance/config/corpus_excluded.json is outside this part's files. The brief asked for the file path. Carry: R11-INTAKE-R10-RESIDUE (items 9502b215)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-policy-budgets",
     "commit": null,
     "last_step": null,
