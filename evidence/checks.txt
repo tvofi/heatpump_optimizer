@@ -1,0 +1,25 @@
+merge-tree origin/main bdc3a77df7fea249cecf09581813d3726ea3d070:
+1c8491dd5bad13c66da337c548779e47a8aa1dd1
+rc=0
+
+git diff --stat 7c2f4c30ca 345d32d62de2677080b66c8035540c09e5d7d3d9:
+ docs/design/2026-11-12-honest-starts-and-runs/design.md | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+three-dot stat:
+ dev/programme/delivery/3717.md                          | 1 +
+ docs/design/2026-11-12-honest-starts-and-runs/design.md | 4 ++--
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+VERSION/manifest/notes/golden lines changed:
+0
+
+_settled_space / def _settled / _held_round in custom_components:
+[bdc3a77df7fea249cecf09581813d3726ea3d070]
+[origin/main]
+[refs/tmp/pr3709]
+[1f9daef4d9]
+1f9daef4d9:custom_components/heatpump_optimizer/optimizer.py:359:#: ``_settled_space`` tries each space run switched off and at these shares of its
+1f9daef4d9:custom_components/heatpump_optimizer/optimizer.py:370:def _settled_space(
+1f9daef4d9:custom_components/heatpump_optimizer/optimizer.py:1673:def _held_round(
+1f9daef4d9:custom_components/heatpump_optimizer/optimizer.py:5465:        optimal_space = _settled_space(self, h, objective, optimal_space, optimal_dhw, dhw_draw_rates, p_max)
