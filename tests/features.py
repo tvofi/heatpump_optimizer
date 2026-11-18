@@ -96025,6 +96025,125 @@ R.check(
 )
 
 
+# The cell rule's floor bound, met exactly: a store that coasts onto the
+# floor less the tolerance, plus the margin, is inside it; one float higher
+# a floor puts the same coast outside, and the program charges at once.
+def _hdr_w_edge(t0=50.0):
+    rig = _hdr_rig(t0=t0, draws=np.full(_HDR_N, 0.5))
+    at = float(rig.ctx.coast(rig.tank[1], 0, np.array([t0]))[0])
+    edge = bound = at + _hdr_dp._SHORT_K - _hdr_dp._STORE_MARGIN_K
+    for _ in range(64):
+        bound = edge - _hdr_dp._SHORT_K + _hdr_dp._STORE_MARGIN_K
+        if bound == at:
+            break
+        edge = np.nextafter(edge, np.inf if bound < at else -np.inf)
+
+    def plan(first):
+        floors = np.full(_HDR_N, 45.0)
+        floors[0] = first
+        return _hdr_dp._StoreProgram(
+            rig.planner, rig.ctx, _hdr_l_plan, rig.tank, (floors, np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N),
+        ).plan(np.ones(_HDR_N, dtype=bool))
+
+    return bound == at, plan(edge), plan(np.nextafter(edge, np.inf))
+
+
+_hdr_w_met, _hdr_w_on, _hdr_w_over = _hdr_w_edge()
+R.check(
+    "the store program keeps a store that coasts exactly onto its floor bound (the floor less the tolerance, "
+    "plus the margin) in its cell and coasts through the first step; a first floor one float higher leaves "
+    "the coast outside and the program charges on the first step",
+    _hdr_w_met and _hdr_w_on is not None and _hdr_w_on[0] == 0.0
+    and _hdr_w_over is not None and _hdr_w_over[0] > 0.0,
+    f"{None if _hdr_w_on is None else np.flatnonzero(_hdr_w_on).tolist()} "
+    f"{None if _hdr_w_over is None else np.flatnonzero(_hdr_w_over).tolist()}",
+)
+# The grid's top: a combi flux that carries the store one cell past the
+# grid's top knot leaves it in no cell, and no mask keeps it in bounds; the
+# same flux onto the top knot itself plans (the control).
+_hdr_y_rig = _hdr_rig()
+_hdr_y_coast = float(_hdr_y_rig.ctx.coast(_hdr_y_rig.tank[1], 0, np.array([50.0]))[0])
+
+
+def _hdr_y_plan(top):
+    flux = np.zeros(_HDR_N)
+    flux[0] = (top - _hdr_y_coast) * _hdr_y_rig.ctx.c_dhw / _hdr_y_rig.ctx.dt
+    prog = _hdr_dp._StoreProgram(
+        _hdr_y_rig.planner, dataclasses.replace(_hdr_y_rig.ctx, tank_exo_kw=flux), _hdr_l_plan, _hdr_y_rig.tank,
+        (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N))
+    return float(prog.knots[-1]), prog.plan(np.ones(_HDR_N, dtype=bool))
+
+
+_hdr_y_knot, _hdr_y_on = _hdr_y_plan(56.0)
+_hdr_y_past = _hdr_y_plan(56.0 + _hdr_dp._STORE_GRID_K)[1]
+R.check(
+    "the store program's grid ends at its top knot: a store a combi flux carries one cell past it has no "
+    "plan, and the same store carried onto the top knot plans",
+    _hdr_y_knot == 56.0 and _hdr_y_on is not None and _hdr_y_past is None,
+    f"top knot {_hdr_y_knot}; onto it {None if _hdr_y_on is None else np.flatnonzero(_hdr_y_on).tolist()}; "
+    f"past it {_hdr_y_past}",
+)
+# A space plan under zero is no space run: a charge the program plans under
+# it keeps its start, so the dear early charge does not undercut the plan
+# that ships with no space plan at all.
+_hdr_z_early = np.zeros(_HDR_N)
+_hdr_z_early[[14, 15]] = 1.0
+_hdr_z_space = np.where(_hdr_z_early > 0.0, -10.0, 0.0)
+_hdr_z_rig = _hdr_rig(start=2.0, prices=_hdr_l_prices)
+_hdr_z_none, _hdr_z_under = (
+    _hdr_programs(lambda s=s: _hdr_commit(_hdr_z_rig, _hdr_l_plan, _hdr_l_req, space=s), lambda *_a: _hdr_z_early.copy())[0]
+    for s in (np.zeros(_HDR_N), _hdr_z_space))
+R.check(
+    "a space plan under zero commits as no space plan: under the program's dear early charge it hides "
+    "no start, and the plan that ships is the one that ships with a zero space plan, not the early charge "
+    "(which the acceptance passes)",
+    np.array_equal(_hdr_z_under, _hdr_z_none) and not np.array_equal(_hdr_z_none, _hdr_z_early)
+    and _hdr_dp.charge_refusal(
+        _hdr_z_early, None, _hdr_z_rig.temps, np.minimum(_hdr_l_req, _hdr_z_rig.temps(_hdr_l_plan)[1:])) is None,
+    f"{np.flatnonzero(_hdr_z_none).tolist()} {np.flatnonzero(_hdr_z_under).tolist()}",
+)
+
+
+# The combi commit's tolerance, met exactly: the committed plan ships where
+# its store falls exactly the slack further under the requirement than the
+# last round's, and not where the slack is short of that by a float.
+def _hdr_k_combi(slack=None):
+    real, worst = DhwPlanner._dhw_shortfall, []
+
+    def spy(self, *a, **k):
+        out = real(self, *a, **k)
+        worst.append(float(np.max(out[1])))
+        return out
+
+    DhwPlanner._dhw_shortfall = spy
+    try:
+        return _hdr_combi(0.5, slack)[1], worst[-2:]
+    finally:
+        DhwPlanner._dhw_shortfall = real
+
+
+_hdr_k_x, (_hdr_k_committed, _hdr_k_round) = _hdr_k_combi()
+_hdr_k_exact = _hdr_k_committed - _hdr_k_round
+for _ in range(64):
+    if _hdr_k_round + _hdr_k_exact == _hdr_k_committed:
+        break
+    _hdr_k_exact = np.nextafter(_hdr_k_exact, np.inf if _hdr_k_round + _hdr_k_exact < _hdr_k_committed else -np.inf)
+_hdr_k_short = _hdr_k_exact
+for _ in range(64):
+    if _hdr_k_round + _hdr_k_short < _hdr_k_committed:
+        break
+    _hdr_k_short = np.nextafter(_hdr_k_short, -np.inf)
+_hdr_k_at, _hdr_k_under = _hdr_k_combi(_hdr_k_exact)[0], _hdr_k_combi(_hdr_k_short)[0]
+R.check(
+    "combi: the committed build ships where its store falls exactly the slack further under the "
+    "requirement than the last round's plan, and the last round's plan ships where the slack is a float short",
+    _hdr_k_round + _hdr_k_exact == _hdr_k_committed and _hdr_k_round + _hdr_k_short < _hdr_k_committed
+    and not np.array_equal(_hdr_k_at.commits[0], _hdr_k_at.rounds[-1])
+    and np.array_equal(_hdr_k_at.out, _hdr_k_at.commits[0]) and np.array_equal(_hdr_k_under.out, _hdr_k_under.rounds[-1]),
+    f"committed {_hdr_k_committed!r} round {_hdr_k_round!r} slack {_hdr_k_exact!r}",
+)
+
+
 R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
 
 # Phase 1 of room-level support (design/R11-OUTSIDE-ROOMS-P2): a list of room

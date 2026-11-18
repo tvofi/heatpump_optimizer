@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_StoreProgram.plan.place CMP_BOUND 8e6c71cd",
+  "old": "                inside = (t >= self.floors[k] - _SHORT_K + _STORE_MARGIN_K) & (j >= 0) & (j < width)",
+  "reason": "The line carries three CMP_BOUND mutants under one anchor, and the ledger pins an anchor killed only when every mutant is. Two are killed by tests/features.py's R11-OUTSIDE-HONEST-DHW-RUNS block: `t > ...` by the check \"the store program keeps a store that coasts exactly onto its floor bound ...\", and `j <= width` by \"the store program's grid ends at its top knot ...\" (features_block.py over the block: 1 failed at the block-mode baseline, 2 with each mutant). The third, `j >= 0` -> `j > 0`, is equivalent: `_StoreProgram.__init__` sets `lo = floor(min(initial, min(floors))) - _COP_KNOT_K`, so wherever the first conjunct holds, t >= floors[k] - 0.05 + 0.02 >= lo + 0.97 and j = rint((t - lo) / 0.25) >= 4; j == 0 arrives only where the first conjunct is already false, and `np.clip(j, 0, width - 1)` is untouched by the mutant. That mutant ran the block with no added failure.",
+  "verdict": "equivalent"
+}
