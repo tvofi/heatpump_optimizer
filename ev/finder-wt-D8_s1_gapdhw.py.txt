@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.IXU652N2r2/export/dev/audit/rounds/round11/D8/s1/gapdhw.py", line 32, in <module>
+    from heatpump_optimizer.thermal_model import _dhw_enabled_from_config  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name '_dhw_enabled_from_config' from 'heatpump_optimizer.thermal_model' (/tmp/claude-0/wt/custom_components/heatpump_optimizer/thermal_model.py)
