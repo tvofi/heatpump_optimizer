@@ -1,0 +1,5 @@
+== M3 (re-run, no pyc) move before stamps
+plan_page self-test: 154 checks, 1 failed
+FAIL phases: instrument triage sits after stamps and before closure, in the playbook's order (got: (('round-start', 'Round start'), ('finders', 'Finders'), ('verify-judge', 'Verify, judge'), ('plan', 'Architect plan'), ('fix-waves', 'Fix waves'), ('instrument-triage', 'Instrument prototype and proposal triage'), ('stamps', 'Stamps'), ('closure', 'Closure')))
+== M4 drop the new fixture refuses() arm only: does anything else pin closure-before-triage refusal?
+plan_page self-test: 154 checks, 0 failed

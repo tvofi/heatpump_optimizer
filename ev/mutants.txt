@@ -1,0 +1,15 @@
+== M1 drop instrument-triage from PHASES
+ tools/audit/seat/plan_phases.py | 1 -
+ 1 file changed, 1 deletion(-)
+plan_page self-test: 154 checks, 3 failed
+FAIL phases: instrument triage sits after stamps and before closure, in the playbook's order (got: (('round-start', 'Round start'), ('finders', 'Finders'), ('verify-judge', 'Verify, judge'), ('plan', 'Architect plan'), ('fix-waves', 'Fix waves'), ('stamps', 'Stamps'), ('closure', 'Closure')))
+FAIL phases: refused, out of the playbook's order (got: ['phases[6] instrument-triage: unknown phase (one of round-start, finders, verify-judge, plan, fix-waves, stamps, closure)'])
+FAIL phases: every playbook phase is a row, in order; an unlisted one is not started (got: [('round-start', 'done'), ('finders', 'running'), ('verify-judge', 'waiting'), ('plan', 'not-started'), ('fix-waves', 'not-started'), ('stamps', 'not-started'), ('closure', 'not-started')])
+== M2 move after closure
+plan_page self-test: 154 checks, 2 failed
+FAIL phases: instrument triage sits after stamps and before closure, in the playbook's order (got: (('round-start', 'Round start'), ('finders', 'Finders'), ('verify-judge', 'Verify, judge'), ('plan', 'Architect plan'), ('fix-waves', 'Fix waves'), ('stamps', 'Stamps'), ('closure', 'Closure'), ('instrument-triage', 'Instrument prototype and proposal triage')))
+FAIL phases: refused, out of the playbook's order (got: [])
+== M3 move before stamps
+plan_page self-test: 154 checks, 2 failed
+FAIL phases: instrument triage sits after stamps and before closure, in the playbook's order (got: (('round-start', 'Round start'), ('finders', 'Finders'), ('verify-judge', 'Verify, judge'), ('plan', 'Architect plan'), ('fix-waves', 'Fix waves'), ('stamps', 'Stamps'), ('closure', 'Closure'), ('instrument-triage', 'Instrument prototype and proposal triage')))
+FAIL phases: refused, out of the playbook's order (got: [])

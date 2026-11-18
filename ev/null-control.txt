@@ -1,0 +1,12 @@
+== null control
+wrote /tmp/tmpcqmw8dvb/page.html: 8 groups, closure 2026-01-06T22:04:00Z
+plan_page self-test: 154 checks, 0 failed
+usage: plan_phases.py [-h] [--check FILE] [--phases FILE] [--html OUT]
+plan_phases.py: error: unrecognized arguments: --self-test
+check-rc=0
+0
+== policy_lint
+lint=0
+dev/audit/README.md                              315  321     6058  6059   key tools/audit/README.md
+dev/governance/roles/proposal-triage.md           42   42      589   594 
+corpus:        ~71490 tokens, cap 71212 +band 500 = 71712
