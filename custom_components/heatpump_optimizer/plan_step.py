@@ -50,7 +50,9 @@ def plan_step_start(now: datetime) -> datetime:
     return now.replace(minute=(now.minute // step) * step, second=0, microsecond=0)
 
 
-def covering_index(starts: Sequence[Any], now: Any, lone_span: Any) -> int | None:
+def covering_index(
+    starts: Sequence[Any], now: Any, lone_span: Any, last_span: Any = None
+) -> int | None:
     """The index of the entry whose ``[start, end)`` covers ``now``, or ``None``.
 
     ``starts`` is sorted. An entry ends where the next begins; the last ends
@@ -59,15 +61,20 @@ def covering_index(starts: Sequence[Any], now: Any, lone_span: Any) -> int | Non
     (R10 N-no-expiry, #2229: ``bisect_right(...) - 1`` alone held the last
     entry current forever, and a stale price was published and booked). Before
     the first entry nothing covers ``now`` either; a caller wanting the head
-    there says so itself. Works on any ordered stamps whose difference adds
-    back to a stamp: datetimes with timedelta spans, or epoch seconds.
+    there says so itself. A series on a fixed grid passes its width as
+    ``last_span``: its last entry is that wide whatever gap precedes it. Works
+    on any ordered stamps whose difference adds back to a stamp: datetimes
+    with timedelta spans, or epoch seconds.
     """
     i = bisect_right(starts, now) - 1
     if i < 0:
         return None
     if i + 1 < len(starts):
         return i
-    span = starts[i] - starts[i - 1] if i > 0 else lone_span
+    if last_span is not None:
+        span = last_span
+    else:
+        span = starts[i] - starts[i - 1] if i > 0 else lone_span
     return i if now < starts[i] + span else None
 
 
@@ -75,7 +82,10 @@ def plan_step_index(result: Any, now: datetime) -> int | None:
     """The index of the plan step covering ``now``, or ``None`` outside the plan.
 
     The one reading of a plan's ``timestamps`` that every series lookup takes
-    its index from (:func:`covering_index`, a lone step one :data:`PLAN_STEP`
-    wide): past the last step the plan says nothing.
+    its index from (:func:`covering_index`). A plan is on the step grid, so
+    its last step is one :data:`PLAN_STEP` wide, whatever gap precedes it --
+    the arbiter's ``_step_index`` rule this replaced: past it the plan says
+    nothing.
     """
-    return covering_index(list(getattr(result, "timestamps", None) or []), now, PLAN_STEP)
+    stamps = list(getattr(result, "timestamps", None) or [])
+    return covering_index(stamps, now, PLAN_STEP, PLAN_STEP)

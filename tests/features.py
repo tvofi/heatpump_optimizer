@@ -81068,6 +81068,26 @@ R.check(
     f"{_k11_rows}",
 )
 
+# A plan is on the step grid: its last step is one PLAN_STEP wide whatever gap
+# precedes it, as the arbiter's _step_index held before the move. A series
+# lookup with no grid width takes the predecessor's gap; null control, that one
+# reads the same plan as ended a gap after its last stamp.
+_k11_short = [_FD_T0, _FD_T0 + timedelta(minutes=2)]
+_k11_short_plan = _k11_ns(timestamps=_k11_short, optimal_setpoints=[20.0, 21.0])
+_k11_short_rows = (
+    _k11_idx(_k11_short_plan, _k11_short[-1] + _k11_step / 2),
+    _k11_idx(_k11_short_plan, _k11_short[-1] + _k11_step),
+    _k11_pa._planned_room(_k11_short_plan, _k11_short[-1] + _k11_step / 2),
+    _fd_covering_index(_k11_short, _k11_short[-1] + _k11_step / 2, _k11_step),
+)
+R.check(
+    "D7-s3-03: a plan's last step is one PLAN_STEP wide after a shorter gap (covered at half a step, "
+    "not at a step), and the arbiter's planned room reads it; null control, the series lookup with no "
+    "grid width ends it one gap after its stamp",
+    _k11_short_rows == (1, None, 21.0, None),
+    f"{_k11_short_rows}",
+)
+
 # D7-s1-05 (the note arm): the peak guard, the CUSUM and the coordinator's
 # immersion log write their evidence through drift's one owner, which keeps the
 # newest EVIDENCE_KEEP lines.
