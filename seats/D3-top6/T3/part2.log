@@ -1,4 +1,4 @@
-== box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=3.34 at 2026-11-18T20:36:52Z
+== box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=2.93 at 2026-11-18T20:51:56Z
 == box-baseline.out
 2026-11-18T18:55:03Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=246.6s reach_ok=True
 2026-11-18T18:57:53Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=170.2s reach_ok=False
