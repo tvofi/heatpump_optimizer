@@ -1,0 +1,5 @@
+RESULT in_function_copies=11 count
+RESULT unused_package_imports=14 count
+  ok   in_function_copies 11 <= 11
+  ok   unused_package_imports 14 <= 14
+STRUCTURE RATCHET PASSED

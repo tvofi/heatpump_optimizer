@@ -1,0 +1,9 @@
+== /tmp/rv-head/tests/entities.py
+barrier sites on planted exc/crit/warn: {('levels.py', 'exc'): 1, ('levels.py', 'crit'): 1, ('levels.py', 'warn_alias'): 1}
+alias refusals on planted param: [('param.py', 5, '_LOGGER -> f')]
+== m_e1.py
+barrier sites on planted exc/crit/warn: {}
+alias refusals on planted param: [('param.py', 5, '_LOGGER -> f')]
+== m_r5.py
+barrier sites on planted exc/crit/warn: {('levels.py', 'exc'): 1, ('levels.py', 'crit'): 1, ('levels.py', 'warn_alias'): 1}
+alias refusals on planted param: []
