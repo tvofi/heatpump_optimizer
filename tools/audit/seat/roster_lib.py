@@ -198,6 +198,31 @@ def roster_round(path: str) -> int:
     return int(m.group(1))
 
 
+_GROUP_ROUND = re.compile(r"\AR(\d+)-")
+
+
+def group_round(name: str) -> int | None:
+    """The round a group id names (`R11-PRE-X` -> 11); None for an id with no
+    round prefix. The one rule by which a group belongs to a round's plan."""
+    m = _GROUP_ROUND.match(name)
+    return int(m.group(1)) if m else None
+
+
+def next_round_groups(roster: dict, round_n: int) -> dict:
+    """{id: entry} of the groups that belong to a round after `round_n`: its
+    pre-finder groups, its intake group, the groups deferred to it. A plan of
+    round `round_n` neither draws nor counts them (owner, 2026-11-13)."""
+    return {n: g for n, g in groups_of(roster).items()
+            if (r := group_round(n)) is not None and r > round_n}
+
+
+def round_roster(roster: dict, round_n: int) -> dict:
+    """`roster` without the groups of a round after `round_n`."""
+    later = next_round_groups(roster, round_n)
+    return {**roster, "groups": [g for g in roster.get("groups", [])
+                                 if g["group"] not in later]}
+
+
 def newest_roster(names) -> str | None:
     """Of the paths or basenames given, the roster with the highest round, as
     a `ROSTERS_DIR` path; None when none of them is a roster."""
@@ -387,6 +412,22 @@ def is_open(group: dict) -> bool:
 
 def open_groups(roster: dict) -> dict:
     return {k: g for k, g in groups_of(roster).items() if is_open(g)}
+
+
+def finder_gate(group: dict) -> bool | None:
+    """A group's `gates_finders`: whether the round's finders wait for it
+    (roster_edit set-field writes it); None when it is absent or no boolean."""
+    v = group.get("gates_finders")
+    return v if isinstance(v, bool) else None
+
+
+def architect_groups(roster: dict) -> tuple[list, list]:
+    """(the open groups the finders do not wait for, those of them unmarked).
+    What is still open when the finders finish is P3's input (tvofi,
+    2026-11-15), so an unmarked group is listed, never read as gating: a group
+    read as gating would drop out of the architect's plan unseen."""
+    listed = [k for k, g in open_groups(roster).items() if finder_gate(g) is not True]
+    return listed, [k for k in listed if finder_gate(groups_of(roster)[k]) is None]
 
 
 def unfinished_groups(roster: dict) -> dict:
@@ -696,8 +737,14 @@ def one_line_brief(group: dict, limit: int = 160) -> str:
     """
     text = (group.get("brief") or "").strip()
     # A brief written as a markdown document opens with a heading marker; the
-    # row is plain text, so the marker goes and the lines join.
-    text = re.sub(r"\A\s*#{1,6}[ \t]*", "", text)
+    # row is plain text, so the marker goes, and the heading line is the
+    # description: its next lines are the body, which joined on would run the
+    # title into the first loose line.
+    if re.match(r"\s*#{1,6}[ \t]", text):
+        text = re.sub(r"\A\s*#{1,6}[ \t]*", "", text).split("\n", 1)[0]
+    # An opening list marker ("1. ", "2) ", "- ") is not a sentence end: left
+    # in, the cut below ends the description at the marker.
+    text = re.sub(r"\A\s*(?:\d+[.)]|[-*])[ \t]+", "", text)
     text = re.sub(r"\s*\n\s*", " ", text)
     text = _ATTRIBUTION.sub("", text)
     cut = re.split(r"(?<=\.)\s", text, maxsplit=1)[0]
@@ -1084,6 +1131,41 @@ def critical_path_groups(repo: str, ref: str) -> set[str] | None:
     """
     groups, _ = critical_path_read(repo, ref)
     return groups or None
+
+
+# ------------------------------------------------------------- the writer lease
+#
+# ROSTER-PUSH-LEASE (triage s6-batch233 P706): the beat's roster drain and an
+# out-of-queue writer (carry_fold.py) both push the round's roster branch through
+# `roster_edit.py --push`, each re-applying across a lint window, and with no
+# shared lock each lost the other's races (a fold lost 3 of 3 tries against a
+# 21-op drain). One flock in the beat's state directory makes one writer of
+# record: the drain takes it per op without waiting and yields the rest of its
+# pass while it is held; carry_fold waits for it. flock is released when the
+# holder's process ends, so a killed holder leaves no stale lease.
+WRITER_LEASE = "roster-writer.lease"
+
+
+def writer_lease(state_dir, wait_s: float, sleep=None, clock=None):
+    """An fd holding the exclusive flock on `<state_dir>/roster-writer.lease`,
+    or None when another holder kept it for `wait_s` seconds; `os.close(fd)`
+    releases it."""
+    import fcntl
+    import os
+    import time
+    sleep, clock = sleep or time.sleep, clock or time.monotonic
+    Path(state_dir).mkdir(parents=True, exist_ok=True)
+    fd = os.open(Path(state_dir) / WRITER_LEASE, os.O_RDWR | os.O_CREAT, 0o644)
+    end = clock() + wait_s
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fd
+        except BlockingIOError:
+            if clock() >= end:
+                os.close(fd)
+                return None
+            sleep(1)
 
 
 # ------------------------------------------------------------------ self-test
@@ -1586,6 +1668,33 @@ def _self_test() -> int:
         check("an override behind an unreadable tree refuses with git's read, "
               "not 'is not a file'",
               "cannot read" in why and "is not a file" not in why, why)
+    import os
+    with tempfile.TemporaryDirectory() as st:
+        held = writer_lease(st, 0)
+        other = writer_lease(st, 0)
+        waits = []
+        late = writer_lease(st, 3, sleep=waits.append, clock=lambda t=iter(range(0, 99)): next(t))
+        check("writer_lease: a held lease refuses a second holder, at once or after its wait",
+              held is not None and other is None and late is None and waits == [1, 1], (other, late, waits))
+        os.close(held)
+        again = writer_lease(st, 0)
+        check("writer_lease: a released lease is taken (null control)", again is not None, again)
+        os.close(again)
+    # gates_finders (R11-PRE-ROUND-CHECK-GATE part 2, tvofi 2026-11-15): every
+    # open group the finders do not wait for is the architect's input when they
+    # finish; an unmarked one is listed and flagged, never read as gating.
+    gr = {"groups": [{"group": "C", "gates_finders": True, "resume": {"stage": "in-progress"}},
+                     {"group": "N", "gates_finders": False, "resume": {"stage": "not-started"}},
+                     {"group": "U", "resume": {"stage": "not-started"}},
+                     {"group": "Y", "gates_finders": "yes", "resume": {"stage": "design"}},
+                     {"group": "D", "gates_finders": False, "resume": {"stage": "done"}},
+                     {"group": "A", "resume": {"stage": "absorbed"}}]}
+    check("finder_gate reads only a boolean", [finder_gate(g) for g in gr["groups"]] == [True, False, None, None, False, None],
+          [finder_gate(g) for g in gr["groups"]])
+    check("architect_groups lists every open group not gating the finders and flags the unmarked",
+          architect_groups(gr) == (["N", "U", "Y"], ["U", "Y"]), architect_groups(gr))
+    check("architect_groups of a roster whose open groups all gate is empty (null control)",
+          architect_groups({"groups": gr["groups"][:1] + gr["groups"][4:]}) == ([], []))
     print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
     for f in fails:
         print("FAIL", f)

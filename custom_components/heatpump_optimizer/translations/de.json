@@ -528,6 +528,7 @@
           "entities": "Sensoren und Entitäten",
           "entities_metering": "Leistungs- und Solarsensoren",
           "entities_pump": "Wärmepumpen-Telemetrie",
+          "rooms": "Raumthermometer",
           "building": "Heizsystem und Wärmespeicher",
           "building_preset": "Gebäudetyp und Heizflächen",
           "thermal_model": "Thermisches Modell (Experten)",
@@ -539,7 +540,7 @@
           "learning_features": "Erweiterte Lernfunktionen",
           "grid_connection": "Sicherung und Spitzenwächter",
           "grid_fees": "Netzentgelte und Vertrag",
-          "heat_curve": "Heizkurvensteuerung (ECL110)",
+          "heat_curve": "Heizkurvensteuerung",
           "factory_reset": "Auf Werkseinstellungen zurücksetzen"
         }
       },
@@ -593,12 +594,12 @@
               "indoor_temp_entity": "Optional. Die tatsächliche Raumtemperatur. Ohne sie vertraut der Optimierer seinem eigenen Modell, das mit der Zeit abdriftet.",
               "outdoor_temp_entity": "Optional. Ein lokales Außenthermometer ist für die aktuelle Stunde genauer als die Vorhersage.",
               "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Steht die Steuerung der Pumpenfunktion auf Steuern, schreibt der Optimierer sie in jedem Planschritt, wie die Steuerung der Pumpenfunktion beschreibt, und das Ausschalten von Optimierer aktiv schreibt den Wert zurück, den die Entität vor dem ersten Schreiben zeigte. Bei Aus oder Beobachten wird sie nur gelesen, um zu bemerken, wenn sie nicht gelesen werden kann.",
-              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Der Optimizer leitet sie nie aus der Entität ab, nur das Vorausfüllen aus einem Wärmepumpengerät schlägt eine vor. Bei „Steuerung der Pumpenfunktion“ auf „Steuern“ schreibt der Optimizer die Raumtemperatur (Innentemperatur) bzw. die Wassertemperatur (Vorlauftemperatur, Rücklauftemperatur) des Plans in diese Entität.",
+              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen zum Beispiel für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Der Optimizer leitet sie nie aus der Entität ab, nur das Vorausfüllen aus einem Wärmepumpengerät schlägt eine vor. Bei „Steuerung der Pumpenfunktion“ auf „Steuern“ schreibt der Optimizer die Raumtemperatur (Innentemperatur) bzw. die Wassertemperatur (Vorlauftemperatur, Rücklauftemperatur) des Plans in diese Entität.",
               "flow_min_lift_k": "Mit Steuerung der Pumpenfunktion auf Steuern ist der bei der niedrigsten Planleistung geschriebene Wasser-Sollwert das gemessene Eingangswasser plus dieser Wert: Wärmepumpen-Rücklauf, Pufferspeicher, Fußbodenrücklauf oder Ventilauslass, und bei einer Entität mit Rücklauftemperatur nur die ersten drei. 5 K passt zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Von einem Regler, der die Zahl als Ziel für das Rücklaufwasser nimmt, wird angenommen, dass er seinen Verdichter umso stärker laufen lässt, je weiter das Ziel über dem Rücklauf liegt, er will also wahrscheinlich weniger; 1–2 K ist ein Ausgangspunkt, der an der gemessenen Frequenz und Leistung des Verdichters zu prüfen ist, kein gemessener Wert.",
               "flow_heat_c": "Der bei voller Planleistung geschriebene Wasser-Sollwert und der höchste, der geschrieben wird, solange der Plan die Führung hat. 55 °C passt zu einem Vorlaufziel. Wähle ihn bei einer Entität mit Rücklauftemperatur über dem höchsten Rücklauf, den du im normalen Heizbetrieb siehst, plus dem Hub, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messungen zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle, die aus bedeutet, liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel. Ein Raumheizungs-Boost oder der Boost-Modus schreibt stattdessen in jedem Schritt das eigene Maximum der Sollwert-Entität (höchstens 70 °C); ein anderer Wert als 55 °C begrenzt auch das, also stelle bei einer Niedertemperatur-Fußbodenheizung einen ein.",
-              "space_setpoint_power_feedback": "Standardmäßig an. Wirkt nur mit Wärmepumpen-Betriebssteuerung auf Steuern, einer Einheit Vorlauf- oder Rücklauftemperatur und einem Leistungssensor der Wärmepumpe; sonst ändert sich nichts. Nach 5 Minuten Starthaltezeit wird der Wasser-Sollwert gesenkt, solange die gemessene Aufnahme über der geplanten Leistung liegt, angehoben, solange sie darunter liegt, und innerhalb von 10 % gehalten, statt dem steigenden Eingangswasser zu folgen. Aus schreibt das Eingangswasser plus den Hub. Anforderungen an den Regler: seine Heizungshysterese höchstens der Hub (Luxtronik: 0,5 K), sonst startet ein stehender Verdichter nicht; sein minimales Rücklaufziel unter dem Rücklauf der Heizperiode; seine Integration fragt ihn mindestens alle 10 Minuten ab und stellt nach einem Reglerneustart die Heizbetriebsart wieder her, denn eine Luxtronik Smart Home Interface verwirft nach 600 s ohne Zugriff alle gesetzten Werte; und kein zweites Werkzeug schreibt dieselben Register (eine Luxtronik verwirft Schreibvorgänge dann stillschweigend).",
-              "space_setpoint_low_limit_entity": "Optional. Ein Temperatursensor, der den niedrigsten Wert meldet, den der Regler für die Sollwert-Entität oben annimmt (eine Luxtronik über ha-luxtronik-shi: \"Temperature: return target minimum\", Eingang 10104). Damit sendet Geplanter Leistung über die gemessene Aufnahme folgen nie einen Wert darunter, statt die Grenze erst zu finden, wenn der Regler einen Schreibwert kappt. Nur von dieser Option verwendet; leer ändert sich nichts.",
-              "space_setpoint_high_limit_entity": "Optional. Ein Temperatursensor, der den höchsten Wert meldet, den der Regler für die Sollwert-Entität oben annimmt (eine Luxtronik über ha-luxtronik-shi: \"Temperature: return limit\", Eingang 10103). Damit sendet Geplanter Leistung über die gemessene Aufnahme folgen nie einen Wert darüber, statt die Grenze erst zu finden, wenn der Regler einen Schreibwert kappt. Nur von dieser Option verwendet; leer ändert sich nichts."
+              "space_setpoint_power_feedback": "Standardmäßig an. Wirkt nur mit Wärmepumpen-Betriebssteuerung auf Steuern, einer Einheit Vorlauf- oder Rücklauftemperatur und einem Leistungssensor der Wärmepumpe; sonst ändert sich nichts. Nach 5 Minuten Starthaltezeit wird der Wasser-Sollwert gesenkt, solange die gemessene Aufnahme über der geplanten Leistung liegt, angehoben, solange sie darunter liegt, und innerhalb von 10 % gehalten, statt dem steigenden Eingangswasser zu folgen. Aus schreibt das Eingangswasser plus den Hub. Anforderungen an den Regler: seine Heizungshysterese höchstens der Hub (bei einer Luxtronik zum Beispiel 0,5 K), sonst startet ein stehender Verdichter nicht; sein minimales Rücklaufziel unter dem Rücklauf der Heizperiode; seine Integration fragt ihn mindestens alle 10 Minuten ab und stellt nach einem Reglerneustart die Heizbetriebsart wieder her, denn ein Regler kann Gesetztes verwerfen, wenn er nicht abgefragt wird (eine Luxtronik Smart Home Interface etwa verwirft nach 600 s ohne Zugriff alle gesetzten Werte); und kein zweites Werkzeug schreibt dieselben Register (eine Luxtronik etwa verwirft Schreibvorgänge dann stillschweigend).",
+              "space_setpoint_low_limit_entity": "Optional. Ein Temperatursensor, der den niedrigsten Wert meldet, den der Regler für die Sollwert-Entität oben annimmt (zum Beispiel eine Luxtronik über ha-luxtronik-shi: \"Temperature: return target minimum\", Eingang 10104). Damit sendet Geplanter Leistung über die gemessene Aufnahme folgen nie einen Wert darunter, statt die Grenze erst zu finden, wenn der Regler einen Schreibwert kappt. Nur von dieser Option verwendet; leer ändert sich nichts.",
+              "space_setpoint_high_limit_entity": "Optional. Ein Temperatursensor, der den höchsten Wert meldet, den der Regler für die Sollwert-Entität oben annimmt (zum Beispiel eine Luxtronik über ha-luxtronik-shi: \"Temperature: return limit\", Eingang 10103). Damit sendet Geplanter Leistung über die gemessene Aufnahme folgen nie einen Wert darüber, statt die Grenze erst zu finden, wenn der Regler einen Schreibwert kappt. Nur von dieser Option verwendet; leer ändert sich nichts."
             }
           },
           "plant": {
@@ -940,8 +941,8 @@
         }
       },
       "heat_curve": {
-        "title": "Heizkurvensteuerung (ECL110)",
-        "description": "Für Danfoss-ECL110-Regler, die über MQTT angesteuert werden. Der Optimierer verschiebt die Heizkurve in günstigen Stunden nach oben und in teuren nach unten. Lass diese Felder leer, wenn du keinen solchen Regler hast.",
+        "title": "Heizkurvensteuerung",
+        "description": "Verschiebt die Heizkurve deines Reglers in günstigen Stunden nach oben und in teuren nach unten, auf drei Wegen: über MQTT-Topics an einen Regler, der seine Verschiebung dort annimmt (zum Beispiel ein Danfoss ECL110 über eine MQTT-Brücke); an eine Zahlenentität, die die Kurve verschiebt; oder an eine Kurveneinstellung, die der Regler speichert. Topics und Entität lassen sich zusammen nutzen. Lass alles leer, wenn dein Regler nichts davon bietet.",
         "data": {
           "ecl110_displace_set_topic": "Topic für Verschiebungsbefehl",
           "ecl110_command_topic": "Topic für Legacy-JSON-Befehl",
@@ -960,7 +961,7 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "ecl110_displace_set_topic": "MQTT-Topic, auf das die Parallelverschiebung der Heizkurve veröffentlicht wird. Solange dieses und das Legacy-Befehls-Topic unten leer sind, wird nichts veröffentlicht: Lass beide leer, wenn du keinen Danfoss ECL110 hast.",
+          "ecl110_displace_set_topic": "MQTT-Topic, auf das die Parallelverschiebung der Heizkurve veröffentlicht wird. Solange dieses und das Legacy-Befehls-Topic unten leer sind, wird nichts veröffentlicht: Lass beide leer, wenn dein Regler seine Verschiebung nicht über MQTT annimmt (ein Danfoss ECL110 über eine MQTT-Brücke tut das).",
           "ecl110_command_topic": "Nur für ältere Installationen nötig, die stattdessen eine JSON-Nutzlast erwarten.",
           "ecl110_state_topic": "MQTT-Topic, auf dem der Regler seinen aktuellen Zustand meldet.",
           "ecl110_mqtt_qos": "0 genügt für fast alle.",
@@ -970,8 +971,8 @@
           "ecl110_pid_time_constant_hours": "Ungefähr, wie lange der Regler braucht, um auf eine neue Verschiebung zu reagieren. Damit fordert der Optimierer keine schnelleren Änderungen an, als das System umsetzen kann.",
           "heat_curve_displace_entity": "Eine Zahlenentität, die die Heizkurve deines Reglers verschiebt. Typ Verschiebung: eine Verschiebung der ganzen Kurve, bei der 0 keine Verschiebung bedeutet und die der Regler bei einem Neustart vergisst (zum Beispiel eine Luxtronik-SHI-Heizverschiebung); Ausschalten oder Entladen des Optimierers schreibt 0. Typ beständig: eine Kurveneinstellung, die der Regler speichert; Ausschalten oder Entladen des Optimierers schreibt den Wert zurück, den sie vor dem ersten Schreiben hatte.",
           "heat_curve_target_kind": "Verschiebung: eine Temperaturdifferenz, 0 neutral, vom Regler nicht gespeichert. Nimm sie, wo immer dein Regler eine hat. Beständig: eine Kurveneinstellung, die der Regler speichert, von ihrem eigenen Wert verschoben und beim Ausschalten zurückgeschrieben; jeder Schreibvorgang nutzt den Speicher des Reglers ab, daher sind die Schreibvorgänge pro Tag begrenzt.",
-          "heat_curve_offset_band_k": "Der auf die Entität geschriebene Offset bleibt in beide Richtungen innerhalb so vieler Kelvin. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und Luxtroniks eigener Korrektur von ±5 K.",
-          "heat_curve_persistent_band_k": "Die gespeicherte Einstellung wird höchstens so viele Kelvin in jede Richtung von dem Wert verschoben, den sie vor dem ersten Schreiben hatte. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und Luxtroniks eigener Korrektur von ±5 K.",
+          "heat_curve_offset_band_k": "Der auf die Entität geschriebene Offset bleibt in beide Richtungen innerhalb so vieler Kelvin. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und der Benutzerkorrektur von ±5 K, die ein Regler bietet (der von Luxtronik).",
+          "heat_curve_persistent_band_k": "Die gespeicherte Einstellung wird höchstens so viele Kelvin in jede Richtung von dem Wert verschoben, den sie vor dem ersten Schreiben hatte. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und der Benutzerkorrektur von ±5 K, die ein Regler bietet (der von Luxtronik).",
           "heat_curve_persistent_writes_per_day": "Schreibvorgänge an einem lokalen Tag, das Zurückschreiben beim Ausschalten eingeschlossen; einer wird dafür immer zurückgehalten. 12 (sechs Verschiebungen mit Rückkehr) liegt unter dem einzigen dokumentierten Herstellerkontingent, das gefunden wurde (Daikin, 7000 pro Jahr); der Abstand darunter ist eine Schätzung. 0 oder 1 schreibt nichts. Über 19 überschreitet dieses Kontingent.",
           "heat_curve_persistent_min_dwell_minutes": "Nach einem Schreibvorgang wartet der nächste mindestens so lange. 60 Minuten sind etwa drei Reaktionszeiten einer Heizkörperanlage (eine Schätzung aus einem Forum); eine träge Fußbodenheizung braucht eher 2 bis 3 Stunden.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
@@ -1253,6 +1254,20 @@
           }
         }
       },
+      "rooms": {
+        "title": "Raumthermometer",
+        "description": "Raumthermostate oder Temperatursensoren, einer pro Raum. Der Optimierer veröffentlicht ihren Mittelwert und die Spreizung zwischen dem kältesten und dem wärmsten Raum. Auf Wunsch kann ein Raum unter seinem eigenen Thermostat-Sollwert die Temperatur anheben, die der Plan hält. Leer lassen, wenn keine vorhanden sind.",
+        "data": {
+          "room_temperature_entities": "Raumthermometer",
+          "room_lift_enabled": "Kalter Raum darf das geplante Minimum anheben",
+          "after_save": "Nach dem Speichern"
+        },
+        "data_description": {
+          "room_temperature_entities": "Bis zu 32 Klima-Entitäten (Raumthermostate) oder Temperatursensoren. Ein Raum, der nicht verfügbar, veraltet oder außerhalb des Bereichs ist, fließt nicht in den Mittelwert ein und meldet nie ein Eingangsproblem.",
+          "room_lift_enabled": "Standardmäßig aus. Wenn aktiv, hebt ein Raumthermostat im Modus heat oder auto, der weiter unter seinem eigenen Sollwert liegt als das Haus unter Ihrem, die Mindesttemperatur des Plans an – um höchstens 1 °C, nie über Ihren Komfort-Sollwert und allmählich. Ein ausgeschalteter oder kühlender Raum wird ignoriert. Es weicht dem Sparmodus, einem offenen Fenster, Abwesenheit, einem Feiertag, einem manuell geplanten Heizfenster und dem Zwei-Zonen-Modell. Der Sensor für die Raumtemperatur-Spreizung zeigt den Raum und die Größe.",
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
+        }
+      },
       "entities_pump": {
         "title": "Wärmepumpen-Telemetrie",
         "description": "Was die Wärmepumpe über sich selbst meldet.",
@@ -1274,7 +1289,7 @@
         "data_description": {
           "heat_pump_mode_entity": "Optional. Die eigene Modusauswahl der Wärmepumpe – Kühlen, Heizen, Warmwasser oder eine Kombination aus zwei. Nur lesend, außer die Steuerung der Pumpenfunktion steht auf Steuern. Eine Wärmepumpe im Kühl- oder reinen Warmwassermodus kann das Haus nicht heizen, und eine im reinen Heizmodus kann kein Warmwasser bereiten; ohne diese Angabe kann der Plan Wärme versprechen, die die Wärmepumpe gerade nicht liefern kann. Bleibt sie leer, geht der Optimierer davon aus, dass die Wärmepumpe alles kann.",
           "pump_duty_mode": "Aus (Standard) schreibt nie den Betriebsmodus oder die Sollwerte der Wärmepumpe. Beobachten schreibt ebenfalls nichts und führt in den Diagnosedaten ein 24-Stunden-Protokoll darüber, welche Funktion jeder Planschritt angefordert hat und was die Wärmepumpe getan hat (aus der Leistungsentität, dem Modus und der Speichertemperatur). Bei jeder der drei Einstellungen wird der Ein/Aus-Schalter der Wärmepumpe, falls du einen eingerichtet hast, weiterhin vom Plan geschaltet. Steuern schreibt den oben gewählten Betriebsmodus (nur Warmwasser bei reinen Warmwasserschritten, nur Heizen bei reinen Raumheizungsschritten, unverändert bei Leerlaufschritten; bei einem Schritt, der beides plant, nur Warmwasser für den Warmwasseranteil des Schritts und danach Heizen, wobei ein Anteil unter 5 Minuten der anderen Funktion zugeschlagen wird; Heizen + Warmwasser, solange ein Boost oder ein Anti-Legionellen-Zyklus beides verlangt, und immer dann, wenn der Plan nicht die Führung hat), die Entität für den Warmwasser-Sollwert (der auf der Warmwasserseite konfigurierte Warmwasser-Sollwert oder während eines Zyklus die Anti-Legionellen-Temperatur) und die Entität für den Raumheizungs-Sollwert (bei einem Vorlauf-Sollwert ein Ziel, das der geplanten Leistung folgt – die Heizungsvorlauftemperatur (55 °C, oder Obergrenze der Heizungsvorlauftemperatur) bei voller Leistung, in Richtung 5 °C (oder Mindesthub über dem Eingangswasser) über dem ersten aktuellen Wert von Wärmepumpen-Rücklauf, Pufferspeicher, Fußbodenrücklauf oder Ventilauslass (35 °C, wenn keiner konfiguriert ist) an der Modulationsuntergrenze – bei Schritten, die das Haus heizen, 25 °C bei Schritten, die es nicht tun (20 °C bei einem Rücklauftemperatur-Sollwert oder das eigene Minimum der Entität, falls höher), und 35 °C oder die Wetterkurve, je nachdem, was höher ist, wenn der Plan nicht die Führung hat; bei einem Raum-Sollwert die geplante Raumtemperatur). Wo der Modus keine Einzelfunktion anbietet, etwa beim GCHV-Modbus-Paket, wird stattdessen der Sollwert der anderen Funktion gesenkt: der für Warmwasser auf 30 °C, ein Vorlauf-Sollwert auf dieselben 25 °C (20 °C bei Rücklauftemperatur), ein Raum-Sollwert auf 5 °C, jeweils nie unter das eigene Minimum der Entität. Ein reiner Warmwasserabschnitt ist auf 90 Minuten begrenzt (30 unter -10 °C Außentemperatur), außer der Raum hat bereits seine geplante Temperatur. Wo Leistung begrenzt (Nachtmodus) ein Schalter ist und Ruhefenster geplant sind, hält Steuern diesen Schalter außerdem innerhalb eines Ruhefensters an und außerhalb aus. Solange Optimierer aktiv eingeschaltet ist, wird jede Änderung an diesen Entitäten, die der Optimierer nicht vorgenommen hat, sofort zurückgeschrieben; schalte Optimierer aktiv aus, um die Wärmepumpe von Hand zu ändern. Ein Wert, den die Wärmepumpe nicht übernimmt, löst eine Warnung aus und wird alle 5 Minuten erneut gesendet.",
-          "space_hysteresis_entity": "Optional. Ein Sensor oder eine Zahl mit der eigenen Starthysterese der Pumpe fürs Heizen als Temperaturdifferenz in K (°C gilt unverändert, °F wird umgerechnet; 0 bis 20 K): Ihre Regelung beginnt erst zu heizen, wenn das Ziel so weit über dem Wasser liegt. Bei einem Vorlauf- oder Rücklauf-Sollwert ist die Anhebung über dem gemessenen Wasser auf der niedrigsten geplanten Stufe dann nie kleiner, sodass ein geplanter Heizschritt auch wirklich von der Pumpe gestartet wird. Eine Regelung, die nur die Startschwelle selbst veröffentlicht (bei einer Luxtronik der Bedarfsgrenzwert, Eingang 10107), braucht einen Template-Sensor aus Rücklaufziel minus dieser Schwelle. Bleibt sie leer oder unlesbar, gilt die konfigurierte Anhebung.",
+          "space_hysteresis_entity": "Optional. Ein Sensor oder eine Zahl mit der eigenen Starthysterese der Pumpe fürs Heizen als Temperaturdifferenz in K (°C gilt unverändert, °F wird umgerechnet; 0 bis 20 K): Ihre Regelung beginnt erst zu heizen, wenn das Ziel so weit über dem Wasser liegt. Bei einem Vorlauf- oder Rücklauf-Sollwert ist die Anhebung über dem gemessenen Wasser auf der niedrigsten geplanten Stufe dann nie kleiner, sodass ein geplanter Heizschritt auch wirklich von der Pumpe gestartet wird. Eine Regelung, die nur die Startschwelle selbst veröffentlicht (zum Beispiel bei einer Luxtronik der Bedarfsgrenzwert, Eingang 10107), braucht einen Template-Sensor aus Rücklaufziel minus dieser Schwelle. Bleibt sie leer oder unlesbar, gilt die konfigurierte Anhebung.",
           "dhw_hysteresis_entity": "Optional. Ein Sensor oder eine Zahl mit der eigenen Starthysterese der Pumpe für Warmwasser als Temperaturdifferenz in K (°C gilt unverändert, °F wird umgerechnet; 0 bis 20 K): Die Pumpe startet eine Ladung erst, wenn der Speicher unter dem Warmwasser-Sollwert minus diesem Wert liegt. Der Plan setzt dann keine Ladung auf einen wärmeren Speicher (eine für den aktuellen Schritt geplante Ladung bleibt, da sie schon laufen kann; eine Desinfektionsladung wird an der Desinfektionstemperatur gemessen), und das Funktionsprotokoll markiert einen Warmwasser-Leerlaufschritt auf so einem Speicher als not-startable statt idle-instead. Ein Warmwasser-Minimum über dieser Starttemperatur kann die Pumpe nicht halten und löst eine Warnung aus. Bleibt sie leer, unlesbar oder 0, gilt jede geplante Ladung als startend.",
           "heat_pump_defrost_entity": "Optional. Ein, solange die Wärmepumpe den Kreislauf umkehrt, um Frost vom Außenwärmetauscher zu schmelzen. Der während einer Abtauung bezogene Strom geht in den Wärmetauscher statt ins Haus. Beachte, dass viele Wärmepumpen nur alle paar Minuten abgefragt werden, kurze Abtauvorgänge also komplett übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
           "heat_pump_online_entity": "Optional und bei einer cloudverbundenen Wärmepumpe dringend empfohlen. Ein, solange die Wärmepumpe tatsächlich erreichbar ist. Eine Cloud-Integration kann ihre letzten bekannten Werte weiter veröffentlichen, obwohl die Wärmepumpe selbst vom Netzwerk getrennt ist, sodass alle anderen Sensoren völlig aktuell aussehen; dies ist das einzige Signal, das etwas anderes sagt. Bei einer lokalen Verbindung (LAN) werden die Sensoren von selbst nicht verfügbar, und dies bringt wenig.",
@@ -1407,7 +1422,7 @@
         },
         "data_description": {
           "dso_product": "Eine datierte Tabelle nur für Schweden. Die Auswahl eines Produkts schreibt Netzentgeltregeln und Felder für den Spitzentarif, die du weiterhin bearbeiten kannst, stellt das Netzentgelt auf „Zeitabhängige Regeln“ und schaltet den Spitzentarif ein. Prüfe sie anhand deiner Rechnung: Ein Produkt schreibt seine Werte auch nach seinem Enddatum weiter. Ein Produkt, das die Tabelle nicht kennt, schreibt nichts.",
-          "grid_fee_mode": "Das Entgelt, das dein Netzbetreiber pro übertragener kWh aufschlägt. Der Tibber-Preis enthält es nicht, sodass der Plan mit dieser Konfiguration endlich den gesamten Grenzpreis sieht. „Zeitabhängige Regeln“ verwendet den Zeitplan unten; „Live-Sensor“ folgt einer Entität.",
+          "grid_fee_mode": "Das Entgelt, das dein Netzbetreiber pro übertragener kWh aufschlägt. Der Tibber-Preis enthält es nicht, und ein Preissensor nur, wenn du es dort selbst eingerechnet hast, sodass der Plan mit dieser Konfiguration den gesamten Grenzpreis sieht. „Zeitabhängige Regeln“ verwendet den Zeitplan unten; „Live-Sensor“ folgt einer Entität.",
           "grid_fee_fixed": "Ein pauschales Entgelt, das in jeder Stunde zusätzlich zu den zeitabhängigen Regeln oder dem Wert des Live-Sensors aufgeschlagen wird. Es gilt nur, wenn Netzentgelt auf „Zeitabhängige Regeln“ oder „Live-Sensor“ steht; bei „Keine“ wird es ignoriert. Entnimm es deiner Netzrechnung.",
           "grid_fee_rules": "Eine Regel pro Zeile, zum Beispiel „Nov-Mar Mon-Fri 06:00-22:00 = 0.25“. Monats-, Wochentags- und Zeitteil sind jeweils optional; überlappende Regeln addieren sich, was einem Grundentgelt plus einem Hochlastzuschlag entspricht. Ein Komma zwischen Ziffern ist ein Dezimaltrenner, „0,25“ wird also als 0.25 gelesen und trennt nie eine Regel.",
           "grid_fee_entity": "Ein Sensor, der das aktuelle Entgelt in {currency}/kWh meldet, für Netze mit dynamischen Entgelten. Sein Wert wird zu jeder geplanten Stunde addiert.",
@@ -1519,7 +1534,7 @@
       },
       "modbus_prefill": {
         "title": "Aus einem Wärmepumpengerät vorbefüllen",
-        "description": "Für eine Rotenso Windmi oder eine andere von GCHV gebaute Wärmepumpe, die über das Modbus-Paket des Projekts tuya_heat_pump oder über das eigene Home-Assistant-Gerät der Pumpe ausgelesen wird. Wähle das Gerät, oder lass es leer und nenne den Entitäts-Präfix des Pakets, und sende ab: Das nächste Formular schlägt Werte vor, die aus der Pumpe gelesen wurden – die Warmwasser-Sollwerte und den Zeitplan, die Legionellentage, den Nachtmodus-Zeitplan, die maximale elektrische Leistung der Pumpe (aus ihrer Gerätekapazität), ob die Pumpe nach Wassertemperatur regelt, und die eigenen Sensoren der Pumpe für noch leere Sensorplätze. Bearbeite oder leere beliebige davon; nur was du behältst, wird gespeichert, und ein geleertes Feld bleibt, wie es war. Nichts über das Haus oder sein Heizsystem lässt sich auf diese Weise auslesen.\n\nGelesene Entitäten: {found}. Register für den Typ des Zuheizers: {backup_heater_type} – jeder Wert außer 7 bedeutet, dass die Pumpe eine eigene elektrische Heizung hat, die von den Heizer-Plätzen bei der Wärmepumpen-Telemetrie überwacht werden soll.\n\nRollen, die aus dem NAMEN einer Entität statt aus einer veröffentlichten Definition gelesen wurden – die Seite kann diese nicht prüfen, prüfe daher jede vor dem Speichern: {name_matched}. Rollen aus veröffentlichten Definitionen, nach Quelle: {matched_sources}.",
+        "description": "Liest nur, wofür diese Seite eine Zuordnung hat: eine von GCHV gebaute Wärmepumpe (zum Beispiel eine Rotenso Windmi) über das Modbus-Paket des Projekts tuya_heat_pump, oder das eigene Home-Assistant-Gerät einer Wärmepumpe, über die veröffentlichten Definitionen seiner Integration, wo hier eine zugeordnet ist, sonst über die Namen seiner Entitäten. Wähle das Gerät, oder lass es leer und nenne den Entitäts-Präfix des Pakets, und sende ab: Das nächste Formular schlägt Werte vor, die aus der Pumpe gelesen wurden – die Warmwasser-Sollwerte und den Zeitplan, die Legionellentage, den Nachtmodus-Zeitplan, die maximale elektrische Leistung der Pumpe (aus ihrer Gerätekapazität), ob die Pumpe nach Wassertemperatur regelt, und die eigenen Sensoren der Pumpe für noch leere Sensorplätze. Bearbeite oder leere beliebige davon; nur was du behältst, wird gespeichert, und ein geleertes Feld bleibt, wie es war. Nichts über das Haus oder sein Heizsystem lässt sich auf diese Weise auslesen.\n\nGelesene Entitäten: {found}. Register für den Typ des Zuheizers: {backup_heater_type} – jeder Wert außer 7 bedeutet, dass die Pumpe eine eigene elektrische Heizung hat, die von den Heizer-Plätzen bei der Wärmepumpen-Telemetrie überwacht werden soll.\n\nRollen, die aus dem NAMEN einer Entität statt aus einer veröffentlichten Definition gelesen wurden – die Seite kann diese nicht prüfen, prüfe daher jede vor dem Speichern: {name_matched}. Rollen aus veröffentlichten Definitionen, nach Quelle: {matched_sources}.",
         "data": {
           "prefill_device": "Wärmepumpen-Gerät (optional)",
           "modbus_prefill_prefix": "Entitäts-Präfix des Modbus-Pakets",
@@ -1608,7 +1623,8 @@
       "heat_curve_not_offset": "Der eigene Wertebereich dieser Entität enthält 0 nicht, sie ist also kein Offset: Sie sieht wie ein absoluter Kurvenpunkt aus. Wähle die Offset-Entität des Reglers.",
       "heat_curve_unreadable": "Diese Entität hat gerade keinen Wert, daher ist unbekannt, auf welchen Wert sie beim Ausschalten zurückgesetzt würde. Wähle eine Entität, die einen Wert meldet, oder speichere erneut, sobald sie es tut.",
       "heat_curve_out_of_range": "Diese Entität zeigt einen Wert außerhalb ihres eigenen angegebenen Bereichs, daher kann sie nicht sicher verschoben werden. Prüfe die Entität zuerst in ihrer Integration.",
-      "heat_curve_entity_in_use": "Die Offset-Entität der Heizkurve wird vom Optimierer bereits für einen anderen Zweck geschrieben (einen Sollwert, das Ventil, den Verdichter oder den Modus). Wähle für einen davon eine andere Entität."
+      "heat_curve_entity_in_use": "Die Offset-Entität der Heizkurve wird vom Optimierer bereits für einen anderen Zweck geschrieben (einen Sollwert, das Ventil, den Verdichter oder den Modus). Wähle für einen davon eine andere Entität.",
+      "too_many_rooms": "Es können höchstens 32 Raumthermometer angegeben werden."
     },
     "abort": {
       "factory_reset_done": "Zurücksetzen abgeschlossen. Die Integration wurde neu geladen und plant wieder. Um das Zurücksetzen rückgängig zu machen, führe die Aktion „Gelernte Momentaufnahme wiederherstellen“ aus.",
@@ -1988,10 +2004,10 @@
         "name": "Warmwassertemperatur"
       },
       "ecl110_displace": {
-        "name": "ECL110 Parallelverschiebung"
+        "name": "Heizkurven-Parallelverschiebung"
       },
       "ecl110_effective_displace": {
-        "name": "ECL110 Effektive Parallelverschiebung"
+        "name": "Heizkurven-Parallelverschiebung effektiv"
       },
       "floor_heating_return_temperature": {
         "name": "Rücklauftemperatur Fußbodenheizung"
@@ -2010,6 +2026,12 @@
           "system_identification": "Systemidentifikation",
           "unknown": "Unbekannt"
         }
+      },
+      "room_average_temperature": {
+        "name": "Räume: Durchschnittstemperatur"
+      },
+      "room_temperature_spread": {
+        "name": "Räume: Temperaturspanne"
       },
       "indoor_temperature_optimizer": {
         "name": "Innentemperatur (Optimierer)"
@@ -2367,7 +2389,7 @@
         },
         "dhw_legionella_temperature": {
           "name": "Temperatur der Legionellenschaltung",
-          "description": "Speichertemperatur, die während einer Legionellenschaltung erreicht wird."
+          "description": "Speichertemperatur, die während einer Legionellenschaltung erreicht wird, 55 bis 70 °C: 70 °C ist das harte Maximum, auf das jede Warmwasserschaltung begrenzt wird."
         },
         "dhw_legionella_interval_days": {
           "name": "Intervall der Legionellenschaltung",
@@ -2382,15 +2404,15 @@
           "description": "Multiplikator des Wärmeverlusts bei Regen. 1,15 bedeutet 15 % mehr Wärmeverlust bei Regen ab 2 mm/h (Effekt der nassen Gebäudehülle); schwächerer Regen verringert ihn anteilig, bei 0,1 mm/h oder weniger wirkt er gar nicht."
         },
         "ecl110_pid_time_constant_hours": {
-          "name": "ECL110 PI/PID-Zeitkonstante",
-          "description": "Zeitkonstante (Stunden) für die Näherung des PI/PID-Verhaltens des ECL110. Niedrigere Werte reagieren schneller, höhere sind gleichmäßiger."
+          "name": "PI/PID-Zeitkonstante des Heizkurvenreglers",
+          "description": "Zeitkonstante (Stunden) für die Näherung des PI/PID-Verhaltens des Heizkurvenreglers. Niedrigere Werte reagieren schneller, höhere sind gleichmäßiger."
         },
         "ecl110_displace_min": {
-          "name": "ECL110 Verschiebung Minimum",
+          "name": "Heizkurvenverschiebung Minimum",
           "description": "Niedrigste Parallelverschiebung, die der Optimierer vorgeben darf, in °C."
         },
         "ecl110_displace_max": {
-          "name": "ECL110 Verschiebung Maximum",
+          "name": "Heizkurvenverschiebung Maximum",
           "description": "Höchste Parallelverschiebung, die der Optimierer vorgeben darf, in °C."
         },
         "quiet_silent_windows": {
@@ -2485,7 +2507,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Leistungsanteil im Flüstermodus",
-          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 ist der ungesetzte Wert: Ihn zu senden ändert nichts, ein bereits gespeicherter Anteil bleibt also wirksam."
+          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 begrenzt nichts; lassen Sie das Feld weg, um mit dem gespeicherten Anteil zu rechnen."
         }
       }
     },
@@ -2575,7 +2597,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Leistungsanteil im Flüstermodus",
-          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 ist der ungesetzte Wert: Ihn zu senden ändert nichts, ein bereits gespeicherter Anteil bleibt also wirksam."
+          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 begrenzt nichts, und ihn zu senden ersetzt einen gespeicherten kleineren Anteil; lassen Sie das Feld weg, um den gespeicherten zu behalten."
         },
         "dhw_setpoint": {
           "name": "Warmwasser-Sollwert",

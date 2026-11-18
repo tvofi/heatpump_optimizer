@@ -585,12 +585,14 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str,
     return hours, why
 
 
-#: The measured fields (`tools/plan/size_durations.py`) a plan records and
-#: `--check` requires: the rounds model and the held-stage model.
+#: The fields of `durations.json` a plan records in `generated.model`: the
+#: measured rounds and held-stage models (`tools/plan/size_durations.py`;
+#: `model_refusals` names the ones `--check` requires) and `phase_hours`, the
+#: round phases' durations the plan page prints (`plan_phases.MODEL_TIMED`).
 MODEL_FIELDS = ("first_round_hours", "first_round_by_class_hours", "review_rounds",
                 "review_rounds_by_class", "round_hours", "carry_baseline", "carry_hours",
                 "carry_part_hours", "carries_per_part", "sizes_percentile",
-                "carry_provenance")
+                "carry_provenance", "phase_hours")
 SIZE_ORDER = ("XS", "S", "M", "L", "XL")
 
 
@@ -1587,6 +1589,58 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     return plan
 
 
+def build_round_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
+                     version: str, roster_ref: str = "", roster_blob: str = "",
+                     roster_path: str = "", *, round_n: int, since_tag: list | None = None,
+                     evidence: dict | None = None, legacy: dict | None = None) -> dict:
+    """`build_plan` over the groups of round `round_n` only, plus the next
+    round's preliminary plan under `next_round` when the roster holds its
+    groups. A round's plan, closure and lanes cover that round's groups
+    (owner, 2026-11-13); a group of a later round is priced apart, from this
+    round's closure. A group of this round cannot wait on one of a later
+    round. `build_plan` itself plans every group it is given."""
+    later = roster_lib.next_round_groups(roster, round_n)
+    if not later:
+        return build_plan(roster, durations, caps, start, version, roster_ref, roster_blob,
+                          roster_path, round_n=round_n, since_tag=since_tag,
+                          evidence=evidence, legacy=legacy)
+    for n, g in groups_of(roster).items():
+        a = next((a for a in g.get("after") or [] if a in later), None)
+        if n not in later and a:
+            raise PlanError(f"{n}: after-edge names a group of a later round: {a}")
+    plan = build_plan(roster_lib.round_roster(roster, round_n), durations, caps, start, version,
+                      roster_ref, roster_blob, roster_path, round_n=round_n,
+                      since_tag=since_tag, evidence=evidence, legacy=legacy)
+    plan["next_round"] = next_round_preview(later, durations, caps, plan, roster_ref,
+                                            roster_blob, roster_path, evidence, legacy)
+    return plan
+
+
+def next_round_preview(later: dict, durations: dict, caps: dict,
+                       plan: dict, roster_ref: str, roster_blob: str, roster_path: str,
+                       evidence: dict | None, legacy: dict | None) -> dict:
+    """The next round's preliminary plan: its groups on the same duration model
+    and caps, starting at `plan`'s closure. Only the nearest later round is
+    scheduled; groups of rounds past it are counted in `beyond`. An
+    `after`-edge to a group of an earlier round is dropped: that round is
+    closed by the time this one starts. A round that cannot be planned is
+    `{"unavailable": reason}`, never an absent tab."""
+    nxt = min(roster_lib.group_round(n) for n in later)
+    mine = {n: g for n, g in later.items() if roster_lib.group_round(n) == nxt}
+    out = {"round": nxt, "preliminary": True, "starts_at": plan["summary"]["closure"],
+           "beyond": len(later) - len(mine)}
+    sub = {"groups": [{**g, "after": [a for a in g.get("after") or [] if a in mine]}
+                      for g in mine.values()]}
+    at = dt.datetime.strptime(plan["summary"]["closure"], "%Y-%m-%dT%H:%M:%SZ")
+    try:
+        out["plan"] = build_plan(sub, durations, caps, at, plan["summary"]["closure_stamp"],
+                                 roster_ref, roster_blob, roster_path, round_n=nxt,
+                                 evidence=evidence, legacy=legacy)
+    except PlanError as exc:
+        out["unavailable"] = str(exc)
+    return out
+
+
 def bump(version: str, n: int) -> str:
     """The `n`th interim patch stamp after `version`."""
     maj, mi, pa = (int(x) for x in version.lstrip("v").split(".")[:3])
@@ -1845,6 +1899,9 @@ def check_plan(plan: dict) -> list:
         bad += model_refusals(plan["generated"]["model"])
     else:
         bad.append("model: the plan records no duration model (generated.model)")
+    nxt = (plan.get("next_round") or {}).get("plan")
+    if nxt:
+        bad += [f"next round {plan['next_round']['round']}: {b}" for b in check_plan(nxt)]
     return bad
 
 
@@ -3462,9 +3519,9 @@ def main(argv=None) -> int:
             args.repo, f"{roster_lib.ROSTERS_DIR}/{src.rsplit('/', 1)[-1]}")
     except roster_lib.RosterNotFound as exc:
         raise PlanError(f"the carry cut-over: {exc}") from exc
-    plan = build_plan(roster, durations, caps, start, version, ref, blob,
-                      roster_path=src, round_n=round_n, since_tag=since_tag, evidence=evidence,
-                      legacy=legacy)
+    plan = build_round_plan(roster, durations, caps, start, version, ref, blob,
+                            roster_path=src, round_n=round_n, since_tag=since_tag,
+                            evidence=evidence, legacy=legacy)
     bad = check_plan(plan)
     if bad:
         print("the model produced a violating plan; refusing to write it", file=sys.stderr)

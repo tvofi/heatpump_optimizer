@@ -81,6 +81,7 @@ def flow_setpoint(
     outdoor_temp: float,
     heat_loss_coefficient: float,
     emitter_ua: float,
+    free_heat_kw: float = 0.0,
 ) -> float:
     """The flow temperature the valve regulates to, in °C.
 
@@ -88,7 +89,10 @@ def flow_setpoint(
     *flow* temperature, following a weather-compensation curve. The curve here
     is derived rather than configured: the flow temperature that, in steady
     state, holds the house exactly at ``target_temp`` is the target plus the
-    house's standing loss spread over the emitter UA.
+    house's standing loss, less ``free_heat_kw`` the house gains without the
+    emitters, spread over ``emitter_ua``: the conductance from the flow to the
+    room, in kW/K, which a caller whose emitters heat the room through a slab
+    passes in series with it.
 
     This is what bounds discharge. The valve mixes return water into the flow,
     so the emitters never see raw tank water while the tank runs above the
@@ -106,7 +110,9 @@ def flow_setpoint(
     temperatures; the effective proportional gain is the emitter UA itself,
     in kW/K, which no step length can distort.
     """
-    q_hold = heat_loss_coefficient * max(0.0, target_temp - outdoor_temp)
+    q_hold = max(
+        0.0, heat_loss_coefficient * max(0.0, target_temp - outdoor_temp) - free_heat_kw
+    )
     return target_temp + q_hold / max(emitter_ua, 1e-6)
 
 
