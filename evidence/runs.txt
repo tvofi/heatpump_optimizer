@@ -1,0 +1,10 @@
+head 1c75332e983535262406473761d3b0eecce2f959, merge base 2c59b3d916a78cad10384a0eee295aa1799ef79e
+features block "# -- the fold and its gates".."# -- persistence is additive" via features_block.py --prelude:
+ unmutated head: ALL 11 FEATURES BLOCK PASSED
+ M1 guard (2 lines) deleted: 1 of 11 FAILED (R11-VALVE-REFERENCE r1; single-zone valved arms 1 sample)
+ M2 'and not params.two_zone_enabled' deleted: 1 of 11 FAILED (two-zone valved arms 0 samples)
+ M3 'not' dropped (two_zone_enabled): 1 of 11 FAILED
+ null control (head features.py on merge-base production): 1 of 11 FAILED, all arms 1, clamped held False
+merge-tree --write-tree origin/main head: rc=0, no conflict
+VERSION, manifest.json, RELEASE_NOTES.md, tests/golden: untouched (three-dot diff empty)
+classify: GREEN 1c75332e983535262406473761d3b0eecce2f959 pending: none red: none (twice)
