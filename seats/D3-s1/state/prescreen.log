@@ -539,3 +539,4 @@
 2026-11-18T21:34:37Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 9174794d L2208 by=tests/features.py ran=12 wall=1348.3s
 2026-11-18T21:41:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_lm_solve CMP_BOUND 5bc864cc L852 by=- ran=12 wall=1326.8s
 2026-11-18T21:47:25Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize CMP_BOUND d9b2b8a5 L4610 by=- ran=12 wall=1267.6s
+2026-11-18T21:57:39Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostWindow._accrue GUARD_OFF ea64107d L744 by=tests/features.py ran=15 wall=1513.3s
