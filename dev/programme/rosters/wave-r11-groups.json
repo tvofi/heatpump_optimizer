@@ -4798,7 +4798,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-002)",
-    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3724
    }
   },
   {
