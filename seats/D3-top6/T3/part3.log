@@ -63,6 +63,7 @@ EXIT complete c2 0 2026-11-18T21:04:24Z load1=0.99
 RESULT load1=1.00
 RESULT thread_factor=1.00
 EXIT complete c3c6 0 2026-11-18T21:30:59Z load1=1.00
+end 2026-11-18T21:31:34Z nproc=4 cpu=Intel Xeon @ 2.10GHz load1=0.60
 === prescreen.log ===
 2026-11-18T18:55:09Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=225.2s reach_ok=True
 2026-11-18T18:57:57Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=167.8s reach_ok=False
