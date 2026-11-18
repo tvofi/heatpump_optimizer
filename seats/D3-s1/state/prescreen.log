@@ -465,3 +465,4 @@
 2026-11-18T16:56:13Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays GUARD_OFF ce280c82 L7494 by=tests/entities.py ran=14 wall=1766.1s
 2026-11-18T16:56:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_data_dict GUARD_OFF 9e714704 L8265 by=- ran=13 wall=1633.7s
 2026-11-18T17:21:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold GUARD_OFF 688eecbd L8842 by=- ran=13 wall=1719.6s
+2026-11-18T17:22:56Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor GUARD_OFF cd7a074a L8978 by=tests/features.py ran=13 wall=1707.9s
