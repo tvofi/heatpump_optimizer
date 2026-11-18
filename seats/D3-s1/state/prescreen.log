@@ -520,3 +520,4 @@
 2026-11-18T23:20:41Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF f030484a L2038 by=tests/features.py ran=12 wall=1636.2s
 2026-11-18T23:25:19Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum GUARD_OFF 061a975f L768 by=tests/features.py ran=12 wall=1517.1s
 2026-11-18T23:34:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_peak_excess GUARD_OFF eb0a46c5 L904 by=- ran=12 wall=1520.7s
+2026-11-18T23:43:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.topology_layout GUARD_OFF 0486e863 L404 by=- ran=19 wall=1838.8s
