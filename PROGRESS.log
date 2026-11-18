@@ -152,3 +152,4 @@
 1795035498 CKPT D3-s1 501 file(s)
 1795035828 HB alive
 1795035982 CKPT D3-s1 501 file(s)
+1795035987 HB session restarted: seat subagent lost; prescreen.py complete (pid 19578) still running, 55/245 full-net done; seat re-launches when it exits
