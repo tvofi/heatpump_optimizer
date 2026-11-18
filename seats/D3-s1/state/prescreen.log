@@ -467,3 +467,4 @@
 2026-11-18T17:04:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CMP_BOUND 8e515e12 L4725 by=- ran=13 wall=1291.6s
 2026-11-18T17:11:50Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CLAMP_DROP 44e7fc37 L2065 by=- ran=16 wall=1374.0s
 2026-11-18T17:26:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._slab_outcome GUARD_OFF 0e512205 L2409 by=- ran=12 wall=1369.9s
+2026-11-18T17:27:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:PeakTracker.from_dict CMP_BOUND 55d61241 L465 by=- ran=12 wall=1361.8s
