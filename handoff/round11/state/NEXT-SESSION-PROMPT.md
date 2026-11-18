@@ -23,6 +23,16 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-ROOMS-P3 (stage in-progress, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage carries-open, branch `fix/r11-outside-self-setting-pump-p2`): `git fetch origin fix/r11-outside-self-setting-pump-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-VALVE-REFERENCE (stage carries-open, branch `fix/r11-valve-reference`): `git fetch origin fix/r11-valve-reference && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-kernel-step (stage in-progress, branch `handoff/r11-seam-kernel-step`): `git fetch origin handoff/r11-seam-kernel-step && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-kernel-layering (stage in-progress, branch `handoff/r11-seam-kernel-layering`): `git fetch origin handoff/r11-seam-kernel-layering && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-plant-model (stage in-progress, branch `handoff/r11-seam-plant-model`): `git fetch origin handoff/r11-seam-plant-model && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-inputs-guards (stage in-progress, branch `handoff/r11-seam-inputs-guards`): `git fetch origin handoff/r11-seam-inputs-guards && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-money (stage in-progress, branch `handoff/r11-seam-money`): `git fetch origin handoff/r11-seam-money && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-solver (stage in-progress, branch `handoff/r11-seam-solver`): `git fetch origin handoff/r11-seam-solver && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-card (stage in-progress, branch `handoff/r11-seam-card`): `git fetch origin handoff/r11-seam-card && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-ratchets (stage in-progress, branch `handoff/r11-seam-ratchets`): `git fetch origin handoff/r11-seam-ratchets && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-ratchet-raise (stage in-progress, branch `handoff/r11-seam-ratchet-raise`): `git fetch origin handoff/r11-seam-ratchet-raise && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-governance-text (stage in-progress, branch `handoff/r11-seam-governance-text`): `git fetch origin handoff/r11-seam-governance-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
 Ready next (after-edges satisfied; nothing open constrains them): R10-NUDGE-RETIRE, R11-ARCH-cycle-surface, R11-CARRY-DRAWMAP, R11-CARRY-ROOM-LIFT, R11-CLOSEOUT-CLEANUP, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-ROOMS-P3, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-release, R11-SEAM-card, R11-SEAM-comments-production, R11-SEAM-comments-tests, R11-SEAM-config, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-dead-state, R11-SEAM-entity-service, R11-SEAM-governance-text, R11-SEAM-inputs-guards, R11-SEAM-kernel-layering, R11-SEAM-kernel-step, R11-SEAM-money, R11-SEAM-plant-model, R11-SEAM-ratchet-raise, R11-SEAM-ratchets, R11-SEAM-solver, R11-SEAM-store, R11-SEAM-tests, R11-VALVE-REFERENCE
 
