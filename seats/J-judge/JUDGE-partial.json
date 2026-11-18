@@ -332,5 +332,105 @@
   "class": "I5",
   "note": "reproduced exactly. Class I5 (done row drifts from code) rather than new. Votes: 1 verify.",
   "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D11-s1-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: missed=2 of 67 corpus files; perturb -> 0; positive control rc=2, null rc=0",
+  "stop_rule_class": "bug",
+  "class": "I3",
+  "note": "reproduced (finder 65 corpus, now 67: two newer files, same 2 missed). Merged D5-s10-02. A Stop hook that lets a turn end red is a bypassable check boundary, I3. Votes: 1 verify.",
+  "class_mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary"
+ },
+ {
+  "id": "D11-s1-02",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: unmonitored=2 of 3 rulesets; perturb -> 1; null 0",
+  "stop_rule_class": "bug",
+  "class": "I3",
+  "note": "reproduced; the runner's 'no' compared against the header's perturbed value 1, not the main value. Merged D11-s3-01. Votes: 1 verify.",
+  "class_mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary"
+ },
+ {
+  "id": "D11-s1-03",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: control_red_on_drift=0, selftest_rewrote=1; perturb -> control red 1, rewrote 0",
+  "stop_rule_class": "bug",
+  "class": "I1",
+  "note": "reproduced exactly; --check itself still refuses drift (1), so the gap is the self-test only. Votes: 1 weaken (low).",
+  "class_mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green"
+ },
+ {
+  "id": "D11-s1-04",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: baseline_pass=0, mutants_reached=0 of 16; perturb wraps -> baseline 1, 16/16 killed",
+  "stop_rule_class": "bug",
+  "class": "I1",
+  "note": "reproduced exactly; the driver itself is sound once its baseline runs. Votes: 1 weaken (low).",
+  "class_mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green"
+ },
+ {
+  "id": "D11-s1-05",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: pr_copy_unowned=1 of 8 meters; perturb -> 0; null 0",
+  "stop_rule_class": "bug",
+  "class": "I3",
+  "note": "reproduced; runner metric line read meters=8, my read of pr_copy_unowned=1 matches the finder. Votes: 1 verify.",
+  "class_mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary"
+ },
+ {
+  "id": "D11-s1-06",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree runner: real_repo_writes_on_selftest=1 (expected 1, reproduced, tf 1.000); my hand run timed out at 600 s; ls-remote shows no ref from this box's worktrees",
+  "stop_rule_class": "bug",
+  "class": "I3",
+  "note": "reproduced by the runner; the hand re-take hung. Reach needs a seat to run --self-test on a box with dirty worktrees. Votes: 1 weaken (low).",
+  "class_mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary"
+ },
+ {
+  "id": "D11-s2-01",
+  "verdict": "weakened",
+  "severity": "medium",
+  "value": "worktree: platform_gate_red=1 of 52 window merges, merged_not_green=2; perturb -> red 0, not_green 1",
+  "stop_rule_class": "bug",
+  "class": "I3",
+  "note": "reproduced on the recorded API snapshot; one red admission (#3618), not a systematic gap, so medium as the verifier. Votes: 1 weaken (medium).",
+  "class_mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary"
+ },
+ {
+  "id": "D11-s2-02",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: owner_own_at_head=0 of 52; 31 approvals agent-declared under the owner account; null/perturb -> 31",
+  "stop_rule_class": "hygiene",
+  "class": "I3",
+  "note": "reproduced exactly. A provenance gap in the record, not a merged defect. Votes: 1 weaken (low).",
+  "class_mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary"
+ },
+ {
+  "id": "D11-s2-03",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: zip_attested=0 of 5 releases, tar 5/5; perturb -> 5",
+  "stop_rule_class": "hygiene",
+  "class": "I3",
+  "note": "reproduced exactly. Votes: 1 weaken (low).",
+  "class_mechanism": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary"
+ },
+ {
+  "id": "D11-s2-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: dup_units=16 over 86 corpus files, rulings_overlap 1; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Duplicated policy text is a drift precondition, I5. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
  }
 ]
