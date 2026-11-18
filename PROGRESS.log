@@ -106,3 +106,4 @@
 1795033916 HB alive
 1795034522 HB alive
 1795034994 CKPT D3-s1 531 file(s)
+1795035005 HB session restart ~20:45 UTC lost the D3-s1 subagent; its K2 full-net driver (prescreen.py complete, pid 22759, 82/242) survived and keeps running; checkpointed. The seat is re-dispatched through gate once that driver exits, so two drivers never run the same keys; it resumes from its checkpoint (R0 re-fire path).
