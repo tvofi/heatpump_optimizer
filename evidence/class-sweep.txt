@@ -1,0 +1,2 @@
+1155:    J(cutFind.out?.missing ?? null) === J(['D1-s2']) && !cutFind.labels.includes('intake') && cutFind.logs.some((m) => /^D1-s2's report: findings: .*does not parse.*not reported$/.test(m)),
+1320:    const d4 = none.labels.filter((l) => /^D4-s\d+$/.test(l))
