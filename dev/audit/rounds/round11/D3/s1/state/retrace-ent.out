@@ -1,0 +1,3 @@
+2026-11-17T12:48:24Z RETRACE tests/entities.py rc=1 failed=1 complete=True problems=['starts a non-Python process: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp1r_aomy7/py-spy 68007 (+1003)', 'starts Python without the tracer: /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 -I -c import sys; sys.path.insert(0, sys.argv[1]); import stamp; print(stamp.read_rule().READ_TRIES) /private/var/folders/47/470ps6zs6vs07m86bz']
+RESULT load1=75.42
+RESULT thread_factor=1.00

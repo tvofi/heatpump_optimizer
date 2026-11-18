@@ -1,0 +1,5 @@
+taken slot=0 label=d3-s1 expires_at=2026-11-17T19:57:03.482431+00:00
+2026-11-17T19:27:03Z CHAIN-U1 start workers=4 load1=251.08
+2026-11-17T19:31:34Z RETRACE-01 RESULT capture_never_executes=681 RESULT gate_skippable=0 RESULT capture_never_executes=681 RESULT gate_skippable=681  RESULT load1=228.67
+2026-11-17T19:40:02Z CONTROLS RESULT null_verdict=LIVES posctl-r2: 2 of 2 KILLED load1=202.09
+2026-11-17T19:50:40Z M22 2026-11-17T19:50:40Z C3C6 SURVIVED custom_components/heatpump_optimizer/tariff.py:R10-C3C6 M22 L595 by=- ran=12 skip=4 wall=634.9s load1=194.92

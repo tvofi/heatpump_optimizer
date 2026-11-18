@@ -1,0 +1,101 @@
+[
+ {
+  "id": "D3-s1-01",
+  "scope": "D3-s1",
+  "step": "D3.M5",
+  "title": "Mutation lane drives env_drift --all on every cell mutant, though its capture never executes 681 of the 1260 unpinned sites",
+  "severity": "medium",
+  "claim": "Of the 1260 unpinned inventory sites in the D3-s1 cell files, 681 lie on executable lines that env_drift.py's only production-executing step (the `--capture <tree> <out> --all` child) never executes, yet tests/mutation_table.py's reach rule can skip env_drift for none of them (gate_skippable=0), so every such mutant pays a full `env_drift.py --all` golden capture that cannot change.",
+  "mechanism": "env_drift.py starts its capture child with `env[\"PYTHONPATH\"] = <tree>/tests/hastub` (tests/env_drift.py, the capture loop in main), which drops the reach hook's directory, so the child leaves no reach record (processes started 3, recorded 1); the parent also starts git/file/uname. mutation_table.reach_problems refuses any run that starts a non-Python process or loses a record, so env_drift's reach row is never usable and reach_skip never skips it.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py",
+   "value": 681,
+   "unit": "unpinned cell sites whose line the env_drift --capture --all child never executes, all still driven (gate_skippable=0)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "owner macOS arm64 (Darwin), venv-ci CPython 3.14",
+   "cpu_or_wall": "count",
+   "contention_note": "Counts are contention-immune. The traced baselines were taken while another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); the env_drift wall quoted (602.8 s for one --all run) is provisional.",
+   "tolerance": "exact",
+   "load1": 43.2,
+   "thread_factor": 1.0,
+   "rerun_r2": "Resume run 2026-11-17T19:27-19:31Z, same machine (owner macOS arm64, 8 cores, load1 226-255): prescreen.py trace-capture re-took env_drift's --capture --all reach (rc=0, wall 217.4 s provisional, processes 2/2 recorded); its per-file executed lines equal the local run's exactly (state/baselines-local.json vs state/baselines.json). m5_envdrift_reach.py: capture_never_executes=681, gate_skippable=0; --as-if-fixed: gate_skippable=681; null_skippable=0 of 579. The count reproduces: 681 stands. Outputs: state/retrace-cap-r2.out, state/envdrift-reach-r2.out, state/envdrift-reach-r2-fixed.out."
+  },
+  "instrumented_symbol": "tests/mutation_table.py:reach_skip (and reach_problems) on tests/env_drift.py's traced baseline; tests/env_drift.py:capture_tree traced in its --capture child",
+  "perturbation": {
+   "change": "--as-if-fixed: hand reach_skip the capture child's own reach row in place of the refused parent row (what a hook-preserving env_drift whose git/file/uname children are read as Python-blind would deliver)",
+   "expected_direction": "up",
+   "observed_value": "gate_skippable 0 -> 681"
+  },
+  "metric_definition": "Count of unpinned inventory sites in the 12 cell files on an executable line the traced `env_drift.py --capture --all` child never executes, and how many of them reach_skip skips.",
+  "phenomenon_property": "A ref-driven gate driver whose production-executing work happens in a child process it launches with a rebuilt environment is never reach-skippable, so the mutation lane drives it on mutants it provably cannot see.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py --as-if-fixed",
+   "value": "null_skippable=0 of null_capture_executes=579",
+   "note": "Sites the capture DOES execute stay driven under both arms; the effect is confined to never-executed lines. Falsification built in: in prescreen.py's full-net `complete` drives (relaxation off), env_drift.py ran on every completed survivor whose line the capture never executes and killed none."
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/prescreen.py baseline --workers 4",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/prescreen.py trace-capture",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py --as-if-fixed"
+  ],
+  "proposed_fix_scope": "tests/env_drift.py's capture launch keeps HPO_REACH_HOOK on the child's PYTHONPATH when it is set, and tests/mutation_table.py's reach_problems reads a git/file/uname child (no Python executes there) as tree-blind, as TREE_BLIND already does for `/sbin/ldconfig -p`; the null control and a pinned env_drift kill (killed_by tests/env_drift.py rows) re-verified.",
+  "files": [
+   "tests/env_drift.py",
+   "tests/mutation_table.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+ },
+ {
+  "id": "D3-s1-02",
+  "scope": "D3-s1",
+  "step": "D3.M5",
+  "title": "card_drift.mjs's closure carries plan_view.py's 106 files, 11 cell files among them, though it renders both sides from one payload and cannot see a payload change",
+  "severity": "low",
+  "claim": "tests/closure.py folds the PRODUCERS edge into card_drift.mjs's closure, so every change to any of plan_view.py's 106 closure files (11 of the 12 D3-s1 cell files among them) selects card_drift.mjs. card_drift renders the working tree's card and the ref's card against the same plan payload, so a change that only moves the payload cannot move a state: 8 of 8 cell mutants that changed the payload plan_view.py writes left card_drift 'identical in all 45 states' (rc 0). The positive control, one edit to the card source, turned it red.",
+  "mechanism": "tests/closure.py merge: `for consumer, producers in PRODUCERS.items(): closures[consumer] |= closures[prod]`, justified as 'anything that can change the payload can change what they test'. That holds for tests/card.mjs, which asserts what the markup contains. It does not hold for tests/card_drift.mjs, whose own header says both sides run 'against the same plan payload and the same frozen clock'; PRODUCERS's own comment says the same. The producer edge is needed for ordering (plan_view.py must run first), not for membership.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/r2/m5_card_drift_blind.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/r2/m5_card_drift_blind.py",
+   "value": 0,
+   "unit": "card_drift.mjs red runs over 8 cell-file mutants that each changed the plan_view.py payload's sha256 (115 inventory sites scanned in file order)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "owner macOS arm64 (Darwin, 8 cores), venv-ci CPython 3.14, node",
+   "cpu_or_wall": "count",
+   "contention_note": "Counts are contention-immune. Run 2026-11-17T19:47-20:00Z with load1 about 217 (other seats on the machine). card_drift's recorded cost is 6.0 s in tests/closures.json; measured here 14.1 s wall (provisional).",
+   "tolerance": "exact",
+   "load1": 217.16,
+   "thread_factor": 1.0,
+   "output": "dev/audit/rounds/round11/D3/s1/state/card_drift_blind.out",
+   "closure_counts": "closures.json: card_drift.mjs 118 files = plan_view.py's 106 + 12 of its own (card source, card_rig.mjs, dom_stub.mjs, the card claim file, VERSION, .gitignore, ...)"
+  },
+  "instrumented_symbol": "tests/closure.py PRODUCERS fold (tests/closures.json closures['tests/card_drift.mjs']); tests/card_drift.mjs verdict line; the payload tests/plan_view.py writes (HPO_PLANDATA)",
+  "perturbation": {
+   "change": "Positive control: edit the card source custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js line 75, the default title 'Heat pump plan' -> 'Heat-pump plan'",
+   "expected_direction": "up",
+   "observed_value": "card_drift rc 0 -> 1 (states moved), against rc 0 for all 8 payload-moving cell mutants"
+  },
+  "metric_definition": "Of K cell-file inventory mutants (tests/mutation_table.py inventory, lines plan_view.py's traced baseline executes) that change the sha256 of the payload plan_view.py writes, the number for which `node tests/card_drift.mjs HEAD^1` exits non-zero.",
+  "phenomenon_property": "A differential consumer that feeds both of its sides the same producer output is closed over its producer's files, so every producer-only change selects a script that by construction cannot fail on it.",
+  "seam_rule": "python3 -c \"import json;c=json.load(open('tests/closures.json'))['closures'];print(len(set(c['tests/card_drift.mjs'])&set(c['tests/plan_view.py'])))\"",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/r2/m5_card_drift_blind.py",
+   "value": "unmutated tree: payload f769f5bd7cd3, card_drift rc 0 'identical in all 45 states'",
+   "note": "The null control and the positive control run in the same harness invocation and the same worker tree; the positive control shows card_drift can fail in this rig, so 0 of 8 is blindness, not a broken harness."
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/prescreen.py baseline --workers 4",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/r2/m5_card_drift_blind.py --k 8"
+  ],
+  "proposed_fix_scope": "tests/closure.py: keep card_drift.mjs's PRODUCERS edge for ordering (suite_order, selection of the producer) but stop folding the producer's closure into card_drift.mjs's membership; card.mjs keeps the fold. Re-derive closures on Linux; a guard pins that a payload-only change does not select card_drift.mjs.",
+  "files": [
+   "tests/closure.py",
+   "tests/closures.json"
+  ],
+  "stop_rule_class": "hygiene",
+  "class_guess": "new"
+ }
+]

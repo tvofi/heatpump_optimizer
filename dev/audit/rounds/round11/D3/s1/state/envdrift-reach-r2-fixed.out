@@ -1,0 +1,19 @@
+  coordinator.py: 289
+  defrost.py: 33
+  dhw_planner.py: 14
+  flow_lift.py: 6
+  grid_fee.py: 8
+  optimizer.py: 87
+  price_model.py: 48
+  sysid.py: 150
+  tariff.py: 20
+  thermal_model.py: 26
+RESULT unpinned_sites_in_closure=1260
+RESULT capture_never_executes=681
+RESULT gate_skippable=681
+RESULT null_capture_executes=579
+RESULT null_skippable=0
+RESULT gate_reach_problems=2
+RESULT env_drift_baseline_wall_s=602.8 (provisional)
+RESULT load1=228.67
+RESULT thread_factor=1.00
