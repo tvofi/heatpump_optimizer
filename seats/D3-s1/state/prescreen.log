@@ -502,3 +502,4 @@
 2026-11-18T21:16:43Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._derive_hold_schedule GUARD_OFF cf033f9b L5044 by=- ran=12 wall=1618.0s
 2026-11-18T21:24:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._derive_hold_schedule GUARD_OFF d4fe0ab5 L5054 by=- ran=12 wall=1606.5s
 2026-11-18T21:37:59Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._derive_hold_schedule GUARD_OFF 720b1445 L5059 by=- ran=12 wall=1566.6s
+2026-11-18T21:39:26Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._tighten_buffer_caps GUARD_OFF b467baf0 L5120 by=- ran=13 wall=1567.9s
