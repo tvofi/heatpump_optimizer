@@ -223,7 +223,7 @@ def coverage(scopes, tree, quiet=False):
 
 BRIEF_DIR = "dev/governance/dimensions/"
 HARNESS_DIR = "dev/audit/harnesses/"
-BRIEF_NAMED = re.compile(r"(?<![\w/])(D\d{1,2})\.md\b")
+BRIEF_NAMED = re.compile(r"(?<![\w/])(D(?:\d{1,2}|X0))\.md\b")
 
 
 def uncited_harnesses(harnesses, briefs):

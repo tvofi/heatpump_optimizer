@@ -904,7 +904,7 @@ CAUSES = ("external", "original")
 #: `cm_kind`, the countermeasure's kind (card L1's closed vocabulary).
 CM_KINDS = ("delete", "self-heal", "narrow", "widen", "new-refusal", "policy-text")
 _ROOT = Path(__file__).resolve().parents[3]
-_DIM = re.compile(r"\AD\d{1,2}\Z")
+_DIM = re.compile(r"\AD(?:\d{1,2}|X0)\Z")
 _PR = re.compile(r"\A#[1-9]\d*\Z")
 _RCA_ID = re.compile(r"\A[A-Za-z0-9][\w-]*(?:\.[\w-]+)*\Z")  # a file stem, never a path
 
