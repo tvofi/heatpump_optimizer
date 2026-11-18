@@ -448,7 +448,11 @@ def cmd_complete(args) -> int:
                     a, e = spec(s)
                     run = mt.run_script(s, t, timeout_for(s, base), a, e)
                     j = to_json(run)
-                    j["killed"] = mt.killed(s, run, from_json(base[s]["run"]))
+                    # Box D3-u1d: a run ended by a signal (rc < 0, e.g. the
+                    # kernel OOM killer under co-scheduled workers) is no
+                    # verdict; the mutant is marked SIGNAL and re-driven.
+                    j["killed"] = run.rc >= 0 and mt.killed(s, run, from_json(base[s]["run"]))
+                    j["signal"] = run.rc < 0
                     r["runs"][s] = j
                     if j["killed"]:
                         r["killed_by"].append(s)
@@ -460,7 +464,11 @@ def cmd_complete(args) -> int:
             r.pop("relaxed_skipped", None)
             r["verdict"] = "KILLED" if r["killed_by"] else (
                 "TIMEOUT" if any(x["timed_out"] for x in r["runs"].values())
+                else "SIGNAL" if any(x.get("signal") for x in r["runs"].values())
                 else "SURVIVED")
+            if r["verdict"] == "SIGNAL":
+                log(f"COMPLETE SIGNAL {m['anchor']} L{m['line']} (not written; re-drive)")
+                continue
             (out_dir / (k + ".json")).write_text(json.dumps(r))
             log(f"COMPLETE {r['verdict']} {m['anchor']} L{m['line']} "
                 f"by={','.join(r['killed_by']) or '-'} ran={len(r['runs'])} "
