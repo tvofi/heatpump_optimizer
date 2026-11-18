@@ -5,7 +5,8 @@
 #          PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null
 # Expected: null -> RESULT gate_rc=0 (the comment-only marker commit passes the full gate);
 #   a mutant -> RESULT killed=0|1, tolerance exact (counts); wall is provisional.
-# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-top6 (4 vCPU Xeon @ 2.30GHz).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-top6 cloud (4 vCPU Xeon @ 2.30GHz), then the
+#   local re-run (8-core Apple M1, macOS) that took every gate recorded here.
 # Instrumented symbol: the production line the mutant dict names (file:line old->new),
 #   driven through the whole suite `GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh`.
 # Perturbation: the one-line mutant edit itself (null control: a trailing comment on the same file,
@@ -32,7 +33,7 @@ def sh(*a, check=True, **kw):
 
 
 def load1():
-    return float(Path("/proc/loadavg").read_text().split()[0])
+    return round(os.getloadavg()[0], 2)  # portable: /proc/loadavg is Linux-only (local macOS run)
 
 
 def head():
@@ -75,7 +76,10 @@ def gate(key, mutant, msg):
         wall = time.time() - t0
         c1 = os.times()
         l1 = load1()
-        sh("git", "reset", "-q", "--hard", BASE)
+        # Soft reset plus a checkout of the one edited file: returns HEAD and the file to the
+        # baseline without restoring the paths prepare_baseline.sh --strip removed (the finder wall).
+        sh("git", "reset", "-q", BASE)
+        sh("git", "checkout", "-q", BASE, "--", *files)
         sh("python3", "tests/gate_lock.py", "release", check=False)
     text = log.read_text(errors="replace")
     failed = sorted(set(re.findall(r"^>>> (?:FAILED|ENDED BEFORE ITS SUMMARY): ([^\n(]+?)\s*(?:\(|$)", text, re.M)))
