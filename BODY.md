@@ -30,7 +30,9 @@ Design, D1-s2-05. `EntryConfig` already parses each declared numeric key once (`
 
 ## Head
 
-2b56d7b4e27a71f2d6f14be29d0648d58492fef9, on merge base ae0ed64af898d8923ac35afe6e9c031ac1e6b111 (origin/main at 8751943e17ef4d3ec699e7859ae829b4528d8ce7 at 2026-11-18T16:43:41Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict).
+3ef19654c6d5cdd5a6eae968ac6be8afea5be3d2, on merge base ae0ed64af898d8923ac35afe6e9c031ac1e6b111 (origin/main at fd847a550c12060f745c82bed99551dff4781e58 at 2026-11-18T21:20:26Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict).
+
+It is the merge of the repair 2b56d7b4e27a71f2d6f14be29d0648d58492fef9 onto the PR head df6d514a848243d440c8ffd3e2e2e6c8e127bb86, mutation-autofix's `ci: pin killed mutants`, so the head fast-forwards from the PR head. On that merge, `tools/pr/ci_predict.py` read the bot's two `_interval_minutes` pins (`CMP_BOUND`, `GUARD_OFF`, key `f05566dc`) as `STALE PIN` on the ledger arm, their pinned line naming `_MAX_INTERVAL_MINUTES`, which the repair renamed `_MAX_PLAN_MINUTES`; the head commit deletes both files, as the tool prescribes, and the sites are listed under `## Unpinned sites`. `git diff --name-only 2b56d7b4e2 HEAD` names only eight files under `tests/mutation_ledger/`, so the code tree measured under `## Mutation proof` and `## Figures` at 2b56d7b4e2 is this head's; the checks the merge's delta reaches were re-run here (`## Figures`).
 
 ## Mutation proof
 
@@ -125,7 +127,7 @@ Each harness runs from the plan export (`EXPORT=$(mktemp -d); git archive 819aa2
 
   The rest of `scope.run` is left to CI (brief: scoped prepr, CI is the authority).
 
-<!-- figure-block: scope-line mb=ae0ed64af898d8923ac35afe6e9c031ac1e6b111 head=2b56d7b4e27a71f2d6f14be29d0648d58492fef9 -->
+<!-- figure-block: scope-line mb=ae0ed64af898d8923ac35afe6e9c031ac1e6b111 head=3ef19654c6d5cdd5a6eae968ac6be8afea5be3d2 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
