@@ -1,0 +1,18 @@
+base: -- replay synthetic-dhw-only.json
+base:   48 cycles over 82 entities in 9.6 s; cost {'cpu_ratio': 2.2651, 'peak_kib': 1938.1, 'loop_cpu_ratio': 0.1785, 'timed': 23, 'traced': 24, 'ref_ms': 23.525107999999406, 'loop_ref_ms': 73.61324899999921}
+base:   cpu doubled: cost {'cpu_ratio': 4.2216, 'peak_kib': 1944.6, 'loop_cpu_ratio': 0.8399, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 24.4736940000001, 'loop_ref_ms': 76.84945699999801}
+base:   memory doubled: cost {'cpu_ratio': 2.0469, 'peak_kib': 3880.0, 'loop_cpu_ratio': 0.169, 'timed': 23, 'traced': 24, 'ref_ms': 24.357354000000164, 'loop_ref_ms': 72.70002300000122}
+base:   loop doubled: cost {'cpu_ratio': 2.7696, 'peak_kib': 1942.6, 'loop_cpu_ratio': 0.3605, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 23.374220999999974, 'loop_ref_ms': 73.06102599999953}
+base: -- graded synthetic-dhw-only.json
+base:   graded on the job's rulers: ref_ms 23.94 (class ref23), loop_ref_ms 73.34
+base:   FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1792 over its budget 0.1527]
+base: 1 of 185 replay checks FAILED
+wt: -- replay synthetic-dhw-only.json
+wt:   48 cycles over 82 entities in 9.5 s; cost {'cpu_ratio': 2.229, 'peak_kib': 1942.2, 'loop_cpu_ratio': 0.1784, 'timed': 23, 'traced': 24, 'ref_ms': 23.387224000000373, 'loop_ref_ms': 70.97415600000012}
+wt:   cpu doubled: cost {'cpu_ratio': 4.4492, 'peak_kib': 1939.0, 'loop_cpu_ratio': 0.9277, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 24.35682100000003, 'loop_ref_ms': 73.1097679999999}
+wt:   memory doubled: cost {'cpu_ratio': 2.1328, 'peak_kib': 3880.7, 'loop_cpu_ratio': 0.1673, 'timed': 23, 'traced': 24, 'ref_ms': 23.21020299999965, 'loop_ref_ms': 73.07075699999999}
+wt:   loop doubled: cost {'cpu_ratio': 2.836, 'peak_kib': 1939.8, 'loop_cpu_ratio': 0.3855, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 23.68464000000081, 'loop_ref_ms': 71.10919399999993}
+wt: -- graded synthetic-dhw-only.json
+wt:   graded on the job's rulers: ref_ms 23.54 (class ref23), loop_ref_ms 72.09
+wt:   FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1756 over its budget 0.1527]
+wt: 1 of 185 replay checks FAILED
