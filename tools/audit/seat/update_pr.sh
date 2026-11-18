@@ -104,6 +104,7 @@ upd_figures() { # <where>
   grep -q '^<!-- figure-block: ' "$B" || return 0
   local fb=origin/main
   fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
+  FIG_BASE=$fb  # LOCAL OVERLAY figure-base-overlay: prepr verifies against the base rendered here
   python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && return 0
   pr_refuse "the figure-block refresh $1 failed; nothing is pushed or patched:
 $(tail -n 20 $WT.fig.log)"
@@ -144,12 +145,12 @@ else: pre="`%s` "%H + " and then ".join(x for x in (N, R) if x) + ".\n\n"  # mai
 s=prefix(s,pre); open(p,'w').write(s)
 E
 upd_figures "at the head to push"  # mut:updfig1
-if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+_push=$PRT/app_push.sh  # LOCAL OVERLAY figure-base-overlay: the overlay's app_push, so the overlay's prepr runs
 RO=""; [ "$(git rev-parse "$H^@")" != "$LIVE" ] || RO=--row-only  # mut:rowonly
 [ -n "$RO" ] || RO=--reuse  # mut:updreuse
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
 # the tree (pr_args.sh's why).
-{ pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 & } 9>>"$PR_PUSH_LOCK"
+{ pr_push_hold; PREPR_FIGURE_BASE=${FIG_BASE:-origin/main} PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 & } 9>>"$PR_PUSH_LOCK"
 pr_wait $! $WT.log
 grep -h '^app_push: \(ROW-ONLY\|REUSE\):' $WT.log || :
 echo "HEAD=$H"
