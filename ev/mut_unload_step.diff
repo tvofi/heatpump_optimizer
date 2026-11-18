@@ -1,0 +1,25 @@
+diff --git a/custom_components/heatpump_optimizer/__init__.py b/custom_components/heatpump_optimizer/__init__.py
+index daaac6f2c3..459287d196 100644
+--- a/custom_components/heatpump_optimizer/__init__.py
++++ b/custom_components/heatpump_optimizer/__init__.py
+@@ -426,7 +426,6 @@ async def async_unload_entry(
+         await (await _async_lazy(hass, "off_restore")).async_restore(
+             hass, entry, coordinator.effective_config, "unload"
+         )
+-        await (await _async_lazy(hass, "room_record")).async_flush(coordinator)
+         await coordinator.async_shutdown()
+ 
+     return unload_ok
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index cb4cbad3bc..5358d7d85e 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6119,7 +6119,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             await _best_effort_cycle_step(
+                 self._record_accuracy, "Accuracy pairing skipped: %s"
+             )
+-            await _best_effort_cycle_step(lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(  # #3616 phase 3a
++            0 and (lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(  # #3616 phase 3a
+                 ctx._current_state.outdoor_temperature, self._floor_return_temp, self._measured_power, float(self._current_action.get("power", 0.0)), float(self._current_action.get("dhw_power", 0.0)))), "Room history skipped: %s")
+             await _best_effort_cycle_step(
+                 self._track_realised_peak, "Realised-peak tracking skipped: %s"
