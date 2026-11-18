@@ -444,3 +444,6 @@
 2026-11-18T13:47:18Z PRE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._on_power_event BOOLOP bbe3b0ca L8806 by=- ran=9 skip=5 wall=217.9s
 2026-11-18T13:47:34Z PRE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_mixed_water GUARD_OFF 5e696d34 L4391 by=- ran=10 skip=5 wall=315.6s
 2026-11-18T13:48:35Z PRE KILLED custom_components/heatpump_optimizer/coordinator.py:_dhw_inlet_c CMP_BOUND f4464b0f L2910 by=tests/finite_boundary.py ran=9 skip=5 wall=216.1s
+2026-11-18T13:49:17Z COMPLETE queued=242 from=pre
+2026-11-18T13:54:49Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_mixed_water GUARD_OFF 5e696d34 L4391 by=tests/entities.py,tests/features.py ran=13 wall=331.5s
+2026-11-18T13:55:02Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF 582cce74 L783 by=tests/entities.py,tests/features.py ran=13 wall=344.3s
