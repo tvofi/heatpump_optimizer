@@ -1,0 +1,3 @@
+2026-11-18T14:22:15Z COMPLETE queued=245 from=pre
+2026-11-18T14:50:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_warm_seeded GUARD_OFF 6fee1acd L2360 by=- ran=13 wall=1702.0s
+2026-11-18T14:51:05Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units GUARD_OFF 7c5d6837 L2962 by=tests/features.py ran=13 wall=1729.4s
