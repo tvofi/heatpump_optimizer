@@ -440,3 +440,5 @@
 2026-11-18T14:27:13Z COMPLETE KILLED custom_components/heatpump_optimizer/grid_fee.py:max_abs_component GUARD_OFF dc551b4d L350 by=tests/features.py ran=12 wall=1432.3s
 2026-11-18T14:46:00Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays CLAMP_DROP efe8ddb5 L7495 by=tests/entities.py ran=13 wall=1434.0s
 2026-11-18T14:50:25Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._command_frequency CLAMP_DROP e40a5f2f L10855 by=- ran=13 wall=1437.9s
+2026-11-18T14:51:10Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override GUARD_OFF 4322fab5 L5161 by=tests/entities.py ran=13 wall=1437.1s
+2026-11-18T14:51:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._stash_price_horizon CMP_BOUND 77fcf2f4 L4696 by=- ran=17 wall=1622.5s
