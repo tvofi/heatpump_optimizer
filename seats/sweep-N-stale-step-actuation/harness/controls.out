@@ -1,0 +1,4 @@
+positive: finding sites ['_command_frequency', 'async_publish_current_action', 'async_track_cycle'] found=['_command_frequency', 'async_publish_current_action', 'async_track_cycle']
+null: clean fixture seams=0
+perturbation: one-line re-introduction seams=1
+controls OK

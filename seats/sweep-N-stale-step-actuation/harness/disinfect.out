@@ -1,0 +1,9 @@
+RESULT on_in_window=0 minutes (of 30)
+RESULT on_outside=30 minutes
+RESULT mode_hdhw_minutes_in_window=0 minutes
+RESULT null_on_minutes=0 minutes
+RESULT long_on_in_window=59 minutes (of 90)
+RESULT long_on_outside=31 minutes
+RESULT thread_factor=1.000
+RESULT load1=0.18
+RESULT swapins=0
