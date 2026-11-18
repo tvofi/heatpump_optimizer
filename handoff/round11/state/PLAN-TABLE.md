@@ -116,7 +116,7 @@ gantt
 | R11-OUTSIDE-ROOMS-P3 | IN | 1 | in-progress | #3616 | fable/fable | - | tvofi 2026-11-15, verbatim: "Yes, create roadmap, post, and start design immediately." Issue #3616 (outside reporter); the round-11 study of it is kept out o... |  |
 | R11-OPENER-SCOPED-PREPR | IN | 1 | refused | - | sonnet/opus | - | Instrument change, owner ruling tvofi 2026-11-15, verbatim: "THE OPENER ALSO RUNS SCOPED. |  |
 | R11-HOTFIX-MAIN-SELFTEST-RED | IN | 1 | done | - | opus/opus | - | Main red, instrument (the main-red exception to the round-11 instrument freeze). |  |
-| R11-CLOSEOUT-CLEANUP | IN | 1 | not-started | #3637, #3656 | sonnet/opus | - | Round 11's closeout, run at round end after every other round-11 group is closed (owner ruling 2026-11-15: each round owns its own closeout group; round 10's... |  |
+| R11-CLOSEOUT-CLEANUP | IN | 1 | not-started | #3637, #3656, #3706 | sonnet/opus | - | Round 11's closeout, run at round end after every other round-11 group is closed (owner ruling 2026-11-15: each round owns its own closeout group; round 10's... |  |
 | R11-OUTSIDE-SELF-SETTING-PUMP | IN | 1 | carries-open | - | opus/opus | - | Owner ruling D4 (2026-11-15): the self-setting pump residual of pull request 3593 (flat asks fold the learner scale to 0.500 at the base and the head alike)... |  |
 | R11-OUTSIDE-APPLY-PLAN-CEILING | IN | 1 | done | **#3636** | opus/opus | - | Issue 3636 (outside report): Apply this plan in the dashboard card fails whenever the published plan has a slot starting more than 20 hours from now. |  |
 | R11-HOTFIX-TICK-SEAT-WINDOW | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
@@ -153,7 +153,7 @@ gantt
 | R11-SEAM-kernel-step | CORE | 1 | in-progress | - | opus/opus | - | The kernel's owners and their readers: plan_step owns "the step covering now" with its half-open end rule, read by the coordinator, the arbiter and both plan... |  |
 | R11-SEAM-kernel-layering | CORE | 1 | in-progress | - | opus/opus | - | What the pure layer offers its importers: utc_elapsed_seconds is imported from drift.py, its owner, HISTORY_LENGTH moves to const.py, and currency.py imports... |  |
 | R11-SEAM-dead-state | CORE | 1 | not-started | - | opus/opus | - | State production stores and nothing reads (D7-s3-05): constants named only by tests, parameters a function never loads, locals, attributes and fields only te... |  |
-| R11-SEAM-plant-model | CORE | 1 | in-progress | - | opus/opus | - | Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers "... |  |
+| R11-SEAM-plant-model | CORE | 1 | in-progress | #3713 | opus/opus | - | Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers "... |  |
 | R11-SEAM-inputs-guards | CORE | 1 | in-progress | - | opus/opus | - | Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timest... |  |
 | R11-SEAM-inputs-freshness | CORE | 2 | not-started | - | opus/opus | - | Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and... |  |
 | R11-SEAM-store | CORE | 1 | not-started | - | opus/opus | - | store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. |  |
