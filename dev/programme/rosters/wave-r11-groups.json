@@ -4649,6 +4649,88 @@
     "pr": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-SEAM-kernel-step",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "low",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D7-s3-03",
+    "D7-s3-04",
+    "D7-s1-05"
+   ],
+   "merged": {},
+   "classes": [
+    "N-duplicated-rule",
+    "N-no-expiry",
+    "P2"
+   ],
+   "seam": "shared kernel",
+   "hot_files": [
+    "plan_step.py",
+    "const.py",
+    "drift.py",
+    "pump_arbiter.py",
+    "early_cutoff.py",
+    "coordinator.py",
+    "sensor.py",
+    "flow_meter.py",
+    "open_meteo.py",
+    "entity.py",
+    "replay_doc.py",
+    "power_guard.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "The kernel's owners and their readers: plan_step owns \"the step covering now\" with its half-open end rule, read by the coordinator, the arbiter and both planned-room copies; water heat capacity, a naive instant's zone and the finite test get one definition each in const.py and drift.py; the two evidence-note methods share drift.py's owner. D7-s1-05 is kept here with its note and step arms; each other arm is carried by the group of the seam that owns the rule (entity-service, money, learners, actuation-release, inputs-freshness), and the finding closes when the last arm has merged. 3 findings (0 merged in), size M; class tags N-duplicated-rule, N-no-expiry, P2. Plan: ADR-001 is this group's approved design. It is the prerequisite of R11-SEAM-actuation-writes and R11-SEAM-inputs-freshness, which read the step owner. Refused shapes: two bodies folded under one function with nothing shared, and a helper handed a detector's list.",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/plan_step.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/drift.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/early_cutoff.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/flow_meter.py",
+    "custom_components/heatpump_optimizer/open_meteo.py",
+    "custom_components/heatpump_optimizer/entity.py",
+    "custom_components/heatpump_optimizer/replay_doc.py",
+    "custom_components/heatpump_optimizer/power_guard.py"
+   ],
+   "brief": "The kernel's owners and their readers: plan_step owns \"the step covering now\" with its half-open end rule, read by the coordinator, the arbiter and both planned-room copies; water heat capacity, a naive instant's zone and the finite test get one definition each in const.py and drift.py; the two evidence-note methods share drift.py's owner. D7-s1-05 is kept here with its note and step arms; each other arm is carried by the group of the seam that owns the rule (entity-service, money, learners, actuation-release, inputs-freshness), and the finding closes when the last arm has merged. 3 findings (0 merged in), size M; class tags N-duplicated-rule, N-no-expiry, P2. Plan: ADR-001 is this group's approved design. It is the prerequisite of R11-SEAM-actuation-writes and R11-SEAM-inputs-freshness, which read the step owner. Refused shapes: two bodies folded under one function with nothing shared, and a helper handed a detector's list. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-kernel-step",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-001)",
+    "note": "overlap admitted (R11-CARRY-DRAWMAP): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   },
+   "arms": {
+    "D7-s1-05": [
+     "note",
+     "step"
+    ]
+   }
   }
  ]
 }
