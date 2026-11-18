@@ -1,28 +1,19 @@
-== policy_lint at head
-TOTAL: 0 error(s) across 55 policy file(s)
+== policy_lint
+TOTAL: 0 error(s) across 57 policy file(s)
 
-FIXTURE ok: 93 error(s) hold 278 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
- dev/governance/config/corpus_excluded.json | 1 -
- 1 file changed, 1 deletion(-)
-== policy_lint with CENSUS.md exclusion removed
-dev/audit/rounds/round10/protection-census/CENSUS.md
-  ERROR   [named-docs] dev/audit/rounds/round10/protection-census/CENSUS.md: is named by tools/audit/README.md but has no cap in dev/governance/config/policy_budgets.json, so prose moved into it leaves the corpus and buys headroom in every cap at once. Bring it under a POLICY_GLOBS pattern so a cap on it is actually compared, or exclude it with a reason in dev/governance/config/corpus_excluded.json's `excluded` -- not in this file's CORPUS_EXCLUDED, which a pull request's CI run grades with the base's copy of, so an entry only this branch writes there is never read (#2609, #2916). A cap alone does not do it: a cap on a file no glob matches is refused by checkOrphanCaps precisely because it measures nothing.
-TOTAL: 1 error(s) across 55 policy file(s)
-== rules_sync --check
-
-RULES-SYNC ok: every generated rule is the generated form of its source
-rc=0
-== --budgets touched rows
+FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+== budgets touched rows
+tests/README.md                                  461  800     6677  6686 
+dev/audit/README.md                              309  321     5934  6059   key tools/audit/README.md
 .claude/rules/defect-root-cause.md               151  151     1885  1885 
 dev/governance/roles/root-cause.md                81   81      990   990   key tools/audit/briefs/root-cause.md
 dev/governance/roles/proposal-triage.md           42   42      594   594 
-== class enumerator (files keys at moved path)
-moved 24 of 56
-== rows naming a key
-23
-== comm -23 (enumerated, no keyed row)
-.claude/workflows/fixtures/policy-rot/budgets.md
-== comm -13
-== structure.py
+key rows: 23
+== rules_sync
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+== structure
+
 STRUCTURE RATCHET PASSED
-== git status
+== policy_budgets json
+[]

@@ -1,0 +1,13 @@
+review_carry: f7ef7c069 -> cc10065b3  main=origin/main
+  branch-only commits: 5
+  why: 8081be96205450af575c6552d44c9de8b843393c is not the automatic merge of its parents
+  d82c5b2fd  policy budgets: drop the nudge.md and harnesses/README.md token caps main's checkOrphanCaps refuses
+  c610244de  Merge commit 'd82c5b2fd24828d2bea5d88683b64a859d26c8a8' into fix/r11-pre-machinery-limiter-p2
+  8081be962  Merge origin/main 76bbf63744 into fix/r11-pre-machinery-limiter-p2
+  34aec5b73  Merge commit '8081be96205450af575c6552d44c9de8b843393c' into fix/r11-pre-machinery-limiter-p2
+  cc10065b3  Merge remote-tracking branch 'origin/main' into fix/r11-pre-machinery-limiter-p2
+review_carry: FRESH-REVIEW
+--- changed-line comparison of the two own diffs (three-dot from each merge base), empty = identical:
+diff rc=0
+--- git diff origin/main HEAD -- policy_budgets.json nudge|harnesses rows:
+0
