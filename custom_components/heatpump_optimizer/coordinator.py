@@ -355,6 +355,7 @@ from .thermal_model import (
     learner_room_unread,
     mold_safe_room_floor,
     learner_unmetered,
+    levels_clamped,
     immersion_level_kw,
     immersion_over,
     plan_step_runs,
@@ -2431,14 +2432,18 @@ def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float
 
 
 def _solve_band(draw: draw_range.DrawRange, hub: ThermalParameters, config: Any) -> draw_range.SolveBand:
-    """This moment's ``draw_range.solve_band`` from the hub and the store."""
-    return draw_range.solve_band(draw, hub, probe_install(config), dt_util.now().timestamp())
+    """This moment's ``draw_range.solve_band`` from the hub and the store;
+    the learned floor applies where the plan's levels are clamped to the band."""
+    return draw_range.solve_band(
+        draw, hub, probe_install(config), dt_util.now().timestamp(),
+        applies_floor=levels_clamped(config),
+    )
 
 
 def _band_fields(band: draw_range.SolveBand) -> dict[str, float]:
-    """The solve copy's power range under ``band``; none where configured,
-    so a configured band leaves the copy the hub's figures byte for byte."""
-    if band.source == "configured":
+    """The solve copy's power range under ``band``; none where both ends are
+    configured, so such a band leaves the copy the hub's figures byte for byte."""
+    if band.source == "configured" and band.min_source == "configured":
         return {}
     return {"max_electrical_power": band.max_kw, "min_electrical_power": band.min_kw}
 
