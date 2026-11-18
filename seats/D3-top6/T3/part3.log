@@ -54,6 +54,11 @@ EXIT complete pre 0 2026-11-18T20:02:48Z load1=0.94
 2026-11-18T20:32:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:R10-C2 M35 L188 by=- ran=12 wall=1759.4s
 2026-11-18T20:53:39Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M27 L2246 by=tests/features.py ran=12 wall=1729.7s
 2026-11-18T20:58:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:R10-C2 M36 L355 by=- ran=12 wall=1590.7s
+2026-11-18T21:04:24Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:R10-C2 M29 L64 by=tests/features.py ran=17 wall=1943.1s
+RESULT load1=0.99
+RESULT thread_factor=1.00
+EXIT complete c2 0 2026-11-18T21:04:24Z load1=0.99
+2026-11-18T21:04:24Z COMPLETE queued=1 from=c3c6
 === prescreen.log ===
 2026-11-18T18:55:09Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=225.2s reach_ok=True
 2026-11-18T18:57:57Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=167.8s reach_ok=False
@@ -90,3 +95,5 @@ EXIT complete pre 0 2026-11-18T20:02:48Z load1=0.94
 2026-11-18T20:32:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:R10-C2 M35 L188 by=- ran=12 wall=1759.4s
 2026-11-18T20:53:39Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M27 L2246 by=tests/features.py ran=12 wall=1729.7s
 2026-11-18T20:58:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:R10-C2 M36 L355 by=- ran=12 wall=1590.7s
+2026-11-18T21:04:24Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:R10-C2 M29 L64 by=tests/features.py ran=17 wall=1943.1s
+2026-11-18T21:04:24Z COMPLETE queued=1 from=c3c6
