@@ -18,3 +18,4 @@
 1795009944 DONE handoff at 6ec7cfcab401: code on handoff/r11-seam-kernel-step, body on handoff-body (491d6ad0); prepr scoped rc=0
 1795010006 DONE handoff at 6ec7cfcab401: code on handoff/r11-seam-kernel-step, body on handoff-body (491d6ad0); prepr scoped rc=0; handoff-wip ref delete refused by the remote (hung up x5)
 1795020482 HB alive
+1795020597 CKPT plan_step last-step width fix committed and step-pushed snapshot 58c86081f092
