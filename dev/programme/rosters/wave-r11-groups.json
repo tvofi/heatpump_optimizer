@@ -3792,7 +3792,7 @@
     "From r11-pre-parallel-pipeline, body item c5d7f7ba: Lands in dev/programme/rosters/wave-r10-groups.json, R11-PRE-PARALLEL-PIPELINE's brief, for the SHADOW part: carry 0 needs a recorder of GREEN instants (`{pr: iso}`) during the shadow; this part adds the reader only. Carry: R11-PRE-PARALLEL-PIPELINE (items c5d7f7ba)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-merge-train",
     "commit": null,
     "last_step": null,
