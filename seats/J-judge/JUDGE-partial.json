@@ -846,6 +846,16 @@
   "differs": "the stale thing is a physical actuator state left held, not a published value read past its age"
  },
  {
+  "id": "D16-s3-03",
+  "verdict": "weakened",
+  "severity": "medium",
+  "value": "worktree: unload during a held disinfection leaves number.dhw_set at 60 (unrestored 1, baseline 50); --perturb memo -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-order-coupling",
+  "note": "reproduced on a full-output re-run. The memo is cleared after the arbiter release reads it, so correctness rides call order, N-order-coupling (it is in bugclasses.json). Votes: 1 weaken (medium).",
+  "class_mechanism": "Two sibling updaters consume one shared interval and the first closes it destructively, so correctness depends on call order that only a comment and a source-order test hold"
+ },
+ {
   "id": "D16-s3-04",
   "verdict": "verified",
   "severity": "medium",
@@ -1902,6 +1912,86 @@
   "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
  },
  {
+  "id": "D6-s5-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: c_mock false, mock_users=5 test scripts; fix_review_j5_refs=0 (stale pointer)",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced with --repo at the baseline commit; perturbation by-hand on the verifier's record. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D6-s5-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: round4_d6_rewritten_at_doc_path=0 (tools/audit/round4/D6/ absent)",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly; severity low as the verifier. Votes: 1 verify (low).",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D6-s5-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: c_brief_exclude stale, round2_symbol_found=1",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D6-s5-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: handovers_under_docs=0; the one handover is dev/programme/HANDOVER.md",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D6-s5-05",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: leased_or_slotted_besides_stress=9 (1 lease, 8 slots)",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D6-s5-06",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: instrument_record_dirs_listed=19, absent from tools/audit/seat/ 19",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D6-s5-07",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: worktree_gc_apply_refused=1",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D6-s5-08",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: event_hub_cited_name_files=0 (the control is r10_livestate_event_hub_writes.py)",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
   "id": "D6-s6-01",
   "verdict": "verified",
   "severity": "low",
@@ -1909,6 +1999,26 @@
   "stop_rule_class": "hygiene",
   "class": "I5",
   "note": "reproduced exactly; runner too. Votes: 1 verify (low).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D6-s7-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: false_rows=4; CI skipped on 21 switches, 3 path classes mismatched (1788 delivery files), base-not-main refused 1",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly with --repo at the baseline commit. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D6-s7-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: wrong_rows=9 in the plan's standing sections",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
   "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
  },
  {
@@ -2002,6 +2112,56 @@
   "class": "N-shared-config",
   "note": "reproduced exactly. Votes: 1 verify.",
   "class_mechanism": "Solve-scoped state is mutated on, or read from, live shared objects while the solve runs off the loop, so a concurrent reader publishes it or a concurrent writer is reverted"
+ },
+ {
+  "id": "D7-s3-01",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: temperature_roundtrip_disagreements=12 of 35 probes (55 F written 62.6, read back 17.0); perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "P8",
+  "note": "reproduced exactly. Votes: 1 verify (high).",
+  "class_mechanism": "A currency or unit resolved by divergent precedence on different surfaces"
+ },
+ {
+  "id": "D7-s3-03",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: step_covering_now_disagreements=4 of 8 (past steps held at 27.0); perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-no-expiry",
+  "note": "reproduced exactly; medium as the verifier. Votes: 1 verify (medium).",
+  "class_mechanism": "A last-known value is published and booked as current with no age bound once its source stops updating"
+ },
+ {
+  "id": "D7-s3-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: water_heat 1 + naive_instant 2 + finite_number 9 = 12 disagreeing probes; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D7-s3-05",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: m6_inner unread params 16, locals 8, fields 1 (+ attributes); planted_delta=1 under --perturb",
+  "stop_rule_class": "hygiene",
+  "class": "N-structure-blind",
+  "note": "m6_inner reproduced and its plant moves by exactly 1; the m6_dead half needs a --trace dir not built here, so the constants share of the 50 is on the verifier's record. Votes: 1 verify.",
+  "class_mechanism": "A structural ratchet or dead-code metric measures a name or regex proxy instead of the property it gates, so dead production members or cross-seam coupling pass it unmeasured"
+ },
+ {
+  "id": "D7-s3-06",
+  "verdict": "unreproduced",
+  "severity": "medium",
+  "value": "verifier: 93 of 480 functions deletable with no behaviour script failing; pin demo 0 -> 1 failing under HPO_FN_MUTATE",
+  "stop_rule_class": "bug",
+  "class": "I1",
+  "note": "not re-run: m5_train.py report needs a --trace dir of the full suite, not built on this box within its budget. Re-measure owed. Votes: 1 verify (medium).",
+  "class_mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green"
  },
  {
   "id": "D8-s1-01",

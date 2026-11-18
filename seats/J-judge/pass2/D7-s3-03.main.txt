@@ -1,0 +1,18 @@
+#tree planted-copy rc=0 s=0.9
+AGREE    step_covering_now 'before' _covering_index=None _step_index=None arbiter._planned_room=None early_cutoff._planned_room=[]
+AGREE    step_covering_now 'first' _covering_index=0 _step_index=0 arbiter._planned_room=20.0 early_cutoff._planned_room=[19.1]
+AGREE    step_covering_now 'mid' _covering_index=3 _step_index=3 arbiter._planned_room=23.0 early_cutoff._planned_room=[19.4]
+AGREE    step_covering_now 'last' _covering_index=7 _step_index=7 arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+DISAGREE step_covering_now 'end_edge' _covering_index=None _step_index=None arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+DISAGREE step_covering_now 'one_step_past' _covering_index=None _step_index=None arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+DISAGREE step_covering_now 'three_hours_past' _covering_index=None _step_index=None arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+DISAGREE step_covering_now 'a_day_past' _covering_index=None _step_index=None arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+RESULT step_covering_now_probes=8 probes
+RESULT step_covering_now_disagreements=4 probes
+RESULT families=22 families
+RESULT disagreements_total=4 probes
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.26 load
+RESULT swapins=0 count
+
+#STDERR

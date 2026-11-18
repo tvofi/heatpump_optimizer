@@ -1,0 +1,69 @@
+#tree planted-copy rc=0 s=2.8
+ROW framework_read attribute _attr_max_temp stores=1 first=climate.py:124 owner=HeatPumpOptimizerClimate.__init__
+ROW framework_read attribute _attr_min_temp stores=1 first=climate.py:123 owner=HeatPumpOptimizerClimate.__init__
+ROW framework_read attribute _attr_native_unit_of_measurement stores=9 first=sensor.py:501 owner=PredictedSavingsSensor.__init__
+ROW framework_read attribute _attr_unique_id stores=1 first=entity.py:310 owner=HeatPumpOptimizerEntity._pin_identity
+ROW test_read_only attribute _last_manual_setpoint stores=2 first=coordinator.py:4062 owner=HeatPumpOptimizerCoordinator._init_features
+ROW test_read_only attribute _slab_fit_used stores=7 first=sysid.py:1429 owner=SystemIdentification.__init__
+ROW test_read_only attribute _step_dhw_draw_kw stores=1 first=thermal_model.py:3686 owner=ThermalModel.simulate_dhw_step
+ROW test_read_only attribute _step_dhw_floor_injected stores=1 first=thermal_model.py:3685 owner=ThermalModel.simulate_dhw_step
+ROW test_read_only attribute _step_dhw_refused stores=1 first=thermal_model.py:3685 owner=ThermalModel.simulate_dhw_step
+ROW test_read_only attribute draws_dirty stores=2 first=dhw_learning.py:214 owner=DhwProfileLearner.__init__
+ROW test_read_only attribute last_return_c stores=1 first=flow_lift.py:174 owner=FlowCurveBias.observe_temps
+ROW test_read_only attribute manual_pins_active stores=1 first=optimizer.py:4627 owner=HeatPumpOptimizer.optimize
+ROW unread_param parameter coordinator.py:10769 HeatPumpOptimizerCoordinator._observe_frequency(now)
+ROW unread_param parameter curve_learning.py:102 CurveLearner.record_miss(now)
+ROW unread_param parameter dhw_planner.py:479 DhwPlanner._baseline_dhw_economics(initial_state)
+ROW unread_param parameter entry_config.py:30 _refused_number(default)
+ROW unread_param parameter entry_config.py:46 _flag(default)
+ROW unread_param parameter entry_config.py:50 _text(default)
+ROW unread_param parameter entry_config.py:54 _entity(default)
+ROW unread_param parameter entry_config.py:59 _spec(default)
+ROW unread_param parameter entry_config.py:68 _as_stored(default)
+ROW unread_param parameter optimizer.py:867 _floor_demand_terms(outdoor_temp)
+ROW unread_param parameter optimizer.py:4923 HeatPumpOptimizer._solve_space(n_steps)
+ROW unread_param parameter optimizer.py:6452 HeatPumpOptimizer._power_to_setpoints(outdoor_temps)
+ROW unread_param parameter services.py:583 handle_run_optimization(call)
+ROW unread_param parameter sysid.py:615 slab_mode_identifiability(config)
+ROW unread_param parameter tariff.py:655 window_factors(dt_hours)
+ROW unread_param parameter thermal_model.py:1513 _configured(cap)
+ROW unread_local local coordinator.py:3121 _apply_result_payload:i
+ROW unread_local local coordinator.py:6619 HeatPumpOptimizerCoordinator.async_shutdown:done
+ROW unread_local local optimizer.py:1212 _held_unreachable:solar
+ROW unread_local local power_guard.py:64 project_window_mean:remaining
+ROW unread_local local sysid.py:1977 SystemIdentification.identify:rank1
+ROW unread_local local sysid.py:2109 SystemIdentification.identify:residuals
+ROW unread_local local sysid.py:2322 SystemIdentification.identify_slab:outdoors
+ROW unread_local local sysid.py:2322 SystemIdentification.identify_slab:powers
+ROW test_read_only field dhw_planner.py:342 DhwPlan.windows_learned
+ROW test_read_only field dhw_planner.py:347 DhwPlan.external_heat_suppressed_steps
+ROW test_read_only field flow_lift.py:149 FlowCurveBias.last_return_c
+ROW test_read_only field optimizer.py:2545 OptimizationResult.wood_temp_trajectory
+ROW test_read_only field optimizer.py:2602 OptimizationResult.manual_pins_active
+ROW test_read_only field pump_mode.py:82 ModeCapability.known
+ROW unread_field field pv.py:54 PVConfig.export_price_entity
+ROW test_read_only field quiet_windows.py:116 QuietCompose.silent_dropped
+ROW test_read_only field sysid.py:475 SysIdResult.sensor_drift_c_per_h
+ROW masked function off_restore.py:325 async_forget named_in_tests=True
+ROW masked function frontend.py:179 async_register_frontend named_in_tests=False
+ROW masked function services.py:1291 async_register_services named_in_tests=True
+ROW masked function coordinator.py:1946 async_register_worker_shutdown named_in_tests=False
+ROW masked function __init__.py:262 async_setup named_in_tests=True
+ROW masked function debugger.py:684 async_setup_debugger named_in_tests=True
+ROW masked function notifier.py:320 async_setup_notifier named_in_tests=True
+ROW masked function debugger.py:701 async_unload_debugger named_in_tests=True
+RESULT universe=16241 items
+RESULT write_only_attributes=0 attributes
+RESULT test_read_only_attributes=8 attributes
+RESULT framework_read_attributes=4 attributes
+RESULT unread_params=16 parameters
+RESULT protocol_params=18 parameters
+RESULT unread_locals=8 locals
+RESULT unread_fields=1 fields
+RESULT test_read_only_fields=8 fields
+RESULT masked_functions=8 functions
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.22 load
+RESULT swapins=0 count
+
+#STDERR

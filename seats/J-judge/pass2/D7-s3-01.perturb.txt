@@ -1,0 +1,45 @@
+#tree planted-copy rc=0 s=0.1
+AGREE    temperature_roundtrip ('C', -20.0) wrote -20.0 read back -20.0
+AGREE    temperature_roundtrip ('C', 0.0) wrote 0.0 read back 0.0
+AGREE    temperature_roundtrip ('C', 21.5) wrote 21.5 read back 21.5
+AGREE    temperature_roundtrip ('C', 55.0) wrote 55.0 read back 55.0
+AGREE    temperature_roundtrip ('C', 100.0) wrote 100.0 read back 100.0
+AGREE    temperature_roundtrip ('F', -20.0) wrote -4.0 read back -20.0
+AGREE    temperature_roundtrip ('F', 0.0) wrote 32.0 read back 0.0
+AGREE    temperature_roundtrip ('F', 21.5) wrote 70.69999999999999 read back 21.499999999999993
+AGREE    temperature_roundtrip ('F', 55.0) wrote 131.0 read back 55.0
+AGREE    temperature_roundtrip ('F', 100.0) wrote 212.0 read back 100.0
+AGREE    temperature_roundtrip ('K', -20.0) wrote 253.14999999999998 read back -20.0
+AGREE    temperature_roundtrip ('K', 0.0) wrote 273.15 read back 0.0
+AGREE    temperature_roundtrip ('K', 21.5) wrote 294.65 read back 21.5
+AGREE    temperature_roundtrip ('K', 55.0) wrote 328.15 read back 55.0
+AGREE    temperature_roundtrip ('K', 100.0) wrote 373.15 read back 100.0
+AGREE    temperature_roundtrip ('degC', -20.0) wrote -20.0 read back -20.0
+AGREE    temperature_roundtrip ('degC', 0.0) wrote 0.0 read back 0.0
+AGREE    temperature_roundtrip ('degC', 21.5) wrote 21.5 read back 21.5
+AGREE    temperature_roundtrip ('degC', 55.0) wrote 55.0 read back 55.0
+AGREE    temperature_roundtrip ('degC', 100.0) wrote 100.0 read back 100.0
+AGREE    temperature_roundtrip ('degF', -20.0) wrote -4.0 read back -20.0
+AGREE    temperature_roundtrip ('degF', 0.0) wrote 32.0 read back 0.0
+AGREE    temperature_roundtrip ('degF', 21.5) wrote 70.69999999999999 read back 21.499999999999993
+AGREE    temperature_roundtrip ('degF', 55.0) wrote 131.0 read back 55.0
+AGREE    temperature_roundtrip ('degF', 100.0) wrote 212.0 read back 100.0
+AGREE    temperature_roundtrip ('°C', -20.0) wrote -20.0 read back -20.0
+AGREE    temperature_roundtrip ('°C', 0.0) wrote 0.0 read back 0.0
+AGREE    temperature_roundtrip ('°C', 21.5) wrote 21.5 read back 21.5
+AGREE    temperature_roundtrip ('°C', 55.0) wrote 55.0 read back 55.0
+AGREE    temperature_roundtrip ('°C', 100.0) wrote 100.0 read back 100.0
+AGREE    temperature_roundtrip ('°F', -20.0) wrote -4.0 read back -20.0
+AGREE    temperature_roundtrip ('°F', 0.0) wrote 32.0 read back 0.0
+AGREE    temperature_roundtrip ('°F', 21.5) wrote 70.69999999999999 read back 21.499999999999993
+AGREE    temperature_roundtrip ('°F', 55.0) wrote 131.0 read back 55.0
+AGREE    temperature_roundtrip ('°F', 100.0) wrote 212.0 read back 100.0
+RESULT temperature_roundtrip_probes=35 probes
+RESULT temperature_roundtrip_disagreements=0 probes
+RESULT families=22 families
+RESULT disagreements_total=0 probes
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.28 load
+RESULT swapins=0 count
+
+#STDERR
