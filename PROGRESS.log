@@ -108,22 +108,11 @@
 1795035107 CKPT D3-s1 491 file(s)
 1795035127 CKPT D3-s1 491 file(s)
 1795035712 HB alive
-1795036050 RESUMED from 79c8b9bb4773
-1795036050 INIT box D3-u1b
-1795036102 CKPT D3-s1 528 file(s)
-1795036102 HB alive
-1795036113 HB alive
-1795036113 HB container restarted 21:0xZ; K2 resumed at 84/233 complete
-1795036182 CKPT D3-s1 528 file(s)
-1795036186 HB restore incident: old K2 survived the restart; my worker-tree cleanup crashed 4 in-flight mutants (no results written, re-queued). K2 resumed 84/233 done, 149 queued
-1795036775 HB alive
-1795037381 HB alive
-1795037503 CKPT D3-s1 530 file(s)
-1795037568 CKPT D3-s1 532 file(s)
-1795037987 HB alive
-1795038592 HB alive
-1795038833 CKPT D3-s1 533 file(s)
-1795038899 CKPT D3-s1 534 file(s)
-1795039024 CKPT D3-s1 536 file(s)
-1795039199 HB alive
-1795039804 HB alive
+1795036319 HB alive
+1795036672 CKPT D3-s1 494 file(s)
+1795036925 HB alive
+1795037531 HB alive
+1795038137 HB alive
+1795038745 HB alive
+1795039351 HB alive
+1795039957 HB alive
