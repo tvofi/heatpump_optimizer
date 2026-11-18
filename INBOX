@@ -1,0 +1,1 @@
+1 2026-11-18T11:58:11Z orchestrator: OWNER RULING (tvofi 2026-11-18): drop ADR-006 part 2 now; do not attempt the one-row scalar. Land part 1 only and record part 2 as dropped by owner ruling (money score row 14 -> 12).
