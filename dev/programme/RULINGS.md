@@ -103,6 +103,38 @@ divergence"). Re-read on change after every compaction
 - 2026-11-13: "outside and owner filed findings and requests should always fold
   into the ongoing round if not explicitly deferred by the owner or outsider".
 
+## Round 11 plan, design and ratchet rulings, 2026-11-18
+
+Words not kept are marked "as recorded"; the bracketed readings are the
+orchestrator's.
+
+- 2026-11-18, the P3 plan (as recorded; mandate 6893738184, after one hour
+  without an answer): (1) floor metrics count as the third scored class, with
+  the 40% cap checked at stamp; (2) the instrument-comment deferral to round 12
+  is confirmed (tooling freeze); (3) the ADR-007 designer starts in the first
+  wave; (4) the circ term is banked only with a registered restore owner and a
+  no-circ case added; (5) the architect's small fixes apply without a fourth
+  review (designs owed for R11-SEAM-tests and R11-SEAM-card, the dead-state to
+  ratchets edge dropped, the hub brief's stale-holder check). Confirmed by him
+  the same day: "I confirm your plan".
+- 2026-11-18, money design questions (as recorded): (1) the five findings that
+  are zero at main get regression pins only, recorded as not reproduced at main
+  and not re-judged; (2) D5-s3-01 moves to the kernel-layering group with no new
+  edge; (3) ADR-006 part 2 was explained to him, then: ADR-006 part 2 dropped.
+- 2026-11-18, four rulings (as recorded): (1) the #3723 churn cap is raised under
+  the mandate, with a proposal filed; (2) ratchet raises `const_modules_over_50`
+  3 to 4 and the module-span limit to 2000, both yes; (3) DRAWMAP S1 to S4 are
+  confirmed as they stand.
+- 2026-11-18 (as recorded): carry 1 of the DX0 group is its own policy pull
+  request, and its review is the orchestrator's under mandate 6893738184.
+- 2026-11-18 (as recorded): a new round phase, "instrument prototype and
+  proposal triage", about 24 hours before closeout. A Fable seat consolidates the
+  instrument proposals and overlay prototypes and plans the next round's
+  instrument changes; that plan is reviewed and becomes the next round's
+  instrument groups. The policy change (playbook, `proposal-triage.md`,
+  `plan_phases` PHASES) is its own pull request; round 11's instance runs about
+  24 hours before its closure.
+
 ## The instrument freeze, proposals and root cause
 
 - Card P11 (verbatim in the card list below) sets the freeze's exceptions.
