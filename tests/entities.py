@@ -15649,6 +15649,32 @@ R.check(
     f"{_mig_iv}",
 )
 
+# The keys the migration must repair, by the parse's own behaviour rather than
+# by entry_config._DEFAULTED_NUMBERS: a field whose parse reads numeric text as
+# its float and other text as the default. Text left under one such key is read
+# raw by no parse at all once a release reads it outside EntryConfig.
+from heatpump_optimizer.entry_config import number_repairs as _mig_repairs  # noqa: E402
+
+
+def _mig_defaulted(f):
+    _p = f.metadata["parse"]
+    _twelve = _p("12", f.default)
+    return _p("abc", f.default) == f.default and type(_twelve) is float and _twelve == 12.0
+
+
+_mig_numeric = [f.name for f in _mig_fields(_MigEC) if f.metadata and _mig_defaulted(f)]
+_mig_unrepaired = [k for k in _mig_numeric if _mig_repairs({k: "12"}) != {k: 12.0}]
+R.check(
+    "every option whose parse defaults text it cannot read is repaired by the migration",
+    "optimization_interval" in _mig_numeric and "wood_lighting_lead_minutes" in _mig_numeric
+    and not _mig_unrepaired,
+    f"unrepaired: {_mig_unrepaired}",
+)
+R.check(
+    "and a stored number under each is left alone (null control)",
+    not [k for k in _mig_numeric if _mig_repairs({k: 12.0})],
+)
+
 _new = FakeEntry()
 _new.version = const.CONFIG_ENTRY_VERSION + 1
 R.check(
