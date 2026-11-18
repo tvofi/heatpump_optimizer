@@ -610,10 +610,27 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
           and row(got, 60, 2).endswith("; product/machinery unread " + NO_CLASS)
           and got[0].endswith("; product red 0, machinery red 0 of 0 push reds (gate.status); "
                               "product/machinery unread on 2 " + NO_CLASS))
-    got = lines([run(61, 1, sha=M, **ON_MAIN), run(62, 2, sha="e" * 40, **ON_MAIN)],
-                {61: jobs("failure", done=listing(1, **{prod: None})), 62: red})
+    got = lines([run(61, 1, sha=M, **ON_MAIN), run(62, 2, sha="e" * 40, **ON_MAIN), run(63, 3, sha="f" * 40, **ON_MAIN)],
+                {61: jobs("failure", done=listing(1, **{prod: None})), 62: red,
+                 63: jobs("failure", done=listing(1, **{prod: "failure"}))})
     check("reds: a member with no conclusion, or not listed at the attempt, reads unread in its verdict, never red or green",
           row(got, 61).endswith("; product unread, machinery green") and row(got, 62).endswith("; product unread, machinery unread"))
+    check("reds: the summary counts a verdict red only where it reads red: an unread verdict is no red, and the product "
+          "count reads the product verdict",
+          row(got, 63).endswith("; product red, machinery green")
+          and got[0].endswith("; product red 1, machinery red 0 of 3 push reds (gate.status); "
+                              "product/machinery unread on 0 " + NO_CLASS))
+    for event in ("merge_group", "workflow_dispatch"):
+        got = lines([run(64, 1, attempt=2, sha=M, event=event, branch="main")], {64: both})
+        check(f"NULL reds: a {event} run reads the column unread, never a verdict of the push class",
+              row(got, 64).endswith("; product/machinery unread " + NO_CLASS)
+              and row(got, 64, 2).endswith("; product/machinery unread " + NO_CLASS)
+              and got[0].endswith("; product red 0, machinery red 0 of 0 push reds (gate.status); "
+                                  "product/machinery unread on 2 " + NO_CLASS))
+    got = lines([run(70, 1, sha=A, pr=5), run(71, 2, sha=B, pr=6)], {71: red})
+    check("reds: the summary's unread column counts the reds read, never a run with no job listing",
+          got[0].startswith("gate_reds unread (1 of 2 runs have no job listing at their latest attempt; beside: 1 reds read")
+          and got[0].endswith("; product/machinery unread on 1 " + NO_CLASS + ")"))
     from throwaway_git import throwaway_git_environ  # self_test put tests/ on the path
     with throwaway_git_environ():
         head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True).stdout.strip()
@@ -677,6 +694,16 @@ MUTANTS = {
                    "reds: a main red spell already open at the first main run read"),
     "column class from the event": ('"push") if r.get("event") == "push" else None', '"push") if True else None',
                                     "NULL reds: the same listing on a pull-request run"),
+    "column event a push alone": ('if r.get("event") == "push" else None', 'if r.get("event") != "pull_request" else None',
+                                  "NULL reds: a merge_group run reads the column unread"),
+    "summary product reads product": ("sum(a == _gate().RED for a, _ in pairs)", "sum(b == _gate().RED for _, b in pairs)",
+                                      "reds: the summary counts a verdict red only where it reads red"),
+    "summary product unread no red": ("sum(a == _gate().RED for a, _ in pairs)", "sum(a != _gate().GREEN for a, _ in pairs)",
+                                      "reds: the summary counts a verdict red only where it reads red"),
+    "summary machinery unread no red": ("sum(b == _gate().RED for _, b in pairs)", "sum(b != _gate().GREEN for _, b in pairs)",
+                                        "reds: the summary counts a verdict red only where it reads red"),
+    "summary unread over reds": ("on {len(reds) - len(pairs)}", "on {len(rows) - len(pairs)}",
+                                 "reds: the summary's unread column counts the reds read"),
     "column member unconcluded": ('("completed" if j.get("conclusion") else "in_progress", j.get("conclusion"))',
                                   '("completed", j.get("conclusion"))', "reds: a member with no conclusion"),
     "stale listing": ('doc.get("attempt") == r["attempt"]:', "True:", "reds: a listing cached at an older attempt"),
