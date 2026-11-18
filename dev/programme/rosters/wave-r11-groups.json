@@ -5194,6 +5194,93 @@
     "next_step": "fixer per the architect note (none)",
     "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-money",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "high",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D2-s3-03",
+    "D2-s3-04",
+    "D2-s3-05",
+    "D2-s3-06",
+    "D2-s3-07",
+    "D8-s1-02",
+    "D14-s1-03",
+    "D17-s1-05",
+    "D5-s3-01"
+   ],
+   "merged": {},
+   "classes": [
+    "I4",
+    "I5",
+    "N-inverted-aggregate",
+    "N-partial-payload-parse",
+    "N-partial-window-extrapolation",
+    "P2",
+    "P7",
+    "P8"
+   ],
+   "seam": "money",
+   "hot_files": [
+    "price_model.py",
+    "tariff.py",
+    "grid_fee.py",
+    "ledger.py",
+    "power_guard.py",
+    "currency.py",
+    "config_flow.py",
+    "coordinator.py",
+    "sensor.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Plan: ADR-006. The exact top-k takes the largest, as its batch twin does; the smooth scalar becomes one row of its batch only if golden fixtures stay byte-identical and the solve-time harness does not regress, else that part is dropped and recorded. It also carries the day and entry arms of D7-s1-05: price_model.py's usable day and ledger.py's month entry each get one owner (ADR-001).",
+   "effort": "high",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/ledger.py",
+    "custom_components/heatpump_optimizer/power_guard.py",
+    "custom_components/heatpump_optimizer/currency.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "brief": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Plan: ADR-006. The exact top-k takes the largest, as its batch twin does; the smooth scalar becomes one row of its batch only if golden fixtures stay byte-identical and the solve-time harness does not regress, else that part is dropped and recorded. It also carries the day and entry arms of D7-s1-05: price_model.py's usable day and ledger.py's month entry each get one owner (ADR-001). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-money",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-006, ADR-001)",
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   },
+   "arms": {
+    "D7-s1-05": [
+     "day",
+     "entry"
+    ]
+   }
   }
  ]
 }
