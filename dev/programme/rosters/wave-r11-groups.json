@@ -6472,9 +6472,9 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r11-seam-governance-text",
-    "commit": null,
+    "commit": "e563cd08e0231a87af45ee52d497136d403135b2",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-010)",
     "note": null,
