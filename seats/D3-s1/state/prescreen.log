@@ -480,3 +480,4 @@
 2026-11-18T19:16:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:dhw_coil_draw_reduction CLAMP_DROP 774fbd01 L3003 by=- ran=12 wall=1686.8s
 2026-11-18T19:20:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._entity_state GUARD_OFF 9ebc2cb3 L9849 by=- ran=13 wall=1834.3s
 2026-11-18T19:37:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF 6ea17095 L219 by=- ran=14 wall=1766.9s
+2026-11-18T19:38:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_pins CLAMP_DROP 367cf0ae L1645 by=- ran=13 wall=1768.4s
