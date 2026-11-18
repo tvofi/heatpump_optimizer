@@ -1160,6 +1160,26 @@
   "class_mechanism": "A measured closure or scope diverges from the real dependency graph"
  },
  {
+  "id": "D4-s1-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: pipe_hit_under_floor=576 of 576 pipes (band 0-5.75 px); null port hits median 30.5 px; perturb stroke 60 -> 296",
+  "stop_rule_class": "bug",
+  "class": "P9",
+  "note": "reproduced exactly with the plan_view payload and the box's chromium. Votes: 1 verify.",
+  "class_mechanism": "Card UI: a clipping ancestor, missing colour token or unfloored hit target"
+ },
+ {
+  "id": "D4-s1-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: strict_small=72 targets under 24/44 px over 72 score_open renders",
+  "stop_rule_class": "bug",
+  "class": "P9",
+  "note": "reproduced the finder's 72 (the hl-fold-head pair per coarse render). Votes: 1 verify (low).",
+  "class_mechanism": "Card UI: a clipping ancestor, missing colour token or unfloored hit target"
+ },
+ {
   "id": "D4-s2-01",
   "verdict": "verified",
   "severity": "low",
@@ -1638,6 +1658,18 @@
   "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
  },
  {
+  "id": "D5-s6-08",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: C5-len=404 over 3781 units",
+  "stop_rule_class": "hygiene",
+  "class": "N-comment-style",
+  "note": "reproduced exactly with --repo at the baseline commit. Votes: 1 verify.",
+  "class_mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
+  "nearest": "I5",
+  "differs": "the text is not false or stale, only over-long"
+ },
+ {
   "id": "D5-s7-01",
   "verdict": "verified",
   "severity": "low",
@@ -1669,6 +1701,68 @@
   "stop_rule_class": "hygiene",
   "class": "N-comment-style",
   "note": "reproduced the finder's 3 (verifier's own splitter 2). Votes: 1 weaken (trivial).",
+  "class_mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
+  "nearest": "I5",
+  "differs": "the text is not false or stale, only over-long"
+ },
+ {
+  "id": "D5-s8-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: tools/policy/policy_lint.mjs units_with_unresolved_ref=12 of 463",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly. Pre-move paths. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s8-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: tools/policy/friction_issues.mjs unresolved_units=1 of 62",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s8-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: tests/closure.py unresolved_units=5 of 329",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced the finder's 5 (verifier counted 3 distinct paths). Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s8-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: tests/doc_claims.py unresolved_units=3 of 229",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s8-05",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: tests/card.mjs unresolved_units=4 of 712",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly; untracked files cited. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s8-06",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: units_with_sentence_over_40_words=657 of 3628",
+  "stop_rule_class": "hygiene",
+  "class": "N-comment-style",
+  "note": "reproduced exactly. Votes: 1 verify.",
   "class_mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
   "nearest": "I5",
   "differs": "the text is not false or stale, only over-long"

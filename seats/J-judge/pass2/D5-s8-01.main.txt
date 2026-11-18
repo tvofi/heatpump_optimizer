@@ -1,0 +1,174 @@
+#tree planted-copy rc=0 s=6.1
+  tools/policy/policy_lint.mjs:1	tools/policy/policy_lint.mjs#3690fa9f3f	C5: sentence of 74 words > 40
+  tools/policy/policy_lint.mjs:1	tools/policy/policy_lint.mjs#3690fa9f3f	C2: unresolved path:docs/plan-*.md, path:docs/HANDOVER.md, path:tools/audit/briefs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs
+  tools/policy/policy_lint.mjs:207	tools/policy/policy_lint.mjs#f22f8cedcb	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:242	tools/policy/policy_lint.mjs#de43256429	C5: sentence of 42 words > 40
+  tools/policy/policy_lint.mjs:303	tools/policy/policy_lint.mjs#dea93e418b	C5: sentence of 47 words > 40
+  tools/policy/policy_lint.mjs:326	tools/policy/policy_lint.mjs#b6fc2efbff	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:360	tools/policy/policy_lint.mjs#e10e63449a	C5: sentence of 47 words > 40
+  tools/policy/policy_lint.mjs:400	tools/policy/policy_lint.mjs#6be172a0bb	C5: sentence of 53 words > 40
+  tools/policy/policy_lint.mjs:409	tools/policy/policy_lint.mjs#ab3d5ad4d4	C5: sentence of 51 words > 40
+  tools/policy/policy_lint.mjs:420	tools/policy/policy_lint.mjs#be4d536b44	C5: sentence of 46 words > 40
+  tools/policy/policy_lint.mjs:427	tools/policy/policy_lint.mjs#ebbba953fd	C5: sentence of 50 words > 40
+  tools/policy/policy_lint.mjs:485	tools/policy/policy_lint.mjs#b61938586f	C5: sentence of 61 words > 40
+  tools/policy/policy_lint.mjs:485	tools/policy/policy_lint.mjs#b61938586f	C2: unresolved path:docs/decisions
+  tools/policy/policy_lint.mjs:543	tools/policy/policy_lint.mjs#70b3cac754	C5: sentence of 62 words > 40
+  tools/policy/policy_lint.mjs:553	tools/policy/policy_lint.mjs#613a1aa6fb	C2: unresolved path:tools/audit/briefs/orchestrator.md
+  tools/policy/policy_lint.mjs:575	tools/policy/policy_lint.mjs#b825f4acc9	C5: sentence of 52 words > 40
+  tools/policy/policy_lint.mjs:588	tools/policy/policy_lint.mjs#ea07392220	C5: sentence of 44 words > 40
+  tools/policy/policy_lint.mjs:588	tools/policy/policy_lint.mjs#ea07392220	C2: unresolved path:.claude/workflows/corpus_excluded.json
+  tools/policy/policy_lint.mjs:596	tools/policy/policy_lint.mjs#87d4f4cb86	C5: sentence of 66 words > 40
+  tools/policy/policy_lint.mjs:641	tools/policy/policy_lint.mjs#e6feda85e5	C5: sentence of 50 words > 40
+  tools/policy/policy_lint.mjs:674	tools/policy/policy_lint.mjs#c6d0a76070	C5: sentence of 42 words > 40
+  tools/policy/policy_lint.mjs:708	tools/policy/policy_lint.mjs#011c7d2fa3	C5: sentence of 57 words > 40
+  tools/policy/policy_lint.mjs:758	tools/policy/policy_lint.mjs#d416ed6c0c	C5: sentence of 48 words > 40
+  tools/policy/policy_lint.mjs:780	tools/policy/policy_lint.mjs#16214bca4f	C5: sentence of 54 words > 40
+  tools/policy/policy_lint.mjs:800	tools/policy/policy_lint.mjs#68f71bab90	C5: sentence of 49 words > 40
+  tools/policy/policy_lint.mjs:832	tools/policy/policy_lint.mjs#aa0c6414d1	C5: sentence of 53 words > 40
+  tools/policy/policy_lint.mjs:871	tools/policy/policy_lint.mjs#fda76974c0	C5: sentence of 62 words > 40
+  tools/policy/policy_lint.mjs:918	tools/policy/policy_lint.mjs#a9dcc55e63	C5: sentence of 54 words > 40
+  tools/policy/policy_lint.mjs:945	tools/policy/policy_lint.mjs#d0e7e49fe5	C5: sentence of 61 words > 40
+  tools/policy/policy_lint.mjs:976	tools/policy/policy_lint.mjs#44211a56aa	C2: unresolved path:tools/audit/briefs/orchestrator.md
+  tools/policy/policy_lint.mjs:1010	tools/policy/policy_lint.mjs#9e7b2dc2a6	C5: sentence of 48 words > 40
+  tools/policy/policy_lint.mjs:1035	tools/policy/policy_lint.mjs#101593d527	C5: sentence of 65 words > 40
+  tools/policy/policy_lint.mjs:1056	tools/policy/policy_lint.mjs#6dec1f9fab	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:1150	tools/policy/policy_lint.mjs#5e18006102	C5: sentence of 56 words > 40
+  tools/policy/policy_lint.mjs:1210	tools/policy/policy_lint.mjs#11941948b3	C5: sentence of 51 words > 40
+  tools/policy/policy_lint.mjs:1319	tools/policy/policy_lint.mjs#6a0dcae804	C5: sentence of 49 words > 40
+  tools/policy/policy_lint.mjs:1573	tools/policy/policy_lint.mjs#04e9eb569e	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:1584	tools/policy/policy_lint.mjs#3dd27d1fca	C5: sentence of 63 words > 40
+  tools/policy/policy_lint.mjs:1623	tools/policy/policy_lint.mjs#d6fc4b2fe1	C5: sentence of 47 words > 40
+  tools/policy/policy_lint.mjs:1709	tools/policy/policy_lint.mjs#1eca854267	C5: sentence of 50 words > 40
+  tools/policy/policy_lint.mjs:1762	tools/policy/policy_lint.mjs#4d57bf1820	C5: sentence of 93 words > 40
+  tools/policy/policy_lint.mjs:1928	tools/policy/policy_lint.mjs#b2074a702f	C5: sentence of 58 words > 40
+  tools/policy/policy_lint.mjs:1928	tools/policy/policy_lint.mjs#b2074a702f	C2: unresolved path:docs/decisions/0010-merge-commits-on-main.md
+  tools/policy/policy_lint.mjs:1945	tools/policy/policy_lint.mjs#3520a05807	C2: unresolved path:docs/decisions/0010
+  tools/policy/policy_lint.mjs:1959	tools/policy/policy_lint.mjs#875f0d2821	C5: sentence of 49 words > 40
+  tools/policy/policy_lint.mjs:1977	tools/policy/policy_lint.mjs#60ce1f6af3	C5: sentence of 68 words > 40
+  tools/policy/policy_lint.mjs:1985	tools/policy/policy_lint.mjs#e97c20b538	C2: unresolved path:docs/delivery
+  tools/policy/policy_lint.mjs:2005	tools/policy/policy_lint.mjs#44e6aafd16	C5: sentence of 42 words > 40
+  tools/policy/policy_lint.mjs:2058	tools/policy/policy_lint.mjs#2aca5dfdd2	C2: unresolved path:docs/decisions/0010-merge-commits-on-main.md
+  tools/policy/policy_lint.mjs:2140	tools/policy/policy_lint.mjs#32e820e706	C5: sentence of 49 words > 40
+  tools/policy/policy_lint.mjs:2200	tools/policy/policy_lint.mjs#48990bc013	C5: sentence of 64 words > 40
+  tools/policy/policy_lint.mjs:2223	tools/policy/policy_lint.mjs#67ae9e28b2	C5: sentence of 47 words > 40
+  tools/policy/policy_lint.mjs:2270	tools/policy/policy_lint.mjs#7bde67fe66	C5: sentence of 63 words > 40
+  tools/policy/policy_lint.mjs:2328	tools/policy/policy_lint.mjs#a2f7cf19af	C5: sentence of 64 words > 40
+  tools/policy/policy_lint.mjs:2328	tools/policy/policy_lint.mjs#a2f7cf19af	C2: unresolved path:docs/delivery/N.md
+  tools/policy/policy_lint.mjs:2374	tools/policy/policy_lint.mjs#43e9fe230c	C5: sentence of 90 words > 40
+  tools/policy/policy_lint.mjs:2471	tools/policy/policy_lint.mjs#51c301bb6b	C5: sentence of 57 words > 40
+  tools/policy/policy_lint.mjs:2498	tools/policy/policy_lint.mjs#b3f3cbbab6	C5: sentence of 42 words > 40
+  tools/policy/policy_lint.mjs:2537	tools/policy/policy_lint.mjs#3337c21f73	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:2558	tools/policy/policy_lint.mjs#bf2428ba96	C5: sentence of 49 words > 40
+  tools/policy/policy_lint.mjs:2585	tools/policy/policy_lint.mjs#6558744360	C5: sentence of 77 words > 40
+  tools/policy/policy_lint.mjs:2605	tools/policy/policy_lint.mjs#f81003b9db	C5: sentence of 55 words > 40
+  tools/policy/policy_lint.mjs:2639	tools/policy/policy_lint.mjs#19ffeb3146	C5: sentence of 83 words > 40
+  tools/policy/policy_lint.mjs:2660	tools/policy/policy_lint.mjs#65440e6835	C5: sentence of 59 words > 40
+  tools/policy/policy_lint.mjs:2716	tools/policy/policy_lint.mjs#0d20edf8a6	C5: sentence of 90 words > 40
+  tools/policy/policy_lint.mjs:2716	tools/policy/policy_lint.mjs#0d20edf8a6	C2: unresolved path:tools/audit/briefs/*.md
+  tools/policy/policy_lint.mjs:2777	tools/policy/policy_lint.mjs#d560c8a8d7	C5: sentence of 44 words > 40
+  tools/policy/policy_lint.mjs:2784	tools/policy/policy_lint.mjs#7615fd7b7f	C5: sentence of 45 words > 40
+  tools/policy/policy_lint.mjs:2794	tools/policy/policy_lint.mjs#1ab3645337	C5: sentence of 91 words > 40
+  tools/policy/policy_lint.mjs:2846	tools/policy/policy_lint.mjs#32988b3850	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:2893	tools/policy/policy_lint.mjs#44057fa5ee	C5: sentence of 55 words > 40
+  tools/policy/policy_lint.mjs:2944	tools/policy/policy_lint.mjs#08ee1ec4aa	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:2956	tools/policy/policy_lint.mjs#93b5d23d31	C5: sentence of 44 words > 40
+  tools/policy/policy_lint.mjs:2989	tools/policy/policy_lint.mjs#86fbf3d318	C5: sentence of 88 words > 40
+  tools/policy/policy_lint.mjs:3078	tools/policy/policy_lint.mjs#7504d0b8fa	C5: sentence of 46 words > 40
+  tools/policy/policy_lint.mjs:3093	tools/policy/policy_lint.mjs#4d8ac2945c	C5: sentence of 55 words > 40
+  tools/policy/policy_lint.mjs:3199	tools/policy/policy_lint.mjs#aa2450ca45	C5: sentence of 51 words > 40
+  tools/policy/policy_lint.mjs:3247	tools/policy/policy_lint.mjs#63f518b98f	C5: sentence of 46 words > 40
+  tools/policy/policy_lint.mjs:3309	tools/policy/policy_lint.mjs#1283d34189	C5: sentence of 42 words > 40
+  tools/policy/policy_lint.mjs:3346	tools/policy/policy_lint.mjs#7ac21f63b8	C5: sentence of 48 words > 40
+  tools/policy/policy_lint.mjs:3383	tools/policy/policy_lint.mjs#376f4bc818	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:3413	tools/policy/policy_lint.mjs#ee1baf5995	C5: sentence of 48 words > 40
+  tools/policy/policy_lint.mjs:3479	tools/policy/policy_lint.mjs#3010181fff	C5: sentence of 50 words > 40
+  tools/policy/policy_lint.mjs:3494	tools/policy/policy_lint.mjs#580ef06361	C5: sentence of 45 words > 40
+  tools/policy/policy_lint.mjs:3541	tools/policy/policy_lint.mjs#d17a1d1e02	C5: sentence of 53 words > 40
+  tools/policy/policy_lint.mjs:3560	tools/policy/policy_lint.mjs#0b9fc49539	C5: sentence of 48 words > 40
+  tools/policy/policy_lint.mjs:3616	tools/policy/policy_lint.mjs#6161edef27	C5: sentence of 55 words > 40
+  tools/policy/policy_lint.mjs:3690	tools/policy/policy_lint.mjs#ea1c0a7797	C5: sentence of 45 words > 40
+  tools/policy/policy_lint.mjs:3754	tools/policy/policy_lint.mjs#4e0a376a19	C5: sentence of 48 words > 40
+  tools/policy/policy_lint.mjs:3815	tools/policy/policy_lint.mjs#b851aa0658	C5: sentence of 46 words > 40
+  tools/policy/policy_lint.mjs:3839	tools/policy/policy_lint.mjs#87ff69ecd6	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:3908	tools/policy/policy_lint.mjs#69138dcaee	C5: sentence of 42 words > 40
+  tools/policy/policy_lint.mjs:3956	tools/policy/policy_lint.mjs#97d1d471e3	C5: sentence of 51 words > 40
+  tools/policy/policy_lint.mjs:4049	tools/policy/policy_lint.mjs#4ebbaf5831	C5: sentence of 71 words > 40
+  tools/policy/policy_lint.mjs:4350	tools/policy/policy_lint.mjs#309c18429e	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:4416	tools/policy/policy_lint.mjs#9ec3c6797f	C5: sentence of 60 words > 40
+  tools/policy/policy_lint.mjs:4431	tools/policy/policy_lint.mjs#27a8c53ee9	C5: sentence of 49 words > 40
+  tools/policy/policy_lint.mjs:4483	tools/policy/policy_lint.mjs#0ff26ad986	C5: sentence of 42 words > 40
+  tools/policy/policy_lint.mjs:4786	tools/policy/policy_lint.mjs#ddcc70ba9c	C5: sentence of 71 words > 40
+  tools/policy/policy_lint.mjs:4849	tools/policy/policy_lint.mjs#e03a51f9f6	C5: sentence of 103 words > 40
+  tools/policy/policy_lint.mjs:4887	tools/policy/policy_lint.mjs#e8b6a634b3	C5: sentence of 54 words > 40
+  tools/policy/policy_lint.mjs:4900	tools/policy/policy_lint.mjs#793c4f1bce	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:4906	tools/policy/policy_lint.mjs#3bc584e96b	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:4940	tools/policy/policy_lint.mjs#4d2b3ed705	C5: sentence of 52 words > 40
+  tools/policy/policy_lint.mjs:5111	tools/policy/policy_lint.mjs#10ca90f4e1	C5: sentence of 49 words > 40
+  tools/policy/policy_lint.mjs:5166	tools/policy/policy_lint.mjs#5d528a004c	C5: sentence of 55 words > 40
+  tools/policy/policy_lint.mjs:5196	tools/policy/policy_lint.mjs#5c08e12187	C5: sentence of 51 words > 40
+  tools/policy/policy_lint.mjs:5217	tools/policy/policy_lint.mjs#fa37b8e4f0	C5: sentence of 55 words > 40
+  tools/policy/policy_lint.mjs:5467	tools/policy/policy_lint.mjs#af15f5bd7f	C5: sentence of 53 words > 40
+  tools/policy/policy_lint.mjs:5547	tools/policy/policy_lint.mjs#966d9619fa	C5: sentence of 66 words > 40
+  tools/policy/policy_lint.mjs:5573	tools/policy/policy_lint.mjs#e788a0b32b	C5: sentence of 46 words > 40
+  tools/policy/policy_lint.mjs:5668	tools/policy/policy_lint.mjs#2887d46676	C5: sentence of 46 words > 40
+  tools/policy/policy_lint.mjs:5728	tools/policy/policy_lint.mjs#7c3ac0673a	C5: sentence of 81 words > 40
+  tools/policy/policy_lint.mjs:5792	tools/policy/policy_lint.mjs#c53f3a34eb	C5: sentence of 56 words > 40
+  tools/policy/policy_lint.mjs:5800	tools/policy/policy_lint.mjs#3da40ed867	C5: sentence of 62 words > 40
+  tools/policy/policy_lint.mjs:5830	tools/policy/policy_lint.mjs#dc9a450856	C5: sentence of 50 words > 40
+  tools/policy/policy_lint.mjs:5877	tools/policy/policy_lint.mjs#faf7b53526	C5: sentence of 52 words > 40
+  tools/policy/policy_lint.mjs:5889	tools/policy/policy_lint.mjs#b6d25bb078	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:5974	tools/policy/policy_lint.mjs#0f8f9cdc08	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:5984	tools/policy/policy_lint.mjs#a6b6bc63aa	C5: sentence of 44 words > 40
+  tools/policy/policy_lint.mjs:6037	tools/policy/policy_lint.mjs#ae7e47e904	C5: sentence of 73 words > 40
+  tools/policy/policy_lint.mjs:6089	tools/policy/policy_lint.mjs#4a31407e9f	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:6237	tools/policy/policy_lint.mjs#e6dacb62b0	C5: sentence of 55 words > 40
+  tools/policy/policy_lint.mjs:6259	tools/policy/policy_lint.mjs#ce3f874282	C5: sentence of 60 words > 40
+  tools/policy/policy_lint.mjs:6354	tools/policy/policy_lint.mjs#0f0137dd60	C5: sentence of 82 words > 40
+  tools/policy/policy_lint.mjs:6456	tools/policy/policy_lint.mjs#327e46a88c	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:6474	tools/policy/policy_lint.mjs#957dcdef47	C5: sentence of 51 words > 40
+  tools/policy/policy_lint.mjs:6514	tools/policy/policy_lint.mjs#cee7399c7c	C5: sentence of 52 words > 40
+  tools/policy/policy_lint.mjs:6576	tools/policy/policy_lint.mjs#e423d584ef	C5: sentence of 63 words > 40
+  tools/policy/policy_lint.mjs:6599	tools/policy/policy_lint.mjs#cc6933d92b	C5: sentence of 59 words > 40
+  tools/policy/policy_lint.mjs:6636	tools/policy/policy_lint.mjs#bc1b105225	C5: sentence of 94 words > 40
+  tools/policy/policy_lint.mjs:6700	tools/policy/policy_lint.mjs#2a82d086e1	C5: sentence of 51 words > 40
+  tools/policy/policy_lint.mjs:6719	tools/policy/policy_lint.mjs#2c31af97e9	C5: sentence of 45 words > 40
+  tools/policy/policy_lint.mjs:6804	tools/policy/policy_lint.mjs#5366ab27b0	C5: sentence of 42 words > 40
+  tools/policy/policy_lint.mjs:6809	tools/policy/policy_lint.mjs#0331f82121	C5: sentence of 44 words > 40
+  tools/policy/policy_lint.mjs:6845	tools/policy/policy_lint.mjs#6765a763bb	C5: sentence of 62 words > 40
+  tools/policy/policy_lint.mjs:6879	tools/policy/policy_lint.mjs#cf9f516606	C5: sentence of 46 words > 40
+  tools/policy/policy_lint.mjs:6915	tools/policy/policy_lint.mjs#d6c7c3caf9	C5: sentence of 62 words > 40
+  tools/policy/policy_lint.mjs:6978	tools/policy/policy_lint.mjs#a51bbecf71	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:7026	tools/policy/policy_lint.mjs#52c97c62e2	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:7056	tools/policy/policy_lint.mjs#412b3a7c1d	C5: sentence of 49 words > 40
+  tools/policy/policy_lint.mjs:7090	tools/policy/policy_lint.mjs#40998a717a	C5: sentence of 46 words > 40
+  tools/policy/policy_lint.mjs:7132	tools/policy/policy_lint.mjs#1570fe0491	C5: sentence of 42 words > 40
+  tools/policy/policy_lint.mjs:7171	tools/policy/policy_lint.mjs#e8996ccc48	C5: sentence of 67 words > 40
+  tools/policy/policy_lint.mjs:7292	tools/policy/policy_lint.mjs#6f1368fd12	C5: sentence of 53 words > 40
+  tools/policy/policy_lint.mjs:7342	tools/policy/policy_lint.mjs#d26eb71f65	C5: sentence of 71 words > 40
+  tools/policy/policy_lint.mjs:7355	tools/policy/policy_lint.mjs#3188de64be	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:7438	tools/policy/policy_lint.mjs#2ef1b6ce8c	C5: sentence of 52 words > 40
+  tools/policy/policy_lint.mjs:7438	tools/policy/policy_lint.mjs#2ef1b6ce8c	C2: unresolved path:tools/audit/preflight.sh
+  tools/policy/policy_lint.mjs:7467	tools/policy/policy_lint.mjs#eedbc76cf1	C5: sentence of 47 words > 40
+  tools/policy/policy_lint.mjs:7544	tools/policy/policy_lint.mjs#16cb1b60dc	C5: sentence of 51 words > 40
+  tools/policy/policy_lint.mjs:7573	tools/policy/policy_lint.mjs#170301ebe6	C5: sentence of 51 words > 40
+  tools/policy/policy_lint.mjs:7648	tools/policy/policy_lint.mjs#ce2c9f997a	C5: sentence of 53 words > 40
+  tools/policy/policy_lint.mjs:7700	tools/policy/policy_lint.mjs#b97af6a9c6	C5: sentence of 53 words > 40
+  tools/policy/policy_lint.mjs:7833	tools/policy/policy_lint.mjs#ba992cf84b	C5: sentence of 43 words > 40
+  tools/policy/policy_lint.mjs:7844	tools/policy/policy_lint.mjs#18860975dc	C5: sentence of 92 words > 40
+  tools/policy/policy_lint.mjs:7862	tools/policy/policy_lint.mjs#9a9a04e53d	C5: sentence of 63 words > 40
+  tools/policy/policy_lint.mjs:7896	tools/policy/policy_lint.mjs#f222b1b2f2	C5: sentence of 55 words > 40
+  tools/policy/policy_lint.mjs:7919	tools/policy/policy_lint.mjs#4d748fe756	C5: sentence of 45 words > 40
+  tools/policy/policy_lint.mjs:7939	tools/policy/policy_lint.mjs#6d7abaa68a	C5: sentence of 41 words > 40
+  tools/policy/policy_lint.mjs:7995	tools/policy/policy_lint.mjs#6b2e12f9aa	C5: sentence of 44 words > 40
+  tools/policy/policy_lint.mjs:8030	tools/policy/policy_lint.mjs#28efe24ac7	C5: sentence of 49 words > 40
+RESULT file=tools/policy/policy_lint.mjs units=463 unresolved_units=12 long_sentence_units=150
+RESULT units=463 count
+RESULT references=526 count
+RESULT units_with_unresolved_ref=12 count
+RESULT units_with_sentence_over_40_words=150 count
+RESULT units_naming_no_reference=234 count
+RESULT thread_factor=1.000
+RESULT load1=1.29
+RESULT swapins=0
+
+#STDERR
