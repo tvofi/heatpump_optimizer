@@ -1,0 +1,292 @@
+{
+ "roster": "handoff/audit-r10-roster at c7e683a6d469fd050096f284399308b087474a52, dev/programme/rosters/wave-r11-groups.json, group R11-INTAKE-R10-RESIDUE, 0-based carry index",
+ "carries": [
+  {
+   "carry": 0,
+   "verdict": "defer",
+   "into": "R11-CARRY-MERGE-TRAIN",
+   "reason": "instrument, under the freeze of card P11; the cancel path and the bounded pause are the merge train's seam",
+   "text": "From r10-ci-priority-pause, body item d76fe7a3: Carry 9 (item 7bd3e57f), name the process sending `@tvofi` cancels at live heads, then land P267's bounded pause"
+  },
+  {
+   "carry": 19,
+   "verdict": "defer",
+   "into": "R11-INTAKE-R10-RESIDUE",
+   "reason": "the control needs a recorded full price day, which the tree does not hold and no seat can fetch; round 12, D0's harness input",
+   "text": "Moved from R10-ADVISOR-STEADY-START carry 5 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that mo"
+  },
+  {
+   "carry": 27,
+   "verdict": "merge",
+   "into": "R11-CARRY-MERGE-TRAIN",
+   "reason": "same root as carry 0: enabling priority_cancel waits on that carry's after measure",
+   "text": "Moved from R10-ROUND-PLAYBOOK-FINAL carry 37 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that m"
+  },
+  {
+   "carry": 29,
+   "verdict": "defer",
+   "into": "R11-INTAKE-R10-RESIDUE",
+   "reason": "states the precondition a future settling-tail formula must meet and owes no change now; round 12, D2's input (boost.py is R11-SEAM-store's file, and that group's findings do not touch the tail)",
+   "text": "Moved from R10-ROUND-PLAYBOOK-FINAL carry 39 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that m"
+  },
+  {
+   "carry": 30,
+   "verdict": "defer",
+   "into": "R11-CARRY-PREDICT",
+   "reason": "instrument, under the freeze of card P11; prepr.sh, policy_lint.mjs and ci_predict are that group's files",
+   "text": "Moved from R10-ROUND-PLAYBOOK-FINAL carry 40 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that m"
+  },
+  {
+   "carry": 64,
+   "verdict": "defer",
+   "into": "R11-CARRY-LOOP-POLICY",
+   "reason": "an owner's choice between two barriers (root-cause record section 6), not a seat's build; round-end proposal triage",
+   "text": "From r10-closeout-prep-p2, body item 68d05f47: carry-201 entry 16 (file removed): the round-10 root-cause seat for R10-RCA-ORCH-CONTINUITY (class N-silent-stop,"
+  },
+  {
+   "carry": 69,
+   "verdict": "defer",
+   "into": "R11-CARRY-MERGE-TRAIN",
+   "reason": "instrument, under the freeze of card P11; a count owed by the seat holding the train logs",
+   "text": "From r10-closeout-prep-p2, body item c0f01fa0: carry-201 entry 23 (file removed): #3288 (R10-TRAIN-MERGE-LOOP-2) body item 23779576, carried to R10-TRAIN-REJOIN"
+  },
+  {
+   "carry": 71,
+   "verdict": "defer",
+   "into": "R11-CARRY-LOOP-POLICY",
+   "reason": "issue 3369 owes a keying change, a vocabulary ruling or a recorded refusal: root-cause.md's decision at round-end triage",
+   "text": "Issue 3369, the derived friction family `other (untaught) (family)`, over threshold in every window v7.1.8 to v7.1.13 (4-8 PRs). R10-RCA-OTHER-UNTAUGHT refused "
+  },
+  {
+   "carry": 91,
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "reason": "docs/img/ is that group's seam and it is not started; the re-take is owed by the host that recorded the figures, so its fixer raises it and does not re-record",
+   "text": "From #3563 (r10-user-text-verify-card), body item a0e752f6: `docs/img/card/advisor-*.png` show the old basis line and fuse step. This host's render of the merge"
+  },
+  {
+   "carry": 94,
+   "verdict": "dismiss",
+   "into": null,
+   "reason": "records a control that is built (the nightly faketime step) and a refusal already measured; it owes nothing",
+   "text": "From this pull request, body item bd035b96: The nightly Asia/Kolkata step runs under `faketime` on the other day type from the real day, with a weekday guard. T"
+  },
+  {
+   "carry": 110,
+   "verdict": "defer",
+   "into": "R11-INTAKE-R10-RESIDUE",
+   "reason": "a recount design (route (b) of a blocked question) across the coordinator's split, heat_energy and dhw_planner, with no finding in the round-11 register; round 12, D2's input",
+   "text": "From r10-sav-valuation-residue-p3, body item 5a1ba9c2: The one-channel recount (route (b) in the predecessor's BLOCKED question). On a combi store the three fig"
+  },
+  {
+   "carry": 118,
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "reason": "the owner's ruling of 2026-11-14 puts these test gaps in round 11; they are pins, with no shape to design, so they ride the fixer's brief and not the design",
+   "text": "From issue 2492 (R10-SAV-COMFORT), moved here by the owner ruling of 2026-11-14 (issue-closure card I3: the test gaps go to round 11). The fix review of pull re"
+  },
+  {
+   "carry": 124,
+   "verdict": "defer",
+   "into": "R11-CARRY-FIXER-CONTRACT",
+   "reason": "role-contract friction (designer.md: unenforced); round-end proposal triage",
+   "text": "From r10-cop-learner-draw-floor, body item cf9d2161: designer.md: unenforced: the approved note reuses `_fold_cop_evidence` for the replay and calls `release` f"
+  },
+  {
+   "carry": 128,
+   "verdict": "defer",
+   "into": "R11-CARRY-PREDICT",
+   "reason": "instrument, under the freeze of card P11; tools/policy linter seam (brief_lint.mjs joins that group's files)",
+   "text": "tools/policy/brief_lint.mjs `assertLegacyControl` reads a legacy carry as repaired when its controls lint clean, and a control whose only error is a stale path:"
+  },
+  {
+   "carry": 133,
+   "verdict": "defer",
+   "into": "R11-CARRY-PREDICT",
+   "reason": "instrument, under the freeze of card P11; brief_lint.mjs resolves no group id; same seam as carry 128",
+   "text": "From r10-playbook-round-start, body item cd649fef: brief-citations: unclear: a group id cited in the playbook (R11-PRE-OBJECTIVE-FUNCTION) is resolved by nothin"
+  },
+  {
+   "carry": 153,
+   "verdict": "defer",
+   "into": "R11-CARRY-FIXER-CONTRACT",
+   "reason": "fixer.md friction line whose own instance is answered; round-end proposal triage",
+   "text": "Moved from R11-OUTSIDE-HONEST-STARTS-RUNS carry 7 (0-based at roster 61c60707c1) before pull request 3602 merges, because the parent goes carries-open at that m"
+  },
+  {
+   "carry": 154,
+   "verdict": "defer",
+   "into": "R11-CARRY-LOOP-POLICY",
+   "reason": "design-review.md friction line whose own instance is answered; round-end proposal triage",
+   "text": "Moved from R11-OUTSIDE-HONEST-STARTS-RUNS carry 8 (0-based at roster 61c60707c1) before pull request 3602 merges, because the parent goes carries-open at that m"
+  },
+  {
+   "carry": 155,
+   "verdict": "defer",
+   "into": "R11-CARRY-LOOP-POLICY",
+   "reason": "finding-propagation.md friction line; round-end proposal triage",
+   "text": "Moved from R11-OUTSIDE-HONEST-STARTS-RUNS carry 9 (0-based at roster 61c60707c1) before pull request 3602 merges, because the parent goes carries-open at that m"
+  },
+  {
+   "carry": 156,
+   "verdict": "defer",
+   "into": "R11-CARRY-MACHINERY-CHECK",
+   "reason": "instrument, under the freeze of card P11; review_packet.py is that group's file",
+   "text": "From the fix review of pull request 3602 (R11-OUTSIDE-HONEST-STARTS-RUNS), rounds 2 and 3 (verdict.md on probe/rev-3602-2bc4850d at a372289a88 and on probe/rev-"
+  },
+  {
+   "carry": 157,
+   "verdict": "defer",
+   "into": "R11-CARRY-FIXER-CONTRACT",
+   "reason": "instrument, under the freeze of card P11; mutant_run.py is that group's file. It owes the in-round overlay now: a mutation proof run with `python3 -I` adds `-B` to its command, because `-I` drops PYTHONDONTWRITEBYTECODE and two equal-length mutants inside one second share a .pyc",
+   "text": "From r11-pre-round-metrics-p1, body item 5505fa43: `tools/audit/seat/mutant_run.py` judges a same-size mutant against the previous mutant's bytecode. It sets `P"
+  },
+  {
+   "carry": 159,
+   "verdict": "defer",
+   "into": "R11-CARRY-BEAT-RECORD",
+   "reason": "instrument, under the freeze of card P11; the record-autofix automerge path against the ruling of 2026-11-15",
+   "text": "From r11-pre-rulings-file, body item a9e0d119: tvofi's ruling of 2026-11-15 (card \"Hold delivery rows for the stamp too\", recorded in the rulings file (dev/prog"
+  },
+  {
+   "carry": 163,
+   "verdict": "defer",
+   "into": "R11-CARRY-TICK-OWED",
+   "reason": "instrument, under the freeze of card P11; two more parsers of the stamp owed_watch.fired owns",
+   "text": "From r11-pre-standing-scripts, body item 4427fe25: dev/programme/rosters/wave-r10-groups.json, group R11-INTAKE-R10-RESIDUE: `sweep_gantt.recent_fired` and `ver"
+  },
+  {
+   "carry": 165,
+   "verdict": "keep",
+   "into": "R11-SEAM-learners",
+   "reason": "the inferred defrost derate folds accuracy.delivered_ratio, that group's file, and learns 0.684 against a control of 1.000 on a pump that sets its own power; the group is not started and already follows R11-SEAM-plant-model, which owns defrost.py",
+   "text": "From r11-outside-self-setting-pump, body item 0116e1a6: Verdict item e98d0ab9: the defrost derate's inferred estimator (`coordinator._settle_defrost` with `accu"
+  },
+  {
+   "carry": 166,
+   "verdict": "defer",
+   "into": "R11-CARRY-PREDICT",
+   "reason": "instrument, under the freeze of card P11; prepr's cold-run reads",
+   "text": "From r10-gh-read-residue-p3, body item 53471b02: Cold-run bar of item 4: the per-commit reads of a first prepr run still grow with the branch's commits (520 ove"
+  },
+  {
+   "carry": 167,
+   "verdict": "merge",
+   "into": "R11-SEAM-learners",
+   "reason": "same finding as carry 165: it reports that the control carry 165 asks for now exists",
+   "text": "From #3662, body item dcd51e15: Fix review 1's finding on the defrost carry (item 0116e1a6 of R11-INTAKE-R10-RESIDUE): the control it asks for now exists at thi"
+  },
+  {
+   "carry": 168,
+   "verdict": "dismiss",
+   "into": null,
+   "reason": "overtaken: `python3 -I tools/audit/product_reads.py --self-test` exits 0 at main 8751943e17 (86 arms)",
+   "text": "From r11-pre-briefs-census-p2, body item e72411f5: `python3 -I tools/audit/product_reads.py --self-test` is red on `main`: it exits 1 at `54cb721164` (the merge"
+  },
+  {
+   "carry": 169,
+   "verdict": "keep",
+   "into": "R11-READS-RESIDUE",
+   "reason": "the population levels of both axes, a read objective.json records as owed; card E11-N-INTAKE-BUILDER",
+   "text": "From r11-pre-briefs-census-p2, body item c9cc8bee: `tools/audit/seat/plant_recall.py` `population` reads the text `--population` prints and takes a level only f"
+  },
+  {
+   "carry": 170,
+   "verdict": "keep",
+   "into": "R11-READS-RESIDUE",
+   "reason": "the committed operation seed ledger is refused by its own reader; card E11-N-INTAKE-BUILDER",
+   "text": "From #3698 (r11-hotfix-selftest-scopes), body item c3a1b4ef: Out of scope: the committed round-11 seed ledger `dev/audit/rounds/round11/product-reads/operation."
+  },
+  {
+   "carry": 171,
+   "verdict": "keep",
+   "into": "R11-OUTSIDE-HONEST-DHW-RUNS",
+   "reason": "runs.py is that group's seam; a later part of it, never its open pull request 3709",
+   "text": "From r11-outside-honest-starts-runs-p3, body item 88a92ec6: Carry 2 (item 1d1c10a9) and Carry 4 (item ad4f75a0), from part 2's body after this repair was dispat"
+  },
+  {
+   "carry": 172,
+   "verdict": "refuse",
+   "into": null,
+   "reason": "an orchestrator act (three live checks on a test fork with an App key), not a group's work; it goes to the orchestrator's own list in the handover",
+   "text": "From r11-outside-honest-starts-runs-p3, body item cf83cdac: Carry 3 (item 2e78177c), from part 2's body after this repair was dispatched, outside the clamped de"
+  },
+  {
+   "carry": 173,
+   "verdict": "defer",
+   "into": "R11-CARRY-LOOP-LEDGER",
+   "reason": "instrument, under the freeze of card P11; loop_ledger.gate_reds",
+   "text": "From #3696 (r11-pre-no-read-builders), body item a2d06372: Item d-toolchain-p2-column, re-written (it replaces the text of item 6889317b on R11-PRE-PARALLEL-PIP"
+  },
+  {
+   "carry": 174,
+   "verdict": "merge",
+   "into": "R11-CARRY-LOOP-LEDGER",
+   "reason": "a pointer to carry 173's four departures, which await the orchestrator's ruling",
+   "text": "From #3696 (r11-pre-no-read-builders), body item 8795b262: The four departures above await the orchestrator's ruling; lands in R11-INTAKE-R10-RESIDUE's row of t"
+  },
+  {
+   "carry": 175,
+   "verdict": "defer",
+   "into": "R11-CARRY-LOOP-LEDGER",
+   "reason": "instrument, under the freeze of card P11; a stated limit of the same instrument",
+   "text": "From #3696 (r11-pre-no-read-builders), body item 5fb56126: A limit of the design's rule, measured by reading `.github/workflows/ci.yml`'s triggers: a `pull_requ"
+  },
+  {
+   "carry": 176,
+   "verdict": "defer",
+   "into": "R11-INTAKE-R10-RESIDUE",
+   "reason": "86 cell-only declarations each owe a reason or a loader; tests/finite_boundary.py has no in-round owner whose design is still open; round 12, D3's input",
+   "text": "From #3714 (r11-outside-honest-metered-floor-p2), body item 8b287256: The 86 cell-only declarations recorded in `_A6_CELL_SPENT` cost other leaves through their"
+  },
+  {
+   "carry": 177,
+   "verdict": "defer",
+   "into": "R11-INTAKE-R10-RESIDUE",
+   "reason": "a decision the carry gives the orchestrator, cost measured first; optimizer.py's two groups have open pull requests (3736, 3738), so it does not join them; round 12, D0's input unless that decision lands sooner",
+   "text": "From r11-outside-honest-starts-runs-p3-p2, body item 00652efb: Carry 6 (item 2d9b0f43): the solve's published objective can sit above one descent arm alone. Mea"
+  },
+  {
+   "carry": 178,
+   "verdict": "merge",
+   "into": null,
+   "reason": "same three live checks as carry 172",
+   "text": "From r11-outside-honest-starts-runs-p3-p2, body item 06edb152: Carry 3 (item 2e78177c): three live checks on a test fork (update-branch identity, `app_approve` "
+  },
+  {
+   "carry": 179,
+   "verdict": "refuse",
+   "into": null,
+   "reason": "an orchestrator decision (how a merge result reaches pull request 3529), not a group's work; the orchestrator's own list",
+   "text": "From r11-outside-honest-starts-runs-p3-p2, body item cc644803: Pull request 3529: the merge result is on `handoff/r11-outside-honest-starts-runs-p3-3529` at 345"
+  },
+  {
+   "carry": 180,
+   "verdict": "defer",
+   "into": "R11-CARRY-LOOP-POLICY",
+   "reason": "finding-propagation.md friction line; round-end proposal triage",
+   "text": "From r11-outside-honest-starts-runs-p3-p2, body item 0ad646f0: finding-propagation.md: unclear: a dependency on a handed-off, unmerged predecessor (P2's mutants"
+  },
+  {
+   "carry": 181,
+   "verdict": "merge",
+   "into": "R11-INTAKE-R10-RESIDUE",
+   "reason": "measured residue of the same unbuilt part as carry 182",
+   "text": "From r11-outside-self-setting-pump-p2, body item 4a5e147b: Carry 7's measured residue: on a heat-led install with a COP error, the dither costs the house learne"
+  },
+  {
+   "carry": 182,
+   "verdict": "defer",
+   "into": "R11-INTAKE-R10-RESIDUE",
+   "reason": "the heat-ask dither and the closed-loop harness are a new design group by the orchestrator's ruling; its round and priority are the owner's, and this plan cuts no outside-contributor group",
+   "text": "From r11-outside-self-setting-pump-p2, body item c25b53cc: B2 (the heat-ask dither (c1) and the closed-loop planner harness) is not built. Under B1 the re-price"
+  },
+  {
+   "carry": 183,
+   "verdict": "defer",
+   "into": "R11-CARRY-TOOLCHAIN",
+   "reason": "instrument, under the freeze of card P11; replay_draws.py against gh 2.104; a round-end proposal",
+   "text": "From #3725, body item c94058b0: `tools/audit/seat/replay_draws.py fetch` fails every log download on gh 2.104 (\"the response contains terminal escape sequences\""
+  }
+ ]
+}
