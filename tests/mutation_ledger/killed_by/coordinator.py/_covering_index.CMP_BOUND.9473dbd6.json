@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_covering_index CMP_BOUND 9473dbd6",
-  "killed_by": "tests/features.py",
-  "old": "    if i < 0 or i + 1 < len(starts):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 0570b86e9351dfeda88d630093cfe4d442a6d664: CMP_BOUND (`if i <= 0 or i + 1 < len(starts):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3. Each of the 2 sites under this anchor was killed."
-}

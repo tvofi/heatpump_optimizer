@@ -4588,6 +4588,7 @@
    "dev/audit/harnesses/r11_advisor_measures.py",
    "dev/audit/harnesses/r11_denominator_planted.py",
    "dev/audit/harnesses/r11_honest_starts_runs.py",
+   "dev/audit/harnesses/r11_kernel_step_agree.py",
    "dev/audit/harnesses/r11_main_cancel_mutants.py",
    "dev/audit/harnesses/r11_owner_criteria.py",
    "dev/audit/harnesses/r11_plan_page_inventory.py",
