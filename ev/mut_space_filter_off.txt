@@ -1,0 +1,39 @@
+
+=== features block ===
+
+-- R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion
+  ok   a ten-minute run at one set-point is one row: started at its first pass, 7 steady minutes (3 to 9), its map inputs the first pass's, inlet mean and change and draw mean and spread over the steady minutes
+  ok   a run of five passes keeps two steady minutes and is a row; one of four keeps one and is none
+  ok   a forty-minute run closes at thirty minutes and the next pass opens a new run: steady minutes 27 and 7
+  FAIL a change of written set-point, level, origin or duty closes the run (the duty case keeps only its space-only run)  [{'written': [(29470080, 7), (29470090, 7)], 'level': [(29470080, 7), (29470090, 7)], 'origin': [(29470080, 7), (29470090, 7)], 'duty': [(29470080, 7), (29470090, 7)]}]
+  ok   a defrost pass, a draw at RUNNING_FLOOR_KW and an unread draw each close the run and join none: steady minutes 7 and 6 (minutes 0-9, 11-19)
+  ok   a second pass inside a minute (a listener's) weighs nothing
+  FAIL the fold commits the closed space-only runs and clears the rest; a frozen or distorted interval commits none  [[(29470080, 7, 35.0, 25.0, 45.0, 31.0, 2.0, 0.5, 4.0, 45.0, 30.0, 0.0, 4.0, 2.0, 0.0, 'plan', 'space'), (29470090, 7, 35.0, 25.0, 45.0, 31.0, 2.0, 0.5, 4.0, 45.0, 30.0, 0.0, 4.0, 2.0, 0.0, 'plan', 'both')] / []]
+  ok   the rows are capped at MAP_ROWS (672), oldest dropped
+  ok   the rows are stored as one comma-separated string per column, every column, and read back as the same rows
+  ok   with no rows the record keeps no map key, so a store that never held one is unchanged; a record stored before the rows reads empty, its window intact
+  ok   an unreadable or non-finite cell drops its row alone; columns of unequal length cannot be aligned and drop every row; a column that is not a string drops every row
+  ok   a number is stored to three decimals
+  ok   store.DOMAINS declares every column leaf, an empty one included (null: an undeclared column is reported, as its key and its value)
+  ok   a single row with unread cells stores empty column strings, which the domain admits
+  ok   an unread cell is a stored value: a single row with unread cells, a column unread in every row (no inlet sensor) and one row unread among read ones each read back as the same rows
+  ok   an unread start or steady minute is a bad cell and drops its row alone; a record of empty columns holds no row
+  ok   fold commits a closed space run as a row only when the interval is neither frozen nor distorted: frozen alone, distorted alone and both commit none and clear the closed runs (control: neither flag commits one)
+  ok   null: DrawRange.samples, engaged, ask_evidence, the floor, the learned floor and its count, the solve band's bottom and the stored window are identical with and without map rows, and the rows were kept
+  ok   pass_origin: the experiment's kind first (probe, fit, and fit with no kind); the baseline holds; a step that does not heat writes the gate; a boost's ceiling; the plan open-loop with no running loop; the loop's start hold until FEEDBACK_START_HOLD, then its moved target
+  ok   with the feedback option on the passes carry the loop's start hold and moved target; off, none does and the plan's open-loop write is the origin; the last pass is on the arbiter state, its written set-point the held one, and closed runs reached the coordinator's window
+  ok   the boost fact (_boosted): the global boost mode on a water set-point is live, outside it with no boost set it is not, and an indoor set-point is never boosted
+  ok   a fresh arbiter state holds no pass record
+  ok   no pass record where no flow set-point is held (nothing written yet)
+  ok   judge_floor: an experiment interval is draw_off_ask whatever its figures, with or without a per-cycle draw; a plan interval with no draw is judged on nothing and passes
+  ok   judge_floor: a plan interval drawing under the duty floor still reads duty_floor, and one drawing exactly the floor passes
+  ok   the coordinator hands its own running-draw window to the arbiter on every pass (ArbiterInputs.draw)
+  ok   the experiment's override action carries its kind
+  ok   the hot-water windows read the local hour: 13:30 is 13.5, inside 13:00-14:00, outside 14:00-15:00 and 0.5 h before it
+  ok   null: a run with an experiment interval leaves the sample count, the COP scale, the walking ratio, the hold, the envelope and the health baseline byte-identical to the same run with that interval frozen, and to the run without it; the first plan interval after it folds none of its draw
+  ok   the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the row before it admitted, takes no dither step inside it -- the scale in force is the probe's base and the dither holds no reading -- and from the next cycle to the run's end is byte-identical to the same run with that cycle frozen; null control, the same cycle under the plan steps the dither off its base
+  ok   an experiment interval drawing exactly its ask reads draw_off_ask and folds nothing; the same interval under the plan folds
+  ok   r13: on a heat-metered install an experiment interval is refused too, and the same interval under the plan folds its measured COP
+  ok   a heat counter span holding an experiment cycle folds no COP, that cycle reading draw_off_ask; the same span with none folds one
+
+2 of 33 FEATURES BLOCK FAILED

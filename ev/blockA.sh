@@ -1,0 +1,3 @@
+cd ${1:-/home/user/rev}
+PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --emit-prelude /tmp/claude-0/-home-user-heatpump-optimizer/7675495a-c938-5701-a905-651b1f17de24/scratchpad/prelude.py 'R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")' >/dev/null 2>&1 || echo PRELUDE-FAIL
+PYTHONPATH=tests/hastub timeout 900 python3 tools/audit/seat/features_block.py --prelude "exec(open('/tmp/claude-0/-home-user-heatpump-optimizer/7675495a-c938-5701-a905-651b1f17de24/scratchpad/prelude.py').read())" 'R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")' 2>&1

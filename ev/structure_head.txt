@@ -1,0 +1,8 @@
+  ok   max_class_loc 7875 <= 7875
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 14 <= 14
+  ok   methods_over_200 7 <= 7
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 413 <= 413
+
+STRUCTURE RATCHET PASSED

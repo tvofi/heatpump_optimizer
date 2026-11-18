@@ -1,0 +1,24 @@
+PRELUDE-FAIL
+
+=== features block ===
+
+-- R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion
+  ok   a ten-minute run at one set-point is one row: started at its first pass, 7 steady minutes (3 to 9), its map inputs the first pass's, inlet mean and change and draw mean and spread over the steady minutes
+  ok   a run of five passes keeps two steady minutes and is a row; one of four keeps one and is none
+  ok   a forty-minute run closes at thirty minutes and the next pass opens a new run: steady minutes 27 and 7
+  ok   a change of written set-point, level, origin or duty closes the run (the duty case keeps only its space-only run)
+  ok   a defrost pass, a draw at RUNNING_FLOOR_KW and an unread draw each close the run and join none: steady minutes 7 and 6 (minutes 0-9, 11-19)
+  ok   a second pass inside a minute (a listener's) weighs nothing
+  ok   the fold commits the closed space-only runs and clears the rest; a frozen or distorted interval commits none
+  ok   the rows are capped at MAP_ROWS (672), oldest dropped
+Traceback (most recent call last):
+  File "/home/user/rev/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/home/user/rev/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/home/user/rev/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 128, in <module>
+KeyError: 'map_rows'

@@ -1,0 +1,2 @@
+Architecture score: dS -0.0006 WORSENS (inadmissible: coord_footprint 2507->2508)
+  coord_footprint 2507 -> 2508  -0.0006

@@ -1,0 +1,20 @@
+MUTANT owed_scale_read_true: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT judge_floor_no_experiment: KILLED fails=0 last=6 of 33 FEATURES BLOCK FAILED
+MUTANT experiment_flag_false: KILLED fails=0 last=5 of 33 FEATURES BLOCK FAILED
+MUTANT keep_true: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT keep_not_distorted: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT keep_not_frozen: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT space_filter_off: KILLED fails=0 last=2 of 33 FEATURES BLOCK FAILED
+MUTANT defrost_not_stop: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT settle_zero: KILLED fails=0 last=5 of 33 FEATURES BLOCK FAILED
+MUTANT max_len_off: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT minute_dedupe_off: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT probe_kind_ignored: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT feedback_start_off: KILLED fails=0 last=2 of 33 FEATURES BLOCK FAILED
+MUTANT note_pass_removed: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT coord_draw_none: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT kind_absent: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT map_not_persisted: KILLED fails=0 last=KeyError: 'map_rows'
+MUTANT stored_map_ignored: KILLED fails=0 last=4 of 33 FEATURES BLOCK FAILED
+MUTANT nonfinite_accepted: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
+MUTANT unequal_cols_kept: KILLED fails=0 last=1 of 33 FEATURES BLOCK FAILED
