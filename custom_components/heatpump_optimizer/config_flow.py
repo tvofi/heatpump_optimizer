@@ -2436,6 +2436,18 @@ def _written_entity_collision(merged: Mapping[str, Any]) -> dict[str, str]:
     return {}
 
 
+def _uncapped_schedule_errors(saved: Mapping[str, Any], current: Mapping[str, Any]) -> dict[str, str]:
+    """A kept night-mode schedule whose power fraction in force is 1.0 caps
+    nothing (D17-s2-04); the pre-fill page shows the fraction beside it
+    (``_PREFILL_PAIRED``), so the refusal lands on that field."""
+    if not saved.get(CONF_SILENT_MODE_WINDOWS):
+        return {}
+    fraction = {**current, **saved}.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
+    if float(fraction) >= 1.0:
+        return {CONF_SILENT_MODE_FRACTION: "silent_mode_fraction_uncapped"}
+    return {}
+
+
 def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
     """The refusals of the pages the suggested keys live on, for this save.
 
@@ -2459,12 +2471,8 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
             problem = "silent_mode_window_too_short"
         if problem is not None:
             errors[key] = problem
-    # D17-s2-04: a kept schedule whose fraction in force is 1.0 caps nothing,
-    # and the page shows the fraction beside it (``_PREFILL_PAIRED``).
-    if saved.get(CONF_SILENT_MODE_WINDOWS) and CONF_SILENT_MODE_WINDOWS not in errors and float(
-        {**current, **saved}.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
-    ) >= 1.0:
-        errors[CONF_SILENT_MODE_FRACTION] = "silent_mode_fraction_uncapped"
+    if CONF_SILENT_MODE_WINDOWS not in errors:
+        errors.update(_uncapped_schedule_errors(saved, current))
     if {CONF_DHW_SETPOINT, CONF_DHW_MIN_TEMP} & saved.keys() and _dhw_min_too_close(
         saved, current
     ):
