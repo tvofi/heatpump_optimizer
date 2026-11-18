@@ -2490,7 +2490,7 @@
    "architect_note": "",
    "source": "programme",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "fix/r11-pre-product-reads-p2",
     "commit": "54cb7211642364d762ba47f42d5f7b8a5953f742",
     "last_step": null,
@@ -2503,7 +2503,7 @@
     "Seam ruling by the round-11 orchestrator, 2026-11-15, binding this group's design: the escapes record (found-by and owning dimension per escape, `none` a value) is built by R11-PRE-ROUND-METRICS, which already holds that obligation as its carries moved from the intake group's carries 174 and 176 by the round-end triage (triage: dev/programme/triage/r10-round-end.md#P744). This group does not build a second one: it builds the three product reads no other group owns (the same-information oracle harness behind regret, the actuator-write cell ledger behind operation, the generality cell ledger) and reads escapes and unowned through the round-metrics instrument. The design states the interface it needs from that instrument and returns any gap as a carry to R11-PRE-ROUND-METRICS, never as a parallel implementation. [dismissed: obsolete: a constraint on this group own design, honoured - part 2 68f945827495 adds regret_oracle.py and no escapes record; the escapes record stays R11-PRE-ROUND-METRICS carry 5]",
     "From r11-pre-product-reads, body item 6ceaaf5d: Part 2 of the approved plan: the regret oracle script under `tools/audit/` and its guide (design 3.4, the grid and the install-day record, with section 6's regret controls). Carry: R11-PRE-PRODUCT-READS (items 6ceaaf5d) [implemented: 68f945827495f5cc90da215d9203ad6bacaa4ff9]",
     "From r11-pre-product-reads, body item d65f4c4c: n8, measured above (`ATTRIBUTE_KEYS` holds no forecast): D15 step 9 asks a seat for `C_same` per install-day, which no bundle can give; part 2 prints it NO-READ with that reason, and the brief's wording is part 2's to align, its owning group being carries-open. Carry: R11-PRE-PRODUCT-READS (items d65f4c4c) [implemented: ea54142ba76444bd29dbb70ffb243c6590954c13]",
-    "From r11-pre-product-reads, body item 94f5e481: n11: `dev/audit/rounds/round10/objective/escapes_hand.tsv` is a hand-read escapes ledger with owner and ruling columns; the round-metrics instrument should read rows of that shape; routed as n6. Carry: R11-PRE-PRODUCT-READS (items 94f5e481)"
+    "From r11-pre-product-reads, body item 94f5e481: n11: `dev/audit/rounds/round10/objective/escapes_hand.tsv` is a hand-read escapes ledger with owner and ruling columns; the round-metrics instrument should read rows of that shape; routed as n6. Carry: R11-PRE-PRODUCT-READS (items 94f5e481) [moved: R11-CARRY-ROUND-METRICS]"
    ]
   },
   {
