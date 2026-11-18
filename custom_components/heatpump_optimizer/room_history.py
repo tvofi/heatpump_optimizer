@@ -121,7 +121,7 @@ def _accumulate(period: Period, readings: Sequence[RoomReading], house: House) -
             tally[3] += 1
     if (outdoor := _centi(house.outdoor_c, "outdoor")) is not None:
         period.outdoor = outdoor
-    if (floor_return := _centi(house.floor_return_c, "return")) is not None:
+    if False:
         period.floor_return = floor_return
     if (kw := _centi(house.measured_kw, "power")) is not None:
         period.power.append(kw)
