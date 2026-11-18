@@ -1,4 +1,4 @@
-== box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=2.93 at 2026-11-18T20:51:56Z
+== box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=2.94 at 2026-11-18T20:52:09Z
 == box-baseline.out
 2026-11-18T18:55:03Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=246.6s reach_ok=True
 2026-11-18T18:57:53Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=170.2s reach_ok=False
@@ -65,8 +65,10 @@ RESULT thread_factor=1.00
 2026-11-18T20:18:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:<module> CONST 17af2c12 L47 by=- ran=21 wall=1932.2s
 2026-11-18T20:27:10Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.clamp GUARD_OFF 55e7d0fb L270 by=tests/harness_headers.py ran=20 wall=4280.0s
 2026-11-18T20:27:11Z COMPLETE queued=3 from=c2
+2026-11-18T20:52:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:R10-C2 M31 L744 by=- ran=12 wall=1495.0s
 == box-part2-c2.out
 2026-11-18T20:27:11Z COMPLETE queued=3 from=c2
+2026-11-18T20:52:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:R10-C2 M31 L744 by=- ran=12 wall=1495.0s
 == box-part2-pre.out
 2026-11-18T19:15:51Z COMPLETE queued=4 from=pre
 2026-11-18T19:46:04Z COMPLETE KILLED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF 3dbd4039 L201 by=tests/features.py ran=14 wall=1814.0s
