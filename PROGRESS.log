@@ -20,3 +20,4 @@
 1795012438 HB alive
 1795012588 CKPT handoff pushed fe297f1b14, body f8847ffd12 snapshot 530571634d05
 1795012592 DONE returned: handoff/r11-seam-inputs-guards fe297f1b14, body pushed; prepr clean
+1795012608 CKPT handoff pushed fe297f1b14, body f8847ffd12; step-ref delete refused HTTP 403 snapshot 6b140d859f90
