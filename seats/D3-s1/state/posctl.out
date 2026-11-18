@@ -1,5 +1,0 @@
-2026-11-17T13:12:59Z RUN posctl queued=2 workers=1
-2026-11-17T13:13:21Z POSCTL KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=3 skip=4 wall=17.7s
-2026-11-17T13:13:37Z POSCTL KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=3 skip=4 wall=16.7s
-RESULT load1=131.26
-RESULT thread_factor=1.00
