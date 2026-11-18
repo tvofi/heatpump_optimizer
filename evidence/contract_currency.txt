@@ -1,0 +1,5 @@
+ dev/governance/roles/architect-planner.md |  5 ++++
+ dev/governance/roles/plan-review.md       |  7 ++++--
+ dev/governance/roles/proposal-triage.md   | 42 +++++++++++++++++--------------
+ dev/governance/roles/root-cause.md        | 29 ++++++++++-----------
+ 4 files changed, 46 insertions(+), 37 deletions(-)

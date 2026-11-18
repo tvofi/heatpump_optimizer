@@ -98,4 +98,7 @@ ok    mutant killed: required split (by 'reds: a red attempt's failed jobs')
 ok    mutant killed: found_by on main alone (by 'reds: found_by ci-main on a main row')
 ok    mutant killed: subject of a missing commit (by 'reds: git_subject reads')
 loop_ledger self-test: 0 failed
-rc=0
+
+real	0m13.442s
+user	0m8.966s
+sys	0m1.987s

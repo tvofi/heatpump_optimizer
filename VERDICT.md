@@ -1,23 +1,28 @@
 Fix review: merge 2a374610679c6e56bf3f75a158e60741827451ec
 
-bus-nonce: none supplied: this round's dispatch carried no nonce, so no probe/rev-3696-<nonce8> ref was pushed and the bus has not confirmed this verdict. Carry: dismissed: the orchestrator's relay owes the nonce, not this verdict
+bus-nonce: dbadd4bf531b1ae360b58f8e7a19ccd0
 
-Round 3, scope `delta` over the reviewed head af0616cbe8dbd95e9a0ccb1e8822949f579a7cba (tvofi 2026-11-09). Reviewed from a detached worktree at 2a374610679c6e56bf3f75a158e60741827451ec. The delta is 44a130aa4e, one authored commit on `tools/audit/seat/loop_ledger.py` (self-test and `MUTANTS` table only, no line of the read changes), and the merge 2a374610679c6e56bf3f75a158e60741827451ec of it onto af0616cbe8, whose tree equals 44a130aa4e's. No production (`custom_components/`) delta, so the scope is not widened. The mutant driver is the reviewer's own (`ev/mut_delta.py`, round 2's `mut.py` with each swap applied above `def _self_test_reds` only, because the new `MUTANTS` rows quote each needle). No finder harness is named.
+Round 3, scope `delta` over the reviewed head af0616cbe8dbd95e9a0ccb1e8822949f579a7cba (round 2: `Fix review: blocked`, review/3696 dd1cc7e774). Reviewed from a detached worktree at 2a374610679c6e56bf3f75a158e60741827451ec. `git diff af0616cbe8 2a374610679c` touches `tools/audit/seat/loop_ledger.py` alone, 29 added and 2 removed lines, all in `_self_test_reds` and the `MUTANTS` table; no line of the read changes and no `custom_components/` code is in the delta, so the scope is not widened (`ev/delta.diff`). The head is a merge of the code head 44a130aa4e onto af0616cbe8; it brings in nothing else. The contract read is current: `git diff <merge-base>...origin/main -- dev/governance/roles/` does not touch `fix-review.md` (`ev/contract_currency.txt`). No finder harness is named; the mutant driver is this seat's own (`ev/mut.py`).
 
 ## Previous verdict's block, at this head
 
-Resolved. The five survivors, each run through `python3 -I tools/audit/seat/loop_ledger.py --self-test --no-mutants`, against an unmutated control that ends `0 failed` (`ev/delta_mutants.txt`):
-- `event != pull_request` on the column's event test: KILLED, 2 failed (`NULL reds: a merge_group run ...`, `NULL reds: a workflow_dispatch run ...`).
-- product count reading the machinery verdict: KILLED, 1 failed (`reds: the summary counts a verdict red only where it reads red ...`).
-- product `!= GREEN`: KILLED, same check.
-- machinery `!= GREEN`: KILLED, same check.
-- unread count over `rows`: KILLED, 1 failed (`reds: the summary's unread column counts the reds read, never a run with no job listing`).
-Each has a `MUTANTS` row naming the killing check. The full self-test ends `loop_ledger self-test: 0 failed`, rc 0, 99 `ok` lines, 35 of them `mutant killed` (30 at af0616cbe8), no `FAIL` (`ev/loop_ledger_selftest_full.txt`).
+Item 1 (five surviving swaps): resolved. Each swap was applied to the code above `\nMUTANTS = {` only, since the table now quotes every needle. The unswapped copy ran first as the null control and ended `0 failed`. `python3 -I tools/audit/seat/loop_ledger.py --self-test --no-mutants` then failed under every swap (`ev/reviewer_mutants.txt`):
+
+- `event != pull_request`: KILLED, 2 failed (the merge_group and workflow_dispatch null checks);
+- `summary product counts machinery`: KILLED, 1 failed;
+- `summary product != GREEN`: KILLED, 1 failed;
+- `summary machinery != GREEN`: KILLED, 1 failed;
+- `unread count over rows`: KILLED, 1 failed (`reds: the summary's unread column counts the reds read ...`).
+
+Four more swaps on the same lines, added by this seat, were also killed: the event test excluding `merge_group` only (killed by the workflow_dispatch fixture), the event test excluding `workflow_dispatch` only (killed by the merge_group fixture), so each of the two new fixtures kills a swap the other does not; `on {len(reds)}`; and the machinery count reading the product verdict. `git status --short` in the worktree was empty after the run (`ev/worktree_status_after.txt`).
+
+Round 1's items stay resolved and were not reopened (delta scope).
 
 ## Evidence
 
-- CI: `merge_train.py classify 2a374610679c6e56bf3f75a158e60741827451ec --pr 3696` printed `GREEN 2a374610679c6e56bf3f75a158e60741827451ec pending: none red: none` (`ev/classify_last.txt`). No red is owed a `## Red checks` answer.
-- Merge: `git merge-tree --write-tree origin/main 2a374610679c6e56bf3f75a158e60741827451ec` exits 0 with origin/main at the SHA in `ev/merge_tree.txt`; no driver line on stderr.
-- The body's `## Head` names 2a374610679c6e56bf3f75a158e60741827451ec and 44a130aa4e as the code head. Its merge-tree sentence names origin/main at 99a4010e47, older than the main this review measured; both merge cleanly. Note: stale-body: merge-tree figure measured at an older origin/main. Carry: dismissed: paperwork at a clean merge, re-measured here
-- Head re-read via the pulls API before posting: 2a374610679c6e56bf3f75a158e60741827451ec (`ev/HEAD.txt`). The worktree was restored after the swaps (`git status --short` empty).
-- Not re-run in this delta round: the structure ratchet, `tests/entities.py`, archscore and the enumerator list in `## Unpinned sites`; the delta touches only self-test lines, and CI's heavy runs are cited instead.
+- Full self-test at the head: `python3 -I tools/audit/seat/loop_ledger.py --self-test` ends `loop_ledger self-test: 0 failed`, 99 `ok` lines, 35 of them `mutant killed`, no `FAIL` line. The five new `MUTANTS` rows each print `ok    mutant killed` (`ev/loop_ledger_selftest_full.txt`). These match the body's figures.
+- CI: `merge_train.py classify 2a374610679c6e56bf3f75a158e60741827451ec --pr 3696` printed `GREEN 2a374610679c6e56bf3f75a158e60741827451ec pending: none red: none`, rc 0 (`ev/classify.txt`).
+- Merge: `git merge-tree --write-tree origin/main 2a374610679c` exits 0 with origin/main at ae0ed64af8 (`ev/merge_tree.txt`).
+- Head re-read before posting: `pull/3696/head` and the API both report 2a374610679c6e56bf3f75a158e60741827451ec.
+
+Note: carry-audit: `carry_audit.py check` was not run. This seat got no `review-packet:`, and the body is not in the tree. The delta changes no carry line, and the `## Forward-carry` section is paperwork under C5.
