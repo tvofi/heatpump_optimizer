@@ -849,6 +849,13 @@ FOLLOW_BOUND_Z = 3.0
 #: The seed of ``ScaleDither.coin``: any fixed one. The coin has to be
 #: independent of the draw, not secret, and a fixed seed re-measures alike.
 DITHER_SEED = 3662
+#: How many probes in a row :meth:`ScaleProbe.reset` may end with no pair
+#: read before the next one parks on its first row (``ScaleProbe.voided``):
+#: a plan that re-prices its ask against the dithered scale spans the window
+#: by the dither's own step, the evidence turns obtainable and resets the
+#: probe, and the asks go flat again, without end (carry 6 of
+#: R11-OUTSIDE-SELF-SETTING-PUMP; BLOCKED.md departure B1).
+PROBE_VOID_CAP = 3
 
 #: Whether this install can measure its COP at all (#2262,
 #: R10-HOTFIX-COP-UNMEASURED; ``cop_observability``): only a heat reading over
@@ -913,14 +920,21 @@ class ScaleDither:
     the scale does, and a scale folded from the draw is the draw's own past,
     so no statistic on such rows tells a draw that follows from one that
     swings on its own (fix review 1 of #3662). Here the learner moves the
-    scale itself: intervals run in pairs, one at each of :meth:`levels`, in
-    an order ``coin`` draws per pair. A pair's contrast is the change of log
+    scale itself: rows come in pairs, one at each of :meth:`levels`, in an
+    order ``coin`` draws per pair. A pair's contrast is the change of log
     drawn between its rows over ``log FOLLOW_ASK_SPAN``, signed by the coin:
     1 for a draw that follows the heat ask, 0 on average for one that does
     not, whatever its own period, because the coin did not see it.
 
-    :meth:`step` hands out the scale each next interval runs under and
-    :meth:`take` takes the row that interval produced, one cycle later.
+    A slot is one row of a pair: (pair number, coin, second of its pair).
+    :meth:`step` hands out the slot each next interval runs under and
+    :meth:`take` takes the row that interval produced, one cycle later. The
+    step cannot wait for that row, so it hands out the slot after the one
+    running; where the running slot's row turns out not to have been read, the
+    step hands the missed slot out again and holds it until a row is read
+    under it (``holding``): a read cycle that admits no row stretches the pair
+    instead of voiding it (BLOCKED.md departure A, approved by the
+    orchestrator's ruling on handoff-wip/r11-outside-self-setting-pump-p2).
     """
 
     coin: random.Random = field(default_factory=lambda: random.Random(DITHER_SEED))
@@ -928,19 +942,32 @@ class ScaleDither:
     contrasts: list[float] = field(default_factory=list)
     #: Rows read since the last :meth:`clear`, in a pair or not.
     rows: int = 0
-    #: (coin, second of its pair) of the interval the next row reads, and of
-    #: the one running after it; None: an interval at the base scale.
-    reading: tuple[int, bool] | None = None
-    ahead: tuple[int, bool] | None = None
+    #: The pair in flight, (number, coin); None: none, the scale waits at the
+    #: base until a row is read.
+    pair: tuple[int, int] | None = None
     #: The pair's first row, awaiting its second.
     first: CopInterval | None = None
+    #: When the pair in flight was first handed out.
+    since: datetime | None = None
+    #: The coin of the pair after it, drawn once that pair's first slot is handed out ahead.
+    after: int | None = None
+    #: The slot of the interval the next row reads, and of the one running after it.
+    reading: tuple[int, int, bool] | None = None
+    ahead: tuple[int, int, bool] | None = None
+    #: ``ahead`` re-runs a slot whose row was not read: hand it out until one is.
+    holding: bool = False
     #: A row was read since the last :meth:`step`.
     admitted: bool = False
 
     def clear(self) -> None:
         """Forget every row and pair; the coin keeps its place."""
-        self.contrasts, self.rows, self.admitted = [], 0, False
-        self.reading = self.ahead = self.first = None
+        self.contrasts, self.rows = [], 0
+        self._void()
+
+    def _void(self) -> None:
+        """End the pair in flight: the scale waits at the base until a row is read."""
+        self.pair = self.first = self.since = self.after = self.reading = self.ahead = None
+        self.holding = self.admitted = False
 
     @staticmethod
     def levels(base: float) -> tuple[float, float]:
@@ -954,42 +981,77 @@ class ScaleDither:
             return base / FOLLOW_ASK_SPAN, base
         return base / half, base * half
 
-    def step(self, base: float, live: bool) -> float:
+    def _want(self) -> tuple[int, int, bool] | None:
+        """The slot the pair in flight still needs a row for."""
+        return None if self.pair is None else (*self.pair, self.first is not None)
+
+    def _next(self, slot: tuple[int, int, bool]) -> tuple[int, int, bool]:
+        """The slot after ``slot``: its pair's second, or the next pair's first."""
+        number, coin, second = slot
+        if not second:
+            return number, coin, True
+        if self.after is None:
+            self.after = self.coin.choice((-1, 1))
+        return number + 1, self.after, False
+
+    def step(self, base: float, read: bool, now: datetime) -> float:
         """The scale the next interval runs under.
 
-        ``live``: the last cycle's interval was read. Otherwise (a refused,
-        frozen or unread cycle) the pair in flight is void, not stretched,
-        and the scale waits at ``base`` until a row is read again.
+        ``read``: no frozen or unread cycle came since the last step;
+        otherwise the pair in flight is void and the scale waits at ``base``
+        until a row is read again. So it is once the pair has run past
+        ``COP_HOLD_HORIZON_S`` from its first row (from when it was handed
+        out, before one is read, or an unknowable age). Else the slot after
+        the one running, unless the running one is a slot handed out again
+        because its first run read no row: that one is held.
         """
-        if not live:
-            self.reading = self.ahead = self.first = None
+        admitted, self.admitted = self.admitted, False
+        started = self.since if self.first is None else self.first.at
+        if not read or (started is not None and not 0.0 <= utc_elapsed_seconds(now, started) <= COP_HOLD_HORIZON_S):
+            self._void()
             return base
-        self.reading = self.ahead
-        if self.ahead is not None and not self.ahead[1]:
-            self.ahead = (self.ahead[0], True)
+        if self.pair is None:
+            if not admitted:
+                return base
+            self.pair, self.since = (0, self.coin.choice((-1, 1))), now
+        want, running = self._want(), self.ahead
+        self.reading = running
+        if running == want:
+            self.ahead = want if self.holding else self._next(want)
         else:
-            self.ahead = (self.coin.choice((-1, 1)), False)
-        coin, second = self.ahead
+            self.holding = running is not None and running == self._next(want)
+            self.ahead = want
+        coin, second = self.ahead[1:]
+        if self.since is None:
+            self.since = now
         return self.levels(base)[(coin > 0) != second]
 
     def take(self, row: CopInterval) -> None:
         """Take the row of the interval :meth:`step` set up a cycle ago.
 
-        A pair's second row adds its contrast, unless the heat asks of the
-        two rows moved by less than ``FOLLOW_SLOPE_MIN`` of the step in the
-        coin's direction: a plan that re-priced its ask against the dithered
-        scale kept the heat ask flat, and there even a draw that follows
-        would read under the threshold. Such a pair is void.
+        Only a row read under the slot the pair still needs counts towards
+        it; any other (a slot handed out ahead of a row that was not read, or
+        a held slot's second run) is a row and nothing more. A pair's second
+        row adds its contrast, unless the heat asks of the two rows moved by
+        less than ``FOLLOW_SLOPE_MIN`` of the step in the coin's direction: a
+        plan that re-priced its ask against the dithered scale kept the heat
+        ask flat, and there even a draw that follows would read under the
+        threshold. Such a pair is void.
         """
         self.rows, self.admitted = self.rows + 1, True
-        if self.reading is None:
+        if self.reading is None or self.reading != self._want():
             return
-        coin, second = self.reading
-        first, self.first = self.first, None if second else row
-        if second and first is not None:
-            step = math.log(FOLLOW_ASK_SPAN)
-            if coin * math.log(first.heat_ask_kw / row.heat_ask_kw) >= FOLLOW_SLOPE_MIN * step:
-                self.contrasts.append(coin * math.log(first.drawn_kw / row.drawn_kw) / step)
+        number, coin, second = self.reading
+        self.holding = False
+        if not second:
+            self.first = row
+            return
+        first = self.first
+        self.pair, self.first, self.since = (number + 1, self.after if self.after is not None else self.coin.choice((-1, 1))), None, None
+        self.after = None
+        step = math.log(FOLLOW_ASK_SPAN)
+        if coin * math.log(first.heat_ask_kw / row.heat_ask_kw) >= FOLLOW_SLOPE_MIN * step:
+            self.contrasts.append(coin * math.log(first.drawn_kw / row.drawn_kw) / step)
 
     def verdict(self) -> str:
         """``ASK_FOLLOWS`` or ``ASK_IGNORED`` once ``MIN_SAMPLES`` rows stand
@@ -1040,6 +1102,9 @@ class ScaleProbe:
     owed: float | None = None
     #: When the probe stopped undecided; None while it runs.
     parked_at: datetime | None = None
+    #: Probes a reset ended with no pair read, in a row (:meth:`reset`): at
+    #: ``PROBE_VOID_CAP`` the next one parks on its first row. Not persisted.
+    voided: int = 0
     #: The scale :meth:`owed_scale` last returned (None: none it still holds),
     #: and whether it returned one this cycle.
     level: float | None = None
@@ -1070,6 +1135,8 @@ class ScaleProbe:
                 self.reseeded = self.restore_due = True
                 return ASK_PENDING
             self.base = float(row.cop_scale)
+            if self.voided >= PROBE_VOID_CAP:
+                self.parked_at = row.at
         if self.parked_at is not None:
             return ASK_PENDING
         self.dither.take(row)
@@ -1095,19 +1162,17 @@ class ScaleProbe:
         once (``owed``); nothing where no probe runs; ``base`` while the
         probe is parked, which re-arms once ``COP_HOLD_HORIZON_S`` has passed
         (or the wait is unknowable, ``parked_at`` ahead of ``now``); else the
-        next dither level (``ScaleDither.step``), which is ``base`` unless the
-        last cycle's interval was admitted (``read``: no frozen or unread
+        next dither level (``ScaleDither.step``; ``read``: no frozen or unread
         cycle came since). A scale already in force is not returned again
         (``level``); ``moved`` says one was.
         """
-        live = self.dither.admitted and read
-        self.dither.admitted = False
-        want = self._owed(configured, now, live)
+        want = self._owed(configured, now, read)
+        self.dither.admitted = False  # read by the step alone, and only this cycle
         self.moved = want is not None and want != self.level
         self.level = want
         return want if self.moved else None
 
-    def _owed(self, configured: Callable[[], float], now: datetime, live: bool) -> float | None:
+    def _owed(self, configured: Callable[[], float], now: datetime, read: bool) -> float | None:
         """:meth:`owed_scale`'s rule: the scale the probe wants in force, or None."""
         if self.restore_due:
             self.restore_due, self.owed, self.level = False, None, None
@@ -1123,13 +1188,16 @@ class ScaleProbe:
         if self.parked_at is not None:
             if 0.0 <= utc_elapsed_seconds(now, self.parked_at) <= COP_HOLD_HORIZON_S:
                 return self.base
-            self.parked_at = None
-        return self.dither.step(self.base, live)
+            self.parked_at, self.voided = None, 0
+        return self.dither.step(self.base, read, now)
 
     def reset(self, measured_heat: bool) -> None:
         """The window's evidence, or measured heat, governs again: the verdict
         and the experiment clear, and a running probe's ``base`` falls owed.
-        A due restore survives it, but not measured heat, whose folds are no ratio's."""
+        A due restore survives it, but not measured heat, whose folds are no ratio's.
+        A running probe that read no pair counts towards ``PROBE_VOID_CAP``; one that read a pair clears the count."""
+        if self.base is not None and self.parked_at is None:
+            self.voided = 0 if self.dither.contrasts else self.voided + 1
         self.owed = self.base if self.owed is None else self.owed
         self.base = self.parked_at = None
         self.dither.clear()
