@@ -495,3 +495,4 @@
 2026-11-18T17:25:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps CMP_BOUND 9384ba6e L5229 by=- ran=14 wall=1473.6s
 2026-11-18T17:43:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 051a1593 L1343 by=- ran=12 wall=1260.5s
 2026-11-18T17:45:32Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planning_prices CMP_BOUND 6e5e1a9f L470 by=- ran=16 wall=1340.9s
+2026-11-18T17:47:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._expand_off_blocks CMP_BOUND 32915bf0 L5271 by=- ran=13 wall=1344.8s
