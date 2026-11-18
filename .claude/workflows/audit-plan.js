@@ -45,6 +45,17 @@ const planRef = `plan/r${round}`
 const worktree = `${repo}/../audit-r${round}-plan`
 if (!repo) throw new Error('args.repo is required')
 if (!fork || !/^[0-9a-f]{7,40}$/.test(String(fork))) throw new Error('args.fork is required: the round\'s fork SHA')
+// The base (tools/audit/seat/base_fresh.py; dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md). The run's first
+// seat judges the tree its seats read policy, instruments and workflow scripts from, and one that is not
+// origin/main's refuses the launch. A reply without the field is one its schema refuses in a run; under a
+// driver whose stub predates the field it is unmeasured, never read as a pass by the checker that pins this.
+const BASE_FRESH = (dir) => `Before anything else, run \`python3 -I ${repo}/tools/audit/seat/base_fresh.py tree --dir ${dir}\` and return the last line it prints, verbatim, as base_fresh. If that line does not start with "BASE-FRESH PASS", do nothing else: return base_fresh, and every other field as the empty value of its type.`
+const baseGate = (reply, dir) => {
+  if (reply?.base_fresh !== undefined && !String(reply.base_fresh).startsWith('BASE-FRESH PASS')) throw new Error(`base_fresh.py refuses ${dir}: ${reply.base_fresh} -- its policy, instruments or workflows are not origin/main's. Run python3 -I tools/audit/seat/base_fresh.py ensure --dir ${dir} (a checkout that carries no work), or merge origin/main into its branch, then relaunch so the run loads main's script`)
+}
+// Model routing is a launch argument: args.models maps a seat's label to a model, args.model routes every
+// seat, and a call's own model is the default. No copy of this file is edited to change one.
+const ask = (prompt, opts = {}) => { const m = args?.models?.[opts.label] ?? args?.model ?? opts.model; return agent(prompt, m ? { ...opts, model: m } : opts) }
 
 // A workflow script imports nothing, so a collection read off a reply is
 // parsed when it came back as JSON text and refused when it is not the
@@ -60,17 +71,18 @@ const replyField = (v, kind, what) => {
 }
 
 phase('Read the draft')
-const draftRead = await agent(
-  `In ${repo}, work in a fresh worktree off ${branch}: git worktree add --force ${worktree} ${branch} (if it already exists, reuse it and reset it to origin/${branch}). Read dev/governance/roles/architect-planner.md, dev/governance/roles/plan-review.md, dev/audit/README.md and the D7 brief dev/governance/dimensions/D7.md there.
+const draftRead = await ask(
+  `In ${repo}, work in a fresh worktree off ${branch}: git worktree add --force ${worktree} ${branch} (if it already exists, reuse it and reset it to origin/${branch}). ${BASE_FRESH(worktree)} That worktree is the tree this stage's seats read architect-planner.md, plan-review.md, plan_audit.py and this script's contracts from: a round branch cut before main moved them plans against superseded contracts. Read dev/governance/roles/architect-planner.md, dev/governance/roles/plan-review.md, dev/audit/README.md and the D7 brief dev/governance/dimensions/D7.md there.
 Read the class-grouped draft roster ${draft} and the verified register (dev/audit/rounds/round${round}/JUDGE.json and ISSUES.json, or the register section dev/programme/register/). This draft roster is P2's output and is NOT the round's roster: it is your input.
 Measure the fork ${fork} once into the plan's evidence: run
   python3 tools/audit/seat/plan_audit.py snapshot --ref ${fork} --instrument ${fork} --out ${planDir}/holdouts/fork.json
 (it takes minutes; run it detached with tools/audit/seat/daemonize.py and wait on its exit, then read the file). It records the fork's score vector and gate-only tripwires, structure budgets, behaviour inventory, mutation kill rate and change coupling -- the holdouts the plan must not regress.
 If dev/audit/rounds/round${round - 1}/PLAN/PLAN.json carries an \`objective\` block, settle it (decision 0018): python3 tools/audit/seat/plan_audit.py settle --plan dev/audit/rounds/round${round - 1}/PLAN/PLAN.json --record dev/audit/yardstick/round${round - 1}/OBJECTIVE.json --json ${planDir}/PREVIOUS-SETTLEMENT.json, and return that path as previous_settlement (null when there is no such block: a first plan).
-Return JSON {draft_path, groups: [{group, issues, fixes, findings, severity, files, after, architect_note}], findings: [{id, dimension, severity, title, class, seam}], holdouts_path, previous_settlement}. Refuse, by returning an empty groups array, if the draft roster is absent or carries no group: audit-verify must run first.`,
-  { label: 'plan/read', schema: { type: 'object', required: ['groups', 'findings'], properties: { groups: { type: 'array', items: { type: 'object' } }, findings: { type: 'array', items: { type: 'object' } }, holdouts_path: { type: 'string' } } } },
+Return JSON {base_fresh, draft_path, groups: [{group, issues, fixes, findings, severity, files, after, architect_note}], findings: [{id, dimension, severity, title, class, seam}], holdouts_path, previous_settlement}. Refuse, by returning an empty groups array, if the draft roster is absent or carries no group: audit-verify must run first.`,
+  { label: 'plan/read', schema: { type: 'object', required: ['base_fresh', 'groups', 'findings'], properties: { base_fresh: { type: 'string' }, groups: { type: 'array', items: { type: 'object' } }, findings: { type: 'array', items: { type: 'object' } }, holdouts_path: { type: 'string' } } } },
 )
 if (!draftRead) throw new Error('the draft read failed (agent returned null); relaunch')
+baseGate(draftRead, `${worktree} (${branch})`)
 const groups = replyField(draftRead.groups, 'array', 'plan/read: groups')
 const findings = replyField(draftRead.findings, 'array', 'plan/read: findings')
 for (const g of groups) if (!g || typeof g.group !== 'string' || !g.group) throw new Error('plan/read: a draft group has no `group` id')
@@ -78,7 +90,7 @@ if (!groups.length) throw new Error(`the draft roster ${draft} is empty or absen
 log(`draft roster: ${groups.length} class group(s), ${findings.length} verified finding(s), fork holdouts ${draftRead.holdouts_path ?? '(unreported)'}`)
 
 phase('Plan the architecture')
-const architecture = await agent(
+const architecture = await ask(
   `You are the architect/planner of audit round ${round}, in ${worktree} (from ${repo}). Read dev/governance/roles/architect-planner.md and follow it in full; this call is steps 1-4 (component view at the fork ${fork}, quality scenarios, triage, groups by owning seam), the next call is steps 5-9.
 The draft roster (P2's, never dispatched): ${JSON.stringify(groups)}. The verified findings: ${JSON.stringify(findings)}. The fork's measurements, including the score vector the target is read against: ${planDir}/holdouts/fork.json.
 Triage EVERY verified finding exactly once as keep, merge (same root at one seam, name the canonical id), defer (to which round and why) or refuse (back to the judge, with the reason). Group by owning seam, not by file or class: each group carries its findings, size, seam, hot files and an architect note, and its edges come from the prerequisite graph, never file order.
@@ -93,7 +105,7 @@ if (dropped.length) throw new Error(`the triage dropped ${dropped.length} verifi
 const dupes = [...new Set(triage.map((t) => t.id).filter((id, i, all) => all.indexOf(id) !== i))]
 if (dupes.length) throw new Error(`the triage names ${dupes.length} finding(s) more than once (${dupes.slice(0, 8).join(', ')}); each is kept, merged, deferred or refused exactly once`)
 
-const moves = await agent(
+const moves = await ask(
   `You are the architect/planner of audit round ${round}, continuing in ${worktree} after your triage ${JSON.stringify(triage)}: architect-planner.md steps 5-9 (ADRs, the moves to the programme target, fitness functions, the roster, the risks).
 Target: score.py --diff ${fork} <the round's stamp> reads dS >= ${targetDs} with the counters on, admissible end to end, at least three scored classes improving, and no metric supplying more than 40% of the dS. Plan findings first; where they fall short add refactor groups with no finding, each carrying its evidence and the scenario it serves. Every move names its metric(s), predicted dS per metric, its ADR and its fitness functions (structure budgets, gate-only tripwires, the behaviour inventory, mutation kill rate, change coupling, and any counter its metric can be gamed through). Never plan a move that deletes behaviour, renames or splits to dodge a counter, or edits the scorer.
 EVERY group gets one move entry, including a finding group expected to be score-neutral ("metrics: {}, dS: 0"): the stamp's move ledger reconciles each merged PR's own Architecture score block against this plan, and a group with no entry reads as a dS no move explains.
@@ -117,7 +129,7 @@ const planJson = {
   risks: moves.risks ?? [], holdouts: draftRead.holdouts_path ?? null,
   objective: moves.objective,
 }
-const writePlan = await agent(
+const writePlan = await ask(
   `In ${worktree}, write ${planDir}/PLAN.json with exactly this content (it is the plan the move ledger reads at the stamp):\n${JSON.stringify(planJson, null, 1)}\nThen set objective.pin in that file to {roster_path: "${draft}", roster_blob: <git hash-object ${draft}, after you write it>, start: <now, to the minute, as YYYY-MM-DDTHH:MM:00Z>, durations_blob: <git rev-parse HEAD:tools/plan/durations.json>}.
 Also write the round's roster draft to ${draft} in the form audit-verify writes it (one entry per group, with its issues, findings, severity, files, after, size and architect note; resume.stage "planned", resume.branch "handoff/R${round}-<topic>" per group). Run node tools/policy/brief_lint.mjs and return its exit code and error lines, not the summary.`,
   { label: 'plan/write', phase: 'Plan the architecture', schema: { type: 'object', required: ['brief_lint_rc'], properties: { brief_lint_rc: { type: 'integer' } } } },
@@ -126,7 +138,7 @@ if (!writePlan) throw new Error('the plan write failed (agent returned null); re
 if (writePlan.brief_lint_rc !== 0) throw new Error(`the roster draft fails brief_lint (rc=${writePlan.brief_lint_rc}); fix it before review`)
 
 phase('Publish the plan')
-const publish = await agent(
+const publish = await ask(
   `In ${worktree}, commit ${planDir}/ and ${draft} with the subject "audit round ${round}: P3 plan" (no footer, no session link). Before any push, run the objective check at that commit (decision 0018): python3 tools/audit/seat/plan_audit.py objective-check --ref <the commit> --plan ${planDir}/PLAN.json --register dev/audit/rounds/round${round}/JUDGE.json${draftRead.previous_settlement ? ` --previous ${draftRead.previous_settlement}` : ''} --write, commit the ${planDir}/PROJECTION.json it writes, and run the same command without --write at the new commit. A non-zero exit is returned with its FAIL lines and nothing is pushed. Then publish that commit as the constant ref ${planRef}: run tools/audit/seat/ref_privacy.py guard --ref ${planRef} first, then git push origin HEAD:refs/heads/${planRef} and read back origin's tip. A refused or failed push is returned, never forced. Do not open a pull request.
 Return JSON {sha: <the published commit, 40 hex>, objective_rc: <the last objective-check exit code>, objective_fails: [<its FAIL lines>], pushed: <bool>, readback: <string>, command: <the exact command line the orchestrator runs if pushed is false>}.`,
   { label: 'plan/publish', phase: 'Publish the plan', schema: { type: 'object', required: ['sha', 'objective_rc'], properties: { sha: { type: 'string' }, objective_rc: { type: 'integer' }, objective_fails: { type: 'array', items: { type: 'string' } }, pushed: { type: 'boolean' }, readback: { type: 'string' }, command: { type: 'string' } } } },
@@ -147,7 +159,7 @@ const reviewed = (v, sha, n) => {
   if (String(v.sha) !== sha) throw new Error(`plan/review-${n} answered for ${JSON.stringify(v.sha)}, the plan ref is at ${sha}; a review of another tree is not this plan's verdict`)
   return v
 }
-const review = (n, sha) => agent(
+const review = (n, sha) => ask(
   `You are the architecture-plan reviewer of audit round ${round}, never the architect. In ${repo}, read the plan as published: git fetch origin ${planRef} then git worktree add --force ${repo}/../audit-r${round}-review-${n} FETCH_HEAD (reuse and reset it if it exists). The plan is that tree -- ${planDir}/PLAN.json, PLAN.md and the ADRs -- at ${planRef} = ${sha}. Read dev/governance/roles/plan-review.md and attack the plan at that tree, one line per point:
 1. recount the triage (every verified finding once, with a reason);
 2. attack the three largest groups and the three on the critical chain (is the owning seam real in the code? is any edge a file order edge?);
@@ -162,7 +174,7 @@ let verdict = reviewed(await review(1, planSha), planSha, 1)
 let revisions = 0
 while (verdict.verdict === 'revise' && revisions < 2) {
   revisions += 1
-  const revised = await agent(
+  const revised = await ask(
     `You are the architect/planner of audit round ${round}, in ${worktree}. The plan reviewer returned revise at ${planSha} with these points: ${JSON.stringify(verdict.points)}. Address each one in ${planDir}/ (the ADRs and PLAN.md; update PLAN.json's moves, objective block and projected dS if a prediction changes), re-run the roster's brief_lint, then commit with the subject "audit round ${round}: P3 plan revision ${revisions}", re-run objective-check --write at that commit as the publish step did, commit PROJECTION.json, and only once the check without --write passes at the new commit push it as the constant ref ${planRef} after tools/audit/seat/ref_privacy.py guard --ref ${planRef}, with git push origin HEAD:refs/heads/${planRef}; read back the ref's tip. Do not argue a point away without a measurement: the reviewer's next pass reads the plan, not your reply. Return JSON {sha: <the pushed commit, 40 hex>, addressed: [string]}.`,
     { label: `plan/revise-${revisions}`, phase: 'Plan review', schema: { type: 'object', required: ['sha', 'addressed'], properties: { sha: { type: 'string' }, addressed: { type: 'array', items: { type: 'string' } } } } },
   )
@@ -175,7 +187,7 @@ const ownerDecision = verdict.verdict !== 'approve'
 if (ownerDecision) log(`plan review did not approve after ${revisions} revision(s): the open points go to the owner, never to a third round: ${JSON.stringify(verdict.points)}`)
 
 phase('Record the verdict')
-const handoff = await agent(
+const handoff = await ask(
   `Record the P3 verdict of audit round ${round} in ${worktree}. The reviewer's last verdict is ${JSON.stringify(verdict)} at ${planSha}${ownerDecision ? ' and it is NOT an approval: the owner decides with these open points, so say so in the file and the commit body' : ''}.
 Write ${planDir}/REVIEW.md whose first line is exactly "Plan review: ${verdict.verdict} ${planSha}", followed by every point. Commit it with the subject "audit round ${round}: P3 plan verdict" (no footer, no session link) and push it as the constant ref ${planRef}: run tools/audit/seat/ref_privacy.py guard --ref ${planRef} first, then git push origin HEAD:refs/heads/${planRef} and read back the ref's tip. A refused or failed push is returned, never forced. Do not open a pull request.
 Return JSON {ref: "${planRef}", sha: <the pushed verdict commit, 40 hex>, reviewed: "${planSha}", pushed: <bool>, readback: <string>, command: <the exact command line the orchestrator runs if pushed is false>}.`,

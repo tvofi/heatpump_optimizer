@@ -143,8 +143,19 @@ reason: <its message>}. Return {stamped: true, version, tag_sha}.`
 
 const { issues = [], repo, session = 'claude-web' } = args ?? {}
 if (!issues.length || !repo) throw new Error('args.issues and args.repo are required')
+// The base (tools/audit/seat/base_fresh.py; dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md). The run's first
+// seat judges the tree its seats read policy, instruments and workflow scripts from, and one that is not
+// origin/main's refuses the launch. A reply without the field is one its schema refuses in a run; under a
+// driver whose stub predates the field it is unmeasured, never read as a pass by the checker that pins this.
+const BASE_FRESH = (dir) => `Before anything else, run \`python3 -I ${repo}/tools/audit/seat/base_fresh.py tree --dir ${dir}\` and return the last line it prints, verbatim, as base_fresh. If that line does not start with "BASE-FRESH PASS", do nothing else: return base_fresh, and every other field as the empty value of its type.`
+const baseGate = (reply, dir) => {
+  if (reply?.base_fresh !== undefined && !String(reply.base_fresh).startsWith('BASE-FRESH PASS')) throw new Error(`base_fresh.py refuses ${dir}: ${reply.base_fresh} -- its policy, instruments or workflows are not origin/main's. Run python3 -I tools/audit/seat/base_fresh.py ensure --dir ${dir} (a checkout that carries no work), or merge origin/main into its branch, then relaunch so the run loads main's script`)
+}
+// Model routing is a launch argument: args.models maps a seat's label to a model, args.model routes every
+// seat, and a call's own model is the default. No copy of this file is edited to change one.
+const ask = (prompt, opts = {}) => { const m = args?.models?.[opts.label] ?? args?.model ?? opts.model; return agent(prompt, m ? { ...opts, model: m } : opts) }
 
-const judgePrompt = (it) => `You are the judge for issue #${it.issue} of the open-issues program, working from dev/governance/roles/judge.md. You do not trust the finder or the verifiers; you re-measure. ${GH_READ} ${GH_WRITE} ${WT_REVIEW('triage-' + it.issue, 'origin/main')}
+const judgePrompt = (it) => `${BASE_FRESH(repo)} Return base_fresh beside the fields below. You are the judge for issue #${it.issue} of the open-issues program, working from dev/governance/roles/judge.md. You do not trust the finder or the verifiers; you re-measure. ${GH_READ} ${GH_WRITE} ${WT_REVIEW('triage-' + it.issue, 'origin/main')}
 Read the issue body AND every comment: the comments carry judge verdicts, corrections and claims that override the body.
 What the plan of record expects, which you may confirm or overturn with a number: ${it.expect}
 ${it.extra ?? ''}
@@ -158,20 +169,21 @@ Never start coding a fix. Return {issue, verdict, action, headline, brief}, wher
 phase('Judge')
 const loud = issues.filter((i) => !i.quiet)
 const quiet = issues.filter((i) => i.quiet)
-const SCHEMA = { type: 'object', required: ['issue', 'verdict', 'action'] }
+const SCHEMA = { type: 'object', required: ['base_fresh', 'issue', 'verdict', 'action'] }
 
 const loudVerdicts = await parallel(loud.map((it) => () =>
-  agent(judgePrompt(it), { model: 'opus', effort: 'high', label: `judge #${it.issue}`, phase: 'Judge', schema: SCHEMA })))
+  ask(judgePrompt(it), { model: 'opus', effort: 'high', label: `judge #${it.issue}`, phase: 'Judge', schema: SCHEMA })))
 
 // The quiet ones run one at a time, after the others are done, so nothing
 // else is on the box while a timing number is taken.
 const quietVerdicts = []
 for (const it of quiet) {
-  quietVerdicts.push(await agent(
+  quietVerdicts.push(await ask(
     `${judgePrompt(it)}\nYou have the box to yourself for this measurement. Before every timing RESULT, run ps aux | grep -E "[s]tress\\.py|[t]ests/run\\.sh|[p]ython3 tests/" and print the concurrent-process count beside the number; if anything else is running, wait rather than measuring.`,
     { model: 'opus', effort: 'high', label: `judge #${it.issue} (quiet)`, phase: 'Judge', schema: SCHEMA }))
 }
 
 const verdicts = [...loudVerdicts, ...quietVerdicts].filter(Boolean)
+for (const v of verdicts) baseGate(v, repo)
 log(`triage: ${verdicts.filter((v) => v.action === 'closed').length} closed, ${verdicts.filter((v) => v.action === 'rescoped').length} re-scoped, ${issues.length - verdicts.length} returned null`)
 return { verdicts, missing: issues.map((i) => i.issue).filter((n) => !verdicts.some((v) => Number(v.issue) === Number(n))) }

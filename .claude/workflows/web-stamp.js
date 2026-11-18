@@ -137,6 +137,17 @@ reason: <its message>}. Return {stamped: true, version, tag_sha}.`
 
 const { repo, bump = 'patch', title, wave, session = 'claude-web', merged = [] } = args ?? {}
 if (!repo || !title) throw new Error('args.repo and args.title are required')
+// The base (tools/audit/seat/base_fresh.py; dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md). The run's first
+// seat judges the tree its seats read policy, instruments and workflow scripts from, and one that is not
+// origin/main's refuses the launch. A reply without the field is one its schema refuses in a run; under a
+// driver whose stub predates the field it is unmeasured, never read as a pass by the checker that pins this.
+const BASE_FRESH = (dir) => `Before anything else, run \`python3 -I ${repo}/tools/audit/seat/base_fresh.py tree --dir ${dir}\` and return the last line it prints, verbatim, as base_fresh. If that line does not start with "BASE-FRESH PASS", do nothing else: return base_fresh, and every other field as the empty value of its type.`
+const baseGate = (reply, dir) => {
+  if (reply?.base_fresh !== undefined && !String(reply.base_fresh).startsWith('BASE-FRESH PASS')) throw new Error(`base_fresh.py refuses ${dir}: ${reply.base_fresh} -- its policy, instruments or workflows are not origin/main's. Run python3 -I tools/audit/seat/base_fresh.py ensure --dir ${dir} (a checkout that carries no work), or merge origin/main into its branch, then relaunch so the run loads main's script`)
+}
+// Model routing is a launch argument: args.models maps a seat's label to a model, args.model routes every
+// seat, and a call's own model is the default. No copy of this file is edited to change one.
+const ask = (prompt, opts = {}) => { const m = args?.models?.[opts.label] ?? args?.model ?? opts.model; return agent(prompt, m ? { ...opts, model: m } : opts) }
 
 // Carry 15 (record PRs ride the stamp): a pull request whose every changed path
 // is a record is HELD-FOR-STAMP by merge_train's queue, add and sweep. This step,
@@ -156,16 +167,17 @@ is 0, handed: <n>, reason: <train.log's last line>}.`
 phase('Stamp')
 const lastSha = merged.filter((m) => m?.sha).map((m) => m.sha).pop()
 if (lastSha) {
-  const gate = await agent(waitMainPrompt(lastSha), { model: 'sonnet', label: 'main gate', phase: 'Stamp', schema: { type: 'object', required: ['green'] } })
+  const gate = await ask(waitMainPrompt(lastSha), { model: 'sonnet', label: 'main gate', phase: 'Stamp', schema: { type: 'object', required: ['green'] } })
   if (!gate?.green) { log(`main is not green at ${lastSha}; not stamping`); return { gate } }
 }
-const records = await agent(recordsPrompt(repo), { model: 'sonnet', label: 'records', phase: 'Stamp', schema: { type: 'object', required: ['landed'] } })
+const records = await ask(`${BASE_FRESH(repo)} Return base_fresh beside the fields below.\n${recordsPrompt(repo)}`, { model: 'sonnet', label: 'records', phase: 'Stamp', schema: { type: 'object', required: ['base_fresh', 'landed'] } })
+baseGate(records, repo)
 if (!records?.landed) { log(`held records not landed: ${records?.reason ?? 'records agent returned null'}; not stamping`); return { records } }
-const stamp = await agent(stampPrompt(repo, bump, title), { model: 'opus', effort: 'high', label: 'stamp', phase: 'Stamp', schema: { type: 'object', required: ['stamped'] } })
+const stamp = await ask(stampPrompt(repo, bump, title), { model: 'opus', effort: 'high', label: 'stamp', phase: 'Stamp', schema: { type: 'object', required: ['stamped'] } })
 if (!stamp?.stamped) log(`not stamped: ${stamp?.reason ?? 'stamp agent returned null'}`)
 
 phase('Record')
-const record = await agent(`Record wave ${wave} of the open-issues program. ${GH_READ} ${GH_WRITE} ${WT('claude-web/record-wave-' + wave, 'origin/main')}
+const record = await ask(`Record wave ${wave} of the open-issues program. ${GH_READ} ${GH_WRITE} ${WT('claude-web/record-wave-' + wave, 'origin/main')}
 These groups merged: ${JSON.stringify(merged)}. The release is ${stamp?.version ? 'v' + stamp.version : 'not stamped yet'}.
 Update the Delivery-status record: each wave row in dev/programme/plan-2026-09-open-issues.md's frozen table gets its release and a status; a merged pull request no row records gets its own file dev/programme/delivery/<N>.md, a line anchored \`- [#N](…/pull/N)\` and its state, never a new table row, which policy_lint refuses past the freeze. Update dev/programme/register/audit-2026-09.md: set each finding's status cell to "fixed (PR #N)" or "released (vX.Y.Z)" -- where a status cell and a body paragraph disagree, the cell is the truth, so change the cell. Open the pull request (docs are INERT, so the gate scopes to almost nothing; still run PYTHONPATH=tests/hastub python3 tests/entities.py, which checks that no tracked file is unclassified) and merge it once its checks are green.
 Then post one comment on issue #3394: a table of group, issues, PR, verdict and release for this wave, and one paragraph on anything that surprised you -- a correction to a brief, a number that did not reproduce, a rule that bit. Return {pr, comment_url}.`,

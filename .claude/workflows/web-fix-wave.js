@@ -143,6 +143,17 @@ reason: <its message>}. Return {stamped: true, version, tag_sha}.`
 
 const { groups = [], groupsFile, repo, fork, session = 'claude-web' } = args ?? {}
 if (!groups.length || !repo || !fork) throw new Error('args.groups, args.repo and args.fork are required')
+// The base (tools/audit/seat/base_fresh.py; dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md). The run's first
+// seat judges the tree its seats read policy, instruments and workflow scripts from, and one that is not
+// origin/main's refuses the launch. A reply without the field is one its schema refuses in a run; under a
+// driver whose stub predates the field it is unmeasured, never read as a pass by the checker that pins this.
+const BASE_FRESH = (dir) => `Before anything else, run \`python3 -I ${repo}/tools/audit/seat/base_fresh.py tree --dir ${dir}\` and return the last line it prints, verbatim, as base_fresh. If that line does not start with "BASE-FRESH PASS", do nothing else: return base_fresh, and every other field as the empty value of its type.`
+const baseGate = (reply, dir) => {
+  if (reply?.base_fresh !== undefined && !String(reply.base_fresh).startsWith('BASE-FRESH PASS')) throw new Error(`base_fresh.py refuses ${dir}: ${reply.base_fresh} -- its policy, instruments or workflows are not origin/main's. Run python3 -I tools/audit/seat/base_fresh.py ensure --dir ${dir} (a checkout that carries no work), or merge origin/main into its branch, then relaunch so the run loads main's script`)
+}
+// Model routing is a launch argument: args.models maps a seat's label to a model, args.model routes every
+// seat, and a call's own model is the default. No copy of this file is edited to change one.
+const ask = (prompt, opts = {}) => { const m = args?.models?.[opts.label] ?? args?.model ?? opts.model; return agent(prompt, m ? { ...opts, model: m } : opts) }
 // PROVENANCE. The briefs are the most expensive artefact in a programme and the
 // container they were written in is the least durable thing about it, so a wave
 // runs from a roster committed to the repository -- never from an array that
@@ -370,7 +381,7 @@ Post it as a PR comment beginning "Root cause:" and return {cause, state, counte
 // under the lock.
 phase('Reconcile')
 const rosterNames = groups.map((g) => g.group)
-const recon = await agent(`${GH_READ} You are the reconciler. Before a single fixer runs, check that a wave roster still describes the world. You change NOTHING -- no commits, no pushes, no comments, no merges. Read only.
+const recon = await ask(`${BASE_FRESH(repo)} ${GH_READ} You are the reconciler. Before a single fixer runs, check that a wave roster still describes the world. You change NOTHING -- no commits, no pushes, no comments, no merges. Read only.
 
 In ${repo}: git fetch origin --prune.
 
@@ -390,7 +401,7 @@ Compare each against the roster's own resume field and report a mismatch when:
 
 Report the observed values whether or not they match, so a human can audit the judgement rather than trust the verdict.
 
-Return {provenance_ok, groups: [{group, stage, matches, expected, observed}], mismatches: [<group names>], summary}.`, {
+Return {base_fresh, provenance_ok, groups: [{group, stage, matches, expected, observed}], mismatches: [<group names>], summary}.`, {
   model: 'sonnet',
   effort: 'medium',
   label: 'reconcile roster against origin',
@@ -398,6 +409,7 @@ Return {provenance_ok, groups: [{group, stage, matches, expected, observed}], mi
   schema: {
     type: 'object',
     properties: {
+      base_fresh: { type: 'string' },
       provenance_ok: { type: 'boolean' },
       groups: { type: 'array', items: { type: 'object', properties: {
         group: { type: 'string' }, stage: { type: ['string', 'null'] }, matches: { type: 'boolean' },
@@ -406,10 +418,11 @@ Return {provenance_ok, groups: [{group, stage, matches, expected, observed}], mi
       mismatches: { type: 'array', items: { type: 'string' } },
       summary: { type: 'string' },
     },
-    required: ['provenance_ok', 'groups', 'mismatches', 'summary'],
+    required: ['base_fresh', 'provenance_ok', 'groups', 'mismatches', 'summary'],
   },
 })
 
+baseGate(recon, repo)
 if (!recon) throw new Error('Reconcile returned nothing. A wave does not start on an unverified roster -- re-run it, or fix the roster by hand and say why in the run.')
 if (!recon.provenance_ok) throw new Error(`Reconcile: the passed groups do not match the committed roster at ${groupsFile}. ${recon.summary}`)
 if (recon.mismatches?.length) {
@@ -427,9 +440,9 @@ let mergeChain = Promise.resolve(null)
 // together. Shared by the normal path and by a group resuming at stage 'merge'.
 const mergeGroup = async (g, fix) => {
   const outcome = await (mergeChain = mergeChain.then(async () => {
-    const m = await agent(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${g.group}`, phase: 'Wave', schema: MERGE })
+    const m = await ask(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${g.group}`, phase: 'Wave', schema: MERGE })
     if (!m?.merged) return { merged: false, reason: m?.reason ?? 'merge agent returned null' }
-    const gate = await agent(waitMainPrompt(m.sha), { model: 'sonnet', label: `main after ${g.group}`, phase: 'Wave', schema: { type: 'object', required: ['green'] } })
+    const gate = await ask(waitMainPrompt(m.sha), { model: 'sonnet', label: `main after ${g.group}`, phase: 'Wave', schema: { type: 'object', required: ['green'] } })
     return { merged: true, sha: m.sha, green: !!gate?.green, red: gate?.green ? null : gate }
   }))
   if (outcome.merged && !outcome.green) log(`MAIN IS RED after ${g.group} (${outcome.sha}) -- stop and repair before the next merge: ${JSON.stringify(outcome.red)}`)
@@ -495,12 +508,12 @@ const runGroup = async (g) => {
     fix = { pr: g.resume.pr ?? g.resume.open_pr, head_sha: g.resume.head_sha }
     log(`${g.group}: resuming at review -- PR #${fix.pr} at ${fix.head_sha}`)
   } else {
-    fix = await agent(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group}`, phase: 'Wave', schema: FIX })
+    fix = await ask(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group}`, phase: 'Wave', schema: FIX })
     // Number.isInteger, not truthiness: a fixer that returns its excuse as the pr
     // field satisfies the schema, and `!fix.pr` is false for a non-empty string.
     if (!Number.isInteger(fix?.pr)) {
       if (fix?.pr) log(`${g.group}: no usable PR number (${JSON.stringify(fix.pr).slice(0, 160)}) -- retrying`)
-      fix = await agent(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group} (retry)`, phase: 'Wave', schema: FIX })
+      fix = await ask(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group} (retry)`, phase: 'Wave', schema: FIX })
     }
     if (!Number.isInteger(fix?.pr)) return { group: g.group, issues: g.issues, pr: null, head_sha: fix?.head_sha ?? null,
       merged: false, reason: `fixer opened no PR after one retry: ${JSON.stringify(fix?.pr ?? null).slice(0, 300)}` }
@@ -527,23 +540,23 @@ const runGroup = async (g) => {
     }
   }
 
-  let review = await agent(reviewerPrompt(g, fix, 1), { model: rm, effort: 'high', label: `review ${g.group}`, phase: 'Wave', schema: VERDICT })
+  let review = await ask(reviewerPrompt(g, fix, 1), { model: rm, effort: 'high', label: `review ${g.group}`, phase: 'Wave', schema: VERDICT })
   let v = review ? readVerdict(review, 1) : { verdict: 'blocked', class: 'other', why: 'reviewer returned null' }
 
   // A blocked class that names a PROCESS debt is not repaired by another fixer
   // round; it is answered by the root-cause seat, which runs beside the fix.
   if (v.verdict === 'blocked' && ROOT_CAUSE_CLASSES.includes(v.class)) {
-    const rc = await agent(rootCausePrompt(g, fix, v), { model: rm, effort: 'high', label: `root-cause ${g.group}`, phase: 'Wave',
+    const rc = await ask(rootCausePrompt(g, fix, v), { model: rm, effort: 'high', label: `root-cause ${g.group}`, phase: 'Wave',
       schema: { type: 'object', required: ['cause', 'state'], properties: { cause: { type: 'string' }, state: { type: 'string' }, countermeasure: { type: ['string', 'null'] }, comment: { type: ['string', 'null'] } } } })
     log(`${g.group}: root-cause seat returned ${rc ? `${rc.state}: ${rc.cause}` : 'nothing'}`)
     return { ...blockedResult(v), rootCause: rc ?? null }
   }
 
   if (v.verdict === 'blocked' && !v.unparseable) {
-    const repaired = await agent(fixerPrompt(g, review?.comment ?? `${v.class}: ${v.why}`), { model: fm, effort: ef, label: `repair ${g.group}`, phase: 'Wave', schema: FIX })
+    const repaired = await ask(fixerPrompt(g, review?.comment ?? `${v.class}: ${v.why}`), { model: fm, effort: ef, label: `repair ${g.group}`, phase: 'Wave', schema: FIX })
     if (repaired?.head_sha) {
       fix = repaired
-      review = await agent(reviewerPrompt(g, fix, 2), { model: rm, effort: 'high', label: `re-review ${g.group}`, phase: 'Wave', schema: VERDICT })
+      review = await ask(reviewerPrompt(g, fix, 2), { model: rm, effort: 'high', label: `re-review ${g.group}`, phase: 'Wave', schema: VERDICT })
       v = review ? readVerdict(review, 2) : { verdict: 'blocked', class: 'other', why: 'reviewer returned null' }
     }
   }

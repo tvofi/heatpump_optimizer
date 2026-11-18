@@ -141,20 +141,32 @@ reason: <its message>}. Return {stamped: true, version, tag_sha}.`
 
 const { repo, fork, session = 'claude-web', stage } = args ?? {}
 if (!repo || !fork || !stage?.name || !stage?.brief) throw new Error('args.repo, args.fork and args.stage {name, brief} are required')
+// The base (tools/audit/seat/base_fresh.py; dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md). The run's first
+// seat judges the tree its seats read policy, instruments and workflow scripts from, and one that is not
+// origin/main's refuses the launch. A reply without the field is one its schema refuses in a run; under a
+// driver whose stub predates the field it is unmeasured, never read as a pass by the checker that pins this.
+const BASE_FRESH = (dir) => `Before anything else, run \`python3 -I ${repo}/tools/audit/seat/base_fresh.py tree --dir ${dir}\` and return the last line it prints, verbatim, as base_fresh. If that line does not start with "BASE-FRESH PASS", do nothing else: return base_fresh, and every other field as the empty value of its type.`
+const baseGate = (reply, dir) => {
+  if (reply?.base_fresh !== undefined && !String(reply.base_fresh).startsWith('BASE-FRESH PASS')) throw new Error(`base_fresh.py refuses ${dir}: ${reply.base_fresh} -- its policy, instruments or workflows are not origin/main's. Run python3 -I tools/audit/seat/base_fresh.py ensure --dir ${dir} (a checkout that carries no work), or merge origin/main into its branch, then relaunch so the run loads main's script`)
+}
+// Model routing is a launch argument: args.models maps a seat's label to a model, args.model routes every
+// seat, and a call's own model is the default. No copy of this file is edited to change one.
+const ask = (prompt, opts = {}) => { const m = args?.models?.[opts.label] ?? args?.model ?? opts.model; return agent(prompt, m ? { ...opts, model: m } : opts) }
 const issues = stage.issues ?? []
 
 phase('Measure')
-const survey = await agent(`Before stage ${stage.name} of the coordinator decomposition program (#193) is cut, re-measure the seam table so the stage is still the cheapest remaining cut rather than the one the plan guessed months ago. ${GH_READ} ${WT_REVIEW('survey-' + stage.name, fork)}
+const survey = await ask(`${BASE_FRESH(repo)} Before stage ${stage.name} of the coordinator decomposition program (#193) is cut, re-measure the seam table so the stage is still the cheapest remaining cut rather than the one the plan guessed months ago. ${GH_READ} ${WT_REVIEW('survey-' + stage.name, fork)}
 Run python3 tests/structure.py and record every cut_* metric and the class sizes. Then copy tools/audit/round2/D7/coordinator_clusters.py from tag audit-round2-evidence (757e164) into the tree under test and run it for the attribute co-usage graph, the hub attributes by fan-in and the minimum-cut search. ${GATE}
 Report: the measured cut cost of the seam this stage proposes; the three cheapest alternatives; the live-in variable count across the proposed boundary (this is what decides, not line count -- a seam whose extraction needs fifteen parameters is a monolith with an argument list in front of it, and two earlier stages were re-planned for exactly that); and whether any of these still hold: ${JSON.stringify(stage.holds ?? [])}.
-Return {proceed, cut_cost, live_ins, cheaper_alternatives, note} -- proceed false if the seam is no longer the right cut or a hold is unmet, with the reason in note.`,
-  { model: 'opus', effort: 'high', label: `survey ${stage.name}`, phase: 'Measure', schema: { type: 'object', required: ['proceed'] } })
+Return {base_fresh, proceed, cut_cost, live_ins, cheaper_alternatives, note} -- proceed false if the seam is no longer the right cut or a hold is unmet, with the reason in note.`,
+  { model: 'opus', effort: 'high', label: `survey ${stage.name}`, phase: 'Measure', schema: { type: 'object', required: ['base_fresh', 'proceed'] } })
+baseGate(survey, repo)
 
 if (!survey?.proceed) { log(`stage ${stage.name} not cut: ${survey?.note ?? 'survey returned null'}`); return { survey } }
 if (survey.live_ins !== undefined && survey.live_ins > 8) log(`stage ${stage.name}: ${survey.live_ins} live-in variables across the boundary -- this wants a carrier object and its own design argument, not a verbatim move`)
 
 phase('Move')
-const fix = await agent(`You own stage ${stage.name} of the coordinator decomposition program (#193)${issues.length ? `, which advances issues #${issues.join(', #')}` : ''}. ${GH_READ} ${GH_WRITE} ${WT('claude-web/decomp-' + stage.name.toLowerCase(), fork)} ${DOC(session)}
+const fix = await ask(`You own stage ${stage.name} of the coordinator decomposition program (#193)${issues.length ? `, which advances issues #${issues.join(', #')}` : ''}. ${GH_READ} ${GH_WRITE} ${WT('claude-web/decomp-' + stage.name.toLowerCase(), fork)} ${DOC(session)}
 The plan of record is #193's own comment as amended by the round-2 panel and the 2026-09-03 seam measurements; your stage:
 ${stage.brief}
 The survey just measured: cut cost ${survey.cut_cost ?? 'n/a'}, ${survey.live_ins ?? 'n/a'} live-in variables across the boundary. ${survey.note ?? ''}
@@ -174,7 +186,7 @@ Open the PR with the before/after class and method sizes, the byte-identity proo
 if (!fix?.pr) { log(`stage ${stage.name}: no PR`); return { survey, fix } }
 
 phase('Review')
-const review = await agent(`You are the adversarial reviewer for decomposition stage ${stage.name}, PR #${fix.pr} (head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW('decomp-' + stage.name, fix.head_sha)}
+const review = await ask(`You are the adversarial reviewer for decomposition stage ${stage.name}, PR #${fix.pr} (head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW('decomp-' + stage.name, fix.head_sha)}
 Read dev/governance/roles/fix-review.md, then check the four things that are specific to a move and that CI cannot see:
  1. Every moved block is byte-identical to the block on origin/main -- diff the moved range against ORIGIN/MAIN, not against the PR's own claim. This is the check that catches a silent revert: a fix that merged inside the relocated lines comes back reverted with no conflict and no failing test.
  2. Nothing merged since ${fork} lies inside a moved range. List what merged (git log ${fork}..origin/main) and intersect it with the moved line ranges.
@@ -186,7 +198,7 @@ ${GATE} Post "Fix review: merge" or "Fix review: blocked — <why>" with your RE
 if (review?.verdict !== 'merge') { log(`stage ${stage.name} blocked: ${review?.verdict ?? 'reviewer returned null'}`); return { survey, fix, review } }
 
 phase('Merge')
-const m = await agent(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${stage.name}`, phase: 'Merge', schema: MERGE })
+const m = await ask(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${stage.name}`, phase: 'Merge', schema: MERGE })
 if (!m?.merged) { log(`stage ${stage.name} not merged: ${m?.reason}`); return { survey, fix, review, merge: m } }
-const gate = await agent(waitMainPrompt(m.sha), { model: 'sonnet', label: `main after ${stage.name}`, phase: 'Merge', schema: { type: 'object', required: ['green'] } })
+const gate = await ask(waitMainPrompt(m.sha), { model: 'sonnet', label: `main after ${stage.name}`, phase: 'Merge', schema: { type: 'object', required: ['green'] } })
 return { survey, fix, review, merge: m, gate, merged: [{ group: stage.name, issues, pr: fix.pr, sha: m.sha }] }

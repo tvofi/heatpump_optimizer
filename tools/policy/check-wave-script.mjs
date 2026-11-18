@@ -2038,6 +2038,55 @@ await block('the P3 plan workflow', async () => {
   t('and the recorded verdict says the plan is not approved', /NOT an approval/.test(hand), hand.slice(0, 200))
 })
 
+// The base gate and the model route (tools/audit/seat/base_fresh.py; dev/audit/rca/
+// R11-RCA-PLAN-OBJECTIVE-MISSING.md). Every workflow script carries the same gate, asks its first seat for
+// the base and refuses a launch whose base is not origin/main's; a seat's model is a launch argument, so no
+// copy of a script is edited to change one. The gate and the route are evaluated from the scripts' own text.
+await block('the base gate and the model route', async () => {
+  const scripts = fs.readdirSync(STAY).filter((f) => f.endsWith('.js')).sort()
+  const srcOf = (f) => fs.readFileSync(path.join(STAY, f), 'utf8')
+  const gateOf = (src) => { const i = src.indexOf('const BASE_FRESH = '); const j = src.indexOf('\n}\n', i); return i < 0 || j < 0 ? '' : src.slice(i, j + 3) }
+  const gates = scripts.map((f) => gateOf(srcOf(f)))
+  const odd = scripts.filter((f, k) => !gates[k] || gates[k] !== gates[0])
+  t(`every workflow script (${scripts.length}) carries the base gate, byte-identical`, scripts.length > 0 && odd.length === 0, odd.join(', '))
+  const unasked = scripts.filter((f) => { const rest = srcOf(f).replace(gateOf(srcOf(f)), ''); return !/\$\{BASE_FRESH\(/.test(rest) || !/\bbaseGate\(/.test(rest) })
+  t('each asks a seat for the base in its prompt and judges the reply', unasked.length === 0, unasked.join(', '))
+  const { BASE_FRESH, baseGate } = new Function('repo', `${gates[0]}; return { BASE_FRESH, baseGate }`)('/r')
+  t('the seat is told the command over the directory named, and to return its last line as base_fresh',
+    BASE_FRESH('/w').includes('`python3 -I /r/tools/audit/seat/base_fresh.py tree --dir /w`') && /verbatim, as base_fresh/.test(BASE_FRESH('/w')))
+  const refused = (reply) => { try { baseGate(reply, '/w'); return '' } catch (e) { return e.message } }
+  t('a reply whose line is BASE-FRESH FAIL refuses the launch, naming the directory, the line and the repair',
+    /^base_fresh\.py refuses \/w: BASE-FRESH FAIL abc vs origin\/main def \(stale 2, own 0\) -- /.test(refused({ base_fresh: 'BASE-FRESH FAIL abc vs origin/main def (stale 2, own 0)' }))
+    && /base_fresh\.py ensure --dir \/w/.test(refused({ base_fresh: 'BASE-FRESH FAIL x' })) && /relaunch/.test(refused({ base_fresh: 'BASE-FRESH FAIL x' })))
+  t('so do an unread base, an empty line and a line that is not the instrument\'s',
+    [{ base_fresh: 'BASE-FRESH UNREAD: no origin' }, { base_fresh: '' }, { base_fresh: 'ok' }, { base_fresh: null }].every((r) => refused(r) !== ''))
+  t('null control: BASE-FRESH PASS runs; a reply without the field (a stub predating it) is unmeasured, and a null reply is the caller\'s',
+    refused({ base_fresh: 'BASE-FRESH PASS abc vs origin/main abc (stale 0, own 0)' }) === '' && refused({}) === '' && refused(null) === '')
+  // driven: the fix wave's reconciler is its first seat
+  const wave = { groups: [G('A', { stage: 'done', merged_pr: 383, merge_sha: 'b0703f7' })], groupsFile: 'r.json' }
+  await throws('a fix wave whose reconciler returns BASE-FRESH FAIL is refused before the roster is read', /^base_fresh\.py refuses \/repo: BASE-FRESH FAIL /,
+    { ...wave, reconResult: { ...OK, provenance_ok: false, base_fresh: 'BASE-FRESH FAIL abc vs origin/main def (stale 1, own 0)' } })
+  const fine = await run({ ...wave, reconResult: { ...OK, base_fresh: 'BASE-FRESH PASS abc vs origin/main abc (stale 0, own 0)' } })
+  t('null control: the same wave with BASE-FRESH PASS runs', fine.out?.results?.[0]?.merged === true, J(fine.out?.results))
+  // the route
+  const askLine = (src) => src.split('\n').find((l) => l.startsWith('const ask = ')) ?? ''
+  const routed = scripts.filter((f) => askLine(srcOf(f)))
+  const bare = routed.filter((f) => srcOf(f).split('\n').some((l) => !l.trim().startsWith('//') && !l.startsWith('const ask = ') && /(?<![A-Za-z0-9_.])agent\(/.test(l)))
+  t(`the scripts that route by args.models (${routed.length}) carry one definition and call agent() nowhere else`,
+    routed.length > 0 && routed.every((f) => askLine(srcOf(f)) === askLine(srcOf(routed[0]))) && bare.length === 0, bare.join(', '))
+  const unrouted = scripts.filter((f) => !routed.includes(f))
+  t(`the rest (${unrouted.join(', ') || 'none'}) take each seat's model as an argument of their own`,
+    unrouted.every((f) => /fixerModel/.test(srcOf(f)) && /reviewerModel/.test(srcOf(f))), unrouted.join(', '))
+  const seen = []
+  const mk = (args) => new Function('agent', 'args', `${askLine(srcOf(routed[0]))}; return ask`)((p, o) => { seen.push(o); return o }, args)
+  const own = { label: 'plan/read', model: 'opus', effort: 'high' }
+  t('args.models routes a seat by its label, over args.model, over the call\'s own model; the other options are kept',
+    mk({ models: { 'plan/read': 'fable' }, model: 'sonnet' })('p', own).model === 'fable' && mk({ models: { other: 'fable' }, model: 'sonnet' })('p', own).model === 'sonnet'
+    && mk({ model: 'sonnet' })('p', { label: 'x' }).model === 'sonnet' && mk({ models: { 'plan/read': 'fable' } })('p', own).effort === 'high', J(seen))
+  t('null control: with no routing argument a call keeps its own model, and one without a model gains none',
+    J(mk({})('p', own)) === J(own) && J(mk(undefined)('p', own)) === J(own) && !('model' in mk({})('p', { label: 'x' })))
+})
+
 // The guard above is only worth having if it is actually called.
 await block('the harness guard is wired', async () => {
   const before = fail

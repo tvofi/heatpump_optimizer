@@ -30,6 +30,14 @@ export const meta = {
 
 const { groups = [], repo, baseline, effort: waveEffort = 'high' } = args ?? {}
 if (!groups.length || !repo) throw new Error('args.groups and args.repo are required')
+// The base (tools/audit/seat/base_fresh.py; dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md). The run's first
+// seat judges the tree its seats read policy, instruments and workflow scripts from, and one that is not
+// origin/main's refuses the launch. A reply without the field is one its schema refuses in a run; under a
+// driver whose stub predates the field it is unmeasured, never read as a pass by the checker that pins this.
+const BASE_FRESH = (dir) => `Before anything else, run \`python3 -I ${repo}/tools/audit/seat/base_fresh.py tree --dir ${dir}\` and return the last line it prints, verbatim, as base_fresh. If that line does not start with "BASE-FRESH PASS", do nothing else: return base_fresh, and every other field as the empty value of its type.`
+const baseGate = (reply, dir) => {
+  if (reply?.base_fresh !== undefined && !String(reply.base_fresh).startsWith('BASE-FRESH PASS')) throw new Error(`base_fresh.py refuses ${dir}: ${reply.base_fresh} -- its policy, instruments or workflows are not origin/main's. Run python3 -I tools/audit/seat/base_fresh.py ensure --dir ${dir} (a checkout that carries no work), or merge origin/main into its branch, then relaunch so the run loads main's script`)
+}
 for (const g of groups) if (!g.group || !g.issues?.length) throw new Error('every entry in args.groups needs group and issues')
 
 // Same invariant as audit-fix.js, checked for every group before any agent
@@ -45,7 +53,7 @@ for (const g of groups) {
 // Hand-mirrored copy of audit-fix.js's Fix-phase prompt; see the header
 // comment above for why this is not a shared import.
 const fixerPrompt = (group, issues, repo, baseline) =>
-  `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${group.toLowerCase()} origin/main (if the branch exists, check it out instead). Read dev/governance/roles/fixer.md and dev/audit/README.md and follow every step: failing test first importing the production symbol, mutation proof with pasted failing check names, before/after with the finding's harness at head (state the head SHA), null control and both-ends checks where the brief demands them, claims written by you only for drift you measured, GATE_SCOPE=auto ./tests/run.sh under python3 tests/gate_lock.py take/renew/release with HPO_GATE_LOCK_LABEL set (never mkdir and a shell pid -- #404) and only when the closure selection is MODE: FULL or names tests/stress.py, never VERSION/manifest/notes heading. Read each issue with gh issue view for the finding and its register row. Push and open a PR whose body closes the issues and carries every number and the head SHA. Return {pr, head_sha, summary}.`
+  `${BASE_FRESH(repo)} You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${group.toLowerCase()} origin/main (if the branch exists, check it out instead). Read dev/governance/roles/fixer.md and dev/audit/README.md and follow every step: failing test first importing the production symbol, mutation proof with pasted failing check names, before/after with the finding's harness at head (state the head SHA), null control and both-ends checks where the brief demands them, claims written by you only for drift you measured, GATE_SCOPE=auto ./tests/run.sh under python3 tests/gate_lock.py take/renew/release with HPO_GATE_LOCK_LABEL set (never mkdir and a shell pid -- #404) and only when the closure selection is MODE: FULL or names tests/stress.py, never VERSION/manifest/notes heading. Read each issue with gh issue view for the finding and its register row. Push and open a PR whose body closes the issues and carries every number and the head SHA. Return {base_fresh, pr, head_sha, summary}.`
 
 // Hand-mirrored copy of audit-fix.js's Review-phase prompt; same note.
 const reviewerPrompt = (group, repo, baseline, fix) =>
@@ -65,9 +73,10 @@ const pending = new Set(groups.map((g) => g.group))
 const runGroup = async (g) => {
   const fixerModel = g.fixerModel ?? 'opus'
   const reviewerModel = g.reviewerModel ?? 'opus'
-  const fixSchema = { type: 'object', required: ['pr', 'head_sha'] }
+  const fixSchema = { type: 'object', required: ['base_fresh', 'pr', 'head_sha'] }
 
   let fix = await agent(fixerPrompt(g.group, g.issues, repo, baseline), { model: fixerModel, effort: waveEffort, label: `fix ${g.group}`, schema: fixSchema })
+  baseGate(fix, repo)
   if (!fix?.pr) fix = await agent(fixerPrompt(g.group, g.issues, repo, baseline), { model: fixerModel, effort: waveEffort, label: `fix ${g.group}`, schema: fixSchema })
   if (!fix?.pr) return { group: g.group, pr: null, reason: 'fixer returned no PR after one retry' }
 
