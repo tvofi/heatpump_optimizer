@@ -204,17 +204,19 @@ async def async_arm(
     is never written to a target that has none. A key whose restore is in
     flight refuses the write, which would land over the restore's.
     """
+    factory = _CONSUMERS.get(key)
+    restorer = factory(config) if factory is not None else None
+    if restorer is None and key not in _RELEASES:
+        return False  # unregistered or unconfigured: no record is made for it
     held = await _armed_record(hass, entry)
     if key in held.busy:
         return False
-    if key in _RELEASES:  # a release consumer: a neutral entry, armed once
-        if key not in held.armed:
-            held.armed[key] = None
-            await _save(held)
-        return True
-    factory = _CONSUMERS.get(key)
-    restorer = factory(config) if factory is not None else None
-    return restorer is not None and await _arm_restorer(hass, entry, held, key, restorer, baseline_c)
+    if restorer is not None:
+        return await _arm_restorer(hass, entry, held, key, restorer, baseline_c)
+    if key not in held.armed:  # a release consumer: a neutral entry, armed once
+        held.armed[key] = None
+        await _save(held)
+    return True
 
 
 async def _arm_restorer(

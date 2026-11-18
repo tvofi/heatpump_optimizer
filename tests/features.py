@@ -45249,10 +45249,10 @@ _ghc_pub(_gfo, 2.0)
 _gfo_warn = _ghc_logged(lambda: _asyncio.run(_ghc_restore.async_forget(_gfo.hass, "ghcp_forget_neutral")))
 R.check(
     "remove with a baseline still armed names the entity and the value to set by hand, writes "
-    "nothing and deletes the record; a neutral entry is dropped silently (C4)",
+    "nothing and deletes the record; a neutral entry still armed is named once, with no value (C4, ADR-004)",
     len(_gfa_warn) == 1 and _GHCP_ENT in _gfa_warn[0] and "22" in _gfa_warn[0]
     and len(_gfa.hass.services.calls) == _gfa_n and _ghcp_record(_gfa) is None
-    and _gfo_warn == [] and _ghcp_record(_gfo) is None,
+    and len(_gfo_warn) == 1 and "heat_curve" in _gfo_warn[0] and _ghcp_record(_gfo) is None,
     "armed=%r neutral=%r" % (_gfa_warn, _gfo_warn),
 )
 _gst = _ghcp_coord(entry_id="ghcp_state")
