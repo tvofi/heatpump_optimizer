@@ -4725,7 +4725,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-001)",
-    "note": "overlap admitted (R11-CARRY-DRAWMAP): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-CARRY-DRAWMAP): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3728
    },
    "arms": {
     "D7-s1-05": [
@@ -4969,7 +4970,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-008)",
-    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-dead-state): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-dead-state): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3731
    }
   },
   {
@@ -5040,7 +5042,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (none)",
-    "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3734
    }
   },
   {
@@ -5276,7 +5279,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-006, ADR-001)",
-    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3726
    },
    "arms": {
     "D7-s1-05": [
@@ -6183,7 +6187,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-009)",
-    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3729
    }
   },
   {
@@ -6450,7 +6455,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-010)",
-    "note": null
+    "note": null,
+    "pr": 3727
    }
   },
   {
