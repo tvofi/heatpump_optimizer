@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:commit.cells RETURN_DEL c77a9bdd",
+  "killed_by": "tests/features.py",
+  "old": "        return np.clip(np.rint(b / quantum).astype(np.int64) + half, 0, 2 * half), fine * outside",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}
