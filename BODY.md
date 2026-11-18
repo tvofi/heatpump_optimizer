@@ -70,13 +70,16 @@ Pending; none is claimed here. A policy pull request: it merges on tvofi's appro
 
 ## Red checks
 
-`budget-raise-gate`: this diff raises policy budgets (the four rows under Raise justification), so the gate is red until the owner's approving review at the head, or the orchestrator's under mandate 6893738184. No cheaper detector separates it: the raise is the change, and only that review turns it.
+- `budget-raise-gate / budget-raise-gate`: this diff raises policy budgets (the four rows under Raise justification), so the gate is red until the owner's approving review at the head, or the orchestrator's under mandate 6893738184. No cheaper detector separates it: the raise is the change, and only that review turns it.
+- `tests / nightly-status` (concluded red at `6bb827793e`): it reports the last scheduled nightly run's conclusion on `main`, not this diff; nightly is green again on `main` since #3725, and the check re-reads it on the next run here. Cheaper detector: none exists, the check is itself the read of the nightly's conclusion.
+- `arch-score / arch-score`, `governance / instrument-self-tests` and `tests / replay` (concluded red on commits of `main` that the merge `4748bdaaf9` brought into this branch, read from the handoff code `da818594a3`'s older merge base `ae0ed64af8`): not this diff's; at the pull request's head, whose merge base is the newer `main`, the red history of its four own commits holds only the two checks above. Cheaper detector: none exists for this branch, the reds belong to `main`'s commits and are judged there.
+- `code-scanning alert 57 (py/overly-permissive-file)` and `code-scanning alert 58 (py/overly-permissive-file)` (open on `main` at `tools/audit/seat/postmerge.py` and `tools/audit/seat/roster_lib.py`): not caused by this change; the diff touches `roster_lib.py` but no line that sets a file mode, and does not touch `postmerge.py`. They are findings on `main` that exist independent of this branch; the cheaper detector for the class is the code-scanning run itself, which already reports them, so this change adds no detector.
 
 ## Forward-carry
 
-- Carry 2, the first real DX0 scan with the owner's read credential and the choice of read identity (design "Decisions routed": a dedicated read-only App installation or the shared token under the 60 % floor), remains the owner's act. Carry: R11-INTAKE-R10-RESIDUE
-- Carry 3, the seat account (an OS account owning the private root, unable to read the identity directory and the deploy key), remains the owner's act; without it `owner_only.py probe` refuses and DX0 does not run. Carry: R11-INTAKE-R10-RESIDUE
-- Carry 4, the private-fork ruleset test, which needs a scratch security advisory (design note n4), remains the owner's act. Carry: R11-INTAKE-R10-RESIDUE
+- Carry 2, the first real DX0 scan with the owner's read credential and the choice of read identity (design "Decisions routed": a dedicated read-only App installation or the shared token under the 60 % floor), remains the owner's act. Carry: R11-PRE-SECURITY-PRIVACY | dismissed: duplicate of R11-PRE-SECURITY-PRIVACY carry 2 (0-based, item 75234782), which keeps it as the owner's act
+- Carry 3, the seat account (an OS account owning the private root, unable to read the identity directory and the deploy key), remains the owner's act; without it `owner_only.py probe` refuses and DX0 does not run. Carry: R11-PRE-SECURITY-PRIVACY | dismissed: duplicate of R11-PRE-SECURITY-PRIVACY carry 3 (0-based, item 1cdaadd6), which keeps it as the owner's act
+- Carry 4, the private-fork ruleset test, which needs a scratch security advisory (design note n4), remains the owner's act. Carry: R11-PRE-SECURITY-PRIVACY | dismissed: duplicate of R11-PRE-SECURITY-PRIVACY carry 4 (0-based, item 2a416932), which keeps it as the owner's act
 
 ## Friction
 
