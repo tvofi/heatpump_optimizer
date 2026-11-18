@@ -1,0 +1,6 @@
+2026-11-17T17:52:20Z RUN c2 queued=3 workers=3
+2026-11-17T18:22:41Z C2 SURVIVED custom_components/heatpump_optimizer/flow_lift.py:R10-C2 M35 L188 by=- ran=8 skip=7 wall=1812.4s
+2026-11-17T18:22:44Z C2 SURVIVED custom_components/heatpump_optimizer/price_model.py:R10-C2 M34 L252 by=- ran=8 skip=6 wall=1815.4s
+2026-11-17T18:29:29Z C2 SURVIVED custom_components/heatpump_optimizer/grid_fee.py:R10-C2 M36 L355 by=- ran=9 skip=6 wall=2220.2s
+RESULT load1=127.21
+RESULT thread_factor=1.00

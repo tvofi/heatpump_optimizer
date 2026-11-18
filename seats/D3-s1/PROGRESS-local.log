@@ -1,0 +1,23 @@
+2026-11-17T11:12:23Z setup done
+2026-11-17T11:13:22Z contract read; enumerator written: 1260 unpinned of 3437 sites in cells
+2026-11-17T11:15:45Z prescreen.py written; traced baselines started (21 drivers, 4 workers, ref HEAD^1)
+2026-11-17T11:16:20Z m5_closure_reach.py written; waiting baselines
+2026-11-17T11:36:41Z 18/21 baselines done; optimality baseline red on this box (1 claim-closed check, platform BLAS), retracing to keep reach
+2026-11-17T11:49:20Z 20/21 baselines; features.py 1988s wall traced under load ~80-110; env_drift 603s
+2026-11-17T12:01:34Z 21/21 baselines (entities red 1/2722 and optimality red 1/84 on this box: kill threshold >1); null control + weighted pre-screen run started, 3 workers
+2026-11-17T12:02:47Z C2 re-drawn at this baseline (r10 mutants.py sample seed 10, M25-M36) -> c2_mutants.json; driving on tree w3
+2026-11-17T12:32:37Z STOP set: restart pre-screen with relaxed reach (features git-only, entities red-complete retrace, env_drift traced --capture child); first 3 GUARD_OFF mutants survived all cheap drivers (>30 min each)
+2026-11-17T12:53:07Z restarted: pre-screen net = fast scripts (recorded <120s) + env_drift --all (capture-traced reach); slow scripts deferred to M3 full drive; null (fast) + C2 relaunched
+2026-11-17T13:12:59Z null control LIVES over 16 fast drivers; 4 survivors so far (3 GUARD_OFF + C2 M25); positive control (2 ledger-pinned sites) launched
+2026-11-17T13:23:47Z pre: 6 driven (4 surv, 2 killed); C2: 3 surv; complete (full net) running on 4 survivors
+2026-11-17T14:53:56Z pre run stopped at 19 driven (load ~300); CPU given to full-net completes (C3/C6) and C2/C3C6 fast drives
+2026-11-17T15:07:03Z complete batch1: defrost:419 and coordinator:422 KILLED by features.py only; batch2 started (tariff:64, price_model:201, coordinator:539)
+2026-11-17T15:41:00Z M5 finding candidate: env_drift --all driven on 681/1260 unpinned cell sites its --capture child never executes (gate reach refused); m5_envdrift_reach.py
+2026-11-17T15:44:47Z C2 fast drive stopped at 9/12 (M34-M36 not reached); full-net completes queued: C2 M26 then C3C6 M03,M19,M04,M07 (tree w3); C3C6 fast continues M21,M22
+2026-11-17T16:35:16Z findings.json drafted (D3-s1-01 M5 env_drift reach); waiting full-net completes (entities ~50 min each at load 70-300)
+2026-11-17T16:57:11Z machine thermally throttled (kernel_task ~87%, python ~10% CPU each): killed full-net batch2 (tariff:64, price_model:201, coordinator:539 -> M3 unfinished) to let batch1 + C6 M26 finish
+2026-11-17T17:02:41Z Write of REPORT.md refused by the subagent environment (same as r10 C5); report markdown carried in REPORT.json report_md for the orchestrator to write
+2026-11-17T17:51:11Z resumed after reboot: worker trees gone; full-net completes for tariff:64, price_model:201, coordinator:539 and C6 M26 lost (killed 16:57Z / reboot 17:40Z); C3C6 M22 TIMEOUT 17:20Z suspect (disk-full window); assembling REPORT.json
+2026-11-17T17:52:18Z REPORT.json assembled (1 finding); C2 M34-M36 fast drive relaunched, 3 workers, cutoff 18:38Z
+2026-11-17T17:53:59Z REPORT.json with report_md written (finalize.py); waiting C2 M34-M36 until 18:36Z
+2026-11-17T18:29:53Z C2 M34-M36 SURVIVED (fast net); M4 answered; REPORT.json final
