@@ -1,0 +1,56 @@
+KILLED   drivers: 'table[d].owner_only === true).sort()' -> FAIL ownerOnlyOf reads the flag strictly: true declares, anything else does not, and an underscore key or a nu
+KILLED   drivers: 'for (const d of DIMS) if (!OWNER_ONLY.includes(d))' -> FAIL a public round dispatches no seat of an owner-only dimension, records nothing of it, and says only that i
+KILLED   drivers: 'if (privateRoot !== undefined) {' -> FAIL a run handed a private root dispatches the owner-only seats and nothing else: no collector, leads, quiet 
+KILLED   drivers: '  if (refusal) throw new Error(refusal)\n  const ow' -> FAIL a private root with no owner-only dimension, with a box, or inside the checkout is refused before any age
+KILLED   drivers: 'if (ready.probe_rc !== 0) throw' -> FAIL a red probe stops the run before any seat, by a sentence that quotes no reply [{"owner_only":true,"round"
+KILLED   drivers: '  return ownerOnlyStatus(round, baseline, privateR' -> FAIL ...and what it returns is its arguments and a fixed sentence: nothing a seat replied is in the return val
+KILLED   drivers: '      return r?.done === true\n    } catch { return' -> FAIL a seat that throws, then returns nothing, is retried once and its message reaches no log, no error and no
+KILLED   drivers: '{ label: seat.id, schema: OWNER_ONLY_REPLY },' -> FAIL a run handed a private root dispatches the owner-only seats and nothing else: no collector, leads, quiet 
+KILLED   drivers: 'additionalProperties: false, properties: { path: {' -> FAIL an owner-only seat's reply is a path and a done flag with no other property, in both drivers [{"type":"ob
+KILLED   drivers: 'if (reg.findings.some((f) => ownerOnlyRecord(f, OW' -> FAIL the public verification pass refuses a register holding an owner-only finding, after the read and before 
+KILLED   drivers: '[f?.dimension, f?.scope, f?.id].some(' -> FAIL a record is owner-only by any of its three spellings, and a public one by none passed
+KILLED   drivers: 'if (a.file === true) return' -> FAIL ...and in audit-verify.js: the same, and args.file beside it ""
+KILLED   drivers: 'if (ready.probe_rc !== 0) throw' -> FAIL a red probe, a missing seat report or a preparation that returned nothing stops it before any seat ["owne
+KILLED   drivers: 'if (ready.reports_ok !== true) throw' -> FAIL a red probe, a missing seat report or a preparation that returned nothing stops it before any seat ["owne
+KILLED   drivers: '  return ownerOnlyStatus(round, privateRoot)\n}' -> FAIL ...and what it returns is its arguments and a fixed sentence [{"owner_only":true,"round":1,"private_root"
+KILLED   drivers: '?.done === true } catch { return false }' -> FAIL a verifier or judge that throws leaves a fixed sentence and no reply text [null,"owner-only verification:
+KILLED   drivers: "if (!judged) throw new Error('owner-only verificat" -> FAIL a verifier or judge that throws leaves a fixed sentence and no reply text [{"owner_only":true,"round":1,"
+KILLED   ref_privacy: '    if owner_only_id(text, ident.owner_only):\n' -> FAIL an owner-only finding id is refused in a ref name, a message, a body and an added line: [None, None]
+KILLED   ref_privacy: 'r")(?:-s[0-9]+)?-[0-9]{2}(?![0-9])"' -> FAIL ...in any case, without a seat, and URL-encoded; and no refusal quotes the text it matched: [['owner-only
+KILLED   ref_privacy: 'r")(?:-s[0-9]+)?-[0-9]{2}(?![0-9])"' -> FAIL its seat id and its name stay public, and so does a longer number or a longer word (null control): [['own
+KILLED   ref_privacy: '                     text, re.I) is not None' -> FAIL ...in any case, without a seat, and URL-encoded; and no refusal quotes the text it matched: [[], ['owner-
+KILLED   ref_privacy: 'e.get("owner_only") is True))' -> FAIL the set is read off scopes.json: true declares, a string, false, a null entry or an underscore key does n
+KILLED   ref_privacy: '"scratch-root", "owner-only-id")\n\n\ndef body_refusa' -> FAIL an owner-only finding id is refused in a ref name, a message, a body and an added line: ['owner-only-id i
+KILLED   ref_privacy: '{socket.gethostname()}, owner_only_dims())' -> FAIL of_host carries the declaration to every guard that builds its own identity, and both class lists name th
+KILLED   ref_privacy: 'r"(?<![A-Za-z0-9])(?:" + "|".join(re.escape(d) for' -> FAIL its seat id and its name stay public, and so does a longer number or a longer word (null control): [[], [
+KILLED   fold_ledger: '    bad += owner_only_records(root, led, judge_fil' -> FAIL check refuses a judge verdict of an owner-only dimension, naming the file and the dimension and never the
+KILLED   fold_ledger: '    if private:\n        raise SystemExit' -> FAIL fold refuses the round before it writes, by the same line
+KILLED   fold_ledger: 'e.get("owner_only") is True} if' -> FAIL null control: the same record with the flag false passes check
+KILLED   fold_ledger: '            continue  # refused above' -> FAIL ...and a survivor of one that no class holds is not listed UNPLACED under its id
+KILLED   fold_ledger: '            d = owner_only_dim(p[1], dims) if p el' -> FAIL ...and a class instance or an _unclassified row of one, by class and by dimension
+KILLED   fold_ledger: '        d = owner_only_dim(u.get("finding_id"), di' -> FAIL ...and a class instance or an _unclassified row of one, by class and by dimension
+KILLED   fold_ledger: 'return m.group(1) if m and m.group(1) in dims else' -> FAIL null control: a ledger placing its survivor once, with nothing owed, passes
+KILLED   gh_read: '        if status == 304:\n            return ("unc' -> FAIL a 304 to the cached ETag is unchanged: an answer on the first call, though gh exits non-zero on it
+KILLED   gh_read: 'if code == 0 and status is not None and 200 <= sta' -> FAIL null control: the same exit status with no 304 status line is a failure, not unchanged
+KILLED   gh_read: '+ (["-H", f"If-None-Match: {etag}"] if etag else [' -> FAIL a 304 to the cached ETag is unchanged: an answer on the first call, though gh exits non-zero on it
+KILLED   gh_read: '    if spent:\n        return wait\n    if not http_' -> FAIL ...while one resetting inside the schedule is read again after its reset, not refused
+KILLED   gh_read: 'if status is None or not (rate_limited(status, bod' -> FAIL null control: a permission 403, a 404 and output with no status line name no rate-limit wait
+KILLED   gh_read: 'n not in buckets or buckets[n][1] < floor * bucket' -> FAIL an unreadable budget, or one missing a gated bucket, is below every floor (null control: never read as pl
+KILLED   gh_read: 'buckets[n][1] < floor * buckets[n][0]]' -> FAIL a bucket exactly at the floor passes and one request under it does not; search is not gated
+KILLED   gh_read: '    if not buckets:\n        return ["unread"]\n'
+KILLED   gh_read: '    if code:\n        return None\n    try:\n        ' -> FAIL an unreadable budget, or one missing a gated bucket, is below every floor (null control: never read as pl
+KILLED   gh_read: 'not any(w in docs[0].lower() for w in ("mutation",' -> FAIL ...and refuses a mutation, a subscription, a document from a file, a typed field, a second document, or a
+KILLED   gh_read: '        if value.startswith("@"):\n            retu' -> FAIL ...and refuses a mutation, a subscription, a document from a file, a typed field, a second document, or a
+KILLED   gh_read: 'if rest[k] != "-f" or k + 1 >= len(rest)' -> FAIL ...and refuses a mutation, a subscription, a document from a file, a typed field, a second document, or a
+KILLED   gh_read: 'return len(docs) == 1 and not any(' -> FAIL ...and refuses a mutation, a subscription, a document from a file, a typed field, a second document, or a
+KILLED   gh_calls: 'path) else "unattributed"' -> FAIL calls are counted per bucket: REST paths core, graphql and the GraphQL-served commands graphql, search se
+KILLED   gh_calls: 'return "core" if sub in CORE_CMDS else "unattribut' -> FAIL calls are counted per bucket: REST paths core, graphql and the GraphQL-served commands graphql, search se
+KILLED   gh_calls: '        if path == "rate_limit":\n            retur' -> FAIL calls are counted per bucket: REST paths core, graphql and the GraphQL-served commands graphql, search se
+KILLED   gh_calls: 'if path == "search" or path.startswith("search/"):' -> FAIL null control: a target the shim could not log, or an unknown subcommand, is unattributed and never core
+KILLED   gh_calls: 'if m and (since is None or m.group(1) >= since):' -> FAIL --top prints the bucket table, and --since bounds it like the other two
+KILLED   shim: '  [ -n "$ro" ] || { echo "gh shim: owner-only mode' -> FAIL P5: in owner-only mode the shim refuses each of 20 write spellings itself, and the real gh is never start
+KILLED   shim: '    api) api_gate "$@" && [ -n "$API_READ" ] && ro' -> FAIL P5: in owner-only mode the shim refuses each of 20 write spellings itself, and the real gh is never start
+KILLED   shim: '    pr) [ "${2-}" = view ] && ro=1 ;;' -> FAIL P5: in owner-only mode the shim refuses each of 20 write spellings itself, and the real gh is never start
+KILLED   shim: '    case ${meth:-GET} in GET|get) API_READ=1; retu' -> FAIL P5: in owner-only mode the shim refuses each of 20 write spellings itself, and the real gh is never start
+RESULT mutants=54 survived=0
+rc=0

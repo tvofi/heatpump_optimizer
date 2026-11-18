@@ -1,0 +1,93 @@
+/root/wt/tools/audit/seat/corpus_mirror.py:196: UserWarning: Overlapped entries: 'a' (possible zip bomb)
+  with zf.open(info) as src:
+ok   scan null: with no limit answer one pass reads every page once and completes
+ok   budget: rate_limit is read before the first call, and the gap is kept between calls
+ok   reads only: every gh call is a read or a query, and none names a search endpoint
+ok   pause: a secondary limit naming a long Retry-After pauses the scan at its cursor, exit 0, without sleeping the wait out
+ok   resume: after a secondary limit naming a long Retry-After the union of pages read is the whole list, and no page is read twice
+ok   pause: a spent core bucket pauses the scan at its cursor, exit 0, without sleeping the wait out
+ok   resume: after a spent core bucket the union of pages read is the whole list, and no page is read twice
+ok   crash: a scan killed mid-list resumes at the page after the last one stored, re-reading none
+ok   floor: a core bucket under 60 % pauses before any read, and the same bucket passes the own-identity floor
+ok   incremental: a second pass re-reads every list with If-None-Match and stores nothing new on a 304
+ok   refs null: three mapped namespaces and HEAD exit 0 with no unmapped line
+ok   refs: a force-pushed commit no ref reaches is fetched by SHA once; refused, it is not_reached: gone
+ok   refs: a commit found gone is an answer, and a later pass does not fetch it again
+ok   refs: a fourth namespace is a not_reached line per namespace and a non-zero exit, and the mapped ones are still fetched
+ok   archives: a traversing member, a link and a ratio bomb are each refused whole, by rule, and nothing of them is extracted
+ok   archives null: a well-formed archive extracts whole, owner-only, and an expired artifact is gone without a download
+ok   archives: a refused archive is an answer, and a later pass does not download it again
+ok   archives: a member that is the directory itself, or a path that is both a file and a directory, is refused whole by rule and never raises
+ok   archives: a member whose name is past the length cap is refused whole by rule, and one at the cap extracts
+FAIL archives: a write this host fails is raised, never returned as the archive's rule, and what was written before it is removed
+ok   archives null: nested files, a directory entry and a repeated ancestor extract whole
+ok   archives: an archive of such a shape is recorded as refused, the scan completes, and the other runs are read
+ok   archives: a member that cannot be read (encrypted, an unimplemented method, a corrupt or short stream) is refused whole and never raises
+ok   archives: bytes that open as no archive are refused by that rule
+ok   archives: through a scan, a logs archive where its encrypted flag is set is recorded as refused, the scan completes and the other runs are read
+ok   archives: through a scan, a logs archive where its compression method is not implemented is recorded as refused, the scan completes and the other runs are read
+ok   archives: through a scan, a logs archive where its deflate stream is corrupt is recorded as refused, the scan completes and the other runs are read
+ok   archives: through a scan, a logs archive where its stream does not hold what its header says is recorded as refused, the scan completes and the other runs are read
+ok   archives: through a scan, a logs archive where a later member's stream is corrupt, after one that was written is recorded as refused, the scan completes and the other runs are read
+ok   archives: each of 1429 archives one byte away from a well-formed one extracts or is refused by a rule, and none raises
+FAIL local failure: a healthy archive this host could not write because its file system is full (ENOSPC) is no answer: not_reached in its pass, nothing refused, nothing left, downloaded again by the next pass and examined
+FAIL local failure: a healthy archive this host could not write because a write fails with no OSError is no answer: not_reached in its pass, nothing refused, nothing left, downloaded again by the next pass and examined
+ok   local failure: memory running out while a member is read is this host's failure, never the archive's rule
+ok   local failure: every per-item read holds the rule: an asset this host could not store is no answer and is read again
+ok   local failure null: an archive that is itself bad stays refused: the next pass downloads it no second time and still lists it not_reached
+ok   transient: a read that answers an error is not_reached in its pass and is read again by the next, where it is examined
+ok   transient null: the pass that re-reads it reads no answered unit again
+ok   runs: each run's logs and check runs are read once, and a later pass reads none of them again
+ok   pause in a per-item read: a download's rate-limit answer pauses, and the resume downloads every run's logs once
+ok   site: the crawl stays on the site's own prefix, records a dead link, and stores each page once
+ok   manifest: every source states its denominators and what no endpoint serves, and the files are owner-only
+ok   gate: a search path, a field write, a mutation or any other gh command stops the mirror before the call
+ok   unmapped: only refs/ names outside heads, tags and pull count, each namespace once
+ok   links: relative and absolute same-site links are kept, another host and a fragment are cut
+ok   mutant killed: cursor write at a pause (by 'downloads every run's logs once')
+ok   mutant killed: cursor write per page (by 'killed mid-list resumes')
+ok   mutant killed: pause on a limit (by 'pauses the scan at its cursor')
+ok   mutant killed: floor (by 'under 60 % pauses')
+ok   mutant killed: budget first (by 'rate_limit is read before the first call')
+ok   mutant killed: gap (by 'gap is kept between calls')
+ok   mutant killed: reads only (by 'a field write, a mutation')
+ok   mutant killed: no search (by 'a search path')
+ok   mutant killed: etag sent (by 'If-None-Match')
+ok   mutant killed: namespace exit (by 'a fourth namespace')
+ok   mutant killed: namespace line (by 'a fourth namespace')
+ok   mutant killed: by sha (by 'fetched by SHA once')
+ok   mutant killed: traversal (by 'a traversing member')
+ok   mutant killed: link (by 'a link and a ratio bomb')
+ok   mutant killed: ratio (by 'a ratio bomb')
+ok   mutant killed: directory itself (by 'a member that is the directory itself')
+ok   mutant killed: file and directory (by 'a member that is the directory itself')
+ok   mutant killed: ancestors (by 'a member that is the directory itself')
+ok   mutant killed: archive boundary (by 'a member that cannot be read')
+ok   mutant killed: archive boundary, zipfile's own (by 'its deflate stream is corrupt is recorded as refused')
+ok   mutant killed: memory is the host's (by 'memory running out')
+ok   mutant killed: unreadable member (by 'a member that cannot be read')
+ok   mutant killed: unreadable archive (by 'open as no archive')
+FAIL mutant host write raised: needle found 0 times in the code
+FAIL mutant host write not a rule: needle found 0 times in the code
+ok   mutant killed: partial removed (by 'what was written before it is removed')
+ok   mutant killed: partial of a refused removed (by 'a member that cannot be read')
+ok   mutant killed: read once (by 'a later pass reads none of them again')
+ok   mutant killed: host failure caught (by 'its file system is full')
+ok   mutant killed: memory failure caught (by 'memory running out')
+ok   mutant killed: host failure is no answer (by 'its file system is full')
+ok   mutant killed: kept answer listed (by 'still lists it not_reached')
+ok   mutant killed: an archive of no file (by 'archives null: nested files')
+ok   mutant killed: name cap (by 'past the length cap')
+ok   mutant killed: name at the cap (by 'one at the cap extracts')
+ok   mutant killed: refusal recorded (by 'is recorded as refused')
+ok   mutant killed: no answer is asked again (by 'is read again by the next')
+ok   mutant killed: an answer is kept (by 'reads no answered unit again')
+ok   mutant killed: refused is an answer (by 'a refused archive is an answer')
+ok   mutant killed: gone is an answer (by 'a commit found gone is an answer')
+ok   mutant killed: an error is no answer (by 'is read again by the next')
+ok   mutant killed: judged whole (by 'nothing of them is extracted')
+ok   mutant killed: expired (by 'an expired artifact is gone')
+ok   mutant killed: site prefix (by 'stays on the site's own prefix')
+ok   mutant killed: owner-only files (by 'the files are owner-only')
+ok   mutant killed: new pass (by 're-reads every list')
+corpus_mirror self-test: FAIL archives: a write this host fails is raised, never returned as the archive's rule, and what was written before it is removed; local failure: a healthy archive this host could not write because its file system is full (ENOSPC) is no answer: not_reached in its pass, nothing refused, nothing left, downloaded again by the next pass and examined; local failure: a healthy archive this host could not write because a write fails with no OSError is no answer: not_reached in its pass, nothing refused, nothing left, downloaded again by the next pass and examined; mutant host write raised; mutant host write not a rule

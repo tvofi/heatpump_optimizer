@@ -1,0 +1,49 @@
+commit 1455a5ad970f725ceefd883ec67cf15a9d78c545
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Tue Nov 17 12:32:38 2026 +0000
+
+    closures: tests/entities.py reads dev/audit/config/scopes.json, so it leaves INERT
+    
+    check-wave-script.mjs, which tests/entities.py runs, now reads each
+    dimension's owner_only flag from scopes.json. CI's closures job refused the
+    read as INERT READS UNDER-APPROXIMATED; listing it under inert_reads alone
+    turns that into UNDER-SCOPED. It joins INERT_EXCEPT beside ci_priority.json,
+    and the Linux --single recording of tests/entities.py is merged.
+
+diff --git a/tests/closure.py b/tests/closure.py
+index 3793f2c531..0d696c5e01 100644
+--- a/tests/closure.py
++++ b/tests/closure.py
+@@ -598,6 +598,11 @@ INERT_EXCEPT = (
+     # R10-CI-PRIORITY-PAUSE: that self-test reads the tier setting (owed-line ranks);
+     # dev/audit/ is INERT by prefix, so the file moves to the recorded closure.
+     "dev/audit/config/ci_priority.json",
++    # R11-PRE-SECURITY-PRIVACY: tests/entities.py runs check-wave-script.mjs,
++    # which reads each dimension's owner_only flag here; CI's closures job said
++    # INERT READS UNDER-APPROXIMATED, and inert_reads alone leaves it UNDER-SCOPED.
++    # It moves to the recorded closure, so a scopes edit selects tests/entities.py.
++    "dev/audit/config/scopes.json",
+     # ... and that file's own readers: tests/entities.py loads the two new
+     # R10-CI-PRIORITY-PAUSE modules (ci_priority.py, ci_pause.py) and runs
+     # their self-tests, so the tools/audit/seat/ INERT prefix must not hide them.
+diff --git a/tests/closures.json b/tests/closures.json
+index 58ddf5ae88..f510d3374a 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -1681,6 +1681,7 @@
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "dev/audit/README.md",
+    "dev/audit/config/ci_priority.json",
++   "dev/audit/config/scopes.json",
+    "dev/audit/harnesses/dependabot_stale_hash.py",
+    "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
+@@ -5395,7 +5396,7 @@
+    "seconds": 21.5
+   },
+   "tests/entities.py": {
+-   "rc": 1,
++   "rc": 0,
+    "seconds": 867.9
+   },
+   "tests/env_drift.py": {

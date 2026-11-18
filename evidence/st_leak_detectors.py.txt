@@ -1,0 +1,25 @@
+ok   scan: a planted twin of every class fires as exactly that class, starting at its own offset
+ok   scan: the other spellings of a class fire too
+ok   mask: with the detector's own span masked it is quiet (the perturbation of a leaked-data finding)
+ok   scan null: noreply and example addresses, public or partial numbers, placeholder entities and the cloud image's root are quiet
+ok   scan: the host-path grammar is ref_privacy's own object, not a copy
+ok   locate: the span at an offset is printed, and masked it is not (a location harness moves)
+ok   cli scan: the rows go under the private root, owner-only, and the output names no file, class or value
+ok   cli scan: an --out outside the private root, or with no root set, is refused and nothing is written
+ok   cli locate: prints the span and exits 0; masked, prints nothing and exits 1
+ok   mutant killed: host classes (by 'planted twin of every class')
+ok   mutant killed: token (by 'planted twin of every class')
+ok   mutant killed: pem (by 'other spellings')
+ok   mutant killed: public email (by 'noreply and example addresses')
+ok   mutant killed: coordinates (by 'planted twin of every class')
+ok   mutant killed: four decimals (by 'public or partial numbers')
+ok   mutant killed: private ranges (by 'public or partial numbers')
+ok   mutant killed: mac (by 'other spellings')
+ok   mutant killed: placeholders (by 'placeholder entities')
+ok   mutant killed: mask (by 'own span masked')
+ok   mutant killed: locate masked (by 'masked it is not')
+ok   mutant killed: locate range (by 'masked it is not')
+ok   mutant killed: out is private (by 'outside the private root')
+ok   mutant killed: real path (by 'outside the private root')
+ok   mutant killed: mode (by 'owner-only')
+leak_detectors self-test: ok (with mutants)

@@ -1,17 +1,29 @@
-Fix review: blocked d40c045119e3dd9f00a88ded4ec109e2d617f545 merge-conflict: tests/layout.json conflicts with origin/main 54cb721164, where #3665 adds product_reads.py to the tools/audit glob this branch extends with leak_detectors.py
+Fix review: merge fcd576d7e8092e57a3623c776c9bfd87b55407ae
 
-bus-nonce: 6596e269058f48c91b05bb8dee3cdfe2
+bus-nonce: 872217d4c28be05a74c147bc282228f1
 
-## Block
+## Round
 
-- `git merge-tree --write-tree origin/main d40c045119e3dd9f00a88ded4ec109e2d617f545` exits 1 with `CONFLICT (content): Merge conflict in tests/layout.json` (ev/merge_tree.txt). origin/main is 54cb7211642364d762ba47f42d5f7b8a5953f742; merge base b425502da8.
-- The three sides of line 114, the `tools/audit/{...}` glob (ev/layout_conflict_sides.txt): the base lists neither file; this head appends `leak_detectors.py`; main (fd206bef2c, merged by #3665 at 54cb721164) inserts `product_reads.py` after `enumerate.py`. The head's last merge of main was 27e47beced, before #3665 reached main. The resolution keeps both entries; it is the fixer's to make, and steps 2-8 re-run on the new head (fixer.md).
-- The review packet refuses the same: `REFUSE structure: ... head does not merge cleanly with origin/main` (ev/review_packet_refusals.txt).
+Round 4 over this PR's review history: rounds 1 and 2 blocked on code, and round 3 (d40c045119) blocked on a merge conflict. This round reviews the delta d40c045119..fcd576d7e8 only (review packet `## Review scope: delta`). The delta changes nothing under custom_components/, so the scope is not widened. fix-review.md is unchanged on main since the merge base; only architect-planner.md and plan-review.md moved.
 
 ## Evidence
 
-- Head reviewed: d40c045119e3dd9f00a88ded4ec109e2d617f545 (ev/HEAD.txt), from a detached worktree.
-- Orchestrator-flagged change, tools/audit/seat/finder_overlap.py (ev/finder_overlap_delta.diff): the owner-only canary moves from D18 to D17, and seat_pair gains a D0..D17 bound placed after the owner-only check. The move is needed: with the canary at D18, deleting the owner-only check still refuses the seat on the new bound, so the canary case could not tell the two predicates apart. At D17 the bound admits the seat, so only the owner-only check refuses it. `python3 -I tools/audit/seat/finder_overlap.py --self-test` at this head: `finder_overlap self-test: ok (with mutants)`, rc=0, with `mutant killed: owner-only seat (by 'canary seat is refused')` and all three bound mutants (D15, D16, D18) killed by the D16/D17/D18 case (ev/finder_overlap_selftest.txt). Sound as resolved.
-- CI: one `merge_train.py classify d40c045119e3dd9f00a88ded4ec109e2d617f545 --pr 3679` read printed `WAIT d40c045119e3dd9f00a88ded4ec109e2d617f545 pending: gate red: none` (rc=3, ev/classify.txt). I did not keep polling: a conflict blocks whatever CI concludes, and the train re-proves CI on the resolved head. The packet also reported `tests / closures` as a concluded red with no `## Red checks` answer. That check is not in the `owed-reds` set (coverage-ratchet, fast (3.14), mutation, typing, validate-hacs), so it is neither owed an answer nor a block.
-- Scope: the packet scopes this round as delta over 681a0d90890c269508924867e0f5f84689ef4ed9, 227 files. Apart from the finder_overlap change above, I did not review the delta or re-check the previous verdict's two findings (corpus_mirror.py safe_extract on three archive shapes and a local write failure; owner_only.py probe accepting a gh that exits non-zero), because the head must move to resolve the conflict. The next round reviews them at the resolved head.
-- Dispatch: the scheduled prompt cited the brief at 535b040ba92d1ce7d207bf8ea94c9200b7b22290, which is a #3639 verdict commit holding no PROMPT.md. This review followed PROMPT.md of dispatch/reviewer-rev-3679 at 588d3b4c87de3fbcd3c004529dfb3190a55285f3 (byte-identical at its tip 064a0677666e), which names this PR, head and nonce and which that branch's PAYLOAD.json pins.
+- Head reviewed: fcd576d7e8092e57a3623c776c9bfd87b55407ae (ev/HEAD.txt), checked out in a detached worktree. The PR body's `## Head` names this SHA.
+- Previous verdict's block (tests/layout.json conflict) is resolved. 75b8f26b4c keeps both `product_reads.py` and `leak_detectors.py`. fcd576d7e8 also keeps main's `regret_oracle.py` beside `leak_detectors.py`. The remerge diffs show each glob as the union of both parents (ev/remerge_diffs.txt). `python3 tests/layout.py` rc=0 (ev/layout.txt).
+- Merge with main: `git merge-tree --write-tree origin/main fcd576d7e8` exits 0 against origin/main 7ae657e0e2 (ev/merge_tree.txt).
+- Delta, as the head's own content: three main-merges plus 1455a5ad97 (the closures repair). The only hand resolutions are tests/layout.json (twice) and b0a8effcd1's three conflicts: tools/audit/seat/gh_calls.py, gh_read.py and shims/seat-gh. In all three each side is kept: the docstring states both rules, both self-test blocks are kept, and the shim keeps the owner-only comment and main's install-fixed `loghome` (ev/remerge_diffs.txt). Self-tests at head: gh_calls `229 checks, 0 failed`; gh_read `176 checks, 0 failed`; owner_only, corpus_mirror, finder_overlap and leak_detectors each `ok (with mutants)`; ref_privacy `132 checks, 0 failed`; fold_ledger rc=0 (ev/st_*.txt).
+- Mutant on the merged shim: line 315's `if [ -n "${HPO_OWNER_ONLY:-}" ]` changed to `if false`. `dev/audit/harnesses/owner_only_channel.py` goes from `RESULT arms=49 failed=0` / `OWNER-ONLY CHANNEL HELD` to `failed=2` / `OWNER-ONLY CHANNEL BROKEN: P5 ...` (ev/channel_head.txt, ev/mutant_seatgh_channel.txt): killed. owner_only.py's own self-test does not cover the shim (ev/mutant_seatgh_owner_only.txt, still rc 0); the channel harness holds it, as the body says.
+- `python3 -I dev/audit/harnesses/owner_only_mutants.py` at head: `RESULT mutants=54 survived=0`, rc 0 (ev/owner_only_mutants.txt). This re-derives the body's figure, and its shim group runs against the merged shim.
+- 1455a5ad97 (ev/1455a5ad97.diff) moves `dev/audit/config/scopes.json` into INERT_EXCEPT and the recorded closure of tests/entities.py, alongside ci_priority.json. The live `tests / closures` and `tests / closure-scope` checks are green at this head, so I cite CI rather than re-recording.
+- Round 3 deferred two findings to this round; I checked both at head with targeted mutants.
+  - owner_only.py:250: `rc != 1 or NO_LOGIN not in out + err` mutated to `rc not in (1,)`. The self-test goes red (rc=1, the two exit-1 gh arms FAIL; ev/mutant_owner_only_gh_rc.txt): killed.
+  - corpus_mirror.py safe_extract: the host-write failure mutated so it returns a rule instead of raising. Three arms go red, `a write this host fails is raised` and both `local failure` arms (rc=1; ev/mutant_corpus_write.txt): killed.
+  - Both mutants were restored, and the worktree is clean.
+- CI: `merge_train.py classify fcd576d7e8092e57a3623c776c9bfd87b55407ae --pr 3679` printed `GREEN fcd576d7e8092e57a3623c776c9bfd87b55407ae pending: none red: none`, rc 0 (ev/classify.txt). No owed red exists. The packet's `tests / nightly-status` failure is not in the owed-reds set, so it is neither answered nor a block.
+- VERSION, the manifest and RELEASE_NOTES.md are untouched by the PR's diff against the merge base 91674d15cd.
+- Closing self-audit: `carry_audit.py check` over this verdict, with a stub body, rc 0, `0 finding item(s)` (ev/carry_audit_verdict.txt). The body's own items are audited in the review packet at this head: `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)`.
+- Figures I could not re-derive: F3–F7 (the scan's measured cost). The body states that they are not measured and why, and Carry 2 routes them.
+
+## Findings
+
+none

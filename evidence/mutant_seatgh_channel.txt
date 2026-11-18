@@ -1,0 +1,53 @@
+ok   P1-P3: the grader's owner-only block ran and holds no FAIL
+ok   P1-P3: a public round dispatches no seat of an owner-only dimension
+ok   P1-P3: nor does a box run
+ok   P1-P3: a box row naming an owner-only seat stops the round before Prepare
+ok   P1-P3: a run handed a private root dispatches the owner-only seats and nothing else
+ok   P1-P3: nothing a seat replied is in the return value or a log line
+ok   P1-P3: a seat that throws, then returns nothing, is retried once
+ok   P1-P3: a red probe stops the run before any seat
+ok   P1-P3: null control: the same dimension with the flag removed is dispatched
+ok   P1-P3: null control: the same canary under a D15 seat
+ok   P1-P3: the public verification pass refuses a register holding an owner-only finding
+ok   P1-P3: a private root with args.file, inside the checkout, or with no owner-only dimension is refused
+ok   P1-P3: a run handed a private root verifies and judges the owner-only dimensions and nothing else
+ok   P1-P3: a verifier or judge that throws leaves a fixed sentence and no reply text
+ok   P1-P3: null control: with the dimension out of the set the same finding reaches the judge
+ok   P4: check refuses a JUDGE.json holding the canary under an owner-only id, without the id or the nonce
+ok   P4: fold refuses the round and leaves the ledger byte-identical
+ok   P4 null: the same canary under a D15 id is folded into the ledger, and check passes
+FAIL P5: in owner-only mode the shim refuses each of 20 write spellings itself, and the real gh is never started -- 18 passed; log 'gh issue create -t <nonce> -b 2288f7ba61d2f349c6f6a0808'
+FAIL P5: a read still passes in that mode (the mode is no blanket refusal) -- gh issue create -t <nonce> -b <nonce>
+gh issue comment 7 -b 2288f7ba61
+ok   P5 null: with the mode unset the same write reaches the stub gh, the canary with it
+ok   P5b: every file the sibling command returns is an arm here or named as no writer, and every arm is still returned
+ok   P5b: tools/pr/app_push.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/pr/app_push.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/pr/app_comment.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/pr/app_comment.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/pr/app_approve.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/pr/app_approve.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/audit/seat/body_patch.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/audit/seat/body_patch.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/audit/seat/remerge_main.sh fails at its push with no key, and no curl or ssh is started (its key read is app_push.sh's, the null above)
+ok   P5b: tools/audit/seat/bus.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/audit/seat/bus.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/release/stamp.py refuses a deploy key it cannot read, before any git or ssh call
+ok   P5b null: tools/release/stamp.py's push-key rule passes a throwaway mode-600 key (the refusal is the absent key's)
+ok   P7: the guard refuses an owner-only finding id in a ref name, quoting neither the id nor the nonce
+ok   P7: the guard refuses an owner-only finding id in a message, quoting neither the id nor the nonce
+ok   P7: a comment or pull-request body holding the id is refused by its line
+ok   P7 null: the same canary under a D15 id passes the guard, and so do the owner-only dimension's name and seat id
+ok   P7 null: a guarded push whose commit message carries the canary under a D15 id lands on the scratch origin
+ok   P7: the same push with the owner-only id is refused by the guard, and no ref of the scratch origin holds it
+ok   P10: owner-only seat: the canary seat is refused, no pair written, no twin path printed
+ok   P10: owner-only estimate: a pair naming the canary seat is refused before any report is read
+ok   P10: owner-only null: the same seat with the flag removed is admitted and its twin path printed
+ok   P10: owner-only null: a D15 seat of the committed scopes is admitted beside an owner-only dimension
+ok   SCOPES null: the planned shape (five seats over four steps and five sources, an empty file universe, owner_only) passes check_scopes
+ok   SCOPES: a planted overlap on the source axis is refused by the cell it names
+ok   SCOPES: a planted orphan on the source axis is refused by the cell it names
+ok   SET: the four readers of scopes.json's owner_only return one set over one table (true alone declares)
+RESULT arms=49 failed=2
+OWNER-ONLY CHANNEL BROKEN: P5: in owner-only mode the shim refuses each of 20 write spellings itself, and the real gh is never started; P5: a read still passes in that mode (the mode is no blanket refusal)
+rc=1

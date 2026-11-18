@@ -1,0 +1,142 @@
+ok   probe null: the account the launcher builds is refused nothing
+ok   env: the session inherits nothing but the named model credential
+ok   env: a token variable, an allow-list name, an unset name or a malformed one is no model credential
+ok   prepare: the root's files are owner-only, the shim is installed as gh, and probe.json holds the owner's paths
+ok   probe: a readable identity directory is refused by its path
+ok   probe: an identity directory that lists, even empty, is refused: a listing is a read
+ok   probe: an owner path the account can open is refused
+ok   probe: an owner identity directory or deploy key that does not exist proves nothing and is refused
+ok   probe: an owner path whose state the host does not report is refused
+ok   probe: an unlistable identity directory whose key file is readable by name is refused
+ok   probe: a readable deploy key is refused by its path
+ok   probe: a git credential for the origin host is refused, and its value is not printed
+ok   probe null: a credential helper that answers no password is not one
+ok   probe: git that cannot be run, or exits with neither answer, leaves the work-tree question unanswered and is refused
+ok   probe: a `git credential fill` that cannot be run, or fails without saying it has no credential, is refused
+ok   probe null: git saying it could read no username or password has answered, with no credential
+ok   probe: an agent socket is refused
+ok   probe: a private key, or a gh login file, under the home is refused by its path
+ok   probe: a directory under the home that is there and cannot be listed is refused
+ok   probe null: a known_hosts and a public key under the home are not credentials
+ok   probe: the token variable GH_TOKEN is refused by name, never by value
+ok   probe: the token variable GITHUB_TOKEN is refused by name, never by value
+ok   probe: the token variable GH_ENTERPRISE_TOKEN is refused by name, never by value
+ok   probe: the token variable GITHUB_APP_INSTALL_TOKEN is refused by name, never by value
+ok   probe: the token variable HPO_PUSH_URL is refused by name, never by value
+ok   probe: every credential-named variable of the corpus is refused by name (PUSH_AUTH among them)
+ok   probe null: a name where the word runs on into a longer one, or the launcher's own variables, is not a credential's
+ok   probe: the model credential is exempt only by the launcher's record of its name
+ok   probe: a GitHub token variable is refused even when the record names it the model credential
+ok   probe null: an empty token variable and the model credential are not refused
+ok   probe: a cloud session is refused (CLAUDE_CODE_REMOTE)
+ok   probe: a cloud session is refused (CCR_SESSION_PROFILE)
+ok   probe: a gh that is not the shim first on PATH is refused
+ok   probe: a real gh behind the shim that reports a login is refused by its path
+ok   probe: a real gh behind the shim that cannot be run, or does not return, is refused by its path
+FAIL probe: a real gh behind the shim that answers exit 1 and silent has not said it holds no login and is refused by its path
+FAIL probe: a real gh behind the shim that answers exit 1 saying its token is invalid has not said it holds no login and is refused by its path
+ok   probe: a real gh behind the shim that answers exit 2 has not said it holds no login and is refused by its path
+ok   probe: a real gh behind the shim that answers exit 4 has not said it holds no login and is refused by its path
+ok   probe: a real gh behind the shim that answers exit 127 has not said it holds no login and is refused by its path
+ok   probe: a real gh behind the shim that answers killed by a signal has not said it holds no login and is refused by its path
+ok   probe: a real gh behind the shim that answers exit 128 has not said it holds no login and is refused by its path
+ok   probe null: a real gh that says it holds no login, on either stream, passes
+ok   probe: the work-tree question is asked with none of git's variables but the two the probe sets, and again as the session's git is configured
+ok   probe: a root that only the session's own git configuration makes a work tree is refused
+ok   probe null: a real gh behind the shim with no login passes, and the shim itself is never asked
+ok   probe: HPO_OWNER_ONLY unset is refused
+ok   probe: a private root that is not mode 700, absent, or inside a work tree is refused
+ok   probe: a relative private root is refused before anything is read
+ok   probe: an identity directory that is unset, outside the root, absent or not empty is refused
+ok   probe: a home outside the private root is refused
+ok   probe: a root the launcher did not prepare (no probe.json) is refused
+ok   probe: a probe.json naming no identity directory proves nothing and is refused
+ok   host null: a sound account through the real Host and the real git is refused nothing
+ok   host: with no git on PATH both git questions are unanswered and refused
+ok   host: a git that does not return in time is refused on both questions
+ok   host: a gh behind the shim that cannot be run is refused
+FAIL host: a real gh behind the shim passes only by saying it holds no login: exit 0 is a login, and exit 1 unsaid, 2, 127 or a signal is no answer
+ok   host: a private root inside a work tree is refused, and no variable of git's in the environment hides the tree
+ok   host null: the same variables over a root outside every work tree are refused nothing
+ok   host: reach reads a stat the kernel refuses as denied, and one that fails any other way as no answer
+ok   host: PUSH_AUTH set in the real environment is refused by name
+ok   host: owner paths that do not exist are refused, each by its path
+ok   host: reach tells an absent path, one under a file, and an open one apart; a closed one is denied
+ok   host: run reports an exit, both streams, and None for a program that is not there
+ok   launch: probe, mirror with the descriptor, probe again, then the session under the allow-listed environment
+ok   launch: a red probe starts neither the mirror nor the session
+ok   launch: a mirror that fails starts no session
+ok   launch: --skip-mirror with no corpus manifest starts no session
+ok   launch null: --skip-mirror over an existing manifest runs no mirror and starts the session
+ok   launch: both or neither of --token-fd and --skip-mirror, no session command, or a root that does not exist is refused before any probe
+ok   mutant killed: root mode (by 'not mode 700')
+ok   mutant killed: work tree (by 'inside a work tree')
+ok   mutant killed: work tree unanswered (by 'leaves the work-tree question unanswered')
+ok   mutant killed: work tree any 128 (by 'leaves the work-tree question unanswered')
+ok   mutant killed: work tree either half (by 'leaves the work-tree question unanswered')
+ok   mutant killed: work tree any exit (by 'leaves the work-tree question unanswered')
+ok   mutant killed: git variables out of the question (by 'no variable of git's in the environment hides the tree')
+ok   mutant killed: git variables, two named (by 'no variable of git's in the environment hides the tree')
+ok   mutant killed: asked without them first (by 'no variable of git's in the environment hides the tree')
+ok   mutant killed: asked as configured too (by 'only the session's own git configuration')
+ok   mutant killed: across file systems (by 'asked with none of git's variables')
+ok   mutant killed: stat denied (by 'a stat the kernel refuses as denied')
+ok   mutant killed: stat unanswered (by 'a stat the kernel refuses as denied')
+ok   mutant killed: run unanswered (by 'with no git on PATH')
+ok   mutant killed: run timeout (by 'does not return in time')
+ok   mutant killed: run stderr (by 'host null')
+ok   mutant killed: probe file (by 'no probe.json')
+ok   mutant killed: no identity named (by 'naming no identity directory')
+ok   mutant killed: identity dir (by 'readable identity directory')
+ok   mutant killed: identity by name (by 'readable by name')
+ok   mutant killed: deploy key (by 'readable deploy key')
+ok   mutant killed: absent owner path (by 'does not exist proves nothing')
+ok   mutant killed: absent owner path, real (by 'owner paths that do not exist')
+ok   mutant killed: unreported state (by 'whose state the host does not report')
+ok   mutant killed: a listing is a read (by 'that lists, even empty')
+ok   mutant killed: open path (by 'the account can open')
+ok   mutant killed: denied is not open (by 'host null')
+ok   mutant killed: identity env (by 'outside the root, absent or not empty')
+ok   mutant killed: home (by 'home outside the private root')
+ok   mutant killed: credential (by 'git credential for the origin host')
+ok   mutant killed: credential unanswered (by 'fails without saying it has no credential')
+ok   mutant killed: credential said no (by 'saying it could read no username')
+ok   mutant killed: credential any exit (by 'fails without saying it has no credential')
+ok   mutant killed: home dir unlistable (by 'there and cannot be listed')
+ok   mutant killed: agent (by 'agent socket')
+ok   mutant killed: home keys (by 'under the home is refused')
+ok   mutant killed: public key (by 'public key under the home')
+ok   mutant killed: credential class (by 'every credential-named variable')
+ok   mutant killed: token var (by 'even when the record names it')
+ok   mutant killed: model exempt (by 'probe null: the account the launcher builds')
+ok   mutant killed: model by record (by 'exempt only by the launcher's record')
+ok   mutant killed: record written (by 'probe.json holds the owner's paths')
+ok   mutant killed: record passed (by 'launch null')
+ok   mutant killed: auth word (by 'every credential-named variable')
+ok   mutant killed: key ends a segment (by 'every credential-named variable')
+ok   mutant killed: plural (by 'every credential-named variable')
+ok   mutant killed: whole words stay whole (by 'runs on into a longer one')
+ok   mutant killed: word ends a segment (by 'runs on into a longer one')
+ok   mutant killed: segments (by 'every credential-named variable')
+ok   mutant killed: any case (by 'every credential-named variable')
+ok   mutant killed: push url (by 'HPO_PUSH_URL')
+ok   mutant killed: cloud (by 'cloud session is refused (CCR_')
+ok   mutant killed: shim first (by 'not the shim first on PATH')
+ok   mutant killed: mode var (by 'HPO_OWNER_ONLY unset')
+ok   mutant killed: gh login (by 'reports a login')
+FAIL mutant gh unanswered: needle found 0 times in the code
+FAIL mutant gh any exit: needle found 0 times in the code
+FAIL mutant gh exit 1 unsaid: needle found 0 times in the code
+FAIL mutant gh said under another exit: needle found 0 times in the code
+FAIL mutant gh said on stdout: needle found 0 times in the code
+FAIL mutant gh real exits: needle found 0 times in the code
+ok   mutant killed: shim not asked (by 'shim itself is never asked')
+ok   mutant killed: inherit (by 'inherits nothing')
+ok   mutant killed: model name (by 'is no model credential')
+ok   mutant killed: first probe (by 'red probe starts neither')
+ok   mutant killed: second probe (by 'probe, mirror with the descriptor, probe again')
+ok   mutant killed: mirror rc (by 'mirror that fails')
+ok   mutant killed: manifest (by 'no corpus manifest')
+ok   mutant killed: one of (by 'both or neither')
+ok   mutant killed: umask (by 'owner-only, the shim is installed')
+owner_only self-test: FAIL probe: a real gh behind the shim that answers exit 1 and silent has not said it holds no login and is refused by its path; probe: a real gh behind the shim that answers exit 1 saying its token is invalid has not said it holds no login and is refused by its path; host: a real gh behind the shim passes only by saying it holds no login: exit 0 is a login, and exit 1 unsaid, 2, 127 or a signal is no answer; mutant gh unanswered; mutant gh any exit; mutant gh exit 1 unsaid; mutant gh said under another exit; mutant gh said on stdout; mutant gh real exits
