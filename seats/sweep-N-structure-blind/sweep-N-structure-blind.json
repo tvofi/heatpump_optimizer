@@ -1,0 +1,111 @@
+{
+ "class": "N-structure-blind",
+ "instances": 3,
+ "barriered": true,
+ "barrier_note": "ledger status barriered (tests/structure.py + ci_ratchet archscore rows); the three beyond-finding shapes pass that barrier, so it does not reach them",
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/blind_rows.py  # every row of tests/structure_budgets.json probed with a canonical plant (row must move) and a respelled plant of the same property; the 25 archscore rows of tests/ci_budgets.json measured under every plant as the second reader; plus the finder's census (D7/s1/m1_ratchet_census.py, D7/s3/m6_inner.py) for the no-row properties",
+ "baseline_sha": "28b864af6d909e3114d07546e22af79ce8dc85ef (origin/handoff/audit-r11-register)",
+ "controls": {
+  "positive": "re-finds every judged finding through the finder's own census arms (positive_control.txt): const-respell 3 -> 2, clone-same-fn 8 -> 8 with in_function 6 -> 7, unused-import 14 -> 15 rows flat, module-growth unpriced 2981 -> 4404 rows flat, m6_inner planted_delta=1",
+  "null": "--null (a comment planted on both arms): every row delta 0 (run--null.txt); per probe the canonical arm is the row's own null against blindness -- it must move the row",
+  "perturbation": "each canonical plant is the one-line/one-def re-introduction: P3 max_cc 44 -> 51, P4 dead_top_level_symbols 1 -> 3, P5 import_cycle_modules 0 -> 2",
+  "note": "run_baseline.txt's P3 line predates making the module-level plant's globals read (its archscore moves were the unread globals, not the branches); run_P3_fixed.txt is the reading"
+ },
+ "instance_list": [
+  {
+   "file": "tests/structure.py",
+   "symbol": "measure.const_fanout (const_modules_over_50)",
+   "finding": "D7-s1-01",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py --perturb const-respell  # ratchet 3 -> 2, any-spelling stays 4",
+   "beyond_finding": false
+  },
+  {
+   "file": "tests/structure.py",
+   "symbol": "duplicate_clones (duplication_copies); tools/audit/archscore/counters.py gapped_clones",
+   "finding": "D7-s1-02",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py --perturb clone-same-fn  # ratchet_duplication_copies 8 -> 8, in_function_copies 6 -> 7; null clone-two-fns 8 -> 9",
+   "beyond_finding": false
+  },
+  {
+   "file": "tests/structure.py",
+   "symbol": "measure (no unused-package-import row)",
+   "finding": "D7-s1-03",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py --perturb unused-import  # unused_package_imports 14 -> 15, ratchet_rows_off_budget 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "tests/structure.py",
+   "symbol": "measure.class_excess_loc (no module-span row)",
+   "finding": "D7-s1-04",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py --perturb module-growth  # coordinator_py_unpriced_loc 2981 -> 4404, rows off budget 0; null class-growth class_excess_loc 17385 -> 18785",
+   "beyond_finding": false
+  },
+  {
+   "file": "tests/structure.py",
+   "symbol": "measure (no dead-state row: unread params, locals, attributes, fields)",
+   "finding": "D7-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_inner.py --perturb  # unread_params 16, unread_locals 7, unread_fields 1, planted_delta=1; no structure row reads them",
+   "beyond_finding": false
+  },
+  {
+   "file": "tests/structure.py",
+   "symbol": "cyclomatic_complexity over all_functions (max_cc, functions_cc_over_15, functions_cc_over_25)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/blind_rows.py --only P3  # 50 branches in a function: max_cc 44 -> 51, cc_over_15 26 -> 27, cc_over_25 7 -> 8; the same 50 branches at module level: no structure or archscore row moves (BLIND). In tree: store.py's module-level DOMAINS table (store.py:328) carries ~30 decision points no row prices",
+   "beyond_finding": true
+  },
+  {
+   "file": "tests/structure.py",
+   "symbol": "bound_references / is_dead_symbol (dead_top_level_symbols)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/blind_rows.py --only P4  # two unreferenced defs: dead_top_level_symbols 1 -> 3, archscore.dead_members 1 -> 3; the same two defs calling only each other: nothing moves (BLIND) -- liveness is any Name load, not reachability from production roots (dead_members is reachability for methods only)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tests/structure.py",
+   "symbol": "import graph of import_cycle_modules (ast.ImportFrom level >= 1 only)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/blind_rows.py --only P5  # const.py `from . import ledger`: import_cycle_modules 0 -> 2; the same import spelled absolute (`from custom_components.heatpump_optimizer import ledger`), a real load-time cycle: nothing moves (BLIND). importlib.import_module (in tree at __init__.py:90, optimizer.py:1465) is equally unseen",
+   "beyond_finding": true
+  }
+ ],
+ "other_seams": [
+  {
+   "row": "coordinator_private_reach",
+   "disposition": "guarded",
+   "guard": "literal getattr/hasattr counted by structure.private_reach_sites; a computed-name getattr (P1 respell) moves archscore.computed_attr_access 27 -> 28 (tests/ci_budgets.json)"
+  },
+  {
+   "row": "coordinator_attrs, coordinator_multiassigned_attrs",
+   "disposition": "guarded",
+   "guard": "literal setattr counted by coordinator_writers; vars(x)[k]= / x.__dict__[k]= (P2 respell) move archscore.reflective_writes 10 -> 12 (ci_budgets)"
+  },
+  {
+   "row": "max_method_loc, methods_over_150, methods_over_200",
+   "disposition": "guarded",
+   "guard": "all_functions walks nested defs: a 250-line function nested in another (P6 respell) moves methods_over_150/200 like the top-level one"
+  },
+  {
+   "row": "dead_methods",
+   "disposition": "guarded",
+   "guard": "reachability over methods with the counting-rule self-check (#1686, #1738); a member kept alive by an untyped load of a shared name (P7 respell) moves name_kept_members 38 -> 40"
+  },
+  {
+   "row": "name_kept_members",
+   "disposition": "not applicable",
+   "reason": "it is the printed count of the shape dead_methods cannot measure (R10-N-structure-blind), the guard itself"
+  },
+  {
+   "row": "max_class_loc",
+   "disposition": "not applicable",
+   "reason": "a max over class spans; moving lines out of the largest class into another class is a split that class_excess_loc prices per class (m1 class-growth moves it 17385 -> 18785), and out of any class is D7-s1-04's seam"
+  },
+  {
+   "row": "seam_cut_total",
+   "disposition": "guarded",
+   "guard": "priced by CoordinatorRoles over the declared seam map, coordinator.py helpers handed the coordinator counted as units (#1686, #1738); m1 --perturb seam-relabel moves it"
+  },
+  {
+   "row": "class_excess_loc, const_modules_over_50, duplication_copies",
+   "disposition": "instance (judged)",
+   "reason": "see instance_list (D7-s1-04, D7-s1-01, D7-s1-02)"
+  }
+ ]
+}

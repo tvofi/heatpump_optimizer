@@ -1,0 +1,207 @@
+{
+ "P1-private-reach": {
+  "rows": [
+   "coordinator_private_reach"
+  ],
+  "file": "ledger.py",
+  "canonical_delta": {
+   "archscore.coordinator_private_reach": [
+    3,
+    2
+   ],
+   "coordinator_private_reach": [
+    1,
+    0
+   ]
+  },
+  "respelled_delta": {
+   "archscore.computed_attr_access": [
+    28,
+    27
+   ],
+   "archscore.coord_footprint": [
+    2503,
+    2502
+   ]
+  },
+  "verdict": "guarded"
+ },
+ "P2-attr-writers": {
+  "rows": [
+   "coordinator_attrs",
+   "coordinator_multiassigned_attrs"
+  ],
+  "file": "ledger.py",
+  "canonical_delta": {
+   "archscore.coord_footprint": [
+    2504,
+    2502
+   ],
+   "archscore.coordinator_multiassigned_attrs": [
+    105,
+    104
+   ],
+   "archscore.coordinator_private_reach": [
+    8,
+    2
+   ],
+   "coordinator_attrs": [
+    137,
+    136
+   ],
+   "coordinator_multiassigned_attrs": [
+    105,
+    104
+   ],
+   "coordinator_private_reach": [
+    6,
+    0
+   ]
+  },
+  "respelled_delta": {
+   "archscore.coord_footprint": [
+    2504,
+    2502
+   ],
+   "archscore.reflective_writes": [
+    12,
+    10
+   ],
+   "archscore.shared_inplace_writes": [
+    4,
+    3
+   ]
+  },
+  "verdict": "guarded"
+ },
+ "P3-cc-module-level": {
+  "rows": [
+   "max_cc",
+   "functions_cc_over_15",
+   "functions_cc_over_25"
+  ],
+  "file": "ledger.py",
+  "canonical_delta": {
+   "functions_cc_over_15": [
+    27,
+    26
+   ],
+   "functions_cc_over_25": [
+    8,
+    7
+   ],
+   "max_cc": [
+    51,
+    44
+   ]
+  },
+  "respelled_delta": {
+   "archscore.dead_members": [
+    2,
+    1
+   ],
+   "archscore.unread_private_globals": [
+    1,
+    0
+   ],
+   "dead_top_level_symbols": [
+    2,
+    1
+   ]
+  },
+  "verdict": "guarded"
+ },
+ "P4-dead-mutual-pair": {
+  "rows": [
+   "dead_top_level_symbols"
+  ],
+  "file": "ledger.py",
+  "canonical_delta": {
+   "archscore.dead_members": [
+    3,
+    1
+   ],
+   "dead_top_level_symbols": [
+    3,
+    1
+   ]
+  },
+  "respelled_delta": {},
+  "verdict": "BLIND"
+ },
+ "P5-import-cycle-absolute": {
+  "rows": [
+   "import_cycle_modules"
+  ],
+  "file": "const.py",
+  "canonical_delta": {
+   "archscore.import_cycle_modules": [
+    2,
+    0
+   ],
+   "import_cycle_modules": [
+    2,
+    0
+   ]
+  },
+  "respelled_delta": {},
+  "verdict": "BLIND"
+ },
+ "P6-long-nested": {
+  "rows": [
+   "max_method_loc",
+   "methods_over_150",
+   "methods_over_200"
+  ],
+  "file": "ledger.py",
+  "canonical_delta": {
+   "methods_over_150": [
+    15,
+    14
+   ],
+   "methods_over_200": [
+    8,
+    7
+   ]
+  },
+  "respelled_delta": {
+   "methods_over_150": [
+    16,
+    14
+   ],
+   "methods_over_200": [
+    9,
+    7
+   ]
+  },
+  "verdict": "guarded"
+ },
+ "P7-name-kept": {
+  "rows": [
+   "dead_methods",
+   "name_kept_members"
+  ],
+  "file": "ledger.py",
+  "canonical_delta": {
+   "archscore.dead_members": [
+    2,
+    1
+   ],
+   "archscore.public_unused": [
+    2,
+    1
+   ],
+   "dead_methods": [
+    1,
+    0
+   ]
+  },
+  "respelled_delta": {
+   "name_kept_members": [
+    40,
+    38
+   ]
+  },
+  "verdict": "guarded"
+ }
+}
