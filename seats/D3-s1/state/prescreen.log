@@ -425,3 +425,4 @@
 2026-11-18T13:11:49Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings CMP_BOUND 8496f2c5 L743 by=- ran=17 wall=1357.0s
 2026-11-18T13:11:55Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_simulate GUARD_OFF 72ec9149 L11214 by=tests/features.py ran=13 wall=1363.5s
 2026-11-18T13:12:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF b9ee7b52 L566 by=- ran=12 wall=1369.3s
+2026-11-18T13:15:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._predicted_next_room_temp CLAMP_DROP 30397d3b L10267 by=- ran=14 wall=1555.1s
