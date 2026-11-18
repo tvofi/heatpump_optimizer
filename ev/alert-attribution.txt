@@ -1,0 +1,9 @@
+branch three-dot 1da13aafb7...454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7 added lines matching chmod/0o7xx/0o666/0o777:
+0
+branch-touched .py files:
+custom_components/heatpump_optimizer/accuracy.py
+custom_components/heatpump_optimizer/coordinator.py
+custom_components/heatpump_optimizer/store.py
+dev/audit/harnesses/cop_duty_floor.py
+dev/audit/harnesses/cop_scale_probe_sweep.py
+tests/features.py
