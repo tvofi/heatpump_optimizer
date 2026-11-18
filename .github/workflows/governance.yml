@@ -1647,6 +1647,42 @@ jobs:
           path: ${{ runner.temp }}/selftest_closures.json
           if-no-files-found: warn
 
+      # THE BOT'S HALF OF THE DRIFT STEP (R11-PRE-SHARED-FILES part 1,
+      # countermeasure A of dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md; the
+      # owner's ruling of 2026-11-18 on design decisions D1/D2, option (b)).
+      # Only where `drift` refused: `absorb` unions the table that step wrote
+      # into this head's committed table, each step whose run text is this
+      # head's, prints every read it adds, and the result is kept as the
+      # `selftest-absorbed` artifact. This job holds the workflow's read-only
+      # floor and no secret, so it commits nothing: no route with a write
+      # token commits tools/ci/selftest_closures.json (`closures-autofix`
+      # stages tests/closures.json on a pull request only; `record-autofix`
+      # stages delivery rows only, pinned by tests/entities.py), and the
+      # commit of that artifact is a seat's. A green push skips both steps
+      # and writes nothing. Red when `absorb` adds no read: a STALE,
+      # UNMEASURED or UNRECORDED step, which only `record` repairs.
+      - name: Absorb the drift step's measured reads into this head's table
+        id: absorb
+        if: ${{ !cancelled() && steps.drift.outcome == 'failure' }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/absorbed"
+          python3 -I tools/ci/selftest_scope.py absorb --from "$RUNNER_TEMP/selftest_closures.json" \
+            --out "$RUNNER_TEMP/absorbed/selftest_closures.json" | tee "$RUNNER_TEMP/absorb.txt"
+          { echo '### selftest absorb'; echo '```'; cat "$RUNNER_TEMP/absorb.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if ! grep -Eq '^selftest_scope absorb: [1-9][0-9]* read\(s\) added to [1-9][0-9]* step\(s\)$' "$RUNNER_TEMP/absorb.txt"; then
+            echo "selftest absorb: the drift step refused and absorb added no read; re-record the refused steps with selftest_scope.py record"
+            exit 1
+          fi
+
+      - name: Keep the absorbed table to commit
+        if: ${{ !cancelled() && steps.absorb.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: selftest-absorbed
+          path: ${{ runner.temp }}/absorbed/selftest_closures.json
+          if-no-files-found: error
+
       # Last: a self-test started above whose status no step read would
       # otherwise run unread and be killed as an orphan, the job green.
       - name: Refuse a detached self-test whose status no step read
