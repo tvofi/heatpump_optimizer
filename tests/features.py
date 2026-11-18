@@ -47598,14 +47598,14 @@ from heatpump_optimizer import grid_fee as _r11m_gf  # noqa: E402
 import asyncio as _r11m_aio  # noqa: E402
 
 
-def _r11m_money_units(feed_unit: str | None) -> tuple:
-    """(field units, placeholder currency, fee-page verdict) on a HUF instance."""
+def _r11m_money_units(feed_unit: str | None, source: str = "entity") -> tuple:
+    """(field units, placeholder currency, fee bound, fee-page verdict) on a HUF instance."""
     hass = FakeHass()
     hass.config.currency = "HUF"
     cfg = {"price_source": "tibber"}
     if feed_unit is not None:
         hass.states.set("sensor.feed", FakeState("0.21", attributes={"unit_of_measurement": feed_unit}))
-        cfg = {"price_source": "entity", "price_entity": "sensor.feed"}
+        cfg = {"price_source": source, "price_entity": "sensor.feed"}
     def built(of, place_of):
         try:
             return of(hass, cfg), place_of(hass, cfg)
@@ -47629,13 +47629,46 @@ R.check(
     repr(_r11m_eur),
 )
 # Null controls: a Tibber install has no feed and keeps the instance's HUF
-# (bound 500, the 50/kWh fee accepted); a feed declaring nothing ("öre/kWh")
-# falls back to the instance as well.
+# (bound 500, the 50/kWh fee accepted), even with a EUR entity left in its
+# price-entity slot from an earlier entity setup; a feed declaring nothing
+# ("öre/kWh") falls back to the instance as well.
+_r11m_stale = _r11m_money_units("EUR/kWh", source="tibber")
 R.check(
-    "R11-SEAM-money: with no feed code the options dialog keeps the instance currency",
+    "R11-SEAM-money: with no feed code, or a Tibber source, the options dialog keeps the instance currency",
     _r11m_huf == (["HUF", "HUF/kWh", "HUF/kWh", "HUF/m³"], "HUF", "500", {})
-    and _r11m_money_units("öre/kWh") == _r11m_huf,
-    f"{_r11m_huf!r} / {_r11m_money_units('öre/kWh')!r}",
+    and _r11m_money_units("öre/kWh") == _r11m_huf
+    and _r11m_stale == _r11m_huf,
+    f"{_r11m_huf!r} / {_r11m_money_units('öre/kWh')!r} / {_r11m_stale!r}",
+)
+# R11-SEAM-money pins, recorded "not reproduced at main, pinned" (owner ruling
+# 2026-11-18): the finder's D2/s3/m4_tariff.py read 0 for these at main. Each
+# check fails on the harness's planted inverse; the other three planted
+# inverses (top-k smallest, one-per-day keeping a lower window, the window
+# projection weighting the current draw by the elapsed minutes) are already
+# killed by this file's tariff and peak-guard checks.
+from heatpump_optimizer import price_model as _r11m_pm  # noqa: E402
+
+# D2-s3-03 (inverse of m4_tariff.py --perturb tomorrow: the parser reads
+# 'today' only): a today+tomorrow Tibber payload keeps all 192 quarters.
+_r11m_q = lambda d: [  # noqa: E731
+    {"total": 1.0 + q / 100, "level": "NORMAL",
+     "startsAt": (datetime(2026, 1, d, tzinfo=_r11m_sth) + timedelta(minutes=15 * q)).isoformat()}
+    for q in range(96)]
+_r11m_tib = _r11m_pm.prices_from_tibber_payload({"data": {"viewer": {"homes": [{"currentSubscription": {
+    "priceInfo": {"current": _r11m_q(14)[0], "today": _r11m_q(14), "tomorrow": _r11m_q(15)}}}]}}})
+R.check(
+    "R11-SEAM-money: a today+tomorrow Tibber payload keeps both days' 192 quarters (D2-s3-03, pinned)",
+    isinstance(_r11m_tib, list) and len(_r11m_tib) == 192,
+    repr(len(_r11m_tib) if isinstance(_r11m_tib, list) else _r11m_tib),
+)
+# D2-s3-04 (inverse of m4_tariff.py --perturb weekday: a day test off by one,
+# isoweekday()): a "Mon" rule applies on Monday 12 January 2026, not on the
+# Sunday before it nor the Tuesday after.
+_r11m_mon = _r11m_gf.parse_rules("Mon 00-24 = 1")[0]
+R.check(
+    "R11-SEAM-money: a Monday fee rule applies on a Monday and on neither neighbour (D2-s3-04, pinned)",
+    [_r11m_mon.applies(datetime(2026, 1, d, 12, tzinfo=_r11m_sth)) for d in (11, 12, 13)] == [False, True, False],
+    repr([_r11m_mon.applies(datetime(2026, 1, d, 12, tzinfo=_r11m_sth)) for d in (11, 12, 13)]),
 )
 # R10-HOTFIX-SAV-ESTIMATE: a month's reference basis. Totals cannot be rebooked,
 # so a month booked against a retired reference keeps its columns and states no
