@@ -325,7 +325,9 @@ _ACCURACY: dict[str, Domain | str] = {
     "draw/ceiling/#/0": _RUNNING_KW._replace(whole=_DRAW_ROW),
     "draw/ceiling/#/1": _R._replace(whole=_DRAW_ROW),
     "draw/overdraws": _COUNT,
-    "draw/engaged": Domain("flag", whole=_DRAW_KEY),
+    # An unreadable latch reads disengaged (``from_dict``: ``is True``) and
+    # costs only itself; the samples stay.
+    "draw/engaged": _FLAG,
     "draw/config/#": Domain("real", whole=_DRAW_KEY),
     # R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor (absent while
     # unset) and the samples appended since it last moved; a bad cell reads
