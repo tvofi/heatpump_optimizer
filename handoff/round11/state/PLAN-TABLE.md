@@ -68,12 +68,8 @@ gantt
 |---|---|---|---|---|---|---|---|---|
 | R10-CLOSEOUT-CLEANUP | C | 1 | absorbed | #2505, #2727, #2728 | sonnet/opus | yes: mandated approval under 6329234399 | Programme-closeout work, and it runs LAST: after R10-ARCH-DOCS and R10-ROUND-PLAYBOOK have merged, after the roster and the state docs have moved into main,... |  |
 | R10-START-COUNTER-EDGES | CORE | 1 | done | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
-| R10-GH-READ-RESIDUE-P3 | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P755 at 2e17928032
-
-Narrowed by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C14 and O1:... |  |
-| R10-PREPR-DARWIN-SELFTEST-LANE | IN | 1 | done | - | sonnet/claude-opus-5-5 | - | triage: dev/programme/triage/r10-round-end.md#P761 at 2e17928032
-
-Re-cut by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C7, C14 and O1). |  |
+| R10-GH-READ-RESIDUE-P3 | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P755 at 2e17928032 Narrowed by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C14 and O1: a... |  |
+| R10-PREPR-DARWIN-SELFTEST-LANE | IN | 1 | done | - | sonnet/claude-opus-5-5 | - | triage: dev/programme/triage/r10-round-end.md#P761 at 2e17928032 Re-cut by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C7, C14 and O1). |  |
 | R10-NUDGE-RETIRE | IN | 1 | done | - | opus/opus | yes: policy: merges under mandate 6715477401 | Owner instruction, tvofi, 2026-11-12, verbatim: "ok, correct any references to that script or remove it entirely". |  |
 | R11-OUTSIDE-HONEST-STARTS-RUNS | CORE | 1 | done | - | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor); the design review rules the note's three owner decisions | Outside pull request 3529 by Bankaifan (fork head 1f9daef4d93f at acceptance; re-read it with git ls-remote origin refs/pull/3529/head), accepted for round 1... |  |
 | R10-SELFTEST-SCOPE-UNION-GUARD | IN | 1 | absorbed | - | sonnet/opus | - | AUDIT-CLASS BARRIER, part C of the root-cause analysis R10-RCA-SELFTEST-SCOPE-DRIFT (triage ACCEPT, round 10). |  |
@@ -93,15 +89,9 @@ Re-cut by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C7,
 | R11-PRE-PARALLEL-PIPELINE | IN | 1 | done | - | opus/opus | - | Owner instruction 2026-11-14, his words: "Have a fable seat with web access and sendmessage capability study and design a high throughput pipeline, using a b... |  |
 | R10-DRAW-MAP-EVIDENCE | IN | 2 | done | #3106 | opus/opus | - | Owner order 2026-11-14, after the linearity measurement for issue 3106 item 4 on the owner's own install: build the correction the data supports now, and imp... |  |
 | R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3 | IN | 1 | done | - | opus/opus | - | Part 3 of R10-OUTSIDE-CONTRIBUTOR-CYCLE (an outside request, ruled by the owner 2026-11-12), cut at the round-11 pickup: part 1 (#3514) and part 2 (#3521) ar... |  |
-| R11-HOTFIX-FIGURE-BLOCK-BASE | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P774 at 2e17928032
-
-Hotfix, S. |  |
-| R11-HOTFIX-SELFTEST-FLAKE-ARMS | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P782 at 2e17928032
-
-Hotfix, S (root-cause countermeasure). |  |
-| R11-HOTFIX-POLICY-DOCS-TIMEOUT | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P786 at 2e17928032
-
-Hotfix, S (root-cause countermeasure). |  |
+| R11-HOTFIX-FIGURE-BLOCK-BASE | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P774 at 2e17928032 Hotfix, S. |  |
+| R11-HOTFIX-SELFTEST-FLAKE-ARMS | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P782 at 2e17928032 Hotfix, S (root-cause countermeasure). |  |
+| R11-HOTFIX-POLICY-DOCS-TIMEOUT | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P786 at 2e17928032 Hotfix, S (root-cause countermeasure). |  |
 | R11-OUTSIDE-HONEST-STARTS-RUNS-P2 | CORE | 1 | done | - | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Part 2 of R11-OUTSIDE-HONEST-STARTS-RUNS, group A of the approved design for outside pull request 3529 by Bankaifan (credit them by name), cut before pull re... |  |
 | R11-OUTSIDE-HONEST-STARTS-RUNS-P3 | CORE | 1 | done | - | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Part 3 of R11-OUTSIDE-HONEST-STARTS-RUNS (outside pull request 3529 by Bankaifan; credit them by name), cut before pull request 3602 merged: the parent goes... |  |
 | R11-OUTSIDE-HONEST-DHW-RUNS | CORE | 1 | in-progress | #3529 | fable/fable | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Group B of the approved design for outside pull request 3529 by Bankaifan: hot-water charges as runs (design/R11-OUTSIDE-HONEST-STARTS-RUNS at a63a2ca6cd, ru... |  |
