@@ -490,3 +490,6 @@
 2026-11-18T20:45:23Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._slab_outcome GUARD_OFF 0e512205 L2409 by=tests/entities.py ran=12 wall=1601.5s
 2026-11-18T20:50:29Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict._unit CMP_BOUND 257d42d3 L537 by=tests/entities.py ran=13 wall=1816.5s
 2026-11-18T20:51:41Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:PeakTracker.from_dict CMP_BOUND 55d61241 L465 by=tests/entities.py ran=12 wall=1590.6s
+2026-11-18T20:54:18Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND 343ca3c4 L5663 by=tests/entities.py ran=13 wall=1607.9s
+2026-11-18T21:14:16Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch GUARD_OFF 64f3736a#2 L4748 by=tests/entities.py,tests/features.py ran=14 wall=1733.0s
+2026-11-18T21:16:58Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:mold_safe_room_floor CLAMP_DROP b6999962 L2851 by=tests/entities.py ran=12 wall=1588.4s
