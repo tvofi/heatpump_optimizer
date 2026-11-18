@@ -1185,6 +1185,11 @@ def _self_test() -> int:
         if not ok:
             fails.append(f"{name} (got: {got})")
 
+    briefs = sorted(p.stem for p in (_ROOT / "dev/governance/dimensions").glob("*.md"))
+    check("every brief of the tree is a finder dimension, DX0 included; a near-miss is none",
+          len(briefs) > 1 and all(_dimension(d, _ROOT) for d in briefs) and not any(_dimension(d, _ROOT) for d in ("DX01", "DXO", "dX0")),
+          [d for d in briefs if not _dimension(d, _ROOT)])
+
     def refuses(call) -> str:
         """The refusal's text; "" when the call returned, and the crash
         named when it raised anything else -- a refusal is RosterNotFound."""
