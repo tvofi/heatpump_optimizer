@@ -27,16 +27,7 @@ Commands (repo root, PYTHONPATH=tests/hastub):
   python3 dev/audit/rounds/round11/D3/s1/prescreen.py report
 Expected: null control LIVES; verdict counts in `report` (exact counts are
 contention-immune; every seconds figure is provisional).
-Box D3-m5 (D3.M5(b), the kill-overlap matrix, no early stop over every
-closure script):
-  D3S1_RELAX=0 D3S1_FRESH_TREE=1 D3S1_EXTRA_DRIVERS=tests/edge.py,tests/backtest.py,tests/golden.py,tests/card.mjs,tests/card_drift.mjs \
-    python3 dev/audit/rounds/round11/D3/s1/prescreen.py baseline --workers 4
-  D3S1_EXTRA_DRIVERS=tests/stress.py python3 .../prescreen.py baseline --workers 1   # alone
-  D3S1_RELAX=0 D3S1_FRESH_TREE=1 D3S1_EXTRA_DRIVERS=... D3S1_ONLY=<every driver but stress> \
-    python3 .../prescreen.py run --full --mutants dev/audit/rounds/round11/D3/s1/matrix_mutants.json --sub matrix --workers 4
-  D3S1_RELAX=0 D3S1_FRESH_TREE=1 D3S1_ONLY=tests/stress.py python3 .../prescreen.py run --full --mutants ... --sub matrix-stress --workers 1
-Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: owner macOS arm64, shared box;
-box D3R and box D3-m5 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz), each alone.
+Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: owner macOS arm64, shared box.
 State: dev/audit/rounds/round11/D3/s1/state/ (resumable); worker trees under $TMPDIR.
 """
 import os
@@ -76,69 +67,15 @@ WT_ROOT = Path(tempfile.gettempdir()) / "d3s1-workers"
 LOCK = threading.Lock()
 
 
-# Box D3-m5 (D3.M5(b), the kill-overlap matrix over EVERY closure script):
-# D3S1_EXTRA_DRIVERS adds drivers the pre-screen leaves out -- edge.py,
-# backtest.py, stress.py (PRESCREEN_SKIP) and the three DRIVER_EXCLUSIONS:
-# golden.py (driven in run.sh's default strict mode, GOLDEN_MODE=strict
-# GOLDEN_REF=HEAD^1, which compares the committed fixtures, NOT the
-# env_drift step), card.mjs and card_drift.mjs (run under node after their
-# producer tests/plan_view.py, closure.py PRODUCERS, on a private
-# HPO_PLANDATA). A node driver's reach is its producer's traced reach: the
-# node process executes no Python, and the payload is the only way a Python
-# line reaches it. D3S1_ONLY restricts a drive to the listed drivers.
-NODE = ("tests/card.mjs", "tests/card_drift.mjs")
-EXTRA = [x for x in os.environ.get("D3S1_EXTRA_DRIVERS", "").split(",") if x]
-ONLY = {x for x in os.environ.get("D3S1_ONLY", "").split(",") if x}
-
-
 def drivers() -> list[str]:
+    """Box D3-m5 (D3.M5 kill-overlap matrix): D3S1_ALL_DRIVERS=1 keeps the
+    pre-screen's skipped stress/edge/backtest, so `baseline` traces them and
+    `run --full` drives every closure script the gate can drive (the Node
+    programs and golden.py stay out: mutation_table.DRIVER_EXCLUSIONS)."""
     clos = mt.load_closures()
-    allow = [s for s in mt.DEFAULT_SCRIPTS.split(",") if s not in PRESCREEN_SKIP]
-    allow += [s for s in EXTRA if s not in allow]
+    skip = set() if os.environ.get("D3S1_ALL_DRIVERS") == "1" else PRESCREEN_SKIP
+    allow = [s for s in mt.DEFAULT_SCRIPTS.split(",") if s not in skip]
     return [s for s in allow if any(r in clos.get(s, ()) for r in RELS)]
-
-
-def run_any(s: str, t: Path, timeout: int, a=None, e=None) -> "mt.ScriptRun":
-    """mt.run_script for a Python driver; producer + node for a card driver."""
-    if s not in NODE:
-        return mt.run_script(s, t, timeout, a, e)
-    started = time.monotonic()
-    pd = Path(tempfile.mkdtemp(prefix="d3s1-plan-"))
-    env = {**os.environ, "PYTHONPATH": "tests/hastub",
-           "HPO_PLANDATA": str(pd / "plan.json")}
-    env.pop("HPO_REACH_OUT", None)
-    env.pop("HPO_REACH_HOOK", None)
-    try:
-        prod = subprocess.run([sys.executable, "tests/plan_view.py"], cwd=t,
-                              env=env, capture_output=True, text=True,
-                              timeout=timeout)
-        args = [REF] if s == "tests/card_drift.mjs" else []
-        try:
-            p = subprocess.run(["node", s, *args], cwd=t, env=env,
-                               capture_output=True, text=True, timeout=timeout)
-        except subprocess.TimeoutExpired:
-            return mt.ScriptRun(mt.TIMEOUT_RC, 0, time.monotonic() - started,
-                                "", f"{s}: timed out after {timeout}s", True)
-    finally:
-        shutil.rmtree(pd, ignore_errors=True)
-    out = (f"[producer tests/plan_view.py rc={prod.returncode}]\n"
-           + prod.stdout[-2000:] + "\n" + p.stdout)
-    run = mt.ScriptRun(p.returncode, 0, time.monotonic() - started, out,
-                       p.stderr)
-    n = mt.failing_count(run)
-    if p.returncode != 0 and n == 0:
-        # card_drift.mjs prints `card_drift: N problem(s).`; any other red
-        # node exit counts one failing check (it named none we can read).
-        import re as _re
-        m = _re.search(r"card_drift: (\d+) problem", p.stdout)
-        n = int(m.group(1)) if m else 1
-    return run._replace(failed=n)
-
-
-def killed_any(s: str, run, base_run) -> bool:
-    if s not in NODE:
-        return mt.killed(s, run, base_run)
-    return run.rc != 0 and run.failed > base_run.failed
 
 
 def unpinned() -> list[dict]:
@@ -183,8 +120,6 @@ def recycle(i: int) -> Path:
 
 
 def spec(script):
-    if script == "tests/golden.py":
-        return [], {"GOLDEN_MODE": "strict", "GOLDEN_REF": REF}
     return mt.drive_spec(script, REF)
 
 
@@ -234,19 +169,11 @@ def cmd_baseline(args) -> int:
                 return
             a, e = spec(s)
             t0 = time.process_time()
-            if s in NODE:
-                run = run_any(s, t, mt.driver_timeout(1200, 3 * rec.get(s, 60)))
-                pv = json.loads(BASE_FILE.read_text()).get("tests/plan_view.py", {})
-                reach = pv.get("reach") if run.rc == 0 else None
-                entry = {"run": to_json(run), "reach": reach,
-                         "reach_from_producer": "tests/plan_view.py",
-                         "reach_problems": mt.reach_problems(reach)}
-            else:
-                run, reach = mt.traced_baseline(mt.run_script, s, t,
-                                                mt.driver_timeout(1200, 3 * rec.get(s, 60)),
-                                                a, e)
-                entry = {"run": to_json(run), "reach": reach,
-                         "reach_problems": mt.reach_problems(reach)}
+            run, reach = mt.traced_baseline(mt.run_script, s, t,
+                                            mt.driver_timeout(1200, 3 * rec.get(s, 60)),
+                                            a, e)
+            entry = {"run": to_json(run), "reach": reach,
+                     "reach_problems": mt.reach_problems(reach)}
             with LOCK:
                 cur = json.loads(BASE_FILE.read_text()) if BASE_FILE.exists() else {}
                 cur[s] = entry
@@ -374,7 +301,7 @@ def drive(t: Path, m: dict, base: dict, full: bool, nostop: bool = False) -> dic
     assert lines[m["line"] - 1].rstrip("\n") == m["old"], (m, lines[m["line"] - 1])
     lines[m["line"] - 1] = m["new"] + "\n"
     ds = [s for s in order(base, list(base)) if m["file"] in
-          mt.load_closures().get(s, ()) and (not ONLY or s in ONLY)]
+          mt.load_closures().get(s, ())]
     out = {"mutant": m, "runs": {}, "skipped": [], "killed_by": [],
            "started": time.time()}
     try:
@@ -390,8 +317,8 @@ def drive(t: Path, m: dict, base: dict, full: bool, nostop: bool = False) -> dic
                 out.setdefault("relaxed_skipped", []).append(s)
                 continue
             a, e = spec(s)
-            run = run_any(s, t, timeout_for(s, base), a, e)
-            k = killed_any(s, run, from_json(base[s]["run"]))
+            run = mt.run_script(s, t, timeout_for(s, base), a, e)
+            k = mt.killed(s, run, from_json(base[s]["run"]))
             j = to_json(run)
             j["killed"] = k
             out["runs"][s] = j
