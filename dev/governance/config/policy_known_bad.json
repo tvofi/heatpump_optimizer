@@ -7,14 +7,6 @@
       "count": 2
     },
     {
-      "key": "citations|.claude/rules/brief-citations.md|symbol `SCREAMING_SNAKE`: not found in the tracked tree, and",
-      "count": 1
-    },
-    {
-      "key": "citations|.claude/rules/brief-citations.md|symbol `min_ink_gap`: not found in the tracked tree, and no ",
-      "count": 1
-    },
-    {
       "key": "citations|CLAUDE.md|path `SEAT-BLOCK.md`: not in the tree, and no tag SHA is cit",
       "count": 1
     },

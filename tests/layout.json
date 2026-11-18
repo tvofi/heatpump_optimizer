@@ -136,7 +136,6 @@
     ".claude/rules/*.md",
     ".claude/workflows/{audit,web}-*.js",
     ".claude/workflows/web-fragments.md",
-    ".claude/workflows/wave-*-groups.json",
     ".cursor/rules/*.mdc"
    ]
   },
