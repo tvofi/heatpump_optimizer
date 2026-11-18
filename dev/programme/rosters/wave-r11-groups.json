@@ -4003,7 +4003,7 @@
     "From r10-draw-map-evidence-b, body item 1be53b9c: fixer.md: contradiction: step 6 merges origin/main on a merge-tree conflict \"or the head is DIRTY\"; the dispatch brief says \"Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict\". With the ledger driver installed merge-tree exits 0 on a head GitHub's driverless merge cannot merge, and `body_push.sh`'s predictor refuses that head, so the brief's arm alone leaves no handoff. This seat followed fixer.md and merged; the brief's narrower rule is recorded as pending owner confirmation. Carry: R10-DRAW-MAP-EVIDENCE (items 1be53b9c)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-fixer-contract",
     "commit": null,
     "last_step": null,
