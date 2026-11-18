@@ -462,3 +462,6 @@
 2026-11-18T14:24:31Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off CMP_BOUND f6038118 L5211 by=- ran=13 wall=1378.2s
 2026-11-18T14:25:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_declared_night_halfwidth CMP_BOUND 950dc213 L1212 by=- ran=12 wall=1388.7s
 2026-11-18T14:44:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:PeakTracker.threshold_kw CMP_BOUND ea09d31b L391 by=- ran=12 wall=1358.9s
+2026-11-18T14:47:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 036bc6d8 L2126 by=- ran=12 wall=1361.7s
+2026-11-18T14:48:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step RETURN_DEL b2994929#2 L1785 by=- ran=12 wall=1374.0s
+2026-11-18T14:48:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP afe9dcd9 L4578 by=- ran=17 wall=1536.8s
