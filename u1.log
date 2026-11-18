@@ -1,0 +1,40 @@
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 35: /Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/delivery_row.sh: No such file or directory
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 35: /Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/pr_args.sh: No such file or directory
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 39: pr_trap: command not found
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 40: cd: /Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/../../pr: No such file or directory
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 41: pr_need_args: command not found
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 42: pr_code_sha_shape: command not found
+fatal: not a git repository (or any of the parent directories): .git
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 44: pr_state_root: command not found
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 50: pr_exit_trap: command not found
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 53: pr_branch_lock: command not found
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 58: pr_handoff_tips: command not found
+fatal: not a git repository (or any of the parent directories): .git
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 60: pr_code_in_handoff: command not found
+fatal: not a git repository (or any of the parent directories): .git
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 63: pr_tools_fresh: command not found
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 75: cd: /pr/upd-fix-r11-arch-objective: No such file or directory
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+python3: can't open file '/ci_predict.py': [Errno 2] No such file or directory
+update_pr: the unpinned-site re-key did not run; prepr reads the body as written
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 97: row_line: command not found
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 97: ensure_row: command not found
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'head_note'
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 107: /pr/upd-fix-r11-arch-objective.fig.log: No such file or directory
+tail: /pr/upd-fix-r11-arch-objective.fig.log: No such file or directory
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 108: pr_refuse: command not found
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 132: /pr/upd-fix-r11-arch-objective.log: No such file or directory
+cat: /pr/upd-fix-r11-arch-objective.log: No such file or directory
+/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update-pr-figure-base/update_pr.sh: line 134: pr_refuse: command not found
+update_pr: BODY-ONLY: #3703 at , the head unmoved
+HEAD=

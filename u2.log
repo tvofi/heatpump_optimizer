@@ -1,0 +1,4 @@
+REKEY: 0 re-keyed, 0 kept
+  REFUSE   ancestry reds          [code-scanning alerts NOT READ: FAIL closed: code-scanning/analyses page 1: HTTP 403] RED UNANSWERED (budget-raise-gate / budget-raise-gate governance / env-matrix governance / policy-docs tests / nightly-status): ERROR   [pr-body] /Users/timmalmstrom/hpo-orch/r10s6/pr/r11-arch-objective/body3703.md: check `budget-raise-gate / budget-raise-gate` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (3 error line(s) in all) -- refused before the heavy slot was taken (P351)
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/hpo-orch/r10s6/pr/upd-fix-r11-arch-objective.log
