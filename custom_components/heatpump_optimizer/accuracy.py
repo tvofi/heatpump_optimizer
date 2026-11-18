@@ -1014,7 +1014,8 @@ class ScaleDither:
             if not admitted:
                 return base
             self.pair, self.since = (0, self.coin.choice((-1, 1))), now
-        want, running = self._want(), self.ahead
+        number, coin = self.pair
+        want, running = (number, coin, self.first is not None), self.ahead
         self.reading = running
         if running == want:
             self.ahead = want if self.holding else self._next(want)
@@ -1039,11 +1040,11 @@ class ScaleDither:
         self.rows, self.admitted = self.rows + 1, True
         if self.reading is None or self.reading != self._want():
             return
-        number, coin, second = self.reading
-        if not second:
+        number, coin, _ = self.reading
+        first = self.first
+        if first is None:
             self.first = row
             return
-        first = self.first
         self.pair, self.first, self.since = (number + 1, self.after if self.after is not None else self.coin.choice((-1, 1))), None, row.at
         self.after = None
         step = math.log(FOLLOW_ASK_SPAN)
