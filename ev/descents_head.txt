@@ -1,0 +1,17 @@
+duty-cycle price phase 30 outdoor 2.0: both objective 26.1997 switch_weight 0.0000, operand objective 26.2715 switch_weight 0.2727, unpriced objective 26.1997 switch_weight 0.0000
+duty-cycle price phase 60 outdoor 2.0: both objective 25.9935 switch_weight 0.4433, operand objective 25.9947 switch_weight 0.4433, unpriced objective 25.9935 switch_weight 0.4433
+duty-cycle price phase 30 outdoor -4.0: both objective 37.4775 switch_weight 0.0000, operand objective 37.4775 switch_weight 0.0000, unpriced objective 37.8683 switch_weight 0.0000
+duty-cycle price phase 0 outdoor 6.0: both objective 24.2947 switch_weight 0.6585, operand objective 24.2947 switch_weight 0.6585, unpriced objective 24.7107 switch_weight 1.2167
+duty-cycle null (empty pair): one plan across the arms True, descents per space solve [1]
+modulating clamped price phase 30 outdoor 2.0: both objective 26.9177 switch_weight 0.6529, operand objective 26.9347 switch_weight 0.2727, unpriced objective 26.9177 switch_weight 0.6529
+modulating clamped price phase 60 outdoor 2.0: both objective 28.2678 switch_weight 1.0000, operand objective 28.5746 switch_weight 1.2727, unpriced objective 28.2678 switch_weight 1.0000
+modulating clamped price phase 30 outdoor -4.0: both objective 38.1123 switch_weight 0.0000, operand objective 38.0075 switch_weight 0.0000, unpriced objective 38.1123 switch_weight 0.0000
+modulating clamped price phase 0 outdoor 6.0: both objective 25.6004 switch_weight 1.2650, operand objective 25.6004 switch_weight 1.2650, unpriced objective 25.8341 switch_weight 2.3342
+modulating clamped null (empty pair): one plan across the arms True, descents per space solve [1]
+fixed-speed price phase 30 outdoor 2.0: both objective 26.7568 switch_weight 1.0000, operand objective 26.8610 switch_weight 1.0000, unpriced objective 26.7568 switch_weight 1.0000
+fixed-speed price phase 60 outdoor 2.0: both objective 27.1525 switch_weight 1.0000, operand objective 27.1525 switch_weight 1.0000, unpriced objective 27.1525 switch_weight 1.0000
+fixed-speed price phase 30 outdoor -4.0: both objective 39.0591 switch_weight 0.0000, operand objective 39.0591 switch_weight 0.0000, unpriced objective 39.0591 switch_weight 0.0000
+fixed-speed price phase 0 outdoor 6.0: both objective 248.3623 switch_weight 1.0000, operand objective 248.3623 switch_weight 1.0000, unpriced objective 250.3178 switch_weight 1.0000
+fixed-speed null (empty pair): one plan across the arms True, descents per space solve [1]
+null cells that moved or descended twice 0
+rc=0
