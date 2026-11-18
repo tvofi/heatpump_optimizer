@@ -1,0 +1,47 @@
+M2_hold_only rc=1 fails= 4 KILLED
+      FAIL a slot whose row was not read is handed out again and held until one is: one row in three read, the pairs still complete in the coin's order, each contrast +1 for a follower; with every row rea
+      FAIL a pair holding for its second row voids once COP_HOLD_HORIZON_S has passed from its first (the bound inclusive) or its age is unknowable: the scale returns to the base and stays there with no r
+      FAIL a first slot no row is read under: the step after it hands out the second ahead (the miss is not known yet), then the first is held from when it was handed out until COP_HOLD_HORIZON_S has pass
+      FAIL the next pair's first slot, no row read under it, is held from the row that completed the pair before until COP_HOLD_HORIZON_S has passed, then the scale is at the base  [(True, 1, [0.9325, 1.0
+M3_b1_park rc=1 fails= 2 KILLED
+      FAIL a re-priced plan resets its probe with no pair read; after PROBE_VOID_CAP (3) such probes the next parks on its first row: over 336 cycles (the horizon) 4 probes start, pending, and the scale l
+      FAIL a probe that starts at PROBE_VOID_CAP voided ones parks on its first row; one under the cap does not; past COP_HOLD_HORIZON_S it re-arms and the count clears  [[(False, False, 3), (False, False
+M4_horizon_off rc=1 fails= 3 KILLED
+      FAIL a pair holding for its second row voids once COP_HOLD_HORIZON_S has passed from its first (the bound inclusive) or its age is unknowable: the scale returns to the base and stays there with no r
+      FAIL a first slot no row is read under: the step after it hands out the second ahead (the miss is not known yet), then the first is held from when it was handed out until COP_HOLD_HORIZON_S has pass
+      FAIL the next pair's first slot, no row read under it, is held from the row that completed the pair before until COP_HOLD_HORIZON_S has passed, then the scale is at the base  [(True, 1, [0.9325, 1.0
+M4b_horizon_lower rc=1 fails= 1 KILLED
+      FAIL a pair holding for its second row voids once COP_HOLD_HORIZON_S has passed from its first (the bound inclusive) or its age is unknowable: the scale returns to the base and stays there with no r
+M5_reset_count_off rc=1 fails= 2 KILLED
+      FAIL a re-priced plan resets its probe with no pair read; after PROBE_VOID_CAP (3) such probes the next parks on its first row: over 336 cycles (the horizon) 4 probes start, pending, and the scale l
+      FAIL a reset counts a running probe that read no pair, clears the count for one that read a pair, and leaves it for a parked probe or none running  [[0, 2, 2, 3, 2]]
+M5b_reset_never_clear rc=1 fails= 1 KILLED
+      FAIL a reset counts a running probe that read no pair, clears the count for one that read a pair, and leaves it for a parked probe or none running  [[1, 3, 3, 3, 2]]
+M5c_reset_when_parked rc=1 fails= 1 KILLED
+      FAIL a reset counts a running probe that read no pair, clears the count for one that read a pair, and leaves it for a parked probe or none running  [[1, 3, 0, 4, 2]]
+M6_rearm_clear rc=1 fails= 1 KILLED
+      FAIL a probe that starts at PROBE_VOID_CAP voided ones parks on its first row; one under the cap does not; past COP_HOLD_HORIZON_S it re-arms and the count clears  [[(True, True, 3), (False, False, 
+M7_take_want_guard rc=1 fails= 3 KILLED
+      FAIL (s) a probe whose first row is read at the clamp owes the configured scale (0.9) and takes it as its base, once: the next row is read and the dither starts from 0.9 (levels 0.8393 and 0.9651); 
+      FAIL two rows taken under one first-of-pair reading make no pair and add no contrast, and a second-of-pair row whose first was never taken adds none  [[([2.0583720257662477], 2), ([], 1)]]
+      FAIL a slot whose row was not read is handed out again and held until one is: one row in three read, the pairs still complete in the coin's order, each contrast +1 for a follower; with every row rea
+M8_since_at_complete rc=1 fails= 1 KILLED
+      FAIL the next pair's first slot, no row read under it, is held from the row that completed the pair before until COP_HOLD_HORIZON_S has passed, then the scale is at the base  [(False, 1, [0.9325, 1.
+M9_cap_off rc=1 fails= 2 KILLED
+      FAIL a re-priced plan resets its probe with no pair read; after PROBE_VOID_CAP (3) such probes the next parks on its first row: over 336 cycles (the horizon) 4 probes start, pending, and the scale l
+      FAIL a probe that starts at PROBE_VOID_CAP voided ones parks on its first row; one under the cap does not; past COP_HOLD_HORIZON_S it re-arms and the count clears  [[(False, False, 3), (False, False
+M9b_cap_2 rc=1 fails= 2 KILLED
+      FAIL a re-priced plan resets its probe with no pair read; after PROBE_VOID_CAP (3) such probes the next parks on its first row: over 336 cycles (the horizon) 4 probes start, pending, and the scale l
+      FAIL a probe that starts at PROBE_VOID_CAP voided ones parks on its first row; one under the cap does not; past COP_HOLD_HORIZON_S it re-arms and the count clears  [[(True, True, 3), (True, True, 2)
+M10_admitted_start rc=1 fails= 7 KILLED
+      FAIL a parked probe re-arms after COP_HOLD_HORIZON_S and no sooner: 6 cycles whose last is at 7 days less 30 minutes stay at the base and read nothing, and so do 5 when the 6th is one second past 7 
+      FAIL a pair holding for its second row voids once COP_HOLD_HORIZON_S has passed from its first (the bound inclusive) or its age is unknowable: the scale returns to the base and stays there with no r
+      FAIL a reload mid-probe returns to the base: 70 cycles in, the scale is a dither level and the record stores base 1.0; reloaded, the next cycle runs at 1.0, still pending. With the key lost the leve
+      FAIL a first slot no row is read under: the step after it hands out the second ahead (the miss is not known yet), then the first is held from when it was handed out until COP_HOLD_HORIZON_S has pass
+M11_holding_false rc=1 fails= 4 KILLED
+      FAIL a slot whose row was not read is handed out again and held until one is: one row in three read, the pairs still complete in the coin's order, each contrast +1 for a follower; with every row rea
+      FAIL a pair holding for its second row voids once COP_HOLD_HORIZON_S has passed from its first (the bound inclusive) or its age is unknowable: the scale returns to the base and stays there with no r
+      FAIL a first slot no row is read under: the step after it hands out the second ahead (the miss is not known yet), then the first is held from when it was handed out until COP_HOLD_HORIZON_S has pass
+      FAIL the next pair's first slot, no row read under it, is held from the row that completed the pair before until COP_HOLD_HORIZON_S has passed, then the scale is at the base  [(True, 1, [0.9325, 1.0
+M12_owed_admitted_reset rc=1 fails= 1 KILLED
+      FAIL a row read on a parked cycle is forgotten by the next cycle: at the re-arm with no row read since, the scale stays at the base and no pair starts  [(1.0723805294763609, None, (0, 1))]

@@ -1,0 +1,5 @@
+  ok   cop_observability: metered heat measures; no heat reading is not measurable; an estimate is an estimate; no electrical figure is no COP
+  ok   the coordinator's state: no heat reading is not measurable whether or not the draw follows the ask, a metered thermal-power install is, and a heat counter without an electric counter has nothing to divide by
+
+ALL 128 FEATURES BLOCK PASSED
+rc=0

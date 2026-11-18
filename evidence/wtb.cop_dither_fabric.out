@@ -1,0 +1,13 @@
+RESULT dither_true1_2C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=follows max_gap_vs_null=0.0000
+RESULT null_dither0_true1_2C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=pending
+RESULT no_probe_true1_2C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=pending
+RESULT dither_true0.8_2C=house_scale=1.1000 house_samples=639 lower_ratio=1.0000 lower_samples=0 cop_scale=0.800 verdict=follows max_gap_vs_null=0.0021
+RESULT null_dither0_true0.8_2C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=pending
+RESULT no_probe_true0.8_2C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=pending
+RESULT dither_true1_9C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=follows max_gap_vs_null=0.0000
+RESULT null_dither0_true1_9C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=pending
+RESULT no_probe_true1_9C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=pending
+RESULT dither_true0.8_9C=house_scale=1.1000 house_samples=646 lower_ratio=1.0000 lower_samples=0 cop_scale=0.800 verdict=follows max_gap_vs_null=0.0101
+RESULT null_dither0_true0.8_9C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=pending
+RESULT no_probe_true0.8_9C=house_scale=1.1000 house_samples=671 lower_ratio=1.0000 lower_samples=0 cop_scale=1.000 verdict=pending
+rc=0
