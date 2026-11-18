@@ -90326,6 +90326,47 @@ R.check(
     f"one={_pm_rows_one[:1]} two={_pm_rows_two[:1]}",
 )
 
+# Not reproduced at main, pinned (R11-SEAM-plant-model; the owner's
+# 2026-11-18 precedent): each check below fails when the finder's planted
+# line is re-applied. D12-s2-01: "auto" -- the default, so every entry with
+# no mode key -- is the presence rule, never "on".
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    two_zone_from_config as _pm_two_zone,
+)
+
+R.check(
+    "R11-SEAM-plant-model D12-s2-01: two_zone_mode absent or auto follows the "
+    "zone keys; on and off override them",
+    _pm_two_zone({}) is False
+    and _pm_two_zone({"two_zone_mode": "auto"}) is False
+    and _pm_two_zone({"upper_floor_thermal_mass": 4.0}) is True
+    and _pm_two_zone({"two_zone_mode": "off", "upper_floor_thermal_mass": 4.0}) is False
+    and _pm_two_zone({"two_zone_mode": "on"}) is True
+    and ThermalParameters.from_config({}).two_zone_enabled is False,
+    f"absent {_pm_two_zone({})} auto {_pm_two_zone({'two_zone_mode': 'auto'})}",
+)
+
+# D2-s1-51: the era table orders the whole-house loss, oldest leakiest, on
+# every structure the preset offers (a low-energy house loses least).
+_pm_era_loss = {
+    st: [
+        presets.derive(presets.BuildingPreset(
+            structure=st, era=era, heated_area_m2=140.0,
+        ))["house_heat_loss_coefficient"]
+        for era in presets.ERAS
+    ]
+    for st in presets.STRUCTURES
+}
+R.check(
+    "R11-SEAM-plant-model D2-s1-51: the preset heat loss falls strictly from "
+    "the oldest era to low_energy, on every structure",
+    tuple(presets.ERAS)[-1] == presets.ERA_LOW_ENERGY
+    and all(
+        all(a > b for a, b in zip(row, row[1:])) for row in _pm_era_loss.values()
+    ),
+    f"{_pm_era_loss}",
+)
+
 # D8-s1-01: the hot-water coast term prices a tank only on an install with
 # hot water, answered by thermal_model.dhw_enabled_from_config. Null
 # control: the same series with hot water switched on still prices it.
