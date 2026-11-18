@@ -157,7 +157,7 @@ async def main():
     for _ in range(N):
         assert await ha_setup_entry(integration, hass, entry)
         c = entry.runtime_data
-        ok = await wait_for(lambda: c._optimization_result is not None and not c._optimization_running)
+        ok = await wait_for(lambda: c._optimization_result is not None and not c.optimization_running)
         assert ok, "cycle did not complete"
         await asyncio.sleep(0.05)
         await ha_unload_entry(integration, hass, entry)

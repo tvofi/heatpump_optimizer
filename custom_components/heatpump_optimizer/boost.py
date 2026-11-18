@@ -126,8 +126,6 @@ class _BoostCoord(Protocol):
 
     def adopt_action(self, action: CurrentAction) -> None: ...
 
-    async def async_request_refresh(self) -> None: ...
-
 
 @dataclass
 class BoostState:

@@ -475,6 +475,12 @@ class FakeCoordinator:
         """The topology the plan sensors publish for the card's setup page."""
         return {"two_zone": False, "dhw": False, "slots": []}
 
+    async def async_refresh(self):
+        """The press's one refresh (D17-s3-01): in an optimizing mode its
+        cycle is what solves, so the fake's refresh runs the fake's solve."""
+        if self.mode in ("auto", "economy"):
+            await self.async_run_optimization()
+
     async def async_run_optimization(self):
         """The press's solve: the fake's answer is that it ran (#1644,
         D10-s1-02 -- the button calls the action's own entry point)."""

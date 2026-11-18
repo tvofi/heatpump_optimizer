@@ -268,6 +268,7 @@
   "system_identification_active": "core",
   "target_temperature": "core",
   "weather_stale_hours": "fetch",
-  "configured_quiet_windows": "dhw"
+  "configured_quiet_windows": "dhw",
+  "async_request_refresh": "core"
  }
 }

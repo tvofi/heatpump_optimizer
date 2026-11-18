@@ -23,6 +23,8 @@ from heatpump_optimizer import away as away_mode
 from heatpump_optimizer import boost as boost_mod
 from heatpump_optimizer import battery as battery_view
 from heatpump_optimizer import presets, price_tiles, pv
+from heatpump_optimizer import solve_gate
+
 from heatpump_optimizer.accuracy import (
     AccuracySample,
     AccuracyTracker,
@@ -719,6 +721,14 @@ def _fi_restart(at, store_of, payload, loader):
     return c
 
 
+def _next_main_solve(coord):
+    """One main solve's start and end through the solve gate, so the background
+    what-if a test drives next is admitted, as a cycle's would be (D9-s1-02)."""
+    gate = solve_gate.gate_for(coord)
+    solve_gate.begin_solve(gate)
+    solve_gate.end_solve(gate)
+
+
 def _fi_fuse_held(stamp, gate):
     """FI-sw1: the 7-day recompute cooldown still holds at ``gate``."""
     c = _fi_restart(
@@ -730,6 +740,7 @@ def _fi_fuse_held(stamp, gate):
         _fi_dt.freeze(when)
         before = c._fuse_advisor_at
         try:
+            _next_main_solve(c)
             _fi_aio.run(c._maybe_run_fuse_advisor(_solve_record_now(c)))
         except Exception:  # noqa: BLE001 -- only whether the cooldown held is read
             pass
@@ -1307,63 +1318,93 @@ class _R9F13Hass(FakeHass):
         return _r9f13_aio.get_running_loop().create_task(coro)
 
 
-def _r9f13_press(reason):
-    """Press the button with the coordinator refusing `reason`; `None` runs."""
-    hass, entry, coord = _r9f13_make(f"f13_press_{reason}")
-    requested = []
+def _r9f13_press(reason, failed_key=None, mode=None):
+    """Press the button with the refresh's solve answering `reason`; `None` runs.
+
+    The press awaits ``solve_gate.async_optimize_now`` (D17-s3-01): one real
+    refresh, whose cycle records its solve's answer on the gate. `failed_key`
+    fails the refresh's price fetch with that translation key instead; `mode`
+    sets a fixed mode, whose refresh solves nothing. Returns the press's
+    outcome and the solves and refreshes it cost.
+    """
+    hass, entry, coord = _r9f13_make(f"f13_press_{reason}_{failed_key}_{mode}")
+    calls = {"solve": 0, "refresh": 0}
+    real_refresh = coord.async_refresh
 
     async def _solve():
+        calls["solve"] += 1
         return reason
 
     async def _refresh():
-        requested.append(True)
-        await _r9f13_aio.Event().wait()
+        calls["refresh"] += 1
+        await real_refresh()
+
+    async def _no_prices():
+        raise _r9f13_update_failed("injected", translation_key=failed_key)
 
     coord.async_run_optimization = _solve
-    coord.async_request_refresh = _refresh
+    coord.async_refresh = _refresh
+    if failed_key is not None:
+        coord._fetch_tibber_prices = _no_prices
+    if mode is not None:
+        coord._mode = mode
     ent = _r9f13_button.ForceOptimizationButton(coord, entry)
     ent.hass = _R9F13Hass()
 
     async def _scenario():
         try:
-            await _r9f13_aio.wait_for(ent.async_press(), timeout=5.0)
+            await _r9f13_aio.wait_for(ent.async_press(), timeout=30.0)
             out = "returned"
         except _r9f13_err as err:
             out = getattr(err, "translation_key", None) or "raised:plain"
         except TimeoutError:
             out = "hung"
-        # One yield: 3.12's wait_for awaits the inner coroutine inline, so
-        # the refresh task the press scheduled has not started yet here;
-        # without this the `requested` read races the interpreter version.
-        await _r9f13_aio.sleep(0)
         for task in _r9f13_aio.all_tasks() - {_r9f13_aio.current_task()}:
             task.cancel()
-        return out, bool(requested)
+        return out, calls["solve"], calls["refresh"]
 
     return _r9f13_aio.run(_scenario())
 
+
+from homeassistant.helpers.update_coordinator import UpdateFailed as _r9f13_update_failed  # noqa: E402
 
 _r9f13_press_refused = _r9f13_press("no_prices")
 _r9f13_press_ran = _r9f13_press(None)
 R.check(
     "D10-s1-02: the press raises the action's own no-prices refusal when the "
     "solve did not run",
-    _r9f13_press_refused == ("run_optimization_no_prices", True),
-    f"got {_r9f13_press_refused} (want ('run_optimization_no_prices', True))",
+    _r9f13_press_refused == ("run_optimization_no_prices", 1, 1),
+    f"got {_r9f13_press_refused} (want ('run_optimization_no_prices', 1, 1))",
 )
 R.check(
-    "D10-s1-02: the press returns normally when the solve ran, still off "
-    "the refresh it asked for",
-    _r9f13_press_ran == ("returned", True),
-    f"got {_r9f13_press_ran} (want ('returned', True))",
+    "D17-s3-01: the press returns normally when the solve ran, and costs one "
+    "refresh and the one solve inside it -- never a second solve beside it",
+    _r9f13_press_ran == ("returned", 1, 1),
+    f"got {_r9f13_press_ran} (want ('returned', 1, 1))",
 )
 _r9f13_press_solve_failed = _r9f13_press("solve_failed")
 R.check(
     "D10-s1-02: the press raises the action's solve-failed refusal when the "
     "solve died (the reason-is-not-None arm of the same refusal -- the "
     "mutation survivor at button.py's second guard)",
-    _r9f13_press_solve_failed == ("run_optimization_solve_failed", True),
-    f"got {_r9f13_press_solve_failed} (want ('run_optimization_solve_failed', True))",
+    _r9f13_press_solve_failed == ("run_optimization_solve_failed", 1, 1),
+    f"got {_r9f13_press_solve_failed} (want ('run_optimization_solve_failed', 1, 1))",
+)
+_r9f13_press_no_cover = _r9f13_press(None, failed_key="tibber_fetch_failed")
+_r9f13_press_cycle_failed = _r9f13_press(None, failed_key="update_failed")
+R.check(
+    "D17-s3-01: a refresh failed on prices that cover no step is the no-prices "
+    "refusal, any other failed refresh the solve-failed one; neither solved",
+    _r9f13_press_no_cover == ("run_optimization_no_prices", 0, 1)
+    and _r9f13_press_cycle_failed == ("run_optimization_solve_failed", 0, 1),
+    f"no cover {_r9f13_press_no_cover}, other {_r9f13_press_cycle_failed}",
+)
+_r9f13_press_fixed = _r9f13_press(None, mode=_r9f13_const.MODE_COMFORT)
+R.check(
+    "D17-s3-01: in a fixed mode, whose refresh solves nothing, the press "
+    "solves the private plan once and then refreshes",
+    _r9f13_press_fixed == ("returned", 1, 1),
+    f"got {_r9f13_press_fixed} (want ('returned', 1, 1))",
 )
 R.check(
     "D10-s1-02: no button press queues behind another (PARALLEL_UPDATES 0, "
@@ -19653,6 +19694,7 @@ _cad = _advisor_coord()
 from heatpump_optimizer import whatif as _whatif_mod
 _whatif_mod.state_for(_cad).answer = {"marker": "card"}
 _whatif_mod.state_for(_cad).last_at = None
+_next_main_solve(_cad)
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 _adv = _cad._fuse_advisor
 R.check(
@@ -19674,6 +19716,7 @@ R.check(
     _whatif_mod.state_for(_cad).answer == {"marker": "card"}
     and _whatif_mod.state_for(_cad).last_at is None,
 )
+_next_main_solve(_cad)
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 R.check(
     "a second run inside the week is skipped",
@@ -19689,6 +19732,7 @@ _cad2 = _advisor_coord(
         "min_room_temperature": 19.5,
     }
 )
+_next_main_solve(_cad2)
 _asyncio.run(_cad2._maybe_run_fuse_advisor(_solve_record_now(_cad2)))
 R.check(
     "a shortfall the baseline plan shares is not blamed on the fuse",
@@ -19704,6 +19748,7 @@ _cad3 = _advisor_coord(
         "min_room_temperature": 19.5,
     }
 )
+_next_main_solve(_cad3)
 _asyncio.run(_cad3._maybe_run_fuse_advisor(_solve_record_now(_cad3)))
 R.check(
     "a shortfall the cap itself forces still fails the candidate",
@@ -19719,6 +19764,7 @@ R.check(
 _adv_calls.clear()
 _cad4 = _advisor_coord(payload_extra={"error": "no_prices"})
 _cad4._fuse_advisor = {"candidate_kw": 11.04, "feasible": True}
+_next_main_solve(_cad4)
 _asyncio.run(_cad4._maybe_run_fuse_advisor(_solve_record_now(_cad4)))
 R.check(
     "an errored what-if keeps last month's real verdict",
@@ -19730,6 +19776,7 @@ R.check(
 # --- #782 the weekly guard survives a store round-trip ----------------------
 _adv_calls.clear()
 _cad_persist = _advisor_coord()
+_next_main_solve(_cad_persist)
 _asyncio.run(_cad_persist._maybe_run_fuse_advisor(_solve_record_now(_cad_persist)))
 _persist_payload = {}
 
@@ -19758,6 +19805,7 @@ R.check(
 _cad_restore = _advisor_coord()
 _cad_restore._ledger_store = _FuseStore()
 _adv_calls.clear()
+_next_main_solve(_cad_restore)
 _asyncio.run(_cad_restore._maybe_run_fuse_advisor(_solve_record_now(_cad_restore)))
 R.check(
     "a restored advisor timestamp still skips a second run inside the week",
@@ -19777,6 +19825,7 @@ class _OldLed:
 _cad_old = _advisor_coord()
 _cad_old._ledger_store = _OldLed()
 _adv_before = list(_adv_calls)
+_next_main_solve(_cad_old)
 _asyncio.run(_cad_old._maybe_run_fuse_advisor(_solve_record_now(_cad_old)))
 R.check(
     "an older ledger store without advisor keys still runs the what-if",
@@ -26222,6 +26271,7 @@ async def _fake_sim(overrides, limited=True, base=None, steady=False):
 
 
 _ctile.async_simulate = _fake_sim
+_next_main_solve(_ctile)
 _asyncio.run(_ctile._maybe_refresh_price_tile(_solve_record_now(_ctile)))
 R.check(
     "with the flag off no tile ever computes, whatever solves happen",
@@ -26229,6 +26279,7 @@ R.check(
 )
 _ctile2 = _t2_coord(price_tiles_enabled=True)
 _ctile2.async_simulate = _fake_sim
+_next_main_solve(_ctile2)
 _asyncio.run(_ctile2._maybe_refresh_price_tile(_solve_record_now(_ctile2)))
 R.check(
     "one solve refreshes exactly one tile, in rotation",
@@ -26252,6 +26303,7 @@ async def _fake_sim_route(overrides, limited=True, base=None, steady=False):
 
 
 _ctile2.async_simulate = _fake_sim_route
+_next_main_solve(_ctile2)
 _asyncio.run(_ctile2._maybe_refresh_price_tile(_solve_record_now(_ctile2)))
 R.check(
     "#1753: the tile solves through the user-limit-free path, so its turn "
@@ -26450,6 +26502,7 @@ async def _fake_sim_poison(overrides, limited=True, _c=_ctile3, base=None, stead
 
 
 _ctile3.async_simulate = _fake_sim_poison
+_next_main_solve(_ctile3)
 _asyncio.run(_ctile3._maybe_refresh_price_tile(_solve_record_now(_ctile3)))
 R.check(
     "#1753: the tile takes the limited=False path -- no borrow to restore",
@@ -26481,6 +26534,7 @@ async def _fake_sim_err(overrides, limited=True, base=None, steady=False):
 
 
 _ctile4.async_simulate = _fake_sim_err
+_next_main_solve(_ctile4)
 _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
@@ -26490,6 +26544,7 @@ R.check(
 # Turning the flag off retires the published tiles too.
 _ctile5 = _t2_coord()
 price_tiles.book(_ctile5)["stale"] = {"monthly_cost_delta": 1.0}
+_next_main_solve(_ctile5)
 _asyncio.run(_ctile5._maybe_refresh_price_tile(_solve_record_now(_ctile5)))
 R.check(
     "gate off means gone: no stale what-if money outlives the flag",
@@ -27503,6 +27558,8 @@ R.check(
     f"plan={_svc_coord._optimization_result is not None}",
 )
 
+# D17-s3-01: the action fetches before it solves, so the dead feed is the sensor's too.
+_svc_hass.states.set("sensor.prices", FakeState("unavailable"))
 _svc_check(
     "run_optimization with no usable prices raises a translated operational error",
     _svc_call(_svc_hass, "run_optimization", {}),
@@ -27555,6 +27612,7 @@ R.check(
     _asyncio.run(_stale_coord.async_run_optimization()) == "no_prices"
     and _stale_coord._optimization_result is None,
 )
+_stale_hass.states.set("sensor.prices", FakeState("unavailable"))  # the fetch finds nothing newer
 _svc_check(
     "run_optimization on a stale list raises the same no-prices error",
     _svc_call(_stale_hass, "run_optimization", {}),
@@ -27849,6 +27907,7 @@ async def _svc_ok_restore():
 
 
 _svc_coord.async_run_optimization = _svc_ok_run
+_seed_prices(_svc_hass)  # the feed back: the refresh the action runs fetches
 _svc_out = _svc_call(_svc_hass, "run_optimization", {})
 R.check(
     "run_optimization returns normally when the solve ran",
@@ -32150,6 +32209,7 @@ async def _st_failures():
             price_tiles.monthly_figure(cap, answer), _st_whatif.state_for(coord).live_steady,
         )
         coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        _next_main_solve(coord)
         await coord._maybe_run_fuse_advisor(record)
         out["fuse_failed"] = dict(coord._fuse_advisor)
     # And healthy: the fuse advisor's money is the answer's steady key.
@@ -32163,6 +32223,7 @@ async def _st_failures():
     coord.async_simulate = _spy
     try:
         coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        _next_main_solve(coord)
         await coord._maybe_run_fuse_advisor(record)
     finally:
         del coord.async_simulate
@@ -32222,6 +32283,7 @@ async def _st_tiles():
         # tile's clock and solves nothing.
         before = seams.counts()
         for _ in names:
+            _next_main_solve(coord)
             await coord._maybe_refresh_price_tile(record)
         out["clock_first"] = (tuple(b - a for a, b in zip(before, seams.counts())), sorted(price_tiles.book(coord)))
         price_tiles.book(coord).clear()
@@ -32229,12 +32291,14 @@ async def _st_tiles():
         # The rotation position is whatever the seeding solve left it at.
         for _ in names:
             before, had = seams.counts(), {k: len(v.get("days", [])) for k, v in price_tiles.book(coord).items()}
+            _next_main_solve(coord)
             await coord._maybe_refresh_price_tile(record)
             name = next(k for k, v in price_tiles.book(coord).items() if len(v.get("days", [])) != had.get(k, 0)
                         or k not in had)
             out[name] = tuple(b - a for a, b in zip(before, seams.counts()))
         before = seams.counts()
         coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        _next_main_solve(coord)
         await coord._maybe_run_fuse_advisor(record)
         out["fuse"] = tuple(b - a for a, b in zip(before, seams.counts()))
         user = _st_whatif.state_for(coord)
@@ -32248,6 +32312,7 @@ async def _st_tiles():
             _st_dt.freeze(start + age)
             before, stamp = seams.counts(), price_tiles.book(coord)["power_cap_75"]["computed_at"]
             for _ in names:
+                _next_main_solve(coord)
                 await coord._maybe_refresh_price_tile(record)
             out["clock_" + label] = (tuple(b - a for a, b in zip(before, seams.counts())),
                                      price_tiles.book(coord)["power_cap_75"]["computed_at"] != stamp)
@@ -32655,14 +32720,14 @@ _st_tie_sides = [_st_ns(reference_day=lambda inputs, d=d: d) for d in _st_tie_da
 R.check(
     "and the branch is taken on the setpoints, never the energies: the tie is a "
     "schedule ask, equal setpoints with unequal energies are not",
-    _st_whatif.schedule_days((_st_tie_sides[0], None), (_st_tie_sides[1], None))
+    _st_whatif.schedule_days(*_st_whatif.reference_days((_st_tie_sides[0], None), (_st_tie_sides[1], None)))
     == (_st_tie_days[0][1], _st_tie_days[1][1])
-    and _st_whatif.schedule_days(
+    and _st_whatif.schedule_days(*_st_whatif.reference_days(
         (_st_ns(reference_day=lambda inputs: ([21.0], 5.0)), None),
-        (_st_ns(reference_day=lambda inputs: ([21.0], 6.0)), None)) is None
-    and _st_whatif.schedule_days(
+        (_st_ns(reference_day=lambda inputs: ([21.0], 6.0)), None))) is None
+    and _st_whatif.schedule_days(*_st_whatif.reference_days(
         (_st_ns(reference_day=lambda inputs: ([21.0, 19.5], 5.0)), None),
-        (_st_ns(reference_day=lambda inputs: ([21.0, 19.51], 6.0)), None)) == (5.0, 6.0),
+        (_st_ns(reference_day=lambda inputs: ([21.0, 19.51], 6.0)), None))) == (5.0, 6.0),
     "schedule_days",
 )
 
@@ -32673,6 +32738,13 @@ async def _st_nan_day(energy=_st_math.nan):
     coord = await _st_coord()
     real = _st_omod.HeatPumpOptimizer.reference_day
     _st_omod.HeatPumpOptimizer.reference_day = lambda self, inputs: (real(self, inputs)[0], energy)
+    real_off = _coord_mod._await_off_loop
+
+    async def _here(hass, fn, *args):
+        # The patch above lives in this process; the reference days run here.
+        return fn(*args) if fn is _st_whatif.reference_days else await real_off(hass, fn, *args)
+
+    _coord_mod._await_off_loop = _here
     try:
         with _StSeams() as seams:
             record = _solve_record_now(coord)
@@ -32682,6 +32754,7 @@ async def _st_nan_day(energy=_st_math.nan):
                     answer.get(_ST_KEY))
     finally:
         _st_omod.HeatPumpOptimizer.reference_day = real
+        _coord_mod._await_off_loop = real_off
 
 
 _st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
@@ -55181,12 +55254,11 @@ def _t4_count_solve_work(coord):
 _t4_force_busy = _t4_coord()
 _t4_count_refresh(_t4_force_busy)
 _t4_count_solve_work(_t4_force_busy)
-_t4_force_busy._optimization_running = True
+solve_gate.gate_for(_t4_force_busy).solving = True
 _t4_drive(_t4_force_busy, "async_run_optimization")
 _t4_force_idle = _t4_coord()
 _t4_count_refresh(_t4_force_idle)
 _t4_count_solve_work(_t4_force_idle)
-_t4_force_idle._optimization_running = False
 _t4_drive(_t4_force_idle, "async_run_optimization")
 R.check(
     "forcing an optimization while one runs is dropped, not queued "
@@ -56238,7 +56310,7 @@ R.check(
 )
 
 _t5_opt_busy = _t5_solve_spy()
-_t5_opt_busy._optimization_running = True
+solve_gate.gate_for(_t5_opt_busy).solving = True
 _t5_run(_t5_opt_busy)
 R.check(
     "a solve already in flight is skipped rather than run a second time",
@@ -56349,7 +56421,6 @@ _T6_PROPERTY_PAIRS = (
     ("mode", "_mode", "boost"),
     ("prices", "_prices", [{"total": 9.99}]),
     ("dhw_temperature", "_dhw_temperature", 53.75),
-    ("optimization_running", "_optimization_running", True),
     # The read-only views the entity platforms read (R9-EG-B2, #1739).
     ("thermal_params", "_thermal_params", "sentinel-params"),
     ("thermal_model", "_thermal_model", "sentinel-model"),
@@ -56360,7 +56431,7 @@ _t6_prop_moved = _t6_coord()
 for _t6_pname, _t6_attr, _t6_value in _T6_PROPERTY_PAIRS:
     setattr(_t6_prop_moved, _t6_attr, _t6_value)
 R.check(
-    "seven published properties and views each read the attribute they front, not a neighbour",
+    "six published properties and views each read the attribute they front, not a neighbour",
     all(
         getattr(_t6_prop_moved, name) == value
         and getattr(_t6_prop_start, name) != value
@@ -58146,11 +58217,18 @@ _g8_cyc_floor = _g8_cyc._ctx._opt_config.min_temp
 _g8_cyc_real = _coord_mod._await_optimize
 
 
+_g8_cyc_calls = []
+
+
 async def _g8_cyc_mid_solve(*_args, **_kwargs):
-    await _g8_cyc.async_update_thermal_params(
-        {"dhw_min_temperature": 38.0, "dhw_idle_min_temperature": 31.0}
-    )
-    await _g8_cyc.async_set_target_temperature(19.5)
+    # Each cycle's first solve takes the writes; their request re-runs it once
+    # (#1754, D1-s1-03), and the re-run is left quiet so it ends.
+    _g8_cyc_calls.append(1)
+    if len(_g8_cyc_calls) % 2:
+        await _g8_cyc.async_update_thermal_params(
+            {"dhw_min_temperature": 38.0, "dhw_idle_min_temperature": 31.0}
+        )
+        await _g8_cyc.async_set_target_temperature(19.5)
     raise RuntimeError("the solve is not the point here")
 
 
@@ -72210,6 +72288,7 @@ def _r9egb9_borrow_arm(borrower, kind):
             coord._fuse_advisor_at = _r9egb9_dt.now() - timedelta(days=8)
             call = _f25_partial(
                 coord._maybe_run_fuse_advisor, _solve_record_now(coord))
+        _next_main_solve(coord)  # the borrower runs after a solve of its own (D9-s1-02)
         out = {"U0": _r9egb9_ov(u0)}
         if kind == "null":
             await call()
@@ -73964,9 +74043,9 @@ async def _dbg_week(flush):
         first = _dbg.collector_for(coord)
         out = {"subscribed": len(coord._listeners) - listeners}
         t = await _dbg_cycles(hass, coord, _DBG_T0, 1)
-        coord._optimization_running = True
+        solve_gate.gate_for(coord).solving = True
         coord.async_update_listeners()
-        coord._optimization_running = False
+        solve_gate.gate_for(coord).solving = False
         coord.async_update_listeners()
         t = await _dbg_cycles(hass, coord, t, 1)
         out["walls"] = [r.get("solve_wall_ms") for r in first.rows]
@@ -82728,9 +82807,11 @@ async def _ls_tile_cancel():
 
     coord.async_simulate = _sim
     try:
+        _next_main_solve(coord)
         await coord._maybe_refresh_price_tile(record)
     except _ls_aio.CancelledError:
         pass
+    _next_main_solve(coord)
     await coord._maybe_refresh_price_tile(record)
     return [dict(o) for o in seen], [dict(o) for _n, o in specs]
 
@@ -96878,5 +96959,320 @@ R.check(
     f"target={None if _rl_wi_c_target is None else sorted(set(np.round(_rl_wi_c_target, 3).tolist()))}",
 )
 
+
+
+# -- R11-SEAM-cycle-solve: when a solve runs (solve_gate) ------------------------
+import asyncio as _sg_aio  # noqa: E402
+import subprocess as _sg_sp  # noqa: E402
+from heatpump_optimizer import coordinator as _sg_cm  # noqa: E402
+from heatpump_optimizer import whatif as _sg_whatif  # noqa: E402
+
+_sg_g = solve_gate.SolveGate()
+_sg_idle = solve_gate.absorb_request(_sg_g, False)
+_sg_idle_flags = (_sg_g.rerun, _sg_g.trailing)
+_sg_refreshing = solve_gate.absorb_request(_sg_g, True)
+_sg_first, _sg_second = solve_gate.begin_solve(_sg_g), solve_gate.begin_solve(_sg_g)
+_sg_ends = (solve_gate.end_solve(_sg_g), solve_gate.end_solve(_sg_g))
+_sg_trails = (solve_gate.take_trailing(_sg_g), solve_gate.take_trailing(_sg_g))
+R.check(
+    "solve_gate: an idle request is not absorbed and sets nothing; one during a refresh "
+    "trails it once; a second solve start is refused and recorded as one re-run, taken once",
+    _sg_idle is False and _sg_idle_flags == (False, False) and _sg_refreshing is True
+    and (_sg_first, _sg_second) == (True, False) and _sg_ends == (True, False)
+    and _sg_trails == (True, False) and not _sg_g.solving,
+    f"idle={_sg_idle} {_sg_idle_flags} refreshing={_sg_refreshing} starts={(_sg_first, _sg_second)} "
+    f"ends={_sg_ends} trails={_sg_trails}",
+)
+_sg_b = solve_gate.SolveGate()
+solve_gate.begin_solve(_sg_b)
+_sg_bg = [solve_gate.admit_background(_sg_b), solve_gate.admit_background(_sg_b)]
+solve_gate.end_solve(_sg_b)
+solve_gate.begin_solve(_sg_b)
+_sg_bg.append(solve_gate.admit_background(_sg_b))
+R.check(
+    "D9-s1-02: one background what-if per main solve -- the second is denied, and the next "
+    "solve opens a fresh budget",
+    _sg_bg == [True, False, True],
+    f"admissions {_sg_bg}",
+)
+
+
+async def _sg_slot_burst(k):
+    """K user asks overlapping the first one's solve: which solve, which are held."""
+    gate, solved, release = solve_gate.SolveGate(), [], _sg_aio.Event()
+
+    async def ask(i):
+        async with solve_gate.user_slot(gate) as ok:
+            if not ok:
+                return "held"
+            solved.append(i)
+            if i == 0:
+                await release.wait()
+            return "solved"
+
+    tasks = [_sg_aio.create_task(ask(i)) for i in range(k)]
+    for _ in range(3):
+        await _sg_aio.sleep(0)
+    async with solve_gate.user_slot(gate, False) as background:  # never waits on the user slot
+        pass
+    release.set()
+    answers = await _sg_aio.gather(*tasks)
+    return solved, answers, background, gate.user_running
+
+
+_sg_burst4 = _sg_aio.run(_sg_slot_burst(4))
+_sg_burst1 = _sg_aio.run(_sg_slot_burst(1))
+R.check(
+    "D9-s1-03: of four overlapping user what-ifs only the one in flight and the newest solve; "
+    "the two overtaken are held, a background caller never waits, and the slot is freed; "
+    "null control, one ask solves",
+    _sg_burst4 == ([0, 3], ["solved", "held", "held", "solved"], True, False)
+    and _sg_burst1 == ([0], ["solved"], True, False),
+    f"four {_sg_burst4}, one {_sg_burst1}",
+)
+
+
+class _SgOpt:
+    def __init__(self, day):
+        self.day = day
+
+    def reference_day(self, _inputs):
+        return self.day
+
+
+_sg_days = _sg_whatif.reference_days((_SgOpt(([20.0], 3.0)), None), (_SgOpt(([19.0], 2.5)), None))
+R.check(
+    "D9-s1-04: the reference days are one shippable function of the two sides, and the "
+    "schedule branch reads them -- a moved setpoint prices the pair, an unmoved one is None",
+    _sg_days == (([20.0], 3.0), ([19.0], 2.5))
+    and _sg_whatif.schedule_days(*_sg_days) == (3.0, 2.5)
+    and _sg_whatif.schedule_days(([20.0], 3.0), ([20.0], 9.0)) is None,
+    f"{_sg_days}",
+)
+
+
+async def _sg_requests():
+    """The coordinator's own request path, against a counted debouncer."""
+    _hass, _entry, coord = _r9f13_make("sg_requests")
+    calls = []
+
+    async def _call():
+        calls.append(1)
+
+    coord._debounced_refresh.async_call = _call
+    gate = solve_gate.gate_for(coord)
+    coord._refresh_task = object()
+    await coord.async_request_refresh()
+    during_refresh = (len(calls), gate.trailing)
+    coord._refresh_task = None
+    gate.solving = True
+    await coord.async_request_refresh()
+    during_solve = (len(calls), gate.rerun)
+    gate.solving = gate.rerun = gate.trailing = False
+    await coord.async_request_refresh()
+    return during_refresh, during_solve, len(calls)
+
+
+_sg_req = _sg_aio.run(_sg_requests())
+R.check(
+    "D1-s1-03: a request during a refresh trails it, one during a solve re-runs it, and only an "
+    "idle one reaches the debouncer -- which drops a call made while it executes",
+    _sg_req == ((0, True), (0, True), 1),
+    f"{_sg_req}",
+)
+
+
+async def _sg_trailing():
+    """A write lands while the refresh fetches: the refresh's end requests one more."""
+    _hass, _entry, coord = _r9f13_make("sg_trailing")
+    loop = _sg_aio.get_running_loop()
+    coord.hass.async_create_task = lambda coro: loop.create_task(coro)
+    calls = []
+
+    async def _call():
+        calls.append(1)
+
+    async def _solve():
+        return None
+
+    real_state = coord._update_current_state
+
+    async def _state_with_write():
+        await real_state()
+        await coord.async_request_refresh()  # a user write mid-refresh
+
+    coord._debounced_refresh.async_call = _call
+    coord.async_run_optimization = _solve
+    coord._update_current_state = _state_with_write
+    await coord.async_refresh()
+    for _ in range(5):
+        await _sg_aio.sleep(0)
+    return len(calls), solve_gate.gate_for(coord).trailing
+
+
+_sg_trail = _sg_aio.run(_sg_trailing())
+R.check(
+    "D1-s1-03: a request landing while a refresh runs is answered by one more debounced "
+    "refresh once it ends, and the trailing mark is spent",
+    _sg_trail == (1, False),
+    f"{_sg_trail}",
+)
+
+
+async def _sg_diagnose():
+    """A diagnose publishes the insight view and asks for no cycle."""
+    _hass, _entry, coord = _r9f13_make("sg_diagnose")
+    coord.data = {"insight": "stale", "sensor_advisor": ["kept"]}
+    requests = []
+
+    async def _req():
+        requests.append(1)
+
+    async def _proc(_hass, _fn, *_args):
+        return None
+
+    coord.async_request_refresh = _req
+    real_proc, real_payload = _sg_cm._await_process, _sg_cm._diagnose_payload
+    _sg_cm._await_process, _sg_cm._diagnose_payload = _proc, lambda _c: ()
+    try:
+        await coord.async_diagnose_interval()
+    finally:
+        _sg_cm._await_process, _sg_cm._diagnose_payload = real_proc, real_payload
+    return len(requests), isinstance(coord.data["insight"], dict), coord.data["sensor_advisor"]
+
+
+_sg_diag = _sg_aio.run(_sg_diagnose())
+R.check(
+    "D9-s1-01: a diagnose press republishes the insight view with the advisor ranking kept, "
+    "and requests no refresh -- so no solve",
+    _sg_diag == (0, True, ["kept"]),
+    f"{_sg_diag}",
+)
+
+
+class _SgDeaf:
+    """A child the kill does not end: every wait times out."""
+
+    def __init__(self):
+        self.killed, self.waits = 0, []
+
+    def kill(self):
+        self.killed += 1
+
+    def wait(self, timeout=None):
+        self.waits.append(timeout)
+        if timeout is None:
+            raise AssertionError("an unbounded wait on a kill-deaf child")
+        raise _sg_sp.TimeoutExpired("worker", timeout)
+
+
+_sg_deaf = _SgDeaf()
+_sg_cm._reap_killed(_sg_deaf)
+R.check(
+    "D1-s3-04: the fault arms' reap of a kill-deaf worker is bounded by the shutdown "
+    "timeout and does not raise",
+    _sg_deaf.killed == 1 and _sg_deaf.waits == [_sg_cm._SHUTDOWN_LOCK_TIMEOUT_S],
+    f"kills={_sg_deaf.killed} waits={_sg_deaf.waits}",
+)
+
+
+class _SgHass:
+    def __init__(self):
+        self.data, self.executor_jobs = {}, 0
+
+    async def async_add_executor_job(self, *_a):
+        self.executor_jobs += 1
+        return "in-process plan"
+
+
+def _sg_fallback_probe(stopping):
+    hass, notes = _SgHass(), []
+
+    async def _dead(*_a):
+        raise _sg_cm.ProcessWorkerUnavailable("killed by the stop")
+
+    real = (_sg_cm._await_process, _sg_cm._note_worker_fallback)
+    _sg_cm._await_process = _dead
+    _sg_cm._note_worker_fallback = lambda *a: notes.append(a)
+    if stopping:
+        hass.data[_sg_cm._WORKER_STOPPING] = True
+    try:
+        out = _sg_aio.run(_sg_cm._await_optimize(hass, None, None))
+    except _sg_cm.ProcessWorkerUnavailable:
+        out = "raised"
+    finally:
+        _sg_cm._await_process, _sg_cm._note_worker_fallback = real
+    return out, len(notes), hass.executor_jobs
+
+
+_sg_stop = _sg_fallback_probe(True)
+_sg_run = _sg_fallback_probe(False)
+R.check(
+    "D1-s1-01: a worker the stop killed raises no fallback notice and runs no in-process "
+    "solve; null control, the same death while running falls back with its notice",
+    _sg_stop == ("raised", 0, 0) and _sg_run == ("in-process plan", 1, 1),
+    f"stopping {_sg_stop}, running {_sg_run}",
+)
+
+
+def _sg_clear_probe(latched):
+    deleted = []
+    real_delete, causes = _sg_cm.ir.async_delete_issue, dict(_sg_cm._WORKER_FALLBACK_CAUSES)
+    _sg_cm.ir.async_delete_issue = lambda _h, _d, issue: deleted.append(issue)
+    _sg_cm._WORKER_FALLBACK_CAUSES.clear()
+    _sg_cm._WORKER_FALLBACK_CAUSES.update(latched)
+    try:
+        _sg_cm._clear_worker_fallback(_SgHass(), "entry-a")
+    finally:
+        _sg_cm.ir.async_delete_issue = real_delete
+        _sg_cm._WORKER_FALLBACK_CAUSES.clear()
+        _sg_cm._WORKER_FALLBACK_CAUSES.update(causes)
+    return deleted
+
+
+_sg_restored = _sg_clear_probe({})
+_sg_other = _sg_clear_probe({"entry-b": "OSError: x"})
+R.check(
+    "D1-s1-01: a healthy solve clears a fallback notice restored from before a restart, "
+    "with no cause latched in this process; null control, another entry's latched cause keeps it",
+    _sg_restored == ["solve_worker_fallback"] and _sg_other == [],
+    f"restored {_sg_restored}, other entry latched {_sg_other}",
+)
+
+
+async def _sg_stop_midsolve():
+    _hass, _entry, coord = _r9f13_make("sg_stop_midsolve")
+
+    async def _killed(*_a):
+        raise _sg_cm.ProcessWorkerUnavailable("killed by the stop")
+
+    real = _sg_cm._await_optimize
+    _sg_cm._await_optimize = _killed
+    coord.hass.data[_sg_cm._WORKER_STOPPING] = True
+    try:
+        reason = await coord.async_run_optimization()
+    finally:
+        _sg_cm._await_optimize = real
+        coord.hass.data.pop(_sg_cm._WORKER_STOPPING, None)
+    return reason, coord._solve_failures, solve_gate.gate_for(coord).solving
+
+
+_r9f13_dt.freeze(_R9F13_NOW)
+_sg_midsolve = _sg_aio.run(_sg_stop_midsolve())
+_r9f13_dt.freeze(None)
+R.check(
+    "D1-s1-01: a solve the stop broke answers 'shutdown', counts no solve failure and "
+    "frees the gate",
+    _sg_midsolve == ("shutdown", 0, False),
+    f"{_sg_midsolve}",
+)
+_sg_view = _r9f13_make("sg_view")[2]
+_sg_view_idle = _sg_view.optimization_running
+solve_gate.gate_for(_sg_view).solving = True
+R.check(
+    "the published optimization_running view reads the solve gate",
+    _sg_view_idle is False and _sg_view.optimization_running is True,
+    f"idle {_sg_view_idle}, solving {_sg_view.optimization_running}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))

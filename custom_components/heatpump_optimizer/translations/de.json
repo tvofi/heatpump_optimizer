@@ -2290,7 +2290,7 @@
   "services": {
     "run_optimization": {
       "name": "Optimierung ausführen",
-      "description": "Startet die Kostenoptimierung der Wärmepumpe manuell. Dabei wird der optimale Wärmepumpen-Zeitplan für die nächsten 24 Stunden aus den bereits geladenen Strompreisen und der Wettervorhersage neu berechnet (neue werden nicht abgerufen), mit prädiktivem MPC unter Berücksichtigung von Sonne, Wind und Regen sowie Abstimmung mit der Warmwasserbereitung. Kann die Optimierung nicht laufen, schlägt der Aufruf mit einem Fehler fehl, zum Beispiel wenn weniger als vier Strompreisschritte vorliegen oder die Lösung fehlgeschlagen ist, statt so zurückzukehren, als wäre ein neuer Plan berechnet worden."
+      "description": "Startet die Kostenoptimierung der Wärmepumpe manuell. Dabei werden Strompreise und Wettervorhersage abgerufen, dann wird der optimale Wärmepumpen-Zeitplan für die nächsten 24 Stunden neu berechnet, angewendet und veröffentlicht, derselbe Lauf wie die Schaltfläche „Jetzt optimieren“, mit prädiktivem MPC unter Berücksichtigung von Sonne, Wind und Regen sowie Abstimmung mit der Warmwasserbereitung. Kann die Optimierung nicht laufen, schlägt der Aufruf mit einem Fehler fehl, zum Beispiel wenn weniger als vier Strompreisschritte vorliegen oder die Lösung fehlgeschlagen ist, statt so zurückzukehren, als wäre ein neuer Plan berechnet worden."
     },
     "set_away": {
       "name": "Abwesenheit setzen",

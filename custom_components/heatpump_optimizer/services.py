@@ -92,6 +92,7 @@ from .coordinator import (
     async_adopt_heat_loss_refit,
     async_factory_reset,
 )
+from .solve_gate import async_optimize_now
 from .dhw_schedule import (
     DHWWindowError,
     format_weekly_windows,
@@ -591,6 +592,8 @@ def _loaded_coordinators(
 async def handle_run_optimization(hass: HomeAssistant, call: ServiceCall) -> None:
     """Handle the run_optimization service call.
 
+    One refresh per entry, the Optimize Now button's path: prices and weather
+    are fetched, then the plan is solved, actuated and published (D17-s3-01).
     The coordinator reports a reason code when the solve could not run
     rather than raising — its own ``except Exception`` fence (which feeds
     the repair issue) would swallow one — so a run that quietly did not
@@ -601,7 +604,7 @@ async def handle_run_optimization(hass: HomeAssistant, call: ServiceCall) -> Non
     _LOGGER.info("Manual optimization triggered via service call")
     not_run: dict[str, str] = {}
     for entry_id, coord in _loaded_coordinators(hass):
-        reason = await coord.async_run_optimization()
+        reason = await async_optimize_now(coord)
         if reason is not None:
             not_run[entry_id] = reason
     if not_run:

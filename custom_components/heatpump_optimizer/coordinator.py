@@ -264,7 +264,7 @@ from . import issues, setpoint_check
 from . import quiet_windows
 from . import rooms, slab_seed
 from . import price_tiles
-from . import whatif
+from . import solve_gate, whatif
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals, resistive_carve_out
 from .manual_plan import (
@@ -840,6 +840,15 @@ PROCESS_REPLY_TIMEOUT_S = 1800.0
 # is only bookkeeping, and neither a read the kill did not break nor a child
 # slow to die may hold a solve or Home Assistant's shutdown hostage.
 _SHUTDOWN_LOCK_TIMEOUT_S = 5.0
+#: ``hass.data`` key, set when Home Assistant stops: a solve the reap breaks is
+#: neither a worker fault nor a solve failure (D1-s1-01).
+_WORKER_STOPPING = f"{DOMAIN}_worker_stopping"
+
+
+def _worker_stopping(hass: Any) -> bool:
+    """Whether ``hass`` is stopping, as the worker reap marked it."""
+    data = getattr(hass, "data", None)
+    return isinstance(data, dict) and bool(data.get(_WORKER_STOPPING))
 # How long the reply frame may take to arrive once its first byte has. The
 # worker serialises its whole reply before writing it, so the frame then flows
 # at pipe speed (a 50 MB reply round-trips in about half a second); this only
@@ -1957,6 +1966,7 @@ def async_register_worker_shutdown(hass: HomeAssistant, entry: HeatPumpOptimizer
     """
 
     async def _stop(_event: Event) -> None:
+        hass.data[_WORKER_STOPPING] = True  # before the reap: the solve it breaks is not a fault
         await hass.async_add_executor_job(_shutdown_process_pool)
 
     entry.async_on_unload(
@@ -2049,6 +2059,21 @@ def _read_reply(stdout: Any) -> Any:
     return pickle.load(_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S))
 
 
+def _reap_killed(worker: "subprocess.Popen[bytes]") -> None:
+    """Kill a worker whose stream is in an unknown state, and reap it, bounded.
+
+    Both of ``_run_in_process``'s fault arms hold ``_PROCESS_LOCK`` here: a
+    child the kill does not end at once (one stuck in the kernel on I/O) must
+    not hold every peer's solve behind an unbounded wait (D1-s3-04). Never
+    raises, so the cause the caller re-raises is not masked.
+    """
+    try:
+        worker.kill()
+        worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)
+    except Exception:  # noqa: BLE001 - must not mask the caller's cause
+        pass
+
+
 def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
     """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable.
 
@@ -2083,14 +2108,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                 status, payload = _read_reply(stdout)
             except ProcessWorkerTimeout:
                 _PROCESS_WORKER = None
-                # Bounded too: a child the kill does not end at once (one
-                # stuck in the kernel) must not turn this into the same
-                # unbounded wait one line further down.
-                try:
-                    worker.kill()
-                    worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)
-                except Exception:  # noqa: BLE001 - must not mask the timeout
-                    pass
+                _reap_killed(worker)
                 raise
         except ProcessWorkerUnavailable:
             # Already the class the fallback route catches; rewrapping it
@@ -2103,11 +2121,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                     f"process worker cannot start: {err}"
                 ) from err
             rc = worker.poll()
-            try:  # a no-op on a child poll() has already reaped
-                worker.kill()
-                worker.wait()
-            except Exception:  # noqa: BLE001 - must not mask the cause
-                pass
+            _reap_killed(worker)  # a no-op on a child poll() has already reaped
             raise ProcessWorkerUnavailable(
                 f"process worker exited rc={rc}: {err}"
             ) from err
@@ -2259,8 +2273,9 @@ def _clear_worker_fallback(hass: HomeAssistant, entry_id: Any = None) -> None:
     success no longer resets entry A's #783 cap or flaps A's notice.
     """
     _reset_worker_fallback_streak(hass, entry_id)
-    if _WORKER_FALLBACK_CAUSES.pop(entry_id, None) is None:
-        return
+    _WORKER_FALLBACK_CAUSES.pop(entry_id, None)
+    # Also when nothing was latched: a notice restored from before a restart
+    # has no cause in this process and would otherwise never clear (D1-s1-01).
     if not _WORKER_FALLBACK_CAUSES:
         ir.async_delete_issue(hass, DOMAIN, "solve_worker_fallback")
 
@@ -2328,6 +2343,8 @@ async def _await_optimize(
             minutes=f"{PROCESS_REPLY_TIMEOUT_S / 60:.0f}",
         )
     except ProcessWorkerUnavailable as err:
+        if _worker_stopping(hass):
+            raise  # the stop killed the worker: no notice, no in-process rerun
         _note_worker_fallback(hass, err, entry_id)
         n = _bump_worker_fallback(hass, entry_id)
         if n > WORKER_FALLBACK_CAP:
@@ -3509,7 +3526,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     thermal_model = _view("_thermal_model")
     away_state = _view("_away_state")
     mold_floor_series = _view("_mold_floor_series")
-    optimization_running = _view("_optimization_running")
+    optimization_running = property(lambda self: solve_gate.gate_for(self).solving)
     accuracy = _view("_accuracy")
     measured_cop = _view("_measured_cop")
     solve_failures = _view("_solve_failures")
@@ -3752,11 +3769,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._floor_return_temp: float | None = None
         self._solar_radiation_forecast: list[float] = []
         self._open_meteo: OpenMeteoSolar | None = None
-        # A run takes seconds, so a user tapping the button repeatedly must not
-        # be able to stack solves on top of each other.
-        self._optimization_running: bool = False
-        # #1754: a mid-solve refresh is recorded, not dropped; the finally re-runs it.
-        self._optimization_rerun_requested: bool = False
         # Set by ``async_setup_entry`` -- and by nothing else -- just before the
         # first refresh: that refresh runs inside setup, where a full cold
         # solve stalls the whole instance. Consumed on the next update cycle,
@@ -6084,7 +6096,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
             # Run optimization if in auto mode
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
-                await self.async_run_optimization()
+                solve_gate.gate_for(self).reason = await self.async_run_optimization()
             elif self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
                 boost.adopt_plan(self, self._fixed_mode_action())
 
@@ -6156,6 +6168,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
         finally:
             self._refresh_task = None
+            if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:
+                self._spawn(self.async_request_refresh())  # lands once the debouncer is free
+
+    async def async_request_refresh(self) -> None:
+        """Request a refresh; one landing on a running solve or refresh follows it (D1-s1-03)."""
+        if not solve_gate.absorb_request(solve_gate.gate_for(self), self._refresh_task is not None):
+            await super().async_request_refresh()
+
     async def _async_first_refresh_light(self) -> Payload:
         """The setup-time refresh: publish something valid without solving.
 
@@ -6359,13 +6379,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         _LOGGER.info("Running heat pump optimization (predictive MPC)")
 
-        if self._optimization_running:
-            # #1754: record the re-run; the in-flight solve's finally honours it.
-            self._optimization_rerun_requested = True
+        if not solve_gate.begin_solve(solve_gate.gate_for(self)):
+            # #1754: a re-run is recorded; the in-flight solve's finally honours it.
             _LOGGER.debug("An optimization is already in flight; recording a re-run")
             return None
 
-        self._optimization_running = True
         entry_mode = self._mode
         # Announce the flip: the Optimize Now button disables itself off this
         # flag, and without a listener update the change is invisible until
@@ -6457,8 +6475,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
             self._optimization_result = replace(result, solve_band=record.band.as_dict())
             self._last_optimization = dt_util.now()
-            if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
-                ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
+            ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")  # a restored one too
             self._solve_failures = 0
             log_held(self, "solve_failure", False)  # a later failure spell warns again
             # T5 #16: file this plan's promises at each lead bucket, to be
@@ -6511,20 +6528,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return None
 
         except Exception as err:
+            if _worker_stopping(self.hass):
+                return "shutdown"  # the stop killed the worker; not a solve failure
             _note_solve_failure(self, err)
             return "solve_failed"
         finally:
-            self._optimization_running = False
+            rerun = solve_gate.end_solve(solve_gate.gate_for(self))
             self.async_update_listeners()
-            # #1754: honour a mid-solve refresh as ONE re-run, now that the flag
-            # is clear so it is not guarded out. Cleared first, so this recurses
-            # only if another refresh arrives during the re-run (a rate the
-            # debouncer bounds); skipped once the entry is released, and
-            # dropped where a fixed mode superseded the solve (D1-s1-02).
-            if self._optimization_rerun_requested and not self._entry_released:
-                self._optimization_rerun_requested = False
-                if not _mode_superseded(entry_mode, self._mode):
-                    await self.async_run_optimization()
+            # #1754: a request during the solve re-runs it ONCE; skipped once the
+            # entry is released, dropped where a fixed mode superseded it (D1-s1-02).
+            if rerun and not self._entry_released and not _mode_superseded(entry_mode, self._mode):
+                await self.async_run_optimization()
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""
         await self._accuracy_store.async_wait_for_read()
@@ -8995,16 +9009,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             and (dt_util.as_utc(now) - dt_util.as_utc(self._fuse_advisor_at)
             ).total_seconds() < 7 * 24 * 3600.0
             and self._fuse_advisor.get("month") == month_key(now)
-        ):
+        ) or not solve_gate.admit_background(solve_gate.gate_for(self)):  # D9-s1-02
             return
 
         candidate_kw = self.effective_config.fuse_kw_at(smaller)
         baseline_now = float(self._baseline_house_load(1)[0])
         cap_kw = max(0.0, candidate_kw - baseline_now)
-        # Solve on the card's harness, never on its budget (#1753): with
-        # ``limited=False`` this neither spends the what-if's rate-limit
-        # slot nor writes its answer into the card cache.
-        simulated = await self.async_simulate(
+        simulated = await self.async_simulate(  # the background path (#1753)
             {"power_cap_kw": cap_kw}, limited=False, base=record, steady=True
         )
         echoed = (simulated.get("overrides") or {}).get("power_cap_kw")
@@ -10686,7 +10697,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "No settled interval to diagnose yet — one full "
                 "optimization interval must pass first"
             )
-        await self.async_request_refresh()
+        if self.data is not None:  # D9-s1-01: publish the diagnosis, no cycle (``async_set_updated_data`` re-arms the interval)
+            self.data = {**self.data, "insight": self._insight_view()}
+            self.async_update_listeners()
         return report
 
     async def _maybe_refresh_price_tile(self, record: SolveRecord) -> None:
@@ -10694,10 +10707,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         Rotating: one extra solve for a degree tile, three for the cap tile,
         whose steady figure (#2257) ``price_tiles.take`` holds to its own
-        clock. Through ``async_simulate``'s own solve path and executor, on
-        the card's harness but never on its budget (``limited=False``, #1753):
-        no rate-limit slot of the user what-if spent and no card cache written,
-        so an overlapping card drag is answered fresh and keeps both.
+        clock. ``async_simulate``'s background path (``limited=False``, #1753),
+        and only when the solve's one background what-if is free (D9-s1-02).
         """
         if not getattr(self, "_ctx", self)._config.price_tiles_enabled:
             # Gate off means gone: stale what-if money left published
@@ -10705,7 +10716,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             price_tiles.book(self).clear()
             return
         specs = price_tiles.specs(record.config, record.params.max_electrical_power)
-        if (spec := price_tiles.take(price_tiles.rotation(self), specs, dt_util.now())) is None:
+        if not solve_gate.admit_background(solve_gate.gate_for(self)) or (
+                spec := price_tiles.take(price_tiles.rotation(self), specs, dt_util.now())) is None:
             return
         name, overrides = spec
         try:
@@ -11188,7 +11200,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         * it is **rate-limited** for user callers, because a full solve is
           seconds of CPU and dragging a slider would otherwise trigger one
           per pixel. The slot is spent when a solve starts, so the failing
-          arm is limited (#1448). ``limited=False`` is the background
+          arm is limited (#1448); of the asks overlapping a solve only the
+          newest then solves (``solve_gate.user_slot``). ``limited=False``: the background
           callers' path — the price tile and the fuse advisor (#1753): it
           neither reads nor writes the user limiter or the card cache, so
           a card drag overlapping a background solve is answered fresh and
@@ -11202,99 +11215,101 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         solves, off the loop and outside the #783 streak, never a seed and
         never the plan (``whatif.steady_pair``).
         """
-        ctx = getattr(self, "_ctx", self)
-        now = dt_util.now()
         held = whatif.state_for(self)
-        if limited and (kept := whatif.limited_answer(held, now)) is not None:
+        if limited and (kept := whatif.limited_answer(held, dt_util.now())) is not None:
             return kept
+        async with solve_gate.user_slot(solve_gate.gate_for(self), limited) as admitted:
+            if not admitted:  # D9-s1-03: a newer ask overtook this one while it waited
+                return {**held.answer, "rate_limited": True}
+            ctx = getattr(self, "_ctx", self)
+            now = dt_util.now()
+            result = self._optimization_result
+            if result is None:
+                return {"error": "no_plan", "rate_limited": False}
 
-        result = self._optimization_result
-        if result is None:
-            return {"error": "no_plan", "rate_limited": False}
+            # Same shared-instant discipline as the live solve: the shadow
+            # solve's anchor and its arrays must not straddle a quarter
+            # boundary, or its predicted_cost stops being comparable to the
+            # plan it is differenced against below.
+            horizon = self._forecast_arrays(now)
+            if len(horizon.prices) < 4:
+                return {"error": "no_prices", "rate_limited": False}
 
-        # Same shared-instant discipline as the live solve: the shadow
-        # solve's anchor and its arrays must not straddle a quarter
-        # boundary, or its predicted_cost stops being comparable to the
-        # plan it is differenced against below.
-        horizon = self._forecast_arrays(now)
-        if len(horizon.prices) < 4:
-            return {"error": "no_prices", "rate_limited": False}
+            banded = base is None and _whatif_banded(self._away_state)
+            if base is None:
+                config, params, state = self._solve_hubs(len(horizon.prices), banded=banded)
+            else:
+                config, params, state = base.config, base.params, base.inputs.state
+            # One snap for slot stamps and the shadow solve (#463).
+            solve_at = plan_step_start(now)
 
-        banded = base is None and _whatif_banded(self._away_state)
-        if base is None:
-            config, params, state = self._solve_hubs(len(horizon.prices), banded=banded)
-        else:
-            config, params, state = base.config, base.params, base.inputs.state
-        # One snap for slot stamps and the shadow solve (#463).
-        solve_at = plan_step_start(now)
+            def _scratch(asked: Mapping[str, Any], held_start: bool = False) -> tuple[HeatPumpOptimizer, SolveInputs, float]:
+                return self._whatif_solve(asked, config, params, state, horizon, solve_at, held_start)
 
-        def _scratch(asked: Mapping[str, Any], held_start: bool = False) -> tuple[HeatPumpOptimizer, SolveInputs, float]:
-            return self._whatif_solve(asked, config, params, state, horizon, solve_at, held_start)
+            try:
+                scratch, inputs, wood_sek = _scratch(overrides)
+            except whatif.Refused as err:
+                return {"error": str(err), "rate_limited": False}
+            if limited:  # the slot is spent when a solve starts (#1448, #1753)
+                held.last_at = now
+            try:
+                _CURRENT_ENTRY_ID.set(self.entry.entry_id)  # #1755: per-entry fallback key
+                simulated = await _await_optimize(self.hass, scratch, inputs)
+            except Exception as err:  # noqa: BLE001 - a what-if must never break ops
+                _LOGGER.warning("What-if simulation failed: %s", err)
+                return {"error": str(err), "rate_limited": False}
 
-        try:
-            scratch, inputs, wood_sek = _scratch(overrides)
-        except whatif.Refused as err:
-            return {"error": str(err), "rate_limited": False}
-        if limited:  # the slot is spent when a solve starts (#1448, #1753)
-            held.last_at = now
-        try:
-            _CURRENT_ENTRY_ID.set(self.entry.entry_id)  # #1755: per-entry fallback key
-            simulated = await _await_optimize(self.hass, scratch, inputs)
-        except Exception as err:  # noqa: BLE001 - a what-if must never break ops
-            _LOGGER.warning("What-if simulation failed: %s", err)
-            return {"error": str(err), "rate_limited": False}
+            async def _held_solve(asked: Mapping[str, Any]) -> Any:
+                return await _await_off_loop(self.hass, optimize_in_process, *_scratch(asked, True)[:2])
 
-        async def _held_solve(asked: Mapping[str, Any]) -> Any:
-            return await _await_off_loop(self.hass, optimize_in_process, *_scratch(asked, True)[:2])
+            horizon_hours, dt_hours = ctx._opt_config.horizon_hours, ctx._opt_config.dt_hours
+            # A schedule change is priced by the thermostat's day energy on both
+            # sides, at this instant on these arrays; anything else by the pair.
+            days = whatif.schedule_days(*await _await_off_loop(self.hass, whatif.reference_days, _scratch({})[:2], (scratch, inputs))) if steady else None  # D9-s1-04
+            pair = await whatif.steady_pair(
+                held, result if base is None else base, (solve_at, state, banded), _held_solve, overrides,
+            ) if steady and days is None else None
+            figure = {} if days is None else price_tiles.schedule_figure(
+                *days, float(np.mean(inputs.forecast.prices)), wood_sek, horizon_hours,
+                price_tiles.realised_price(simulated, dt_hours))
+            delta = simulated.predicted_cost - result.predicted_cost + wood_sek
 
-        horizon_hours, dt_hours = ctx._opt_config.horizon_hours, ctx._opt_config.dt_hours
-        # A schedule change is priced by the thermostat's day energy on both
-        # sides, at this instant on these arrays; anything else by the pair.
-        days = whatif.schedule_days(_scratch({})[:2], (scratch, inputs)) if steady else None
-        pair = await whatif.steady_pair(
-            held, result if base is None else base, (solve_at, state, banded), _held_solve, overrides,
-        ) if steady and days is None else None
-        figure = {} if days is None else price_tiles.schedule_figure(
-            *days, float(np.mean(inputs.forecast.prices)), wood_sek, horizon_hours,
-            price_tiles.realised_price(simulated, dt_hours))
-        delta = simulated.predicted_cost - result.predicted_cost + wood_sek
-
-        payload = {
-            "baseline_cost": round(result.predicted_cost, 2),
-            "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
-            "cost_delta": round(delta, 2),
-            **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
-            **price_tiles.monthly_deltas(result, simulated, wood_sek, horizon_hours, pair),
-            **figure,
-            # T2: present only when the what-if capped power — the worst
-            # comfort-floor shortfall that cap forced, 0.0 when feasible.
-            **(
-                {
-                    "power_cap_breach_c": simulated.predictive_info.get(
-                        "power_cap_breach_c", 0.0
-                    )
-                }
-                if "power_cap_kw" in overrides and simulated.predictive_info
-                else {}
-            ),
-            "savings_percentage": round(simulated.savings_percentage, 1),
-            "min_room_temperature": _sim_coldest(simulated),
-            # The comfort consequence, alongside the money. A cheaper plan that
-            # is colder or leaves the tank short is not the same trade, and a
-            # simulator that reported only the saving would be inviting the
-            # user to make exactly that mistake.
-            "baseline_min_room_temperature": _sim_coldest(result),
-            "min_dhw_temperature": _sim_dhw_low(simulated),
-            "baseline_min_dhw_temperature": _sim_dhw_low(result),
-            **whatif.slot_counts(simulated, dt_hours),
-            "compressor_starts": simulated.compressor_starts,
-            "projected_peak_kw": simulated.projected_peak_kw,
-            "overrides": overrides,
-            "rate_limited": False,
-        }
-        if limited:
-            held.answer = payload
-        return payload
+            payload = {
+                "baseline_cost": round(result.predicted_cost, 2),
+                "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
+                "cost_delta": round(delta, 2),
+                **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
+                **price_tiles.monthly_deltas(result, simulated, wood_sek, horizon_hours, pair),
+                **figure,
+                # T2: present only when the what-if capped power — the worst
+                # comfort-floor shortfall that cap forced, 0.0 when feasible.
+                **(
+                    {
+                        "power_cap_breach_c": simulated.predictive_info.get(
+                            "power_cap_breach_c", 0.0
+                        )
+                    }
+                    if "power_cap_kw" in overrides and simulated.predictive_info
+                    else {}
+                ),
+                "savings_percentage": round(simulated.savings_percentage, 1),
+                "min_room_temperature": _sim_coldest(simulated),
+                # The comfort consequence, alongside the money. A cheaper plan that
+                # is colder or leaves the tank short is not the same trade, and a
+                # simulator that reported only the saving would be inviting the
+                # user to make exactly that mistake.
+                "baseline_min_room_temperature": _sim_coldest(result),
+                "min_dhw_temperature": _sim_dhw_low(simulated),
+                "baseline_min_dhw_temperature": _sim_dhw_low(result),
+                **whatif.slot_counts(simulated, dt_hours),
+                "compressor_starts": simulated.compressor_starts,
+                "projected_peak_kw": simulated.projected_peak_kw,
+                "overrides": overrides,
+                "rate_limited": False,
+            }
+            if limited:
+                held.answer = payload
+            return payload
 
     def _whatif_solve(
         self, overrides: Mapping[str, Any], config: OptimizationConfig, params: ThermalParameters,

@@ -2290,7 +2290,7 @@
   "services": {
     "run_optimization": {
       "name": "Kör optimering",
-      "description": "Starta kostnadsoptimeringen för värmepumpen manuellt. Integrationen beräknar om det billigaste körschemat för de kommande 24 timmarna utifrån de elpriser och den väderprognos som redan är inlästa (nya hämtas inte) med prediktiv MPC, med hänsyn till sol, vind och regn samt samordning med varmvattnet. Anropet svarar med ett fel när optimeringen inte kan köras — till exempel när färre än fyra prissteg finns tillgängliga, eller när lösningen misslyckades — i stället för att svara som om en ny plan hade beräknats."
+      "description": "Starta kostnadsoptimeringen för värmepumpen manuellt. Integrationen hämtar elpriser och väderprognos och beräknar sedan om det billigaste körschemat för de kommande 24 timmarna, styr efter det och publicerar det, samma körning som knappen Optimera nu, med prediktiv MPC, med hänsyn till sol, vind och regn samt samordning med varmvattnet. Anropet svarar med ett fel när optimeringen inte kan köras — till exempel när färre än fyra prissteg finns tillgängliga, eller när lösningen misslyckades — i stället för att svara som om en ny plan hade beräknats."
     },
     "set_away": {
       "name": "Ställ in bortaläge",
