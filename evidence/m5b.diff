@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/draw_range.py b/custom_components/heatpump_optimizer/draw_range.py
+index 409de8e85b..8106098ce8 100644
+--- a/custom_components/heatpump_optimizer/draw_range.py
++++ b/custom_components/heatpump_optimizer/draw_range.py
+@@ -393,6 +393,8 @@ class DrawRange:
+             return out
+         out.config = (lo, hi)
+         out.engaged = data.get("engaged") is True
++        if "engaged" in data and not isinstance(data["engaged"], bool):
++            return out
+         raw = data.get("samples")
+         rows = raw if isinstance(raw, list) else []
+         # A record whose rows carry no command cells predates them.

@@ -1,0 +1,13 @@
+diff --git a/tests/finite_boundary.py b/tests/finite_boundary.py
+index 5e7896ef0a..6f12bad1f6 100644
+--- a/tests/finite_boundary.py
++++ b/tests/finite_boundary.py
+@@ -2018,7 +2018,7 @@ def _a6_whole_cost(store: str, seed, path, domain, savers) -> int:
+             return len(before)
+         now = dict(_leaf_paths(after))
+         cost = max(cost, sum(1 for k in before.keys() | now.keys()
+-                             if k != tuple(path) and before.get(k, _A6_GONE) != now.get(k, _A6_GONE)))
++                             if before.get(k, _A6_GONE) != now.get(k, _A6_GONE)))
+     return cost
+ 
+ 
