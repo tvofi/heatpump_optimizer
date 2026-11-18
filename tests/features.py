@@ -3146,6 +3146,44 @@ R.check(
 R.check("parse_bool reads a real bool through", parse_bool(True) is True)
 R.check("parse_bool refuses a word it does not know", parse_bool("warm") is None)
 R.check("parse_bool reads any non-zero number as yes", parse_bool("-2") is True)
+_R11IG_NONFINITE = ("nan", "NaN", "inf", "-inf", "1e309", " Infinity ")
+R.check(
+    "parse_bool reads no non-finite number as a flag (D1-s3-01)",
+    all(parse_bool(_t) is None for _t in _R11IG_NONFINITE)
+    and all(parse_bool(_t, strict=True) is None for _t in _R11IG_NONFINITE),
+    f"{[(_t, parse_bool(_t)) for _t in _R11IG_NONFINITE]}",
+)
+R.check(
+    "and the codes either side of it still read (null control)",
+    parse_bool("0") is False and parse_bool("1") is True and parse_bool("0.0") is False,
+)
+_r11ig_slot = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=minutes_ago(5, NOW))}),
+    {"indoor_temp_entity": {"v": "sensor.indoor"}, "outdoor_temp_entity": ["sensor.indoor"]},
+    now=lambda: NOW,
+)
+_r11ig_slot_reads = [_r11ig_slot.read(_k) for _k in ("indoor_temp_entity", "outdoor_temp_entity")]
+R.check(
+    "a slot holding a dict or a list reads as unset, not a raise (D1-s2-05)",
+    all(_r.problem == "not_configured" and _r.entity_id is None for _r in _r11ig_slot_reads),
+    f"{[(_r.problem, _r.entity_id) for _r in _r11ig_slot_reads]}",
+)
+_r11ig_window = _r9f41_const.INPUT_PLAUSIBLE_RANGE_C
+_r11ig_outside = [
+    (_k, _v)
+    for _k, (_lo, _hi) in _r11ig_window.items()
+    for _v in (_lo - 1.0, _hi + 1.0)
+    if inputs_mod.plausible_c(_k, _v)
+]
+R.check(
+    "every plausible window refuses a reading one degree past either end (D1-s2-51)",
+    len(_r11ig_window) > 0 and not _r11ig_outside,
+    f"accepted: {_r11ig_outside}",
+)
+R.check(
+    "and accepts its own midpoint (null control)",
+    all(inputs_mod.plausible_c(_k, (_lo + _hi) / 2.0) for _k, (_lo, _hi) in _r11ig_window.items()),
+)
 
 # -- health, and what must NOT freeze ---------------------------------------
 # Mode configured and healthy, online configured but unusable, defrost never
@@ -62817,6 +62855,19 @@ from heatpump_optimizer.const import (  # noqa: E402
     DEFAULT_PV_EXPORT_PRICE as _P8_EXPORT_DEFAULT,
 )
 
+_R11IG_TEMPS_C = (-20.0, 0.0, 21.5, 55.0, 100.0)
+_r11ig_units = _r9f41_const.TEMPERATURE_UNIT_TO_C
+_r11ig_trip = [
+    (_u, _c, inputs_mod.normalize_temperature_c(inputs_mod.temperature_from_c(_c, _u), _u))
+    for _u in _r11ig_units
+    for _c in _R11IG_TEMPS_C
+]
+R.check(
+    "temperature_from_c inverts every unit row the reader converts (D7-s3-01)",
+    any(_f != 1.0 for _o, _f in _r11ig_units.values())
+    and all(_back is not None and _p8_math.isclose(_back, _c, abs_tol=1e-9) for _u, _c, _back in _r11ig_trip),
+    f"{[t for t in _r11ig_trip if t[2] is None or not _p8_math.isclose(t[2], t[1], abs_tol=1e-9)]}",
+)
 _p8_norm = getattr(inputs_mod, "normalize_price_per_kwh", None)
 _P8_FACTORS = {
     "SEK/kWh": 1.0,

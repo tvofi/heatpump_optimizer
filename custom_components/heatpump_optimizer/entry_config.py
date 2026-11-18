@@ -36,6 +36,24 @@ def _nonzero_number(value: Any, default: float) -> float:
     return finite_float(value, default) or default
 
 
+#: The longest re-solve interval that is still a plan, minutes: past a day the
+#: plan outlives the day-ahead prices it was solved against.
+_MAX_INTERVAL_MINUTES = 24 * 60.0
+
+
+def _interval_minutes(value: Any, default: float) -> float:
+    """A re-solve interval in minutes inside ``(0, a day]``, else ``default``.
+
+    Zero or a negative interval stamps a cycle's end at or before its start,
+    and 1e12 minutes overflows the datetime it is added to (sweep-P1,
+    ``early_cutoff.arm``): neither is an interval.
+    """
+    minutes = finite_float(value)
+    if minutes is None or not 0.0 < minutes <= _MAX_INTERVAL_MINUTES:
+        return default
+    return minutes
+
+
 def _whole(value: Any, default: int | None) -> int | None:
     try:
         return int(value)
@@ -186,8 +204,9 @@ class EntryConfig(Mapping[str, Any]):
     main_fuse_phases: float = _key(const.DEFAULT_MAIN_FUSE_PHASES, finite_float)
     max_temperature: float = _key(const.DEFAULT_MAX_TEMP, finite_float)
     min_temperature: float = _key(const.DEFAULT_MIN_TEMP, finite_float)
+    mixing_valve_target: float = _key(const.DEFAULT_MIXING_VALVE_TARGET, finite_float)
     mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, finite_float)
-    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, finite_float)
+    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, _interval_minutes)
     peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, finite_float)
     peak_tariff_offpeak_factor: float = _key(const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, finite_float)
     peak_tariff_peaks_averaged: float = _key(const.DEFAULT_PEAK_TARIFF_COUNT, finite_float)
@@ -291,6 +310,40 @@ class EntryConfig(Mapping[str, Any]):
 
     def __len__(self) -> int:
         return len(self.raw)
+
+
+#: The parses that read a value they refuse as the key's default, so a refused
+#: stored value and an absent key parse alike.
+_DEFAULTED_NUMBERS: tuple[Parse, ...] = (finite_float, _nonzero_number, _interval_minutes)
+
+
+def number_repairs(stored: Mapping[str, Any]) -> dict[str, float | None]:
+    """Each defaulted numeric key ``stored`` holds a non-number for: its number, or None.
+
+    An earlier release could store text, a list, a dict or ``None`` under a
+    numeric option (D1-s2-05). The parse reads numeric text as its number and
+    anything else as the default, but the thermal table and the comfort band
+    read the stored value and raised on it at setup or on every cycle.
+    Storing the number, and dropping a key mapped to None, changes no parsed
+    field, and every raw reader then reads what the parse does.
+    """
+    return {
+        f.name: finite_float(value)
+        for f in fields(EntryConfig)
+        if f.metadata
+        and f.metadata["parse"] in _DEFAULTED_NUMBERS
+        and f.name in stored
+        and (isinstance(value := stored[f.name], bool) or not isinstance(value, (int, float)))
+    }
+
+
+def repaired_numbers(stored: Mapping[str, Any], repairs: Mapping[str, float | None]) -> dict[str, Any]:
+    """``stored`` with ``repairs`` applied: a number replaces its text, None drops the key."""
+    return {
+        key: repairs.get(key, value)
+        for key, value in stored.items()
+        if key not in repairs or repairs[key] is not None
+    }
 
 
 def _restore(raw: dict[str, Any], parsed: dict[str, Any]) -> EntryConfig:
