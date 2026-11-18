@@ -500,3 +500,4 @@
 2026-11-18T20:18:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_terminal_row_cost.row_cost CLAMP_DROP a8295e2d L3329 by=- ran=12 wall=1338.5s
 2026-11-18T20:24:22Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_tau_fast CMP_BOUND 72abb7dd L610 by=- ran=12 wall=1353.4s
 2026-11-18T20:33:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:pull_prices GUARD_OFF b41877d9 L855 by=- ran=13 wall=1367.2s
+2026-11-18T20:36:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_valve_regulates CMP_BOUND 5aed2efd L266 by=- ran=12 wall=1372.8s
