@@ -1,0 +1,37 @@
+script	rc	wall_s	recorded_s	ratio	reach_ok	cell_lines_hit
+tests/arch_score_head.py	0	45.2	31.8	1.42	True	0
+tests/block_duty.py	0	7.7	8.3	0.93	True	5975
+tests/boost_drift_replay.py	0	202.2	341.1	0.59	True	5849
+tests/card_drift.mjs	0	5.3	6.0	0.88	True	5144
+tests/config_flow_steps.py	0	18.6	32.5	0.57	True	7535
+tests/debug_collect.py	0	1.2	1.5	0.80	True	2241
+tests/deployment_shape.py	0	2.4	3.3	0.73	False	0
+tests/doc_claims.py	0	9.8	11.4	0.86	False	0
+tests/entities.py	0	522.6	867.9	0.60	False	0
+tests/env_drift.py	0	195.5	1.0	195.50	False	0
+tests/features.py	0	771.2	473.9	1.63	False	0
+tests/finite_boundary.py	0	97.6	90.4	1.08	True	5011
+tests/guard_pins.py	0	4.2	8.2	0.51	True	2582
+tests/harness_headers.py	0	140.7	327.6	0.43	False	0
+tests/manual_plan.py	0	6.7	6.5	1.03	True	7125
+tests/optimality.py	0	108.9	142.5	0.76	True	4349
+tests/plan_view.py	0	1.0	1.8	0.56	True	5144
+tests/solar_alignment.py	0	0.7	1.2	0.58	True	3407
+tests/structure.py	0	20.4	21.1	0.97	False	0
+tests/typing_ruler.py	0	24.6	20.8	1.18	False	0
+tests/validate.py	0	19.8	21.5	0.92	True	4582
+tests/wood_advisor.py	0	0.8	1.4	0.57	True	2250
+
+REACH-REFUSED tests/deployment_shape.py: starts a non-Python process: git -C /tmp/d3s1-workers/w2 ls-files -z -- custom_components/heatpump_optimizer
+REACH-REFUSED tests/doc_claims.py: starts a non-Python process: git add -A (+11)
+REACH-REFUSED tests/entities.py: starts a non-Python process: /tmp/tmpf5fchl3y/py-spy 4616 (+985)
+REACH-REFUSED tests/env_drift.py: starts a non-Python process: git diff --no-renames --name-only HEAD (+14)
+REACH-REFUSED tests/features.py: starts a non-Python process: git merge-base HEAD origin/main (+1)
+REACH-REFUSED tests/harness_headers.py: starts a non-Python process: git status --porcelain -- dev/audit/rounds/round4/D6
+REACH-REFUSED tests/structure.py: starts a non-Python process: git merge-base --is-ancestor a39627da59acbfdcd576e87349167603e9dec734 origin/main (+1)
+REACH-REFUSED tests/typing_ruler.py: starts a non-Python process: /tmp/tmpnx9f88ud/green-interpreter /tmp/d3s1-workers/w0/tests/typing_ruler.py --mypy (+1)
+RESULT closure_pairs=245
+RESULT over_approx_pairs=0
+RESULT scripts_reach_refused=8
+RESULT load1=1.23
+RESULT thread_factor=1.00
