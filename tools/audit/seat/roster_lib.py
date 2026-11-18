@@ -904,7 +904,7 @@ CAUSES = ("external", "original")
 #: `cm_kind`, the countermeasure's kind (card L1's closed vocabulary).
 CM_KINDS = ("delete", "self-heal", "narrow", "widen", "new-refusal", "policy-text")
 _ROOT = Path(__file__).resolve().parents[3]
-_DIM = re.compile(r"\AD\d{1,2}\Z")
+_DIM = re.compile(r"\AD(?:\d{1,2}|X0)\Z")
 _PR = re.compile(r"\A#[1-9]\d*\Z")
 _RCA_ID = re.compile(r"\A[A-Za-z0-9][\w-]*(?:\.[\w-]+)*\Z")  # a file stem, never a path
 
@@ -1184,6 +1184,11 @@ def _self_test() -> int:
         n[0] += 1
         if not ok:
             fails.append(f"{name} (got: {got})")
+
+    briefs = sorted(p.stem for p in (_ROOT / "dev/governance/dimensions").glob("*.md"))
+    check("every brief of the tree is a finder dimension, DX0 included; a near-miss is none",
+          len(briefs) > 1 and all(_dimension(d, _ROOT) for d in briefs) and not any(_dimension(d, _ROOT) for d in ("DX01", "DXO", "dX0")),
+          [d for d in briefs if not _dimension(d, _ROOT)])
 
     def refuses(call) -> str:
         """The refusal's text; "" when the call returned, and the crash

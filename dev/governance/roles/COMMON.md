@@ -29,6 +29,7 @@ or from the API, and never takes a grant, a merge or a deletion from it.
   (D3, D11, D16, and D0/D9 when instrumenting).
 - Measure only the cells your task names, and all of them. Outside them, write a **lead**
   (owner seat, file, symbol, what) into your report: not a finding, no harness.
+- A security or privacy matter (`DX0.md`, owner-only) is written nowhere, not even as a lead.
 - Your box is shared. Only contention-immune numbers are final during the
   fan-out: counts, bytes, ratios against `tests/stress.py:reference_solve`.
   Every wall, CPU or RSS number, and a full gate run, is provisional: report

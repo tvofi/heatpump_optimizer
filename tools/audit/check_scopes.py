@@ -223,7 +223,7 @@ def coverage(scopes, tree, quiet=False):
 
 BRIEF_DIR = "dev/governance/dimensions/"
 HARNESS_DIR = "dev/audit/harnesses/"
-BRIEF_NAMED = re.compile(r"(?<![\w/])(D\d{1,2})\.md\b")
+BRIEF_NAMED = re.compile(r"(?<![\w/])(D(?:\d{1,2}|X0))\.md\b")
 
 
 def uncited_harnesses(harnesses, briefs):
@@ -1010,6 +1010,13 @@ def main():
             (HARNESS_DIR + "planted.py", BRIEF_DIR + "D15.md")]
         cov["null control: the brief citing it passes"] = uncited_harnesses(planted, {"D15": "run dev/audit/harnesses/planted.py"}) == []
         print(f"   harness-citation arms: {cov['a harness the brief does not cite is refused']}, null {cov['null control: the brief citing it passes']}")
+        # Every brief of the tree is a name a harness header can cite, DX0 included.
+        stems = sorted(Path(f).stem for f in tree if f.startswith(BRIEF_DIR) and f.endswith(".md") and f.count("/") == BRIEF_DIR.count("/"))
+        every = "every brief's name in a harness header is read"
+        cov[every] = len(stems) > 1 and all(
+            uncited_harnesses({HARNESS_DIR + "p.py": f'"""Planted: {s}.md rule."""\n'}, {s: ""}) == [(HARNESS_DIR + "p.py", BRIEF_DIR + s + ".md")]
+            for s in stems)
+        print(f"   harness-citation arm over {len(stems)} briefs: {cov[every]}")
         # Ledger dimensions: the per-seat unit cap and the documentation line,
         # each refused by what it must name, against text_ledger's real units.
         def _q(bad, tr=None, un=None):
