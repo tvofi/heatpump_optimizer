@@ -308,6 +308,9 @@ jobs:
     # never carry: list the job in main's ci.yml push runs, duration =
     # completed_at - started_at, and the mutant step's started_at.
     timeout-minutes: ${{ github.event_name == 'push' && 90 || 30 }}
+    # The drift step's outcome, which `selftest-absorb` below runs on.
+    outputs:
+      drift: ${{ steps.drift.outcome }}
     env:
       HPO_JOB_GRADES: nothing
       SELFTEST_TRACE: ${{ github.event_name == 'push' && '1' || '' }}
@@ -1655,6 +1658,56 @@ jobs:
         run: |
           . "$RUNNER_TEMP/bg/lib.sh"
           bg_unread
+
+  # THE BOT'S HALF OF THE DRIFT STEP (R11-PRE-SHARED-FILES part 1,
+  # countermeasure A of dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md; owner
+  # ruling 2026-11-18 on design decisions D1/D2, option (b)). It runs only
+  # after a push whose `drift` step refused: `absorb` unions that run's
+  # `selftest-closures` artifact into this head's committed table, each step
+  # whose run text is this head's, prints every read it adds, and keeps the
+  # table it wrote as the `selftest-absorbed` artifact. It holds the
+  # workflow's read-only floor and no secret, so it commits nothing: no
+  # route with a write token commits tools/ci/selftest_closures.json
+  # (`closures-autofix` adds tests/closures.json on a pull request only;
+  # `record-autofix` adds delivery rows only, pinned by tests/entities.py),
+  # and the commit of the table it printed is a seat's, taken from that
+  # artifact. A green push skips the job and writes nothing. Red when the
+  # refusal is not a missing read (`absorb` adds none: a STALE, UNMEASURED or
+  # UNRECORDED step needs `record`), so a drift no union can repair is named
+  # here too.
+  selftest-absorb:
+    needs: instrument-self-tests
+    if: ${{ !cancelled() && github.event_name == 'push' && needs.instrument-self-tests.outputs.drift == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HPO_JOB_GRADES: nothing
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: selftest-closures
+          path: ${{ runner.temp }}/measured
+
+      - name: Absorb the drift step's measured reads into this head's table
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/absorbed"
+          python3 -I tools/ci/selftest_scope.py absorb --from "$RUNNER_TEMP/measured/selftest_closures.json" \
+            --out "$RUNNER_TEMP/absorbed/selftest_closures.json" | tee "$RUNNER_TEMP/absorb.txt"
+          { echo '### selftest-absorb'; echo '```'; cat "$RUNNER_TEMP/absorb.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if ! grep -Eq '^selftest_scope absorb: [1-9][0-9]* read\(s\) added to [1-9][0-9]* step\(s\)$' "$RUNNER_TEMP/absorb.txt"; then
+            echo "selftest-absorb: the drift step refused and absorb added no read; re-record the refused steps with selftest_scope.py record"
+            exit 1
+          fi
+
+      - name: Keep the absorbed table to commit
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: selftest-absorbed
+          path: ${{ runner.temp }}/absorbed/selftest_closures.json
+          if-no-files-found: error
 
   # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
   # repository were CORRECT and never RAN, because whether they run is decided
