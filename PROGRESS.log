@@ -15,3 +15,4 @@
 1794989578 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
 1794989583 HB prepared
 1794989603 SEAT D3-s1 running
+1794989607 HB D3-s1 started inline in this session per inbox 1 (orchestrator: no Agent spawn)
