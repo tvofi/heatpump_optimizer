@@ -558,6 +558,11 @@ lane_units() {
   # and invalid submissions, the duplicate abort and the reauth round
   # trip, against the real validation code over the fake Tibber session.
   run "$PYTHON" tests/config_flow_steps.py
+  # The coordinator-cycle lane (D9-s3-02): solves, payload and retained
+  # bytes, optimizer yields and loop-side calls per _async_update_data
+  # cycle, against tests/cycle_budgets.json. Counts and bytes only, so it
+  # runs here with the parallel lanes, not in the stress tail.
+  run "$PYTHON" tests/cycle_lane.py
   # The structural ratchet of the coordinator decomposition program (#193,
   # PR-0): AST counts -- god classes, monster methods, attr bags, seam cut
   # costs -- over the whole integration, each held at or below the budget

@@ -1,0 +1,38 @@
+{
+ "heavy_old/shoulder": {
+  "loop_calls": 2442,
+  "payload_b": 86711,
+  "retained_b_per_cycle": 1714,
+  "solves": 2,
+  "yields": 402
+ },
+ "recorded_at": "8751943e17",
+ "winter/1z/dhw": {
+  "loop_calls": 2444,
+  "payload_b": 89230,
+  "retained_b_per_cycle": 2346,
+  "solves": 2,
+  "yields": 428
+ },
+ "winter/1z/space": {
+  "loop_calls": 2436,
+  "payload_b": 87173,
+  "retained_b_per_cycle": 3393,
+  "solves": 1,
+  "yields": 263
+ },
+ "winter/2z/dhw": {
+  "loop_calls": 2444,
+  "payload_b": 89621,
+  "retained_b_per_cycle": 2019,
+  "solves": 1,
+  "yields": 517
+ },
+ "winter/cycle": {
+  "loop_calls": 2444,
+  "payload_b": 89621,
+  "retained_b_per_cycle": 1901,
+  "solves": 1,
+  "yields": 517
+ }
+}
