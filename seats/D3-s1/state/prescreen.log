@@ -517,3 +517,4 @@
 2026-11-18T21:56:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostWindow._elapsed BOOLOP ee9860cc L739 by=- ran=13 wall=1510.0s
 2026-11-18T22:13:56Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._simulate_step_two_zone CMP_BOUND 30a9fd3e L4020 by=- ran=13 wall=1215.0s
 2026-11-18T22:15:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first.usable CMP_BOUND cc3b33a8 L2227 by=- ran=16 wall=1303.0s
+2026-11-18T22:17:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.apply_dhw_coil CMP_BOUND 1fb67ec6 L5012 by=- ran=12 wall=1221.7s
