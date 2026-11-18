@@ -7,3 +7,4 @@
 1795006386 INBOX acked through 1
 1795006411 CKPT resumed from handoff-wip 04e19dae; discovery delegated per inbox ruling snapshot 960315fb8fba
 1795006989 HB alive
+1795007114 CKPT code + tests written, WIP pushed snapshot 9955f600de67
