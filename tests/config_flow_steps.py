@@ -8166,6 +8166,18 @@ async def seam_config_one_place():
           and all(placeholders.get(k) == v for k, v in notes.items()),
           f"errors={refused.get('errors')} missing={sorted(needed - placeholders.keys())} "
           f"placeholders={placeholders} fields={sorted(schema_keys(refused))}")
+    # A window refusal reads the page's window placeholder (D4-s2-01).
+    short = await submit(flow, "device_prefill", {
+        const.CONF_SILENT_MODE_WINDOWS: "06:00-06:05", const.CONF_SILENT_MODE_FRACTION: 0.6})
+    short_ph = short.get("description_placeholders") or {}
+    short_needed = {
+        name for e in (short.get("errors") or {}).values()
+        for name in re.findall(r"{(\w+)}", strings["config"]["error"][e])
+    }
+    check("device_prefill", "error",
+          "a too-short window refusal on the setup pre-fill page renders its placeholders",
+          shows(short, "device_prefill") and short_needed and short_needed <= short_ph.keys(),
+          f"errors={short.get('errors')} needed={sorted(short_needed)} placeholders={sorted(short_ph)}")
     check("device_prefill", "happy",
           "the setup pre-fill page posts no after_save: its navigation is always finish_setup",
           const.CONF_AFTER_SAVE not in schema_keys(refused),
