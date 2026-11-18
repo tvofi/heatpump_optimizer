@@ -25,8 +25,6 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
-from .const import MIXING_VALVE_WRITE_EPSILON
-
 # --- Modes -----------------------------------------------------------------
 #
 # Four, not three. A "dumb" valve the user sets by hand behaves differently from
@@ -220,6 +218,8 @@ class ValveTarget:
     last attempt was not written, ``None`` when it was.
     """
 
+    #: A target closer than this to the last write is not written again, K.
+    epsilon_k: float
     commanded_c: float | None = None
     problem: str | None = None
 
@@ -229,12 +229,12 @@ class ValveTarget:
     ) -> bool:
         """Dedupe against the last write, arm, send, record; True when a write was attempted.
 
-        Skipped when ``target_c`` moved by less than
-        ``MIXING_VALVE_WRITE_EPSILON`` (flash wear on every cycle) or when
+        Skipped when ``target_c`` moved by less than ``epsilon_k``
+        (flash wear on every cycle) or when
         ``arm``, which arms the entity's restore, refuses. ``send`` answers
         ``None`` when written, else why not, kept as ``problem``.
         """
-        if self.commanded_c is not None and abs(target_c - self.commanded_c) < MIXING_VALVE_WRITE_EPSILON:
+        if self.commanded_c is not None and abs(target_c - self.commanded_c) < self.epsilon_k:
             return False
         if not await arm():
             return False

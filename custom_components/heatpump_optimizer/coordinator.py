@@ -128,6 +128,7 @@ from .const import (
     LOWER_FLOOR_LOSS_RATIO_MAX,
     LOWER_FLOOR_LOSS_RATIO_MIN,
     DHW_COOLING_REFERENCE_DELTA,
+    MIXING_VALVE_WRITE_EPSILON,
     MODE_AUTO,
     MODE_COMFORT,
     ECONOMY_MIN_TEMP_WIDENING,
@@ -758,10 +759,10 @@ FREQUENCY_RESTORE = "compressor_frequency"
 VALVE_RESTORE = "mixing_valve_target"
 
 
-def _register_number_restore(key: str, field: str, restored: Any, write: Any, reading: Any) -> None:
-    """Register config ``field``'s entity under ``key``; ``restored`` empties its owner's record."""
+def _register_number_restore(key: str, entity_of: Any, restored: Any, write: Any, reading: Any) -> None:
+    """Register the entity ``entity_of(config)`` under ``key``; ``restored`` empties its owner's record."""
     def restorer(config: Any) -> off_restore.Restorer | None:
-        entity_id = getattr(EntryConfig.from_mapping(config), field)
+        entity_id = entity_of(EntryConfig.from_mapping(config))
         return off_restore.Restorer(str(entity_id), write, baseline_of=reading, restored=restored) if entity_id else None
 
     off_restore.register_consumer(key, restorer, write, stale=True)
@@ -787,8 +788,8 @@ def _number_reading(hass: Any, entity_id: str) -> float | None:
     return finite_float(getattr(hass.states.get(entity_id), "state", None), None)
 
 
-_register_number_restore(FREQUENCY_RESTORE, "compressor_freq_entity", _frequency_restored, write_setpoint, _number_reading)
-_register_number_restore(VALVE_RESTORE, "mixing_valve_write_entity", _valve_restored, write_setpoint_c, read_setpoint)
+_register_number_restore(FREQUENCY_RESTORE, lambda c: c.compressor_freq_entity, _frequency_restored, write_setpoint, _number_reading)
+_register_number_restore(VALVE_RESTORE, lambda c: c.mixing_valve_write_entity, _valve_restored, write_setpoint_c, read_setpoint)
 
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
@@ -4011,7 +4012,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._external_heat_active: bool = False
         # The valve target's write record (smart_write), so identical answers
         # on consecutive cycles do not re-command the device.
-        self._valve_target = mixing_valve.ValveTarget()
+        self._valve_target = mixing_valve.ValveTarget(MIXING_VALVE_WRITE_EPSILON)
         _NUMBER_OWNERS[self.entry] = (self._freq_watchdog, self._valve_target)
         self._away_state = away_mode.AwayState()
 
