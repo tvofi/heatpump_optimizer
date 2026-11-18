@@ -623,3 +623,142 @@ fourth review was run.
 | designs owed for `R11-SEAM-tests` and `R11-SEAM-card` | both L groups listed as designer-owed; the projection's omissions are five designs | "Designs"; "Projection"; both groups' briefs |
 | `dead-state` to `ratchets` edge dropped | `R11-SEAM-ratchets` has no edge; ORDERED re-run 209.62 h / 278.67 h, PUBLISHED unchanged | "Edges"; "Hot-file order"; "Projection"; ADR-009; `COMPONENTS.md`; the three roster files |
 | stale-holder acceptance check | `early_cutoff`'s `held.wiring` reads the replaced context's values before the next re-arm | ADR-003; the cycle-reporting brief |
+
+## Revision 3, 2026-11-18: the objective (decision 0018)
+
+Started on the owner's order of 2026-11-18, as the dispatch brief relays it:
+re-plan from the current state so that decision 0018's objective ranks the
+work. `REVIEW.md` point 0 stands otherwise (`plan-review.md` starts no third
+revision by itself). Revisions 1 and 2 ran the contract copies of the round
+branch, which lacked `architect-planner.md`'s objective clause
+(`dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md` on
+`rca/r11-plan-objective-missing`). This branch now merges main, so every
+contract, checker and `tools/plan/replan.py` is read at the plan SHA as main
+has it.
+
+Everything above this section is revision 2 and stands, except where a row of
+`CHANGES-R3.md` names it: the groups, the moves, the ADRs, the cases and the
+nine decided open points are unchanged.
+
+### What was measured, and where it differs from the brief
+
+- **Roster.** `handoff/audit-r11-roster` does not exist on origin. The newest
+  `wave-r11-groups.json` is on `handoff/audit-r10-roster` at `c7e683a6d4`; the
+  draft `wave-r11-groups.json` beside this file is that blob with the two
+  order changes below. `build_objective.py` rebuilds both from that commit.
+- **Stages lag the refs.** The roster reads `R11-INTAKE-R10-RESIDUE`,
+  `R11-SEAM-cycle-solve`, and others `not-started` while
+  `dispatch/fixer-r11-intake-r10-residue` and `dispatch/fixer-r11-seam-cycle-solve`
+  exist. The projection reads the roster's stage word, so it prices those
+  groups whole; the figures are upper bounds for them.
+- **The pin.** `objective.pin` in `PLAN.json`: the draft's blob, the start
+  (the instant of the build, not the fork) and the blob of
+  `tools/plan/durations.json`.
+
+### The block
+
+`PLAN.json`'s `objective` block holds `plan_audit.py`'s `OBJECTIVE_KEYS` and
+nothing else. `PLAN.json`'s `groups` now names every open group of the draft:
+the 27 seam and architecture groups of revision 2, all still open, and the 13
+other open roster groups, each marked `origin: roster` (ranked and projected
+here; brief, files and edges stay the roster's).
+
+- **Terms.** Twelve of the thirteen are NO-READ in
+  `dev/audit/yardstick/round10/OBJECTIVE.json`, so each is `undecided` with the
+  baseline's own builder. `first_pass` is the one term read; predicted `hold`,
+  since this plan changes no review rule.
+- **Ranks.** Derived, never typed: `removes` is the group's findings; `classes`
+  is keyed only where a verified `bug` finding of the group carries that class
+  (a hygiene finding's class tag keys nothing); `cards` is keyed for
+  `R11-INTAKE-R10-RESIDUE` alone (`E11-N-INTAKE-BUILDER`, the builder of the
+  reads behind eight layer-1 terms). Rank 1: 19 groups. Rank 2: 21 groups,
+  each naming the close pass that examines its merged diff.
+- **Edges.** None: no rank-1 group waits on a rank-2 group through `after`.
+- **Dispositions.** None: no earlier plan was settled.
+
+### What the objective changed
+
+1. **Thirteen verified `bug` findings were deferred with no card.** All are
+   defects of audit instruments, deferred under the instrument freeze. Their
+   triage rows now carry `card: P11`, the owner card that rules the deferral
+   (`dev/programme/RULINGS.md`: "P11: Freeze, except production defects, owner
+   orders and red main"). None is moved into round 11: P11's shape is a local
+   in-round overlay where one blocks and a proposal at round-end triage. Three
+   are read through by a term and lead that triage: D0-s3-01 and D17-s1-01
+   (a finder universe that prints short, so `coverage`'s denominator), and
+   D11-s2-01 (two merges admitted while `gate` was red, `product_green`).
+   D11-s1-06 (`wt_sync.sh --self-test` runs the production push) owes the
+   overlay now.
+2. **`R11-SEAM-store` (rank 1, five bug findings) was last on the coordinator
+   turn, behind `R11-SEAM-dead-state` (rank 2, one hygiene finding).** Both are
+   M, both have no edge, and `replan.py` breaks the tie by name. The draft
+   orders `R11-SEAM-dead-state` after `R11-SEAM-store`.
+3. **`R11-INTAKE-R10-RESIDUE` (rank 1) waited for a slot behind first-wave
+   rank-2 work.** `R11-SEAM-comments-production` (XL, rank 2, not dispatched)
+   held a first-wave slot. The draft gives it `R11-SEAM-product-text`'s
+   predecessors: comments are text, and ADR-010 already orders text after the
+   behaviour it states. Its approved design stays valid; its line anchors are
+   re-read at the later base.
+4. **Every rank-2 group owes an examination before the close** (`unexamined`):
+   a finder pass of the named dimension over the merged diff, reporting its
+   universe and denominator. Eight dimensions are named (D2, D5, D6, D7, D11,
+   D13, D16, D17). `replan.py` does not price these passes.
+
+`CHANGES-R3.md` holds one row per change with its effect on in-flight work.
+
+### The projection, and the floor's cost
+
+`python3 -I tools/audit/seat/plan_audit.py objective-check --ref <plan SHA>
+--plan dev/audit/rounds/round11/PLAN/PLAN.json --register
+dev/audit/rounds/round11/JUDGE.json` prints every figure below;
+`PROJECTION.json` is its record and `OBJECTIVE-CHECK.txt` its output.
+
+| reading | figure |
+|---|---|
+| projection A (the draft): critical path, wall | 139.68 h, 202.27 h |
+| projection A: closure | 2026-11-27T02:56Z |
+| projection A: `lead_time` p50, p90 over production groups | 35.1 h, 174.35 h |
+| projection B (A less the 21 rank-2 groups): critical path | 104.15 h |
+| floor cost, A less B: critical path, wall | 35.53 h, 38.75 h |
+| largest delay of a rank-1 group against B | 0.2 h |
+
+The floor cost is what the score target and the other rank-2 work add to the
+round's closure. It delays no rank-1 group by more than 0.2 h, which is the
+stamp cadence. Against the unchanged roster at the same pin (the same
+`replan.py`, run on `c7e683a6d4`'s blob): the last rank-1 group finishes
+161.7 h after the pin and not 195.7 h, closure and wall are unchanged, and the
+two delays the check printed (34.15 h on `R11-SEAM-store`, 14.22 h on
+`R11-INTAKE-R10-RESIDUE`) are gone.
+
+These hours supersede revision 2's `projection.py` figures as the round's
+projection: `replan.py` at the pin prices started work at its remaining
+fraction and holds the coordinator cap of two, which `projection.py` did not.
+`PLAN.json`'s `hours`, `critical_chain` and `depth` are revision 2's and are
+kept as that revision's record.
+
+### The score target
+
+Unchanged by revision 3: no move, metric, ADR or prediction changed, so the
+cases stand as revision 2 states them (planned +24.3811, floor +22.9801,
+`no-circ` +21.1938, `floor-no-circ` +19.8367). The two order changes move no
+dS; `R11-SEAM-dead-state` and `R11-SEAM-comments-production` carry none.
+Re-read at main `8751943e17`: `plan_audit.py end-to-end --fork 92d38ecb64
+--head origin/main` reads dS +0.0430 WORSENS with `coord_footprint` -0.0063,
+against -0.0052 at the third review. Admissibility is still unshown, and
+ADR-007 is still its payment. `R11-ARCH-fabric-learner` and
+`R11-ARCH-cycle-surface` are rank 2 and are the last two coordinator turns:
+the objective ranks them behind every bug fix, and the floor still needs them.
+
+### Limits of this revision
+
+- **An outside report of this window ranks 2.** `R11-OUTSIDE-HONEST-DHW-RUNS`
+  and `R11-OUTSIDE-SELF-SETTING-PUMP` fix reported defects, and the grammar
+  keys an escape only by an `in` row of the baseline's ledger, which holds
+  round 10's. Both are started, so the rank moves nothing.
+- **`R11-PRE-TOKEN-LEDGER` ranks 2** though it builds `tokens_per_change`'s
+  read: no open card names it.
+- **The two order changes are written as `after` in the draft** because
+  `replan.py` reads no other order. Each is a turn order, not a prerequisite:
+  it lapses if its predecessor is stopped or deferred.
+- **Eleven open cards name no group** (`check_scopes.py --round 11
+  --open-cards` lists twelve; one is keyed above). They stay the owner's.

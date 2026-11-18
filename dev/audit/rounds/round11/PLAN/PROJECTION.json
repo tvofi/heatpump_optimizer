@@ -1,13 +1,13 @@
 {
  "a": {
-  "closure": "2026-11-27T02:53:00Z",
+  "closure": "2026-11-27T02:56:00Z",
   "critical_path_hours": 139.68,
   "lead_time_p50_hours": 35.1,
   "lead_time_p90_hours": 174.35,
   "wall_hours": 202.27
  },
  "b": {
-  "closure": "2026-11-25T12:08:00Z",
+  "closure": "2026-11-25T12:11:00Z",
   "critical_path_hours": 104.15,
   "dropped": [
    "R11-ARCH-cycle-surface",
@@ -37,7 +37,7 @@
  "floor_cost": {
   "critical_path_hours": 35.53,
   "delay_hours": {
-   "R11-INTAKE-R10-RESIDUE": 14.22,
+   "R11-INTAKE-R10-RESIDUE": 0.0,
    "R11-SEAM-actuation-release": 0.0,
    "R11-SEAM-actuation-writes": 0.0,
    "R11-SEAM-card": 0.0,
@@ -54,7 +54,7 @@
    "R11-SEAM-product-text": 0.2,
    "R11-SEAM-ratchets": 0.0,
    "R11-SEAM-solver": 0.0,
-   "R11-SEAM-store": 34.15,
+   "R11-SEAM-store": 0.2,
    "R11-SEAM-tests": 0.0
   },
   "wall_hours": 38.75
@@ -69,9 +69,9 @@
    "stamp_every": 3
   },
   "durations_blob": "d6ece5958f6b8f3e720ae3cf6faba16574294176",
-  "roster_blob": "b2e399fa2a194951058c46eaa2f8099cdacf0bfb",
+  "roster_blob": "eda6bbb52dc85f87d05492428262fc2768d22961",
   "roster_path": "dev/audit/rounds/round11/PLAN/wave-r11-groups.json",
-  "start": "2026-11-18T16:37:00Z"
+  "start": "2026-11-18T16:40:00Z"
  },
  "production": [
   "R11-ARCH-cycle-surface",
