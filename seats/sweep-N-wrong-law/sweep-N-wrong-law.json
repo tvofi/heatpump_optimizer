@@ -1,0 +1,154 @@
+{
+ "class": "N-wrong-law",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/wrong_law.py  (controls: bash dev/audit/rounds/round11/D14/sweep/wrong_law_controls.sh -> positive: the planted D2-s2-02 sign is listed PINNED at defrost.py:205; null: clean fixture pinned 0; perturb: a sign flipped at dhw_planner.py:105 moves pinned 0 -> 1)",
+ "seams_total": 28,
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/defrost.py:205",
+   "symbol": "derate_from_duty (planted `1.0 + duty * DEFROST_LOSS_MULTIPLIER` under min(DERATE_MAX=1.0, ...))",
+   "probe": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py on the planted copy (duty_law_mismatch 60/61); python3 dev/audit/rounds/round11/D14/sweep/wrong_law.py <planted copy> lists it PINNED",
+   "beyond_finding": false
+  }
+ ],
+ "not_instances": [
+  {
+   "seam": "custom_components/heatpump_optimizer/accuracy.py:408 trust",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: trust falls as MAE rises: 1 - (mae-0.25)/1.75 clipped [0,1]"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/boost.py:101 settle_tail",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: tail + tau*ln(boosted/window): ln<0 below the window, so a shorter boost owes a shorter tail, as documented (boost.py:88-96)"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/coordinator.py:4456 _dhw_setpoint_sweep",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: tank mean minus room ambient, floored at 0: standby loss driver"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/dhw_learning.py:476 _standby_rate",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: tank minus ambient, floored at 0"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/dhw_planner.py:105 _tank_decay",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: explicit-Euler retention 1 - UA dt / C in [0,1]"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/dhw_planner.py:509 _baseline_dhw_economics",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: setpoint minus ambient, floored at 0"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/dhw_planner.py:2243 retained_fraction",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: 1 - loss rate x elapsed, floored at 0.15"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/dhw_planner.py:1041 _dhw_window_floors",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: tank mean minus ambient, floored at 0"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/external_heat.py:470 _decay",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: linear decay 1 - elapsed/decay, floored at 0"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/flow_lift.py:197 observe",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: bias clipped to [-K, supply ceiling - curve]: the headroom shrinks as the curve rises"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/optimizer.py:2083 _price_guess_weights",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: weight falls as price rises above the mean, band [0.2, 1.0] (documented at optimizer.py:2075-2080)"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/optimizer.py:1366 _thermostat_demand",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: buffer minus ambient, floored at 0"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/optimizer.py:3406 _anticipatory_weights",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: more forecast solar means less anticipatory weight: 1 - 0.3 x solar, floored at 0.6"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/optimizer.py:6089 net",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: temp minus ambient, floored at 0"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/thermal_model.py:3019 dhw_draw_scale",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: mixed-use temp minus inlet, positive denominator"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/thermal_model.py:3327 _cop_law",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: COP factor rises with outdoor temp above the reference: 1 + 0.025 x delta, floor 0.3, cap 1.5"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/thermal_model.py:4450 _batch_cop",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: the same law as _cop_law, pinned bitwise to it by the batch/scalar parity contract (m2_cop_laws.py batch_parity_maxabs)"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/thermal_model.py:4000 _simulate_step_two_zone",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: wood-tank headroom WOOD_TANK_MAX - temp, floored at 0"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/thermal_model.py:3621 dhw_hold_hours",
+   "disposition": "not applicable",
+   "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: a lower bound of one kelvin above the floor, not a law term"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/coordinator.py:1726",
+   "disposition": "not applicable",
+   "reason": "not a physical law: sample count beyond a minimum"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/debugger.py:383",
+   "disposition": "not applicable",
+   "reason": "not a physical law: timestamp arithmetic"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/heat_energy.py:132",
+   "disposition": "not applicable",
+   "reason": "not a physical law: time-span arithmetic"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/ledger.py:739",
+   "disposition": "not applicable",
+   "reason": "not a physical law: retention count"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/ledger.py:274",
+   "disposition": "not applicable",
+   "reason": "not a physical law: retention count"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/wear.py:193",
+   "disposition": "not applicable",
+   "reason": "not a physical law: retention count"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/running_signal.py:193",
+   "disposition": "not applicable",
+   "reason": "not a physical law: remaining debounce seconds"
+  },
+  {
+   "seam": "custom_components/heatpump_optimizer/sysid.py:2037",
+   "disposition": "not applicable",
+   "reason": "not a physical law: degrees of freedom"
+  }
+ ],
+ "site_note": "D2-s2-02 was judged on a planted copy: defrost.py:205 reads `1.0 - duty * DEFROST_LOSS_MULTIPLIER` at the baseline 92d38ecb and at the register head",
+ "proposed_barrier": "run dev/audit/rounds/round11/D14/sweep/wrong_law.py as a tests/ check refusing any PINNED seam (a clamp whose bound equals the affine constant on the side the operator pushes, which makes the term dead), at under 1 s of gate time; m2_cop_laws.py's duty-law identity as a unit pin on derate_from_duty"
+}
