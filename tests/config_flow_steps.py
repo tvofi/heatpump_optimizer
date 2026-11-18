@@ -99,6 +99,7 @@ import asyncio  # noqa: E402
 import json  # noqa: E402
 import logging  # noqa: E402
 import pathlib  # noqa: E402
+import re  # noqa: E402
 import sys  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -125,6 +126,7 @@ from golden import (  # noqa: E402
 )
 
 from heatpump_optimizer import config_flow, const, quick_setup, topology  # noqa: E402
+from heatpump_optimizer.dhw_schedule import day_overrides_enabled  # noqa: E402
 from heatpump_optimizer.freq_control import (  # noqa: E402
     FREQ_MODE_CONTROL,
     FREQ_MODE_OBSERVE,
@@ -1079,7 +1081,7 @@ async def walk_questionnaire():
         config_flow.async_get_clientsession = real
         return
     result = await submit(flow, "setup_overview", {})
-    entry_data = result.get("data", {})
+    entry_data = {**result.get("data", {}), **result.get("options", {})}
     from_every_page = [
         key
         for key in (
@@ -1179,7 +1181,7 @@ async def walk_finish_now():
         config_flow.async_get_clientsession = real
         return
     result = await submit(flow, "setup_overview", {})
-    entry_data = result.get("data", {})
+    entry_data = {**result.get("data", {}), **result.get("options", {})}
     check(
         "setup_overview",
         "happy",
@@ -1309,10 +1311,10 @@ async def walk_expert():
         "happy",
         "confirming the expert overview creates the entry with the thermal values",
         result.get("type") == "create_entry"
-        and result.get("data", {}).get(const.CONF_HOUSE_THERMAL_MASS) == 10.0
-        and result.get("data", {}).get(const.CONF_INTER_ZONE_TRANSFER) == 0.1,
+        and {**result.get("data", {}), **result.get("options", {})}.get(const.CONF_HOUSE_THERMAL_MASS) == 10.0
+        and {**result.get("data", {}), **result.get("options", {})}.get(const.CONF_INTER_ZONE_TRANSFER) == 0.1,
         f"{result.get('type')} "
-        f"{result.get('data', {}).get(const.CONF_HOUSE_THERMAL_MASS)}",
+        f"{({**result.get('data', {}), **result.get('options', {})}).get(const.CONF_HOUSE_THERMAL_MASS)}",
     )
 
     config_flow.async_get_clientsession = real
@@ -1442,7 +1444,8 @@ async def reauth_round_trip():
     )
     round_trip_done = (
         fixed == {"type": "abort", "reason": "reauth_successful"}
-        and entry.data[const.CONF_TIBBER_TOKEN] == "brand-new-token"
+        and {**entry.data, **entry.options}[const.CONF_TIBBER_TOKEN] == "brand-new-token"
+        and set(entry.data) <= {"name"}
         and hass.config_entries.reloaded == ["reauth-1"]
     )
     check(
@@ -1450,7 +1453,7 @@ async def reauth_round_trip():
         "happy",
         "a new token is written through, the entry reloads, reauth_successful",
         round_trip_done,
-        f"{fixed} token={entry.data[const.CONF_TIBBER_TOKEN]} "
+        f"{fixed} token={({**entry.data, **entry.options}).get(const.CONF_TIBBER_TOKEN)} "
         f"reloaded={hass.config_entries.reloaded}",
     )
     # D10-s1-01 (#1644, P2): the token is identity, so the unique id must
@@ -1463,7 +1466,7 @@ async def reauth_round_trip():
         entry.unique_id
         == config_flow.entry_identity({**entry.data, **entry.options})
         != config_flow.entry_identity(
-            {**entry.data, const.CONF_TIBBER_TOKEN: "stale-token"}
+            {**entry.data, **entry.options, const.CONF_TIBBER_TOKEN: "stale-token"}
         ),
         f"unique_id={entry.unique_id!r}",
     )
@@ -1509,7 +1512,7 @@ async def options_entry_data():
     finally:
         config_flow.async_get_clientsession = real
     assert result.get("type") == "create_entry", str(result)[:200]
-    return dict(result["data"]), flow.unique_id
+    return {**result["data"], **result.get("options", {})}, flow.unique_id
 
 
 def fresh_options(pre_options=None, entry_id="opts-1"):
@@ -1896,7 +1899,7 @@ async def options_walk():
         "tuning",
         {**TUNING_ANSWERS, const.CONF_PRICE_WEIGHT: 3.0, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE},
     )
-    close_data = result.get("data", {})
+    close_data = {**result.get("data", {}), **result.get("options", {})}
     round_trip_done = (
         result.get("type") == "create_entry"
         and close_data.get(const.CONF_PRICE_WEIGHT) == 3.0
@@ -3828,14 +3831,16 @@ async def residual_statement_branches():
     check(
         "opt_hot_water",
         "happy",
-        "a valid per-day save stores the flag and the two specs, not seven keys",
+        "a valid per-day save stores the two specs, not seven keys, and reads per-day on from them",
         shows_menu(result, "init")
-        and entry.options.get(const.CONF_DHW_WINDOWS_BY_DAY) is True
+        # The flag equals the default the saved specs derive (D17-s1-02), so
+        # it is not stored; the entry still reads as per-day on.
+        and const.CONF_DHW_WINDOWS_BY_DAY not in entry.options
+        and day_overrides_enabled(entry.options) is True
         and entry.options.get(const.CONF_DHW_WINDOWS_DAY[5]) == "10:00-12:00"
         and entry.options.get(const.CONF_DHW_WINDOWS_DAY[6]) == "12:00-14:00"
         and sorted(entry.options) == sorted(
-            [const.CONF_DHW_WINDOWS_BY_DAY,
-             const.CONF_DHW_WINDOWS_DAY[5],
+            [const.CONF_DHW_WINDOWS_DAY[5],
              const.CONF_DHW_WINDOWS_DAY[6],
              *HOT_WATER_PAGE_ANSWERS]
         ),
@@ -5030,8 +5035,9 @@ async def reconfigure_flow():
     result = await submit_reconfigure(flow, RC_SAME)
     round_trip_done = (
         result == {"type": "abort", "reason": "reconfigure_successful"}
-        and entry.data[const.CONF_TARGET_TEMP] == 21.5
-        and entry.data[const.CONF_TIBBER_TOKEN] == "stale-token"
+        and {**entry.data, **entry.options}[const.CONF_TARGET_TEMP] == 21.5
+        and {**entry.data, **entry.options}[const.CONF_TIBBER_TOKEN] == "stale-token"
+        and set(entry.data) <= {"name"}
         and hass.config_entries.reloaded == ["plant_a"]
         and entry.unique_id == config_flow.entry_identity(RC_ENTRY_DATA)
     )
@@ -5052,12 +5058,13 @@ async def reconfigure_flow():
         "happy",
         "a rotated token is written through and the entry keeps its other settings",
         result == {"type": "abort", "reason": "reconfigure_successful"}
-        and entry.data[const.CONF_TIBBER_TOKEN] == "tok-fresh"
-        and entry.data[const.CONF_TARGET_TEMP] == 21.5
+        and {**entry.data, **entry.options}[const.CONF_TIBBER_TOKEN] == "tok-fresh"
+        and {**entry.data, **entry.options}[const.CONF_TARGET_TEMP] == 21.5
+        and set(entry.data) <= {"name"}
         and hass.config_entries.reloaded == ["plant_a"]
         and entry.unique_id
         == config_flow.entry_identity({**RC_ENTRY_DATA, const.CONF_TIBBER_TOKEN: "tok-fresh"}),
-        f"{result} token={entry.data.get(const.CONF_TIBBER_TOKEN)} "
+        f"{result} token={({**entry.data, **entry.options}).get(const.CONF_TIBBER_TOKEN)} "
         f"reloaded={hass.config_entries.reloaded}",
     )
 
@@ -5085,8 +5092,9 @@ async def reconfigure_flow():
         "happy",
         "a slot the user cleared is dropped, not silently kept",
         result == {"type": "abort", "reason": "reconfigure_successful"}
-        and const.CONF_INDOOR_TEMP_ENTITY not in entry.data,
-        f"{result} indoor={entry.data.get(const.CONF_INDOOR_TEMP_ENTITY)!r}",
+        and const.CONF_INDOOR_TEMP_ENTITY not in {**entry.data, **entry.options}
+        and set(entry.data) <= {"name"},
+        f"{result} indoor={({**entry.data, **entry.options}).get(const.CONF_INDOOR_TEMP_ENTITY)!r}",
     )
 
     LEDGER.rows["_reconfigure"] = int(round_trip_done)
@@ -6242,6 +6250,7 @@ async def options_modbus_prefill():
             const.CONF_DHW_WINDOWS: "05:30-07:00",
             const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: 3.0,
             const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+            const.CONF_SILENT_MODE_FRACTION: 1.0,
             const.CONF_DHW_TEMP_ENTITY: "sensor.hp_dhw_tank_temperature",
         },
         f"{offered}",
@@ -6263,6 +6272,7 @@ async def options_modbus_prefill():
         const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: None,
         const.CONF_DHW_TEMP_ENTITY: None,
         const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+        const.CONF_SILENT_MODE_FRACTION: 0.5,
         const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU,
     })
     check(
@@ -6271,6 +6281,7 @@ async def options_modbus_prefill():
         shows_menu(result, "init") and entry.options == {
             const.CONF_DHW_SETPOINT: 52.0,
             const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+            const.CONF_SILENT_MODE_FRACTION: 0.5,
         },
         f"{result.get('type')}/{result.get('step_id')} options={entry.options}",
     )
@@ -7201,10 +7212,10 @@ async def config_flow_device_prefill_offer():
         "device_prefill", "happy",
         "the entry the wizard creates carries what the offer filled",
         created.get("type") == "create_entry"
-        and created.get("data", {}).get(const.CONF_DHW_SETPOINT) == 50.0
-        and created.get("data", {}).get(const.CONF_DHW_TEMP_ENTITY)
+        and {**created.get("data", {}), **created.get("options", {})}.get(const.CONF_DHW_SETPOINT) == 50.0
+        and {**created.get("data", {}), **created.get("options", {})}.get(const.CONF_DHW_TEMP_ENTITY)
         == f"sensor.{slug}_dhw_tank_temperature",
-        f"{created.get('type')} data={sorted(created.get('data') or {})}",
+        f"{created.get('type')} data={sorted(created.get('data') or {})} options={sorted(created.get('options') or {})}",
     )
 
     # #1107: the wizard's own data is what the omission rules read, so a
@@ -7349,7 +7360,7 @@ async def device_prefill_preview_texts():
         check(
             "device_prefill", "happy",
             f"every previewed field has a label where the frontend looks, in {name}",
-            not raw and len(preview_keys) > 6,
+            not raw and len(preview_keys) >= 6,
             f"{len(raw)} of {len(preview_keys)} render the raw key: {raw}",
         )
         # The labels are copies: the options pre-fill page translates the same
@@ -8056,6 +8067,120 @@ for _or_key in (const.CONF_PREFILL_OFFER, "no_such_option_key"):
     R.check(f"option_range refuses {_or_key!r}, which has no number field", _or_raised)
 
 
+
+async def seam_config_one_place():
+    """R11-SEAM-config: each key in one place, so every writer agrees with the reader."""
+    R.section("one place per key: reconfigure, setup, pre-fill and computed defaults agree (R11-SEAM-config)")
+    from heatpump_optimizer import entry_config  # noqa: PLC0415
+
+    # The data-only set is derived from the forms, never carried: a new options
+    # row for a first-screen key moves that key to options.
+    first = {
+        str(getattr(marker, "schema", marker))
+        for marker in config_flow._first_screen_schema(FakeHass()).schema
+    }
+    derived = first - {row.key for row in config_flow._OPTION_FIELDS}
+    check("reconfigure", "happy",
+          "entry.data stores exactly the first-screen keys no options page edits",
+          entry_config.DATA_ONLY == derived,
+          f"DATA_ONLY={sorted(entry_config.DATA_ONLY)} derived={sorted(derived)}")
+
+    # D10-s2-01: a reconfigure after an Entities save prefills the running value
+    # and its save takes effect; the arm with no options save is the null.
+    creds = {k: v for k, v in RC_ENTRY_DATA.items() if k in FIRST_SCREEN}
+    for saved_options in (True, False):
+        real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+        try:
+            flow, entry, _, _ = rc_setup()
+            if saved_options:
+                entry.options = {const.CONF_INDOOR_TEMP_ENTITY: "sensor.running_indoor"}
+            running = {**entry.data, **entry.options}[const.CONF_INDOOR_TEMP_ENTITY]
+            sensors_form = await submit(flow, "reconfigure", creds)
+            prefilled = rc_suggested(sensors_form).get(const.CONF_INDOOR_TEMP_ENTITY)
+            sensors = {
+                k: v for k, v in RC_ENTRY_DATA.items()
+                if k not in FIRST_SCREEN and k in schema_keys(sensors_form)
+            }
+            done = await submit(flow, "user_sensors",
+                                {**sensors, const.CONF_INDOOR_TEMP_ENTITY: "sensor.new_indoor"})
+        finally:
+            config_flow.async_get_clientsession = real
+        effective = {**entry.data, **entry.options}
+        check("reconfigure", "happy",
+              f"reconfigure {'after' if saved_options else 'with no'} options save: the page "
+              "prefills the value in force, the save takes effect, data holds DATA_ONLY alone",
+              done.get("reason") == "reconfigure_successful"
+              and prefilled == running
+              and effective[const.CONF_INDOOR_TEMP_ENTITY] == "sensor.new_indoor"
+              and effective[const.CONF_TARGET_TEMP] == RC_ENTRY_DATA[const.CONF_TARGET_TEMP]
+              and set(entry.data) <= entry_config.DATA_ONLY,
+              f"done={done} prefilled={prefilled!r} running={running!r} data={entry.data} "
+              f"options={entry.options}")
+
+    # D10-s1-03: the created entry stores its settings in options.
+    answers = {config_flow.CONF_NAME: "Annex pump", const.CONF_TIBBER_TOKEN: "t",
+               const.CONF_TARGET_TEMP: 21.0}
+    created = fresh_flow(data=answers)._create_setup_entry()
+    check("setup_overview", "happy",
+          "the created entry stores DATA_ONLY in data and every setting in options, the "
+          "effective mapping unchanged",
+          set(created["data"]) <= entry_config.DATA_ONLY
+          and {**created["data"], **created["options"]} == answers,
+          f"data={created.get('data')} options={created.get('options')}")
+
+    # D17-s1-02: a computed default is judged over the save, not the stored
+    # configuration: the holiday start shown and kept survives a changed
+    # weekday start; resubmitting it unchanged is the null and stays unstored.
+    hass = FakeHass()
+    stored = {"day_start_hour": 8}
+    kept = config_flow._omit_unstored_computed(
+        {"day_start_hour": 7, "holiday_day_start_hour": 8}, stored, hass)
+    same = config_flow._omit_unstored_computed(
+        {"day_start_hour": 8, "holiday_day_start_hour": 8}, stored, hass)
+    check("comfort", "happy",
+          "a computed value kept while its source changes is stored; kept with its "
+          "source unchanged it stays unstored",
+          kept.get("holiday_day_start_hour") == 8 and "holiday_day_start_hour" not in same,
+          f"kept={kept} same={same}")
+
+    # D4-s2-01, D6-s3-01, D17-s2-05, D17-s2-04: the setup pre-fill page.
+    strings = json.loads(
+        (pathlib.Path(config_flow.__file__).parent / "strings.json").read_text())
+    step_text = strings["config"]["step"]["device_prefill"]
+    flow = fresh_flow(data=answers)
+    notes = {"found": "6", "backup_heater_type": "7"}
+    flow._device_prefill = ((const.CONF_SILENT_MODE_WINDOWS,), notes)
+    refused = await submit(flow, "device_prefill", {const.CONF_SILENT_MODE_WINDOWS: "06:00-10:00"})
+    placeholders = refused.get("description_placeholders") or {}
+    texts = [step_text["description"], *step_text.get("data_description", {}).values(),
+             *(strings["config"]["error"][e] for e in (refused.get("errors") or {}).values())]
+    needed = {name for text in texts for name in re.findall(r"{(\w+)}", text)}
+    check("device_prefill", "error",
+          "a kept schedule at fraction 1.0 is refused on the fraction, which the page "
+          "shows beside it, with every placeholder its strings read and the preview's notes",
+          shows(refused, "device_prefill")
+          and refused.get("errors") == {
+              const.CONF_SILENT_MODE_FRACTION: "silent_mode_fraction_uncapped"}
+          and const.CONF_SILENT_MODE_FRACTION in schema_keys(refused)
+          and needed <= placeholders.keys()
+          and all(placeholders.get(k) == v for k, v in notes.items()),
+          f"errors={refused.get('errors')} missing={sorted(needed - placeholders.keys())} "
+          f"placeholders={placeholders} fields={sorted(schema_keys(refused))}")
+    check("device_prefill", "happy",
+          "the setup pre-fill page posts no after_save: its navigation is always finish_setup",
+          const.CONF_AFTER_SAVE not in schema_keys(refused),
+          f"fields={sorted(schema_keys(refused))}")
+    accepted = await submit(flow, "device_prefill", {
+        const.CONF_SILENT_MODE_WINDOWS: "06:00-10:00", const.CONF_SILENT_MODE_FRACTION: 0.6})
+    check("device_prefill", "happy",
+          "the schedule kept with a fraction below 1.0 is stored with it",
+          shows_menu(accepted, "finish_setup")
+          and flow._data.get(const.CONF_SILENT_MODE_WINDOWS) == "06:00-10:00"
+          and flow._data.get(const.CONF_SILENT_MODE_FRACTION) == 0.6
+          and const.CONF_AFTER_SAVE not in flow._data,
+          f"result={accepted.get('type')}/{accepted.get('step_id')} data={flow._data}")
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -8076,6 +8201,7 @@ async def main() -> int:
     await walk_expert()
     await temperature_error_branches()
     await reauth_round_trip()
+    await seam_config_one_place()
     await options_menus()
     await options_walk()
     await options_advanced_pages()

@@ -1651,7 +1651,7 @@ async def _r9f12_walk(choices, form_overrides):
     trail = []
     for _ in range(40):
         if result.get("type") == "create_entry":
-            return dict(result["data"]), trail
+            return {**result["data"], **result.get("options", {})}, trail
         if result.get("type") == "menu":
             options = list(result["menu_options"])
             step = choices[mi] if mi < len(choices) else options[0]
@@ -14796,7 +14796,7 @@ R.check(
     "a reset of both leaves the wiring alone and every learner at its initial state",
     _fr_learned(_fr_b_new) == _fr_learned(_fr_b_fresh)
     and set({**_fr_b_entry.data, **_fr_b_entry.options}) <= set(_fr_ec.FACTORY_KEPT)
-    and _fr_b_entry.data["indoor_temp_entity"] == "sensor.indoor",
+    and {**_fr_b_entry.data, **_fr_b_entry.options}["indoor_temp_entity"] == "sensor.indoor",
     f"stored {sorted({**_fr_b_entry.data, **_fr_b_entry.options})}",
 )
 _fr_undo = _fr_b_new._snapshot_ring.snapshots[-1]
@@ -14843,7 +14843,8 @@ R.check(
     f"refreshes asked {len(_fr_b_asked)}",
 )
 # The undo's pins, as stored: an explicit value, and one stored on the other
-# side (data versus options), each come back where and as they were.
+# side (data versus options), each come back as they were -- placed where the
+# entry now keeps them (only the name in data).
 _FR_PIN_DATA = {"name": "x", "two_zone_mode": "auto", "comfort_weight": 3.0, "indoor_temp_entity": "sensor.in"}
 _FR_PIN_OPTS = {"dhw_enabled": False, "target_temperature": 22.0}
 _fr_pin_reset = _fr_ec.factory_settings(_FR_PIN_DATA, _FR_PIN_OPTS, two_zone=True, dhw=True, wood=False)
@@ -14851,7 +14852,9 @@ _fr_pin_record = _fi_json.loads(_fi_json.dumps(_fr_ec.undo_point("both", _FR_PIN
 R.check(
     "an undo puts each pinned key back where and as it was stored, over the pins the reset wrote",
     _fr_pin_reset != (_FR_PIN_DATA, _FR_PIN_OPTS)
-    and _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record) == (_FR_PIN_DATA, _FR_PIN_OPTS),
+    and (_fr_pin_undone := _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record)) is not None
+    and {**_fr_pin_undone[0], **_fr_pin_undone[1]} == {**_FR_PIN_DATA, **_FR_PIN_OPTS}
+    and set(_fr_pin_undone[0]) <= {"name"},
     f"reset {_fr_pin_reset}, undone {_fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record)}",
 )
 # A record missing either half, or holding a half that is not a (data,
