@@ -85,8 +85,7 @@ divergence"). Re-read on change after every compaction
 
 - 2026-11-13: "Also verify that the other dimensions also covers the full
   codebase in their contracts, I want future rounds to always check everything
-  in their dimension, not only small samples". 2026-11-13: "I would like the
-  scope of d5 and d6 to always cover that full scope". Where `D3.md` and `D11.md`
+  in their dimension, not only small samples" (for D5 and D6, `D6.md` states it). Where `D3.md` and `D11.md`
   still sample, the change is owned by R11-PRE-BRIEFS-TEXT part 2.
 - 2026-11-15: "As soon as everything that is critical to land before the finder
   phase, the finding phase can start in parallel with the remaining groups";
@@ -126,10 +125,6 @@ divergence"). Re-read on change after every compaction
   owed" (product and release defects and outages; tooling friction is counted by
   family and analysed at round end, L8). The trigger and the separate seat are
   `CLAUDE.md`'s and `defect-root-cause.md`'s.
-- 2026-10-24: "each operation or shape that is not clearly a one shot and could
-  be mechanical should be mechanical and wired into the machinery. This means
-  reusable instrument before policy, only policy if no robust script could be
-  built at a reasonable cost (tokens, time, complexity)".
 - 2026-11-13: "you may have a fixer have more carries based on their kind,
   locally for now and filed as a permanent proposal" (operational until the
   round-end proposal triage rules PC-1113-08).
