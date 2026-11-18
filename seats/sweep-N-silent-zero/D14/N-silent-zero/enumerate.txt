@@ -1,0 +1,43 @@
+SEAM A   custom_components/heatpump_optimizer/away.py:622 _parse_return_time :: returns None on its guard and stored_instant(value, dt_util.DEFAULT_TIME_ZONE)
+SEAM B   custom_components/heatpump_optimizer/button.py:156 SystemIdentificationButton.async_press :: off_the_action(.., self.coordinator.async_arm_system_identification()) -- not awaited
+SEAM B   custom_components/heatpump_optimizer/button.py:217 DiagnoseIntervalButton.async_press :: off_the_action(.., self.coordinator.async_diagnose_interval()) -- not awaited
+SEAM C2  custom_components/heatpump_optimizer/coordinator.py:973 _fold_flow_lift :: if coord._learning_frozen(CONF_OUTDOOR_TEMP_ENTITY) is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/coordinator.py:2816 _hub :: if ctx is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/coordinator.py:2816 _hub.set :: if ctx is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/coordinator.py:5415 HeatPumpOptimizerCoordinator._fold_cop_evidence :: if read_scale is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/coordinator.py:9246 HeatPumpOptimizerCoordinator._track_curve_comfort :: if (self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) or learner_room_unread(ctx._config)) is not None: <reject> 
+SEAM D3  custom_components/heatpump_optimizer/coordinator.py:9653 HeatPumpOptimizerCoordinator._async_watch_learning_drift :: if not self._snapshots_loaded: return (silent)
+SEAM C2  custom_components/heatpump_optimizer/coordinator.py:10987 HeatPumpOptimizerCoordinator._record_quiet_comfort_period :: if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/coordinator.py:11068 HeatPumpOptimizerCoordinator._run_system_identification :: if why is not None: <reject> -- None passes
+SEAM C1  custom_components/heatpump_optimizer/coordinator.py:3220 _apply_unsolved_payload :: "solve_time_ms": 0 beside a not-run status
+SEAM C1  custom_components/heatpump_optimizer/coordinator.py:3231 _apply_unsolved_payload :: "pv_self_consumed_kwh": 0 beside a not-run status
+SEAM C2  custom_components/heatpump_optimizer/defrost.py:577 DefrostDerate.from_dict :: if factors is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/disinfection.py:178 DisinfectionSwitch.release :: if flag is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/early_cutoff.py:305 on_room_event :: if _exempt(inp, wiring.boosts, now) is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/early_cutoff.py:313 on_room_event :: if reason is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/grid_fee.py:164 FeeRule.applies :: if self.hours is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/legionella.py:224 LegionellaGuard.async_load :: if parsed is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/optimizer.py:5219 HeatPumpOptimizer._safety_release_steps :: if space_pins is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/pump_arbiter.py:2053 note_supply :: if held.supply_unsub is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/sensor.py:2046 PredictedIndoorTempSensor._waiting_for :: if self.native_value is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/snapshots.py:225 SnapshotRing.best_restore :: if bias is not None: <reject> -- None passes
+SEAM C2  custom_components/heatpump_optimizer/sysid.py:1476 SystemIdentification.arm :: if plant is not None: <reject> -- None passes
+SEAM D2  tools/replay/dbg_bundle_gen.py:98 build_bundle.recording_tick :: data.get('current_action') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_ingest.py:88 ingest :: bundle.get('manifest') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_ingest.py:97 ingest :: bundle.get('replay') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_ingest.py:112 ingest :: bundle.get('stores') or {} -- an absent section reads as an empty clean one
+SEAM D1  tools/replay/debug_ingest.py:297 main :: fixed denominator /12
+SEAM D2  tools/replay/debug_ingest.py:92 ingest :: bundle.get('cycle_rows') or [] -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_ingest.py:164 ingest :: (bundle.get('diagnostics') or {}).get('accuracy') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_ingest.py:65 unwrap_download :: doc.get('data') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_ingest.py:164 ingest :: bundle.get('diagnostics') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_replay.py:212 main :: verdict.get('counts') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_replay.py:216 main :: (verdict.get('results') or {}).get('agreement') or [] -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_replay.py:199 main :: bundle.get('replay') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_replay.py:200 main :: bundle.get('stores') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_replay.py:110 trim_replay :: out.get('states') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_replay.py:216 main :: verdict.get('results') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/debug_replay.py:180 gate_checks :: trimmed.get('states') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/export.py:186 untimed :: payload.get('window') or {} -- an absent section reads as an empty clean one
+SEAM D2  tools/replay/export.py:189 untimed :: payload.get('states') or {} -- an absent section reads as an empty clean one
+RESULT seams=42 A=1 B=2 C1=2 C2=18 D1=1 D2=17 D3=1

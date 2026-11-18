@@ -1,0 +1,9 @@
+ARM valid factors_equal_default=0 warnings=0 reset=False loss_recorded=0
+ARM absent factors_equal_default=1 warnings=0 reset=False loss_recorded=0
+ARM wrong_rows factors_equal_default=1 warnings=0 reset=False loss_recorded=0
+ARM wrong_width factors_equal_default=1 warnings=0 reset=False loss_recorded=0
+ARM string factors_equal_default=1 warnings=0 reset=False loss_recorded=0
+ARM dict factors_equal_default=1 warnings=0 reset=False loss_recorded=0
+ARM scalar factors_equal_default=1 warnings=0 reset=False loss_recorded=0
+RESULT unreadable_read_as_absent=5 count
+RESULT valid_kept=1 count

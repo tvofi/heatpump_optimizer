@@ -1,0 +1,2 @@
+SEAM A   tools/fixture/fix.py:28 _parse_at :: returns None on its guard and stored_instant(raw)
+RESULT seams=1 A=1

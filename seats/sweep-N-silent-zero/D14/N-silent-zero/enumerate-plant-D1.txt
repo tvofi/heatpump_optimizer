@@ -1,0 +1,2 @@
+SEAM D1  tools/fixture/fix.py:29 verdict2 :: fixed denominator /12
+RESULT seams=1 D1=1

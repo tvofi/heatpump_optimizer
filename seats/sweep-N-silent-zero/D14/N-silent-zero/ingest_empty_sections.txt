@@ -1,0 +1,86 @@
+== 
+RESULT synthetic_check[schema]=1 section_items=1 unit=bool
+RESULT synthetic_check[manifest-cycles]=1 section_items=1 unit=bool
+RESULT synthetic_check[manifest-version]=1 section_items=1 unit=bool
+RESULT synthetic_check[rows-match]=1 section_items=336 unit=bool
+RESULT synthetic_check[replay-clean]=1 section_items=7119 unit=bool
+RESULT synthetic_check[planted-leak-caught]=1 section_items=1 unit=bool
+RESULT synthetic_check[stores-present]=1 section_items=6 unit=bool
+RESULT synthetic_check[stores-declared]=1 section_items=6 unit=bool
+RESULT synthetic_check[stores-sanitize-idempotent]=1 section_items=6 unit=bool
+RESULT synthetic_check[accuracy-loaded]=1 section_items=192 unit=bool
+RESULT synthetic_check[bias-rederived]=1 section_items=335 unit=bool
+RESULT synthetic_checks_ok=11/11 unit=count
+RESULT synthetic_tool_stages_ok=12/12 checks_run=11 unit=count
+RESULT synthetic_vacuous_passes=0 unit=count
+RESULT real_check[schema]=1 section_items=1 unit=bool
+RESULT real_check[manifest-cycles]=1 section_items=1 unit=bool
+RESULT real_check[manifest-version]=1 section_items=1 unit=bool
+RESULT real_check[rows-match]=1 section_items=96 unit=bool
+RESULT real_check[replay-clean]=1 section_items=2034 unit=bool
+RESULT real_check[planted-leak-caught]=1 section_items=1 unit=bool
+== --empty replay
+RESULT synthetic_check[schema]=1 section_items=1 unit=bool
+RESULT synthetic_check[manifest-cycles]=1 section_items=1 unit=bool
+RESULT synthetic_check[manifest-version]=1 section_items=1 unit=bool
+RESULT synthetic_check[rows-match]=1 section_items=336 unit=bool
+RESULT synthetic_check[replay-clean]=1 section_items=0 unit=bool
+RESULT synthetic_check[planted-leak-caught]=1 section_items=1 unit=bool
+RESULT synthetic_check[stores-present]=1 section_items=6 unit=bool
+RESULT synthetic_check[stores-declared]=1 section_items=6 unit=bool
+RESULT synthetic_check[stores-sanitize-idempotent]=1 section_items=6 unit=bool
+RESULT synthetic_check[accuracy-loaded]=1 section_items=192 unit=bool
+RESULT synthetic_check[bias-rederived]=1 section_items=335 unit=bool
+RESULT synthetic_checks_ok=11/11 unit=count
+RESULT synthetic_tool_stages_ok=12/12 checks_run=11 unit=count
+RESULT synthetic_vacuous_passes=1 unit=count
+RESULT real_check[schema]=1 section_items=1 unit=bool
+RESULT real_check[manifest-cycles]=1 section_items=1 unit=bool
+RESULT real_check[manifest-version]=1 section_items=1 unit=bool
+RESULT real_check[rows-match]=1 section_items=96 unit=bool
+RESULT real_check[replay-clean]=1 section_items=0 unit=bool
+RESULT real_check[planted-leak-caught]=1 section_items=1 unit=bool
+== --empty cycle_rows
+RESULT synthetic_check[schema]=1 section_items=1 unit=bool
+RESULT synthetic_check[manifest-cycles]=1 section_items=1 unit=bool
+RESULT synthetic_check[manifest-version]=1 section_items=1 unit=bool
+RESULT synthetic_check[rows-match]=0 section_items=0 unit=bool
+RESULT synthetic_check[replay-clean]=1 section_items=7119 unit=bool
+RESULT synthetic_check[planted-leak-caught]=1 section_items=1 unit=bool
+RESULT synthetic_check[stores-present]=1 section_items=6 unit=bool
+RESULT synthetic_check[stores-declared]=1 section_items=6 unit=bool
+RESULT synthetic_check[stores-sanitize-idempotent]=1 section_items=6 unit=bool
+RESULT synthetic_check[accuracy-loaded]=1 section_items=192 unit=bool
+RESULT synthetic_check[bias-rederived]=0 section_items=0 unit=bool
+RESULT synthetic_checks_ok=9/11 unit=count
+RESULT synthetic_tool_stages_ok=10/12 checks_run=11 unit=count
+RESULT synthetic_vacuous_passes=0 unit=count
+RESULT real_check[schema]=1 section_items=1 unit=bool
+RESULT real_check[manifest-cycles]=1 section_items=1 unit=bool
+RESULT real_check[manifest-version]=1 section_items=1 unit=bool
+RESULT real_check[rows-match]=0 section_items=0 unit=bool
+RESULT real_check[replay-clean]=1 section_items=2034 unit=bool
+RESULT real_check[planted-leak-caught]=1 section_items=1 unit=bool
+== --empty stores
+RESULT synthetic_check[schema]=1 section_items=1 unit=bool
+RESULT synthetic_check[manifest-cycles]=1 section_items=1 unit=bool
+RESULT synthetic_check[manifest-version]=1 section_items=1 unit=bool
+RESULT synthetic_check[rows-match]=1 section_items=336 unit=bool
+RESULT synthetic_check[replay-clean]=1 section_items=7119 unit=bool
+RESULT synthetic_check[planted-leak-caught]=1 section_items=1 unit=bool
+RESULT synthetic_check[stores-present]=0 section_items=0 unit=bool
+RESULT synthetic_check[stores-declared]=1 section_items=0 unit=bool
+RESULT synthetic_check[stores-sanitize-idempotent]=1 section_items=0 unit=bool
+RESULT synthetic_check[bias-rederived]=0 section_items=335 unit=bool
+RESULT synthetic_checks_ok=8/10 unit=count
+RESULT synthetic_tool_stages_ok=10/12 checks_run=10 unit=count
+RESULT synthetic_vacuous_passes=2 unit=count
+RESULT real_check[schema]=1 section_items=1 unit=bool
+RESULT real_check[manifest-cycles]=1 section_items=1 unit=bool
+RESULT real_check[manifest-version]=1 section_items=1 unit=bool
+RESULT real_check[rows-match]=1 section_items=96 unit=bool
+RESULT real_check[replay-clean]=1 section_items=2034 unit=bool
+RESULT real_check[planted-leak-caught]=1 section_items=1 unit=bool
+RESULT real_check[stores-present]=0 section_items=0 unit=bool
+== --empty manifest
+== --empty diagnostics

@@ -1,0 +1,10 @@
+DROP none           verdict=pass stages_ok=12/12
+DROP cycle_rows     verdict=fail stages_ok=10/12
+DROP diagnostics    verdict=pass stages_ok=12/12
+DROP manifest       verdict=fail stages_ok=9/12
+DROP payload_snapshots verdict=pass stages_ok=12/12
+DROP replay         verdict=pass stages_ok=12/12
+DROP schema         verdict=fail stages_ok=11/12
+DROP store_save_counts verdict=pass stages_ok=12/12
+DROP stores         verdict=fail stages_ok=10/12
+RESULT sections_dropped_still_pass=4 unit=count
