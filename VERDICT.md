@@ -1,0 +1,41 @@
+Fix review: blocked 40328a85d4e17e5c30284b34fd55cee8655f858a class-open: wood_fuel.lighting_window
+
+bus-nonce: 67f3a8f469a2c8e89587d47f5e8d181f
+
+Round 1 (first round: the packet's review scope is full, with no reviewed head).
+
+## Block
+
+- class-open: `wood_fuel.lighting_window` (reached from `wood_fuel._attach_windows`, wood_fuel.py:561-568). The class's own sweep report, `sweep-P1.md` at the plan export 819aa2e354b4e5baaf824b8568fd72bea8168a75, disposes of this seam by name: "`wood_fuel.lighting_window`: its argument comes from `finite_float(...)` with a default, bounded below by `max(0.0, ...)`. A finite option of 1e12 would still overflow here. That is the same reach as the `early_cutoff` instance, and it is the fixer's to cover in the same coercion fix." The diff does not touch it, and the body's class list does not dispose of it. The body enumerates from `sweep-P1.json`'s `instance_list` alone, which omits the seam the `.md` hands to this fix.
+  - Reproduced at the head (ev/wood-lighting-lead-probe-head.txt): `lighting_window(t, t, lead)` returns for lead 0, 60 and 240, the options flow's range `_number(0, 240, ...)` at config_flow.py:1862. It raises `OverflowError: date value out of range` for lead 1e12, so the item moves under its own perturbation.
+  - The stored key `wood_lighting_lead_minutes` is not declared in `EntryConfig`. So neither the new `number_repairs` migration nor an `EntryConfig` domain parse (the `_interval_minutes` shape this PR uses for `early_cutoff`) reaches it.
+  - The raise is not caught on the path `_attach_windows` (wood_fuel.py:568) -> `build_wood_fuel_view` (:524) -> `wood_fuel_from_parts` (:631) -> `coordinator._build_data_dict` (coordinator.py:8256) -> `_async_update_data`. It is caught only at coordinator.py:6152's `except Exception`, which raises UpdateFailed. Every update cycle then fails while the wood furnace is on and the stored lead is out of domain. The call chain was traced by a read-only subagent; I have not driven it end to end.
+  - To close it: give the lead a domain-bounded parse, for example declare the key in `EntryConfig` with a `(0, bound]` parse that defaults outside the domain, as `optimization_interval` now has, and read it through that parse at wood_fuel.py:561. Pin it with a check that drives 1e12 through `_attach_windows` or `build_wood_fuel_view`, with a null control at 0 or 240.
+
+## Findings
+
+- Surviving targeted mutant M9: dropping `_interval_minutes` from `entry_config._DEFAULTED_NUMBERS` survives `tests/entities.py` (rc=0, ev/mutants-entities.txt). No check stores a non-number under `optimization_interval` in an old entry. Behaviour does not move: every one of the 15 reads of `optimization_interval` in the package goes through the `EntryConfig` parse, and none reads it raw, so an unrepaired stored text value still parses as the default. Carry: dismissed: equivalent in behaviour, since no raw reader of optimization_interval exists at this head
+- Surviving targeted mutant M14: `open_meteo._parse_block`'s `if len(kept) < 2` loosened to `< 1` survives `tests/open_meteo.py` (ev/mutants-features-openmeteo.txt). A one-sample series is then returned instead of `_EMPTY`. `IrradianceSeries.mean_over` handles one sample under its own rule, which needs 50% coverage of the request or returns None. Carry: dismissed: a one-sample series is a valid series under mean_over's own coverage rule, so no defect follows from the survivor
+
+## Evidence
+
+- Head measured: 40328a85d4e17e5c30284b34fd55cee8655f858a. It is the PR head and the head the body names (ev/HEAD.txt). Merge base ae0ed64af898d8923ac35afe6e9c031ac1e6b111. `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- Merge: `git merge-tree --write-tree origin/main <head>` exits 0 against origin/main 9fe63d00b5 (ev/merge-tree.txt).
+- VERSION, the manifest version, RELEASE_NOTES.md and the claim files are untouched by the three-dot diff. No budget file is in the diff.
+- Finder's harnesses, from the plan export 819aa2e3 (sha1 of each script matches the body), merge base then head (ev/finder-harnesses-base-head.log). Every figure in the body re-derived:
+  - m4_tariff `unit_mismatches`: 0 then 0.
+  - m8_agree `temperature_roundtrip_disagreements`: 0 then 0, of 35 probes.
+  - parsers_fuzz pump: `pump_nonfinite_flag_true` 10 then 0, `pump_nonfinite_freeze_fault` 5 then 0, null `pump_null_control_zero_flag_true` 0 at both ends. `--perturb parse_bool_finite` at the base reads 0.
+  - parsers_fuzz openmeteo: `openmeteo_year1_solve_failures` 3 then 0, `openmeteo_healthy_solve_failures` 0 at both ends.
+  - plausible_upper `above_max_accepted`: 0 then 0, of 15 keys. Its `--perturb` at the base also reads 0, flat as the body says. Its companion, the new window check, is killed by one-sided mutant M12.
+  - config_fuzz v1..v6: `build_fail` 8, 11, 10, 9, 5, 11 then all 0. `permanent_cycle_fail` 17, 14, 16, 12, 17, 12 then all 0. `CTRL vN` ok for v1..v6 at both ends.
+- Mutation proof, in a detached worktree at the head, file restored after each mutant with porcelain empty (driver: ev/mutation-driver.py):
+  - Killed by the checks the body names: M1 parse_bool revert, M2 `_begin` guard deleted, M3 `kept` = every index, M4 `repairs = {}`, M5 every repair None, M6 interval guard off, M10 D7 pin, M11 D2 pin, M12 D1-s2-51 pin.
+  - Also killed, my own: M7 `mixing_valve_target` field removed, M8 bool arm of `number_repairs` dropped, M13 floor without `+ resolution`.
+  - Survived: M9 and M14 (under Findings).
+  - The `FAIL a3:roster [1 registered ...]` line in each entities log is that file's own negative self-test. It also prints in the clean run, which ends `ALL 2737 ENTITY CHECKS PASSED` (ev/entities-clean-tail.txt).
+- Clean runs at the head: features block "Non-numeric inputs (v5.3.0)" 44 ok, rc 0. Block P8 (#1513) rc 0. tests/entities.py: all 2737 pass.
+- Step 14: the one moved count, the `async_migrate_entry` allowance 1 -> 2 in the log-flood list, is earned. M4 removes the repair, so the new `_LOGGER.warning` never fires, and the warning is that second site.
+- Step 16: not applicable, since no actuator write path is added.
+- CI at this head: `merge_train.py classify` still prints `WAIT 40328a85d4e17e5c30284b34fd55cee8655f858a pending: gate red: none` (exit 3, ev/ci-classify.txt) after about 35 minutes of polling. Answering a red check is not owed: `tests / mutation` is red, and it is in the owed-reds set. It is answered under the body's `## Red checks` (unpinned sites awaiting mutation-autofix, ci-autofix.md). `tests / nightly-status` is red but outside the owed set.
+- Closing self-audit: `carry_audit.py check` returns rc 0 (`CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)`). The `--body` file was the body's `## Forward-carry` and `## Friction` sections, copied from the live PR. This seat has no `gh`, so the full body text could not be piped in. The two routed items match the packet's own carry_audit at the head.
