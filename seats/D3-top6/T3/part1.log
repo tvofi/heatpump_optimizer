@@ -1,4 +1,4 @@
-# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=1.95 at 2026-11-18T20:48:20Z
+# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=1.88 at 2026-11-18T20:53:24Z
 ## run.log (driver steps + controls)
 === 2026-11-18T18:51:31Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.18 :: STEP baseline
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
@@ -63,6 +63,12 @@ RESULT thread_factor=1.00
 2026-11-18T20:24:52Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF 7b8dda16 L559 by=tests/features.py ran=12 wall=1664.9s
 2026-11-18T20:25:12Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:_dhw_windows_at GUARD_OFF b551ee16 L75 by=tests/features.py ran=16 wall=1675.9s
 2026-11-18T20:28:24Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0 L64 by=tests/features.py ran=17 wall=1871.2s
+2026-11-18T20:49:58Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planning_prices GUARD_OFF 54e620e3 L473 by=tests/features.py ran=12 wall=1506.3s
+2026-11-18T20:50:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:_parse_rule GUARD_OFF f8c4994a L173 by=- ran=12 wall=1502.4s
+RESULT load1=1.68
+RESULT thread_factor=1.00
+=== 2026-11-18T20:50:14Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.68 :: STEP complete src=c2
+2026-11-18T20:50:14Z COMPLETE queued=2 from=c2
 ## prescreen.log
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
 2026-11-18T18:57:42Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=155.7s reach_ok=False
@@ -95,3 +101,6 @@ RESULT thread_factor=1.00
 2026-11-18T20:24:52Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF 7b8dda16 L559 by=tests/features.py ran=12 wall=1664.9s
 2026-11-18T20:25:12Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:_dhw_windows_at GUARD_OFF b551ee16 L75 by=tests/features.py ran=16 wall=1675.9s
 2026-11-18T20:28:24Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0 L64 by=tests/features.py ran=17 wall=1871.2s
+2026-11-18T20:49:58Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planning_prices GUARD_OFF 54e620e3 L473 by=tests/features.py ran=12 wall=1506.3s
+2026-11-18T20:50:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:_parse_rule GUARD_OFF f8c4994a L173 by=- ran=12 wall=1502.4s
+2026-11-18T20:50:14Z COMPLETE queued=2 from=c2
