@@ -10,3 +10,4 @@
 2026-11-18T20:02:48Z load1=0.94 T3 p3: checkpoint /11 (SURVIVED)
 2026-11-18T20:06:48Z load1=2.99 comms: heartbeat D3-top6-t3-p3
 2026-11-18T20:21:51Z load1=2.88 comms: heartbeat D3-top6-t3-p3
+2026-11-18T20:24:50Z load1=2.23 T3 p3: checkpoint /11 (KILLED)
