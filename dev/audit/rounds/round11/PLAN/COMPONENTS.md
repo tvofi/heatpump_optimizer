@@ -184,52 +184,105 @@ test suite seam is cut in three by who must act: what the suite exercises
 rows the owner sets (`ratchet-raise`). Paths a test comment cites belong to
 the test comments seam.
 
+### The kernel's findings, cut by seam
+
+Revision 1 put five D7 findings in one group, `R11-SEAM-kernel`, named for
+the shared kernel. The plan review showed it was the N-duplicated-rule and P2
+class as one group: 34 files, and five of the eight clone owners of D7-s1-05
+sit in other seams by the component table above. Step 4 cuts a class spanning
+seams into one group per seam. The cut:
+
+| what | seam of the owner | group |
+|---|---|---|
+| D7-s3-03, the step covering now | kernel (`plan_step.py`) | `R11-SEAM-kernel-step` |
+| D7-s3-04, three small rules with disagreeing copies | kernel (`const.py`, `drift.py`) | `R11-SEAM-kernel-step` |
+| D7-s1-05, arms `note` and `step` | kernel (`drift.py`, `plan_step.py`) | `R11-SEAM-kernel-step` |
+| D7-s1-05, arm `avail` | entity surface (`entity.py`) | `R11-SEAM-entity-service` |
+| D7-s1-05, arms `day` and `entry` | money (`price_model.py`, `ledger.py`) | `R11-SEAM-money` |
+| D7-s1-05, arm `fdjac` | learners (`sysid.py`) | `R11-SEAM-learners` |
+| D7-s1-05, arm `notice` | actuation (`legionella.py`) | `R11-SEAM-actuation-release` |
+| D7-s1-05, arm `reader` | input boundary (`inputs.py`) | `R11-SEAM-inputs-freshness` |
+| D7-s1-06, the imports with a pure owner | kernel (`drift.py`, `const.py`, `currency.py`) | `R11-SEAM-kernel-layering` |
+| D7-s1-06's open design, the reader's clock (ADR-002 part 2) | input boundary (`inputs.py`) | `R11-SEAM-inputs-freshness` |
+| D7-s3-05, state nothing reads | none | `R11-SEAM-dead-state` |
+
+**A finding is still triaged once.** D7-s1-05 is kept in
+`R11-SEAM-kernel-step`, which builds two of its arms. The other six arms are
+listed on the group that builds each (`groups.json`, key `arms`; the roster
+entry's note) and are not a second triage row. The finding closes when its
+last arm has merged, and the clone census (`D7/s1/m7_sites.py`) is the class
+sweep at each of the six merges. `prototypes.py --only
+kstep,avail,owners,fdjac,notice,reader` reads each group's arms alone at the
+fork: two, two, two, one, one and one copies.
+
+**Cut by kind of edit: `R11-SEAM-dead-state`.** D7-s3-05's fifty pieces of
+unread state and D7-s1-03's fourteen unused import bindings sit in modules of
+six seams. They are one group all the same, and that is a deviation from
+step 4, stated here and in `PLAN.md`'s open point 7. The reason: every edit
+deletes a name in the module that holds it; none creates, moves or consults
+an owner, so no seam's design is touched and no seam's group is the better
+judge of it. Cut by seam it would be six groups of a few deletions each, and
+`R11-SEAM-ratchets`, which records the import row at the value they leave,
+would wait on all six. The group's proof per deletion is that no production
+code and no stored document reads the name.
+
+**D1-s3-02 moved inside its seam.** The ECL110 parser it fixes is an input
+guard that lives in `coordinator.py`. It was the only finding that put
+`R11-SEAM-inputs-guards`, with the round's critical price-scale finding
+(D2-s3-02), in the `coordinator.py` order. It is now carried by
+`R11-SEAM-inputs-freshness`, the same seam's group that already edits that
+file.
+
 | group | seam | size | severity | findings | after | files |
 |---|---|---|---|---|---|---|
-| `R11-SEAM-kernel` | shared kernel | L | medium | 5 + 0 merged | none | 34 |
+| `R11-SEAM-kernel-step` | shared kernel | M | low | 3 + 0 merged | none | 12 |
+| `R11-SEAM-kernel-layering` | shared kernel | S | low | 1 + 0 merged | none | 10 |
+| `R11-SEAM-dead-state` | none: see "Cut by kind of edit" | M | low | 1 + 0 merged | none | 17 |
 | `R11-SEAM-plant-model` | plant model | L | critical | 11 + 0 merged | none | 13 |
-| `R11-SEAM-inputs-guards` | input boundary | M | critical | 7 + 0 merged | none | 9 |
-| `R11-SEAM-inputs-freshness` | input boundary | M | high | 6 + 0 merged | `kernel` | 8 |
+| `R11-SEAM-inputs-guards` | input boundary | M | critical | 6 + 0 merged | none | 8 |
+| `R11-SEAM-inputs-freshness` | input boundary | M | high | 7 + 0 merged + 2 carried arms | `kernel-step` | 8 |
 | `R11-SEAM-store` | persisted store | M | medium | 5 + 0 merged | none | 9 |
-| `R11-SEAM-money` | money | L | high | 9 + 0 merged | none | 9 |
+| `R11-SEAM-money` | money | L | high | 9 + 0 merged + 2 carried arms | none | 9 |
 | `R11-SEAM-solver` | solver | M | medium | 4 + 0 merged | none | 2 |
-| `R11-SEAM-learners` | learners | L | medium | 8 + 0 merged | `plant-model` | 8 |
-| `R11-SEAM-actuation-release` | actuation | L | high | 6 + 0 merged | none | 4 |
-| `R11-SEAM-actuation-writes` | actuation | L | medium | 9 + 0 merged | `kernel`, `actuation-release` | 10 |
+| `R11-SEAM-learners` | learners | L | medium | 8 + 0 merged + 1 carried arm | `plant-model` | 8 |
+| `R11-SEAM-actuation-release` | actuation | L | high | 6 + 0 merged + 1 carried arm | none | 4 |
+| `R11-SEAM-actuation-writes` | actuation | L | medium | 9 + 0 merged | `kernel-step`, `actuation-release` | 10 |
 | `R11-SEAM-cycle-solve` | cycle | L | medium | 8 + 0 merged | none | 10 |
 | `R11-SEAM-cycle-reporting` | cycle | M | medium | 7 + 0 merged | none | 17 |
 | `R11-SEAM-config` | config surface | L | high | 6 + 1 merged | none | 6 |
-| `R11-SEAM-entity-service` | entity and service surface | M | medium | 8 + 0 merged | none | 9 |
+| `R11-SEAM-entity-service` | entity and service surface | M | medium | 8 + 0 merged + 1 carried arm | none | 11 |
 | `R11-SEAM-card` | card | L | medium | 9 + 0 merged | none | 1 |
-| `R11-SEAM-product-text` | product text | M | high | 7 + 1 merged | `plant-model`, `money`, `actuation-release`, `actuation-writes`, `config`, `entity-service` | 10 |
+| `R11-SEAM-product-text` | product text | M | high | 7 + 1 merged | `plant-model`, `money`, `actuation-release`, `actuation-writes`, `config`, `entity-service`, `inputs-guards`, `inputs-freshness`, `cycle-solve`, `cycle-reporting` | 10 |
 | `R11-SEAM-tests` | test suite | L | low | 4 + 0 merged | none | 7 |
-| `R11-SEAM-ratchets` | test suite | M | low | 3 + 0 merged | `kernel` | 4 |
-| `R11-SEAM-ratchet-raise` | test suite | S | low | 2 + 0 merged | `kernel` | 2 |
-| `R11-SEAM-docs` | reader docs | L | medium | 12 + 1 merged | `plant-model`, `money`, `learners`, `actuation-release`, `actuation-writes`, `config`, `entity-service`, `card`, `product-text` | 6 |
-| `R11-SEAM-governance-text` | governance text | M | low | 10 + 3 merged | none | 15 |
+| `R11-SEAM-ratchets` | test suite | M | low | 3 + 0 merged | `dead-state` | 4 |
+| `R11-SEAM-ratchet-raise` | test suite | S | low | 2 + 0 merged | none | 2 |
+| `R11-SEAM-docs` | reader docs | L | medium | 12 + 1 merged | `plant-model`, `money`, `learners`, `actuation-release`, `actuation-writes`, `config`, `entity-service`, `inputs-guards`, `inputs-freshness`, `cycle-solve`, `cycle-reporting`, `card`, `product-text` | 9 |
+| `R11-SEAM-governance-text` | governance text | M | low | 10 + 3 merged | none | 28 |
 | `R11-SEAM-comments-production` | production comments | XL | low | 2 + 1 merged | none | 2 |
 | `R11-SEAM-comments-tests` | test comments | XL | low | 4 + 6 merged | none | 3 |
 
 ### Architect notes
 
-- **`R11-SEAM-kernel`** — One owner per small rule: plan_step owns "the step covering now" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); four of the six modules D7-s1-06 marks as needing a design are planned by ADR-002 part 2 (the reader's clock), which leaves setpoint_check and snapshots. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2. Findings: D7-s3-03, D7-s3-04, D7-s1-05, D7-s1-06, D7-s3-05.
+- **`R11-SEAM-kernel-step`** — The kernel's owners and their readers: plan_step owns "the step covering now" with its half-open end rule, read by the coordinator, the arbiter and both planned-room copies; water heat capacity, a naive instant's zone and the finite test get one definition each in const.py and drift.py; the two evidence-note methods share drift.py's owner. D7-s1-05 is kept here with its note and step arms; each other arm is carried by the group of the seam that owns the rule (entity-service, money, learners, actuation-release, inputs-freshness), and the finding closes when the last arm has merged. 3 findings (0 merged in), size M; class tags N-duplicated-rule, N-no-expiry, P2. Findings: D7-s3-03, D7-s3-04, D7-s1-05; arms carried: note, step of D7-s1-05.
+- **`R11-SEAM-kernel-layering`** — What the pure layer offers its importers: utc_elapsed_seconds is imported from drift.py, its owner, HISTORY_LENGTH moves to const.py, and currency.py imports HomeAssistant for its annotation only, so the pure modules that reached Home Assistant through accuracy.py and currency.py stop doing so. The reader's clock, the design ADR-002 part 2 gives four of the six modules D7-s1-06 left open, is carried by R11-SEAM-inputs-freshness in inputs.py; setpoint_check and snapshots stay. 1 finding (0 merged in), size S; class tags N-leaf-imports-solver. Findings: D7-s1-06.
+- **`R11-SEAM-dead-state`** — State production stores and nothing reads (D7-s3-05): constants named only by tests, parameters a function never loads, locals, attributes and fields only tests read, each deleted in the module that holds it and at its callers, and the fourteen import bindings D7-s1-03 lists. No owner is created or moved and no behaviour changes, so this one group is cut by kind of edit and not by seam; COMPONENTS.md states the deviation. 1 finding (0 merged in), size M; class tags N-structure-blind. Findings: D7-s3-05.
 - **`R11-SEAM-plant-model`** — Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers "two zones", "modulating" and "has hot water" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Findings: D2-s1-01, D2-s1-02, D2-s2-02, D2-s1-51, D12-s2-01, D12-s3-01, D12-s1-01, D17-s1-03, D17-s3-02, D17-s2-03, D8-s1-01.
-- **`R11-SEAM-inputs-guards`** — Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timestamp parsers, numeric options. The P1 sweep enumerator is the fitness function. 7 findings (0 merged in), size M; class tags N-missing-unit-scale, P1, P8. Findings: D2-s3-02, D7-s3-01, D1-s3-01, D1-s3-02, D1-s3-03, D1-s2-05, D1-s2-51.
-- **`R11-SEAM-inputs-freshness`** — Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and the measured outdoor value joining the forecast series. The end rule is the kernel's step owner, hence the edge. 6 findings (0 merged in), size M; class tags N-dead-input, N-no-expiry, N-staleness, P2. Findings: D1-s2-03, D1-s2-02, D14-s2-02, D14-s2-01, D17-s2-02, D1-s2-52.
+- **`R11-SEAM-inputs-guards`** — Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timestamp parsers, numeric options. The P1 sweep enumerator is the fitness function. 6 findings (0 merged in), size M; class tags N-missing-unit-scale, P1, P8. Findings: D2-s3-02, D7-s3-01, D1-s3-01, D1-s3-03, D1-s2-05, D1-s2-51.
+- **`R11-SEAM-inputs-freshness`** — Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and the measured outdoor value joining the forecast series. The end rule is the kernel's step owner, hence the edge from R11-SEAM-kernel-step. 7 findings (0 merged in), size M; class tags N-dead-input, N-no-expiry, N-staleness, P1, P2. Findings: D1-s2-03, D1-s2-02, D14-s2-02, D14-s2-01, D17-s2-02, D1-s2-52, D1-s3-02; arms carried: reader of D7-s1-05; clock (ADR-002 part 2) of D7-s1-06.
 - **`R11-SEAM-store`** — store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. 5 findings (0 merged in), size M; class tags N-silent-zero, P1, P2. Findings: D1-s2-01, D15-s1-04, D15-s1-05, D1-s2-06, D17-s3-03.
-- **`R11-SEAM-money`** — Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Findings: D2-s3-03, D2-s3-04, D2-s3-05, D2-s3-06, D2-s3-07, D8-s1-02, D14-s1-03, D17-s1-05, D5-s3-01.
+- **`R11-SEAM-money`** — Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Findings: D2-s3-03, D2-s3-04, D2-s3-05, D2-s3-06, D2-s3-07, D8-s1-02, D14-s1-03, D17-s1-05, D5-s3-01; arms carried: day, entry of D7-s1-05.
 - **`R11-SEAM-solver`** — Start set brackets the all-off and wood-covered optima; the risk premium stays in the objective and out of every published money figure; the slot label tie is ordered. Fitness: D0 race harnesses, mutation kill rate on optimizer.py, shape_copies. 4 findings (0 merged in), size M; class tags N-objective-as-money, N-unordered-tiebreak, P4. Findings: D0-s2-01, D0-s3-02, D2-s3-01, D1-s1-51.
-- **`R11-SEAM-learners`** — One freeze predicate owns which interval a learner may ingest (away, unplanned charge, load-limited probe, charge-start dip); the sysid adoption interval covers quantised readings. After the plant model: its law fixes move the residual every learner fits. 8 findings (0 merged in), size L; class tags I5, N-confounded-learner, N-event-misattribution, P5. Findings: D12-s3-03, D2-s3-08, D2-s3-09, D2-s3-10, D2-s3-11, D7-s2-01, D7-s2-02, D5-s4-02.
-- **`R11-SEAM-actuation-release`** — One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. Findings: D16-s1-04, D16-s3-01, D16-s3-02, D16-s3-03, D16-s3-04, D1-s2-04.
+- **`R11-SEAM-learners`** — One freeze predicate owns which interval a learner may ingest (away, unplanned charge, load-limited probe, charge-start dip); the sysid adoption interval covers quantised readings. After the plant model: its law fixes move the residual every learner fits. 8 findings (0 merged in), size L; class tags I5, N-confounded-learner, N-event-misattribution, P5. Findings: D12-s3-03, D2-s3-08, D2-s3-09, D2-s3-10, D2-s3-11, D7-s2-01, D7-s2-02, D5-s4-02; arms carried: fdjac of D7-s1-05.
+- **`R11-SEAM-actuation-release`** — One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. Findings: D16-s1-04, D16-s3-01, D16-s3-02, D16-s3-03, D16-s3-04, D1-s2-04; arms carried: notice of D7-s1-05.
 - **`R11-SEAM-actuation-writes`** — What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3. Findings: D16-s1-01, D16-s1-02, D16-s1-03, D16-s1-05, D16-s2-01, D16-s2-02, D16-s2-03, D16-s2-04, D12-s3-02.
 - **`R11-SEAM-cycle-solve`** — The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Findings: D1-s1-01, D1-s1-03, D1-s3-04, D9-s1-01, D9-s1-02, D9-s1-03, D9-s1-04, D17-s3-01.
 - **`R11-SEAM-cycle-reporting`** — How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Findings: D1-s3-05, D1-s3-06, D1-s3-07, D10-s1-01, D7-s2-03, D10-s3-02, D10-s3-01.
 - **`R11-SEAM-config`** — One place for a setting: options-flow settings leave entry.data by a versioned migration, so reconfigure, the options save and the reader agree; the weekend value survives a weekday change; the pre-fill pages render their placeholders and store only settings. 6 findings (1 merged in), size L; class tags I4, N-dead-input, N-entry-data-placement, P2. Findings: D17-s1-02, D10-s2-01, D10-s1-03, D17-s2-05, D4-s2-01, D17-s2-04; merged: D6-s3-01 into D4-s2-01.
-- **`R11-SEAM-entity-service`** — Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2. Findings: D10-s1-02, D10-s2-04, D8-s1-03, D8-s2-02, D8-s3-01, D15-s3-01, D14-s1-01, D17-s3-51.
+- **`R11-SEAM-entity-service`** — Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2. Findings: D10-s1-02, D10-s2-04, D8-s1-03, D8-s2-02, D8-s3-01, D15-s3-01, D14-s1-01, D17-s3-51; arms carried: avail of D7-s1-05.
 - **`R11-SEAM-card`** — Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9. Findings: D4-s1-01, D4-s1-03, D4-s3-01, D4-s3-02, D4-s3-03, D4-s3-04, D4-s3-05, D6-s4-01, D9-s2-01.
 - **`R11-SEAM-product-text`** — User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. Verified against the text ledger. 7 findings (1 merged in), size M; class tags I4, I5, N-copy-style. Findings: D6-s2-01, D6-s6-01, D6-s4-02, D4-s3-06, D4-s3-07, D10-s2-03, D4-s2-51; merged: D4-s2-02 into D10-s2-03.
 - **`R11-SEAM-tests`** — What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5. Findings: D10-s1-05, D10-s1-06, D9-s3-01, D9-s3-02.
-- **`R11-SEAM-ratchets`** — Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value, after the kernel, whose removals set those values. 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind. Findings: D7-s1-02, D7-s1-03, D14-s2-03.
+- **`R11-SEAM-ratchets`** — Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value, after R11-SEAM-dead-state, whose deletions set the import row's value. 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind. Findings: D7-s1-02, D7-s1-03, D14-s2-03.
 - **`R11-SEAM-ratchet-raise`** — The two rows whose value the owner sets: const fan-out read through a module binding (the corrected row reads 4 against a budget of 3) and module lines outside the class, whose limit the owner chooses. Cut from the other ratchet rows so the owner's confirmation holds only these two findings. 2 findings (0 merged in), size S; class tags N-structure-blind. Findings: D7-s1-01, D7-s1-04.
 - **`R11-SEAM-docs`** — Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc. Findings: D5-s2-01, D5-s2-02, D5-s2-03, D5-s2-08, D5-s2-09, D5-s2-10, D5-s2-11, D6-s1-02, D6-s7-01, D5-s2-04, D5-s2-05, D5-s2-06; merged: D6-s1-01 into D5-s2-08.
 - **`R11-SEAM-governance-text`** — Policy and programme prose with a false or unresolvable sentence. Policy files merge serially on the owner's approving review; no instrument code changes here. 10 findings (3 merged in), size M; class tags I4, I5, N-move-stale-path. Findings: D6-s5-02, D6-s5-03, D6-s5-01, D6-s5-05, D6-s5-06, D6-s5-07, D6-s5-08, D6-s7-02, D11-s2-04, D15-s1-02; merged: D6-s2-02 into D6-s5-02, D6-s2-03 into D6-s5-02, D6-s5-04 into D6-s5-02.
@@ -242,14 +295,15 @@ A group's files are every file its findings' `files` fields name
 (`../JUDGE-INPUT.json`) and those its ADR adds; `groups.json` carries the
 lists and `projection.py` refuses a file a finding names that its group
 neither lists nor excludes. The first draft listed five files per group by
-hand and missed 113 of them, `coordinator.py` in five groups: `inputs-guards`,
-`store` and `entity-service` edit it and now list it; `tests` and `docs` name
-it without editing it. A file a finding names and its group does not edit is
+hand and missed 113 of them, `coordinator.py` in five groups: `store` and
+`entity-service` edit it and list it; `inputs-guards` listed it for D1-s3-02
+alone, which `inputs-freshness` now carries; `tests` and `docs` name it
+without editing it. A file a finding names and its group does not edit is
 excluded with the reason:
 
 | group | file | named, not edited, because |
 |---|---|---|
-| `ratchets` | `coordinator.py` `config_flow.py` `thermal_model.py` `optimizer.py` `pump_arbiter.py` `modbus_prefill.py` | D7-s1-03's bindings are deleted by R11-SEAM-kernel (dead-state part); this group adds the row |
+| `ratchets` | `coordinator.py` `config_flow.py` `thermal_model.py` `optimizer.py` `pump_arbiter.py` `modbus_prefill.py` | D7-s1-03's bindings are deleted by R11-SEAM-dead-state; this group adds the row |
 | `ratchets` | `tools/audit/archscore/counters.py` | the scorer; ADR-009 part 3, round-end proposal triage |
 | `ratchets` | `tools/audit/archscore/planted/redteam` | the scorer's planted cases; ADR-009 part 3, round-end proposal triage |
 | `ratchet-raise` | `entry_config.py` | the module D7-s1-01 measures; the row is re-recorded, the module is not edited (ADR-009 part 2) |
@@ -261,29 +315,42 @@ excluded with the reason:
 | `docs` | `pump_arbiter.py` | D6-s1-01's echo sentence: the text is aligned to the merged code; a changed window is the owner's decision (open point 5) |
 | `governance-text` | `replay_doc.py` | D15-s1-02 names the module the gate reads; its own scope says no production change |
 | `governance-text` | `tools/replay/debug_ingest.py` | D15-s1-02 names the gate D15.md should cite; an instrument, not edited (freeze) |
+| `kernel-step` | `binary_sensor.py` `climate.py` | D7-s1-05's avail arm is carried by R11-SEAM-entity-service, the group of the seam that owns the rule (ADR-001 part 1) |
+| `kernel-step` | `price_model.py` | D7-s1-05's day arm is carried by R11-SEAM-money, the group of the seam that owns the rule (ADR-001 part 1) |
+| `kernel-step` | `ledger.py` | D7-s1-05's entry arm is carried by R11-SEAM-money, the group of the seam that owns the rule (ADR-001 part 1) |
+| `kernel-step` | `inputs.py` | D7-s1-05's reader arm is carried by R11-SEAM-inputs-freshness, the group of the seam that owns the rule (ADR-001 part 1) |
+| `kernel-step` | `sysid.py` | D7-s1-05's fdjac arm is carried by R11-SEAM-learners, the group of the seam that owns the rule (ADR-001 part 1) |
+| `kernel-step` | `legionella.py` | D7-s1-05's notice arm is carried by R11-SEAM-actuation-release, the group of the seam that owns the rule (ADR-001 part 1) |
 
 ### Prerequisite edges
 
-- kernel before `inputs-freshness` and `actuation-writes`: both read the step
-  covering now from the owner D7-s3-03 creates.
-- kernel before `ratchets` and `ratchet-raise`: a row is recorded at the value
-  the kernel's removals leave (ADR-009 part 1). This is the roster's weakest
-  edge; the kernel's dead-state part alone satisfies it.
+- `kernel-step` before `inputs-freshness` and `actuation-writes`: both read the
+  step covering now from the owner D7-s3-03 creates.
+- `dead-state` before `ratchets`: the import row is recorded at the value the
+  deletions leave (ADR-009 part 1). This is the roster's weakest edge.
 - `plant-model` before `learners`: the Carnot, delivery and derate fixes change
   the residual each learner fits, so a learner harness run before them measures
   the wrong plant.
 - `actuation-release` before `actuation-writes`: D16-s2-03 and D16-s1-05 depend
   on what the held record means after a release.
-- behaviour groups before `product-text`, and those plus `card` and
+- every behaviour group that edits a text file or changes a number a string
+  states before `product-text`, and those plus `learners`, `card` and
   `product-text` before `docs`: text is verified against merged behaviour.
+  The ten are `plant-model`, `money`, `actuation-release`, `actuation-writes`,
+  `config`, `entity-service`, `inputs-guards`, `inputs-freshness`,
+  `cycle-solve` and `cycle-reporting`; revision 1 left the last four out.
 
-Not edges: `tests` waits on nothing, and neither comment group carries an
-edge. A comment rewrite depends on no behaviour; its order against the groups
-that edit the same file is a hot-file order (`PLAN.md`), released per file
-(ADR-010 part 2).
+Not edges: `tests` and `ratchet-raise` wait on nothing, `kernel-layering`
+has no edge in or out, and neither comment group carries an edge. A comment
+rewrite depends on no behaviour; its order against the groups that edit the
+same file is a hot-file order (`PLAN.md`), released per file (ADR-010 part 2).
+`ratchet-raise` lost revision 1's edge from the kernel: its two rows move
+with every group that edits `coordinator.py` or `const.py`, so the edge was an
+ordering preference (ADR-009 part 2).
 
-Longest chains by edges, depth 4: `kernel` or `actuation-release`, then
-`actuation-writes`, `product-text`, `docs`; and `plant-model`, `learners`,
+Longest chains by edges, depth 4: `actuation-release` or `kernel-step`, then
+`actuation-writes`, `product-text`, `docs`; `kernel-step`,
+`inputs-freshness`, `product-text`, `docs`; and `plant-model`, `learners`,
 `R11-ARCH-fabric-learner` at depth 3 (`PLAN.md` adds that edge).
 
 ### Open at P3's start, not findings

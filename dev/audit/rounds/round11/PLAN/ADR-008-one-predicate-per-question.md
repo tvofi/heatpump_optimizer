@@ -50,9 +50,12 @@ Generalization, first scenario (S16, T16); physical sanity, third scenario
 
 ## Move and fitness functions
 
-`private_cross_module` down three crossings: one in `R11-SEAM-plant-model`,
-two in `R11-SEAM-cycle-reporting`. Prediction from `layering.py`'s crossing
-list at the fork, no prototype.
+**No dS is predicted.** `private_cross_module` would read three crossings
+lower, one in `R11-SEAM-plant-model` and two in `R11-SEAM-cycle-reporting`
+(`layering.py`'s crossing list at the fork). Both groups name the metric at
+0.0 in `PLAN.json`, and the terms are not in the projected dS: a count that
+falls on a rename is not a prediction a plan may rest on (`plan-review.md`
+step 3).
 
 **Banked only with the new reader.** The count falls because
 `_dhw_enabled_from_config` and `_parse_return_time` lose their underscore; the
@@ -61,8 +64,9 @@ the reader each finding adds: the sensor gap advisor calling the hot-water
 predicate (D8-s1-01), and `services.py` parsing the return time before the
 write (D10-s1-01). The reviewer finds that call in the PR's diff and its
 failing test in the PR's suite. Without it the fall is `metric-gamed`
-(`fix-review.md` step 14) and is not banked. The target does not need either
-term: every case in `PLAN.md` is stated without them.
+(`fix-review.md` step 14) and is not banked. The predicates are built
+whatever the count reads: the decision above is the design, and the findings
+it serves are behaviour findings.
 
 Acceptance: C18 (a private read through a module binding still counts); the
 d12-cells enumerator reads no single-zone cell with two floors;

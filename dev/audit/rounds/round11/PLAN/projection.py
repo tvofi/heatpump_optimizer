@@ -19,6 +19,9 @@ Three things, all re-derived on every run and none stored:
 Run (from the repository root; a few seconds):
     python3 dev/audit/rounds/round11/PLAN/projection.py            the summary lines
     python3 dev/audit/rounds/round11/PLAN/projection.py --order    and the hot-file order as a table
+    python3 dev/audit/rounds/round11/PLAN/projection.py --rev1     also revision 1's roster (6a73d86e43) with the
+                                                                   four text edges of ADR-010 part 1 added and
+                                                                   nothing else changed: what the edges cost alone
 Writes only under a tempfile root.
 """
 from __future__ import annotations
@@ -86,6 +89,21 @@ def replan(roster: dict, cap: int, tmp: Path, tag: str) -> dict:
     return json.loads(out.read_text())
 
 
+REV1 = "6a73d86e43e908984071fa1de1e4be9e1d8a0246"
+TEXT_EDGES = ("R11-SEAM-inputs-guards", "R11-SEAM-inputs-freshness", "R11-SEAM-cycle-solve", "R11-SEAM-cycle-reporting")
+
+
+def rev1_with_text_edges() -> dict:
+    """Revision 1's published roster with ADR-010's four missing edges into both text groups, nothing else."""
+    show = subprocess.run(["git", "-C", str(REPO), "show", f"{REV1}:{ROSTER.relative_to(REPO)}"],
+                          capture_output=True, text=True, check=True)
+    roster = json.loads(show.stdout)
+    for g in roster["groups"]:
+        if g["group"] in ("R11-SEAM-product-text", "R11-SEAM-docs"):
+            g["after"] = g["after"] + list(TEXT_EDGES)
+    return roster
+
+
 def short(name: str) -> str:
     return name[len("R11-SEAM-"):] if name.startswith("R11-SEAM-") else name
 
@@ -97,7 +115,11 @@ def main(argv: list[str]) -> int:
     position = {g["group"]: i for i, g in enumerate(groups)}
     with tempfile.TemporaryDirectory(prefix="r11-projection-") as tmp:
         plans = {}
-        for tag, r in (("PUBLISHED", roster), ("ORDERED", ordered(roster))):
+        rosters = [("PUBLISHED", roster), ("ORDERED", ordered(roster))]
+        if "--rev1" in argv:
+            rev1 = rev1_with_text_edges()
+            rosters += [("REV1+TEXT-EDGES", rev1), ("REV1+TEXT-EDGES ORDERED", ordered(rev1))]
+        for tag, r in rosters:
             for cap in (3, 2):
                 p = plans[tag, cap] = replan(r, cap, Path(tmp), f"{tag}{cap}")
                 at_once = sum(1 for g in p["groups"].values() if g["start"] == p["generated"]["start"])

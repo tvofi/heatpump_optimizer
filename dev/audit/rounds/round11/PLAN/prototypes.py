@@ -15,7 +15,8 @@ fixer's failing test, mutation proof and the finder's harness are still owed (fi
   circ    the circulation pumps' write and its record move to one owner object; the coordinator's
           dict and its in-place store go (D16-s3-02's owner)                               ADR-004
   reach   boost reads the mode it was already told; diagnostics reads it from the #1739 view ADR-005
-  tasks   async_shutdown stops clearing the task set its done-callbacks already empty      ADR-005
+  tasks   async_shutdown stops clearing the task set its done-callbacks already empty: the control for
+          ADR-005's withdrawn part 3 (one counted statement goes, the set's other writers stay)  ADR-005
   clock   InputReader takes UTC from the standard library, not a function-scope Home Assistant import
                                                                                            ADR-002
   topk    tariff._smooth_topk_sum is one row of _smooth_topk_sum_batch                     ADR-006
@@ -26,20 +27,23 @@ fixer's failing test, mutation proof and the finder's harness are still owed (fi
   ceiling the thirteen fabric methods deleted outright: the bound on ADR-007's fall, not a design
   imports the fourteen import bindings D7-s1-03 lists, deleted (the kernel's dead-state part)  ADR-009
   kernel  D7 s1's eight clone arms (nine copies) and two layer arms, from that seat's own edit list
-          (dev/audit/rounds/round11/D7/s1/m7_prototypes.py, GOOD + MORE)                   ADR-001, ADR-002
+          (dev/audit/rounds/round11/D7/s1/m7_prototypes.py, GOOD + MORE), in one tree      ADR-001, ADR-002
+  kstep klayer avail owners fdjac notice reader
+          the same ten arms by the seam whose group carries each (SEAM_ARMS): the kernel's two clone
+          owners, its two layer arms, entity.py's, money's two, sysid.py's, legionella.py's, inputs.py's
 
 Run (from the repository root; about 30 s per arm):
     python3 dev/audit/rounds/round11/PLAN/prototypes.py                    the seven alone, then combined
     python3 dev/audit/rounds/round11/PLAN/prototypes.py --only hub,circ    those arms alone
     python3 dev/audit/rounds/round11/PLAN/prototypes.py --only hub,circ --combined
-    python3 dev/audit/rounds/round11/PLAN/prototypes.py --case full,floor  the named cases, each one tree
+    python3 dev/audit/rounds/round11/PLAN/prototypes.py --case planned,floor  the named cases, each one tree
 
 Read at the fork 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 on 2026-11-18 (darwin arm64):
     hub    dS +5.4429 IMPROVES  hub_solve_writes 1 -> 0
     sysid  dS +2.2590 IMPROVES  shared_inplace_writes 3 -> 2
     circ   dS +2.2625 IMPROVES  shared_inplace_writes 3 -> 2, coord_footprint 2496 -> 2490
     reach  dS +1.5850 IMPROVES  coordinator_private_reach 2 -> 0
-    tasks  dS +2.2590 IMPROVES  shared_inplace_writes 3 -> 2
+    tasks  dS +2.2590 IMPROVES  shared_inplace_writes 3 -> 2   (a control since revision 2: not planned)
     clock  dS +0.3479 IMPROVES  layer_violations 13 -> 10
     topk   dS +0.6964 IMPROVES  duplication_copies 18 -> 17
     all seven combined  dS +18.9616 IMPROVES, admissible (shared_inplace_writes 3 -> 0)
@@ -47,15 +51,26 @@ Read at the fork 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 on 2026-11-18 (darwin 
     ceiling coord_footprint 2496 -> 2359 (137 statements; the tree is broken, only the footprint is read)
     imports dS +0.0000 NULL
     kernel dS +9.2671 IMPROVES  duplication_copies 18 -> 9, layer_violations 13 -> 6
-  cases (--case), each one tree:
-    full             dS +29.7802  every prototyped move (duplication_copies 18 -> 8, shared_inplace_writes
-                     3 -> 0, hub_solve_writes 1 -> 0, layer_violations 13 -> 2, coordinator_private_reach
-                     2 -> 0, coord_footprint 2496 -> 2462); shape_copies 40 -> 35, no tripwire rising
-    no-tasks         dS +24.3372  ADR-005 part 3 dropped (shared_inplace_writes 3 -> 1)
-    no-topk          dS +28.4231  ADR-006 part 2 dropped (duplication_copies 18 -> 9)
-    floor            dS +22.9801  both conditional parts dropped
-    floor-no-fabric  dS +22.9638  and ADR-007 unrealised (coord_footprint 2496 -> 2490 at the fork, which
-                     main's six statements and any fix's rise then put above 2496: inadmissible)
+  the per-seam arms, each alone (revision 2):
+    kstep  dS +1.4326 IMPROVES  duplication_copies 18 -> 16
+    klayer dS +1.0000 IMPROVES  layer_violations 13 -> 6
+    avail  dS +1.4326 IMPROVES  duplication_copies 18 -> 16
+    owners dS +1.4326 IMPROVES  duplication_copies 18 -> 16
+    fdjac  dS +0.6964 IMPROVES  duplication_copies 18 -> 17
+    notice dS +0.6964 IMPROVES  duplication_copies 18 -> 17
+    reader dS +0.6964 IMPROVES  duplication_copies 18 -> 17
+    klayer+reader+clock combined  dS +2.9188  duplication_copies 18 -> 17, layer_violations 13 -> 2
+  cases (--case), each one tree (revision 2; the task-set arm is no longer planned, ADR-005 part 3):
+    planned          dS +24.3372  every planned move (duplication_copies 18 -> 8, shared_inplace_writes
+                     3 -> 1, hub_solve_writes 1 -> 0, layer_violations 13 -> 2, coordinator_private_reach
+                     2 -> 0, coord_footprint 2496 -> 2462); shape_copies 40 -> 35, no tripwire rising.
+                     Revision 1 called this tree no-tasks; that name still runs it.
+    floor            dS +22.9801  ADR-006 part 2 dropped (duplication_copies 18 -> 9)
+    one-copy-short   dS +21.7525  the floor with one clone arm (notice) unrealised (18 -> 10): short of +22.7
+    floor-no-fabric  dS +22.9638  the floor with ADR-007 unrealised (coord_footprint 2496 -> 2490 at the
+                     fork, which main's nine statements and any fix's rise then put above 2496: inadmissible)
+    with-tasks       dS +29.7802  the control: planned plus the withdrawn task-set arm (shared_inplace_writes
+                     3 -> 0). Revision 1 called this tree full; that name still runs it. Not a planned reading.
 Writes only under a tempfile root.
 """
 from __future__ import annotations
@@ -275,27 +290,50 @@ def imports(r: Path) -> None:
         "InputReader, SetpointGrid, read_setpoint,")
 
 
-def kernel(r: Path) -> None:
-    """D7 s1's eight clone arms (nine copies) and its two layer arms, from that seat's own edit list."""
+def _m7(r: Path, names: tuple[str, ...]) -> None:
+    """Arms of D7 s1's own edit list (dev/audit/rounds/round11/D7/s1/m7_prototypes.py), by name."""
     import importlib.util
     spec = importlib.util.spec_from_file_location("m7_prototypes", REPO / "dev/audit/rounds/round11/D7/s1/m7_prototypes.py")
     m7 = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m7)
-    m7.apply(r / PKG, list(m7.GOOD + m7.MORE))
+    m7.apply(r / PKG, list(names))
 
 
-ARMS = {"fabric": fabric, "ceiling": ceiling, "imports": imports, "kernel": kernel, "hub": hub, "sysid": sysid, "circ": circ, "reach": reach, "tasks": tasks, "clock": clock, "topk": topk}
+#: D7-s1-05's eight clone arms and D7-s1-06's two layer arms, by the seam whose group carries each.
+SEAM_ARMS = {
+    "kstep": ("note", "step"),      # R11-SEAM-kernel-step: drift.py and plan_step.py are the owners
+    "klayer": ("layer", "curr"),    # R11-SEAM-kernel-layering: drift.py, const.py and currency.py
+    "avail": ("avail",),            # R11-SEAM-entity-service: entity.py
+    "owners": ("day", "entry"),     # R11-SEAM-money: price_model.py and ledger.py
+    "fdjac": ("fdjac",),            # R11-SEAM-learners: sysid.py
+    "notice": ("notice",),          # R11-SEAM-actuation-release: legionella.py
+    "reader": ("reader",),          # R11-SEAM-inputs-freshness: inputs.py (with the clock arm)
+}
+
+
+def kernel(r: Path) -> None:
+    """All ten of D7 s1's arms in one tree, as revision 1 planned them in one group. Kept so the
+    per-seam arms below can be read against it: the seven SEAM_ARMS together are this arm."""
+    for names in SEAM_ARMS.values():
+        _m7(r, names)
+
+
+ARMS = {**{k: (lambda r, v=v: _m7(r, v)) for k, v in SEAM_ARMS.items()},
+        "fabric": fabric, "ceiling": ceiling, "imports": imports, "kernel": kernel, "hub": hub, "sysid": sysid, "circ": circ, "reach": reach, "tasks": tasks, "clock": clock, "topk": topk}
 
 
 SEVEN = ("hub", "sysid", "circ", "reach", "tasks", "clock", "topk")
-FLOOR = ("kernel", "hub", "sysid", "circ", "reach", "clock")
+SEAMS = tuple(SEAM_ARMS)
+PLANNED = SEAMS + ("imports", "hub", "sysid", "circ", "reach", "clock", "topk", "fabric")
 CASES = {
-    "full": ("kernel", "imports") + SEVEN + ("fabric",),          # every prototyped move
-    "no-tasks": ("kernel", "imports", "hub", "sysid", "circ", "reach", "clock", "topk", "fabric"),
-    "no-topk": ("kernel", "imports", "hub", "sysid", "circ", "reach", "tasks", "clock", "fabric"),
-    "floor": FLOOR + ("imports", "fabric"),                         # both conditional parts dropped
-    "floor-no-fabric": FLOOR,                                       # and ADR-007 unrealised
+    "planned": PLANNED,                                             # every planned move (revision 2)
+    "floor": tuple(a for a in PLANNED if a != "topk"),              # ADR-006 part 2 dropped
+    "floor-no-fabric": tuple(a for a in PLANNED if a not in ("topk", "fabric", "imports")),  # and ADR-007 unrealised
+    "with-tasks": PLANNED + ("tasks",),                             # the control: the withdrawn task-set arm
+    "one-copy-short": tuple(a for a in PLANNED if a not in ("topk", "notice")),  # the floor, one clone arm unrealised
 }
+CASES["no-tasks"] = CASES["planned"]                                # revision 1's name for the same tree
+CASES["full"] = CASES["with-tasks"]                                 # revision 1's name for the same tree
 
 
 def main(argv: list[str]) -> int:

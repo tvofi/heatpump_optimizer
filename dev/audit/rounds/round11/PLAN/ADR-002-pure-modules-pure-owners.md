@@ -1,6 +1,7 @@
 # ADR-002: a pure module takes its clock and its constants from a pure owner
 
-Group: `R11-SEAM-kernel` (D7-s1-06).
+Groups: `R11-SEAM-kernel-layering` (D7-s1-06, parts 1 and 3) and
+`R11-SEAM-inputs-freshness` (part 2, the reader's clock).
 
 ## Context
 
@@ -15,11 +16,15 @@ one in `InputReader._utcnow`.
 
 1. D7-s1-06's seven: `utc_elapsed_seconds` is imported from `drift.py`, its
    owner; `HISTORY_LENGTH` moves to `const.py`; `currency.py` imports
-   `HomeAssistant` for its annotation only.
+   `HomeAssistant` for its annotation only. The three owners are kernel
+   modules, so this is `R11-SEAM-kernel-layering`; it edits no
+   `coordinator.py` and carries no edge.
 2. The design for four of the six: `InputReader` takes its clock from its
    caller, and its fallback is the standard library's UTC now. The entry's
    reader (ADR-001's reader arm) is where the coordinator hands the clock in.
-   `inputs.py` then imports nothing above the pure layer.
+   `inputs.py` then imports nothing above the pure layer. `inputs.py` is the
+   input boundary's, so this part is carried by `R11-SEAM-inputs-freshness`,
+   with the reader arm.
 3. `setpoint_check.py` and `snapshots.py` stay. `setpoint_check.py` raises
    repair issues and reads entity state: it is glue ranked pure only because
    it imports no boundary itself. `snapshots.py` reads `store.admitted`;
@@ -49,9 +54,11 @@ no Home Assistant stub.
 
 ## Move and fitness functions
 
-`layer_violations` 13 to 2, read in one tree by `prototypes.py --case full`
-(the kernel arm with the clock arm): D7 s1's `layer` and `curr` arms read 13 to 6;
-`prototypes.py --only clock` reads 13 to 10 alone, removing `disinfection`,
+`layer_violations` 13 to 6 in `R11-SEAM-kernel-layering` (`prototypes.py
+--only klayer`: D7 s1's `layer` and `curr` arms) and 6 to 2 in
+`R11-SEAM-inputs-freshness`; `prototypes.py --only klayer,reader,clock
+--combined` reads 13 to 2 in one tree. `prototypes.py --only clock` reads 13
+to 10 alone, removing `disinfection`,
 `price_model` and `quiet_windows`; `sysid`'s two carriers are `accuracy` and
 `quiet_windows`, both cleared by the combination. Acceptance:
 `unused_boundary_imports` stays at its fork value; `import_cycle_modules`

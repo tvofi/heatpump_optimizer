@@ -1,4 +1,4 @@
-# ADR-009: a ratchet row that was blind is repaired at its measured value, after the kernel
+# ADR-009: a ratchet row that was blind is repaired at its measured value, after the deletions that set it
 
 Groups: `R11-SEAM-ratchets` (D7-s1-02, D7-s1-03, D14-s2-03) and
 `R11-SEAM-ratchet-raise` (D7-s1-01, D7-s1-04).
@@ -20,19 +20,24 @@ module-span limit is the owner's to choose. The other three need nobody:
 
 ## Decision
 
-1. New rows are recorded at the value measured after `R11-SEAM-kernel` has
-   merged. The kernel's dead-state part deletes the fourteen unused import
-   bindings D7-s1-03 lists and D7-s3-05's dead constants (ADR-001 part 4), so
-   the import row is recorded at zero and the const row at what is left.
-   `R11-SEAM-ratchets` adds the row and deletes nothing in production.
+1. New rows are recorded at the value measured after `R11-SEAM-dead-state`
+   has merged. That group deletes the fourteen unused import bindings
+   D7-s1-03 lists and D7-s3-05's dead constants (ADR-001 part 4), so the
+   import row is recorded at zero. `R11-SEAM-ratchets` adds the row and
+   deletes nothing in production. This is the one edge into the ratchet
+   groups.
 2. The two owner-gated rows are their own group, `R11-SEAM-ratchet-raise`, so
    the owner's confirmation holds two findings and not the other three. A
    repaired row whose reading rises because the measure was corrected
    (`const_modules_over_50` under D7-s1-01) is a budget raise: the owner's
    explicit confirmation is obtained before the branch is pushed
-   (`CLAUDE.md`, rule 2), and the stamp's holdout compare names it with
-   `--allow structure:const_modules_over_50`. D7-s1-04's row is recorded at
-   the limit the owner states with the same confirmation.
+   (`CLAUDE.md`, rule 2). D7-s1-04's row is recorded at the limit the owner
+   states with the same confirmation. `R11-SEAM-ratchet-raise` carries no
+   edge: D7-s1-04's row moves with every group that edits `coordinator.py`
+   and D7-s1-01's with every group that edits `const.py`, so an edge from one
+   of them is an ordering preference. Each row is recorded at the value
+   measured when the owner confirms it; a later merge that lowers it
+   re-records the row downward in its own PR, as any ratchet row is.
 3. The fix leaves unchanged every `tests/structure.py` function the score
    reads: `private_reach_sites`, `coordinator_writers`, `import_cycle_modules`,
    `dead_members` and `duplicate_clones`'s window. D7-s1-02 gets a row of its
@@ -48,9 +53,12 @@ module-span limit is the owner's to choose. The other three need nobody:
   three rows that need none.
 - The ratchet group deleting the bindings itself: it would join the order on
   six production files, `coordinator.py` among them, for fourteen one-name
-  edits the kernel's dead-state part already makes on the same lines.
-- Recording the new rows before the kernel: each kernel removal then needs a
-  re-record, and a row recorded high is headroom nobody chose.
+  edits `R11-SEAM-dead-state` already makes on the same lines.
+- Recording the import row before those deletions: it is then recorded at
+  fourteen, and a row recorded high is headroom nobody chose.
+- An edge from the deletions into `R11-SEAM-ratchet-raise` too (revision 1):
+  the two owner-set rows do not read what that group deletes any more than
+  what thirteen other groups change. Removed.
 - Paying D7-s1-01 by narrowing `entry_config.py`'s reads of `const`: the
   module reads its 118 configuration keys because it is their reader; moving
   them would hide the fan-out, not lower it.
@@ -61,13 +69,16 @@ module-span limit is the owner's to choose. The other three need nobody:
 
 - The end-to-end reading and the holdout compare run both sides on the fork's
   instrument (`plan_audit.py snapshot --instrument <fork>`), so a row repaired
-  in this round cannot move the round's own reading.
+  in this round cannot move the round's own reading. For that reason the
+  compare declares no `--allow`: revision 1 declared `--allow
+  structure:const_modules_over_50` beside this sentence, and one of the two
+  was unnecessary. The fork's `tests/structure.py` reads the row as it read
+  it at the fork on both sides.
 - From `R11-SEAM-ratchet-raise`'s merge, a fix that grows `coordinator.py`
   outside the class is priced.
-- The edge from the kernel is the weakest in the roster: it is the same pair
-  as a file order on `tests/structure_budgets.json`, and it is an edge only
-  because the recorded value depends on what the kernel removed. If the
-  kernel's dead-state part merges alone, the edge is satisfied by that part.
+- The edge from `R11-SEAM-dead-state` into `R11-SEAM-ratchets` is still the
+  weakest in the roster: it is an edge only because the recorded value of one
+  new row depends on what was deleted.
 
 ## Scenarios served
 

@@ -3,6 +3,13 @@
 Group: `R11-ARCH-fabric-learner`, a refactor group with no finding. The shape
 is not fixed here: `designer.md` is dispatched for it.
 
+**What this ADR is for.** Its driver is the round's admissibility: the
+coordinator's footprint must end at or below the fork's, main is already
+above it, and this move is the only one that pays. The seam argument below is
+why the payment is taken here and not elsewhere; it is not why the group
+exists. The number that decides whether the payment is enough, the fall `F`
+of the whole cut, is not in this ADR. It is owed with the design.
+
 ## Context
 
 `COMPONENTS.md` lists the learners seam as owning every parameter fitted from
@@ -24,11 +31,14 @@ carry them, at `coordinator.py:5461-5864` and `:9413-9453` at the fork:
 The first eight are the ones the design moves or empties. The last five are
 the coordinator's side of the contract (apply, reset) and stay.
 
-`coord_footprint` reads six statements above the fork on main already
-(`score.py --diff` over the merge of #3678 reads 2496 to 2502, explained in
-that PR). Fourteen groups of this plan name `coordinator.py`, and a fix adds
-statements. End-to-end admissibility needs the metric at or below its fork
-value at the stamp.
+`coord_footprint` reads nine statements above the fork on main already, at
+`f567988b51`: `score.py --diff` over the merge of #3678 reads 2496 to 2502
+and over #3662 reads 2502 to 2505, each explained in its PR, and
+`plan_audit.py end-to-end --fork <fork> --head origin/main` reads
+`coord_footprint` -0.0052. Both are product merges; none of this plan's
+groups has merged. Fourteen groups of this plan name `coordinator.py`, and a
+fix adds statements. End-to-end admissibility needs the metric at or below
+its fork value at the stamp.
 
 ## Decision
 
@@ -42,19 +52,25 @@ value at the stamp.
 3. Every other group touching `coordinator.py` is footprint-neutral in its
    own PR where the fix has an owning module to land in; a rise it cannot
    avoid is explained in its body and counted against this group's fall.
-4. **The budget.** The stamp reads `2496 + 6 - 6 - F + R`: main's six, the
-   six ADR-004 pays back (`prototypes.py --only circ`), this group's fall `F`
-   and the sum `R` of every other group's rises. The round is admissible on
-   this metric only while `R <= F`. `F` is measured at 28 for two of the folds
-   (below); so the budget for `R` is 28 statements until the designer's note
-   carries a larger measured `F`.
-5. The orchestrator re-reads `score.py --diff <fork> origin/main` after each
-   coordinator merge and keeps the running `R`. When `R` passes 20, or the
-   designer's measured `F` is below the `R` merged by then, the plan returns
-   to the owner with the options; the target is not declared met.
+4. **The budget.** The stamp reads `2496 + R - 6 - F`: `R` is every
+   statement any merge has added since the fork, the six are ADR-004's
+   payment (`prototypes.py --only circ`) and `F` is this group's fall. The
+   round is admissible on this metric only while `R <= 6 + F`. `F` is
+   measured at 28 for two of the folds (below), so the budget for `R` is 34
+   statements until the designer's note carries a larger measured `F`. `R`
+   stands at 9 before this plan's first merge.
+5. The orchestrator re-reads `plan_audit.py end-to-end --fork <fork> --head
+   origin/main` after each coordinator merge and keeps the running `R`. When
+   `R` passes 26, or the designer's measured `F` leaves `6 + F` below the `R`
+   merged by then, the plan returns to the owner with the options; the target
+   is not declared met.
 6. The group is not last on `coordinator.py`. Its position is the
    projection's (`PLAN.md`, "Hot-file order"); the budget is read end to end,
    so a rise merged after it counts the same as one merged before.
+7. **This budget pays for one metric.** A rise in any other scored metric or
+   gate-only tripwire has no payment in this plan. `PLAN.md`'s neutral rule
+   makes such a rise a review block for a group of this roster; this group
+   itself may raise none (its fitness functions below).
 
 ## Alternatives
 
@@ -63,7 +79,12 @@ value at the stamp.
 - A mixin or a subclass: C4 measures the whole class hierarchy.
 - Packing statements: C25 reads each packed statement as its plain ones.
 - No payback group, neutrality by rule alone: one unavoidable rise makes the
-  round inadmissible with no move left to answer it.
+  round inadmissible with no move left to answer it, and main already holds
+  nine.
+- Prototyping the house fold and the re-anchor in this plan, so that `F` is
+  measured here: the house fold's gates run across two awaits and feed the
+  open-window detector between them, so an exact-text arm of it would be a
+  design decision made without design review. Left to the designer.
 
 ## Consequences
 
@@ -93,8 +114,23 @@ design moves the learner's state with it. **The designer's note carries
 `prototypes.py`-style readings of its own cut**, as an arm added to that file,
 before design review; design review reads `F` from it.
 
-Scenarios served: maintainability, second scenario (S13, T13) and physical
-sanity, third scenario (S8).
+Scenarios: maintainability, second scenario (S13, T13) is the one this move
+serves, in its own terms: growth of `coordinator.py` is priced and the class
+shrinks. Physical sanity, third scenario (S8) is a constraint on the move and
+not a driver: the freeze predicate the folds ask is ADR-008's, and the move
+must not change which intervals they ingest. No scenario in `SCENARIOS.md`
+states the round's admissibility; that is a condition of the target
+(`architect-planner.md`), and it is this ADR's driver.
+
+## What is owed
+
+- The design, by `designer.md`, with a measured `F` for its whole cut. Until
+  design review has read it, the plan can state that the round is admissible
+  only while `R <= 34`.
+- `designer.md` pipelines the designer behind the group's last predecessor,
+  `R11-SEAM-learners`. By then most coordinator groups have merged and most
+  of `R` is spent. Whether this designer may start at the first wave is
+  `PLAN.md`'s open point 4; the plan does not assume it.
 
 ## Move and fitness functions
 

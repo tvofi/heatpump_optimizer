@@ -54,7 +54,19 @@ Actuator safety, first scenario (S9, T9) and third (S11).
 ## Move and fitness functions
 
 `shared_inplace_writes` down one and `coord_footprint` down six statements
-(`prototypes.py --only circ`). Acceptance: the D16 enumerator's release cells
+(`prototypes.py --only circ`).
+
+**Banked only with the release cells.** The count falls because the same
+post-await store into the record moves out of an async coordinator method
+into the owner's own method. The metric's definition reads that as
+encapsulation, and it would read a class that only holds the dict the same
+way. What makes the move more than a relocation is decision 1: the owner is
+registered with `off_restore.py` and restores the pumps on Off, stale plan,
+unload and remove. The reviewer runs D16's release cells on the PR; an owner
+that does not restore is `metric-gamed` (`fix-review.md` step 14) and the
+fall is not banked.
+
+Acceptance: the D16 enumerator's release cells
 all restore; `coord_footprint` does not rise in this PR; the behaviour
 inventory's entities and services unchanged; mutation kill rate on
 `off_restore.py` and the new owner not below the fork's package rate.

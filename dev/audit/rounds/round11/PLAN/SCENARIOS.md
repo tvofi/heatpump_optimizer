@@ -181,13 +181,15 @@ tradeoff point (T) a fix touches. Seams and groups are those of `COMPONENTS.md`.
 
 ## Added at step 6 (the moves)
 
-Two scenarios the refactor group `R11-ARCH-cycle-surface` serves, which the
-briefs' qualities imply under D7 and D1 and step 2 did not write.
+Two scenarios of the cycle's surface, which the briefs' qualities imply under
+D7 and D1 and step 2 did not write. `R11-ARCH-cycle-surface` serves the first.
+The second is served by no move since ADR-005 withdrew its part 3: it states
+what the fork's shutdown does, and the group must leave it so.
 
 - **Scenario.** The coordinator changes how it stores its mode or another private value; no collaborator module is edited, because each received the value as an argument or read it from a published view.
   - Sensitivity S25: collaborators handed the coordinator itself (`boost.py`, `diagnostics.py`, `pump_arbiter.py`).
   - Tradeoff T25: handing values widens call signatures; past ten parameters it needs a value object.
 
-- **Scenario.** Home Assistant stops or the entry unloads with background tasks pending; each task is cancelled once and the task set is empty, with one writer of the set.
-  - Sensitivity S36: the task set written in place by the shutdown and by every task's done-callback.
-  - Tradeoff T36: dropping the shutdown's clear relies on each done-callback firing on cancel.
+- **Scenario.** Home Assistant stops or the entry unloads with background tasks pending; the shutdown waits for them, capped at 5 s, and then the task set is empty whether or not every task finished.
+  - Sensitivity S36: the task set is written in place by `_spawn`, by every task's done-callback and by the shutdown's clear. Only the clear is in an async method, and no `await` follows it.
+  - Tradeoff T36: a task that outlives the capped wait runs on untracked. Dropping the clear would keep it tracked and leave the set non-empty after shutdown; cancelling it instead could cut a store save short.

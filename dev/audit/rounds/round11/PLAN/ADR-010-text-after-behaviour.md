@@ -22,7 +22,17 @@ nothing else. That is a file order.
 
 1. `R11-SEAM-product-text` runs after the behaviour groups whose strings it
    states; `R11-SEAM-docs` after those, the card and the product text. These
-   are edges.
+   are edges, and they come from every behaviour group that edits a text
+   file or changes a number a string states: `R11-SEAM-plant-model`,
+   `R11-SEAM-money`, `R11-SEAM-actuation-release`,
+   `R11-SEAM-actuation-writes`, `R11-SEAM-config`, `R11-SEAM-entity-service`,
+   `R11-SEAM-inputs-guards` (the Fahrenheit write), `R11-SEAM-inputs-freshness`
+   (`strings.json`, `docs/configuration.md`), `R11-SEAM-cycle-solve`
+   (`strings.json`, `README.md`, `docs/configuration.md`) and
+   `R11-SEAM-cycle-reporting` (`strings.json`); `R11-SEAM-docs` also waits on
+   `R11-SEAM-learners`. Revision 1 left the last four of the ten out, and its
+   projection ran product text before a group that then edited
+   `strings.json`.
 2. The two comment groups carry **no edge**. Each first lands a
    sentence-length count as a ratchet, then pays it per file, in parts by
    seam, one PR per part. The part for a file is released when the last group
@@ -52,6 +62,12 @@ nothing else. That is a file order.
 
 ## Consequences
 
+- `strings.json`, `const.py`, `docs/configuration.md` and `README.md` end in
+  a text group in `PLAN.md`'s hot-file order. The edges are not free on their own: `projection.py
+  --rev1` reads revision 1's roster with only these four edges added at
+  209.58 h against 174.05 h (published, cap 3), because the text groups then
+  wait for `R11-SEAM-inputs-freshness`, which that roster ran late behind the
+  kernel. With the kernel cut by seam (ADR-001) the same edges read 175.63 h.
 - The critical chain by edges no longer ends in a comment group. The comment
   groups' last parts still wait for the last behaviour merge on their files;
   `projection.py` states that as the ORDERED figure beside the published one.
