@@ -2260,6 +2260,8 @@ def _domain_arm() -> None:
     unused = sorted(k for k, v in out["whole"].items() if not v)
     for line in unused:
         print(f"  WHOLE {line} declared whole, and no bad value costs more than the cell")
+    for label, cost in sorted(out["whole"].items()):
+        print(f"  COST {label} {cost} other leaves (whole)")
     print(f"RESULT domain_whole_fields={len(out['whole'])} count")
     print(f"RESULT domain_whole_unused={len(unused)} count")
     spent = [k for k, v in out["cell"].items() if v]
