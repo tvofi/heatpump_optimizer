@@ -6505,6 +6505,72 @@
     "next_step": "fixer per the architect note (ADR-010)",
     "note": "overlap admitted (R11-SEAM-card, R11-SEAM-product-text): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-comments-tests",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "low",
+   "size": "XL",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D5-s9-04",
+    "D5-s9-01",
+    "D5-s8-04",
+    "D5-s8-05"
+   ],
+   "merged": {
+    "D5-s7-01": "D5-s9-04",
+    "D5-s7-02": "D5-s9-04",
+    "D5-s7-03": "D5-s9-04",
+    "D5-s9-02": "D5-s9-01",
+    "D5-s9-03": "D5-s9-01",
+    "D5-s8-03": "D5-s9-01"
+   },
+   "classes": [
+    "I5",
+    "N-comment-style",
+    "N-move-stale-path"
+   ],
+   "seam": "test comments",
+   "hot_files": [
+    "tests/*.py",
+    "tests/run.sh",
+    "tests/card.mjs"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Text in the test suite: criterion C5 over tests/ with the dead names and false count D5-s7-01 lists, and the paths a test comment cites that do not resolve (one moved_paths sweep). Text only. 4 findings (6 merged in), size XL; class tags I5, N-comment-style, N-move-stale-path. Plan: ADR-010. No edge: last on each test file by the hot-file order, cut into parts the same way.",
+   "effort": "high",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tests/*.py",
+    "tests/run.sh",
+    "tests/card.mjs"
+   ],
+   "brief": "Text in the test suite: criterion C5 over tests/ with the dead names and false count D5-s7-01 lists, and the paths a test comment cites that do not resolve (one moved_paths sweep). Text only. 4 findings (6 merged in), size XL; class tags I5, N-comment-style, N-move-stale-path. Plan: ADR-010. No edge: last on each test file by the hot-file order, cut into parts the same way. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-comments-tests",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-010)",
+    "note": null
+   }
   }
  ]
 }
