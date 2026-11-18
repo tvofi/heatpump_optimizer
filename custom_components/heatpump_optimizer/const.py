@@ -23,6 +23,13 @@ PLATFORMS: Final = [
 # that needs migrating, and handle it in ``async_migrate_entry``.
 CONFIG_ENTRY_VERSION: Final = 7
 
+# How many intervals the forecast-accuracy ring keeps, and the cap on the
+# tariff's whole-house samples and the store's accuracy domain. At the default
+# 30-minute optimization interval this is a fortnight, which is long enough to
+# see a seasonal bias emerge without keeping an unbounded amount of state in
+# memory.
+HISTORY_LENGTH: Final = 672
+
 # Configuration keys
 CONF_TIBBER_TOKEN: Final = "tibber_token"
 CONF_PRICE_SOURCE: Final = "price_source"

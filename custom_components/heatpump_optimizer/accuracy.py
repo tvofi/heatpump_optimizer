@@ -37,6 +37,7 @@ from .const import (
     COP_SCALE_MAX,
     COP_SCALE_MIN,
     COP_TRACKING_ERROR_GATE,
+    HISTORY_LENGTH,
     HOUSE_HEAT_LOSS_SCALE_MAX,
     HOUSE_HEAT_LOSS_SCALE_MIN,
     finite_float,
@@ -61,11 +62,6 @@ from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: move
 from .payload import Accuracy
 
 _LOGGER = logging.getLogger(__name__)
-
-# How many intervals to keep. At the default 30-minute optimization interval
-# this is a fortnight, which is long enough to see a seasonal bias emerge
-# without keeping an unbounded amount of state in memory.
-HISTORY_LENGTH = 672
 
 #: R9-UX-6 (decision U2): the day-ahead replay keeps the plan's promise for a
 #: day, taken from the first plan solved in this local hour -- "the promise is
