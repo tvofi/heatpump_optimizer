@@ -135,4 +135,27 @@
 2026-11-18T08:35:06Z POSCTL-D3-TOP6 KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=7.4s
 2026-11-18T08:35:16Z RUN c3c6-redrive queued=1 workers=1
 2026-11-18T08:40:12Z C3C6-REDRIVE SURVIVED custom_components/heatpump_optimizer/tariff.py:R10-C3C6 M22 L595 by=- ran=12 skip=4 wall=293.0s
-2026-11-18T15:13:21Z COMPLETE queued=16 from=pre
+2026-11-18T09:30:34Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=128.6s reach_ok=True
+2026-11-18T09:33:22Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=168.2s reach_ok=False
+2026-11-18T09:38:41Z BASELINE tests/optimality.py rc=1 failed=1 wall=150.4s reach_ok=False
+2026-11-18T09:40:02Z BASELINE tests/finite_boundary.py rc=0 failed=0 wall=81.0s reach_ok=True
+2026-11-18T09:40:42Z BASELINE tests/config_flow_steps.py rc=0 failed=0 wall=39.6s reach_ok=True
+2026-11-18T09:42:02Z BASELINE tests/arch_score_head.py rc=0 failed=0 wall=80.2s reach_ok=True
+2026-11-18T09:42:40Z BASELINE tests/validate.py rc=0 failed=0 wall=37.6s reach_ok=True
+2026-11-18T09:43:01Z BASELINE tests/features.py rc=0 failed=0 wall=876.3s reach_ok=False
+2026-11-18T09:43:02Z BASELINE tests/typing_ruler.py rc=0 failed=0 wall=0.5s reach_ok=False
+2026-11-18T09:43:16Z BASELINE tests/structure.py rc=0 failed=0 wall=36.4s reach_ok=False
+2026-11-18T09:43:20Z BASELINE tests/doc_claims.py rc=0 failed=0 wall=18.2s reach_ok=False
+2026-11-18T09:43:27Z BASELINE tests/block_duty.py rc=0 failed=0 wall=11.1s reach_ok=True
+2026-11-18T09:43:35Z BASELINE tests/guard_pins.py rc=0 failed=0 wall=14.3s reach_ok=True
+2026-11-18T09:43:36Z BASELINE tests/manual_plan.py rc=0 failed=0 wall=8.8s reach_ok=True
+2026-11-18T09:43:38Z BASELINE tests/plan_view.py rc=0 failed=0 wall=1.7s reach_ok=True
+2026-11-18T09:43:38Z BASELINE tests/deployment_shape.py rc=0 failed=0 wall=3.6s reach_ok=False
+2026-11-18T09:43:40Z BASELINE tests/wood_advisor.py rc=0 failed=0 wall=1.4s reach_ok=True
+2026-11-18T09:43:40Z BASELINE tests/debug_collect.py rc=0 failed=0 wall=2.1s reach_ok=True
+2026-11-18T09:43:41Z BASELINE tests/solar_alignment.py rc=0 failed=0 wall=1.4s reach_ok=True
+2026-11-18T09:47:11Z BASELINE tests/env_drift.py rc=0 failed=0 wall=211.1s reach_ok=False
+2026-11-18T09:50:48Z BASELINE tests/entities.py rc=1 failed=1 wall=635.0s reach_ok=False
+2026-11-18T09:54:32Z RUN posctl-D3-top6-local queued=2 workers=2
+2026-11-18T09:54:39Z POSCTL-D3-TOP6-LOCAL KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=3 skip=4 wall=7.2s
+2026-11-18T09:54:39Z POSCTL-D3-TOP6-LOCAL KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=3 skip=4 wall=7.3s
