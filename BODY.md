@@ -8,9 +8,16 @@ Carries outside this part. Carry 0, Carry 1 and Carry 2 were built by part 1 (#3
 
 ## Head
 
-d8e8b5fb28cff06f8f1d945bda97e71780e2116c, cut from 3f7f29e778e009f12a2008318b1f879f531ef3a1. origin/main was 7c2f4c30ca at 2026-11-18 (UTC); `git merge-tree --write-tree origin/main HEAD` exits 0, so there is no conflict and no merge. The figures were taken at e26b5120061bc44f824d991d15a982d9f7b3dd74. The head differs from it only by three deleted files under `tests/mutation_ledger/survivor_triage/` (`git diff --stat e26b512006 d8e8b5fb28`: 3 files changed, 18 deletions), so no production, test or harness line differs.
+889adacf26621dd6be9f7800ff62883e3019ae92, the PR head eebd64ea18bc7a4f750d6a58a29eadeaa2f0789c (d8e8b5fb28 merged with origin/main f567988b51, plus the delivery row) and two commits on it, the red repair asked by refs/heads/inbox/r11-outside-self-setting-pump INBOX line 3, then merged with the bot's `ci: pin killed mutants` fe95f3778e (mutation-autofix's 20 rows at eebd64ea):
+- 7c3157869f `fix(cop-probe)`: the 5 mypy errors in `accuracy.py` (2 arg-type, 1 index, 2 union-attr) are fixed by narrowing, with no ignore added. `ScaleDither.step` builds the slot it wants from the pair it has just ensured. `ScaleDither.take` reads a pair's first slot as the one with no first row (`if first is None:`), which is the flag `_want` sets.
+- e40082d743 `chore(ledger)`: 21 `killed_by` rows for the 21 added unpinned sites `tests / mutation` refused at eebd64ea.
+- 889adacf26 merges fe95f3778e. The one add/add conflict (`ScaleDither._want.RETURN_DEL.d36267b7`) keeps e40082d743's row. The bot's `ScaleDither.take.GUARD_OFF.d8c3b58d` is deleted: it pins `if not second:` in `take`, a line 7c3157869f removed. Afterwards `tests/mutation_table.py --scope changed --base origin/main --max 0` reads 2091 unpinned sites, equal to the ratchet base, and "the ledger agrees with the deterministic inventory".
 
-prepr: passed rc=0 at d8e8b5fb28cff06f8f1d945bda97e71780e2116c
+origin/main was ae0ed64af8 at 2026-11-18T13:46Z. `git merge-tree --write-tree origin/main HEAD` exits 0, so there is no merge.
+
+The figures below were taken at e26b512006. The production diff since then is 7c3157869f alone. Both harnesses print byte-identical output at d8e8b5fb28 and at e40082d743 (`cmp` exit 0): `cop_duty_floor.py` has 106 RESULT lines and `cop_dither_fabric.py` has 12. Full `tests/features.py` passes at 7c3157869f (rc=0, 0 failed, 881 s).
+
+prepr: passed rc=0 at 889adacf26621dd6be9f7800ff62883e3019ae92
 
 ## Mutation proof
 
@@ -58,33 +65,17 @@ Harness, both ends: `PYTHONPATH=tests/hastub:custom_components:tests python3 dev
 
 ## Red checks
 
-- `mutation` at d8e8b5fb28cf: red by construction on the 20 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push. No cheaper detector is owed: prepr's diff-mutant step ran them locally first, and every site it could drive is killed.
+- `tests / typing` at eebd64ea: 5 mypy errors in `accuracy.py` (recorded 0). It is repaired by 7c3157869f. At e40082d743, `tests/typing_ruler.py --mypy` under the pinned toolchain (`tests/requirements-typing.txt`, Python 3.14.7) reads ALL 9 typing-ruler checks PASSED; at eebd64ea it read 4 of 12 FAILED, +5 errors. A cheaper detector exists and was not run: the same ruler, local, about 70 s after a one-off install of about 1 min. `run.sh` runs it when `HPO_TYPING_PYTHON` names a pinned interpreter, and otherwise prints the install command and skips it. The process existed, and its precondition (a pinned typing interpreter) was not set on this seat (state b). No countermeasure is built: the gate already prints the skip, and making the pins mandatory would add the install to every seat, typed or not.
+- `tests / mutation` at eebd64ea: `MUTATION TABLE REFUSED`, 21 added unpinned sites in `accuracy.py` (`ScaleDither`/`ScaleProbe`). It is repaired by e40082d743, recorded by `python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py --jobs 4`, which ended `PIN KILLED: 21 pinned, 0 left unpinned`. The features.py baseline was rc=0 failed=0, and the `NULL_COMMENT` null control survived tests/features.py. The cheaper detector is `--pin-killed` itself, run locally before the handoff (about 2 h of wall-clock on this 4-core seat, because every mutant runs the whole of features.py). The previous handoff left these pins to `mutation-autofix`, whose `mutation-pins` shards had not concluded when `tests / mutation` did.
+- `tests / nightly-status`: the scheduled slow-run red inherited from main (INBOX line 3); not answered here.
 
 ## Unpinned sites
 
-- `custom_components/heatpump_optimizer/accuracy.py:1050 CMP_BOUND` (`ScaleDither.take CMP_BOUND 4dbfdd33`): equivalent, triaged in `tests/mutation_ledger/survivor_triage/accuracy.py/ScaleDither.take.CMP_BOUND.4dbfdd33.json`. This carries the d29ee146 triage of the same comparison, which was one level deeper before this diff.
-- `custom_components/heatpump_optimizer/accuracy.py:958 CONST_SWAP` and `custom_components/heatpump_optimizer/accuracy.py:958 STMT_DEL` (the `holding` field default): equivalent, because `step` assigns `holding` before any read on every path. The ledger's inventory generates no site here, so no triage file is written.
-- `custom_components/heatpump_optimizer/accuracy.py:1016 CONST_SWAP` (the first pair's number 0 -> 1): equivalent, because pair numbers are only compared for equality and every start follows a void that clears every slot. The ledger's inventory generates no site here, so no triage file is written.
-- `custom_components/heatpump_optimizer/accuracy.py:858 CONST`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:986 RETURN_DEL`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:991 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:993 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:995 RETURN_DEL`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1010 BOOLOP`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1010 CMP_BOUND*2`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1010 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1013 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1014 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1019 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1022 BOOLOP`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1040 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1043 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1050 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1135 CMP_BOUND`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1135 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1189 RETURN_DEL`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1196 BOOLOP`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
-- `custom_components/heatpump_optimizer/accuracy.py:1196 GUARD_OFF`: killed by the tests/features.py block named under `## Mutation proof` (mutant_run.py at the head reads no survivor here); `mutation-autofix` pins it on CI.
+None: the 21 added sites are pinned in e40082d743. The table's mutants were also driven against the R11 tests/features.py block (`mutant_run.py --spec`, the 22 table sites on added lines at 7c3157869f): 21 KILLED, and `NULL` survived. The one survivor is the slope gate's `>=` -> `>` (`ScaleDither.take CMP_BOUND 4dbfdd33`), whose line is unchanged and is already triaged as equivalent in `tests/mutation_ledger/survivor_triage/accuracy.py/ScaleDither.take.CMP_BOUND.4dbfdd33.json`. That was re-measured at the head: no double `r` near exp(+-0.5 ln 1.15) has `math.log(r)` equal to `FOLLOW_SLOPE_MIN * math.log(FOLLOW_ASK_SPAN)` (a `math.nextafter` scan over 100 doubles either side; 0 hits for either sign).
+
+`mutant_run.py --diff` operators outside the table's inventory (no ledger site is generated, so no triage file):
+- `accuracy.py:958 CONST_SWAP` and `STMT_DEL` (the `holding` default): equivalent, because `step` assigns `holding` before any read on every path.
+- `accuracy.py:1016 CONST_SWAP` (the first pair's number 0 -> 1): equivalent, because pair numbers are compared only for equality and every start follows a void that clears every slot.
 
 ## Forward-carry
 
