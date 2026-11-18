@@ -7,6 +7,13 @@ Architect note, extended (`dev/governance/roles/designer.md`). Plan of record
 code read at, `origin/main` 1723f9fdc9d8a6e6987190d2887686297a621dd4; the group
 has no `after` edge, so there is no predecessor head. No production code on this ref.
 
+**Revise round 1** answers `design-verdict/R11-SEAM-comments-tests` (a9081a0c2d,
+revise of b71b07bf16, `sibling-design-conflict`). Sibling note read:
+`design/R11-PRE-SHARED-FILES` at 20cafac7df, approved at 9d71412cc0 ("Features
+script" in its section 3, part 4 in its section 7). Changed: section 3 B (the
+release command and the parts), 3 C (D5-s7-01 anchors, `docs/delivery`), 6 (end
+of group), 7 (the routed decision). Sections 1, 2, 4 and 5 stand.
+
 ## 1. What each finding reads at the base (finder's harness, run here)
 
 Harnesses under `dev/audit/rounds/round11/D5/` on `plan/r11`, run with
@@ -68,30 +75,67 @@ tests/run.sh -> ratchet -> git show <ratchet_base>:<f> --\
                         <- per-file counts, total, refusal <-/
 ```
 
-**B. Parts by release.** Run the release command of the comments-production
-note section 3 B with `git ls-files tests/`, the roster at
-`origin/handoff/audit-r10-roster`, and every `tests/` `.py`/`.mjs`/`.sh`
-accepted. Run it at each dispatch and again at each handoff. At 1723f9fd it
-prints these files as HELD:
+**B. Parts by release.** p10 is **the features scripts**: `tests/features.py`
+while it exists; after `R11-PRE-SHARED-FILES` part 4, every `tests/` file the
+commit that deleted it added (the per-module scripts and the shared helper
+module the splitter writes). The release command holds each of them on the
+`tests/features.py` row of every open group that names that path, so a split
+script stays HELD until the last such group merges. While `R11-PRE-SHARED-FILES`
+is open, it also holds the files its note edits outside the roster's `files`:
+every `tests/` file naming `features.py` (its section 5 rewrites live names),
+plus `tests/env_drift.py` and `tests/harness_headers.py` (its section 6). No
+`tests/` glob is prefixed, and `.py`/`.mjs`/`.sh` count at any depth. Run it
+from the repository root at each dispatch and again at each handoff:
 
-| part | files | released when these groups merge | long (s9/s7) |
-|---|---|---|---|
-| p1 | ratchet script; `tests/*.sh`, `tests/hastub/**` | now | `run.sh` 15, hastub 4+ |
-| p2 | `tests/*.mjs` (card family) | now | `card.mjs` 106 units (s8) |
-| p3 | every other RELEASED `tests/*.py` | now | `env_drift` 34, `mutation_table` 31, `replay` 30, `closure` 79 units, ... |
-| p4 | `stress.py`, `config_flow_steps.py` | `R11-SEAM-tests` | 112 |
-| p5 | `harness.py` | `R11-SEAM-actuation-writes` | per harness |
-| p6 | `guard_pins.py` | `R11-SEAM-dead-state` | per harness |
-| p7 | `ci_ratchet.py` | `R11-CARRY-MACHINERY-CHECK` | per harness |
-| p8 | `structure.py` | `R11-SEAM-ratchets`, `R11-SEAM-ratchet-raise`, `R11-ARCH-fabric-learner` | 17 |
-| p9 | `entities.py` | `R11-PRODUCT-TEXT-PINS`, `R11-SEAM-inputs-freshness`, `R11-SEAM-ratchets` | 470 |
-| p10 | `features.py` | `R11-PRE-SHARED-FILES`, `R11-OUTSIDE-HONEST-DHW-RUNS`, `R11-CARRY-DRAWMAP`, `R11-SEAM-inputs-freshness`, `R11-SEAM-learners`, `R11-ARCH-fabric-learner` | 460 |
+```
+python3 - <<'E'
+import fnmatch, json, subprocess, sys
+sys.path.insert(0, "tools/audit/seat"); import roster_lib as R
+sh = lambda *a: subprocess.check_output(a).decode().split()
+G = R.groups_of(json.loads(subprocess.check_output(["git", "show",
+    "origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r11-groups.json"])))
+F, S = "tests/features.py", "R11-PRE-SHARED-FILES"
+d = sh("git", "log", "--diff-filter=D", "--format=%H", "-1", "--", F)
+fam = {F} if not d else set(sh("git", "diff-tree", "--no-commit-id", "--name-only",
+    "-r", "--diff-filter=A", d[0], "--", "tests/"))
+edits = set()
+if S in G and R.gates(G[S]):
+    edits = {"tests/env_drift.py", "tests/harness_headers.py"} | set(sh("git", "grep",
+        "-l", r"features\.py", "--", "tests/", ":!tests/mutation_ledger"))
+for f in sh("git", "ls-files", "tests/"):
+    if not f.endswith((".py", ".mjs", ".sh")): continue
+    keys = {f} | ({F} if f in fam else set())
+    held = sorted(n for n, g in G.items() if "comments-" not in n and R.gates(g) and any(
+        fnmatch.fnmatch(k, p) for k in keys
+        for p in (g.get("files") or []) + (g.get("hot_files") or [])))
+    held += [S] if f in edits and S not in held else []
+    print("HELD" if held else "RELEASED", f, *held)
+E
+```
 
-A file is in a part only while the release command prints it as RELEASED at that
-part's dispatch. A file that a later roster edit holds moves to a part of its
-own. The roster's `files` globs (`tests/*.py`, `tests/run.sh`, `tests/card.mjs`)
-miss the other `.mjs` and `.sh` files. Those files are released, and no other
-group names them.
+At 1723f9fd it prints 71 RELEASED and 24 HELD:
+
+| part | files | released when these groups merge |
+|---|---|---|
+| p1 | ratchet script; RELEASED `tests/*.sh`, `tests/hastub/**` | now |
+| p2 | `tests/*.mjs` (card family) | now |
+| p3 | every other RELEASED `tests/*.py` | now |
+| p4 | `stress.py`, `config_flow_steps.py` | `R11-SEAM-tests`, `R11-PRE-SHARED-FILES` |
+| p5 | `harness.py` | `R11-SEAM-actuation-writes` |
+| p6 | `guard_pins.py` | `R11-SEAM-dead-state`, `R11-PRE-SHARED-FILES` |
+| p7 | `ci_ratchet.py` | `R11-CARRY-MACHINERY-CHECK` |
+| p8 | `structure.py` | `R11-SEAM-ratchets`, `R11-SEAM-ratchet-raise`, `R11-ARCH-fabric-learner`, `R11-PRE-SHARED-FILES` |
+| p9 | `entities.py` | `R11-PRODUCT-TEXT-PINS`, `R11-SEAM-inputs-freshness`, `R11-SEAM-ratchets`, `R11-PRE-SHARED-FILES` |
+| p10 | the features scripts | `R11-PRE-SHARED-FILES`, `R11-OUTSIDE-HONEST-DHW-RUNS`, `R11-CARRY-DRAWMAP`, `R11-SEAM-inputs-freshness`, `R11-SEAM-learners`, `R11-ARCH-fabric-learner` |
+| p11 | the files held by `R11-PRE-SHARED-FILES` alone: `run.sh`, `derive_closures.sh`, `closure.py`, `mutation_table.py`, `env_drift.py`, `harness_headers.py`, `dst_checks.py`, `finite_boundary.py`, and eight more `tests/*.py` | `R11-PRE-SHARED-FILES` |
+
+A file is in a part only while the command prints it RELEASED at that part's
+dispatch; a file a later roster edit holds moves to a part of its own. p1 adds
+one `run` line to `tests/run.sh` for the ratchet and no text edit there:
+`run.sh`'s comment text waits for p11. `run.sh` has no row in `PLAN.md`'s
+hot-file order, so this keeps ADR-010's acceptance line. The roster's `files`
+globs (`tests/*.py`, `tests/run.sh`, `tests/card.mjs`) miss the other `.mjs`
+and `.sh` files. Those files are released, and no other group names them.
 
 **C. Each part's text work.** Every file in a part receives all three of these
 edits:
@@ -111,15 +155,21 @@ edits:
   them reads.
 - **C2 cites with no successor:** pin them to the SHA or tag that holds the file,
   verified by `git cat-file -e <sha>:<path>`; otherwise state the rule inline and
-  drop the name. These are `resource_r5.py`, `ruleset.py`, `carry-201.json`,
-  `carry-1922.json`, `docs/delivery`, `CONDENSED.md`, the two
+  drop the name. `docs/delivery` is not one: it is respelled to its successor
+  `dev/programme/delivery/`, which D5-s8-03's claim names. The rest are
+  `resource_r5.py`, `ruleset.py`, `carry-201.json`,
+  `carry-1922.json`, `CONDENSED.md`, the two
   `dev/programme/designs/` notes, `card_shapes.mjs` and `DESIGN.md`.
-- **D5-s7-01, part p10:** the "eight between-run" count at `features.py:6858`
-  is restated without a number ("one per start after the first"). The
-  unresolved names `_feedback_sent` become `pump_arbiter._feedback` /
-  `FeedbackRun.sent_c`. `PlantRig` and the `w5-partition/partition.py` path
-  become `tools/coverage/partition.py` or are removed. All five C2 names come
-  from `m4_comments.py --detail`.
+- **D5-s7-01, part p10:** each edit lands in whichever features script carries
+  the block, found by its anchor and never by a line number. The "eight
+  between-run" count in `_d901_gil_yield_inside_run`'s docstring
+  (`features.py:6858` at the base) is restated without a number ("one per start
+  after the first"). The unresolved name `_feedback_sent` (`features.py:87592`
+  at the base) becomes `pump_arbiter._feedback` / `FeedbackRun.sent_c`.
+  `PlantRig` (`features.py:54916`) and the `w5-partition/partition.py` path
+  (`features.py:57373`) become `tools/coverage/partition.py` or are removed. All
+  five C2 names come from `m4_comments.py --detail`, run over the features
+  scripts (section 6).
 
 **Invariants kept:** no code token changes (`code_changed_files=0`), and every
 unit keeps its line count (`line_shifted_hunks=0`). So `span_loc`, coverage
@@ -148,7 +198,7 @@ respelled path changes a line's length, the hunk's line count still holds.
 - **C5:** the ratchet's per-file table, `s9/comments.py --show | grep -P
   '\tC5-long\t'`, `s7/m4_comments.py` (column c5_fail) and `s8/m4_ledger.py
   --show` (long_sentence_units). Their cells are disjoint and together cover
-  `tests/`; parts p1 to p10 cover all of them.
+  `tests/`; parts p1 to p11 cover all of them.
 - **Stale paths:** `s9/stale_paths.py | grep ^STALE`, `s8/m4_ledger.py --show`
   (unresolved rows), `s7/m4_comments.py --detail` (C2 rows), and
   `tools/audit/seat/moved_paths.py tests/`. All of them are covered.
@@ -174,26 +224,48 @@ respelled path changes a line's length, the hunk's line count still holds.
     base.
   - `--text-only` reads 0 and 0, `score.py --diff` reads NULL, and
     `tests/structure.py` is unchanged.
+- **Reading the features scripts.** `s9/comments.py`, `s9/stale_paths.py` and
+  `s8/m4_ledger.py` enumerate the tree at the ref (`m4_ledger.py` takes one
+  `--file` per script), so they read the split scripts as they stand.
+  `s7/m4_comments.py` hard-codes `SEAT_FILES`, so p10 runs it through an import
+  that sets `SEAT_FILES` to the features scripts plus its other two files, and
+  leaves the harness unedited. Its null control is the same import with
+  `["tests/features.py"]` at the base: it must reproduce c5/c1/c2 = 460/1/5.
+  After the split, the 460 figure is the sum of c5_fail over the features
+  scripts.
 - **p10, C1:** `s7/c1_sleep_count.py` still reads 3..34 between-run calls per
   solve, and its `--perturb` arm moves. Both runs are recorded. A comment with
   no count cannot go stale with them.
-- **End of group:** the five harness figures in section 1 read 0 at p10's head.
+- **End of group:** the five harness figures in section 1 read 0 at the head of
+  the last part, with every `features.py` row read as the sum over the features
+  scripts. p10 and p11 are the last parts; either may land last.
 - **Goldens:** none move; both claim files stay byte-identical.
 - **Mutation targets (p1 only):** the `> 40` compare, the per-file `<=`, the
   total `<=`, the new-file branch, the base resolution, the `.sh` marker
-  stripping, and each `--text-only` arm. Parts p2 to p10 add no code.
+  stripping, and each `--text-only` arm. Parts p2 to p11 add no code.
 
 ## 7. Hot files, serial position, carries
 
-p1 is the first on `tests/run.sh` of the comment groups. It also adds a row to
-`tests/README.md`, ahead of `R11-SEAM-governance-text`. `tests/closures.json`
-follows `R11-PRE-SHARED-FILES`'s scheme if that has merged; otherwise the second
-merge regenerates it (`gate-scoping.md`). p4 to p10 each come last on their file
-by construction of the release command. In `PLAN.md`'s hot-file order, the
-`entities.py`, `features.py` and `structure.py` rows end in this group. p1
-changes no pinned grader, so no p1/p2 split applies unless `ci_predict.py`
-prints `BOOTSTRAP` at p1's handoff. Received carries: the comments-production
-note's `one-sentence-ratchet`, served by section 3 A.
+p1 is the first on `tests/run.sh` of the comment groups, with a single added
+line (section 3 B). It also adds a row to `tests/README.md`, ahead of
+`R11-SEAM-governance-text`. `tests/closures.json` follows
+`R11-PRE-SHARED-FILES`'s scheme if that has merged; otherwise the second merge
+regenerates it (`gate-scoping.md`). p4 to p11 each come last on their files by
+construction of the release command, and p10 comes after the split. In
+`PLAN.md`'s hot-file order, the `entities.py`, `features.py` and `structure.py`
+rows end in this group. p1 changes no pinned grader, so no p1/p2 split applies
+unless `ci_predict.py` prints `BOOTSTRAP` at p1's handoff. Received carries: the
+comments-production note's `one-sentence-ratchet`, served by section 3 A, and
+the verdict's `release-command-tests-globs` and `docs-delivery-successor`, served
+by sections 3 B and 3 C.
+
+**Routed, decision: orchestrator.** Which group writes the shared ratchet
+script. This note puts it in this group's p1 (section 2); the approved
+comments-production note still tells its fixer to write it. Neither p1
+dispatches until the orchestrator confirms one writer and lands the carry below
+in that group's roster brief. If the ruling keeps the script in
+comments-production, this group's p1 shrinks to the tests scope addition, and it
+is dispatched after that part merges.
 
 ### Notes for the fixer
 
@@ -212,5 +284,8 @@ note's `one-sentence-ratchet`, served by section 3 A.
   Carry: R11-SEAM-comments-tests (item production-verdict-notes)
 - The release set shifts whenever the roster changes. Re-run the release command
   at each dispatch and handoff, never this note's table. Carry: R11-SEAM-comments-tests (item rerun-release)
+- After `R11-PRE-SHARED-FILES` part 4 lands, a test comment naming `features.py`
+  may already have been respelled by its sweep. Re-run `moved_paths.py` on the
+  part's files, and do not respell a name back. Carry: R11-SEAM-comments-tests (item split-respell)
 
 Seat token count: not reported by this harness.
