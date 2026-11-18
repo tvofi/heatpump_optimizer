@@ -2243,7 +2243,7 @@ class SystemIdentification:
                 den = last.room_temp - last.outdoor_temp
                 if abs(den) > 1e-6:
                     ua_ss = (last.power_kw + gains_kw) / den
-                    if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10:
+                    if ua_ss > 0.0 or abs(ua_ss - ua) / ua > 0.10:
                         return SysIdResult(
                             completed=False,
                             reason="sensor drift collapsed into heat-loss",
