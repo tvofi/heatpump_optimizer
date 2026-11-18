@@ -5492,7 +5492,7 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-seam-actuation-release",
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
