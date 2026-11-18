@@ -4272,7 +4272,7 @@
     "From r11-pre-standing-scripts, body item 00d4b808: part-cut: contradiction: this seat's brief reads \"Part 1 of 4: build carries 0-4\". The approved design's section 5 cuts part 1 as carries 4, 5 and 11 (cp-owed, `class_wait_s`, `is_hotfix`), and parts 3 and 4 as the homes of carries 0 to 3. Carries 0 to 3 are answered above by the design's parts. Carries 5 and 11 are not answered here, as the brief says. The renderer cuts parts by carry index, not by the design's part table (PC-1113-07 and 08, carry 14). Carry: R11-PRE-STANDING-SCRIPTS (items 00d4b808)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-dispatch",
     "commit": null,
     "last_step": null,
