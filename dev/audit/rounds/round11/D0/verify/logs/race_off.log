@@ -1,0 +1,10 @@
+RESULT gap_abs[winter_narrow/summer_cool/two-zone/no-dhw/wood/24h|cell|off]=0.0000 J gap_pct=0.000 prod_kWh=3.630 best=warm
+RESULT gap_abs[winter_typical/shoulder/two-zone/no-dhw/wood/24h|cell|off]=0.5765 J gap_pct=3.148 prod_kWh=0.002 best=warm
+RESULT gap_abs[winter_extreme/summer_cool/two-zone/no-dhw/wood/24h|cell|off]=0.0000 J gap_pct=0.000 prod_kWh=3.000 best=seeds
+RESULT gap_abs[winter_typical/summer_cool/two-zone/no-dhw/wood/24h|cell|off]=0.0087 J gap_pct=0.010 prod_kWh=3.847 best=warm
+RESULT gap_abs[winter_moderate/summer_cool/two-zone/no-dhw/wood/24h|cell|off]=0.0000 J gap_pct=0.000 prod_kWh=3.000 best=seeds
+RESULT gap_abs[flat/summer_cool/two-zone/no-dhw/wood/24h|cell|off]=0.0000 J gap_pct=0.000 prod_kWh=3.000 best=seeds
+RESULT gap_abs[flat/shoulder/two-zone/no-dhw/wood/24h|cell|off]=0.5033 J gap_pct=2.708 prod_kWh=1.907 best=warm
+RESULT thread_factor=1.000
+RESULT load1=118.86
+RESULT swapins=0

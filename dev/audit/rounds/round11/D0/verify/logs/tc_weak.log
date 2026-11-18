@@ -1,0 +1,49 @@
+flat/shoulder/single-zone/dhw/wood/6h breach 0.0000->0.0000 tail_kwh 10.867->0.000
+flat/summer_cool/two-zone/dhw/flow-setpoint-behind-valve/6h breach 0.0000->0.0000 tail_kwh 7.500->0.000
+flat/summer_cool/two-zone/dhw/plain/48h breach 0.0000->0.0000 tail_kwh 3.795->0.000
+flat/winter_cold/two-zone/dhw/wood/48h breach 0.0000->2.7475 tail_kwh 12.000->0.000
+flat/winter_mild/single-zone/dhw/valve-storage/48h breach 0.0000->1.1830 tail_kwh 11.310->0.000
+shoulder/winter_cold/single-zone/dhw/wood/24h breach 0.0000->1.2976 tail_kwh 12.000->0.000
+shoulder/winter_cold/two-zone/no-dhw/valve-storage/48h breach 0.0000->1.1597 tail_kwh 12.000->0.000
+shoulder/winter_cold/two-zone/no-dhw/wood/48h breach 0.0000->1.3100 tail_kwh 12.000->0.000
+shoulder/winter_mild/single-zone/no-dhw/plain/24h breach 0.0000->0.1109 tail_kwh 2.342->0.000
+shoulder/winter_mild/two-zone/dhw/wood/24h breach 0.0000->0.0000 tail_kwh 11.211->0.000
+summer_negative/shoulder/single-zone/no-dhw/manual-valve-buffer/6h breach 0.0000->0.0000 tail_kwh 4.346->0.000
+summer_negative/shoulder/two-zone/dhw/manual-valve-buffer/24h breach 0.0000->0.0000 tail_kwh 3.000->0.000
+summer_negative/shoulder/two-zone/no-dhw/manual-valve-buffer/24h breach 0.0000->0.0000 tail_kwh 3.000->0.000
+summer_negative/summer_cool/single-zone/no-dhw/wood/6h breach 0.0000->0.0000 tail_kwh 10.040->0.000
+summer_negative/winter_mild/two-zone/no-dhw/wood/48h breach 0.0000->0.0000 tail_kwh 11.060->0.000
+summer_typical/summer_cool/single-zone/dhw/wood/6h breach 0.0000->0.0000 tail_kwh 9.261->0.000
+summer_typical/summer_cool/two-zone/no-dhw/manual-valve-buffer/24h breach 0.0000->0.0000 tail_kwh 0.359->0.000
+summer_typical/winter_cold/single-zone/no-dhw/wood/48h breach 0.0000->0.1025 tail_kwh 1.500->0.000
+summer_typical/winter_mild/single-zone/dhw/flow-setpoint-behind-valve/24h breach 0.0000->0.0000 tail_kwh 1.500->0.000
+summer_typical/winter_mild/single-zone/dhw/flow-setpoint-behind-valve/6h breach 0.0000->0.0000 tail_kwh 10.889->0.000
+winter_extreme/shoulder/two-zone/dhw/valve-storage/48h breach 0.0000->0.0000 tail_kwh 11.746->0.000
+winter_extreme/shoulder/two-zone/no-dhw/flow-setpoint-behind-valve/6h breach 0.0000->0.0000 tail_kwh 6.000->0.000
+winter_extreme/shoulder/two-zone/no-dhw/valve-storage/48h breach 0.0000->0.0000 tail_kwh 11.731->0.000
+winter_extreme/winter_cold/single-zone/no-dhw/wood/48h breach 0.2231->6.1218 tail_kwh 12.000->0.000
+winter_extreme/winter_mild/two-zone/no-dhw/valve-storage/48h breach 0.0000->0.4274 tail_kwh 12.000->0.000
+winter_moderate/shoulder/single-zone/no-dhw/manual-valve-buffer/48h breach 0.0000->0.0000 tail_kwh 5.500->0.000
+winter_moderate/shoulder/two-zone/no-dhw/flow-setpoint-behind-valve/48h breach 0.0000->0.0000 tail_kwh 12.000->0.000
+winter_moderate/summer_cool/single-zone/no-dhw/wood/24h breach 0.0000->0.0000 tail_kwh 1.116->0.000
+winter_moderate/winter_mild/single-zone/dhw/wood/24h breach 0.0000->0.0000 tail_kwh 12.000->0.000
+winter_moderate/winter_mild/single-zone/no-dhw/manual-valve-buffer/48h breach 0.0000->1.3756 tail_kwh 8.114->0.000
+winter_narrow/shoulder/two-zone/no-dhw/valve-storage/24h breach 0.0000->0.0000 tail_kwh 11.871->0.000
+winter_narrow/summer_cool/single-zone/dhw/flow-setpoint-behind-valve/48h breach 0.0000->0.0000 tail_kwh 1.576->0.000
+winter_narrow/summer_cool/two-zone/no-dhw/manual-valve-buffer/6h breach 0.0000->0.0000 tail_kwh 1.701->0.000
+winter_narrow/winter_cold/single-zone/no-dhw/valve-storage/48h breach 0.0000->5.0054 tail_kwh 12.000->0.000
+winter_narrow/winter_cold/two-zone/no-dhw/plain/24h breach 0.0000->0.4599 tail_kwh 11.697->0.000
+winter_typical/shoulder/single-zone/dhw/manual-valve-buffer/48h breach 0.0000->0.0000 tail_kwh 5.504->0.000
+winter_typical/summer_cool/single-zone/dhw/flow-setpoint-behind-valve/6h breach 0.0000->0.0000 tail_kwh 6.000->0.000
+winter_typical/summer_cool/single-zone/dhw/plain/48h breach 0.0000->0.0000 tail_kwh 1.115->0.000
+winter_typical/summer_cool/two-zone/dhw/flow-setpoint-behind-valve/6h breach 0.0000->0.0000 tail_kwh 6.000->0.000
+winter_typical/winter_mild/two-zone/no-dhw/manual-valve-buffer/48h breach 0.0000->0.1534 tail_kwh 5.791->0.066
+RESULT perturb=weak_floor
+RESULT tail_breach_worse_cells=13/40
+RESULT tail_dump_cells=40/40
+RESULT max_tail_breach_nocredit=6.1218 K-steps
+RESULT max_tail_breach_credit=0.2231 K-steps
+RESULT cpu_s=411.7 provisional
+RESULT thread_factor=1.000
+RESULT load1=138.43
+RESULT swapins=-1

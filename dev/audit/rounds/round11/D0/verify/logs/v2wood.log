@@ -1,0 +1,8 @@
+RESULT v2[winter_narrow/summer_cool/two-zone/no-dhw/wood/24h] zero_starts=4 of 5 kWh_prod=0.000 kWh_aug=3.694 J_prod=91.5391 J_aug=89.7734 gap_v2=1.7658 blk_kwh=2.0
+RESULT v2[winter_typical/shoulder/two-zone/no-dhw/wood/24h] zero_starts=0 of 5 kWh_prod=0.002 kWh_aug=2.002 J_prod=18.3149 J_aug=17.5829 gap_v2=0.7320 blk_kwh=2.0
+RESULT v2[winter_extreme/summer_cool/two-zone/no-dhw/wood/24h] zero_starts=4 of 5 kWh_prod=0.000 kWh_aug=3.000 J_prod=90.3052 J_aug=88.6271 gap_v2=1.6782 blk_kwh=2.0
+RESULT v2[winter_typical/summer_cool/two-zone/no-dhw/wood/24h] zero_starts=4 of 5 kWh_prod=0.000 kWh_aug=3.843 J_prod=88.8616 J_aug=87.4057 gap_v2=1.4559 blk_kwh=2.0
+RESULT v2[winter_moderate/summer_cool/two-zone/no-dhw/wood/24h] zero_starts=4 of 5 kWh_prod=0.000 kWh_aug=3.000 J_prod=89.5649 J_aug=88.0974 gap_v2=1.4675 blk_kwh=2.0
+RESULT v2_gap max=1.7658 min=0.7320 cells_gap_gt_0.01=5/5
+RESULT thread_factor=1.000
+RESULT load1=176.13
