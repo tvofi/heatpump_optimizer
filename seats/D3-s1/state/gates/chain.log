@@ -9,3 +9,5 @@
 /dev/disk3s5   228Gi   188Gi    10Gi    95%    3.2M  108M    3%   /System/Volumes/Data
 2026-11-18T15:31:50Z chain aborted at bdcf (21 s): stress.py and harness_headers.py were SKIPPED in null, fb16 and 4b37 (lease wait: HPO_GATE_LOCK_LABEL unset). fb16 and 4b37 KILLED verdicts stand (a skipped script can only hide a kill). Re-running null + bdcf, 0e17, d931, 8e82 with the label exported.
 2026-11-18T16:32:28Z GATE null :: RESULT gate_rc=1 code RESULT failed_scripts=5 count RESULT wall=3638 s RESULT thread_factor=1.0 ratio RESULT load1=4.5 
+/dev/disk3s5   228Gi   189Gi   9.5Gi    96%    3.2M  100M    3%   /System/Volumes/Data
+2026-11-18T20:15:49Z GATE pre:bdcf7589b0a0a6df :: RESULT gate_rc=1 code RESULT failed_scripts=6 count RESULT wall=13388 s RESULT thread_factor=1.0 ratio RESULT load1=7.15 RESULT killed=1 count VERDICT bdcf7589b0a0a6df KILLED python3 tests/features.py 
