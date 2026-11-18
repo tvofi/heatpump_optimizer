@@ -1,0 +1,4 @@
+2026-11-18T16:02:59Z RUN matrix-stress queued=38 workers=1
+2026-11-18T16:03:02Z MATRIX-STRESS SURVIVED custom_components/heatpump_optimizer/coordinator.py:_plain_types GUARD_OFF 710abac2 L422 by=- ran=0 skip=0 wall=0.0s
+2026-11-18T16:03:06Z MATRIX-STRESS SURVIVED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846 L539 by=- ran=0 skip=0 wall=0.0s
+2026-11-18T16:03:10Z MATRIX-STRESS SURVIVED custom_components/heatpump_optimizer/coordinator.py:_best_effort_cycle_step GUARD_OFF d02b7542 L687 by=- ran=0 skip=0 wall=0.0s

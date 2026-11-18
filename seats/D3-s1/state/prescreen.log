@@ -165,3 +165,20 @@
 2026-11-18T13:44:43Z MATRIX KILLED custom_components/heatpump_optimizer/price_model.py:R10-C2 M33 L532 by=tests/features.py ran=13 skip=9 wall=1929.3s
 2026-11-18T13:48:50Z MATRIX SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_tau_fast GUARD_OFF 72abb7dd L610 by=- ran=13 skip=9 wall=1932.4s
 2026-11-18T13:59:14Z MATRIX KILLED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability GUARD_OFF f4619cef L677 by=tests/features.py ran=13 skip=9 wall=1910.4s
+2026-11-18T14:00:36Z MATRIX KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M26 L1549 by=tests/harness_headers.py,tests/features.py ran=13 skip=9 wall=1513.9s
+2026-11-18T14:16:09Z MATRIX KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M28 L1593 by=tests/features.py ran=13 skip=9 wall=1883.5s
+2026-11-18T14:20:09Z MATRIX KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M27 L2246 by=tests/features.py ran=13 skip=9 wall=1876.9s
+2026-11-18T14:38:42Z MATRIX KILLED custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0 L64 by=tests/features.py ran=22 skip=4 wall=2365.9s
+2026-11-18T14:40:25Z MATRIX KILLED custom_components/heatpump_optimizer/tariff.py:R10-C2 M29 L64 by=tests/features.py ran=22 skip=4 wall=2386.2s
+2026-11-18T14:51:12Z MATRIX SURVIVED custom_components/heatpump_optimizer/tariff.py:R10-C2 M31 L744 by=- ran=13 skip=13 wall=1859.5s
+2026-11-18T14:55:43Z MATRIX KILLED custom_components/heatpump_optimizer/tariff.py:R10-C3C6 M22 L595 by=tests/harness_headers.py,tests/features.py ran=22 skip=4 wall=2371.9s
+2026-11-18T15:09:35Z MATRIX KILLED custom_components/heatpump_optimizer/tariff.py:R10-C2 M30 L805 by=tests/env_drift.py,tests/features.py ran=13 skip=13 wall=1850.3s
+2026-11-18T15:20:14Z MATRIX SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_holiday_dhw_windows GUARD_OFF 4893b0a8 L169 by=- ran=24 skip=2 wall=2386.5s
+2026-11-18T15:25:15Z MATRIX KILLED custom_components/heatpump_optimizer/thermal_model.py:R10-C3C6 M01 L730 by=tests/optimality.py,tests/harness_headers.py,tests/env_drift.py,tests/entities.py,tests/features.py ran=22 skip=4 wall=1769.3s
+2026-11-18T15:43:41Z MATRIX SURVIVED custom_components/heatpump_optimizer/thermal_model.py:R10-C3C6 M03 L835 by=- ran=16 skip=10 wall=2044.6s
+2026-11-18T15:52:06Z MATRIX SURVIVED custom_components/heatpump_optimizer/thermal_model.py:R10-C3C6 M07 L2593 by=- ran=16 skip=10 wall=1909.7s
+2026-11-18T16:02:59Z MATRIX KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.clamp GUARD_OFF 55e7d0fb L270 by=tests/harness_headers.py ran=25 skip=1 wall=4304.5s
+2026-11-18T16:02:59Z RUN matrix-stress queued=38 workers=1
+2026-11-18T16:03:02Z MATRIX-STRESS SURVIVED custom_components/heatpump_optimizer/coordinator.py:_plain_types GUARD_OFF 710abac2 L422 by=- ran=0 skip=0 wall=0.0s
+2026-11-18T16:03:06Z MATRIX-STRESS SURVIVED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846 L539 by=- ran=0 skip=0 wall=0.0s
+2026-11-18T16:03:10Z MATRIX-STRESS SURVIVED custom_components/heatpump_optimizer/coordinator.py:_best_effort_cycle_step GUARD_OFF d02b7542 L687 by=- ran=0 skip=0 wall=0.0s
