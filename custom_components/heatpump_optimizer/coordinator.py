@@ -904,6 +904,12 @@ def _outage_reading(
     return f"Update gap of {gap_minutes:.0f} minutes"
 
 
+def _dhw_current_hour() -> float:
+    """The local hour now, fractional, as the hot-water windows read it."""
+    now = dt_util.now()
+    return now.hour + now.minute / 60.0
+
+
 def _cop_fold_blocked(coord: Any) -> bool:
     """#1067: whether this interval's meter reading describes the compressor.
 
@@ -4147,6 +4153,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             action=self._current_action,
             measured_power_kw=pump_arbiter.live_power_kw(self.hass, ctx._config),
             defrosting=self._pump_signals.defrosting,
+            draw=self._accuracy.draw,
             disinfecting=getattr(
                 getattr(self._legionella, "disinfect", None), "memo", None
             )
@@ -5342,7 +5349,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
         if (owed := self._measured_cop.owed_scale(lambda: ctx._config.cop_scale, dt_util.now())) is not None:
             self._apply_cop_scale(owed)
-        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw):
+        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw, self._current_action.get("mode") == "system_identification"):
             return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
@@ -6024,10 +6031,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             },
         )
 
-    def _dhw_current_hour(self) -> float:
-        now = dt_util.now()
-        return now.hour + now.minute / 60.0
-
     def _dhw_effective_windows(self) -> list[Any]:
         """Demand windows the optimizer is actually planning against."""
         result = self._optimization_result
@@ -6043,13 +6046,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _dhw_in_demand_window(self) -> bool:
         """Whether hot water is required right now."""
         return hour_in_windows(
-            self._dhw_current_hour(), self._dhw_effective_windows()
+            _dhw_current_hour(), self._dhw_effective_windows()
         )
 
     def _dhw_next_window_in_hours(self) -> float | None:
         """Hours until the next DHW demand window opens (0 if inside one)."""
         hours = hours_until_next_window(
-            self._dhw_current_hour(), self._dhw_effective_windows()
+            _dhw_current_hour(), self._dhw_effective_windows()
         )
         return round(hours, 2) if hours is not None else None
 
@@ -11098,6 +11101,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             "heat_pump_on": planned_draw_runs(float(override)),
             "mode": "system_identification",
+            "kind": self._sysid.kind,
             # T6: the experiment's draw is not the plan's -- booking it under
             # the overridden plan's reason would say "cheapest hours" or
             # whatever the plan claimed for this step; the experiment is the

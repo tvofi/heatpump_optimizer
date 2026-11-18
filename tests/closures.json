@@ -4319,6 +4319,7 @@
    "dev/audit/harnesses/dependabot_stale_hash.py",
    "dev/audit/harnesses/drain_admission_probe.py",
    "dev/audit/harnesses/draw_map_linearity.py",
+   "dev/audit/harnesses/draw_map_rows.py",
    "dev/audit/harnesses/draw_range_evidence.py",
    "dev/audit/harnesses/dual_path.py",
    "dev/audit/harnesses/early_cutoff_closed_loop.py",

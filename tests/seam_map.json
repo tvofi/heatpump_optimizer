@@ -73,7 +73,6 @@
   "_detect_immersion": "core",
   "_detect_outage": "grid",
   "_dhw_confidence_band": "dhw",
-  "_dhw_current_hour": "dhw",
   "_dhw_effective_windows": "dhw",
   "_dhw_in_demand_window": "dhw",
   "_dhw_mixed_water": "dhw",

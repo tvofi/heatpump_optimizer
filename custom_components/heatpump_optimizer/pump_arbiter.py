@@ -154,7 +154,7 @@ from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypeGuard, cast
+from typing import Any, NamedTuple, TypeGuard, cast
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -165,7 +165,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, duty_switch, issues, off_restore, pump_mode, quiet_windows
+from . import boost, draw_range, duty_switch, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -203,6 +203,7 @@ from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
+from .sysid import KIND_PROBE
 from .thermal_model import (
     configured_flow_heat_c,
     dhw_start_below_c,
@@ -306,6 +307,19 @@ FEEDBACK_STOP_MARGIN_K = 0.2
 #: Past the gate by any amount the entity's step rounding does not absorb,
 #: so the loop's lowest write is the gate plus one entity step (I2).
 FEEDBACK_GATE_CLEAR_K = 0.01
+#: Where a pass's space write came from (:func:`pass_origin`, the one place
+#: it is decided), the origin column of ``draw_range``'s map rows: the plan's
+#: level mapped open-loop; the feedback loop's start-hold (today's target)
+#: and its moved target; a boost's ceiling; the gate of a step that does not
+#: heat; the baseline's hold; the experiment's fit or ceiling probe.
+ORIGIN_PLAN = "plan"
+ORIGIN_FEEDBACK_START = "feedback_start"
+ORIGIN_FEEDBACK = "feedback"
+ORIGIN_BOOST = "boost"
+ORIGIN_GATE = "gate"
+ORIGIN_HOLD = "hold"
+ORIGIN_FIT = "fit"
+ORIGIN_PROBE = "probe"
 
 
 @dataclass(frozen=True)
@@ -383,6 +397,8 @@ class ArbiterState:
     supply_held: bool = False
     #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
     held_until: datetime | None = None
+    #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
+    last_pass: draw_range.PassRecord | None = None
 
 
 @dataclass(frozen=True)
@@ -412,6 +428,9 @@ class ArbiterInputs:
     #: means is ``freq_control.defrost_interval``'s, and ``None`` is no flag
     #: or no evidence.
     defrosting: bool | None = None
+    #: The running-draw window each pass record is handed to
+    #: (``draw_range.note_pass``); ``None`` keeps none.
+    draw: Any = None
 
 
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
@@ -944,20 +963,14 @@ def _flow_target(
     where that is higher.
     """
     if duty in ("space", "both"):
-        p_min, p_max = _band_kw(inp)
-        boost_c = _boost_ceiling_c(inp) if boosted else None
-        heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
-        floor_c = _or_hold(modulation_floor_flow_c(
-            _flow_inlet_c(inp), _gate_c(inp),
-            start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
-        ), inp.config)
+        m = _map_inputs(inp, now, boosted)
         return _bounded(
             inp,
             "space_setpoint",
-            flow_setpoint_for_level(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c),
+            flow_setpoint_for_level(m.level_kw, m.low_kw, m.high_kw, m.heat_c, m.floor_c),
             _gate_floor_c(inp.config),
-            lo=min(floor_c, heat_c),
-            hi=heat_c,
+            lo=min(m.floor_c, m.heat_c),
+            hi=m.heat_c,
         )
     if duty is not None:
         return _gate_c(inp)
@@ -972,6 +985,31 @@ def _flow_target(
     capped = curve is not None or _return_unit(inp.config)
     hold = min(target, ceiling) if capped else target
     return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
+
+
+class MapInputs(NamedTuple):
+    """What a heating step's level is mapped on (:func:`_flow_target`)."""
+
+    level_kw: float | None
+    low_kw: Any
+    high_kw: Any
+    heat_c: float
+    floor_c: float
+    #: The heat ceiling is a live boost's (:func:`_boost_ceiling_c`).
+    boost: bool
+
+
+def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool) -> MapInputs:
+    """The level, band, heat ceiling and floor a heating step maps, read once
+    for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`)."""
+    p_min, p_max = _band_kw(inp)
+    boost_c = _boost_ceiling_c(inp) if boosted else None
+    heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
+    floor_c = _or_hold(modulation_floor_flow_c(
+        _flow_inlet_c(inp), _gate_c(inp),
+        start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
+    ), inp.config)
+    return MapInputs(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c, boost_c is not None)
 
 
 def _feedback_on(inp: ArbiterInputs, duty: str | None, now: datetime, boosts: Any) -> bool:
@@ -1300,10 +1338,7 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    # The boost fact is read for a water set-point only: an indoor one maps no
-    # level, and a caller may hand no coordinator for it.
-    space = _space_target(inp, result, now, duty, boosted=_flow_unit(inp.config) and (
-        inp.mode == MODE_BOOST or boost.held_for(coord).active(boost.CHANNEL_SPACE, now)))
+    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now))
     if _flow_unit(inp.config):
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
@@ -1311,6 +1346,59 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):
         return PumpCommand(mode, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
     return PumpCommand(mode, dhw, space, silent)
+
+
+def _boosted(coord: Any, inp: ArbiterInputs, now: datetime) -> bool:
+    """A space boost or the global boost mode is live on a water set-point.
+
+    Read for a water set-point only: an indoor one maps no level, and a
+    caller may hand no coordinator for it.
+    """
+    return _flow_unit(inp.config) and (
+        inp.mode == MODE_BOOST or boost.held_for(coord).active(boost.CHANNEL_SPACE, now))
+
+
+def pass_origin(inp: ArbiterInputs, duty: str | None, boost_on: bool, run: FeedbackRun | None, now: datetime) -> str:
+    """Where this pass's space write came from: one of the ``ORIGIN_*``.
+
+    ``duty`` is the duty served, ``boost_on`` whether a boost's ceiling was
+    mapped (:attr:`MapInputs.boost`), ``run`` the feedback loop's run after
+    this pass's :func:`_feedback`. The experiment's action names its kind.
+    """
+    action = inp.action or {}
+    if action.get("mode") == "system_identification":
+        return ORIGIN_PROBE if action.get("kind") == KIND_PROBE else ORIGIN_FIT
+    if duty not in ("space", "both"):
+        return ORIGIN_HOLD if duty is None else ORIGIN_GATE
+    if boost_on:
+        return ORIGIN_BOOST
+    if run is None or not run.running:
+        return ORIGIN_PLAN
+    held_start = utc_elapsed_seconds(now, run.start) < FEEDBACK_START_HOLD.total_seconds()
+    return ORIGIN_FEEDBACK_START if held_start else ORIGIN_FEEDBACK
+
+
+def _note_pass(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> None:
+    """Record this Control pass on ``held`` and hand it to the window ``inp.draw``."""
+    held.last_pass = _pass_record(held, inp, duty, boosted, now)
+    draw_range.note_pass(inp.draw, held.last_pass)
+
+
+def _pass_record(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> draw_range.PassRecord | None:
+    """This Control pass as ``draw_range`` keeps it, or ``None`` where no
+    flow set-point is held (:func:`_flow_command`). ``boosted``: :func:`_boosted`."""
+    command = _flow_command(inp, held)
+    if command is None:
+        return None
+    m = _map_inputs(inp, now, boosted)
+    return draw_range.PassRecord(
+        now, command.written_c, command.gate_c, command.ceiling_c, m.floor_c,
+        m.level_kw, finite_float(m.low_kw), finite_float(m.high_kw), m.heat_c,
+        _flow_inlet_c(inp), finite_float(inp.measured_power_kw),
+        finite_float(getattr(inp.state, "outdoor_temperature", None)), duty,
+        getattr(_slot_state(inp, "mode"), "state", None), defrost_interval(inp.defrosting),
+        pass_origin(inp, duty, m.boost, held.feedback, now),
+    )
 
 
 def _disinfecting(inp: ArbiterInputs, duty: str | None) -> str | None:
@@ -1887,7 +1975,10 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         return
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
-    await _command(coord, inp, desired(coord, inp, _served(coord, inp, duty, now), now), now)
+    served = _served(coord, inp, duty, now)
+    await _command(coord, inp, desired(coord, inp, served, now), now)
+    boosted = _boosted(coord, inp, now)
+    _note_pass(held, inp, served, boosted, now)
     await _write_night_schedule(coord, inp, now)
 
 
