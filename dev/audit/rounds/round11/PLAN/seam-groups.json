@@ -1,0 +1,2213 @@
+{
+ "groups": [
+  {
+   "group": "R11-SEAM-optimizer",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D0-s2-01",
+    "D0-s3-02",
+    "D10-s3-01",
+    "D9-s2-01"
+   ],
+   "severity": "low",
+   "files": [
+    "cc/optimizer.py"
+   ],
+   "after": [],
+   "architect_note": "Solver seam (optimizer.py): seed-set/stop-tolerance (P4) and objective findings under one owner; fitness: the D0 race harnesses, mutation kill rate on optimizer.py, shape_copies tripwire. 4 findings, size S; class tags I5, N-unbounded-retention, P4; absorbs findings of draft groups R11-I5, R11-N-unbounded-retention, R11-P4; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-SEAM-coordinator",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D1-s1-03",
+    "D1-s3-04",
+    "D10-s1-01",
+    "D17-s2-02",
+    "D17-s3-01",
+    "D2-s3-01",
+    "D7-s3-03",
+    "D9-s1-03",
+    "D1-s1-01",
+    "D1-s2-06",
+    "D1-s3-02",
+    "D1-s3-03",
+    "D1-s3-06",
+    "D1-s3-07",
+    "D10-s3-02",
+    "D12-s1-01",
+    "D17-s3-03",
+    "D7-s1-03",
+    "D7-s1-04",
+    "D7-s2-03",
+    "D9-s1-01",
+    "D9-s1-02",
+    "D9-s1-04"
+   ],
+   "severity": "medium",
+   "files": [
+    "cc/__init__.py",
+    "cc/away.py",
+    "cc/batchmath.py",
+    "cc/battery.py",
+    "cc/comfort_band.py",
+    "cc/comfort_learning.py",
+    "cc/coordinator.py",
+    "cc/curve_learning.py",
+    "cc/device_prefill.py",
+    "cc/dhw_draws.py",
+    "cc/dhw_planner.py",
+    "cc/dhw_schedule.py",
+    "cc/diagnosis.py",
+    "cc/diagnostics.py",
+    "cc/driving_grade.py",
+    "...+39 more"
+   ],
+   "after": [
+    "R11-SEAM-optimizer"
+   ],
+   "architect_note": "Coordinator owns the cycle and lifecycle; the P2 divergent-predicate guards become one shared predicate at the owning seam, not per-caller copies. Hot file coordinator.py ordered first; ADR fixes the shared-predicate shape (else designer, L/XL). 23 findings, size L; class tags I5, N-dead-input, N-dropped-refresh, N-log-flood, N-no-expiry, N-objective-as-money, N-shared-config, N-silent-zero, N-solve-recompute, N-structure-blind, N-swallowed-failure, N-unbudgeted-background, N-uncleared-issue, P1, P10, P2; absorbs findings of draft groups R11-I5, R11-N-dead-input, R11-N-dropped-refresh, R11-N-log-flood, R11-N-no-expiry, R11-N-objective-as-money, R11-N-shared-config, R11-N-silent-zero, R11-N-solve-recompute, R11-N-structure-blind, R11-N-swallowed-failure, R11-N-unbudgeted-background, R11-N-uncleared-issue, R11-P1, R11-P10, R11-P2; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-SEAM-learning",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D2-s1-01",
+    "D2-s3-02",
+    "D12-s2-01",
+    "D12-s3-01",
+    "D7-s3-01",
+    "D12-s3-03",
+    "D16-s2-04",
+    "D17-s1-03",
+    "D17-s2-03",
+    "D17-s2-04",
+    "D17-s3-02",
+    "D2-s1-51",
+    "D2-s3-08",
+    "D2-s3-09",
+    "D2-s3-10",
+    "D7-s2-01",
+    "D8-s1-01",
+    "D1-s2-05",
+    "D1-s2-52",
+    "D14-s2-03",
+    "D17-s3-51",
+    "D2-s3-11",
+    "D4-s2-01",
+    "D7-s1-01",
+    "D7-s3-04"
+   ],
+   "severity": "critical",
+   "files": [
+    "cc/accuracy.py",
+    "cc/dhw_learning.py",
+    "cc/draw_range.py",
+    "cc/drift.py",
+    "cc/heat_energy.py",
+    "cc/inputs.py",
+    "cc/modbus_prefill.py",
+    "cc/presets.py",
+    "cc/sysid.py",
+    "cc/thermal_model.py"
+   ],
+   "after": [
+    "R11-SEAM-coordinator"
+   ],
+   "architect_note": "Model and learner seam (thermal_model, sysid, drift, DHW learning, accuracy): confounded-learner, wrong-law and missing-unit-scale; fitness: D2 physical-sanity harnesses. 25 findings, size L; class tags I4, N-confounded-learner, N-dead-input, N-event-misattribution, N-log-flood, N-missing-unit-scale, N-structure-blind, N-table-value, P1, P2, P3, P5, P8; absorbs findings of draft groups R11-I4, R11-N-confounded-learner, R11-N-dead-input, R11-N-event-misattribution, R11-N-log-flood, R11-N-missing-unit-scale, R11-N-structure-blind, R11-N-table-value, R11-P1, R11-P2, R11-P3, R11-P5, R11-P8; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-SEAM-pricing",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D1-s2-03",
+    "D2-s3-03",
+    "D2-s3-04",
+    "D2-s3-05",
+    "D2-s3-06",
+    "D8-s1-02",
+    "D1-s1-51",
+    "D2-s3-07"
+   ],
+   "severity": "high",
+   "files": [
+    "cc/ledger.py",
+    "cc/plan_slots.py",
+    "cc/price_model.py",
+    "cc/tariff.py"
+   ],
+   "after": [
+    "R11-SEAM-coordinator"
+   ],
+   "architect_note": "Price, tariff, ledger and plan-slot seam: objective-as-money, partial-window extrapolation and payload parse; one owner of money units. 8 findings, size M; class tags I4, N-inverted-aggregate, N-no-expiry, N-partial-payload-parse, N-partial-window-extrapolation, N-unordered-tiebreak, P2, P7; absorbs findings of draft groups R11-I4, R11-N-inverted-aggregate, R11-N-no-expiry, R11-N-partial-payload-parse, R11-N-partial-window-extrapolation, R11-N-unordered-tiebreak, R11-P2, R11-P7; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-SEAM-actuation",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D16-s1-04",
+    "D16-s3-02",
+    "D17-s1-05",
+    "D2-s1-02",
+    "D2-s2-02",
+    "D1-s2-04",
+    "D1-s2-51",
+    "D1-s3-01",
+    "D15-s1-04",
+    "D15-s1-05",
+    "D16-s1-03",
+    "D16-s2-01",
+    "D16-s2-02",
+    "D16-s3-03",
+    "D16-s3-04",
+    "D16-s1-01",
+    "D16-s1-02",
+    "D16-s1-05",
+    "D16-s2-03"
+   ],
+   "severity": "high",
+   "files": [
+    "cc/boost.py",
+    "cc/defrost.py",
+    "cc/mixing_valve.py",
+    "cc/off_restore.py",
+    "cc/power_guard.py",
+    "cc/pump_arbiter.py"
+   ],
+   "after": [
+    "R11-SEAM-coordinator"
+   ],
+   "architect_note": "Write/hold/release seam (pump_arbiter, boost and actuators): unreleased-hold, stale-step and mode-coupled-write fixed at the arbiter, each with a D16 hold/release harness; behaviour inventory (entities/services) must not shrink. 19 findings, size L; class tags N-mode-coupled-write, N-order-coupling, N-partial-window-extrapolation, N-restore-race, N-stale-step-actuation, N-step-grid, N-unreleased-hold, N-wrong-law, P1, P11, P2; absorbs findings of draft groups R11-N-mode-coupled-write, R11-N-order-coupling, R11-N-partial-window-extrapolation, R11-N-restore-race, R11-N-stale-step-actuation, R11-N-step-grid, R11-N-unreleased-hold, R11-N-wrong-law, R11-P1, R11-P11, R11-P2; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-SEAM-config",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D17-s1-02",
+    "D1-s2-02",
+    "D10-s2-01",
+    "D14-s1-03",
+    "D14-s2-01",
+    "D10-s1-03",
+    "D10-s2-04",
+    "D14-s1-01",
+    "D17-s2-05",
+    "D4-s2-51",
+    "D7-s3-05"
+   ],
+   "severity": "high",
+   "files": [
+    "cc/config_flow.py",
+    "cc/const.py"
+   ],
+   "after": [],
+   "architect_note": "Config flow and const: shared-config and entry-data placement; structure.py const.py symbol checks are the fitness function; options count 26 holds. 11 findings, size M; class tags I4, N-entity-metadata, N-entry-data-placement, N-no-expiry, N-staleness, N-step-grid, N-structure-blind, P2, P8; absorbs findings of draft groups R11-I4, R11-N-entity-metadata, R11-N-entry-data-placement, R11-N-no-expiry, R11-N-staleness, R11-N-step-grid, R11-N-structure-blind, R11-P2, R11-P8; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-SEAM-entity-surface",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D6-s2-01",
+    "D4-s1-01",
+    "D8-s3-01",
+    "D10-s1-02",
+    "D10-s2-03",
+    "D15-s3-01",
+    "D4-s1-03",
+    "D4-s2-02",
+    "D4-s3-01",
+    "D4-s3-02",
+    "D4-s3-03",
+    "D4-s3-04",
+    "D4-s3-05",
+    "D4-s3-06",
+    "D4-s3-07",
+    "D5-s3-02",
+    "D6-s4-01",
+    "D6-s4-02",
+    "D6-s5-04",
+    "D6-s6-01",
+    "D8-s1-03",
+    "D8-s2-02"
+   ],
+   "severity": "high",
+   "files": [
+    "cc/button.py",
+    "cc/debugger.py",
+    "cc/sensor.py",
+    "cc/services.py",
+    "cc/services.yaml",
+    "cc/snapshots.py",
+    "cc/strings.json",
+    "cc/translations/de.json",
+    "cc/translations/en.json",
+    "cc/translations/sv.json",
+    "cc/www/heatpump-optimizer-card.js"
+   ],
+   "after": [
+    "R11-SEAM-coordinator",
+    "R11-SEAM-config"
+   ],
+   "architect_note": "HA entity/translation surface: entity metadata, vocabulary drift, untranslated splice; D10 quality-scale checks; behaviour inventory 82 entities/15 services holds. 22 findings, size L; class tags I4, I5, N-copy-style, N-entity-metadata, N-move-stale-path, N-name-sort, N-silent-zero, N-untranslated-splice, P2, P9; absorbs findings of draft groups R11-I4, R11-I5, R11-N-copy-style, R11-N-entity-metadata, R11-N-move-stale-path, R11-N-name-sort, R11-N-silent-zero, R11-N-untranslated-splice, R11-P2, R11-P9; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-SEAM-tests",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D16-s3-01",
+    "D0-s3-01",
+    "D12-s3-02",
+    "D1-s2-01",
+    "D1-s3-05",
+    "D10-s1-05",
+    "D10-s1-06",
+    "D14-s2-02",
+    "D15-s2-03",
+    "D3-s2-01",
+    "D5-s2-04",
+    "D5-s2-05",
+    "D5-s2-07",
+    "D5-s6-02",
+    "D5-s6-07",
+    "D5-s7-01",
+    "D5-s7-02",
+    "D5-s7-03",
+    "D5-s8-04",
+    "D5-s8-05",
+    "D5-s9-01",
+    "D5-s9-02",
+    "D5-s9-03",
+    "D6-s5-05",
+    "D7-s1-02",
+    "D7-s1-05",
+    "D7-s1-06",
+    "D7-s2-02",
+    "D9-s3-01",
+    "D9-s3-02"
+   ],
+   "severity": "high",
+   "files": [
+    "tests/card.mjs",
+    "tests/ci_ratchet.py",
+    "tests/closure.py",
+    "tests/config_flow_steps.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/frontend.py",
+    "tests/structure.py",
+    "tests/throwaway_git.py"
+   ],
+   "after": [
+    "R11-SEAM-coordinator"
+   ],
+   "architect_note": "Test-suite seam: tests re-implementing formulas, structure-blind ratchets, move-stale paths; mutation kill rate 0.9651 must not fall. 30 findings, size L; class tags I1, I2, I5, N-comment-style, N-duplicated-rule, N-leaf-imports-solver, N-move-stale-path, N-no-expiry, N-silent-zero, N-structure-blind, N-swallowed-failure, N-unreleased-hold, P1, P2, P5; absorbs findings of draft groups R11-I1, R11-I2, R11-I5, R11-N-comment-style, R11-N-duplicated-rule, R11-N-leaf-imports-solver, R11-N-move-stale-path, R11-N-no-expiry, R11-N-silent-zero, R11-N-structure-blind, R11-N-swallowed-failure, R11-N-unreleased-hold, R11-P1, R11-P2, R11-P5; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-SEAM-instruments",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D11-s1-02",
+    "D11-s1-05",
+    "D11-s2-01",
+    "D11-s3-02",
+    "D13-s2-01",
+    "D13-s2-02",
+    "D17-s1-01",
+    "D11-s1-01",
+    "D11-s1-03",
+    "D11-s1-04",
+    "D11-s1-06",
+    "D11-s2-02",
+    "D11-s2-03",
+    "D11-s2-04",
+    "D11-s3-03",
+    "D11-s3-04",
+    "D14-s1-02",
+    "D15-s2-01",
+    "D15-s2-02",
+    "D15-s2-05",
+    "D15-s3-02",
+    "D5-s10-01",
+    "D5-s10-03",
+    "D5-s10-04",
+    "D5-s10-05",
+    "D5-s10-06",
+    "D5-s2-06",
+    "D5-s4-02",
+    "D5-s5-01",
+    "D5-s5-02",
+    "D5-s5-03",
+    "D5-s5-04",
+    "D5-s6-01",
+    "D5-s6-03",
+    "D5-s6-04",
+    "D5-s6-05",
+    "D5-s6-06",
+    "D5-s8-01",
+    "D5-s8-02",
+    "D5-s8-03",
+    "D6-s5-06",
+    "D6-s5-07",
+    "D6-s5-08"
+   ],
+   "severity": "medium",
+   "files": [
+    ".claude/hooks/pre-bash.sh",
+    ".claude/hooks/pre-edit.sh",
+    ".claude/hooks/session-start.sh",
+    ".claude/hooks/stop-selfcheck.sh",
+    ".claude/workflows/web-fix-wave.js",
+    "dev/archive/handoff/r9-f2-solver-4/mutation_proof.py",
+    "dev/audit/harnesses/claim_merge_mutants.py",
+    "dev/governance/roles/fixer.md",
+    "dev/governance/roles/orchestrator.md",
+    "tools/audit/archscore/gate.py",
+    "tools/audit/check_scopes.py",
+    "tools/audit/enumerate.py",
+    "tools/audit/fold_ledger.py",
+    "tools/audit/machinery_ratchet.py",
+    "tools/audit/merge_throughput.py",
+    "...+56 more"
+   ],
+   "after": [],
+   "architect_note": "Instruments (tools/, dev/): under the tooling freeze only fixes unblocking the round land; the rest go to round-end proposal triage with local overlays meanwhile. 43 findings, size XL; class tags I1, I3, I4, I5, N-comment-style, N-finally-return, N-move-stale-path, N-vocabulary-drift; absorbs findings of draft groups R11-I1, R11-I3, R11-I4, R11-I5, R11-N-comment-style, R11-N-finally-return, R11-N-move-stale-path, R11-N-vocabulary-drift; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-SEAM-docs",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D5-s2-08",
+    "D5-s8-07",
+    "D6-s1-02",
+    "D15-s1-02",
+    "D15-s1-03",
+    "D5-s10-07",
+    "D5-s2-01",
+    "D5-s2-02",
+    "D5-s2-03",
+    "D5-s2-09",
+    "D5-s2-10",
+    "D5-s2-11",
+    "D5-s3-01",
+    "D5-s3-03",
+    "D5-s4-01",
+    "D5-s5-05",
+    "D5-s5-06",
+    "D5-s5-07",
+    "D5-s6-08",
+    "D5-s8-06",
+    "D5-s9-04",
+    "D6-s1-01",
+    "D6-s2-02",
+    "D6-s2-03",
+    "D6-s3-01",
+    "D6-s5-01",
+    "D6-s5-02",
+    "D6-s5-03",
+    "D6-s7-01",
+    "D6-s7-02"
+   ],
+   "severity": "medium",
+   "files": [
+    "docs/CONTRIBUTING.md",
+    "docs/img/model/make_card_weekly_figure.mjs"
+   ],
+   "after": [
+    "R11-SEAM-entity-surface",
+    "R11-SEAM-actuation",
+    "R11-SEAM-learning",
+    "R11-SEAM-pricing",
+    "R11-SEAM-optimizer"
+   ],
+   "architect_note": "Docs and comments (D5/D6): comment-style, orphan-doc and claim verification; lands after every user-facing change (verify groups go last). 30 findings, size L; class tags I4, I5, N-comment-style, N-instrument-locator, N-move-stale-path, N-orphan-doc, N-silent-zero; absorbs findings of draft groups R11-I4, R11-I5, R11-N-comment-style, R11-N-instrument-locator, R11-N-move-stale-path, R11-N-orphan-doc, R11-N-silent-zero; each class sweep is a fitness function. Seam assigned mechanically from each finding's mechanism (first owning module named) with dimension overrides; plan-review should check edge cases."
+  },
+  {
+   "group": "R11-REFUSED",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D0-s3-03",
+    "D15-s2-04",
+    "D15-s2-06",
+    "D15-s2-07",
+    "D7-s3-06"
+   ],
+   "severity": "low",
+   "files": [],
+   "after": [],
+   "architect_note": "Refused back to the judge: verdict refuted or unreproduced at P2, so not dispatched; only the judge undoes this."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D0-s2-01",
+   "dimension": "D0",
+   "severity": "low",
+   "title": "Charged wood tank zeroes 4 of 5 space-only multi-start seeds; mild two-zone days ship the all-off plan",
+   "class": "P4",
+   "seam": "optimizer"
+  },
+  {
+   "id": "D0-s3-01",
+   "dimension": "D0",
+   "severity": "medium",
+   "title": "The finder export strips the evidence bundles.json names, so enumerate.py d15-installs refuses in every finder tree",
+   "class": "I2",
+   "seam": "tests"
+  },
+  {
+   "id": "D0-s3-02",
+   "dimension": "D0",
+   "severity": "low",
+   "title": "No all-off start: negative-price storage plants ship plans 1.8-8.6 % worse than off; MPC masks most",
+   "class": "P4",
+   "seam": "optimizer"
+  },
+  {
+   "id": "D0-s3-03",
+   "dimension": "D0",
+   "severity": "low",
+   "title": "_terminal_cost docstring: no credit breaches the tail floor; at any learnable weight it never does",
+   "class": "I5",
+   "seam": "tests"
+  },
+  {
+   "id": "D1-s1-01",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "HA stop mid-solve raises a persistent solve_worker_fallback repair that no later solve ever clears",
+   "class": "N-uncleared-issue",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D1-s1-03",
+   "dimension": "D1",
+   "severity": "medium",
+   "title": "A user write landing during a debounced in-flight solve is dropped: plan ignores it until the next interval",
+   "class": "N-dropped-refresh",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D1-s1-51",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "(sweep finding, class N-unordered-tiebreak)",
+   "class": "N-unordered-tiebreak",
+   "seam": "pricing"
+  },
+  {
+   "id": "D1-s2-01",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "Store-load boundary passes NaN: a \"NaN\" leaf reaches the live model and makes the next save undecodable",
+   "class": "P1",
+   "seam": "tests"
+  },
+  {
+   "id": "D1-s2-02",
+   "dimension": "D1",
+   "severity": "medium",
+   "title": "PV production is read with no age check: a silent or future-stamped meter still seeds step 0 and is published",
+   "class": "N-no-expiry",
+   "seam": "config"
+  },
+  {
+   "id": "D1-s2-03",
+   "dimension": "D1",
+   "severity": "high",
+   "title": "A weather forecast that stopped advancing is read as a recovery: published fresh while every row lies in the past",
+   "class": "N-no-expiry",
+   "seam": "pricing"
+  },
+  {
+   "id": "D1-s2-04",
+   "dimension": "D1",
+   "severity": "medium",
+   "title": "off_restore._armed_record marks loaded before its read lands: a concurrent caller sees no hold and saves that",
+   "class": "N-restore-race",
+   "seam": "actuation"
+  },
+  {
+   "id": "D1-s2-05",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "One wrong-typed numeric option in an earlier-version config entry fails setup or every cycle, with no quarantine",
+   "class": "P1",
+   "seam": "learning"
+  },
+  {
+   "id": "D1-s2-06",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "A stored boosted_h past timedelta's range raises in the boost restore task on every restart",
+   "class": "P1",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D1-s2-51",
+   "dimension": "D1",
+   "severity": "medium",
+   "title": "(sweep finding, class P1)",
+   "class": "P1",
+   "seam": "actuation"
+  },
+  {
+   "id": "D1-s2-52",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "(sweep finding, class P2)",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D1-s3-01",
+   "dimension": "D1",
+   "severity": "medium",
+   "title": "Pump flag slots read a non-finite state (nan, inf, 1e309) as True: fault and defrost fabricated",
+   "class": "P1",
+   "seam": "actuation"
+  },
+  {
+   "id": "D1-s3-02",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "ECL110 MQTT state parser takes a JSON boolean as a displacement (true -> 1.0, false -> 0.0)",
+   "class": "P1",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D1-s3-03",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "An Open-Meteo sample stamped 0001-01-01 fails every solve: IrradianceSeries.mean_over overflows outside the fence",
+   "class": "P1",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D1-s3-04",
+   "dimension": "D1",
+   "severity": "medium",
+   "title": "_run_in_process's transport-failure arm waits unbounded on a killed worker while holding _PROCESS_LOCK",
+   "class": "P2",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D1-s3-05",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "A persistently failing store save is logged only at DEBUG at all 17 persist handlers; state stops persisting",
+   "class": "N-swallowed-failure",
+   "seam": "tests"
+  },
+  {
+   "id": "D1-s3-06",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "_async_update_data's generic arm logs ERROR with a traceback on every cycle of a persisting failure",
+   "class": "N-log-flood",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D1-s3-07",
+   "dimension": "D1",
+   "severity": "low",
+   "title": "Broad handlers swallow any exception with no record at any level (7 of 11 reached)",
+   "class": "N-swallowed-failure",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D10-s1-01",
+   "dimension": "D10",
+   "severity": "medium",
+   "title": "set_away acknowledges an unparseable return_time and silently clears the stored return instant",
+   "class": "N-silent-zero",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D10-s1-02",
+   "dimension": "D10",
+   "severity": "low",
+   "title": "Two button presses report success when their action is refused or fails (sysid disabled, diagnosis worker down)",
+   "class": "N-silent-zero",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D10-s1-03",
+   "dimension": "D10",
+   "severity": "low",
+   "title": "Config flow stores 41 non-connection settings in ConfigEntry.data, all of them options-flow settings",
+   "class": "N-entry-data-placement",
+   "seam": "config"
+  },
+  {
+   "id": "D10-s1-05",
+   "dimension": "D10",
+   "severity": "low",
+   "title": "Flow tests never show recovery after 51 of 53 rendered errors (config, options, reconfigure)",
+   "class": "I1",
+   "seam": "tests"
+  },
+  {
+   "id": "D10-s1-06",
+   "dimension": "D10",
+   "severity": "low",
+   "title": "test-coverage register row says done; on the round's tree 34 of 95 modules are below 95% (config_flow.py 99.21%)",
+   "class": "I5",
+   "seam": "tests"
+  },
+  {
+   "id": "D10-s2-01",
+   "dimension": "D10",
+   "severity": "medium",
+   "title": "Reconfigure reports success but changes nothing once Options saved the Entities page",
+   "class": "P2",
+   "seam": "config"
+  },
+  {
+   "id": "D10-s2-03",
+   "dimension": "D10",
+   "severity": "low",
+   "title": "German run_optimization_no_prices message names {entry_id}; both raise sites pass entry_ids",
+   "class": "I4",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D10-s2-04",
+   "dimension": "D10",
+   "severity": "low",
+   "title": "Three degC difference sensors stay classless where HA >= 2025.11.0 offers TEMPERATURE_DELTA",
+   "class": "N-entity-metadata",
+   "seam": "config"
+  },
+  {
+   "id": "D10-s3-01",
+   "dimension": "D10",
+   "severity": "low",
+   "title": "strict-typing row reads done while manifest requirement threadpoolctl ships no py.typed and has no stub package",
+   "class": "I5",
+   "seam": "optimizer"
+  },
+  {
+   "id": "D10-s3-02",
+   "dimension": "D10",
+   "severity": "low",
+   "title": "Coordinator has no config_entry: HeatPumpOptimizerConfigEntry annotation under a done strict-typing row",
+   "class": "I5",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D11-s1-01",
+   "dimension": "D11",
+   "severity": "low",
+   "title": "Stop hook lets a turn end red on 2 of 65 policy-corpus files (AGENTS.md, dev/audit/README.md)",
+   "class": "I3",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s1-02",
+   "dimension": "D11",
+   "severity": "medium",
+   "title": "Ruleset drift detector reads 1 of 3 live rulesets; main-protect and release-tags-protect change unseen",
+   "class": "I3",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s1-03",
+   "dimension": "D11",
+   "severity": "low",
+   "title": "rules_sync.mjs --check: a required refusal with no control; its --self-test rewrites the drift and exits 0",
+   "class": "I1",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s1-04",
+   "dimension": "D11",
+   "severity": "low",
+   "title": "Claim-file merge driver's mutation control is dead: its null control fails, 0 of 16 mutants reached",
+   "class": "I1",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s1-05",
+   "dimension": "D11",
+   "severity": "medium",
+   "title": "Structure ratchet's meter is neither owned nor base-pinned in the required jobs that run it",
+   "class": "I3",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s1-06",
+   "dimension": "D11",
+   "severity": "low",
+   "title": "wt_sync.sh asked for its --self-test force-pushes every dirty worktree of the box to origin",
+   "class": "I3",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s2-01",
+   "dimension": "D11",
+   "severity": "medium",
+   "title": "main admitted a merge while a gate run at the merged head was red by the repository's own platform reader",
+   "class": "I3",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s2-02",
+   "dimension": "D11",
+   "severity": "low",
+   "title": "The human oversight point is not provable from GitHub's records: 0 of 52 window merges carry the owner's own approval",
+   "class": "I3",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s2-03",
+   "dimension": "D11",
+   "severity": "low",
+   "title": "The release asset users install carries no provenance; the attestation covers the tag tree only",
+   "class": "I3",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s2-04",
+   "dimension": "D11",
+   "severity": "low",
+   "title": "Policy mandates stated verbatim in two policy files, and rulings policy already states",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s3-02",
+   "dimension": "D11",
+   "severity": "medium",
+   "title": "brief_lint's CI run never lints the live rosters in dev/programme/rosters/ (66 live groups; 3 rotted citations)",
+   "class": "I3",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s3-03",
+   "dimension": "D11",
+   "severity": "low",
+   "title": "policy_lint --hooks accepts a wired hook neutered to `exit 0`: it reads the self-test's exit status, never its tally",
+   "class": "I1",
+   "seam": "instruments"
+  },
+  {
+   "id": "D11-s3-04",
+   "dimension": "D11",
+   "severity": "low",
+   "title": "prepr.sh --self-test never drives main-flow step 5: `no version edit` wired to 0 still gives 553 passed, 0 failed",
+   "class": "I1",
+   "seam": "instruments"
+  },
+  {
+   "id": "D12-s1-01",
+   "dimension": "D12",
+   "severity": "low",
+   "title": "A single-zone install publishes an upper and a lower floor in its space plan",
+   "class": "P2",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D12-s2-01",
+   "dimension": "D12",
+   "severity": "high",
+   "title": "two_zone_mode 'auto' (the default) forces the two-zone model on every one-zone install, ignoring its heat-loss figure",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D12-s3-01",
+   "dimension": "D12",
+   "severity": "high",
+   "title": "Declared on/off compressor (compressor_modulation=on_off) is planned as modulating; switch+setpoint loses its clamp",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D12-s3-02",
+   "dimension": "D12",
+   "severity": "medium",
+   "title": "DHW set-point Fix writes the disinfection floor above the entity's own max on a pump capped below it",
+   "class": "P2",
+   "seam": "tests"
+  },
+  {
+   "id": "D12-s3-03",
+   "dimension": "D12",
+   "severity": "medium",
+   "title": "Mode-less counter-metered pump: an unplanned hot-water charge folds into the house learner as space heat",
+   "class": "N-confounded-learner",
+   "seam": "learning"
+  },
+  {
+   "id": "D13-s2-01",
+   "dimension": "D13",
+   "severity": "medium",
+   "title": "47.8% of blocked verdicts carry a class word VERDICT_CLASSES lacks; bus.sh and fixer.md teach a second vocabulary",
+   "class": "N-vocabulary-drift",
+   "seam": "instruments"
+  },
+  {
+   "id": "D13-s2-02",
+   "dimension": "D13",
+   "severity": "medium",
+   "title": "60.3% of accepted ## Friction entries name no policy file; the body contract never resolves the rule id",
+   "class": "N-vocabulary-drift",
+   "seam": "instruments"
+  },
+  {
+   "id": "D14-s1-01",
+   "dimension": "D14",
+   "severity": "low",
+   "title": "N-step-grid: services.yaml thermal selectors keep the off-grid (min, step) pairs #1679 removed from the config flow",
+   "class": "N-step-grid",
+   "seam": "config"
+  },
+  {
+   "id": "D14-s1-02",
+   "dimension": "D14",
+   "severity": "low",
+   "title": "N-finally-return: one live return-inside-finally seam and no class barrier beyond the single nightly_ha pin",
+   "class": "N-finally-return",
+   "seam": "instruments"
+  },
+  {
+   "id": "D14-s1-03",
+   "dimension": "D14",
+   "severity": "medium",
+   "title": "P8: the options dialog labels and bounds money in the instance currency while every published figure is in the feed's",
+   "class": "P8",
+   "seam": "config"
+  },
+  {
+   "id": "D14-s2-01",
+   "dimension": "D14",
+   "severity": "medium",
+   "title": "Push-mode pump flags quiet past their 30/60 min on-change limit publish Input Problem on a healthy pump",
+   "class": "N-staleness",
+   "seam": "config"
+  },
+  {
+   "id": "D14-s2-02",
+   "dimension": "D14",
+   "severity": "low",
+   "title": "_current_weather books forecast row 0's wind as current at any age; the N-no-expiry barrier cannot see an index-0 read",
+   "class": "N-no-expiry",
+   "seam": "tests"
+  },
+  {
+   "id": "D14-s2-03",
+   "dimension": "D14",
+   "severity": "low",
+   "title": "N-log-flood barrier counts only _LOGGER.warning/.error: an unlatched per-cycle .exception or .critical passes it",
+   "class": "N-log-flood",
+   "seam": "learning"
+  },
+  {
+   "id": "D15-s1-02",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "D15.md step 2's privacy gate over the bundle refuses its own null-control bundle, so every D15 run stops at M2",
+   "class": "I4",
+   "seam": "docs"
+  },
+  {
+   "id": "D15-s1-03",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "debug_ingest.py's verdict line misstates what it judged: a fixed /12 denominator and a vacuous replay-clean pass",
+   "class": "N-silent-zero",
+   "seam": "docs"
+  },
+  {
+   "id": "D15-s1-04",
+   "dimension": "D15",
+   "severity": "medium",
+   "title": "store.DOMAINS declares less than the writers write; the debug ring's loader drops rows with an unpriced sample",
+   "class": "P2",
+   "seam": "actuation"
+  },
+  {
+   "id": "D15-s1-05",
+   "dimension": "D15",
+   "severity": "medium",
+   "title": "A capacity-envelope bucket the fold writes with count 0 is dropped by its own loader at every restart",
+   "class": "P2",
+   "seam": "actuation"
+  },
+  {
+   "id": "D15-s2-01",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "debug_replay seeds unmasked store entity ids against the masked replay half, voiding the learned heat loss",
+   "class": "I4",
+   "seam": "instruments"
+  },
+  {
+   "id": "D15-s2-02",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "debug_replay starts the window from download-time stores: 142 of 192 accuracy samples postdate the replay clock",
+   "class": "I4",
+   "seam": "instruments"
+  },
+  {
+   "id": "D15-s2-03",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "The synthetic null bundle never runs the drift latch: observe_bias is called 0 times in 96 cycles",
+   "class": "N-silent-zero",
+   "seam": "tests"
+  },
+  {
+   "id": "D15-s2-04",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "debug_replay replays on a UTC clock, not the bundle time_zone the lane uses: 4 of 4 cycles publish differently",
+   "class": "P7",
+   "seam": "instruments"
+  },
+  {
+   "id": "D15-s2-05",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "debug_replay reports 5 of the lane's 8 judges and its verdict reads 4: red judges pass unseen",
+   "class": "I4",
+   "seam": "instruments"
+  },
+  {
+   "id": "D15-s2-06",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "Replay judge no_default fires on the optimal-setpoint sensor at the configured max_temperature",
+   "class": "I4",
+   "seam": "instruments"
+  },
+  {
+   "id": "D15-s2-07",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "Replay judge not_frozen reads a config-constant wear price as a frozen mirror of the electricity price",
+   "class": "I4",
+   "seam": "instruments"
+  },
+  {
+   "id": "D15-s3-01",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "Solver self-test counts every restart's not-run publish as a 0 ms solve",
+   "class": "N-silent-zero",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D15-s3-02",
+   "dimension": "D15",
+   "severity": "low",
+   "title": "dbg_bundle_gen's null-control rows are a diverged copy of cycle_row; feed self-test raises on them",
+   "class": "I4",
+   "seam": "instruments"
+  },
+  {
+   "id": "D16-s1-01",
+   "dimension": "D16",
+   "severity": "low",
+   "title": "Frequency control writes a decile mid that is not on the frequency entity's step",
+   "class": "N-step-grid",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s1-02",
+   "dimension": "D16",
+   "severity": "low",
+   "title": "A space-only step on a pump with no heating-only mode charges a cold tank: the DHW gate is floored at 30 C",
+   "class": "N-mode-coupled-write",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s1-03",
+   "dimension": "D16",
+   "severity": "medium",
+   "title": "A space boost on an indoor set-point entity holds the plan's partial set-point, not the band top",
+   "class": "P2",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s1-04",
+   "dimension": "D16",
+   "severity": "high",
+   "title": "A plan that goes stale on an idle step leaves the supply switch off: the pump is never handed back",
+   "class": "N-unreleased-hold",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s1-05",
+   "dimension": "D16",
+   "severity": "low",
+   "title": "A mode write to an unavailable select is recorded as made",
+   "class": "P11",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s2-01",
+   "dimension": "D16",
+   "severity": "medium",
+   "title": "Frequency, ECL110 displace and heat-curve offset hold the cycle's step through the next step",
+   "class": "N-stale-step-actuation",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s2-02",
+   "dimension": "D16",
+   "severity": "medium",
+   "title": "Disinfection switch is commanded from the previous solve's action, one interval late",
+   "class": "N-stale-step-actuation",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s2-03",
+   "dimension": "D16",
+   "severity": "low",
+   "title": "A switch-on leads no mode when the arbiter's stale record matches the step's mode",
+   "class": "P2",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s2-04",
+   "dimension": "D16",
+   "severity": "medium",
+   "title": "Floor-level space steps short-cycle where the floor lift exceeds min lift plus stop hysteresis",
+   "class": "P3",
+   "seam": "learning"
+  },
+  {
+   "id": "D16-s3-01",
+   "dimension": "D16",
+   "severity": "high",
+   "title": "Entering Off leaves the arbiter's mode and tank set-point at the optimizer's last write",
+   "class": "N-unreleased-hold",
+   "seam": "tests"
+  },
+  {
+   "id": "D16-s3-02",
+   "dimension": "D16",
+   "severity": "high",
+   "title": "Supply switch, frequency, valve and circulation pump have no restore owner on off, unload or remove",
+   "class": "N-unreleased-hold",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s3-03",
+   "dimension": "D16",
+   "severity": "medium",
+   "title": "Unload during a held disinfection run leaves the tank set-point at the disinfection target",
+   "class": "N-order-coupling",
+   "seam": "actuation"
+  },
+  {
+   "id": "D16-s3-04",
+   "dimension": "D16",
+   "severity": "medium",
+   "title": "A space set-point restore that fails on entering Off is never retried while Off",
+   "class": "N-unreleased-hold",
+   "seam": "actuation"
+  },
+  {
+   "id": "D17-s1-01",
+   "dimension": "D17",
+   "severity": "medium",
+   "title": "d17-features --kind option omits all 156 section-nested option fields, including the brief's owed weekend/holiday cell",
+   "class": "I4",
+   "seam": "instruments"
+  },
+  {
+   "id": "D17-s1-02",
+   "dimension": "D17",
+   "severity": "high",
+   "title": "Weekend/holiday comfort value kept as shown is dropped when the same save changes the weekday value",
+   "class": "P2",
+   "seam": "config"
+  },
+  {
+   "id": "D17-s1-03",
+   "dimension": "D17",
+   "severity": "medium",
+   "title": "Thermal-model page offers house thermal mass on a two-zone house, where no model reads it",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D17-s1-05",
+   "dimension": "D17",
+   "severity": "high",
+   "title": "Peak guard projects the window from current x elapsed, so it acts late on real peaks and holds back on non-peaks",
+   "class": "N-partial-window-extrapolation",
+   "seam": "actuation"
+  },
+  {
+   "id": "D17-s2-02",
+   "dimension": "D17",
+   "severity": "medium",
+   "title": "The outdoor temperature sensor never reaches the plan while a weather forecast exists",
+   "class": "N-dead-input",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D17-s2-03",
+   "dimension": "D17",
+   "severity": "medium",
+   "title": "Quick setup's wood furnace and wood-tank probe change nothing in the plan of the plant quick setup creates",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D17-s2-04",
+   "dimension": "D17",
+   "severity": "medium",
+   "title": "The night-mode schedule kept on the setup pre-fill page caps nothing",
+   "class": "N-dead-input",
+   "seam": "learning"
+  },
+  {
+   "id": "D17-s2-05",
+   "dimension": "D17",
+   "severity": "low",
+   "title": "The setup pre-fill page stores its After-saving navigation choice in the entry's data",
+   "class": "N-entry-data-placement",
+   "seam": "config"
+  },
+  {
+   "id": "D17-s3-01",
+   "dimension": "D17",
+   "severity": "medium",
+   "title": "run_optimization re-solves without fetching inputs or publishing the plan; Optimize Now does both",
+   "class": "P2",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D17-s3-02",
+   "dimension": "D17",
+   "severity": "medium",
+   "title": "set_thermal_parameters accepts house heat loss and thermal mass and changes nothing in two-zone",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D17-s3-03",
+   "dimension": "D17",
+   "severity": "low",
+   "title": "restore_learned_snapshot restores to a snapshot that carried no accuracy evidence",
+   "class": "N-silent-zero",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D17-s3-51",
+   "dimension": "D17",
+   "severity": "low",
+   "title": "(sweep finding, class P2)",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D2-s1-01",
+   "dimension": "D2",
+   "severity": "critical",
+   "title": "Scalar Carnot flow-lift factor is inverted: a hotter flow raises COP, and the batch twin disagrees",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D2-s1-02",
+   "dimension": "D2",
+   "severity": "high",
+   "title": "mixing_valve.emitter_delivery returns negative heat: a cold tank behind the valve cools the zones",
+   "class": "P2",
+   "seam": "actuation"
+  },
+  {
+   "id": "D2-s1-51",
+   "dimension": "D2",
+   "severity": "medium",
+   "title": "(sweep finding, class N-table-value)",
+   "class": "N-table-value",
+   "seam": "learning"
+  },
+  {
+   "id": "D2-s2-02",
+   "dimension": "D2",
+   "severity": "high",
+   "title": "Measured defrost derate never derates: derate_from_duty adds duty x 1.5 and clamps to 1.0",
+   "class": "N-wrong-law",
+   "seam": "actuation"
+  },
+  {
+   "id": "D2-s3-01",
+   "dimension": "D2",
+   "severity": "medium",
+   "title": "price_risk_lambda's premium is booked as money: predicted_cost, baseline_cost, savings and prices carry lambda*sigma",
+   "class": "N-objective-as-money",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D2-s3-02",
+   "dimension": "D2",
+   "severity": "critical",
+   "title": "A price sensor in a minor unit (\u00f6re, cent, c, p) reaches the plan at 100x: the 1/100 is never applied",
+   "class": "N-missing-unit-scale",
+   "seam": "learning"
+  },
+  {
+   "id": "D2-s3-03",
+   "dimension": "D2",
+   "severity": "high",
+   "title": "Tibber's tomorrow prices are dropped: the payload parser reads only 'today'",
+   "class": "N-partial-payload-parse",
+   "seam": "pricing"
+  },
+  {
+   "id": "D2-s3-04",
+   "dimension": "D2",
+   "severity": "high",
+   "title": "Grid-fee weekday rules are shifted a day: Mon-Fri skips Friday, Sat-Sun bills Friday and Saturday, Sunday never matches",
+   "class": "I4",
+   "seam": "pricing"
+  },
+  {
+   "id": "D2-s3-05",
+   "dimension": "D2",
+   "severity": "high",
+   "title": "The realised capacity tracker keeps each day's LOWEST window, so the billed peak and the capacity line are understated",
+   "class": "N-inverted-aggregate",
+   "seam": "pricing"
+  },
+  {
+   "id": "D2-s3-06",
+   "dimension": "D2",
+   "severity": "medium",
+   "title": "peak_cost (the published projected capacity charge) sums the k SMALLEST window excesses",
+   "class": "P2",
+   "seam": "pricing"
+  },
+  {
+   "id": "D2-s3-07",
+   "dimension": "D2",
+   "severity": "low",
+   "title": "The open month's coverage scale counts 744 h for the 743-hour March: a fully settled DST month reads 0.13 % high",
+   "class": "P7",
+   "seam": "pricing"
+  },
+  {
+   "id": "D2-s3-08",
+   "dimension": "D2",
+   "severity": "medium",
+   "title": "A charge longer than one sample books its whole charge-start dip as a hot-water draw on every combi tank",
+   "class": "N-event-misattribution",
+   "seam": "learning"
+  },
+  {
+   "id": "D2-s3-09",
+   "dimension": "D2",
+   "severity": "medium",
+   "title": "Ceiling-probe intervals metered at the pump's floor become the solve's learned top: the planned max drops 6.0 -> 1.5 kW",
+   "class": "N-confounded-learner",
+   "seam": "learning"
+  },
+  {
+   "id": "D2-s3-10",
+   "dimension": "D2",
+   "severity": "medium",
+   "title": "The sysid adoption interval under-covers under 0.1 C quantisation and 0.02-0.05 C noise: 19 of 43 admitted fits miss it",
+   "class": "P5",
+   "seam": "learning"
+  },
+  {
+   "id": "D2-s3-11",
+   "dimension": "D2",
+   "severity": "low",
+   "title": "A genuine internal gain is learned at 54-57 % of its size; the heat-loss scale absorbs the rest (-2.75 %)",
+   "class": "N-confounded-learner",
+   "seam": "learning"
+  },
+  {
+   "id": "D3-s2-01",
+   "dimension": "D3",
+   "severity": "low",
+   "title": "Import-level closures select 9 scripts (525.7 s recorded) for a payload.py function-body edit none of them executes",
+   "class": "I2",
+   "seam": "tests"
+  },
+  {
+   "id": "D4-s1-01",
+   "dimension": "D4",
+   "severity": "medium",
+   "title": "Layout editor: the pipe a user clicks to remove is a 2.75-5.75 px hit band, under F1's 24/44 px floor in every cell",
+   "class": "P9",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s1-03",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "Headline fold headers (.hl-fold-head) stay 32/39 px tall under a coarse pointer: not on the card's 44 px floor list",
+   "class": "P9",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s2-01",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "Config-flow device pre-fill page renders window errors with an unfilled {min_window_minutes} placeholder",
+   "class": "I4",
+   "seam": "learning"
+  },
+  {
+   "id": "D4-s2-02",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "German run_optimization_no_prices message reads {entry_id}; the raise passes {entry_ids}",
+   "class": "I4",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s3-01",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "Card failure lines splice Home Assistant's English exception text into sv/de messages",
+   "class": "N-untranslated-splice",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s3-02",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "German headline stats at phone width: the two numbers in one row sit 14 px apart",
+   "class": "P9",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s3-03",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "Tooltip, picker-note and layout-verdict text renders below the card's own 12 px type floor",
+   "class": "P9",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s3-04",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "One status role, two colours: error, success and warning each render in two shades across states",
+   "class": "P9",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s3-05",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "Rendered type and spacing mostly bypass the --hpo-text / --hpo-space scales",
+   "class": "P9",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s3-06",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "Six first-run setup page titles are Title Case among sentence-case titles (en; three in sv)",
+   "class": "N-copy-style",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s3-07",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "German text mixes \u201etypographic\u201c and \"straight\" quotes; a blueprint writes degrees as '15 C'",
+   "class": "N-copy-style",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D4-s2-51",
+   "dimension": "D4",
+   "severity": "low",
+   "title": "(sweep finding, class I4)",
+   "class": "I4",
+   "seam": "config"
+  },
+  {
+   "id": "D5-s10-01",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "pre-edit.sh names .claude/rules/ as the source of .cursor/rules and sends seats to edit a generated copy",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s10-03",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "session-start.sh header miscounts its own report and cites a 'HANDOVER trap 11' that does not exist",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s10-04",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "k1725_blas_kernel_gap.py docstring cites tools/audit/README.md, absent at the baseline",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s10-05",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "thermal_parity.py docstring cites tools/audit/README.md, absent at the baseline",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s10-06",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "cop_duty_floor.py docstring cites dev/programme/carries/carry-2065.json, absent at the baseline",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s10-07",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "339 comment sentences over 40 words across 193 of 329 cell files (criterion C5)",
+   "class": "N-comment-style",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s2-01",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "One home per fact fails: options-page table twice (14/24 rows drifted), 15 repeated paragraphs, 4 repeated diagrams",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s2-02",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "docs/CONTRIBUTING.md is linked from no other document of README.md + docs/*.md",
+   "class": "N-orphan-doc",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s2-03",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "No reader doc states the basis of the identification heat-loss figure; it sits 18.9 % below heat_loss_w_per_k",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s2-04",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "make_model_figures.py docstring says no test reads it; tests/doc_claims.py imports it and its closure holds it",
+   "class": "I5",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s2-05",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "make_card_figures.mjs: font-stack comment names a README hero that has no such font; 5 sentences over 40 words",
+   "class": "I5",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s2-06",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "make_card_weekly_figure.mjs header: two sentences of 51 and 55 words",
+   "class": "N-comment-style",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s2-07",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "text_ledger.py check --plant always fails for seat D5-s2: it plants into README.md, which D5 reads no units from",
+   "class": "I2",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s2-08",
+   "dimension": "D5",
+   "severity": "medium",
+   "title": "Mechanism numbers drifted: legionella 7 vs 10 days, input age 60 vs 360 min, pump-duty echo grace 60 vs 20 s",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s2-09",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "how-it-works 'Compressor starts' describes a smooth step-to-step start term the optimizer no longer has",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s2-10",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "how-it-works says any DHW sensor, volume or window activates hot water; the wizard's explicit switch overrides that",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s2-11",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "setup.md says Quick setup is the last entry on the options first menu; Advanced settings follows it",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s3-01",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "grid_fee docstrings say the module is free of Home Assistant imports; it cannot import without homeassistant",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s3-02",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "comfort_band docstring says the climate slider's maximum sits one degree above the ceiling; it equals the ceiling",
+   "class": "I5",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D5-s3-03",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "363 of 2855 comment units in the D5-s3 cells carry a sentence over 40 words (criterion C5)",
+   "class": "N-comment-style",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s4-01",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "558 comment units in the s4 cells carry a sentence over 40 words (C5)",
+   "class": "N-comment-style",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s4-02",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "sysid.py comments name code variables that exist nowhere (prior_w, data_w, T_prev)",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s5-01",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "prepr.sh: three comment units name a path or branch the tree does not hold",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s5-02",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "gh_comment.in_shared_root docstring points at tools/audit/prepr.sh, which is not in the tree",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s5-03",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "preflight.sh step 5 names the moved tools/audit/briefs/fix-review.md as the precondition's second home",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s5-04",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "open_pr.sh's usage line names openpr.sh, a script that does not exist",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s5-05",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "merge_train self-test comment names _outside_self_test, which no code defines",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s5-06",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "orchestrator_tick: HEARTBEAT_SECONDS called the train's heartbeat is 480 s; the train beats every 240 s",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s5-07",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "483 comment sentences over 40 words across 60 of 74 tooling files",
+   "class": "N-comment-style",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s6-01",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "stamp.py record-class comment counts three regexes over six and cites two moved paths",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s6-02",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "replay_draws.py docstring names tests/replay_draws.tsv; the table it fills is tests/replay_cost_draws.tsv",
+   "class": "I5",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s6-03",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "row_position.py usage line runs a path that does not exist (exit 2)",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s6-04",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "plan_audit.py documents end-to-end --target 22.7; its parser refuses it",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s6-05",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "update_pr.sh header names the script updatepr.sh",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s6-06",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "roster_lib.py attributes its open set and wave recurrence to gen_table_rev3.py, absent from the tree",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s6-07",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "plan_table.py self-test comment cites gen_table_rev3.py, absent from the tree",
+   "class": "I5",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s6-08",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "404 comment sentences over 40 words in 99 files of the seat's cells",
+   "class": "N-comment-style",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s7-01",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "tests/features.py: 454 comment units fail D5-criteria C1/C2/C5 (3 dead names, 1 false count, 450 over-long)",
+   "class": "N-comment-style",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s7-02",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "tests/finite_boundary.py: 14 comment units carry a sentence over 40 words (C5)",
+   "class": "N-comment-style",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s7-03",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "tests/frontend.py: 3 comment units carry a sentence over 40 words (C5)",
+   "class": "N-comment-style",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s8-01",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "policy_lint.mjs comments point at pre-move paths: usage lines, corpus_excluded.json, preflight.sh, decisions, delivery",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s8-02",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "friction_issues.mjs usage lines run a path that does not exist",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s8-03",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "closure.py comments name moved coverage_tree.sh, governance_cost.py and docs/delivery paths",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D5-s8-04",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "doc_claims.py cites design notes and CONDENSED.md that are not in the tree",
+   "class": "I5",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s8-05",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "card.mjs comments cite card_shapes.mjs and DESIGN.md, neither tracked",
+   "class": "I5",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s8-06",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "657 of 3628 comment units in D5-s8's cells hold a sentence over 40 words (criterion C5)",
+   "class": "N-comment-style",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s8-07",
+   "dimension": "D5",
+   "severity": "medium",
+   "title": "text_ledger scan_c_like reports wrong line numbers for 1175 of 1899 JS comment units",
+   "class": "N-instrument-locator",
+   "seam": "docs"
+  },
+  {
+   "id": "D5-s9-01",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "tests/entities.py comments cite 13 repository paths that do not exist at the baseline (12 units)",
+   "class": "N-move-stale-path",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s9-02",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "tests/run.sh comments cite 3 moved paths (coverage_tree.sh, docs/backlog.md, docs/audit-2026-09.md)",
+   "class": "N-move-stale-path",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s9-03",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "tests/structure.py thread-pin comment cites tools/audit/README.md, moved to dev/audit/README.md",
+   "class": "N-move-stale-path",
+   "seam": "tests"
+  },
+  {
+   "id": "D5-s9-04",
+   "dimension": "D5",
+   "severity": "low",
+   "title": "820 comment sentences over 40 words in 597 units across 37 test files (C5)",
+   "class": "N-comment-style",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s1-01",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "docs/configuration.md: three rows contradict the code (legionella interval 7 vs 10 days; 60 s echo grace not applied)",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s1-02",
+   "dimension": "D6",
+   "severity": "medium",
+   "title": "README.md: legionella 'every 7 days' (code 10) and the closed-loop learner sentence (learner diverges) are false",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s2-01",
+   "dimension": "D6",
+   "severity": "high",
+   "title": "strings.json holds 6 false rows: five user-facing claims contradict the production symbol that decides them",
+   "class": "I5",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D6-s2-02",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "fixer.md cites decision 0011 at docs/decisions/, a path that does not exist",
+   "class": "N-move-stale-path",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s2-03",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "orchestrator.md cites decision 0010 at docs/decisions/, a path that does not exist",
+   "class": "N-move-stale-path",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s3-01",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "Setup-wizard device pre-fill refusal renders its description without the placeholders its text reads",
+   "class": "I4",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s4-01",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "Swedish stale-plan pill tooltip renders a literal {minuter} instead of the minute limit",
+   "class": "I4",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D6-s4-02",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "sv persistent heat-curve write budget text: '0 or 1 writes nothing', 'one always kept for the restore' are false",
+   "class": "I5",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D6-s5-01",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "dev/audit/README.md: the mock-use claim is false and the j5_gil reviewer pointer is stale",
+   "class": "N-move-stale-path",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s5-02",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "gate-scoping.md tells a seat to protect tools/audit/round4/D6/, which does not exist",
+   "class": "N-move-stale-path",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s5-03",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "brief-citations.md says the symbol check excludes tools/audit/round2/; brief_lint searches it",
+   "class": "N-move-stale-path",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s5-04",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "writing-for-agents.md places the one handover under docs/; it is dev/programme/HANDOVER.md",
+   "class": "N-move-stale-path",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D6-s5-05",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "tests/README.md says every script but stress.py runs unleased; 9 suite scripts take a lease or slot",
+   "class": "I5",
+   "seam": "tests"
+  },
+  {
+   "id": "D6-s5-06",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "INSTRUMENTS.md lists 19 record directories 'here'; none is in tools/audit/seat/",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D6-s5-07",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "HANDOVER.md documents worktree_gc.sh --apply; the script refuses --apply",
+   "class": "I5",
+   "seam": "instruments"
+  },
+  {
+   "id": "D6-s5-08",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "archscore ABOUT.md cites event_hub_writes.py; the control is r10_livestate_event_hub_writes.py",
+   "class": "N-move-stale-path",
+   "seam": "instruments"
+  },
+  {
+   "id": "D6-s6-01",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "de.json: 18 false/stale rows (English or renamed UI labels, ECL110-only heat-curve page, 2 numbers code contradicts)",
+   "class": "I5",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D6-s7-01",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "docs/CONTRIBUTING.md: four sentences contradict the fork contract's code (CI scope, path classes, ## Head)",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D6-s7-02",
+   "dimension": "D6",
+   "severity": "low",
+   "title": "plan-2026-09-open-issues.md: 9 present-tense claims in its standing sections are false or stale at the baseline",
+   "class": "I5",
+   "seam": "docs"
+  },
+  {
+   "id": "D7-s1-01",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "const_modules_over_50 counts names on from-import statements: entry_config.py reads 118 const names and counts 3",
+   "class": "N-structure-blind",
+   "seam": "learning"
+  },
+  {
+   "id": "D7-s1-02",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "The clone censuses key a window by its owning function: a rule written twice in one function is not a copy",
+   "class": "N-structure-blind",
+   "seam": "tests"
+  },
+  {
+   "id": "D7-s1-03",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "No ratchet row counts a package import nothing uses: 14 bound names in 6 modules are never loaded",
+   "class": "N-structure-blind",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D7-s1-04",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "No ratchet row holds coordinator.py's size outside the class: 2,980 lines unpriced, 1,423 more move nothing",
+   "class": "N-structure-blind",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D7-s1-05",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "Eight of the 14 clone classes have a one-owner prototype the score admits: duplication_copies 18 -> 9",
+   "class": "N-duplicated-rule",
+   "seam": "tests"
+  },
+  {
+   "id": "D7-s1-06",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "Seven pure modules reach Home Assistant through an import they do not need: layer_violations 13 -> 6",
+   "class": "N-leaf-imports-solver",
+   "seam": "tests"
+  },
+  {
+   "id": "D7-s2-01",
+   "dimension": "D7",
+   "severity": "medium",
+   "title": "Away is no learner freeze: internal gains, DHW draw statistics and comfort quiet evidence ingest away intervals",
+   "class": "N-confounded-learner",
+   "seam": "learning"
+  },
+  {
+   "id": "D7-s2-02",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "Sysid gate admits 11-21 % low UA on the configured free-heat prior; its sweep pins only the learned-profile arm",
+   "class": "P5",
+   "seam": "tests"
+  },
+  {
+   "id": "D7-s2-03",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "CoordinatorContext is not write-once: two in-place _opt_config writers reach every superseded context",
+   "class": "N-shared-config",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D7-s3-01",
+   "dimension": "D7",
+   "severity": "high",
+   "title": "temperature_from_c is not the inverse of normalize_temperature_c: every Fahrenheit set-point write is wrong",
+   "class": "P8",
+   "seam": "learning"
+  },
+  {
+   "id": "D7-s3-03",
+   "dimension": "D7",
+   "severity": "medium",
+   "title": "`The plan step covering now` is written four times; two copies have no end rule and hold the last step forever",
+   "class": "N-no-expiry",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D7-s3-04",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "Three small rules have copies that disagree: water's heat capacity, a naive instant's zone, a finite number",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D7-s3-05",
+   "dimension": "D7",
+   "severity": "low",
+   "title": "Dead state inside live code: 50 constants, parameters, locals, attributes and fields nothing in production reads",
+   "class": "N-structure-blind",
+   "seam": "config"
+  },
+  {
+   "id": "D7-s3-06",
+   "dimension": "D7",
+   "severity": "medium",
+   "title": "This year's 29 modules: 93 of 480 functions can be deleted with no behaviour script failing",
+   "class": "I1",
+   "seam": "pricing"
+  },
+  {
+   "id": "D8-s1-01",
+   "dimension": "D8",
+   "severity": "medium",
+   "title": "Sensor Gap Advisor prices a hot-water tank thermometer as the top gap on installs with no hot water",
+   "class": "P2",
+   "seam": "learning"
+  },
+  {
+   "id": "D8-s1-02",
+   "dimension": "D8",
+   "severity": "medium",
+   "title": "Plan Monthly Savings publishes the open month extrapolated from one settled interval (x2688 to x2976)",
+   "class": "N-partial-window-extrapolation",
+   "seam": "pricing"
+  },
+  {
+   "id": "D8-s1-03",
+   "dimension": "D8",
+   "severity": "low",
+   "title": "Plan Monthly Savings is available with state unknown at a month rollover while settled months exist",
+   "class": "P2",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D8-s2-02",
+   "dimension": "D8",
+   "severity": "low",
+   "title": "Declared 'lifetime' family sorts as 3 runs by sensor entity_id (cost_total_heating, space_heating_*, total_energy)",
+   "class": "N-name-sort",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D8-s3-01",
+   "dimension": "D8",
+   "severity": "medium",
+   "title": "Lifetime energy accumulators publish state_class measurement with device_class energy",
+   "class": "N-entity-metadata",
+   "seam": "entity-surface"
+  },
+  {
+   "id": "D9-s1-01",
+   "dimension": "D9",
+   "severity": "low",
+   "title": "A diagnose press runs a full coordinator cycle, re-solving the plan to publish an analysis that needs no solve",
+   "class": "N-solve-recompute",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D9-s1-02",
+   "dimension": "D9",
+   "severity": "low",
+   "title": "Background what-if solves stack onto the main solve with no per-cycle budget; the fuse-advisor cycle fails B1 by 1.6x",
+   "class": "N-unbudgeted-background",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D9-s1-03",
+   "dimension": "D9",
+   "severity": "medium",
+   "title": "User what-ifs queue 3 solves each behind the worker lock: the 3 s limiter has no in-flight guard",
+   "class": "N-unbudgeted-background",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D9-s1-04",
+   "dimension": "D9",
+   "severity": "low",
+   "title": "Every steady what-if runs reference_day's thermostat simulation on the event loop: 384-960 simulate_step per call",
+   "class": "P10",
+   "seam": "coordinator"
+  },
+  {
+   "id": "D9-s2-01",
+   "dimension": "D9",
+   "severity": "low",
+   "title": "Card HistorySource never trims rows past its 48 h span: retained rows grow linearly with the card's life",
+   "class": "N-unbounded-retention",
+   "seam": "optimizer"
+  },
+  {
+   "id": "D9-s3-01",
+   "dimension": "D9",
+   "severity": "low",
+   "title": "Stress memory channel probes 6 of 54 scenarios: a 2x retained-bytes regression in any of the other 48 passes",
+   "class": "I1",
+   "seam": "tests"
+  },
+  {
+   "id": "D9-s3-02",
+   "dimension": "D9",
+   "severity": "low",
+   "title": "Stress gate runs no coordinator cycle: 2x solves/cycle, payload, retained growth or lost GIL yields read unchanged",
+   "class": "I1",
+   "seam": "tests"
+  }
+ ]
+}

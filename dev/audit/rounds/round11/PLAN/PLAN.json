@@ -1,0 +1,2644 @@
+{
+ "round": 11,
+ "fork": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "target_dS": 22.7,
+ "draft": ".claude/workflows/wave-r11-groups.json",
+ "components": [
+  {
+   "name": "shared kernel",
+   "owns": "small rules with no dependency: constants, the step covering an instant, elapsed time, latches",
+   "modules": "const plan_step drift batchmath log_latch issues currency"
+  },
+  {
+   "name": "input boundary",
+   "owns": "every live value entering: unit scale, finiteness, age",
+   "modules": "inputs entry_config pump_signals pump_mode running_signal open_meteo payload rooms"
+  },
+  {
+   "name": "persisted store",
+   "owns": "the schema of what is saved and what a load admits",
+   "modules": "store snapshots"
+  },
+  {
+   "name": "plant model",
+   "owns": "physical laws and the plant's shape",
+   "modules": "thermal_model mixing_valve flow_lift flow_meter defrost wood_fuel battery presets topology freq_control dhw_schedule"
+  },
+  {
+   "name": "learners",
+   "owns": "parameters fitted from observed intervals, and which intervals count",
+   "modules": "sysid accuracy dhw_learning dhw_draws draw_range comfort_learning curve_learning heat_energy external_heat learner_progress slab_seed wear"
+  },
+  {
+   "name": "money",
+   "owns": "prices, fees, capacity windows, the ledger, currency",
+   "modules": "price_model tariff grid_fee ledger price_tiles power_guard"
+  },
+  {
+   "name": "solver",
+   "owns": "the plan from inputs, model and money",
+   "modules": "optimizer dhw_planner duty_legs runs slot_drivers manual_plan pv whatif plan_slots process_worker"
+  },
+  {
+   "name": "actuation",
+   "owns": "every write, hold and release on a pump entity",
+   "modules": "pump_arbiter off_restore boost heat_curve duty_switch supply_hold early_cutoff legionella disinfection quiet_windows silent_mode setpoint_check pump_schedule"
+  },
+  {
+   "name": "cycle",
+   "owns": "when a solve runs, lifecycle, failure reporting",
+   "modules": "coordinator __init__ away notifier diagnosis narrative comfort_band driving_grade"
+  },
+  {
+   "name": "config surface",
+   "owns": "setup and options flows, where a setting is stored",
+   "modules": "config_flow quick_setup device_prefill modbus_prefill prefill_offer name_match"
+  },
+  {
+   "name": "entity and service surface",
+   "owns": "entities, actions, repairs, diagnostics, product text",
+   "modules": "sensor binary_sensor button switch climate datetime entity services repairs diagnostics debugger replay_doc strings.json translations/"
+  },
+  {
+   "name": "card",
+   "owns": "the dashboard card",
+   "modules": "www/heatpump-optimizer-card.js frontend"
+  },
+  {
+   "name": "outside the package",
+   "owns": "test suite and ratchets (tests/); instruments (tools/, .claude/, dev/audit/harnesses/); reader docs (README.md, docs/); governance text (dev/governance/, dev/programme/)",
+   "modules": ""
+  }
+ ],
+ "scenarios": [
+  {
+   "quality": "price optimality (D0)",
+   "scenario": "A two-tank wood house on a mild day, or a storage plant at negative prices, is solved; the shipped plan costs no more than the one-run or all-off challenger at equal feasibility.",
+   "sensitivity": "S1: the multi-start seed set in optimizer.py; one all-zero or all-energy set loses a basin.",
+   "tradeoff": "T1: each added start costs solve time on a Raspberry-Pi-class host (D9)."
+  },
+  {
+   "quality": "price optimality (D0)",
+   "scenario": "price_risk_lambda is above zero; predicted cost, baseline, savings and the price tiles equal the feed's prices times energy, and the premium moves only the objective.",
+   "sensitivity": "S2: the single prices array the solver hands both the objective and the result.",
+   "tradeoff": "T2: carrying two price series widens the result payload the card and the ledger read."
+  },
+  {
+   "quality": "robustness (D1)",
+   "scenario": "A weather forecast stops advancing, a PV meter goes silent, or a push-mode flag is quiet for an hour; within one cycle the input is treated as stale, Input Problem tells the truth, and the plan falls back to the documented default.",
+   "sensitivity": "S3: the age rule per input kind (polled, on-change, forecast row).",
+   "tradeoff": "T3: a shorter age limit raises false Input Problem on healthy report-on-change devices (D14-s2-01)."
+  },
+  {
+   "quality": "robustness (D1)",
+   "scenario": "A stored document, an option or a live state carries NaN, a boolean, an absurd hour count or a year-1 timestamp; setup and every later cycle complete, the value is quarantined once and one record says so.",
+   "sensitivity": "S4: the finiteness and domain test at inputs.py and store.py.",
+   "tradeoff": "T4: a strict boundary rejects values an earlier release stored, which then needs a migration rather than a refusal."
+  },
+  {
+   "quality": "robustness (D1)",
+   "scenario": "The solve worker's pipe breaks or Home Assistant stops mid-solve; the lock is released in bounded time and no repair issue outlives the next good solve.",
+   "sensitivity": "S5: _PROCESS_LOCK held across worker.wait().",
+   "tradeoff": "T5: a bounded wait can abandon a worker that is still alive and using memory (D9)."
+  },
+  {
+   "quality": "physical sanity (D2)",
+   "scenario": "Flow temperature rises by 10 K at fixed source temperature; scalar and batch COP both fall, by the same factor.",
+   "sensitivity": "S6: the Carnot factor exists twice in thermal_model.py.",
+   "tradeoff": "T6: correcting the scalar twin shifts every learned COP correction and golden fixture that absorbed the inverted law (claimed drift, learner re-convergence)."
+  },
+  {
+   "quality": "physical sanity (D2)",
+   "scenario": "A price sensor reports in a minor unit, or a tariff has weekday rules and a capacity charge; the plan's price vector, the fee vector and the billed peak equal a hand calculation for a known week.",
+   "sensitivity": "S7: the unit scale at inputs.py and the day index in grid_fee.py.",
+   "tradeoff": "T7: the fix changes published money for existing installs at upgrade; the release notes owe the step first."
+  },
+  {
+   "quality": "physical sanity (D2)",
+   "scenario": "An unplanned hot-water charge, an away week or a load-limited ceiling probe occurs; no house or capacity learner ingests the interval, and a genuine internal gain is recovered within its stated band.",
+   "sensitivity": "S8: the freeze predicate, today split between the coordinator and each learner.",
+   "tradeoff": "T8: a wider freeze slows learning on installs with few clean intervals."
+  },
+  {
+   "quality": "actuator safety (D16)",
+   "scenario": "The user selects Off, the plan goes stale on an idle step, or the entry is unloaded or removed; every entity the optimizer wrote reads its pre-optimizer value within one cycle, and a failed restore is retried.",
+   "sensitivity": "S9: restore ownership; four writers have no owner at the fork.",
+   "tradeoff": "T9: restoring on a stale plan hands the pump back sooner, giving up the hold a short forecast outage would have kept."
+  },
+  {
+   "quality": "actuator safety (D16)",
+   "scenario": "A step boundary passes between two solves; frequency, displace, curve offset and the disinfection switch follow the step covering now, not the step the last solve cut.",
+   "sensitivity": "S10: the one rule for the step covering now, written four times.",
+   "tradeoff": "T10: re-cutting the action between solves adds writes against the daily write budget and compressor wear."
+  },
+  {
+   "quality": "actuator safety (D16)",
+   "scenario": "A target is off the entity's step, above its max, or the entity is unavailable; the write is quantised to the entity's grid and range or not made, and never recorded as made.",
+   "sensitivity": "S11: the arbiter's held record, which both suppresses repeat writes and decides release.",
+   "tradeoff": "T11: reading the entity before each write costs a state read per actuator per cycle and can chase a pump's own echo (the 20 s echo grace)."
+  },
+  {
+   "quality": "maintainability (D7)",
+   "scenario": "A rule with several copies changes (water heat capacity, the covering step, the evidence cap); the change is one edit at one owner and an agreement test fails if a copy returns.",
+   "sensitivity": "S12: duplication_copies 18, shape_copies 40 and layer_violations 13 at the fork.",
+   "tradeoff": "T12: a shared helper adds an import edge; done carelessly it raises layer_violations or seam_cut_total while lowering the clone count."
+  },
+  {
+   "quality": "maintainability (D7)",
+   "scenario": "A fixer adds a cycle step to coordinator.py; the structure ratchet prices the growth whether it lands inside the class or beside it.",
+   "sensitivity": "S13: max_class_loc and class_excess_loc see class spans only; 2,980 lines sit outside.",
+   "tradeoff": "T13: a new ratchet row at zero headroom blocks unrelated fixes on the hot file until someone pays."
+  },
+  {
+   "quality": "efficiency (D9)",
+   "scenario": "A user presses a what-if three times in a second while the fuse advisor is due; at most one extra solve is in flight, the main solve is not delayed past its interval, and nothing runs a thermostat simulation on the event loop.",
+   "sensitivity": "S14: the solve budget and in-flight guard at the cycle seam.",
+   "tradeoff": "T14: a strict budget delays or refuses a user's what-if answer (D4)."
+  },
+  {
+   "quality": "efficiency (D9)",
+   "scenario": "The card stays open for a week; retained history rows stay within the 48 h span.",
+   "sensitivity": "S15: HistorySource.absorb has no trim.",
+   "tradeoff": "T15: trimming forces a re-fetch when the user scrolls back past the span."
+  },
+  {
+   "quality": "generalization (D12)",
+   "scenario": "A one-zone house, an on/off compressor, a pump with no heating-only mode and an install with no hot water are set up with defaults; model, plan views, entities and advisor each describe that plant and no other.",
+   "sensitivity": "S16: the plant-shape predicates (two-zone, modulating, has hot water) and their defaults.",
+   "tradeoff": "T16: changing the default of two_zone_mode moves the plan of every install that never set it."
+  },
+  {
+   "quality": "generalization (D12)",
+   "scenario": "A Fahrenheit install writes a set-point; the written value converts back to the Celsius the plan chose.",
+   "sensitivity": "S17: TEMPERATURE_UNIT_TO_C and its two readers in inputs.py.",
+   "tradeoff": "T17: none found; the inverse is exact."
+  },
+  {
+   "quality": "integration quality (D10)",
+   "scenario": "A user reconfigures an entry after saving options, or changes the weekday comfort value while keeping the weekend one; the saved entry holds exactly what the form showed.",
+   "sensitivity": "S18: settings stored in entry.data and entry.options, merged by every reader.",
+   "tradeoff": "T18: moving 41 settings to options needs a config-entry migration that a downgrade cannot undo."
+  },
+  {
+   "quality": "integration quality (D10)",
+   "scenario": "A press or an action is refused or given an unparseable argument; the caller gets a translated error, and energy meters carry the state class the statistics engine needs.",
+   "sensitivity": "S19: off_the_action returns before the outcome exists.",
+   "tradeoff": "T19: awaiting the outcome holds the service call open for the length of a solve."
+  },
+  {
+   "quality": "usability and text truth (D4, D5, D6)",
+   "scenario": "A German or Swedish user on a phone removes a pipe, reads a stale-plan tooltip and a failure line; the target is at least 24 px, every placeholder is filled and no English is spliced in.",
+   "sensitivity": "S20: card rules written beside the token scales (card_rule_copies 70).",
+   "tradeoff": "T20: larger hit bands overlap neighbouring pipes in dense layouts."
+  },
+  {
+   "quality": "usability and text truth (D4, D5, D6)",
+   "scenario": "A reader compares a number in README.md, docs/ or strings.json with the constant that decides it (legionella interval, input age, echo grace, wood packing); they agree, and the fact has one home.",
+   "sensitivity": "S21: prose numbers no check derives from code.",
+   "tradeoff": "T21: generating or pinning text ties every default change to a text and translation change in the same pull request."
+  },
+  {
+   "quality": "usability and text truth (D4, D5, D6)",
+   "scenario": "A reader follows a path or name cited in a comment or policy file; it resolves at the fork, and no sentence runs past 40 words.",
+   "sensitivity": "S22: no detector for prose paths or sentence length.",
+   "tradeoff": "T22: rewriting about 2,200 long sentences in production and tests touches every hot file and collides with each behaviour group, so it lands last."
+  },
+  {
+   "quality": "governance and process (D11, D13)",
+   "scenario": "A merge reaches main while a gate run at that head is red, or a live ruleset changes; a detector reports it within one sweep.",
+   "sensitivity": "S23: counts.mjs reads one of three rulesets; the gate context is published by several runs.",
+   "tradeoff": "T23: the fix is instrument work, frozen until round 12; the exposure stays open for the round."
+  },
+  {
+   "quality": "governance and process (D11, D13)",
+   "scenario": "A reviewer blocks a pull request or a fixer records friction; the class word resolves to one vocabulary and one policy file.",
+   "sensitivity": "S24: two writers of the block vocabulary and a free-form friction id.",
+   "tradeoff": "T24: a closed vocabulary refuses a genuinely new class until someone extends it."
+  }
+ ],
+ "triage": [
+  {
+   "id": "D0-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-solver",
+   "round": 11,
+   "reason": "solver seam"
+  },
+  {
+   "id": "D0-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-solver",
+   "round": 11,
+   "reason": "solver seam"
+  },
+  {
+   "id": "D1-s1-51",
+   "verdict": "keep",
+   "into": "R11-SEAM-solver",
+   "round": 11,
+   "reason": "solver seam (plan_slots.close tie order)"
+  },
+  {
+   "id": "D2-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-solver",
+   "round": 11,
+   "reason": "solver seam: the premium is added in optimizer.py and must stay out of published money"
+  },
+  {
+   "id": "D0-s3-03",
+   "verdict": "refuse",
+   "into": null,
+   "round": null,
+   "reason": "the judge refuted it: no credit breaches the tail floor at any learnable weight"
+  },
+  {
+   "id": "D15-s2-04",
+   "verdict": "refuse",
+   "into": null,
+   "round": null,
+   "reason": "unreproduced at P2"
+  },
+  {
+   "id": "D15-s2-06",
+   "verdict": "refuse",
+   "into": null,
+   "round": null,
+   "reason": "unreproduced at P2"
+  },
+  {
+   "id": "D15-s2-07",
+   "verdict": "refuse",
+   "into": null,
+   "round": null,
+   "reason": "unreproduced at P2"
+  },
+  {
+   "id": "D7-s3-06",
+   "verdict": "refuse",
+   "into": null,
+   "round": null,
+   "reason": "unreproduced at P2"
+  },
+  {
+   "id": "D1-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-solve",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D1-s1-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-solve",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D1-s3-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-solve",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D17-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-solve",
+   "round": 11,
+   "reason": "cycle seam: the action and the button reach one refresh path"
+  },
+  {
+   "id": "D9-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-solve",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D9-s1-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-solve",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D9-s1-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-solve",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D9-s1-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-solve",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D1-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-store",
+   "round": 11,
+   "reason": "persisted store seam"
+  },
+  {
+   "id": "D1-s2-06",
+   "verdict": "keep",
+   "into": "R11-SEAM-store",
+   "round": 11,
+   "reason": "persisted store seam: a restored value is tested before it is applied"
+  },
+  {
+   "id": "D15-s1-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-store",
+   "round": 11,
+   "reason": "persisted store seam: store.DOMAINS against the writers"
+  },
+  {
+   "id": "D15-s1-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-store",
+   "round": 11,
+   "reason": "persisted store seam: fold and loader disagree"
+  },
+  {
+   "id": "D17-s3-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-store",
+   "round": 11,
+   "reason": "persisted store seam (snapshots)"
+  },
+  {
+   "id": "D1-s2-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-freshness",
+   "round": 11,
+   "reason": "input boundary seam, age of a live value"
+  },
+  {
+   "id": "D1-s2-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-freshness",
+   "round": 11,
+   "reason": "input boundary seam: forecast freshness, not pricing as the draft had it"
+  },
+  {
+   "id": "D1-s2-52",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-freshness",
+   "round": 11,
+   "reason": "input boundary seam, seamed from scope and class; the fixer confirms from the verifier report"
+  },
+  {
+   "id": "D14-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-freshness",
+   "round": 11,
+   "reason": "input boundary seam"
+  },
+  {
+   "id": "D14-s2-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-freshness",
+   "round": 11,
+   "reason": "input boundary seam: production code in the coordinator, not tests"
+  },
+  {
+   "id": "D17-s2-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-freshness",
+   "round": 11,
+   "reason": "input boundary seam: measured outdoor value joins the forecast series"
+  },
+  {
+   "id": "D1-s2-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-release",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s1-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-release",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-release",
+   "round": 11,
+   "reason": "actuation seam; the draft had it under tests by its harness"
+  },
+  {
+   "id": "D16-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-release",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s3-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-release",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s3-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-release",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D1-s2-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-guards",
+   "round": 11,
+   "reason": "input boundary seam"
+  },
+  {
+   "id": "D1-s2-51",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-guards",
+   "round": 11,
+   "reason": "input boundary seam, seamed from scope and class; the fixer confirms from the verifier report"
+  },
+  {
+   "id": "D1-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-guards",
+   "round": 11,
+   "reason": "input boundary seam (inputs.parse_bool)"
+  },
+  {
+   "id": "D1-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-guards",
+   "round": 11,
+   "reason": "input boundary seam"
+  },
+  {
+   "id": "D1-s3-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-guards",
+   "round": 11,
+   "reason": "input boundary seam"
+  },
+  {
+   "id": "D2-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-guards",
+   "round": 11,
+   "reason": "input boundary seam: the scale is at inputs.py:791, not the learners"
+  },
+  {
+   "id": "D7-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-inputs-guards",
+   "round": 11,
+   "reason": "input boundary seam: inverse unit rule in inputs.py"
+  },
+  {
+   "id": "D1-s3-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-reporting",
+   "round": 11,
+   "reason": "cycle seam: the 17 persist handlers are the coordinator's"
+  },
+  {
+   "id": "D1-s3-06",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-reporting",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D1-s3-07",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-reporting",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D10-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-reporting",
+   "round": 11,
+   "reason": "cycle seam (away)"
+  },
+  {
+   "id": "D10-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-reporting",
+   "round": 11,
+   "reason": "cycle seam: strict-typing register row, beside D10-s3-02"
+  },
+  {
+   "id": "D10-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-reporting",
+   "round": 11,
+   "reason": "cycle seam"
+  },
+  {
+   "id": "D7-s2-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-cycle-reporting",
+   "round": 11,
+   "reason": "cycle seam: CoordinatorContext write-once"
+  },
+  {
+   "id": "D10-s1-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-entity-service",
+   "round": 11,
+   "reason": "entity and service surface seam"
+  },
+  {
+   "id": "D10-s2-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-entity-service",
+   "round": 11,
+   "reason": "entity and service surface seam"
+  },
+  {
+   "id": "D14-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-entity-service",
+   "round": 11,
+   "reason": "entity and service surface seam (services.yaml)"
+  },
+  {
+   "id": "D15-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-entity-service",
+   "round": 11,
+   "reason": "entity and service surface seam (debugger self-test)"
+  },
+  {
+   "id": "D17-s3-51",
+   "verdict": "keep",
+   "into": "R11-SEAM-entity-service",
+   "round": 11,
+   "reason": "entity and service surface seam, seamed from scope and class; the fixer confirms from the verifier report"
+  },
+  {
+   "id": "D8-s1-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-entity-service",
+   "round": 11,
+   "reason": "entity and service surface seam"
+  },
+  {
+   "id": "D8-s2-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-entity-service",
+   "round": 11,
+   "reason": "entity and service surface seam; no entity id changes without a registry migration"
+  },
+  {
+   "id": "D8-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-entity-service",
+   "round": 11,
+   "reason": "entity and service surface seam"
+  },
+  {
+   "id": "D10-s1-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-config",
+   "round": 11,
+   "reason": "config surface seam"
+  },
+  {
+   "id": "D10-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-config",
+   "round": 11,
+   "reason": "config surface seam"
+  },
+  {
+   "id": "D17-s1-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-config",
+   "round": 11,
+   "reason": "config surface seam"
+  },
+  {
+   "id": "D17-s2-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-config",
+   "round": 11,
+   "reason": "config surface seam: the pre-fill page writes half a setting"
+  },
+  {
+   "id": "D17-s2-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-config",
+   "round": 11,
+   "reason": "config surface seam"
+  },
+  {
+   "id": "D4-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-config",
+   "round": 11,
+   "reason": "config surface seam"
+  },
+  {
+   "id": "D6-s3-01",
+   "verdict": "merge",
+   "into": "D4-s2-01",
+   "round": 11,
+   "reason": "same root in config_flow._device_prefill_form: the setup twin omits the placeholders the options twin passes"
+  },
+  {
+   "id": "D10-s1-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D10-s1-06",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D14-s2-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam: the barrier lives in tests/"
+  },
+  {
+   "id": "D5-s6-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D5-s8-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D5-s8-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D5-s9-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam; canonical for the moved-path citations in tests/"
+  },
+  {
+   "id": "D7-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam: a blind spot of tests/structure.py"
+  },
+  {
+   "id": "D7-s1-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D7-s1-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D7-s1-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D9-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D9-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-tests",
+   "round": 11,
+   "reason": "test suite seam"
+  },
+  {
+   "id": "D5-s8-03",
+   "verdict": "merge",
+   "into": "D5-s9-01",
+   "round": 11,
+   "reason": "tests/closure.py comment paths: same move, same seam"
+  },
+  {
+   "id": "D5-s9-02",
+   "verdict": "merge",
+   "into": "D5-s9-01",
+   "round": 11,
+   "reason": "R9-RO move left prose paths in tests/; one moved_paths sweep over the seam"
+  },
+  {
+   "id": "D5-s9-03",
+   "verdict": "merge",
+   "into": "D5-s9-01",
+   "round": 11,
+   "reason": "R9-RO move left prose paths in tests/; one moved_paths sweep over the seam"
+  },
+  {
+   "id": "D10-s2-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-product-text",
+   "round": 11,
+   "reason": "product text seam"
+  },
+  {
+   "id": "D4-s2-51",
+   "verdict": "keep",
+   "into": "R11-SEAM-product-text",
+   "round": 11,
+   "reason": "product text seam"
+  },
+  {
+   "id": "D4-s3-06",
+   "verdict": "keep",
+   "into": "R11-SEAM-product-text",
+   "round": 11,
+   "reason": "product text seam"
+  },
+  {
+   "id": "D4-s3-07",
+   "verdict": "keep",
+   "into": "R11-SEAM-product-text",
+   "round": 11,
+   "reason": "product text seam"
+  },
+  {
+   "id": "D6-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-product-text",
+   "round": 11,
+   "reason": "product text seam"
+  },
+  {
+   "id": "D6-s4-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-product-text",
+   "round": 11,
+   "reason": "product text seam"
+  },
+  {
+   "id": "D6-s6-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-product-text",
+   "round": 11,
+   "reason": "product text seam"
+  },
+  {
+   "id": "D4-s2-02",
+   "verdict": "merge",
+   "into": "D10-s2-03",
+   "round": 11,
+   "reason": "same de.json row and placeholder as the canonical finding"
+  },
+  {
+   "id": "D11-s2-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam: policy prose, no instrument code"
+  },
+  {
+   "id": "D15-s1-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam: the D15 brief's step"
+  },
+  {
+   "id": "D6-s5-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam"
+  },
+  {
+   "id": "D6-s5-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam; canonical for pre-move paths in policy files"
+  },
+  {
+   "id": "D6-s5-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam"
+  },
+  {
+   "id": "D6-s5-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam (tests/README.md is prose)"
+  },
+  {
+   "id": "D6-s5-06",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam: a guide page, no instrument code"
+  },
+  {
+   "id": "D6-s5-07",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam"
+  },
+  {
+   "id": "D6-s5-08",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam: a guide page, no instrument code"
+  },
+  {
+   "id": "D6-s7-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-governance-text",
+   "round": 11,
+   "reason": "governance text seam"
+  },
+  {
+   "id": "D6-s2-02",
+   "verdict": "merge",
+   "into": "D6-s5-02",
+   "round": 11,
+   "reason": "pre-move path cited in a policy file; one sweep over dev/governance"
+  },
+  {
+   "id": "D6-s2-03",
+   "verdict": "merge",
+   "into": "D6-s5-02",
+   "round": 11,
+   "reason": "pre-move path cited in a policy file; one sweep over dev/governance"
+  },
+  {
+   "id": "D6-s5-04",
+   "verdict": "merge",
+   "into": "D6-s5-02",
+   "round": 11,
+   "reason": "pre-move path cited in a policy file; one sweep over dev/governance"
+  },
+  {
+   "id": "D12-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam: second copy of the two-zone predicate"
+  },
+  {
+   "id": "D12-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam"
+  },
+  {
+   "id": "D12-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam"
+  },
+  {
+   "id": "D17-s1-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam: which parameters the active model reads"
+  },
+  {
+   "id": "D17-s2-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam (topology_layout)"
+  },
+  {
+   "id": "D17-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam: which parameters the active model reads"
+  },
+  {
+   "id": "D2-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam"
+  },
+  {
+   "id": "D2-s1-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam: a law in mixing_valve.py, not a write"
+  },
+  {
+   "id": "D2-s1-51",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam (presets table)"
+  },
+  {
+   "id": "D2-s2-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam: the derate law"
+  },
+  {
+   "id": "D8-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-plant-model",
+   "round": 11,
+   "reason": "plant model seam: the has-hot-water predicate"
+  },
+  {
+   "id": "D12-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-writes",
+   "round": 11,
+   "reason": "actuation seam: a write above the entity's max"
+  },
+  {
+   "id": "D16-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-writes",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s1-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-writes",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s1-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-writes",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s1-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-writes",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-writes",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s2-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-writes",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s2-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-writes",
+   "round": 11,
+   "reason": "actuation seam"
+  },
+  {
+   "id": "D16-s2-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-actuation-writes",
+   "round": 11,
+   "reason": "actuation seam: the floor write, not a learner"
+  },
+  {
+   "id": "D12-s3-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-learners",
+   "round": 11,
+   "reason": "learners seam"
+  },
+  {
+   "id": "D2-s3-08",
+   "verdict": "keep",
+   "into": "R11-SEAM-learners",
+   "round": 11,
+   "reason": "learners seam"
+  },
+  {
+   "id": "D2-s3-09",
+   "verdict": "keep",
+   "into": "R11-SEAM-learners",
+   "round": 11,
+   "reason": "learners seam"
+  },
+  {
+   "id": "D2-s3-10",
+   "verdict": "keep",
+   "into": "R11-SEAM-learners",
+   "round": 11,
+   "reason": "learners seam"
+  },
+  {
+   "id": "D2-s3-11",
+   "verdict": "keep",
+   "into": "R11-SEAM-learners",
+   "round": 11,
+   "reason": "learners seam"
+  },
+  {
+   "id": "D5-s4-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-learners",
+   "round": 11,
+   "reason": "learners seam: sysid.py comments, fixed with the estimator they describe"
+  },
+  {
+   "id": "D7-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-learners",
+   "round": 11,
+   "reason": "learners seam: the freeze predicate"
+  },
+  {
+   "id": "D7-s2-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-learners",
+   "round": 11,
+   "reason": "learners seam: sysid gate, beside D2-s3-10"
+  },
+  {
+   "id": "D14-s1-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-money",
+   "round": 11,
+   "reason": "money seam: one currency owner"
+  },
+  {
+   "id": "D17-s1-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-money",
+   "round": 11,
+   "reason": "money seam: the capacity window's projection law"
+  },
+  {
+   "id": "D2-s3-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-money",
+   "round": 11,
+   "reason": "money seam"
+  },
+  {
+   "id": "D2-s3-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-money",
+   "round": 11,
+   "reason": "money seam"
+  },
+  {
+   "id": "D2-s3-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-money",
+   "round": 11,
+   "reason": "money seam"
+  },
+  {
+   "id": "D2-s3-06",
+   "verdict": "keep",
+   "into": "R11-SEAM-money",
+   "round": 11,
+   "reason": "money seam"
+  },
+  {
+   "id": "D2-s3-07",
+   "verdict": "keep",
+   "into": "R11-SEAM-money",
+   "round": 11,
+   "reason": "money seam"
+  },
+  {
+   "id": "D5-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-money",
+   "round": 11,
+   "reason": "money seam: grid_fee docstring, true once currency drops its Home Assistant import (D7-s1-06)"
+  },
+  {
+   "id": "D8-s1-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-money",
+   "round": 11,
+   "reason": "money seam (ledger coverage factor)"
+  },
+  {
+   "id": "D4-s1-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-card",
+   "round": 11,
+   "reason": "card seam"
+  },
+  {
+   "id": "D4-s1-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-card",
+   "round": 11,
+   "reason": "card seam"
+  },
+  {
+   "id": "D4-s3-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-card",
+   "round": 11,
+   "reason": "card seam"
+  },
+  {
+   "id": "D4-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-card",
+   "round": 11,
+   "reason": "card seam"
+  },
+  {
+   "id": "D4-s3-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-card",
+   "round": 11,
+   "reason": "card seam"
+  },
+  {
+   "id": "D4-s3-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-card",
+   "round": 11,
+   "reason": "card seam"
+  },
+  {
+   "id": "D4-s3-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-card",
+   "round": 11,
+   "reason": "card seam"
+  },
+  {
+   "id": "D6-s4-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-card",
+   "round": 11,
+   "reason": "card seam: the card's own sv translation token"
+  },
+  {
+   "id": "D9-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-card",
+   "round": 11,
+   "reason": "card seam: HistorySource is card code, not the optimizer"
+  },
+  {
+   "id": "D5-s2-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam"
+  },
+  {
+   "id": "D5-s2-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam"
+  },
+  {
+   "id": "D5-s2-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam"
+  },
+  {
+   "id": "D5-s2-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam (figure generator under docs/img)"
+  },
+  {
+   "id": "D5-s2-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam (figure generator under docs/img)"
+  },
+  {
+   "id": "D5-s2-06",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam (figure generator under docs/img)"
+  },
+  {
+   "id": "D5-s2-08",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam; canonical for the drifted mechanism numbers"
+  },
+  {
+   "id": "D5-s2-09",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam"
+  },
+  {
+   "id": "D5-s2-10",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam"
+  },
+  {
+   "id": "D5-s2-11",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam"
+  },
+  {
+   "id": "D6-s1-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam; kept apart for its closed-loop learner sentence"
+  },
+  {
+   "id": "D6-s7-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-docs",
+   "round": 11,
+   "reason": "reader docs seam"
+  },
+  {
+   "id": "D6-s1-01",
+   "verdict": "merge",
+   "into": "D5-s2-08",
+   "round": 11,
+   "reason": "same drifted numbers (legionella interval, echo grace) in the reader docs; its rows are acceptance rows of the canonical"
+  },
+  {
+   "id": "D5-s3-02",
+   "verdict": "keep",
+   "into": "R11-SEAM-comments-production",
+   "round": 11,
+   "reason": "production comments seam"
+  },
+  {
+   "id": "D5-s4-01",
+   "verdict": "keep",
+   "into": "R11-SEAM-comments-production",
+   "round": 11,
+   "reason": "production comments seam; canonical for criterion C5 over production"
+  },
+  {
+   "id": "D5-s3-03",
+   "verdict": "merge",
+   "into": "D5-s4-01",
+   "round": 11,
+   "reason": "criterion C5 over production comments, no detector; one count over the seam"
+  },
+  {
+   "id": "D5-s9-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-comments-tests",
+   "round": 11,
+   "reason": "test comments seam; canonical for criterion C5 over tests/"
+  },
+  {
+   "id": "D5-s7-01",
+   "verdict": "merge",
+   "into": "D5-s9-04",
+   "round": 11,
+   "reason": "criterion C5 over tests/; its three dead names and false count are acceptance rows of the canonical"
+  },
+  {
+   "id": "D5-s7-02",
+   "verdict": "merge",
+   "into": "D5-s9-04",
+   "round": 11,
+   "reason": "criterion C5 over tests/"
+  },
+  {
+   "id": "D5-s7-03",
+   "verdict": "merge",
+   "into": "D5-s9-04",
+   "round": 11,
+   "reason": "criterion C5 over tests/"
+  },
+  {
+   "id": "D7-s1-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-kernel",
+   "round": 11,
+   "reason": "shared kernel seam: one owner per small rule; a production move, not a test finding"
+  },
+  {
+   "id": "D7-s1-06",
+   "verdict": "keep",
+   "into": "R11-SEAM-kernel",
+   "round": 11,
+   "reason": "shared kernel seam: leaf modules stop reaching Home Assistant; the four needing a design stay out"
+  },
+  {
+   "id": "D7-s3-03",
+   "verdict": "keep",
+   "into": "R11-SEAM-kernel",
+   "round": 11,
+   "reason": "shared kernel seam: plan_step owns the step covering now"
+  },
+  {
+   "id": "D7-s3-04",
+   "verdict": "keep",
+   "into": "R11-SEAM-kernel",
+   "round": 11,
+   "reason": "shared kernel seam"
+  },
+  {
+   "id": "D7-s3-05",
+   "verdict": "keep",
+   "into": "R11-SEAM-kernel",
+   "round": 11,
+   "reason": "shared kernel seam (const.py dead state)"
+  },
+  {
+   "id": "D0-s3-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s1-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s1-02",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s1-03",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s1-04",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s1-05",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s1-06",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s2-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s2-03",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): release.yml is tracked tooling; proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s3-02",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s3-03",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s3-04",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D13-s2-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D13-s2-02",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D14-s1-02",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D15-s1-03",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D15-s2-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D15-s2-02",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D15-s2-03",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D15-s2-05",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D15-s3-02",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D17-s1-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D5-s2-07",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D5-s8-07",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "instrument under the freeze (RULINGS.md, card P11): overlay in-round where it blocks, proposal at round-end triage, built at round 12's start"
+  },
+  {
+   "id": "D11-s2-02",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "a governance design question the owner ruled on (card X1: the mandate stays as is); round-end proposal triage decides whether a provenance marker is built in round 12"
+  },
+  {
+   "id": "D3-s2-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "function-level closures are a redesign of the scoped gate, an instrument under the freeze (card P11); round-end proposal triage with its cost test, built at round 12's start"
+  },
+  {
+   "id": "D5-s10-03",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s10-06",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s5-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s5-04",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s5-05",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s5-06",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s5-07",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to instrument files (criterion C5), read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; canonical for C5 over instruments"
+  },
+  {
+   "id": "D5-s6-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s6-04",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s6-05",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s6-06",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s6-07",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
+  },
+  {
+   "id": "D5-s8-01",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; canonical for pre-move paths in instruments"
+  },
+  {
+   "id": "D5-s10-01",
+   "verdict": "merge",
+   "into": "D5-s8-01",
+   "round": 12,
+   "reason": "pre-move path in an instrument; the canonical is deferred under the freeze"
+  },
+  {
+   "id": "D5-s5-02",
+   "verdict": "merge",
+   "into": "D5-s8-01",
+   "round": 12,
+   "reason": "pre-move path in an instrument; the canonical is deferred under the freeze"
+  },
+  {
+   "id": "D5-s5-03",
+   "verdict": "merge",
+   "into": "D5-s8-01",
+   "round": 12,
+   "reason": "pre-move path in an instrument; the canonical is deferred under the freeze"
+  },
+  {
+   "id": "D5-s6-03",
+   "verdict": "merge",
+   "into": "D5-s8-01",
+   "round": 12,
+   "reason": "pre-move path in an instrument; the canonical is deferred under the freeze"
+  },
+  {
+   "id": "D5-s8-02",
+   "verdict": "merge",
+   "into": "D5-s8-01",
+   "round": 12,
+   "reason": "pre-move path in an instrument; the canonical is deferred under the freeze"
+  },
+  {
+   "id": "D5-s10-04",
+   "verdict": "merge",
+   "into": "D5-s8-01",
+   "round": 12,
+   "reason": "pre-move path in a harness docstring; the canonical is deferred under the freeze"
+  },
+  {
+   "id": "D5-s10-05",
+   "verdict": "merge",
+   "into": "D5-s8-01",
+   "round": 12,
+   "reason": "pre-move path in a harness docstring; the canonical is deferred under the freeze"
+  },
+  {
+   "id": "D5-s10-07",
+   "verdict": "merge",
+   "into": "D5-s5-07",
+   "round": 12,
+   "reason": "criterion C5 over hook and harness files; the canonical is deferred under the freeze"
+  },
+  {
+   "id": "D5-s6-08",
+   "verdict": "merge",
+   "into": "D5-s5-07",
+   "round": 12,
+   "reason": "criterion C5 over instrument and harness files; the canonical is deferred under the freeze, and test files among its cells are counted by D5-s9-04's detector"
+  },
+  {
+   "id": "D5-s8-06",
+   "verdict": "merge",
+   "into": "D5-s5-07",
+   "round": 12,
+   "reason": "criterion C5 over instrument and harness files; the canonical is deferred under the freeze, and test files among its cells are counted by D5-s9-04's detector"
+  }
+ ],
+ "groups": [
+  {
+   "group": "R11-SEAM-kernel",
+   "findings": [
+    "D7-s3-03",
+    "D7-s3-04",
+    "D7-s1-05",
+    "D7-s1-06",
+    "D7-s3-05"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "size": "L",
+   "seam": "shared kernel",
+   "hot_files": [
+    "plan_step.py",
+    "const.py",
+    "drift.py",
+    "accuracy.py",
+    "currency.py",
+    "inputs.py",
+    "coordinator.py",
+    "pump_arbiter.py",
+    "price_model.py",
+    "ledger.py",
+    "legionella.py",
+    "sysid.py",
+    "sensor.py",
+    "tariff.py"
+   ],
+   "after": [],
+   "architect_note": "One owner per small rule: plan_step owns \"the step covering now\" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); the four modules D7-s1-06 marks as needing a design stay out. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2. Plan: ADR-001 and ADR-002 are this group's approved design. It is first in file order on every file it shares, so the fixer may land it in parts (layering and the reader's clock; the clone owners; dead state). The reader takes its clock from its caller, which leaves inputs.py with no Home Assistant import. Refused shapes: two bodies folded under one function with nothing shared, and a helper handed a detector's list."
+  },
+  {
+   "group": "R11-SEAM-plant-model",
+   "findings": [
+    "D2-s1-01",
+    "D2-s1-02",
+    "D2-s2-02",
+    "D2-s1-51",
+    "D12-s2-01",
+    "D12-s3-01",
+    "D12-s1-01",
+    "D17-s1-03",
+    "D17-s3-02",
+    "D17-s2-03",
+    "D8-s1-01"
+   ],
+   "merged": {},
+   "severity": "critical",
+   "size": "L",
+   "seam": "plant model",
+   "hot_files": [
+    "thermal_model.py",
+    "mixing_valve.py",
+    "defrost.py",
+    "presets.py",
+    "topology.py",
+    "coordinator.py",
+    "config_flow.py",
+    "sensor.py"
+   ],
+   "after": [],
+   "architect_note": "Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers \"two zones\", \"modulating\" and \"has hot water\" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Plan: ADR-008 is the approved design of the predicate work; the law fixes are point fixes. The has-hot-water predicate becomes a public function with the gap advisor as a new reader. Golden drift from the Carnot fix is claimed with its direction."
+  },
+  {
+   "group": "R11-SEAM-inputs-guards",
+   "findings": [
+    "D2-s3-02",
+    "D7-s3-01",
+    "D1-s3-01",
+    "D1-s3-02",
+    "D1-s3-03",
+    "D1-s2-05",
+    "D1-s2-51"
+   ],
+   "merged": {},
+   "severity": "critical",
+   "size": "M",
+   "seam": "input boundary",
+   "hot_files": [
+    "inputs.py",
+    "entry_config.py",
+    "pump_signals.py",
+    "open_meteo.py",
+    "heat_curve.py"
+   ],
+   "after": [],
+   "architect_note": "Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timestamp parsers, numeric options. The P1 sweep enumerator is the fitness function. 7 findings (0 merged in), size M; class tags N-missing-unit-scale, P1, P8."
+  },
+  {
+   "group": "R11-SEAM-inputs-freshness",
+   "findings": [
+    "D1-s2-03",
+    "D1-s2-02",
+    "D14-s2-02",
+    "D14-s2-01",
+    "D17-s2-02",
+    "D1-s2-52"
+   ],
+   "merged": {},
+   "severity": "high",
+   "size": "M",
+   "seam": "input boundary",
+   "hot_files": [
+    "coordinator.py",
+    "inputs.py"
+   ],
+   "after": [
+    "R11-SEAM-kernel"
+   ],
+   "architect_note": "Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and the measured outdoor value joining the forecast series. The end rule is the kernel's step owner, hence the edge. 6 findings (0 merged in), size M; class tags N-dead-input, N-no-expiry, N-staleness, P2."
+  },
+  {
+   "group": "R11-SEAM-store",
+   "findings": [
+    "D1-s2-01",
+    "D15-s1-04",
+    "D15-s1-05",
+    "D1-s2-06",
+    "D17-s3-03"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "size": "M",
+   "seam": "persisted store",
+   "hot_files": [
+    "store.py",
+    "snapshots.py",
+    "boost.py"
+   ],
+   "after": [],
+   "architect_note": "store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. 5 findings (0 merged in), size M; class tags N-silent-zero, P1, P2."
+  },
+  {
+   "group": "R11-SEAM-money",
+   "findings": [
+    "D2-s3-03",
+    "D2-s3-04",
+    "D2-s3-05",
+    "D2-s3-06",
+    "D2-s3-07",
+    "D8-s1-02",
+    "D14-s1-03",
+    "D17-s1-05",
+    "D5-s3-01"
+   ],
+   "merged": {},
+   "severity": "high",
+   "size": "L",
+   "seam": "money",
+   "hot_files": [
+    "price_model.py",
+    "tariff.py",
+    "grid_fee.py",
+    "ledger.py",
+    "power_guard.py",
+    "currency.py",
+    "config_flow.py",
+    "coordinator.py"
+   ],
+   "after": [],
+   "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Plan: ADR-006. The exact top-k takes the largest, as its batch twin does; the smooth scalar becomes one row of its batch only if golden fixtures stay byte-identical and the solve-time harness does not regress, else that part is dropped and recorded."
+  },
+  {
+   "group": "R11-SEAM-solver",
+   "findings": [
+    "D0-s2-01",
+    "D0-s3-02",
+    "D2-s3-01",
+    "D1-s1-51"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "size": "M",
+   "seam": "solver",
+   "hot_files": [
+    "optimizer.py",
+    "plan_slots.py"
+   ],
+   "after": [],
+   "architect_note": "Start set brackets the all-off and wood-covered optima; the risk premium stays in the objective and out of every published money figure; the slot label tie is ordered. Fitness: D0 race harnesses, mutation kill rate on optimizer.py, shape_copies. 4 findings (0 merged in), size M; class tags N-objective-as-money, N-unordered-tiebreak, P4."
+  },
+  {
+   "group": "R11-SEAM-learners",
+   "findings": [
+    "D12-s3-03",
+    "D2-s3-08",
+    "D2-s3-09",
+    "D2-s3-10",
+    "D2-s3-11",
+    "D7-s2-01",
+    "D7-s2-02",
+    "D5-s4-02"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "size": "L",
+   "seam": "learners",
+   "hot_files": [
+    "sysid.py",
+    "accuracy.py",
+    "dhw_learning.py",
+    "heat_energy.py",
+    "draw_range.py",
+    "coordinator.py"
+   ],
+   "after": [
+    "R11-SEAM-plant-model"
+   ],
+   "architect_note": "One freeze predicate owns which interval a learner may ingest (away, unplanned charge, load-limited probe, charge-start dip); the sysid adoption interval covers quantised readings. After the plant model: its law fixes move the residual every learner fits. 8 findings (0 merged in), size L; class tags I5, N-confounded-learner, N-event-misattribution, P5. Plan: ADR-008 (one freeze predicate) is the approved design; ADR-003 moves the identification switch from a per-cycle store on the collaborator to an argument of the arm call."
+  },
+  {
+   "group": "R11-SEAM-actuation-release",
+   "findings": [
+    "D16-s1-04",
+    "D16-s3-01",
+    "D16-s3-02",
+    "D16-s3-03",
+    "D16-s3-04",
+    "D1-s2-04"
+   ],
+   "merged": {},
+   "severity": "high",
+   "size": "L",
+   "seam": "actuation",
+   "hot_files": [
+    "pump_arbiter.py",
+    "off_restore.py",
+    "coordinator.py",
+    "legionella.py"
+   ],
+   "after": [],
+   "architect_note": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. Plan: ADR-004 is the approved design. The circulation pumps' write, record and restore move to one owner object registered with off_restore; the pinned check that Off writes nothing else is re-pinned to the 2026-11-15 ruling in the same PR."
+  },
+  {
+   "group": "R11-SEAM-actuation-writes",
+   "findings": [
+    "D16-s1-01",
+    "D16-s1-02",
+    "D16-s1-03",
+    "D16-s1-05",
+    "D16-s2-01",
+    "D16-s2-02",
+    "D16-s2-03",
+    "D16-s2-04",
+    "D12-s3-02"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "size": "L",
+   "seam": "actuation",
+   "hot_files": [
+    "pump_arbiter.py",
+    "coordinator.py",
+    "freq_control.py",
+    "legionella.py",
+    "setpoint_check.py"
+   ],
+   "after": [
+    "R11-SEAM-kernel",
+    "R11-SEAM-actuation-release"
+   ],
+   "architect_note": "What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3. Plan: reads the covering step from plan_step (ADR-001) and the held record as ADR-004 leaves it."
+  },
+  {
+   "group": "R11-SEAM-cycle-solve",
+   "findings": [
+    "D1-s1-01",
+    "D1-s1-03",
+    "D1-s3-04",
+    "D9-s1-01",
+    "D9-s1-02",
+    "D9-s1-03",
+    "D9-s1-04",
+    "D17-s3-01"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "size": "L",
+   "seam": "cycle",
+   "hot_files": [
+    "coordinator.py",
+    "services.py",
+    "whatif.py",
+    "process_worker.py"
+   ],
+   "after": [],
+   "architect_note": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Plan: no ADR fixes the shape of the one in-flight guard and budget; designer.md is dispatched before the fixer."
+  },
+  {
+   "group": "R11-SEAM-cycle-reporting",
+   "findings": [
+    "D1-s3-05",
+    "D1-s3-06",
+    "D1-s3-07",
+    "D10-s1-01",
+    "D7-s2-03",
+    "D10-s3-02",
+    "D10-s3-01"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "size": "M",
+   "seam": "cycle",
+   "hot_files": [
+    "coordinator.py",
+    "away.py",
+    "services.py",
+    "datetime.py"
+   ],
+   "after": [],
+   "architect_note": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Plan: ADR-003 (both writers of the shared optimization config publish a replaced context) and ADR-008 (away owns the return-time parser as a public function, read by the service, the coordinator and the datetime entity)."
+  },
+  {
+   "group": "R11-SEAM-config",
+   "findings": [
+    "D17-s1-02",
+    "D10-s2-01",
+    "D10-s1-03",
+    "D17-s2-05",
+    "D4-s2-01",
+    "D17-s2-04"
+   ],
+   "merged": {
+    "D6-s3-01": "D4-s2-01"
+   },
+   "severity": "high",
+   "size": "L",
+   "seam": "config surface",
+   "hot_files": [
+    "config_flow.py",
+    "device_prefill.py",
+    "__init__.py"
+   ],
+   "after": [],
+   "architect_note": "One place for a setting: options-flow settings leave entry.data by a versioned migration, so reconfigure, the options save and the reader agree; the weekend value survives a weekday change; the pre-fill pages render their placeholders and store only settings. 6 findings (1 merged in), size L; class tags I4, N-dead-input, N-entry-data-placement, P2. Plan: the entry migration cannot be undone by a downgrade (tradeoff T18); designer.md is dispatched before the fixer, and the release notes owe the step first."
+  },
+  {
+   "group": "R11-SEAM-entity-service",
+   "findings": [
+    "D10-s1-02",
+    "D10-s2-04",
+    "D8-s1-03",
+    "D8-s2-02",
+    "D8-s3-01",
+    "D15-s3-01",
+    "D14-s1-01",
+    "D17-s3-51"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "size": "M",
+   "seam": "entity and service surface",
+   "hot_files": [
+    "sensor.py",
+    "button.py",
+    "services.yaml",
+    "debugger.py"
+   ],
+   "after": [],
+   "architect_note": "Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2."
+  },
+  {
+   "group": "R11-SEAM-card",
+   "findings": [
+    "D4-s1-01",
+    "D4-s1-03",
+    "D4-s3-01",
+    "D4-s3-02",
+    "D4-s3-03",
+    "D4-s3-04",
+    "D4-s3-05",
+    "D6-s4-01",
+    "D9-s2-01"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "size": "L",
+   "seam": "card",
+   "hot_files": [
+    "www/heatpump-optimizer-card.js"
+   ],
+   "after": [],
+   "architect_note": "Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9."
+  },
+  {
+   "group": "R11-SEAM-product-text",
+   "findings": [
+    "D6-s2-01",
+    "D6-s6-01",
+    "D6-s4-02",
+    "D4-s3-06",
+    "D4-s3-07",
+    "D10-s2-03",
+    "D4-s2-51"
+   ],
+   "merged": {
+    "D4-s2-02": "D10-s2-03"
+   },
+   "severity": "high",
+   "size": "M",
+   "seam": "product text",
+   "hot_files": [
+    "strings.json",
+    "translations/de.json",
+    "translations/sv.json",
+    "translations/en.json"
+   ],
+   "after": [
+    "R11-SEAM-plant-model",
+    "R11-SEAM-money",
+    "R11-SEAM-actuation-release",
+    "R11-SEAM-actuation-writes",
+    "R11-SEAM-config",
+    "R11-SEAM-entity-service"
+   ],
+   "architect_note": "User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. Verified against the text ledger. 7 findings (1 merged in), size M; class tags I4, I5, N-copy-style. Plan: ADR-010."
+  },
+  {
+   "group": "R11-SEAM-tests",
+   "findings": [
+    "D10-s1-05",
+    "D10-s1-06",
+    "D14-s2-03",
+    "D7-s1-01",
+    "D7-s1-02",
+    "D7-s1-03",
+    "D7-s1-04",
+    "D9-s3-01",
+    "D9-s3-02",
+    "D5-s6-02",
+    "D5-s8-04",
+    "D5-s8-05",
+    "D5-s9-01"
+   ],
+   "merged": {
+    "D5-s9-02": "D5-s9-01",
+    "D5-s9-03": "D5-s9-01",
+    "D5-s8-03": "D5-s9-01"
+   },
+   "severity": "low",
+   "size": "L",
+   "seam": "test suite",
+   "hot_files": [
+    "tests/structure.py",
+    "tests/stress.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "after": [
+    "R11-SEAM-kernel"
+   ],
+   "architect_note": "Ratchets that see what they claim (const fan-out through a module binding, same-function clones, unused imports, module size outside the class, .exception floods), flow recovery, stress over a coordinator cycle and every scenario, and resolvable citations. New rows are recorded at their measured value; after the kernel, whose removals set those values. 13 findings (3 merged in), size L; class tags I1, I5, N-log-flood, N-move-stale-path, N-structure-blind. Plan: ADR-009. New rows are recorded after the kernel; a repaired row that reads higher is a budget raise needing the owner's confirmation before the push; no function the architecture score reads from tests/structure.py changes, and the score's own clone census is not edited in this round."
+  },
+  {
+   "group": "R11-SEAM-docs",
+   "findings": [
+    "D5-s2-01",
+    "D5-s2-02",
+    "D5-s2-03",
+    "D5-s2-08",
+    "D5-s2-09",
+    "D5-s2-10",
+    "D5-s2-11",
+    "D6-s1-02",
+    "D6-s7-01",
+    "D5-s2-04",
+    "D5-s2-05",
+    "D5-s2-06"
+   ],
+   "merged": {
+    "D6-s1-01": "D5-s2-08"
+   },
+   "severity": "medium",
+   "size": "L",
+   "seam": "reader docs",
+   "hot_files": [
+    "README.md",
+    "docs/configuration.md",
+    "docs/how-it-works.md",
+    "docs/setup.md",
+    "docs/CONTRIBUTING.md",
+    "docs/img/"
+   ],
+   "after": [
+    "R11-SEAM-plant-model",
+    "R11-SEAM-money",
+    "R11-SEAM-learners",
+    "R11-SEAM-actuation-release",
+    "R11-SEAM-actuation-writes",
+    "R11-SEAM-config",
+    "R11-SEAM-entity-service",
+    "R11-SEAM-card",
+    "R11-SEAM-product-text"
+   ],
+   "architect_note": "Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc. Plan: ADR-010."
+  },
+  {
+   "group": "R11-SEAM-governance-text",
+   "findings": [
+    "D6-s5-02",
+    "D6-s5-03",
+    "D6-s5-01",
+    "D6-s5-05",
+    "D6-s5-06",
+    "D6-s5-07",
+    "D6-s5-08",
+    "D6-s7-02",
+    "D11-s2-04",
+    "D15-s1-02"
+   ],
+   "merged": {
+    "D6-s2-02": "D6-s5-02",
+    "D6-s2-03": "D6-s5-02",
+    "D6-s5-04": "D6-s5-02"
+   },
+   "severity": "low",
+   "size": "M",
+   "seam": "governance text",
+   "hot_files": [
+    "dev/governance/rules/",
+    "dev/governance/roles/",
+    "dev/governance/dimensions/D15.md",
+    "dev/audit/README.md",
+    "tests/README.md",
+    "dev/programme/"
+   ],
+   "after": [],
+   "architect_note": "Policy and programme prose with a false or unresolvable sentence. Policy files merge serially on the owner's approving review; no instrument code changes here. 10 findings (3 merged in), size M; class tags I4, I5, N-move-stale-path. Plan: ADR-010."
+  },
+  {
+   "group": "R11-SEAM-comments-production",
+   "findings": [
+    "D5-s4-01",
+    "D5-s3-02"
+   ],
+   "merged": {
+    "D5-s3-03": "D5-s4-01"
+   },
+   "severity": "low",
+   "size": "XL",
+   "seam": "production comments",
+   "hot_files": [
+    "custom_components/heatpump_optimizer/*.py"
+   ],
+   "after": [
+    "R11-SEAM-kernel",
+    "R11-SEAM-plant-model",
+    "R11-SEAM-inputs-guards",
+    "R11-SEAM-inputs-freshness",
+    "R11-SEAM-store",
+    "R11-SEAM-money",
+    "R11-SEAM-solver",
+    "R11-SEAM-learners",
+    "R11-SEAM-actuation-release",
+    "R11-SEAM-actuation-writes",
+    "R11-SEAM-cycle-solve",
+    "R11-SEAM-cycle-reporting",
+    "R11-SEAM-config",
+    "R11-SEAM-entity-service",
+    "R11-ARCH-cycle-surface",
+    "R11-ARCH-fabric-learner"
+   ],
+   "architect_note": "Criterion C5 over production comments (921 units in two seats' cells) and one false docstring. Text only; after every production group, since each rewrites the same hot files. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Plan: ADR-010; last on every production file, after the two refactor groups as well; may be cut into parts by seam."
+  },
+  {
+   "group": "R11-SEAM-comments-tests",
+   "findings": [
+    "D5-s9-04"
+   ],
+   "merged": {
+    "D5-s7-01": "D5-s9-04",
+    "D5-s7-02": "D5-s9-04",
+    "D5-s7-03": "D5-s9-04"
+   },
+   "severity": "low",
+   "size": "XL",
+   "seam": "test comments",
+   "hot_files": [
+    "tests/*.py"
+   ],
+   "after": [
+    "R11-SEAM-tests"
+   ],
+   "architect_note": "Criterion C5 over the test suite, with the dead names and false count D5-s7-01 lists. Text only; after the tests group. 1 findings (3 merged in), size XL; class tags N-comment-style. Plan: ADR-010; may be cut into parts."
+  },
+  {
+   "group": "R11-ARCH-cycle-surface",
+   "findings": [],
+   "merged": {},
+   "severity": "low",
+   "size": "S",
+   "seam": "cycle",
+   "hot_files": [
+    "boost.py",
+    "diagnostics.py",
+    "coordinator.py"
+   ],
+   "after": [],
+   "architect_note": "Refactor group with no finding (ADR-005, its approved design). Diagnostics reads the mode from the #1739 view; boost answers whether the global boost mode is live from the state it is already told, with a restart in boost mode as the failing test; the shutdown stops clearing the task set only if the fixer shows the clear redundant, and rebinding the slot instead is refused. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arms reach and tasks. Scenario: a coordinator-private change edits no collaborator (S25)."
+  },
+  {
+   "group": "R11-ARCH-fabric-learner",
+   "findings": [],
+   "merged": {},
+   "severity": "low",
+   "size": "L",
+   "seam": "learners",
+   "hot_files": [
+    "coordinator.py",
+    "tests/structure_budgets.json",
+    "tests/features.py"
+   ],
+   "after": [
+    "R11-SEAM-learners"
+   ],
+   "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The house heat-loss, buffer cooling and internal-gains folds leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint: last on coordinator.py before the comment group. Evidence: a statement count of the eight methods, a prediction with no prototype. Scenario: growth of coordinator.py is priced and the class shrinks (S13)."
+  }
+ ],
+ "moves": [
+  {
+   "group": "R11-SEAM-kernel",
+   "adr": "ADR-001, ADR-002",
+   "metrics": {
+    "duplication_copies": 8.2671,
+    "layer_violations": 2.2224,
+    "coord_footprint": 0
+   },
+   "dS": 10.4895
+  },
+  {
+   "group": "R11-SEAM-plant-model",
+   "adr": "ADR-008",
+   "metrics": {
+    "private_cross_module": 0.1699,
+    "duplication_copies": 0,
+    "coord_footprint": 0
+   },
+   "dS": 0.1699
+  },
+  {
+   "group": "R11-SEAM-inputs-guards",
+   "adr": "ADR-002",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-inputs-freshness",
+   "adr": "ADR-001",
+   "metrics": {
+    "coord_footprint": 0
+   },
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-store",
+   "adr": "none",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-money",
+   "adr": "ADR-006",
+   "metrics": {
+    "duplication_copies": 1.357,
+    "coord_footprint": 0
+   },
+   "dS": 1.357
+  },
+  {
+   "group": "R11-SEAM-solver",
+   "adr": "none",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-learners",
+   "adr": "ADR-003, ADR-008",
+   "metrics": {
+    "shared_inplace_writes": 3.1839,
+    "coord_footprint": 0
+   },
+   "dS": 3.1839
+  },
+  {
+   "group": "R11-SEAM-actuation-release",
+   "adr": "ADR-004",
+   "metrics": {
+    "shared_inplace_writes": 2.259,
+    "coord_footprint": 0.0035
+   },
+   "dS": 2.2625
+  },
+  {
+   "group": "R11-SEAM-actuation-writes",
+   "adr": "ADR-001, ADR-004",
+   "metrics": {
+    "coord_footprint": 0
+   },
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-cycle-solve",
+   "adr": "designer",
+   "metrics": {
+    "coord_footprint": 0
+   },
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-cycle-reporting",
+   "adr": "ADR-003, ADR-008",
+   "metrics": {
+    "hub_solve_writes": 5.4429,
+    "private_cross_module": 0.2895,
+    "coord_footprint": 0
+   },
+   "dS": 5.7324
+  },
+  {
+   "group": "R11-SEAM-config",
+   "adr": "designer",
+   "metrics": {
+    "literal_clone_copies": 0
+   },
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-entity-service",
+   "adr": "none",
+   "metrics": {
+    "literal_clone_copies": 0
+   },
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-card",
+   "adr": "none",
+   "metrics": {
+    "card_clone_copies": 0
+   },
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-product-text",
+   "adr": "ADR-010",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-tests",
+   "adr": "ADR-009",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-docs",
+   "adr": "ADR-010",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-governance-text",
+   "adr": "ADR-010",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-comments-production",
+   "adr": "ADR-010",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-comments-tests",
+   "adr": "ADR-010",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-ARCH-cycle-surface",
+   "adr": "ADR-005",
+   "metrics": {
+    "coordinator_private_reach": 1.585,
+    "shared_inplace_writes": 5.4429,
+    "coord_footprint": 0
+   },
+   "dS": 7.0279
+  },
+  {
+   "group": "R11-ARCH-fabric-learner",
+   "adr": "ADR-007",
+   "metrics": {
+    "coord_footprint": 0.059,
+    "coordinator_multiassigned_attrs": 0
+   },
+   "dS": 0.059
+  },
+  {
+   "group": "R11-SERVICE-SCHEMA",
+   "adr": "none",
+   "metrics": {
+    "literal_clone_copies": 0.0493
+   },
+   "dS": 0.0493
+  },
+  {
+   "group": "R11-OUTSIDE-ROOMS-P2",
+   "adr": "none",
+   "metrics": {
+    "coord_footprint": -0.0035
+   },
+   "dS": -0.0035
+  },
+  {
+   "group": "R11-OUTSIDE-HONEST-STARTS-RUNS-P3",
+   "adr": "none",
+   "metrics": {
+    "coord_footprint": 0
+   },
+   "dS": 0
+  },
+  {
+   "group": "R11-OUTSIDE-HONEST-METERED-FLOOR",
+   "adr": "none",
+   "metrics": {
+    "coord_footprint": 0
+   },
+   "dS": 0
+  },
+  {
+   "group": "R11-OUTSIDE-ROOMS-P3",
+   "adr": "none",
+   "metrics": {
+    "coord_footprint": 0
+   },
+   "dS": 0
+  },
+  {
+   "group": "R11-OUTSIDE-HONEST-DHW-RUNS",
+   "adr": "none",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-OUTSIDE-SELF-SETTING-PUMP",
+   "adr": "none",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-PRODUCT-TEXT-PINS",
+   "adr": "none",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-VALVE-REFERENCE",
+   "adr": "none",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-CARRY-DRAWMAP",
+   "adr": "none",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-CARRY-ROOM-LIFT",
+   "adr": "none",
+   "metrics": {},
+   "dS": 0
+  }
+ ],
+ "projected_dS": 30.3279,
+ "critical_chain": "[\"R11-SEAM-plant-model\", \"R11-SEAM-learners\", \"R11-ARCH-fabric-learner\", \"R11-SEAM-comments-production\"]",
+ "depth": "4",
+ "hours": "167.63",
+ "risks": "[{\"risk\": \"Admissibility: coord_footprint reads six statements above the fork on main already (#3678, R11-OUTSIDE-ROOMS-P2), fixes in coordinator.py add statements, and the only large fall (ADR-007, R11-ARCH-fabric-learner) is a prediction behind a design that is still owed.\", \"check\": \"score.py --diff <fork> origin/main after every coordinator merge; the running sum of the merged bodies' coord_footprint lines against ADR-007's fall; if the designer's cut cannot close it the plan returns to the owner with the options (ADR-007 part 4), the target is not declared met.\"}, {\"risk\": \"The spread rule's three scored classes: vector.py gives a class to six metrics and only two classes can improve at this fork (N-shared-config, P2+P3); P6 and N-name-sort read 0 and N-structure-blind's one member is the entity-family barrier's declaration. The third improving group is the unclassed floor metrics (layer_violations, coordinator_private_reach, private_cross_module).\", \"check\": \"Open point for the plan reviewer and the owner: whether the floor metrics count as a class. If not, the condition cannot be met without deleting behaviour (D7 s1's famdel arm reads family_splits 0 to 2, inadmissible), and the plan states that rather than plan the deletion.\"}, {\"risk\": \"Two prototyped moves are conditional: the shutdown's task-set clear (ADR-005 part 3, +5.4429) and the one-row smooth top-k scalar (ADR-006 part 2, +1.3570).\", \"check\": \"The fixer's proof that the clear is redundant; tests/golden byte-identical and the solve-time harness for the scalar. With both dropped and both unprototyped predictions unrealised the reading is +23.0096, still above 22.7.\"}, {\"risk\": \"The floor case has no further margin: one more prototyped move failing (hub, sysid switch, circulation owner, the kernel's clone arms) puts the round short of 22.7.\", \"check\": \"plan_audit.py end-to-end --fork <fork> at each stamp; a prototyped move the ledger reports UNREALISED returns the plan to the architect before the last wave.\"}, {\"risk\": \"A sound fix may lower duplication_copies further (the Carnot expression in R11-SEAM-plant-model) and push the metric's share toward 40 %.\", \"check\": \"The share is read at the stamp; the projection leaves room for two more copies (to 6 reads 38.3 % of the then total, to 5 reads above 40 %). A sound removal is not refused to protect the share; the plan returns for a non-duplication move instead.\"}, {\"risk\": \"The score reading better than the code, clones: a window written twice in one function is not counted (D7-s1-02) and the scorer's repair is deferred to round-end triage.\", \"check\": \"Fix review step 14 runs D7 s1's place-keyed owner (m7_floor_plants.py, m7_prototypes.py --fold-owner) on every PR that lowers duplication_copies.\"}, {\"risk\": \"The score reading better than the code, values not handles: a wrapper, a renamed accessor or a rebind lowers coordinator_private_reach, shared_inplace_writes or private_cross_module with the coupling unchanged.\", \"check\": \"ADR-003, ADR-004, ADR-005 and ADR-008 each name the refused spelling; the reviewer re-runs dev/audit/rounds/round11/PLAN/prototypes.py's arm against the fixer's diff and reads reflective_writes and computed_attr_access.\"}, {\"risk\": \"Sensitivity S6/T6: the Carnot fix moves every learned COP correction and value-bearing golden fixture.\", \"check\": \"Claimed drift with its direction in tests/golden/claimed_drift.txt; R11-SEAM-learners runs after R11-SEAM-plant-model so each learner is re-measured once.\"}, {\"risk\": \"Sensitivity S9/S11: actuation-release and actuation-writes both redefine pump_arbiter's held record, and the open group R11-CARRY-DRAWMAP edits the same file.\", \"check\": \"The D16 enumerator's release and write cells after each of the three merges; R11-CARRY-DRAWMAP lands before the kernel or after actuation-writes, never between.\"}, {\"risk\": \"Seams likely to need redesign: the config-entry migration (T18, irreversible on downgrade), the one solve admission guard (T14) and the fabric-learner extraction; all three are designer-owed and outside the replan projection, so 167.63 h is a lower bound for them.\", \"check\": \"Design review at each handoff SHA; a third revise re-cuts the group (design-review.md); the orchestrator's replan on the merged roster is the round's figure.\"}, {\"risk\": \"R11-SEAM-kernel is first in file order on most hot files; a slow kernel holds most merges and its one PR touches many modules (holdout 5, change coupling).\", \"check\": \"The kernel lands in parts (ADR-001); the orchestrator treats its first part as critical path; plan_audit.py compare reads cochange at the stamp.\"}, {\"risk\": \"D7-s1-01's ratchet repair makes const_modules_over_50 read higher, which is a budget raise in tests/structure_budgets.json.\", \"check\": \"The owner's explicit confirmation before R11-SEAM-tests pushes (ADR-009; budget-raise-gate); the stamp's holdout compare names it with --allow structure:const_modules_over_50.\"}, {\"risk\": \"T7, T16 and T18 change what an existing install does at upgrade (published money, the two-zone default, where a setting is stored).\", \"check\": \"Each PR's release-notes step, first in the notes; R11-SEAM-docs verifies them last.\"}, {\"risk\": \"The deferral of comment-only edits to instrument files is a reading pending owner confirmation since step 3.\", \"check\": \"If the owner rules the other way, one text-only group joins after R11-SEAM-tests; no move changes.\"}]",
+ "holdouts": "/Users/timmalmstrom/hpo-orch/r10s6/r11/audit-r11-plan/dev/audit/rounds/round11/PLAN/holdouts/fork.json"
+}

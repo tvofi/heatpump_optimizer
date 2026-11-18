@@ -1,1998 +1,1074 @@
 {
-  "_comment": "Round 11 draft roster: one group per verified class; issue null until the Mac seat files it (decision 0011).",
-  "round": 11,
-  "groups": [
-    {
-      "group": "R11-P2",
-      "kind": "defect",
-      "class": "P2",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D1-s2-52",
-        "D1-s3-04",
-        "D10-s2-01",
-        "D12-s1-01",
-        "D12-s2-01",
-        "D12-s3-01",
-        "D12-s3-02",
-        "D15-s1-04",
-        "D15-s1-05",
-        "D16-s1-03",
-        "D16-s2-03",
-        "D17-s1-02",
-        "D17-s1-03",
-        "D17-s2-03",
-        "D17-s3-01",
-        "D17-s3-02",
-        "D17-s3-51",
-        "D2-s1-01",
-        "D2-s1-02",
-        "D2-s3-06",
-        "D7-s3-04",
-        "D8-s1-01",
-        "D8-s1-03"
-      ],
-      "severity": "critical",
-      "files": [
-        "README.md",
-        "custom_components/heatpump_optimizer/accuracy.py",
-        "custom_components/heatpump_optimizer/button.py",
-        "custom_components/heatpump_optimizer/config_flow.py",
-        "custom_components/heatpump_optimizer/const.py",
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/debugger.py",
-        "custom_components/heatpump_optimizer/drift.py",
-        "custom_components/heatpump_optimizer/entity.py",
-        "custom_components/heatpump_optimizer/flow_meter.py",
-        "custom_components/heatpump_optimizer/mixing_valve.py",
-        "custom_components/heatpump_optimizer/off_restore.py",
-        "custom_components/heatpump_optimizer/open_meteo.py",
-        "custom_components/heatpump_optimizer/optimizer.py",
-        "custom_components/heatpump_optimizer/pump_arbiter.py",
-        "custom_components/heatpump_optimizer/quick_setup.py",
-        "custom_components/heatpump_optimizer/repairs.py",
-        "custom_components/heatpump_optimizer/replay_doc.py",
-        "custom_components/heatpump_optimizer/sensor.py",
-        "custom_components/heatpump_optimizer/services.py",
-        "custom_components/heatpump_optimizer/services.yaml",
-        "custom_components/heatpump_optimizer/setpoint_check.py",
-        "custom_components/heatpump_optimizer/store.py",
-        "custom_components/heatpump_optimizer/strings.json",
-        "custom_components/heatpump_optimizer/tariff.py",
-        "custom_components/heatpump_optimizer/thermal_model.py",
-        "custom_components/heatpump_optimizer/topology.py",
-        "docs/configuration.md"
-      ],
-      "after": [],
-      "rca": true,
-      "brief": "Class P2: One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling. Findings D1-s2-52, D1-s3-04, D10-s2-01, D12-s1-01, D12-s2-01, D12-s3-01, D12-s3-02, D15-s1-04, D15-s1-05, D16-s1-03, D16-s2-03, D17-s1-02, D17-s1-03, D17-s2-03, D17-s3-01, D17-s3-02, D17-s3-51, D2-s1-01, D2-s1-02, D2-s3-06, D7-s3-04, D8-s1-01, D8-s1-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P2.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-missing-unit-scale",
-      "kind": "defect",
-      "class": "N-missing-unit-scale",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D2-s3-02"
-      ],
-      "severity": "critical",
-      "files": [
-        "custom_components/heatpump_optimizer/inputs.py"
-      ],
-      "after": [],
-      "rca": false,
-      "brief": "Class N-missing-unit-scale: A declared unit (a minor currency unit, a prefixed energy unit) is recognised but its scale factor is never applied, so the value reaches the plan off by that factor. Findings D2-s3-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-missing-unit-scale.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-I5",
-      "kind": "defect",
-      "class": "I5",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D0-s3-03",
-        "D10-s1-06",
-        "D10-s3-01",
-        "D10-s3-02",
-        "D11-s2-04",
-        "D5-s10-03",
-        "D5-s10-06",
-        "D5-s2-01",
-        "D5-s2-03",
-        "D5-s2-04",
-        "D5-s2-05",
-        "D5-s2-08",
-        "D5-s2-09",
-        "D5-s2-10",
-        "D5-s2-11",
-        "D5-s3-01",
-        "D5-s3-02",
-        "D5-s4-02",
-        "D5-s5-01",
-        "D5-s5-04",
-        "D5-s5-05",
-        "D5-s5-06",
-        "D5-s6-01",
-        "D5-s6-02",
-        "D5-s6-04",
-        "D5-s6-05",
-        "D5-s6-06",
-        "D5-s6-07",
-        "D5-s8-04",
-        "D5-s8-05",
-        "D6-s1-01",
-        "D6-s1-02",
-        "D6-s2-01",
-        "D6-s4-02",
-        "D6-s5-05",
-        "D6-s5-07",
-        "D6-s6-01",
-        "D6-s7-01",
-        "D6-s7-02"
-      ],
-      "severity": "high",
-      "files": [
-        "tests/card.mjs",
-        "tools/audit/seat/open_pr.sh",
-        "tools/audit/seat/plan_table.py",
-        "tools/audit/seat/replay_draws.py",
-        "tools/audit/seat/roster_lib.py",
-        "tools/audit/seat/update_pr.sh",
-        "tools/policy/check-wave-script.mjs"
-      ],
-      "after": [],
-      "rca": true,
-      "brief": "Class I5: Docs, comments or a compliance checklist drift stale against the code. Findings D0-s3-03, D10-s1-06, D10-s3-01, D10-s3-02, D11-s2-04, D5-s10-03, D5-s10-06, D5-s2-01, D5-s2-03, D5-s2-04, D5-s2-05, D5-s2-08, D5-s2-09, D5-s2-10, D5-s2-11, D5-s3-01, D5-s3-02, D5-s4-02, D5-s5-01, D5-s5-04, D5-s5-05, D5-s5-06, D5-s6-01, D5-s6-02, D5-s6-04, D5-s6-05, D5-s6-06, D5-s6-07, D5-s8-04, D5-s8-05, D6-s1-01, D6-s1-02, D6-s2-01, D6-s4-02, D6-s5-05, D6-s5-07, D6-s6-01, D6-s7-01, D6-s7-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-I5.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-I4",
-      "kind": "defect",
-      "class": "I4",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D10-s2-03",
-        "D15-s1-02",
-        "D15-s2-01",
-        "D15-s2-02",
-        "D15-s2-05",
-        "D15-s2-06",
-        "D15-s2-07",
-        "D15-s3-02",
-        "D17-s1-01",
-        "D2-s3-04",
-        "D4-s2-01",
-        "D4-s2-02",
-        "D4-s2-51",
-        "D6-s3-01",
-        "D6-s4-01"
-      ],
-      "severity": "high",
-      "files": [
-        "custom_components/heatpump_optimizer/config_flow.py",
-        "tools/audit/enumerate.py",
-        "tools/replay/dbg_bundle_gen.py",
-        "tools/replay/debug_ingest.py",
-        "tools/replay/debug_replay.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class I4: Two independent parsers or definitions of one concept disagree. Findings D10-s2-03, D15-s1-02, D15-s2-01, D15-s2-02, D15-s2-05, D15-s2-06, D15-s2-07, D15-s3-02, D17-s1-01, D2-s3-04, D4-s2-01, D4-s2-02, D4-s2-51, D6-s3-01, D6-s4-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-I4.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-no-expiry",
-      "kind": "defect",
-      "class": "N-no-expiry",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D1-s2-02",
-        "D1-s2-03",
-        "D14-s2-02",
-        "D7-s3-03"
-      ],
-      "severity": "high",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/early_cutoff.py",
-        "custom_components/heatpump_optimizer/pump_arbiter.py",
-        "custom_components/heatpump_optimizer/running_signal.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-no-expiry: A last-known value is published and booked as current with no age bound once its source stops updating. Findings D1-s2-02, D1-s2-03, D14-s2-02, D7-s3-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-no-expiry.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-unreleased-hold",
-      "kind": "defect",
-      "class": "N-unreleased-hold",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D16-s1-04",
-        "D16-s3-01",
-        "D16-s3-02",
-        "D16-s3-04"
-      ],
-      "severity": "high",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/off_restore.py",
-        "custom_components/heatpump_optimizer/pump_arbiter.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-unreleased-hold: An actuator the optimizer took over has no release or restore owner on some exit (stale plan, Off, unload, remove, failed restore), so the device keeps the optimizer's last write. Findings D16-s1-04, D16-s3-01, D16-s3-02, D16-s3-04. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-unreleased-hold.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-partial-window-extrapolation",
-      "kind": "defect",
-      "class": "N-partial-window-extrapolation",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D17-s1-05",
-        "D8-s1-02"
-      ],
-      "severity": "high",
-      "files": [
-        "custom_components/heatpump_optimizer/ledger.py",
-        "custom_components/heatpump_optimizer/power_guard.py"
-      ],
-      "after": [],
-      "rca": true,
-      "brief": "Class N-partial-window-extrapolation: A window or period figure is projected linearly from its elapsed part with no minimum-coverage rule, so early projections swing by orders of magnitude. Findings D17-s1-05, D8-s1-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-partial-window-extrapolation.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-P8",
-      "kind": "defect",
-      "class": "P8",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D14-s1-03",
-        "D7-s3-01"
-      ],
-      "severity": "high",
-      "files": [
-        "custom_components/heatpump_optimizer/config_flow.py",
-        "custom_components/heatpump_optimizer/grid_fee.py",
-        "custom_components/heatpump_optimizer/inputs.py"
-      ],
-      "after": [
-        "R11-P2",
-        "R11-N-missing-unit-scale"
-      ],
-      "rca": false,
-      "brief": "Class P8: A currency or unit resolved by divergent precedence on different surfaces. Findings D14-s1-03, D7-s3-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P8.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-inverted-aggregate",
-      "kind": "defect",
-      "class": "N-inverted-aggregate",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D2-s3-05"
-      ],
-      "severity": "high",
-      "files": [
-        "custom_components/heatpump_optimizer/tariff.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class N-inverted-aggregate: An aggregate takes the wrong order statistic (the minimum for a peak, the k smallest for the k largest), so the billed or tracked figure is understated. Findings D2-s3-05. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-inverted-aggregate.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-partial-payload-parse",
-      "kind": "defect",
-      "class": "N-partial-payload-parse",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D2-s3-03"
-      ],
-      "severity": "high",
-      "files": [
-        "custom_components/heatpump_optimizer/price_model.py"
-      ],
-      "after": [],
-      "rca": false,
-      "brief": "Class N-partial-payload-parse: A parser reads one part of an external payload and silently drops a sibling part the producer delivers, so the horizon or set it builds is short. Findings D2-s3-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-partial-payload-parse.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-wrong-law",
-      "kind": "defect",
-      "class": "N-wrong-law",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D2-s2-02"
-      ],
-      "severity": "high",
-      "files": [
-        "custom_components/heatpump_optimizer/defrost.py"
-      ],
-      "after": [],
-      "rca": true,
-      "brief": "Class N-wrong-law: A physical law is coded with the wrong operator or sign (a derate added instead of subtracted, then clamped), so the effect it models never acts on any input. Findings D2-s2-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-wrong-law.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-I1",
-      "kind": "defect",
-      "class": "I1",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D10-s1-05",
-        "D11-s1-03",
-        "D11-s1-04",
-        "D11-s3-03",
-        "D11-s3-04",
-        "D7-s3-06",
-        "D9-s3-01",
-        "D9-s3-02"
-      ],
-      "severity": "medium",
-      "files": [
-        ".claude/hooks/pre-bash.sh",
-        ".claude/hooks/pre-edit.sh",
-        ".claude/hooks/session-start.sh",
-        ".claude/hooks/stop-selfcheck.sh",
-        "dev/audit/harnesses/claim_merge_mutants.py",
-        "tests/ci_ratchet.py",
-        "tests/config_flow_steps.py",
-        "tests/throwaway_git.py",
-        "tools/audit/archscore/gate.py",
-        "tools/audit/check_scopes.py",
-        "tools/audit/enumerate.py",
-        "tools/audit/fold_ledger.py",
-        "tools/audit/machinery_ratchet.py",
-        "tools/audit/merge_throughput.py",
-        "tools/audit/product_reads.py",
-        "tools/audit/regret_oracle.py",
-        "tools/audit/seat/bare_array.py",
-        "tools/audit/seat/bottleneck_check.py",
-        "tools/audit/seat/bus.sh",
-        "tools/audit/seat/finder_overlap.py",
-        "tools/audit/seat/loop_ledger.py",
-        "tools/audit/seat/outside_intake.py",
-        "tools/audit/seat/plan_public.py",
-        "tools/audit/seat/plant_recall.py",
-        "tools/audit/seat/probe_bridge.py",
-        "tools/audit/seat/ref_privacy.py",
-        "tools/audit/seat/round_metrics.py",
-        "tools/audit/seat/scorecard.py",
-        "tools/audit/seat/selftest_wiring.py",
-        "tools/audit/seat/shell_hazard.py",
-        "tools/audit/seat/tmp_paths.py",
-        "tools/audit/seat/toolchain.py",
-        "tools/audit/seat/train.sh",
-        "tools/audit/text_ledger.py",
-        "tools/audit/worktree_gc.sh",
-        "tools/coverage/partition.py",
-        "tools/merge/ledger_merge.py",
-        "tools/plan/replan.py",
-        "tools/plan/size_durations.py",
-        "tools/policy/agreement.mjs",
-        "tools/policy/agreement_py.py",
-        "tools/policy/field_coverage.mjs",
-        "tools/policy/figure_census.mjs",
-        "tools/policy/figure_lint.mjs",
-        "tools/policy/fragments_sync.mjs",
-        "tools/policy/friction_issues.mjs",
-        "tools/policy/policy_lint.mjs",
-        "tools/policy/record-predicate/row_files_replay.py",
-        "tools/policy/role_pack.py",
-        "tools/policy/rules_sync.mjs",
-        "tools/pr/approve_held_runs.sh",
-        "tools/pr/cancel_superseded.py",
-        "tools/pr/dependabot_merge.py",
-        "tools/pr/depgraph.py",
-        "tools/pr/gate_priority.py",
-        "tools/pr/head_note.py",
-        "tools/pr/merge_main_bot.py",
-        "tools/pr/prepr.sh",
-        "tools/release/stamp.py",
-        "tools/site/day_chart.mjs"
-      ],
-      "after": [
-        "R11-I4"
-      ],
-      "rca": true,
-      "brief": "Class I1: A mutation kill miscounted, or a guard whose deletion leaves the gate green. Findings D10-s1-05, D11-s1-03, D11-s1-04, D11-s3-03, D11-s3-04, D7-s3-06, D9-s3-01, D9-s3-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-I1.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-I3",
-      "kind": "defect",
-      "class": "I3",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D11-s1-01",
-        "D11-s1-02",
-        "D11-s1-05",
-        "D11-s1-06",
-        "D11-s2-01",
-        "D11-s2-02",
-        "D11-s2-03",
-        "D11-s3-02"
-      ],
-      "severity": "medium",
-      "files": [
-        ".claude/hooks/stop-selfcheck.sh",
-        ".github/workflows/release.yml",
-        "tests/structure.py",
-        "tools/audit/seat/merge_train.py",
-        "tools/audit/seat/wt_sync.sh",
-        "tools/policy/brief_lint.mjs",
-        "tools/policy/budget_raise_gate.py",
-        "tools/policy/fixtures/required-contexts.json",
-        "tools/pr/outside.py"
-      ],
-      "after": [
-        "R11-I1"
-      ],
-      "rca": true,
-      "brief": "Class I3: A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary. Findings D11-s1-01, D11-s1-02, D11-s1-05, D11-s1-06, D11-s2-01, D11-s2-02, D11-s2-03, D11-s3-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-I3.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-P1",
-      "kind": "defect",
-      "class": "P1",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D1-s2-01",
-        "D1-s2-05",
-        "D1-s2-06",
-        "D1-s2-51",
-        "D1-s3-01",
-        "D1-s3-02",
-        "D1-s3-03"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/boost.py",
-        "custom_components/heatpump_optimizer/comfort_band.py",
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/early_cutoff.py",
-        "custom_components/heatpump_optimizer/inputs.py",
-        "custom_components/heatpump_optimizer/open_meteo.py",
-        "custom_components/heatpump_optimizer/quiet_windows.py",
-        "custom_components/heatpump_optimizer/thermal_model.py",
-        "custom_components/heatpump_optimizer/topology.py"
-      ],
-      "after": [
-        "R11-P2",
-        "R11-N-missing-unit-scale"
-      ],
-      "rca": true,
-      "brief": "Class P1: A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard. Findings D1-s2-01, D1-s2-05, D1-s2-06, D1-s2-51, D1-s3-01, D1-s3-02, D1-s3-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P1.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-silent-zero",
-      "kind": "defect",
-      "class": "N-silent-zero",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D10-s1-01",
-        "D10-s1-02",
-        "D15-s1-03",
-        "D15-s2-03",
-        "D15-s3-01",
-        "D17-s3-03"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/button.py",
-        "custom_components/heatpump_optimizer/debugger.py",
-        "custom_components/heatpump_optimizer/services.py",
-        "custom_components/heatpump_optimizer/snapshots.py",
-        "custom_components/heatpump_optimizer/switch.py",
-        "tools/replay/dbg_bundle_gen.py",
-        "tools/replay/debug_ingest.py",
-        "tools/replay/debug_replay.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-silent-zero: A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero. Findings D10-s1-01, D10-s1-02, D15-s1-03, D15-s2-03, D15-s3-01, D17-s3-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-silent-zero.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-P9",
-      "kind": "defect",
-      "class": "P9",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D4-s1-01",
-        "D4-s1-03",
-        "D4-s3-02",
-        "D4-s3-03",
-        "D4-s3-04",
-        "D4-s3-05"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
-      ],
-      "after": [],
-      "rca": true,
-      "brief": "Class P9: Card UI: a clipping ancestor, missing colour token or unfloored hit target. Findings D4-s1-01, D4-s1-03, D4-s3-02, D4-s3-03, D4-s3-04, D4-s3-05. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P9.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-confounded-learner",
-      "kind": "defect",
-      "class": "N-confounded-learner",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D12-s3-03",
-        "D2-s3-09",
-        "D2-s3-11",
-        "D7-s2-01"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/comfort_learning.py",
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/dhw_learning.py",
-        "custom_components/heatpump_optimizer/draw_range.py",
-        "custom_components/heatpump_optimizer/heat_energy.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-confounded-learner: An online estimator absorbs the error of an unmodelled or mis-modelled covariate into the parameter it learns. Findings D12-s3-03, D2-s3-09, D2-s3-11, D7-s2-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-confounded-learner.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-I2",
-      "kind": "defect",
-      "class": "I2",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D0-s3-01",
-        "D3-s2-01",
-        "D5-s2-07"
-      ],
-      "severity": "medium",
-      "files": [
-        "dev/audit/config/bundles.json",
-        "tests/closure.py",
-        "tools/audit/seat/review_strength.py",
-        "tools/audit/text_ledger.py"
-      ],
-      "after": [
-        "R11-I1"
-      ],
-      "rca": true,
-      "brief": "Class I2: A measured closure or scope diverges from the real dependency graph. Findings D0-s3-01, D3-s2-01, D5-s2-07. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-I2.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-dead-input",
-      "kind": "defect",
-      "class": "N-dead-input",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D17-s2-02",
-        "D17-s2-04"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/silent_mode.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class N-dead-input: A configured input or option is accepted, stored and shown, but no consumer reads it into the plan, so changing it changes nothing. Findings D17-s2-02, D17-s2-04. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-dead-input.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-entity-metadata",
-      "kind": "defect",
-      "class": "N-entity-metadata",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D10-s2-04",
-        "D8-s3-01"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/sensor.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class N-entity-metadata: An entity declares a device_class, state_class or unit that does not describe its value, so Home Assistant converts, aggregates or offers it wrongly. Findings D10-s2-04, D8-s3-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-entity-metadata.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-stale-step-actuation",
-      "kind": "defect",
-      "class": "N-stale-step-actuation",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D16-s2-01",
-        "D16-s2-02"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/legionella.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-stale-step-actuation: An actuator is commanded from the previous solve or step, so it holds or switches one interval late against the plan it serves. Findings D16-s2-01, D16-s2-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-stale-step-actuation.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-unbudgeted-background",
-      "kind": "defect",
-      "class": "N-unbudgeted-background",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D9-s1-02",
-        "D9-s1-03"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/services.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class N-unbudgeted-background: Background solves (what-ifs, advisors) stack onto the main solve with no per-cycle budget or in-flight guard, so a burst multiplies worker jobs and delays the scheduled solve. Findings D9-s1-02, D9-s1-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-unbudgeted-background.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-vocabulary-drift",
-      "kind": "defect",
-      "class": "N-vocabulary-drift",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D13-s2-01",
-        "D13-s2-02"
-      ],
-      "severity": "medium",
-      "files": [
-        ".claude/workflows/web-fix-wave.js",
-        "tools/audit/seat/bus.sh",
-        "tools/policy/policy_lint.mjs"
-      ],
-      "after": [
-        "R11-I1"
-      ],
-      "rca": true,
-      "brief": "Class N-vocabulary-drift: A record's writer holds one vocabulary and its reader holds another, so the writer accepts a word no read can close: roster_edit.py wrote stages as free strings (`459ef684a` appended a group in `in-review`; `94ece3d08` set R10-HOUSE-GRADE to `in-review` again) while roster_sync.p. Findings D13-s2-01, D13-s2-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-vocabulary-drift.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-P5",
-      "kind": "defect",
-      "class": "P5",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D2-s3-10",
-        "D7-s2-02"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/sysid.py"
-      ],
-      "after": [],
-      "rca": true,
-      "brief": "Class P5: A sysid/adoption gate keyed on a quantity other than the bias it gates. Findings D2-s3-10, D7-s2-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P5.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-dropped-refresh",
-      "kind": "defect",
-      "class": "N-dropped-refresh",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D1-s1-03"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/boost.py",
-        "custom_components/heatpump_optimizer/button.py",
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/entity.py",
-        "custom_components/heatpump_optimizer/services.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-dropped-refresh: A refresh request that lands while a solve is in flight is coalesced into that solve, which read its inputs before the request, so the request is lost until the next interval. Findings D1-s1-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-dropped-refresh.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-event-misattribution",
-      "kind": "defect",
-      "class": "N-event-misattribution",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D2-s3-08"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/dhw_learning.py"
-      ],
-      "after": [
-        "R11-N-confounded-learner"
-      ],
-      "rca": false,
-      "brief": "Class N-event-misattribution: A sensor signature of one physical event is classified as another (a charge-start dip as a hot-water draw), so a counter or statistic books events that did not happen. Findings D2-s3-08. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-event-misattribution.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-instrument-locator",
-      "kind": "defect",
-      "class": "N-instrument-locator",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D5-s8-07"
-      ],
-      "severity": "medium",
-      "files": [
-        "tools/audit/text_ledger.py"
-      ],
-      "after": [
-        "R11-I1"
-      ],
-      "rca": false,
-      "brief": "Class N-instrument-locator: An audit instrument reports the wrong location (line number or file) for the units it counts, so every seat that cites its output cites the wrong site. Findings D5-s8-07. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-instrument-locator.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-objective-as-money",
-      "kind": "defect",
-      "class": "N-objective-as-money",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D2-s3-01"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/dhw_planner.py",
-        "custom_components/heatpump_optimizer/optimizer.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-objective-as-money: A solve-only adjustment (a risk premium or penalty weight) is carried into a figure published or booked as currency, so cost, baseline and savings include a number no meter bills. Findings D2-s3-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-objective-as-money.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-order-coupling",
-      "kind": "defect",
-      "class": "N-order-coupling",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D16-s3-03"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class N-order-coupling: Two sibling updaters consume one shared interval and the first closes it destructively, so correctness depends on call order that only a comment and a source-order test hold. Findings D16-s3-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-order-coupling.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-restore-race",
-      "kind": "defect",
-      "class": "N-restore-race",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D1-s2-04"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/off_restore.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class N-restore-race: A restore applies persisted state after an await during which a writer changed the same state, so the stale snapshot overwrites the live write (or the write lands on an object the restore then replaces). Findings D1-s2-04. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-restore-race.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-staleness",
-      "kind": "defect",
-      "class": "N-staleness",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D14-s2-01"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/const.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-staleness: A staleness limit is shorter than a report-on-change source's legitimate quiet interval, so a valid unchanged reading is declared stale or unavailable. Findings D14-s2-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-staleness.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-table-value",
-      "kind": "defect",
-      "class": "N-table-value",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D2-s1-51"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/presets.py"
-      ],
-      "after": [],
-      "rca": false,
-      "brief": "Class N-table-value: A constant in a production data table (preset, coefficient, rule) is wrong, so every install that selects it computes from a false number. Findings D2-s1-51. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-table-value.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-P3",
-      "kind": "defect",
-      "class": "P3",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D16-s2-04"
-      ],
-      "severity": "medium",
-      "files": [
-        "custom_components/heatpump_optimizer/pump_arbiter.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class P3: A capacity floor or divisor applied inconsistently across sibling formulas. Findings D16-s2-04. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P3.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-move-stale-path",
-      "kind": "defect",
-      "class": "N-move-stale-path",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D5-s10-01",
-        "D5-s10-04",
-        "D5-s10-05",
-        "D5-s5-02",
-        "D5-s5-03",
-        "D5-s6-03",
-        "D5-s8-01",
-        "D5-s8-02",
-        "D5-s8-03",
-        "D5-s9-01",
-        "D5-s9-02",
-        "D5-s9-03",
-        "D6-s2-02",
-        "D6-s2-03",
-        "D6-s5-01",
-        "D6-s5-02",
-        "D6-s5-03",
-        "D6-s5-04",
-        "D6-s5-06",
-        "D6-s5-08"
-      ],
-      "severity": "low",
-      "files": [
-        "dev/governance/roles/fixer.md",
-        "dev/governance/roles/orchestrator.md",
-        "tools/audit/seat/row_position.py",
-        "tools/policy/friction_issues.mjs",
-        "tools/policy/policy_lint.mjs"
-      ],
-      "after": [
-        "R11-I1"
-      ],
-      "rca": true,
-      "brief": "Class N-move-stale-path: A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move. Findings D5-s10-01, D5-s10-04, D5-s10-05, D5-s5-02, D5-s5-03, D5-s6-03, D5-s8-01, D5-s8-02, D5-s8-03, D5-s9-01, D5-s9-02, D5-s9-03, D6-s2-02, D6-s2-03, D6-s5-01, D6-s5-02, D6-s5-03, D6-s5-04, D6-s5-06, D6-s5-08. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-move-stale-path.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-comment-style",
-      "kind": "defect",
-      "class": "N-comment-style",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D5-s10-07",
-        "D5-s2-06",
-        "D5-s3-03",
-        "D5-s4-01",
-        "D5-s5-07",
-        "D5-s6-08",
-        "D5-s7-01",
-        "D5-s7-02",
-        "D5-s7-03",
-        "D5-s8-06",
-        "D5-s9-04"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/__init__.py",
-        "custom_components/heatpump_optimizer/accuracy.py",
-        "custom_components/heatpump_optimizer/away.py",
-        "custom_components/heatpump_optimizer/batchmath.py",
-        "custom_components/heatpump_optimizer/battery.py",
-        "custom_components/heatpump_optimizer/binary_sensor.py",
-        "custom_components/heatpump_optimizer/boost.py",
-        "custom_components/heatpump_optimizer/button.py",
-        "custom_components/heatpump_optimizer/climate.py",
-        "custom_components/heatpump_optimizer/comfort_band.py",
-        "custom_components/heatpump_optimizer/comfort_learning.py",
-        "custom_components/heatpump_optimizer/config_flow.py",
-        "custom_components/heatpump_optimizer/const.py",
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/currency.py",
-        "custom_components/heatpump_optimizer/curve_learning.py",
-        "custom_components/heatpump_optimizer/debugger.py",
-        "custom_components/heatpump_optimizer/defrost.py",
-        "custom_components/heatpump_optimizer/device_prefill.py",
-        "custom_components/heatpump_optimizer/dhw_draws.py",
-        "custom_components/heatpump_optimizer/dhw_learning.py",
-        "custom_components/heatpump_optimizer/dhw_planner.py",
-        "custom_components/heatpump_optimizer/dhw_schedule.py",
-        "custom_components/heatpump_optimizer/diagnosis.py",
-        "custom_components/heatpump_optimizer/diagnostics.py",
-        "custom_components/heatpump_optimizer/disinfection.py",
-        "custom_components/heatpump_optimizer/draw_range.py",
-        "custom_components/heatpump_optimizer/drift.py",
-        "custom_components/heatpump_optimizer/driving_grade.py",
-        "custom_components/heatpump_optimizer/duty_legs.py",
-        "custom_components/heatpump_optimizer/duty_switch.py",
-        "custom_components/heatpump_optimizer/early_cutoff.py",
-        "custom_components/heatpump_optimizer/entity.py",
-        "custom_components/heatpump_optimizer/external_heat.py",
-        "custom_components/heatpump_optimizer/flow_lift.py",
-        "custom_components/heatpump_optimizer/flow_meter.py",
-        "custom_components/heatpump_optimizer/freq_control.py",
-        "custom_components/heatpump_optimizer/frontend.py",
-        "custom_components/heatpump_optimizer/grid_fee.py",
-        "custom_components/heatpump_optimizer/heat_curve.py",
-        "custom_components/heatpump_optimizer/heat_energy.py",
-        "custom_components/heatpump_optimizer/inputs.py",
-        "custom_components/heatpump_optimizer/issues.py",
-        "custom_components/heatpump_optimizer/learner_progress.py",
-        "custom_components/heatpump_optimizer/ledger.py",
-        "custom_components/heatpump_optimizer/legionella.py",
-        "custom_components/heatpump_optimizer/manual_plan.py",
-        "custom_components/heatpump_optimizer/mixing_valve.py",
-        "custom_components/heatpump_optimizer/modbus_prefill.py",
-        "custom_components/heatpump_optimizer/name_match.py",
-        "custom_components/heatpump_optimizer/narrative.py",
-        "custom_components/heatpump_optimizer/notifier.py",
-        "custom_components/heatpump_optimizer/off_restore.py",
-        "custom_components/heatpump_optimizer/open_meteo.py",
-        "custom_components/heatpump_optimizer/optimizer.py",
-        "custom_components/heatpump_optimizer/payload.py",
-        "custom_components/heatpump_optimizer/plan_step.py",
-        "custom_components/heatpump_optimizer/power_guard.py",
-        "custom_components/heatpump_optimizer/prefill_offer.py",
-        "custom_components/heatpump_optimizer/presets.py",
-        "custom_components/heatpump_optimizer/price_model.py",
-        "custom_components/heatpump_optimizer/price_tiles.py",
-        "custom_components/heatpump_optimizer/pump_arbiter.py",
-        "custom_components/heatpump_optimizer/pump_mode.py",
-        "custom_components/heatpump_optimizer/pump_schedule.py",
-        "custom_components/heatpump_optimizer/pump_signals.py",
-        "custom_components/heatpump_optimizer/pv.py",
-        "custom_components/heatpump_optimizer/quick_setup.py",
-        "custom_components/heatpump_optimizer/quiet_windows.py",
-        "custom_components/heatpump_optimizer/replay_doc.py",
-        "custom_components/heatpump_optimizer/rooms.py",
-        "custom_components/heatpump_optimizer/running_signal.py",
-        "custom_components/heatpump_optimizer/runs.py",
-        "custom_components/heatpump_optimizer/sensor.py",
-        "custom_components/heatpump_optimizer/services.py",
-        "custom_components/heatpump_optimizer/setpoint_check.py",
-        "custom_components/heatpump_optimizer/silent_mode.py",
-        "custom_components/heatpump_optimizer/slab_seed.py",
-        "custom_components/heatpump_optimizer/snapshots.py",
-        "custom_components/heatpump_optimizer/store.py",
-        "custom_components/heatpump_optimizer/supply_hold.py",
-        "custom_components/heatpump_optimizer/switch.py",
-        "custom_components/heatpump_optimizer/sysid.py",
-        "custom_components/heatpump_optimizer/tariff.py",
-        "custom_components/heatpump_optimizer/thermal_model.py",
-        "custom_components/heatpump_optimizer/topology.py",
-        "custom_components/heatpump_optimizer/wear.py",
-        "custom_components/heatpump_optimizer/whatif.py",
-        "custom_components/heatpump_optimizer/wood_fuel.py",
-        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
-        "docs/img/model/make_card_weekly_figure.mjs",
-        "tests/features.py",
-        "tests/finite_boundary.py",
-        "tests/frontend.py"
-      ],
-      "after": [
-        "R11-P2",
-        "R11-N-missing-unit-scale",
-        "R11-N-partial-window-extrapolation",
-        "R11-N-partial-payload-parse",
-        "R11-N-wrong-law",
-        "R11-P9",
-        "R11-P5",
-        "R11-N-event-misattribution",
-        "R11-N-table-value"
-      ],
-      "rca": true,
-      "brief": "Class N-comment-style: Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact. Findings D5-s10-07, D5-s2-06, D5-s3-03, D5-s4-01, D5-s5-07, D5-s6-08, D5-s7-01, D5-s7-02, D5-s7-03, D5-s8-06, D5-s9-04. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-comment-style.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-structure-blind",
-      "kind": "defect",
-      "class": "N-structure-blind",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D7-s1-01",
-        "D7-s1-02",
-        "D7-s1-03",
-        "D7-s1-04",
-        "D7-s3-05"
-      ],
-      "severity": "low",
-      "files": [
-        "tests/structure.py"
-      ],
-      "after": [
-        "R11-I3"
-      ],
-      "rca": true,
-      "brief": "Class N-structure-blind: A structural ratchet or dead-code metric measures a name or regex proxy instead of the property it gates, so dead production members or cross-seam coupling pass it unmeasured. Findings D7-s1-01, D7-s1-02, D7-s1-03, D7-s1-04, D7-s3-05. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-structure-blind.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-copy-style",
-      "kind": "defect",
-      "class": "N-copy-style",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D4-s3-06",
-        "D4-s3-07"
-      ],
-      "severity": "low",
-      "files": [
-        "blueprints/**",
-        "custom_components/heatpump_optimizer/translations/de.json",
-        "custom_components/heatpump_optimizer/translations/en.json",
-        "custom_components/heatpump_optimizer/translations/sv.json",
-        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
-      ],
-      "after": [
-        "R11-P9"
-      ],
-      "rca": true,
-      "brief": "Class N-copy-style: User-facing copy breaks the style rule its sibling strings keep (title case, quote style, degree sign), so one surface reads inconsistently. Findings D4-s3-06, D4-s3-07. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-copy-style.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-entry-data-placement",
-      "kind": "defect",
-      "class": "N-entry-data-placement",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D10-s1-03",
-        "D17-s2-05"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/config_flow.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-entry-data-placement: A setting the options flow edits is stored in ConfigEntry.data (or a flow-control value is persisted there), so options and data hold two copies of one setting. Findings D10-s1-03, D17-s2-05. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-entry-data-placement.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-log-flood",
-      "kind": "defect",
-      "class": "N-log-flood",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D1-s3-06",
-        "D14-s2-03"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "tests/entities.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-log-flood: A persisting condition is logged at WARNING on every cycle instead of once per transition. Findings D1-s3-06, D14-s2-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-log-flood.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-step-grid",
-      "kind": "defect",
-      "class": "N-step-grid",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D14-s1-01",
-        "D16-s1-01"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/config_flow.py",
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/services.yaml",
-        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
-      ],
-      "after": [
-        "R11-P2",
-        "R11-P9"
-      ],
-      "rca": true,
-      "brief": "Class N-step-grid: A number selector's minimum or default is not on its own step grid, so native validity flags legal values and a spinner click lands off-grid. Findings D14-s1-01, D16-s1-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-step-grid.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-swallowed-failure",
-      "kind": "defect",
-      "class": "N-swallowed-failure",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D1-s3-05",
-        "D1-s3-07"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/away.py",
-        "custom_components/heatpump_optimizer/boost.py",
-        "custom_components/heatpump_optimizer/config_flow.py",
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/debugger.py",
-        "custom_components/heatpump_optimizer/dhw_learning.py",
-        "custom_components/heatpump_optimizer/dhw_planner.py",
-        "custom_components/heatpump_optimizer/diagnosis.py",
-        "custom_components/heatpump_optimizer/diagnostics.py",
-        "custom_components/heatpump_optimizer/duty_switch.py",
-        "custom_components/heatpump_optimizer/legionella.py",
-        "custom_components/heatpump_optimizer/notifier.py",
-        "custom_components/heatpump_optimizer/off_restore.py",
-        "custom_components/heatpump_optimizer/open_meteo.py",
-        "custom_components/heatpump_optimizer/optimizer.py",
-        "custom_components/heatpump_optimizer/pump_arbiter.py",
-        "custom_components/heatpump_optimizer/setpoint_check.py",
-        "custom_components/heatpump_optimizer/store.py",
-        "custom_components/heatpump_optimizer/whatif.py"
-      ],
-      "after": [
-        "R11-P2",
-        "R11-N-event-misattribution"
-      ],
-      "rca": true,
-      "brief": "Class N-swallowed-failure: A failing operation is caught and recorded below WARNING or not at all, so a persistent failure is invisible to the user and the logs. Findings D1-s3-05, D1-s3-07. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-swallowed-failure.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-P4",
-      "kind": "defect",
-      "class": "P4",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D0-s2-01",
-        "D0-s3-02"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/optimizer.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class P4: The optimizer seed set or stop tolerance does not bracket the optimum. Findings D0-s2-01, D0-s3-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P4.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-P7",
-      "kind": "defect",
-      "class": "P7",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D15-s2-04",
-        "D2-s3-07"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/dhw_schedule.py",
-        "custom_components/heatpump_optimizer/ledger.py",
-        "custom_components/heatpump_optimizer/thermal_model.py"
-      ],
-      "after": [
-        "R11-P2",
-        "R11-N-partial-window-extrapolation"
-      ],
-      "rca": true,
-      "brief": "Class P7: Naive wall-clock datetime arithmetic across a DST transition. Findings D15-s2-04, D2-s3-07. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P7.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-duplicated-rule",
-      "kind": "defect",
-      "class": "N-duplicated-rule",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D7-s1-05"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/binary_sensor.py",
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/drift.py",
-        "custom_components/heatpump_optimizer/ledger.py",
-        "custom_components/heatpump_optimizer/legionella.py",
-        "custom_components/heatpump_optimizer/price_model.py",
-        "custom_components/heatpump_optimizer/pump_arbiter.py",
-        "custom_components/heatpump_optimizer/sysid.py"
-      ],
-      "after": [
-        "R11-P2",
-        "R11-N-partial-window-extrapolation",
-        "R11-N-partial-payload-parse",
-        "R11-P5"
-      ],
-      "rca": false,
-      "brief": "Class N-duplicated-rule: One rule is written as several agreeing copies where a single-owner prototype is admissible, so a later fix to one copy silently forks the rule. Findings D7-s1-05. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-duplicated-rule.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-finally-return",
-      "kind": "defect",
-      "class": "N-finally-return",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D14-s1-02"
-      ],
-      "severity": "low",
-      "files": [
-        "dev/archive/handoff/r9-f2-solver-4/mutation_proof.py"
-      ],
-      "after": [],
-      "rca": false,
-      "brief": "Class N-finally-return: A return inside finally swallows an in-flight exception, cancellation included. Findings D14-s1-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-finally-return.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-leaf-imports-solver",
-      "kind": "defect",
-      "class": "N-leaf-imports-solver",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D7-s1-06"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/comfort_learning.py",
-        "custom_components/heatpump_optimizer/disinfection.py",
-        "custom_components/heatpump_optimizer/external_heat.py",
-        "custom_components/heatpump_optimizer/grid_fee.py",
-        "custom_components/heatpump_optimizer/optimizer.py",
-        "custom_components/heatpump_optimizer/power_guard.py",
-        "custom_components/heatpump_optimizer/price_model.py",
-        "custom_components/heatpump_optimizer/quiet_windows.py",
-        "custom_components/heatpump_optimizer/setpoint_check.py",
-        "custom_components/heatpump_optimizer/snapshots.py",
-        "custom_components/heatpump_optimizer/sysid.py",
-        "custom_components/heatpump_optimizer/tariff.py",
-        "custom_components/heatpump_optimizer/topology.py"
-      ],
-      "after": [
-        "R11-P2",
-        "R11-N-partial-window-extrapolation",
-        "R11-N-partial-payload-parse",
-        "R11-P5"
-      ],
-      "rca": true,
-      "brief": "Class N-leaf-imports-solver: A leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve. Findings D7-s1-06. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-leaf-imports-solver.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-mode-coupled-write",
-      "kind": "defect",
-      "class": "N-mode-coupled-write",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D16-s1-02"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/pump_arbiter.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class N-mode-coupled-write: A write meant for one heat target also drives the other because the plant has no mode separating them, and the gate that should hold it back is floored below the case. Findings D16-s1-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-mode-coupled-write.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-name-sort",
-      "kind": "defect",
-      "class": "N-name-sort",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D8-s2-02"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/sensor.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class N-name-sort: An entity family's display names do not lead with a shared token, so the name sort Home Assistant and the card use splits the family, per language. Findings D8-s2-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-name-sort.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-orphan-doc",
-      "kind": "defect",
-      "class": "N-orphan-doc",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D5-s2-02"
-      ],
-      "severity": "low",
-      "files": [
-        "docs/CONTRIBUTING.md"
-      ],
-      "after": [],
-      "rca": false,
-      "brief": "Class N-orphan-doc: A reader document is linked from no other document in the reader set, so no navigation path reaches it. Findings D5-s2-02. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-orphan-doc.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-shared-config",
-      "kind": "defect",
-      "class": "N-shared-config",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D7-s2-03"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-shared-config: Solve-scoped state is mutated on, or read from, live shared objects while the solve runs off the loop, so a concurrent reader publishes it or a concurrent writer is reverted. Findings D7-s2-03. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-shared-config.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-solve-recompute",
-      "kind": "defect",
-      "class": "N-solve-recompute",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D9-s1-01"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/button.py",
-        "custom_components/heatpump_optimizer/coordinator.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-solve-recompute: The solve recomputes interpreter-bound work per iterate or per row that is invariant or vectorisable (per-row Python loops, uncached parameter derivations, scalar re-evaluation, polishes whose result is discarded). Findings D9-s1-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-solve-recompute.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-unbounded-retention",
-      "kind": "defect",
-      "class": "N-unbounded-retention",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D9-s2-01"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/price_model.py",
-        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
-      ],
-      "after": [
-        "R11-N-partial-payload-parse",
-        "R11-P9"
-      ],
-      "rca": true,
-      "brief": "Class N-unbounded-retention: A buffer or cache that serves a fixed time window never evicts rows older than the window, so retained memory grows linearly with uptime. Findings D9-s2-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-unbounded-retention.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-uncleared-issue",
-      "kind": "defect",
-      "class": "N-uncleared-issue",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D1-s1-01"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/legionella.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class N-uncleared-issue: A repair issue or alert raised on a failure is never cleared by the recovery path, so it outlives the condition it reports. Findings D1-s1-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-uncleared-issue.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-unordered-tiebreak",
-      "kind": "defect",
-      "class": "N-unordered-tiebreak",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D1-s1-51"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/plan_slots.py"
-      ],
-      "after": [],
-      "rca": false,
-      "brief": "Class N-unordered-tiebreak: A tie between equal candidates is broken by set or hash iteration order, so the published result depends on PYTHONHASHSEED and changes across restarts. Findings D1-s1-51. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-unordered-tiebreak.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-N-untranslated-splice",
-      "kind": "defect",
-      "class": "N-untranslated-splice",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D4-s3-01"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/services.py",
-        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
-      ],
-      "after": [
-        "R11-P2",
-        "R11-P9"
-      ],
-      "rca": true,
-      "brief": "Class N-untranslated-splice: A localized message interpolates text the integration does not translate (an upstream exception string), so sv/de users read an English fragment inside their language. Findings D4-s3-01. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-N-untranslated-splice.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-P10",
-      "kind": "defect",
-      "class": "P10",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D9-s1-04"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/optimizer.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": false,
-      "brief": "Class P10: CPU work (a model kernel, a fit, a batch simulation) runs outside the process worker, on the event loop or on a GIL-holding executor thread, and starves the loop. Findings D9-s1-04. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P10.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    },
-    {
-      "group": "R11-P11",
-      "kind": "defect",
-      "class": "P11",
-      "issue": null,
-      "issues": [],
-      "findings": [
-        "D16-s1-05"
-      ],
-      "severity": "low",
-      "files": [
-        "custom_components/heatpump_optimizer/coordinator.py",
-        "custom_components/heatpump_optimizer/pump_arbiter.py"
-      ],
-      "after": [
-        "R11-P2"
-      ],
-      "rca": true,
-      "brief": "Class P11: The only oracle for an external counterpart (Home Assistant core, its state machine, its recorder REST API, a device behind an integration) is a test double the implementer wrote from what the code needed, so the tests agree with a wrong implementation. Findings D16-s1-05. The issue body in dev/audit/rounds/round11/ISSUES.json carries each finding's harness, the sweep instances and the enumerator; the sweep evidence is dev/audit/rounds/round11/sweep-P11.md. Draft group: the issue is not filed yet.",
-      "resume": {
-        "stage": "not-started",
-        "branch": null,
-        "commit": null,
-        "last_step": null,
-        "next_step": "file the class issue (Mac seat), then plan the group",
-        "note": null
-      }
-    }
-  ]
+ "_comment": "Round 11 roster draft: one group per owning seam, as planned at P3 (dev/audit/rounds/round11/PLAN/PLAN.json); issues stay empty until the class issues are filed (decision 0011).",
+ "round": 11,
+ "groups": [
+  {
+   "group": "R11-SEAM-kernel",
+   "kind": "defect",
+   "classes": [
+    "N-duplicated-rule",
+    "N-leaf-imports-solver",
+    "N-no-expiry",
+    "N-structure-blind",
+    "P2"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D7-s3-03",
+    "D7-s3-04",
+    "D7-s1-05",
+    "D7-s1-06",
+    "D7-s3-05"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "seam": "shared kernel",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/plan_step.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/drift.py",
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "custom_components/heatpump_optimizer/currency.py",
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/ledger.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/tariff.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "One owner per small rule: plan_step owns \"the step covering now\" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); the four modules D7-s1-06 marks as needing a design stay out. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2. Plan: ADR-001 and ADR-002 are this group's approved design. It is first in file order on every file it shares, so the fixer may land it in parts (layering and the reader's clock; the clone owners; dead state). The reader takes its clock from its caller, which leaves inputs.py with no Home Assistant import. Refused shapes: two bodies folded under one function with nothing shared, and a helper handed a detector's list.",
+   "brief": "One owner per small rule: plan_step owns \"the step covering now\" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); the four modules D7-s1-06 marks as needing a design stay out. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2. Plan: ADR-001 and ADR-002 are this group's approved design. It is first in file order on every file it shares, so the fixer may land it in parts (layering and the reader's clock; the clone owners; dead state). The reader takes its clock from its caller, which leaves inputs.py with no Home Assistant import. Refused shapes: two bodies folded under one function with nothing shared, and a helper handed a detector's list. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-kernel",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-plant-model",
+   "kind": "defect",
+   "classes": [
+    "N-table-value",
+    "N-wrong-law",
+    "P2"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D2-s1-01",
+    "D2-s1-02",
+    "D2-s2-02",
+    "D2-s1-51",
+    "D12-s2-01",
+    "D12-s3-01",
+    "D12-s1-01",
+    "D17-s1-03",
+    "D17-s3-02",
+    "D17-s2-03",
+    "D8-s1-01"
+   ],
+   "merged": {},
+   "severity": "critical",
+   "seam": "plant model",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/mixing_valve.py",
+    "custom_components/heatpump_optimizer/defrost.py",
+    "custom_components/heatpump_optimizer/presets.py",
+    "custom_components/heatpump_optimizer/topology.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers \"two zones\", \"modulating\" and \"has hot water\" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Plan: ADR-008 is the approved design of the predicate work; the law fixes are point fixes. The has-hot-water predicate becomes a public function with the gap advisor as a new reader. Golden drift from the Carnot fix is claimed with its direction.",
+   "brief": "Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers \"two zones\", \"modulating\" and \"has hot water\" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Plan: ADR-008 is the approved design of the predicate work; the law fixes are point fixes. The has-hot-water predicate becomes a public function with the gap advisor as a new reader. Golden drift from the Carnot fix is claimed with its direction. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-plant-model",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-inputs-guards",
+   "kind": "defect",
+   "classes": [
+    "N-missing-unit-scale",
+    "P1",
+    "P8"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D2-s3-02",
+    "D7-s3-01",
+    "D1-s3-01",
+    "D1-s3-02",
+    "D1-s3-03",
+    "D1-s2-05",
+    "D1-s2-51"
+   ],
+   "merged": {},
+   "severity": "critical",
+   "seam": "input boundary",
+   "size": "M",
+   "files": [
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/entry_config.py",
+    "custom_components/heatpump_optimizer/pump_signals.py",
+    "custom_components/heatpump_optimizer/open_meteo.py",
+    "custom_components/heatpump_optimizer/heat_curve.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timestamp parsers, numeric options. The P1 sweep enumerator is the fitness function. 7 findings (0 merged in), size M; class tags N-missing-unit-scale, P1, P8.",
+   "brief": "Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timestamp parsers, numeric options. The P1 sweep enumerator is the fitness function. 7 findings (0 merged in), size M; class tags N-missing-unit-scale, P1, P8. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-inputs-guards",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-inputs-freshness",
+   "kind": "defect",
+   "classes": [
+    "N-dead-input",
+    "N-no-expiry",
+    "N-staleness",
+    "P2"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D1-s2-03",
+    "D1-s2-02",
+    "D14-s2-02",
+    "D14-s2-01",
+    "D17-s2-02",
+    "D1-s2-52"
+   ],
+   "merged": {},
+   "severity": "high",
+   "seam": "input boundary",
+   "size": "M",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/inputs.py"
+   ],
+   "after": [
+    "R11-SEAM-kernel"
+   ],
+   "rca": true,
+   "architect_note": "Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and the measured outdoor value joining the forecast series. The end rule is the kernel's step owner, hence the edge. 6 findings (0 merged in), size M; class tags N-dead-input, N-no-expiry, N-staleness, P2.",
+   "brief": "Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and the measured outdoor value joining the forecast series. The end rule is the kernel's step owner, hence the edge. 6 findings (0 merged in), size M; class tags N-dead-input, N-no-expiry, N-staleness, P2. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-inputs-freshness",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-store",
+   "kind": "defect",
+   "classes": [
+    "N-silent-zero",
+    "P1",
+    "P2"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D1-s2-01",
+    "D15-s1-04",
+    "D15-s1-05",
+    "D1-s2-06",
+    "D17-s3-03"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "seam": "persisted store",
+   "size": "M",
+   "files": [
+    "custom_components/heatpump_optimizer/store.py",
+    "custom_components/heatpump_optimizer/snapshots.py",
+    "custom_components/heatpump_optimizer/boost.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. 5 findings (0 merged in), size M; class tags N-silent-zero, P1, P2.",
+   "brief": "store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. 5 findings (0 merged in), size M; class tags N-silent-zero, P1, P2. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-store",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-money",
+   "kind": "defect",
+   "classes": [
+    "I4",
+    "I5",
+    "N-inverted-aggregate",
+    "N-partial-payload-parse",
+    "N-partial-window-extrapolation",
+    "P2",
+    "P7",
+    "P8"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D2-s3-03",
+    "D2-s3-04",
+    "D2-s3-05",
+    "D2-s3-06",
+    "D2-s3-07",
+    "D8-s1-02",
+    "D14-s1-03",
+    "D17-s1-05",
+    "D5-s3-01"
+   ],
+   "merged": {},
+   "severity": "high",
+   "seam": "money",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/ledger.py",
+    "custom_components/heatpump_optimizer/power_guard.py",
+    "custom_components/heatpump_optimizer/currency.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Plan: ADR-006. The exact top-k takes the largest, as its batch twin does; the smooth scalar becomes one row of its batch only if golden fixtures stay byte-identical and the solve-time harness does not regress, else that part is dropped and recorded.",
+   "brief": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Plan: ADR-006. The exact top-k takes the largest, as its batch twin does; the smooth scalar becomes one row of its batch only if golden fixtures stay byte-identical and the solve-time harness does not regress, else that part is dropped and recorded. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-money",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-solver",
+   "kind": "defect",
+   "classes": [
+    "N-objective-as-money",
+    "N-unordered-tiebreak",
+    "P4"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D0-s2-01",
+    "D0-s3-02",
+    "D2-s3-01",
+    "D1-s1-51"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "seam": "solver",
+   "size": "M",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/plan_slots.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "Start set brackets the all-off and wood-covered optima; the risk premium stays in the objective and out of every published money figure; the slot label tie is ordered. Fitness: D0 race harnesses, mutation kill rate on optimizer.py, shape_copies. 4 findings (0 merged in), size M; class tags N-objective-as-money, N-unordered-tiebreak, P4.",
+   "brief": "Start set brackets the all-off and wood-covered optima; the risk premium stays in the objective and out of every published money figure; the slot label tie is ordered. Fitness: D0 race harnesses, mutation kill rate on optimizer.py, shape_copies. 4 findings (0 merged in), size M; class tags N-objective-as-money, N-unordered-tiebreak, P4. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-solver",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-learners",
+   "kind": "defect",
+   "classes": [
+    "I5",
+    "N-confounded-learner",
+    "N-event-misattribution",
+    "P5"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D12-s3-03",
+    "D2-s3-08",
+    "D2-s3-09",
+    "D2-s3-10",
+    "D2-s3-11",
+    "D7-s2-01",
+    "D7-s2-02",
+    "D5-s4-02"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "seam": "learners",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/heat_energy.py",
+    "custom_components/heatpump_optimizer/draw_range.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "after": [
+    "R11-SEAM-plant-model"
+   ],
+   "rca": true,
+   "architect_note": "One freeze predicate owns which interval a learner may ingest (away, unplanned charge, load-limited probe, charge-start dip); the sysid adoption interval covers quantised readings. After the plant model: its law fixes move the residual every learner fits. 8 findings (0 merged in), size L; class tags I5, N-confounded-learner, N-event-misattribution, P5. Plan: ADR-008 (one freeze predicate) is the approved design; ADR-003 moves the identification switch from a per-cycle store on the collaborator to an argument of the arm call.",
+   "brief": "One freeze predicate owns which interval a learner may ingest (away, unplanned charge, load-limited probe, charge-start dip); the sysid adoption interval covers quantised readings. After the plant model: its law fixes move the residual every learner fits. 8 findings (0 merged in), size L; class tags I5, N-confounded-learner, N-event-misattribution, P5. Plan: ADR-008 (one freeze predicate) is the approved design; ADR-003 moves the identification switch from a per-cycle store on the collaborator to an argument of the arm call. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-learners",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-actuation-release",
+   "kind": "defect",
+   "classes": [
+    "N-order-coupling",
+    "N-restore-race",
+    "N-unreleased-hold"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D16-s1-04",
+    "D16-s3-01",
+    "D16-s3-02",
+    "D16-s3-03",
+    "D16-s3-04",
+    "D1-s2-04"
+   ],
+   "merged": {},
+   "severity": "high",
+   "seam": "actuation",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/off_restore.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/legionella.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. Plan: ADR-004 is the approved design. The circulation pumps' write, record and restore move to one owner object registered with off_restore; the pinned check that Off writes nothing else is re-pinned to the 2026-11-15 ruling in the same PR.",
+   "brief": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. Plan: ADR-004 is the approved design. The circulation pumps' write, record and restore move to one owner object registered with off_restore; the pinned check that Off writes nothing else is re-pinned to the 2026-11-15 ruling in the same PR. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-actuation-release",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-actuation-writes",
+   "kind": "defect",
+   "classes": [
+    "N-mode-coupled-write",
+    "N-stale-step-actuation",
+    "N-step-grid",
+    "P11",
+    "P2",
+    "P3"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D16-s1-01",
+    "D16-s1-02",
+    "D16-s1-03",
+    "D16-s1-05",
+    "D16-s2-01",
+    "D16-s2-02",
+    "D16-s2-03",
+    "D16-s2-04",
+    "D12-s3-02"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "seam": "actuation",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/freq_control.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/setpoint_check.py"
+   ],
+   "after": [
+    "R11-SEAM-kernel",
+    "R11-SEAM-actuation-release"
+   ],
+   "rca": true,
+   "architect_note": "What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3. Plan: reads the covering step from plan_step (ADR-001) and the held record as ADR-004 leaves it.",
+   "brief": "What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3. Plan: reads the covering step from plan_step (ADR-001) and the held record as ADR-004 leaves it. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-actuation-writes",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-cycle-solve",
+   "kind": "defect",
+   "classes": [
+    "N-dropped-refresh",
+    "N-solve-recompute",
+    "N-unbudgeted-background",
+    "N-uncleared-issue",
+    "P10",
+    "P2"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D1-s1-01",
+    "D1-s1-03",
+    "D1-s3-04",
+    "D9-s1-01",
+    "D9-s1-02",
+    "D9-s1-03",
+    "D9-s1-04",
+    "D17-s3-01"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "seam": "cycle",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/whatif.py",
+    "custom_components/heatpump_optimizer/process_worker.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Plan: no ADR fixes the shape of the one in-flight guard and budget; designer.md is dispatched before the fixer.",
+   "brief": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Plan: no ADR fixes the shape of the one in-flight guard and budget; designer.md is dispatched before the fixer. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-cycle-solve",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-cycle-reporting",
+   "kind": "defect",
+   "classes": [
+    "I5",
+    "N-log-flood",
+    "N-shared-config",
+    "N-silent-zero",
+    "N-swallowed-failure"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D1-s3-05",
+    "D1-s3-06",
+    "D1-s3-07",
+    "D10-s1-01",
+    "D7-s2-03",
+    "D10-s3-02",
+    "D10-s3-01"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "seam": "cycle",
+   "size": "M",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/datetime.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Plan: ADR-003 (both writers of the shared optimization config publish a replaced context) and ADR-008 (away owns the return-time parser as a public function, read by the service, the coordinator and the datetime entity).",
+   "brief": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Plan: ADR-003 (both writers of the shared optimization config publish a replaced context) and ADR-008 (away owns the return-time parser as a public function, read by the service, the coordinator and the datetime entity). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-cycle-reporting",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-config",
+   "kind": "defect",
+   "classes": [
+    "I4",
+    "N-dead-input",
+    "N-entry-data-placement",
+    "P2"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D17-s1-02",
+    "D10-s2-01",
+    "D10-s1-03",
+    "D17-s2-05",
+    "D4-s2-01",
+    "D17-s2-04"
+   ],
+   "merged": {
+    "D6-s3-01": "D4-s2-01"
+   },
+   "severity": "high",
+   "seam": "config surface",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/device_prefill.py",
+    "custom_components/heatpump_optimizer/__init__.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "One place for a setting: options-flow settings leave entry.data by a versioned migration, so reconfigure, the options save and the reader agree; the weekend value survives a weekday change; the pre-fill pages render their placeholders and store only settings. 6 findings (1 merged in), size L; class tags I4, N-dead-input, N-entry-data-placement, P2. Plan: the entry migration cannot be undone by a downgrade (tradeoff T18); designer.md is dispatched before the fixer, and the release notes owe the step first.",
+   "brief": "One place for a setting: options-flow settings leave entry.data by a versioned migration, so reconfigure, the options save and the reader agree; the weekend value survives a weekday change; the pre-fill pages render their placeholders and store only settings. 6 findings (1 merged in), size L; class tags I4, N-dead-input, N-entry-data-placement, P2. Plan: the entry migration cannot be undone by a downgrade (tradeoff T18); designer.md is dispatched before the fixer, and the release notes owe the step first. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-config",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-entity-service",
+   "kind": "defect",
+   "classes": [
+    "N-entity-metadata",
+    "N-name-sort",
+    "N-silent-zero",
+    "N-step-grid",
+    "P2"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D10-s1-02",
+    "D10-s2-04",
+    "D8-s1-03",
+    "D8-s2-02",
+    "D8-s3-01",
+    "D15-s3-01",
+    "D14-s1-01",
+    "D17-s3-51"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "seam": "entity and service surface",
+   "size": "M",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/debugger.py"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2.",
+   "brief": "Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-entity-service",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-card",
+   "kind": "defect",
+   "classes": [
+    "I4",
+    "N-unbounded-retention",
+    "N-untranslated-splice",
+    "P9"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D4-s1-01",
+    "D4-s1-03",
+    "D4-s3-01",
+    "D4-s3-02",
+    "D4-s3-03",
+    "D4-s3-04",
+    "D4-s3-05",
+    "D6-s4-01",
+    "D9-s2-01"
+   ],
+   "merged": {},
+   "severity": "medium",
+   "seam": "card",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9.",
+   "brief": "Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-card",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-product-text",
+   "kind": "defect",
+   "classes": [
+    "I4",
+    "I5",
+    "N-copy-style"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D6-s2-01",
+    "D6-s6-01",
+    "D6-s4-02",
+    "D4-s3-06",
+    "D4-s3-07",
+    "D10-s2-03",
+    "D4-s2-51"
+   ],
+   "merged": {
+    "D4-s2-02": "D10-s2-03"
+   },
+   "severity": "high",
+   "seam": "product text",
+   "size": "M",
+   "files": [
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/de.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "custom_components/heatpump_optimizer/translations/en.json"
+   ],
+   "after": [
+    "R11-SEAM-plant-model",
+    "R11-SEAM-money",
+    "R11-SEAM-actuation-release",
+    "R11-SEAM-actuation-writes",
+    "R11-SEAM-config",
+    "R11-SEAM-entity-service"
+   ],
+   "rca": true,
+   "architect_note": "User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. Verified against the text ledger. 7 findings (1 merged in), size M; class tags I4, I5, N-copy-style. Plan: ADR-010.",
+   "brief": "User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. Verified against the text ledger. 7 findings (1 merged in), size M; class tags I4, I5, N-copy-style. Plan: ADR-010. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-product-text",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-tests",
+   "kind": "defect",
+   "classes": [
+    "I1",
+    "I5",
+    "N-log-flood",
+    "N-move-stale-path",
+    "N-structure-blind"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D10-s1-05",
+    "D10-s1-06",
+    "D14-s2-03",
+    "D7-s1-01",
+    "D7-s1-02",
+    "D7-s1-03",
+    "D7-s1-04",
+    "D9-s3-01",
+    "D9-s3-02",
+    "D5-s6-02",
+    "D5-s8-04",
+    "D5-s8-05",
+    "D5-s9-01"
+   ],
+   "merged": {
+    "D5-s9-02": "D5-s9-01",
+    "D5-s9-03": "D5-s9-01",
+    "D5-s8-03": "D5-s9-01"
+   },
+   "severity": "low",
+   "seam": "test suite",
+   "size": "L",
+   "files": [
+    "tests/structure.py",
+    "tests/stress.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "after": [
+    "R11-SEAM-kernel"
+   ],
+   "rca": true,
+   "architect_note": "Ratchets that see what they claim (const fan-out through a module binding, same-function clones, unused imports, module size outside the class, .exception floods), flow recovery, stress over a coordinator cycle and every scenario, and resolvable citations. New rows are recorded at their measured value; after the kernel, whose removals set those values. 13 findings (3 merged in), size L; class tags I1, I5, N-log-flood, N-move-stale-path, N-structure-blind. Plan: ADR-009. New rows are recorded after the kernel; a repaired row that reads higher is a budget raise needing the owner's confirmation before the push; no function the architecture score reads from tests/structure.py changes, and the score's own clone census is not edited in this round.",
+   "brief": "Ratchets that see what they claim (const fan-out through a module binding, same-function clones, unused imports, module size outside the class, .exception floods), flow recovery, stress over a coordinator cycle and every scenario, and resolvable citations. New rows are recorded at their measured value; after the kernel, whose removals set those values. 13 findings (3 merged in), size L; class tags I1, I5, N-log-flood, N-move-stale-path, N-structure-blind. Plan: ADR-009. New rows are recorded after the kernel; a repaired row that reads higher is a budget raise needing the owner's confirmation before the push; no function the architecture score reads from tests/structure.py changes, and the score's own clone census is not edited in this round. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-tests",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-docs",
+   "kind": "defect",
+   "classes": [
+    "I5",
+    "N-comment-style",
+    "N-orphan-doc"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D5-s2-01",
+    "D5-s2-02",
+    "D5-s2-03",
+    "D5-s2-08",
+    "D5-s2-09",
+    "D5-s2-10",
+    "D5-s2-11",
+    "D6-s1-02",
+    "D6-s7-01",
+    "D5-s2-04",
+    "D5-s2-05",
+    "D5-s2-06"
+   ],
+   "merged": {
+    "D6-s1-01": "D5-s2-08"
+   },
+   "severity": "medium",
+   "seam": "reader docs",
+   "size": "L",
+   "files": [
+    "README.md",
+    "docs/configuration.md",
+    "docs/how-it-works.md",
+    "docs/setup.md",
+    "docs/CONTRIBUTING.md",
+    "docs/img/"
+   ],
+   "after": [
+    "R11-SEAM-plant-model",
+    "R11-SEAM-money",
+    "R11-SEAM-learners",
+    "R11-SEAM-actuation-release",
+    "R11-SEAM-actuation-writes",
+    "R11-SEAM-config",
+    "R11-SEAM-entity-service",
+    "R11-SEAM-card",
+    "R11-SEAM-product-text"
+   ],
+   "rca": true,
+   "architect_note": "Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc. Plan: ADR-010.",
+   "brief": "Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc. Plan: ADR-010. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-docs",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-governance-text",
+   "kind": "defect",
+   "classes": [
+    "I4",
+    "I5",
+    "N-move-stale-path"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D6-s5-02",
+    "D6-s5-03",
+    "D6-s5-01",
+    "D6-s5-05",
+    "D6-s5-06",
+    "D6-s5-07",
+    "D6-s5-08",
+    "D6-s7-02",
+    "D11-s2-04",
+    "D15-s1-02"
+   ],
+   "merged": {
+    "D6-s2-02": "D6-s5-02",
+    "D6-s2-03": "D6-s5-02",
+    "D6-s5-04": "D6-s5-02"
+   },
+   "severity": "low",
+   "seam": "governance text",
+   "size": "M",
+   "files": [
+    "dev/governance/rules/",
+    "dev/governance/roles/",
+    "dev/governance/dimensions/D15.md",
+    "dev/audit/README.md",
+    "tests/README.md",
+    "dev/programme/"
+   ],
+   "after": [],
+   "rca": true,
+   "architect_note": "Policy and programme prose with a false or unresolvable sentence. Policy files merge serially on the owner's approving review; no instrument code changes here. 10 findings (3 merged in), size M; class tags I4, I5, N-move-stale-path. Plan: ADR-010.",
+   "brief": "Policy and programme prose with a false or unresolvable sentence. Policy files merge serially on the owner's approving review; no instrument code changes here. 10 findings (3 merged in), size M; class tags I4, I5, N-move-stale-path. Plan: ADR-010. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-governance-text",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-comments-production",
+   "kind": "defect",
+   "classes": [
+    "I5",
+    "N-comment-style"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D5-s4-01",
+    "D5-s3-02"
+   ],
+   "merged": {
+    "D5-s3-03": "D5-s4-01"
+   },
+   "severity": "low",
+   "seam": "production comments",
+   "size": "XL",
+   "files": [
+    "custom_components/heatpump_optimizer/*.py"
+   ],
+   "after": [
+    "R11-SEAM-kernel",
+    "R11-SEAM-plant-model",
+    "R11-SEAM-inputs-guards",
+    "R11-SEAM-inputs-freshness",
+    "R11-SEAM-store",
+    "R11-SEAM-money",
+    "R11-SEAM-solver",
+    "R11-SEAM-learners",
+    "R11-SEAM-actuation-release",
+    "R11-SEAM-actuation-writes",
+    "R11-SEAM-cycle-solve",
+    "R11-SEAM-cycle-reporting",
+    "R11-SEAM-config",
+    "R11-SEAM-entity-service",
+    "R11-ARCH-cycle-surface",
+    "R11-ARCH-fabric-learner"
+   ],
+   "rca": true,
+   "architect_note": "Criterion C5 over production comments (921 units in two seats' cells) and one false docstring. Text only; after every production group, since each rewrites the same hot files. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Plan: ADR-010; last on every production file, after the two refactor groups as well; may be cut into parts by seam.",
+   "brief": "Criterion C5 over production comments (921 units in two seats' cells) and one false docstring. Text only; after every production group, since each rewrites the same hot files. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Plan: ADR-010; last on every production file, after the two refactor groups as well; may be cut into parts by seam. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-comments-production",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-SEAM-comments-tests",
+   "kind": "defect",
+   "classes": [
+    "N-comment-style"
+   ],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D5-s9-04"
+   ],
+   "merged": {
+    "D5-s7-01": "D5-s9-04",
+    "D5-s7-02": "D5-s9-04",
+    "D5-s7-03": "D5-s9-04"
+   },
+   "severity": "low",
+   "seam": "test comments",
+   "size": "XL",
+   "files": [
+    "tests/*.py"
+   ],
+   "after": [
+    "R11-SEAM-tests"
+   ],
+   "rca": true,
+   "architect_note": "Criterion C5 over the test suite, with the dead names and false count D5-s7-01 lists. Text only; after the tests group. 1 findings (3 merged in), size XL; class tags N-comment-style. Plan: ADR-010; may be cut into parts.",
+   "brief": "Criterion C5 over the test suite, with the dead names and false count D5-s7-01 lists. Text only; after the tests group. 1 findings (3 merged in), size XL; class tags N-comment-style. Plan: ADR-010; may be cut into parts. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-SEAM-comments-tests",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-ARCH-cycle-surface",
+   "kind": "refactor",
+   "classes": [],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "merged": {},
+   "severity": "low",
+   "seam": "cycle",
+   "size": "S",
+   "files": [
+    "custom_components/heatpump_optimizer/boost.py",
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "after": [],
+   "rca": false,
+   "architect_note": "Refactor group with no finding (ADR-005, its approved design). Diagnostics reads the mode from the #1739 view; boost answers whether the global boost mode is live from the state it is already told, with a restart in boost mode as the failing test; the shutdown stops clearing the task set only if the fixer shows the clear redundant, and rebinding the slot instead is refused. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arms reach and tasks. Scenario: a coordinator-private change edits no collaborator (S25).",
+   "brief": "Refactor group with no finding (ADR-005, its approved design). Diagnostics reads the mode from the #1739 view; boost answers whether the global boost mode is live from the state it is already told, with a restart in boost mode as the failing test; the shutdown stops clearing the task set only if the fixer shows the clear redundant, and rebinding the slot instead is refused. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arms reach and tasks. Scenario: a coordinator-private change edits no collaborator (S25). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-ARCH-cycle-surface",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-ARCH-fabric-learner",
+   "kind": "refactor",
+   "classes": [],
+   "issue": null,
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "merged": {},
+   "severity": "low",
+   "seam": "learners",
+   "size": "L",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/structure_budgets.json",
+    "tests/features.py"
+   ],
+   "after": [
+    "R11-SEAM-learners"
+   ],
+   "rca": false,
+   "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The house heat-loss, buffer cooling and internal-gains folds leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint: last on coordinator.py before the comment group. Evidence: a statement count of the eight methods, a prediction with no prototype. Scenario: growth of coordinator.py is priced and the class shrinks (S13).",
+   "brief": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The house heat-loss, buffer cooling and internal-gains folds leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint: last on coordinator.py before the comment group. Evidence: a statement count of the eight methods, a prediction with no prototype. Scenario: growth of coordinator.py is priced and the class shrinks (S13). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/R11-ARCH-fabric-learner",
+    "commit": null,
+    "last_step": "P3 plan written (dev/audit/rounds/round11/PLAN/PLAN.json)",
+    "next_step": "plan review, then dispatch per the architect note",
+    "note": null
+   }
+  }
+ ]
 }

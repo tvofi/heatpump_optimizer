@@ -1,0 +1,4 @@
+===== daemonize pid=47784 2026-11-18T07:36:59Z argv: python3 -u tools/audit/seat/plan_audit.py snapshot --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --instrument 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --out dev/audit/rounds/round11/PLAN/holdouts/fork.json
+snapshot 92d38ecb640b (instrument 92d38ecb640b) -> dev/audit/rounds/round11/PLAN/holdouts/fork.json
+  structure 18 metric(s), tripwires {'reflective_writes': 10, 'computed_attr_access': 27, 'family_orphan_overrides': 0, 'unread_private_globals': 0, 'unused_boundary_imports': 0, 'shape_copies': 40, 'card_rule_copies': 70}
+  behaviour {'entities': 82, 'services': 15, 'options': 26, 'card': 5}, mutation {'killed': 5289, 'triaged': 191, 'rate': 0.9651}, coupling {'window': 200, 'merges': 185, 'pairs': 150, 'occurrences': 205, 'cochange_per_100': 110.8108}
