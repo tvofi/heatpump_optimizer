@@ -12,6 +12,12 @@ This is revision 2. The plan review returned `revise` twice, so the plan goes
 to the owner with what is still open; the last section lists what this
 revision changed for each review point and what it leaves for the owner.
 
+The third review (`446a5aa904`, `revise`, no revision 3) went to the owner
+with the open points. After an hour without an answer the orchestrator
+decided them under mandate 6893738184 on 2026-11-18, pending owner
+confirmation; "Open points" records each decision and "Applied 2026-11-18"
+lists where each one changed this plan. No fourth review was run.
+
 ## The target and what the fork allows
 
 `score.py --diff <fork> <stamp>` must read dS >= +22.7, admissible end to
@@ -107,6 +113,8 @@ column is how many further clone copies a sound fix may remove before
 | `one-copy-short`: the floor, one clone arm unrealised | +21.7525 | +21.7965 | | short of the target |
 | `floor-no-fabric`: the floor, ADR-007 unrealised | +22.9638 | +23.0079 | | inadmissible, see below |
 | `with-tasks`: the control, not planned | +29.7802 | | | ADR-005 part 3, withdrawn |
+| `no-circ`: planned, the circ term not banked | +21.1498 | +21.1938 | `duplication_copies` 45.5 % | short of the target |
+| `floor-no-circ`: the floor, the circ term not banked | +19.7927 | +19.8367 | `duplication_copies` 41.8 % | short of the target |
 
 **The planned case** reads +24.3812, 1.68 above the target, with
 `duplication_copies` at 39.5 % and no room under the cap.
@@ -116,17 +124,28 @@ failing from there reads +21.7965, short by 0.90. The planned clone arms are
 spread over six groups, so "one arm unrealised" is one group's part and is
 seen at that group's merge, not at the round's end.
 
+**Without the circ term the round is short.** The term is banked only when
+the PR registers the real restoring owner (ADR-004; decided 2026-11-18, orchestrator under mandate, pending owner confirmation).
+`no-circ` reads +21.1938 end to end, 1.51 below the target, and not the
++22.12 the review estimated by subtraction: without the circ arm
+`shared_inplace_writes` ends at 2, not 1, and the log term of the sysid arm
+from 3 to 2 is smaller than that of its fall from 2 to 1. `floor-no-circ`
+reads +19.8367. The circ term is therefore a condition of the target, not a
+margin: if D16's release cells do not pass on the PR, the plan returns to
+the architect for a paying move before the last wave.
+
 **With ADR-007 unrealised the round is inadmissible whatever dS reads.**
 `floor-no-fabric` reads +23.0079, but `coord_footprint` then ends at 2499 plus
 every statement the round's fixes add, and fourteen groups edit
 `coordinator.py`. The target is not met in that case.
 
 **The target cannot be declared reachable by this plan alone.** Two of its
-conditions wait on the owner ("Open points", 1 and 6): the spread rule's
-three scored classes, which the instrument's own classes cannot supply at
-this fork, and the 40 % cap, which the planned case meets with no room and
-which a sound fix already in the roster (the Carnot expression,
-`R11-SEAM-plant-model`) is expected to pass.
+conditions were the owner's ("Open points", 1 and 6) and are now decided 2026-11-18, orchestrator under mandate, pending owner confirmation: the unclassed floor metrics (`layer_violations`,
+`coordinator_private_reach`) count as the third scored class, so the planned
+case improves three classes; and the 40 % cap is checked at the stamp from
+`plan_audit.py end-to-end`, not at plan time, so the planned case's 39.5 %
+and the Carnot fix's expected 43.0 % are read there. The rest still rests on
+ADR-007's measured `F` and on the circ term above.
 
 ### Admissibility: the footprint budget
 
@@ -154,8 +173,7 @@ admissible on this metric while `R <= 6 + F`.
 
 So admissibility of the whole round rests on ADR-007: on a prototype of 28
 statements and on a design that is still owed. ADR-007 says so in its own
-context, and "Open points" 4 asks the owner whether that design may start at
-the first wave, so that `F` is measured before most of `R` has merged.
+context. Its designer starts in the first wave ("Open points" 4, decided 2026-11-18, orchestrator under mandate, pending owner confirmation), so `F` is measured before most of `R` has merged.
 
 **No other metric has a payment.** The budget covers `coord_footprint` only.
 A rise in any other scored metric or gate-only tripwire, argued in a PR body
@@ -272,6 +290,12 @@ Revision 2 changed four things in the edges:
   row is recorded at the value measured when the owner confirms it, and a
   later merge that lowers it re-records the row downward.
 
+**The deletion's edge is dropped** (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). `R11-SEAM-dead-state` before
+`R11-SEAM-ratchets` was an ordering preference by the same reasoning as the
+ratchet-raise edge: `R11-SEAM-ratchets` records the import row at the value
+measured when it merges, and if `R11-SEAM-dead-state` merges later its
+deletions re-record the row downward. `R11-SEAM-ratchets` now has no edge.
+
 Neither comment group carries an edge: a comment rewrite depends on no
 behaviour (ADR-010). Both are in the hot-file order below and are released
 per file.
@@ -297,12 +321,12 @@ behaviour it states.
 | `R11-SEAM-money` | ADR-006 (approved design) |
 | `R11-SEAM-ratchets`, `R11-SEAM-ratchet-raise` | ADR-009 (approved design) |
 | `R11-ARCH-cycle-surface` | ADR-005 (approved design) |
-| `R11-SEAM-tests` | point additions to the suite; no design |
+| `R11-SEAM-tests` | **owed**: `designer.md`; size L with no approved design (decided 2026-11-18, orchestrator under mandate, pending owner confirmation) |
 | `R11-SEAM-docs`, both comment groups | ADR-010 (text; no design) |
-| `R11-SEAM-card` | point fixes against the token scales; no design |
+| `R11-SEAM-card` | **owed**: `designer.md`; size L with no approved design (decided 2026-11-18, orchestrator under mandate, pending owner confirmation) |
 | `R11-SEAM-config` | **owed**: `designer.md`, for the entry migration (T18) |
 | `R11-SEAM-cycle-solve` | **owed**: `designer.md`, for the one in-flight guard and budget (S14, T14) |
-| `R11-ARCH-fabric-learner` | **owed**: `designer.md`, inside ADR-007, with a measured `F` |
+| `R11-ARCH-fabric-learner` | **owed**: `designer.md`, inside ADR-007, with a measured `F`; the designer starts in the first wave, the fixer after `R11-SEAM-learners` (decided 2026-11-18, orchestrator under mandate, pending owner confirmation) |
 
 ### Hot-file order
 
@@ -314,13 +338,13 @@ and what its ADR adds (`COMPONENTS.md`, "Files").
 
 | file | order |
 |---|---|
-| `coordinator.py` | kernel-step, plant-model, actuation-release, cycle-solve, learners, actuation-writes, money, cycle-reporting, R11-ARCH-fabric-learner, dead-state, entity-service, inputs-freshness, R11-ARCH-cycle-surface, store |
-| `const.py` | kernel-layering, kernel-step, config, dead-state, entity-service, inputs-freshness, product-text |
-| `config_flow.py` | plant-model, config, tests, money, dead-state, entity-service |
+| `coordinator.py` | kernel-step, plant-model, actuation-release, cycle-solve, learners, actuation-writes, money, cycle-reporting, R11-ARCH-fabric-learner, inputs-freshness, entity-service, dead-state, R11-ARCH-cycle-surface, store |
+| `const.py` | kernel-layering, kernel-step, config, inputs-freshness, entity-service, dead-state, product-text |
+| `config_flow.py` | plant-model, config, tests, money, entity-service, dead-state |
 | `pump_arbiter.py` | kernel-step, actuation-release, actuation-writes, cycle-reporting, dead-state, product-text |
 | `optimizer.py` | solver, plant-model, cycle-solve, cycle-reporting, dead-state |
 | `strings.json` | plant-model, cycle-solve, cycle-reporting, inputs-freshness, product-text |
-| `sysid.py` | kernel-layering, learners, dead-state, entity-service, ratchets |
+| `sysid.py` | kernel-layering, ratchets, learners, entity-service, dead-state |
 | `accuracy.py` | kernel-layering, learners, dead-state, store |
 | `dhw_learning.py` | learners, cycle-reporting, dead-state, store |
 | `sensor.py` | kernel-step, plant-model, money, entity-service |
@@ -335,10 +359,10 @@ and what its ADR adds (`COMPONENTS.md`, "Files").
 | `services.py` | plant-model, cycle-solve, cycle-reporting |
 | `tariff.py` | kernel-layering, money, dead-state |
 | `tests/features.py` | learners, R11-ARCH-fabric-learner, inputs-freshness |
-| `tests/structure.py` `tests/structure_budgets.json` | ratchet-raise, R11-ARCH-fabric-learner, ratchets |
+| `tests/structure.py` `tests/structure_budgets.json` | ratchet-raise, ratchets, R11-ARCH-fabric-learner |
 | `README.md` | cycle-solve, docs |
 | `__init__.py` | inputs-guards, config |
-| `binary_sensor.py` | entity-service, inputs-freshness |
+| `binary_sensor.py` | inputs-freshness, entity-service |
 | `button.py` | cycle-solve, entity-service |
 | `comfort_learning.py` `store.py` | kernel-layering, store |
 | `currency.py` | kernel-layering, money |
@@ -350,7 +374,7 @@ and what its ADR adds (`COMPONENTS.md`, "Files").
 | `open_meteo.py` | kernel-step, inputs-guards |
 | `quality_scale.yaml` | tests, cycle-reporting |
 | `services.yaml` | plant-model, entity-service |
-| `tests/entities.py` | inputs-freshness, ratchets |
+| `tests/entities.py` | ratchets, inputs-freshness |
 | `translations/en.json` | config, product-text |
 | `www/heatpump-optimizer-card.js` | card, product-text |
 
@@ -366,8 +390,8 @@ What the rows show:
 - **No group is first on most rows.** Revision 1's kernel headed about twenty
   rows with five low findings. `R11-SEAM-kernel-step` heads five,
   `R11-SEAM-kernel-layering` heads nine and names no `coordinator.py`, and
-  `R11-SEAM-dead-state`, a deletion nothing but one ratchet row waits on, is
-  in eleven rows and first on none.
+  `R11-SEAM-dead-state`, a deletion nothing waits on since its edge into
+  `R11-SEAM-ratchets` was dropped, is in eleven rows and first on none.
 - **Text is last on the files it shares with behaviour.** `strings.json` and
   `const.py` end in `R11-SEAM-product-text`, `docs/configuration.md` and
   `README.md` in `R11-SEAM-docs`.
@@ -425,16 +449,17 @@ a fixer here and the plan adds no edge to them.
 `tools/plan/replan.py --roster-file <roster> --coordinator-cap <cap>` with
 `tools/plan/durations.json` as it stands, on the published roster and on the
 same roster with the comment groups' file order written as edges. **Every
-figure is a lower bound**: the model leaves out the three owed designs and
-the open product groups.
+figure is a lower bound**: the model leaves out the five owed designs and
+the open product groups. The figures below are re-run after the
+`dead-state` to `ratchets` edge was dropped (2026-11-18).
 
 | roster | cap 3 | cap 2 (the tool's default) |
 |---|---|---|
 | PUBLISHED: the draft as it is | 175.63 h | 243.53 h |
-| ORDERED: both comment groups after every group sharing a file | 210.77 h | 279.82 h |
+| ORDERED: both comment groups after every group sharing a file | 209.62 h | 278.67 h |
 
-- 27 groups, 14 of them touching `coordinator.py`; thirteen start at once on
-  the published roster at cap 3, and the coordinator cap binds from the first
+- 27 groups, 14 of them touching `coordinator.py`; fourteen start at once on
+  the published roster at cap 3 (thirteen before the edge was dropped), and the coordinator cap binds from the first
   wave.
 - Published, cap 3: critical path 173.63 h on the chain by edges above; the
   last groups to finish are `R11-SEAM-docs` and `R11-ARCH-fabric-learner`.
@@ -446,6 +471,9 @@ the open product groups.
   both text groups wait for `R11-SEAM-inputs-freshness`, which ran 104.15 h
   to 138.10 h behind the kernel. The rows above have the edges, the kernel's
   cut and `R11-SEAM-inputs-guards` out of the coordinator order.
+- ORDERED, cap 3: the critical chain is `R11-SEAM-plant-model`,
+  `R11-SEAM-learners`, `R11-ARCH-fabric-learner`, `R11-SEAM-comments-tests`.
+  It was 210.77 h and 279.82 h with the edge.
 - The round's figure lies between the two rows. PUBLISHED lets a comment
   group finish while files are still held; ORDERED holds the whole group for
   its last file. Parts released per file (ADR-010) are what moves it toward
@@ -470,11 +498,13 @@ roster. The orchestrator may start either ahead of a medium group when a
 slot frees: no edge forbids it, and the hot-file rows they are in end the
 same way.
 
-Not in the model: the three designs owed (designer, design review, then the
+Not in the model: the five designs owed (designer, design review, then the
 fixer), the open groups above, which share the slots and the coordinator cap,
-and any part cut from a group. `R11-SEAM-config`, `R11-SEAM-cycle-solve` and
-`R11-ARCH-fabric-learner` each start later than drawn by their design's
-duration.
+and any part cut from a group. `R11-SEAM-config`, `R11-SEAM-cycle-solve`,
+`R11-SEAM-tests` and `R11-SEAM-card` each start later than drawn by their
+design's duration. `R11-ARCH-fabric-learner`'s design runs from the first
+wave beside `R11-SEAM-learners`, so it delays the group only if it outlasts
+that predecessor.
 
 **Against the template.** `dev/programme/round11/phases.json` carries no
 forecast for the fix waves and the playbook states no hours for them, so
@@ -486,36 +516,41 @@ roster is the round's figure.
 
 | risk | check |
 |---|---|
-| **Admissibility: `coord_footprint`.** Main reads nine above the fork before any group of this plan has merged, fourteen groups and the open product groups add statements, and the fall that pays for them (ADR-007) is prototyped at 28 statements behind a design that is still owed. Without it the round is inadmissible whatever dS reads. | `plan_audit.py end-to-end --fork <fork> --head origin/main` after every coordinator merge; the running `R` against `6 + F`; the plan returns to the owner when `R` passes 26 or the designer's `F` leaves the budget below `R` (ADR-007 part 5). |
+| **Admissibility: `coord_footprint`.** Main reads nine above the fork before any group of this plan has merged, fourteen groups and the open product groups add statements, and the fall that pays for them (ADR-007) is prototyped at 28 statements behind a design that is still owed. Without it the round is inadmissible whatever dS reads. | ADR-007's designer starts in the first wave (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). `plan_audit.py end-to-end --fork <fork> --head origin/main` after every coordinator merge; the running `R` against `6 + F`; the plan returns to the owner when `R` passes 26 or the designer's `F` leaves the budget below `R` (ADR-007 part 5). |
 | **Admissibility: every other metric.** An argued rise in any other scored metric or tripwire makes the round inadmissible end to end, and no move pays it back. | Such a rise is a review block for a group of this roster; the orchestrator reads the tripwire lines of each merged body and of the end-to-end reading. |
-| **The spread rule's "three scored classes" cannot be met by the instrument's own classes.** `vector.py` gives a class to six metrics; two classes can improve (N-shared-config, P2+P3). P6 and N-name-sort read 0 at the fork and N-structure-blind's one member is a barrier's declaration. The third improving group is the unclassed floor metrics (`layer_violations`, `coordinator_private_reach`), which `weights.json` describes as guarding no single register class. | Counting the floor metrics as a class changes the contract, so it is pending owner confirmation. Until the owner rules, the target is not declared reachable. If the owner rules they do not count, the condition cannot be met at this fork without deleting behaviour, and the plan says so here and does not plan the deletion. |
-| **The 40 % cap is expected to fail in the planned case.** `duplication_copies` supplies 39.5 %, and one further clone removed by a sound fix (the Carnot expression in `R11-SEAM-plant-model`, D2-s1-01, the round's critical finding) reads 43.0 %: dS rises and the spread condition fails. In the floor case there is room for one copy. | The share is read at each stamp from `plan_audit.py end-to-end`. The plan does not hold a sound removal back to protect a share. If the share passes 40 % the target is reported not met on spread, with the per-metric table, and the owner rules. |
+| **The spread rule's "three scored classes" cannot be met by the instrument's own classes.** `vector.py` gives a class to six metrics; two classes can improve (N-shared-config, P2+P3). P6 and N-name-sort read 0 at the fork and N-structure-blind's one member is a barrier's declaration. The third improving group is the unclassed floor metrics (`layer_violations`, `coordinator_private_reach`), which `weights.json` describes as guarding no single register class. | The floor metrics count as the third scored class (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). If the owner rules they do not count, the condition cannot be met at this fork without deleting behaviour, and the plan says so here and does not plan the deletion. |
+| **The 40 % cap is expected to fail in the planned case.** `duplication_copies` supplies 39.5 %, and one further clone removed by a sound fix (the Carnot expression in `R11-SEAM-plant-model`, D2-s1-01, the round's critical finding) reads 43.0 %: dS rises and the spread condition fails. In the floor case there is room for one copy. | The cap is checked at the stamp, not at plan time (decided 2026-11-18, orchestrator under mandate, pending owner confirmation): the share is read at each stamp from `plan_audit.py end-to-end`. The plan does not hold a sound removal back to protect a share. If the share passes 40 % the target is reported not met on spread, with the per-metric table, and the owner rules. |
 | **One prototyped move is conditional** (the one-row scalar, ADR-006 part 2). | `tests/golden/` byte-identical and the solve-time harness. A dropped part is recorded; "The cases" states the floor. |
 | **A further failure puts the round short.** The floor case is 0.32 above the target, and one clone arm unrealised from there reads 0.90 short. | The orchestrator reads `plan_audit.py end-to-end --fork <fork>` at each stamp; each clone arm is one group's part and is seen at that group's merge. A prototyped move reported UNREALISED returns the plan to the architect before the last wave. |
 | **One finding is carried by six groups.** D7-s1-05's arms merge at six times, and an arm can be forgotten by a group whose own findings are larger. | Each carrying group's roster entry names its arm; the clone census (`m7_sites.py`) is the class sweep at every one of those merges; the finding closes when the census reads the planned count. |
 | **The two `private_cross_module` crossings are a rename unless the new reader lands.** | Named at 0.0. The reviewer finds the reader in the PR's diff (ADR-008); otherwise `metric-gamed`, not banked. |
-| **The score reading better than the code: an in-place write moved, not removed.** ADR-004 lowers `shared_inplace_writes` by moving the circulation pumps' post-await store into a new owner class. The metric's definition reads that as encapsulation and D16-s3-02 asks for the owner, but the count would fall the same way for a wrapper that owns nothing. | The move is banked only with D16's release cells passing on the PR: the owner must be the one that restores on Off, stale plan, unload and remove. A class that only holds the dict is `metric-gamed`. |
+| **The score reading better than the code: an in-place write moved, not removed.** ADR-004 lowers `shared_inplace_writes` by moving the circulation pumps' post-await store into a new owner class. The metric's definition reads that as encapsulation and D16-s3-02 asks for the owner, but the count would fall the same way for a wrapper that owns nothing. | The move is banked only when the PR registers the real restoring owner with `off_restore.py` and D16's release cells pass on the PR: the owner must be the one that restores on Off, stale plan, unload and remove (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). A class that only holds the dict is `metric-gamed`. Not banked, the round reads `no-circ`, +21.1938 end to end, short of the target ("The cases"), and the plan returns to the architect for a paying move. |
 | **The score reading better than the code: clones.** An in-function copy is not counted (D7-s1-02), and the scorer's repair is deferred. | Fix review step 14 runs `m7_floor_plants.py`'s place-keyed owner on every PR that lowers `duplication_copies`. |
 | **The score reading better than the code: values not handles.** A wrapper, an accessor or a rebind lowers `coordinator_private_reach` or `shared_inplace_writes` with the coupling unchanged. | ADR-003, ADR-004 and ADR-005 each name the refused spelling; the reviewer re-runs the arm with the fixer's diff and reads the tripwires. |
 | **Sensitivity S6, T6: the Carnot fix moves every learned correction and golden fixture.** | Claimed drift with its direction (`tests/golden/claimed_drift.txt`); learners run after plant-model so each is re-measured once. |
 | **Sensitivity S9, S11: the held record.** Release and writes both redefine it; `R11-CARRY-DRAWMAP` edits the same file. | The D16 enumerator's release and write cells after each of the three merges. |
-| **Seams likely to need redesign: the config migration (T18) and the solve admission (T14).** Both are designer-owed and irreversible or user-visible. | Design review at the handoff SHA; a third `revise` re-cuts the group (`design-review.md`). |
+| **Seams likely to need redesign: the config migration (T18) and the solve admission (T14).** Both are designer-owed and irreversible or user-visible. `R11-SEAM-tests` and `R11-SEAM-card` (both L) are designer-owed too. | Design review at the handoff SHA; a third `revise` re-cuts the group (`design-review.md`). |
 | **`R11-SEAM-dead-state` is cut by kind of edit, across seams.** A deletion that a reader found later needs is a behaviour change, and a group merging before it may add such a reader. | Each deletion's proof, re-run at the PR's head, is that no production code and no stored document reads the name; the suite and `tests/golden/` unchanged. It is first on none of its rows, so the groups that could add a reader have mostly merged by then. |
 | **Fourteen groups on `coordinator.py` at a cap of three.** The cap, not an edge, sets most of the wall: cap 2 costs 68 h more. | The orchestrator's replan at each wave edge; a group whose fix lands wholly in its owning module leaves the coordinator order when its fixer says so. |
 | **A ratchet repair reads as a budget raise** (`const_modules_over_50`), and D7-s1-04's limit is the owner's to choose. | The owner's confirmation before the push (ADR-009); `budget-raise-gate`. Both are in `R11-SEAM-ratchet-raise`, so nothing else waits on it. |
 | **T7, T16, T18 change what an existing install does at upgrade.** | Each PR's release-notes step, first in the notes; the docs group verifies them last. |
-| **The instrument-comment reading is pending owner confirmation** (`COMPONENTS.md`, "Deferred"): fourteen rows and ten merged into them. | If the owner rules the other way, one text-only group joins with no edge; no move changes. |
+| **The instrument-comment reading is pending owner confirmation** (`COMPONENTS.md`, "Deferred"): fourteen rows and ten merged into them. | The deferral to round 12 under the tooling freeze stands (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). If the owner rules the other way, one text-only group joins with no edge; no move changes. |
 | **Holdout 5, change coupling.** One-owner moves add import edges. | `plan_audit.py compare` at the stamp; the kernel's work is three PRs and six arms, not one PR over 34 files. |
 
 ## Open points for the owner
 
+Points 1, 2, 4 and 6, and the review's remaining blocking and noted points,
+were decided 2026-11-18, orchestrator under mandate, pending owner confirmation. Each stands until the owner confirms or rules otherwise.
+
 1. **The spread rule.** Whether the unclassed floor metrics count as the
-   third scored class (pending owner confirmation; the instrument gives them
-   no class). Until this is ruled the target cannot be declared reachable.
+   third scored class (the instrument gives them no class). **Decided
+   2026-11-18, orchestrator under mandate, pending owner confirmation:** they
+   count as the third scored class.
 2. **The deferral of comment-only edits to instrument files**, fourteen rows
    and the ten merged into them, to round 12 under the freeze, against the
-   2026-11-13 text-scope ruling (pending owner confirmation since step 3).
-   The deferral stands only if the owner confirms it.
+   2026-11-13 text-scope ruling. **Decided 2026-11-18, orchestrator under
+   mandate, pending owner confirmation:** the 24 rows stay deferred to round
+   12 under the tooling freeze.
 3. `const_modules_over_50` rising under D7-s1-01's repair, and the limit of
    D7-s1-04's module-span row: both owed before `R11-SEAM-ratchet-raise`
    pushes.
@@ -525,19 +560,33 @@ roster is the round's figure.
    here `R11-SEAM-learners`, which finishes between 70 h and 138 h into the
    projection. Whether this
    group's designer may start at the first wave, so that `F` is measured
-   before most coordinator merges, is the owner's call; the plan does not
-   assume it.
+   before most coordinator merges. **Decided 2026-11-18, orchestrator under
+   mandate, pending owner confirmation:** the designer starts in the first
+   wave, so `F` is measured before `R` is spent; the fixer still waits on
+   `R11-SEAM-learners`.
 5. D6-s1-01's intended values: whether the legionella default returns to 7
    days or the docs say 10, and whether a write gets the 60 s echo grace the
    docs state. The docs group aligns the text to the merged code unless the
    owner decides the code changes, which is then the owning seam's fix.
 6. **The 40 % cap.** The planned case reads `duplication_copies` at 39.5 %,
    and the Carnot fix is expected to take it to 43.0 %. Whether a sound clone
-   removal that takes a metric past 40 % fails the target.
+   removal that takes a metric past 40 % fails the target. **Decided
+   2026-11-18, orchestrator under mandate, pending owner confirmation:** the
+   40 % cap is checked at the stamp, not at plan time.
 7. **`R11-SEAM-dead-state` is one group across seams**, a stated deviation
    from step 4 (`COMPONENTS.md`, "Cut by kind of edit"). The alternative is
    its deletions carried per seam by six groups, with six edges into
    `R11-SEAM-ratchets`.
+8. **The circ term** (review point 7). **Decided 2026-11-18, orchestrator
+   under mandate, pending owner confirmation:** it is banked only when the
+   PR registers the real restoring owner; "The cases" carries `no-circ` and
+   `floor-no-circ`, both short of the target.
+9. **Review points 4, 5 and 9**, applied without a fourth review.
+   **Decided 2026-11-18, orchestrator under mandate, pending owner
+   confirmation:** designs are owed for `R11-SEAM-tests` and `R11-SEAM-card`
+   (both L); the `dead-state` to `ratchets` edge is dropped; the hub move's
+   fixer brief and ADR-003 carry a stale-holder acceptance check
+   (`early_cutoff`'s `held.wiring`).
 
 ## What revision 2 changed, by review point
 
@@ -558,3 +607,19 @@ The review at `6a73d86e43` is the second `revise`. Its blocking points were
 | 4, the allow | The `--allow` declaration removed; both sides are read on the fork's instrument. | "Fitness functions"; ADR-009 |
 | 5, order | `R11-SEAM-inputs-guards` leaves the coordinator order; the dispatch key and the placement of the critical and high groups are stated; the lower bound is stated in the projection's first lines. | "Projection" |
 | 6, ADRs | ADR-005 matches its scenarios. ADR-007 states its driver, the footprint payment, and that its decisive content, the measured `F`, is owed. | ADR-005; ADR-007 |
+
+## Applied 2026-11-18, the decided open points
+
+Decided 2026-11-18, orchestrator under mandate, pending owner confirmation, after the third review at `446a5aa904`; no
+fourth review was run.
+
+| decision | what changed | where |
+|---|---|---|
+| floor metrics are the third class (open point 1) | the target's spread condition no longer waits on a ruling | "The cases"; "Risks" |
+| 40 % cap checked at the stamp (open point 6) | the share is read at each stamp, not held at plan time | "The cases"; "Risks" |
+| 24 instrument comment rows to round 12 (open point 2) | the deferral stands under the tooling freeze | "Risks"; open point 2 |
+| ADR-007's designer in the first wave (open point 4) | the designer runs beside `R11-SEAM-learners`; the fixer still waits on it | "Designs"; "Admissibility"; ADR-007; the fabric group's brief |
+| circ banked only with the registered restoring owner (open point 8) | `no-circ` +21.1938 and `floor-no-circ` +19.8367 end to end added | "The cases"; "Risks"; ADR-004; `prototypes.py`; the actuation-release brief |
+| designs owed for `R11-SEAM-tests` and `R11-SEAM-card` | both L groups listed as designer-owed; the projection's omissions are five designs | "Designs"; "Projection"; both groups' briefs |
+| `dead-state` to `ratchets` edge dropped | `R11-SEAM-ratchets` has no edge; ORDERED re-run 209.62 h / 278.67 h, PUBLISHED unchanged | "Edges"; "Hot-file order"; "Projection"; ADR-009; `COMPONENTS.md`; the three roster files |
+| stale-holder acceptance check | `early_cutoff`'s `held.wiring` reads the replaced context's values before the next re-arm | ADR-003; the cycle-reporting brief |

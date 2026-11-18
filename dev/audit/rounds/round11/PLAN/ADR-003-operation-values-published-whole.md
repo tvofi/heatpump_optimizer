@@ -49,3 +49,12 @@ down one (`--only sysid`). Acceptance: `m4_order_context.py` reads no torn
 field; `reflective_writes` and `computed_attr_access` flat (C2, C2b);
 `coordinator_multiassigned_attrs` not above its budget; the identification
 arming checks of `tests/features.py` unchanged.
+
+**Stale-holder check** (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). `early_cutoff.arm` stores the
+handed `OptimizationConfig` in `held.wiring = CutoffInputs(inputs, boosts,
+opt_config)` (`early_cutoff.py:168`), a holder that outlives the call. The
+fixer's acceptance includes a test that changes the comfort weight or the
+target temperature after arming and reads, before the next cycle re-arms,
+that the held cutoff decides on the replaced context's values, not the ones
+it was handed. The other seven holders `enum_m4.py` lists are readers today
+and are re-read by the reviewer.

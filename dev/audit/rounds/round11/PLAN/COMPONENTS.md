@@ -254,7 +254,7 @@ file.
 | `R11-SEAM-card` | card | L | medium | 9 + 0 merged | none | 1 |
 | `R11-SEAM-product-text` | product text | M | high | 7 + 1 merged | `plant-model`, `money`, `actuation-release`, `actuation-writes`, `config`, `entity-service`, `inputs-guards`, `inputs-freshness`, `cycle-solve`, `cycle-reporting` | 10 |
 | `R11-SEAM-tests` | test suite | L | low | 4 + 0 merged | none | 7 |
-| `R11-SEAM-ratchets` | test suite | M | low | 3 + 0 merged | `dead-state` | 4 |
+| `R11-SEAM-ratchets` | test suite | M | low | 3 + 0 merged | none (edge dropped 2026-11-18) | 4 |
 | `R11-SEAM-ratchet-raise` | test suite | S | low | 2 + 0 merged | none | 2 |
 | `R11-SEAM-docs` | reader docs | L | medium | 12 + 1 merged | `plant-model`, `money`, `learners`, `actuation-release`, `actuation-writes`, `config`, `entity-service`, `inputs-guards`, `inputs-freshness`, `cycle-solve`, `cycle-reporting`, `card`, `product-text` | 9 |
 | `R11-SEAM-governance-text` | governance text | M | low | 10 + 3 merged | none | 28 |
@@ -282,7 +282,7 @@ file.
 - **`R11-SEAM-card`** — Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9. Findings: D4-s1-01, D4-s1-03, D4-s3-01, D4-s3-02, D4-s3-03, D4-s3-04, D4-s3-05, D6-s4-01, D9-s2-01.
 - **`R11-SEAM-product-text`** — User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. Verified against the text ledger. 7 findings (1 merged in), size M; class tags I4, I5, N-copy-style. Findings: D6-s2-01, D6-s6-01, D6-s4-02, D4-s3-06, D4-s3-07, D10-s2-03, D4-s2-51; merged: D4-s2-02 into D10-s2-03.
 - **`R11-SEAM-tests`** — What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5. Findings: D10-s1-05, D10-s1-06, D9-s3-01, D9-s3-02.
-- **`R11-SEAM-ratchets`** — Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value, after R11-SEAM-dead-state, whose deletions set the import row's value. 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind. Findings: D7-s1-02, D7-s1-03, D14-s2-03.
+- **`R11-SEAM-ratchets`** — Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value when the group merges; no edge waits on R11-SEAM-dead-state, whose later deletions re-record the import row downward (the edge dropped, decided 2026-11-18, orchestrator under mandate, pending owner confirmation). 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind. Findings: D7-s1-02, D7-s1-03, D14-s2-03.
 - **`R11-SEAM-ratchet-raise`** — The two rows whose value the owner sets: const fan-out read through a module binding (the corrected row reads 4 against a budget of 3) and module lines outside the class, whose limit the owner chooses. Cut from the other ratchet rows so the owner's confirmation holds only these two findings. 2 findings (0 merged in), size S; class tags N-structure-blind. Findings: D7-s1-01, D7-s1-04.
 - **`R11-SEAM-docs`** — Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc. Findings: D5-s2-01, D5-s2-02, D5-s2-03, D5-s2-08, D5-s2-09, D5-s2-10, D5-s2-11, D6-s1-02, D6-s7-01, D5-s2-04, D5-s2-05, D5-s2-06; merged: D6-s1-01 into D5-s2-08.
 - **`R11-SEAM-governance-text`** — Policy and programme prose with a false or unresolvable sentence. Policy files merge serially on the owner's approving review; no instrument code changes here. 10 findings (3 merged in), size M; class tags I4, I5, N-move-stale-path. Findings: D6-s5-02, D6-s5-03, D6-s5-01, D6-s5-05, D6-s5-06, D6-s5-07, D6-s5-08, D6-s7-02, D11-s2-04, D15-s1-02; merged: D6-s2-02 into D6-s5-02, D6-s2-03 into D6-s5-02, D6-s5-04 into D6-s5-02.
@@ -326,8 +326,9 @@ excluded with the reason:
 
 - `kernel-step` before `inputs-freshness` and `actuation-writes`: both read the
   step covering now from the owner D7-s3-03 creates.
-- `dead-state` before `ratchets`: the import row is recorded at the value the
-  deletions leave (ADR-009 part 1). This is the roster's weakest edge.
+- `dead-state` before `ratchets`: dropped (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). It was an ordering preference: the import row is
+  recorded when `ratchets` merges and a later deletion re-records it
+  downward (ADR-009 part 1).
 - `plant-model` before `learners`: the Carnot, delivery and derate fixes change
   the residual each learner fits, so a learner harness run before them measures
   the wrong plant.
@@ -340,7 +341,7 @@ excluded with the reason:
   `config`, `entity-service`, `inputs-guards`, `inputs-freshness`,
   `cycle-solve` and `cycle-reporting`; revision 1 left the last four out.
 
-Not edges: `tests` and `ratchet-raise` wait on nothing, `kernel-layering`
+Not edges: `tests`, `ratchets` and `ratchet-raise` wait on nothing, `kernel-layering`
 has no edge in or out, and neither comment group carries an edge. A comment
 rewrite depends on no behaviour; its order against the groups that edit the
 same file is a hot-file order (`PLAN.md`), released per file (ADR-010 part 2).

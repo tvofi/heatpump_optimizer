@@ -129,8 +129,9 @@ states the round's admissibility; that is a condition of the target
   only while `R <= 34`.
 - `designer.md` pipelines the designer behind the group's last predecessor,
   `R11-SEAM-learners`. By then most coordinator groups have merged and most
-  of `R` is spent. Whether this designer may start at the first wave is
-  `PLAN.md`'s open point 4; the plan does not assume it.
+  of `R` is spent. This designer starts in the first wave instead (`PLAN.md`
+  open point 4, decided 2026-11-18, orchestrator under mandate, pending owner confirmation), so `F` is measured
+  before `R` is spent; the fixer still waits on `R11-SEAM-learners`.
 
 ## Move and fitness functions
 

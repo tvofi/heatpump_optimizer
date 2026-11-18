@@ -69,6 +69,9 @@ Read at the fork 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 on 2026-11-18 (darwin 
     one-copy-short   dS +21.7525  the floor with one clone arm (notice) unrealised (18 -> 10): short of +22.7
     floor-no-fabric  dS +22.9638  the floor with ADR-007 unrealised (coord_footprint 2496 -> 2490 at the
                      fork, which main's nine statements and any fix's rise then put above 2496: inadmissible)
+    no-circ          dS +21.1498  planned with the circ term not banked (shared_inplace_writes 3 -> 2,
+                     coord_footprint 2496 -> 2468): short of +22.7 (decided 2026-11-18)
+    floor-no-circ    dS +19.7927  the floor with the circ term not banked: short of +22.7
     with-tasks       dS +29.7802  the control: planned plus the withdrawn task-set arm (shared_inplace_writes
                      3 -> 0). Revision 1 called this tree full; that name still runs it. Not a planned reading.
 Writes only under a tempfile root.
@@ -331,6 +334,8 @@ CASES = {
     "floor-no-fabric": tuple(a for a in PLANNED if a not in ("topk", "fabric", "imports")),  # and ADR-007 unrealised
     "with-tasks": PLANNED + ("tasks",),                             # the control: the withdrawn task-set arm
     "one-copy-short": tuple(a for a in PLANNED if a not in ("topk", "notice")),  # the floor, one clone arm unrealised
+    "no-circ": tuple(a for a in PLANNED if a != "circ"),           # planned, circ not banked (decided 2026-11-18)
+    "floor-no-circ": tuple(a for a in PLANNED if a not in ("topk", "circ")),  # the floor, circ not banked
 }
 CASES["no-tasks"] = CASES["planned"]                                # revision 1's name for the same tree
 CASES["full"] = CASES["with-tasks"]                                 # revision 1's name for the same tree

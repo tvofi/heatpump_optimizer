@@ -20,12 +20,13 @@ module-span limit is the owner's to choose. The other three need nobody:
 
 ## Decision
 
-1. New rows are recorded at the value measured after `R11-SEAM-dead-state`
-   has merged. That group deletes the fourteen unused import bindings
-   D7-s1-03 lists and D7-s3-05's dead constants (ADR-001 part 4), so the
-   import row is recorded at zero. `R11-SEAM-ratchets` adds the row and
-   deletes nothing in production. This is the one edge into the ratchet
-   groups.
+1. New rows are recorded at the value measured when `R11-SEAM-ratchets`
+   merges. `R11-SEAM-dead-state` deletes the fourteen unused import bindings
+   D7-s1-03 lists and D7-s3-05's dead constants (ADR-001 part 4); if it
+   merges later, its deletions re-record the import row downward to zero.
+   `R11-SEAM-ratchets` adds the row and deletes nothing in production. No
+   edge leads into the ratchet groups: the edge from `R11-SEAM-dead-state`
+   was dropped as an ordering preference (decided 2026-11-18, orchestrator under mandate, pending owner confirmation).
 2. The two owner-gated rows are their own group, `R11-SEAM-ratchet-raise`, so
    the owner's confirmation holds two findings and not the other three. A
    repaired row whose reading rises because the measure was corrected
@@ -76,9 +77,9 @@ module-span limit is the owner's to choose. The other three need nobody:
   it at the fork on both sides.
 - From `R11-SEAM-ratchet-raise`'s merge, a fix that grows `coordinator.py`
   outside the class is priced.
-- The edge from `R11-SEAM-dead-state` into `R11-SEAM-ratchets` is still the
-  weakest in the roster: it is an edge only because the recorded value of one
-  new row depends on what was deleted.
+- The edge from `R11-SEAM-dead-state` into `R11-SEAM-ratchets` is dropped
+  (2026-11-18): the recorded value of one new row depends on what was
+  deleted, and a later deletion re-records it downward.
 
 ## Scenarios served
 

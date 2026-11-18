@@ -353,7 +353,7 @@
     "custom_components/heatpump_optimizer/legionella.py"
    ],
    "after": [],
-   "architect_note": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold.",
+   "architect_note": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. The circ term (shared_inplace_writes 3 to 2 and its six coord_footprint statements) is banked only when the PR registers the real restoring owner with off_restore.py, the one that restores on Off, stale plan, unload and remove; a class that only holds the dict is metric-gamed and banks nothing (decided 2026-11-18, orchestrator under mandate, pending owner confirmation).",
    "arms": {
     "D7-s1-05": [
      "notice"
@@ -467,7 +467,7 @@
     "custom_components/heatpump_optimizer/manifest.json"
    ],
    "after": [],
-   "architect_note": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure."
+   "architect_note": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Acceptance check for ADR-003's stale holders: early_cutoff.arm stores the handed OptimizationConfig in held.wiring (CutoffInputs); after a comfort-weight or target change publishes a replaced context, the held cutoff reads the new values, not the old ones, before the next cycle re-arms; a test pins it (decided 2026-11-18, orchestrator under mandate, pending owner confirmation)."
   },
   {
    "group": "R11-SEAM-config",
@@ -560,7 +560,7 @@
     "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
    ],
    "after": [],
-   "architect_note": "Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9."
+   "architect_note": "Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9. Size L with no approved design: a design is owed (designer.md) before the fixer (decided 2026-11-18, orchestrator under mandate, pending owner confirmation)."
   },
   {
    "group": "R11-SEAM-product-text",
@@ -631,7 +631,7 @@
     "tools/coverage/coverage_tree.sh"
    ],
    "after": [],
-   "architect_note": "What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5."
+   "architect_note": "What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5. Size L with no approved design: a design is owed (designer.md) before the fixer (decided 2026-11-18, orchestrator under mandate, pending owner confirmation)."
   },
   {
    "group": "R11-SEAM-ratchets",
@@ -652,10 +652,8 @@
     "tests/entities.py",
     "custom_components/heatpump_optimizer/sysid.py"
    ],
-   "after": [
-    "R11-SEAM-dead-state"
-   ],
-   "architect_note": "Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value, after R11-SEAM-dead-state, whose deletions set the import row's value. 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind."
+   "after": [],
+   "architect_note": "Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value when the group merges; no edge waits on R11-SEAM-dead-state, whose later deletions re-record the import row downward (the edge dropped, decided 2026-11-18, orchestrator under mandate, pending owner confirmation). 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind."
   },
   {
    "group": "R11-SEAM-ratchet-raise",
@@ -870,7 +868,7 @@
    "after": [
     "R11-SEAM-learners"
    ],
-   "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The buffer cooling, house heat-loss and internal-gains folds and the re-anchor leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint, which is read end to end after every coordinator merge. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arm fabric, reads the footprint 28 statements lower for two of the folds; the designer's note carries the reading of the whole cut. Scenario: growth of coordinator.py is priced and the class shrinks (S13)."
+   "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The buffer cooling, house heat-loss and internal-gains folds and the re-anchor leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint, which is read end to end after every coordinator merge. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arm fabric, reads the footprint 28 statements lower for two of the folds; the designer's note carries the reading of the whole cut. Scenario: growth of coordinator.py is priced and the class shrinks (S13). Its designer starts in the first wave, not behind R11-SEAM-learners, so F is measured before most coordinator merges spend R (decided 2026-11-18, orchestrator under mandate, pending owner confirmation); the fixer still waits on R11-SEAM-learners."
   }
  ],
  "deferred": {

@@ -64,7 +64,10 @@ way. What makes the move more than a relocation is decision 1: the owner is
 registered with `off_restore.py` and restores the pumps on Off, stale plan,
 unload and remove. The reviewer runs D16's release cells on the PR; an owner
 that does not restore is `metric-gamed` (`fix-review.md` step 14) and the
-fall is not banked.
+fall is not banked. The term is banked only when the PR registers the real
+restoring owner (decided 2026-11-18, orchestrator under mandate, pending owner confirmation); without it the
+round reads `prototypes.py --case no-circ`, +21.1938 end to end, short of
+the target (`PLAN.md`, "The cases").
 
 Acceptance: the D16 enumerator's release cells
 all restore; `coord_footprint` does not rise in this PR; the behaviour
