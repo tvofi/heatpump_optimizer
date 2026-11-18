@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleDither.step CONST_SWAP 3068c7fd",
-  "old": "            self.pair, self.since = (0, self.coin.choice((-1, 1))), now",
-  "reason": "Equivalent (CONST_SWAP, the first pair's number 0 -> 1). A pair number is a label compared only for equality between slots (`_want`, `_next`, `take`'s `reading != self._want()`); a pair starts only where `pair` is None, after construction or `_void`, both of which leave `reading` and `ahead` None, so no slot numbered under an earlier start survives to be compared. Any start number gives the same comparisons. Driven by mutant_run.py over the tests/features.py block from `COP learner duty floor keys` to `R.section(\"R10-HOTFIX-COP-UNMEASURED`: the mutant survived.",
-  "verdict": "equivalent"
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleDither CONST_SWAP 06bb1cd3",
-  "old": "    holding: bool = False",
-  "reason": "Equivalent (CONST_SWAP, the field default False -> True). `ScaleDither.holding` is read only in `step`'s `running == want` arm, and every pair starts in `step`'s other arm (the running slot is None when `pair` is None: construction and `_void` leave `ahead` None), which assigns `holding` before any read; `take` never reads it. So the default is overwritten before it is read on every path. Driven by mutant_run.py over the tests/features.py block from `COP learner duty floor keys` to `R.section(\"R10-HOTFIX-COP-UNMEASURED`: the mutant survived.",
-  "verdict": "equivalent"
-}
