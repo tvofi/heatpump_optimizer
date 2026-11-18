@@ -1,0 +1,22 @@
+== policy_lint
+TOTAL: 1 error(s) across 57 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=1
+== policy_lint --budgets
+dev/audit/README.md                              315  321     6072  6059   key tools/audit/README.md
+dev/governance/roles/proposal-triage.md           42   42      589   594 
+corpus:        ~71504 tokens, cap 71212 +band 500 = 71712
+== brief_lint
+PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean
+== rules_sync --check
+RULES-SYNC ok: every generated rule is the generated form of its source
+== cited paths exist
+dev/governance/roles/architect-planner.md
+dev/governance/roles/plan-review.md
+tools/audit/seat/roster_edit.py
+== VERSION/manifest/notes untouched
+(empty above = untouched)
+== render round11
+wrote /tmp/tmp.gHU6CnNioX/r11.html
+<tr data-phase="instrument-triage" data-st="not-started"><td class="g">Instrument prototype and proposal triage</td><td class="st"><span class="pill held">not started</span></td><td class="mono">—</td><td class="mono">—</td><td>—</td><td class="d">—</td><td class="d">—</td></tr><tr data-phase="closure" data-st="not-started

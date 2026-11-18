@@ -1,0 +1,13 @@
+== null (pristine head, no bytecode cache)
+plan_page self-test: 154 checks, 0 failed
+== mutant 1: drop instrument-triage from PHASES
+plan_page self-test: 154 checks, 3 failed
+== mutant 2: move after closure
+plan_page self-test: 154 checks, 2 failed
+== mutant 3: move before stamps
+plan_page self-test: 154 checks, 1 failed
+== restored
+plan_page self-test: 154 checks, 0 failed
+== round11 phases check
+rc=0
+0
