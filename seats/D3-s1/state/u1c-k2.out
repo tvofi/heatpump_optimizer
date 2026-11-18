@@ -62,3 +62,4 @@
 2026-11-18T18:50:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:wood_share CMP_BOUND 5dfd3ad3 L2903 by=- ran=12 wall=1252.0s
 2026-11-18T18:50:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:apply_catalog GUARD_OFF 481898b9 L483 by=- ran=12 wall=1340.6s
 2026-11-18T18:53:50Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._expand_off_blocks CMP_BOUND 32915bf0 L5271 by=tests/features.py ran=13 wall=1330.6s
+2026-11-18T18:56:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize GUARD_OFF dd7f271c L1996 by=- ran=17 wall=1506.7s
