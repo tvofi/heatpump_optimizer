@@ -22,7 +22,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, cast
 
 import numpy as np
 
@@ -295,8 +295,7 @@ class MonthlyLedger:
     def _month(self, key: str) -> dict[str, Any]:
         month = self.months.get(key)
         if month is None:
-            month = {"lines": {}, "meta": {}}
-            self.months[key] = month
+            month = self.months[key] = {"lines": {}, "meta": {}}
             self._prune()
         return month
 
@@ -308,8 +307,7 @@ class MonthlyLedger:
 
     def _entry(self, when: datetime, section: str, name: str, zero: dict[str, Any]) -> dict[str, Any]:
         """The running entry ``name`` of one section of ``when``'s month, started at ``zero``."""
-        entry: dict[str, Any] = self._month(month_key(when))[section].setdefault(name, zero)
-        return entry
+        return cast(dict[str, Any], self._month(month_key(when))[section].setdefault(name, zero))
 
     def add(self, when: datetime, line: str, *, kwh: float, sek: float) -> None:
         """Accumulate one settled amount onto a named line."""
@@ -399,11 +397,10 @@ class MonthlyLedger:
         """
         if baseline_kw is None or not all(np.isfinite(v) for v in (baseline_kw, actual_kwh, spot, dt)):
             return
-        month = self._month(month_key(when))
-        lines = month["lines"]
+        lines = self._month(month_key(when))["lines"]
         calibrated = SAVINGS_PLAN_LINE in lines or "savings_baseline" not in lines
         if "savings_baseline" not in lines:
-            month["meta"].setdefault(REFERENCE_BASIS_META, {"sum": float(REFERENCE_BASIS), "count": 1})
+            self._entry(when, "meta", REFERENCE_BASIS_META, {"sum": float(REFERENCE_BASIS), "count": 1})
 
         def book(name: str, kwh: float) -> None:
             self.add(when, name, kwh=kwh, sek=kwh * float(spot))
@@ -540,13 +537,11 @@ class MonthlyLedger:
             baseline_sek = self.line(key, "savings_baseline")["sek"] * scale + stored_sek
             actual_sek = actual["sek"]
             estimated = key == open_key
-            if estimated:
-                factor = coverage_factor(self.months[key].get("meta") or {}, now)
-                if factor is None:  # under MIN_COVERAGE_HOURS: no estimate yet
-                    continue
-                baseline_sek, actual_sek, stored_sek, comfort_sek = (
-                    v * factor for v in (baseline_sek, actual_sek, stored_sek, comfort_sek))
-            baseline_sek, actual_sek = round(baseline_sek, 2), round(actual_sek, 2)
+            factor = coverage_factor(self.months[key].get("meta") or {}, now) if estimated else 1.0
+            if factor is None:  # the open month under MIN_COVERAGE_HOURS: no estimate yet
+                continue
+            baseline_sek, actual_sek = round(baseline_sek * factor, 2), round(actual_sek * factor, 2)
+            stored_sek, comfort_sek = stored_sek * factor, comfort_sek * factor
             saved = round(baseline_sek - actual_sek, 2)
             old_basis = self.meta_mean(key, REFERENCE_BASIS_META) != REFERENCE_BASIS
             # The booked lines, never the calibrated column, which cancels the meter.
