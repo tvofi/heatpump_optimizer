@@ -454,3 +454,4 @@
 2026-11-18T15:25:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._interval_space_power GUARD_OFF 1dc80a7a L5049 by=- ran=14 wall=1973.7s
 2026-11-18T15:51:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling GUARD_OFF 9be11266 L5658 by=- ran=13 wall=1766.8s
 2026-11-18T15:52:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override GUARD_OFF d011a381 L5157 by=- ran=15 wall=1980.9s
+2026-11-18T15:53:11Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_cop_evidence GUARD_OFF 6deb0603 L5382 by=- ran=14 wall=1985.0s
