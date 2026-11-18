@@ -1,0 +1,7 @@
+{
+  "class": "N-missing-unit-scale",
+  "instances": 0,
+  "barriered": false,
+  "enumerator": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/N-missing-unit-scale/enumerate.py",
+  "instance_list": []
+}
