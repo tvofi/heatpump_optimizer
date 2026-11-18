@@ -2207,7 +2207,7 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
             rt = Path(tempfile.mkdtemp(dir=pr.parent))
             (rt / "measured").mkdir()
             shutil.copy(artifact, rt / "measured" / "selftest_closures.json")
-            p = subprocess.run(["bash", "--noprofile", "--norc", "-c", bot[0].run], cwd=pr,
+            p = subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", bot[0].run], cwd=pr,
                                env={**os.environ, "RUNNER_TEMP": str(rt),
                                     "GITHUB_STEP_SUMMARY": str(rt / "summary.md")},
                                capture_output=True, text=True)
