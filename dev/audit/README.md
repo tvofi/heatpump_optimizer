@@ -96,7 +96,7 @@ against a measured baseline and a null control
 
 - The organization transfer is ruled out (tvofi, 2026-11-14; `dev/programme/HANDOVER.md`).
 - Intake's baseline: R10-PROTECTION-CENSUS's result,
-  `dev/audit/rounds/round10/protection-census/`. On it, B1 (triage batch 245,
+  `dev/audit/rounds/round10/protection-census/CENSUS.md`. On it, B1 (triage batch 245,
   P740) opens the round unless ordered into round 10: on an all-product diff
   `briefs`, `policy-docs` and `wave-script` turn advisory, and `blueprints/`
   joins the product predicate.
