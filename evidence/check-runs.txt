@@ -1,0 +1,3 @@
+Check runs at e4fbf16e79cb90cb93284e57a4aeeaceaa738f55 read 2026-11-18 (get_check_runs, 15 runs): no failure.
+success: prelude, cancel-superseded. skipped (doc-only scope): kernel-points, governance, tests, codeql, validate, hassfest, arm.
+in progress or queued at read: arch-score, budget-raise-gate, refresh (x2), prelude (run 44330199601), cancel-superseded (run 44330199601).

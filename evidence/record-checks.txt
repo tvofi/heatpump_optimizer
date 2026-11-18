@@ -1,0 +1,16 @@
+files touched:
+dev/programme/RULINGS.md
+VERSION/RELEASE_NOTES/manifest/custom_components/tests/golden touched:
+(none above = untouched)
+home-path grep (/home|/Users|~/):
+no match
+dates on added bullets:
++- 2026-11-18, the P3 plan (as recorded; mandate 6893738184, after one hour
++- 2026-11-18, money design questions (as recorded): (1) the five findings that
++- 2026-11-18, four rulings (as recorded): (1) the #3723 churn cap is raised under
++- 2026-11-18 (as recorded): carry 1 of the DX0 group is its own policy pull
++- 2026-11-18 (as recorded): a new round phase, "instrument prototype and
++- 2026-11-18, #3708 design decision D1/D2 (as recorded): option (b). The part-1
++- 2026-11-18 (as recorded), `R11-ARCH-OBJECTIVE` carry 390ea33c: the settlement
++- 2026-11-18 (as recorded), D3 in round 11: the late-intake D3-s1 finding or
++- 2026-11-18 (as recorded): issues for the round-11 groups are filed as planned,
