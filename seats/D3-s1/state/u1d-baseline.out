@@ -1,26 +1,23 @@
-2026-11-18T08:00:12Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=126.7s reach_ok=False
-2026-11-18T08:01:04Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=178.4s reach_ok=True
-2026-11-18T08:01:49Z BASELINE tests/optimality.py rc=0 failed=0 wall=97.0s reach_ok=True
-2026-11-18T08:02:06Z BASELINE tests/config_flow_steps.py rc=0 failed=0 wall=17.1s reach_ok=True
-2026-11-18T08:02:30Z BASELINE tests/finite_boundary.py rc=0 failed=0 wall=86.5s reach_ok=True
-2026-11-18T08:02:48Z BASELINE tests/validate.py rc=0 failed=0 wall=17.1s reach_ok=True
-2026-11-18T08:02:49Z BASELINE tests/arch_score_head.py rc=0 failed=0 wall=42.4s reach_ok=True
-2026-11-18T08:03:05Z BASELINE tests/structure.py rc=0 failed=0 wall=18.0s reach_ok=False
-2026-11-18T08:03:10Z BASELINE tests/typing_ruler.py rc=0 failed=0 wall=21.8s reach_ok=False
-2026-11-18T08:03:15Z BASELINE tests/doc_claims.py rc=0 failed=0 wall=9.3s reach_ok=False
-2026-11-18T08:03:17Z BASELINE tests/block_duty.py rc=0 failed=0 wall=6.6s reach_ok=True
-2026-11-18T08:03:18Z BASELINE tests/guard_pins.py rc=0 failed=0 wall=3.6s reach_ok=True
-2026-11-18T08:03:21Z BASELINE tests/deployment_shape.py rc=0 failed=0 wall=2.1s reach_ok=False
-2026-11-18T08:03:21Z BASELINE tests/plan_view.py rc=0 failed=0 wall=0.7s reach_ok=True
-2026-11-18T08:03:22Z BASELINE tests/debug_collect.py rc=0 failed=0 wall=1.2s reach_ok=True
-2026-11-18T08:03:23Z BASELINE tests/manual_plan.py rc=0 failed=0 wall=5.4s reach_ok=True
-2026-11-18T08:03:23Z BASELINE tests/wood_advisor.py rc=0 failed=0 wall=0.7s reach_ok=True
-2026-11-18T08:03:23Z BASELINE tests/solar_alignment.py rc=0 failed=0 wall=0.7s reach_ok=True
-2026-11-18T08:06:04Z BASELINE tests/entities.py rc=0 failed=0 wall=478.2s reach_ok=False
-2026-11-18T08:06:12Z BASELINE tests/env_drift.py rc=0 failed=0 wall=169.1s reach_ok=False
-2026-11-18T08:09:10Z BASELINE tests/features.py rc=0 failed=0 wall=664.3s reach_ok=False
-RESULT load1=1.65
-RESULT thread_factor=1.00
-2026-11-18T08:10:34Z TRACE-CAPTURE rc=0 wall=83.1s problems=[] procs={'started': 2, 'recorded': 2}
-RESULT load1=1.89
+2026-11-18T08:18:15Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=152.7s reach_ok=False
+2026-11-18T08:20:33Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=290.6s reach_ok=True
+2026-11-18T08:20:35Z BASELINE tests/optimality.py rc=0 failed=0 wall=139.6s reach_ok=True
+2026-11-18T08:20:59Z BASELINE tests/config_flow_steps.py rc=0 failed=0 wall=24.0s reach_ok=True
+2026-11-18T08:21:59Z BASELINE tests/arch_score_head.py rc=0 failed=0 wall=60.5s reach_ok=True
+2026-11-18T08:22:22Z BASELINE tests/finite_boundary.py rc=0 failed=0 wall=108.8s reach_ok=True
+2026-11-18T08:22:38Z BASELINE tests/validate.py rc=0 failed=0 wall=38.8s reach_ok=True
+2026-11-18T08:22:46Z BASELINE tests/structure.py rc=0 failed=0 wall=23.6s reach_ok=False
+2026-11-18T08:22:59Z BASELINE tests/doc_claims.py rc=0 failed=0 wall=12.9s reach_ok=False
+2026-11-18T08:23:07Z BASELINE tests/typing_ruler.py rc=0 failed=0 wall=28.4s reach_ok=False
+2026-11-18T08:23:12Z BASELINE tests/block_duty.py rc=0 failed=0 wall=13.5s reach_ok=True
+2026-11-18T08:23:12Z BASELINE tests/guard_pins.py rc=0 failed=0 wall=5.8s reach_ok=True
+2026-11-18T08:23:15Z BASELINE tests/deployment_shape.py rc=0 failed=0 wall=2.5s reach_ok=False
+2026-11-18T08:23:16Z BASELINE tests/plan_view.py rc=0 failed=0 wall=1.0s reach_ok=True
+2026-11-18T08:23:17Z BASELINE tests/debug_collect.py rc=0 failed=0 wall=1.3s reach_ok=True
+2026-11-18T08:23:18Z BASELINE tests/wood_advisor.py rc=0 failed=0 wall=0.8s reach_ok=True
+2026-11-18T08:23:19Z BASELINE tests/solar_alignment.py rc=0 failed=0 wall=0.7s reach_ok=True
+2026-11-18T08:23:22Z BASELINE tests/manual_plan.py rc=0 failed=0 wall=9.4s reach_ok=True
+2026-11-18T08:25:19Z BASELINE tests/entities.py rc=0 failed=0 wall=576.9s reach_ok=False
+2026-11-18T08:26:47Z BASELINE tests/env_drift.py rc=0 failed=0 wall=207.7s reach_ok=False
+2026-11-18T08:31:02Z BASELINE tests/features.py rc=0 failed=0 wall=919.6s reach_ok=False
+RESULT load1=0.95
 RESULT thread_factor=1.00
