@@ -9,6 +9,17 @@ R11-SEAM-inputs-guards: every value entering through `inputs.py` is tested finit
 | D7-s3-01 Fahrenheit inverse | not reproduced at main, pinned | new round-trip check over every `TEMPERATURE_UNIT_TO_C` row |
 | D1-s2-51 plausible window upper edge | not reproduced at main, pinned | new check: every window refuses one degree past either end |
 
+Round 2 (blocked at 40328a85d4e17e5c30284b34fd55cee8655f858a, `class-open: wood_fuel.lighting_window`): the sweep's `.md` hands this seam to this fix, and round 1 enumerated from the `.json`'s `instance_list` alone, so it was left open. It is closed here. `EntryConfig.wood_lighting_lead_minutes` is parsed by `_lead_minutes`, which reads a value outside `[0, a day]` as the default 60. `wood_fuel._attach_windows` reads that parsed field through `EntryConfig.from_mapping(config)`, which returns the coordinator's `EntryConfig` as it is and parses a plain mapping once. `_lead_minutes` joins `_DEFAULTED_NUMBERS`, so the migration still repairs text stored under the key.
+
+Correction to the verdict: the key was already declared in `EntryConfig` at 40328a85, parsed by `finite_float` (`git show 40328a85:custom_components/heatpump_optimizer/entry_config.py`, field `wood_lighting_lead_minutes`). `_attach_windows` read it raw, so that parse never reached the window.
+
+Behaviour change: a stored negative lead used to be clamped to 0, lighting at the window's start. It now reads as the default, as an out-of-domain interval does. The lower bound is inclusive, because the options flow offers 0 (`_number(0, 240, ...)` on `CONF_WOOD_LIGHTING_LEAD_MINUTES`'s row in `config_flow.py`). The day bound is `_MAX_PLAN_MINUTES`, which the interval parse shares, renamed from `_MAX_INTERVAL_MINUTES`.
+
+Alternatives for the lead, and why each lost:
+- **Catch `OverflowError` in `lighting_window`.** It patches the one overflow and still reads -5 and 1e12 as leads.
+- **A second clamp at the reader.** It is a parallel coercion beside the declared parse, the duplication `EntryConfig` exists to remove (#1745).
+- **The declared parse with a domain, read at the reader** (taken).
+
 Design, D1-s2-05. `EntryConfig` already parses each declared numeric key once (`finite_float`, or `_nonzero_number` for the tank volume). But `EntryConfig.__getitem__` returns the stored value, and the thermal table (`thermal_model._tabled_values`, `ThermalParameters.from_config`, `_flow_curve_values`) and `comfort_band.effective` read it raw. Three alternatives were considered:
 
 - **Coerce at every raw reader.** Patches enumerated cases where a structural fix exists, in a four-group hot file (`thermal_model.py`).
@@ -19,7 +30,7 @@ Design, D1-s2-05. `EntryConfig` already parses each declared numeric key once (`
 
 ## Head
 
-fe297f1b14ac6107174c41ef8ecea58d6871570d, on merge base bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f (origin/main at ae0ed64af898d8923ac35afe6e9c031ac1e6b111 at 2026-11-18T14:31:41Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict).
+2b56d7b4e27a71f2d6f14be29d0648d58492fef9, on merge base ae0ed64af898d8923ac35afe6e9c031ac1e6b111 (origin/main at 8751943e17ef4d3ec699e7859ae829b4528d8ce7 at 2026-11-18T16:43:41Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict).
 
 ## Mutation proof
 
@@ -34,6 +45,18 @@ Each fix line was reverted, its check run, and the file restored (`git status --
 - Pin D7-s3-01, `temperature_from_c` multiplying by the factor: `FAIL temperature_from_c inverts every unit row the reader converts (D7-s3-01)`.
 - Pin D1-s2-51, `plausible_c` one-sided (`window[0] <= value_c`): `FAIL every plausible window refuses a reading one degree past either end (D1-s2-51)`.
 
+Round 2, at the new head: a scratch driver, not tracked, applies each mutant, runs its script, restores the file and prints `git status --porcelain`, which was empty after each of the six. Every mutant is killed (L3b, L7 and L8 were run by the same procedure after the 1440 rows were added).
+- Failing first, at the head with only the two production files reverted to 40328a85: `FAIL a stored lead outside [0, a day] is the default 60 min: ...`, with `'1e12': "OverflowError('date value out of range')"` (`tests/wood_advisor.py`, 1 of 27 failed). The fixed tree reads `ALL 27 wood-advisor checks PASSED`.
+- L1, `_lead_minutes` dropped from `_DEFAULTED_NUMBERS`: `FAIL every option whose parse defaults text it cannot read is repaired by the migration [unrepaired: ['wood_lighting_lead_minutes']]` (`tests/entities.py`, 1 of 2739 failed).
+- L2, `_interval_minutes` dropped from `_DEFAULTED_NUMBERS` (round 1's surviving M9): the same check, `[unrepaired: ['optimization_interval']]`. The check selects its keys by each parse's own behaviour: numeric text `"12"` reads as the float 12.0, and `"abc"` reads as the default. It does not read the tuple it pins, so it applies the tree's rule and not the artifact's. That selection returns 47 fields, whose parses are exactly `finite_float`, `_nonzero_number`, `_interval_minutes` and `_lead_minutes`.
+- L3, the lead floor made exclusive, and L3b, the ceiling made exclusive: `FAIL a lead inside [0, a day] is its own: 0 lights at the window's start, 240 four hours before, and a day's lead lights now` (`tests/wood_advisor.py`).
+- L7, the parse's range guard off: `FAIL a stored lead outside [0, a day] is the default 60 min: ...`. L8, its `return minutes` deleted: `TypeError: unsupported type for timedelta minutes component: NoneType`.
+- L4, the lead ceiling dropped: `FAIL a stored lead outside [0, a day] is the default 60 min: ...`.
+- L5, the field parsed by `finite_float` again: the same check.
+- L6, `_attach_windows` reading the raw option (`max(0.0, float(config.get(...)))`): the same check.
+
+Round 1's other survivor, M14 (`open_meteo._parse_block`'s `< 2` loosened to `< 1`), was dismissed by the reviewer as equivalent under `mean_over`'s coverage rule. It is not re-pinned here.
+
 ## Null control
 
 Each new check carries its own null control, which passes unmutated:
@@ -42,6 +65,7 @@ Each new check carries its own null control, which passes unmutated:
 - The year-1 block averages to the clean block's mean over the same three hours.
 - The migration's no-parsed-field-moves check covers the repair, and the existing "an old entry is stamped forward without touching its data" covers a healthy entry.
 - The healthy control `CTRL vN` of `config_fuzz.py` reads ok for v1 to v6 at both ends.
+- The lead: 0 and 240, the options flow's two ends, and 1440, the parse's ceiling, read as stored ("a lead inside [0, a day] is its own"), beside 1440.5, 1e12, -5 and NaN reading the default. The repair enumeration's null: a stored number under each of the selected keys is repaired to nothing ("and a stored number under each is left alone").
 - `parsers_fuzz.py` prints `pump_null_control_zero_flag_true` and `openmeteo_healthy_solve_failures`, both 0 at both ends.
 
 Reach of the D1-s2-05 repair: `async_migrate_entry` runs for `entry.version < CONFIG_ENTRY_VERSION`, the reach the judge recorded for the finding (current-version input is validated by the options flow).
@@ -78,20 +102,30 @@ Each harness runs from the plan export (`EXPORT=$(mktemp -d); git archive 819aa2
   - `inputs.plausible_c`: already guarded, pinned here (D1-s2-51).
   - `boost._restore_settle`: distinct finding D1-s2-06, not this group's.
   - `coordinator._parse_ecl110_state`: distinct finding D1-s3-02, carried by R11-SEAM-inputs-freshness per the plan.
+
+  The sweep's `.md`, read in full at the plan export (`git show 819aa2e354b4e5baaf824b8568fd72bea8168a75:dev/audit/rounds/round11/sweep-P1.md`), adds three dispositions the `.json` omits:
+  - `wood_fuel.lighting_window` (`wood_lighting_lead_minutes`): handed to this fix by the `.md`'s "Guarded" list. Closed here. The parse and the measurements are under `## Mutation proof`.
+  - `price_model.pull_prices` and `wood_fuel.wood_fuel_ready`: already guarded (`try/except (TypeError, ValueError)`, per the `.md`).
+  - The parser family (`away._parse_return_time`, `boost._parse_until` and the rest the `.md` lists): already guarded, by the `.md`'s reading.
+
+  One sibling of the lead outside the `.md`: `vvc_lead_minutes` (`pump_schedule.vvc_should_run`). It is float arithmetic, `max(0.0, float(lead_minutes)) / 60.0`, with no datetime, and `EntryConfig` refuses NaN and infinities by `finite_float`. A large lead only keeps the loop pump on, so nothing overflows. Already guarded; not changed.
 - Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED`. Local runs at the head tree, each green:
-  - `tests/entities.py`
+  - `tests/entities.py` (`ALL 2739 ENTITY CHECKS PASSED`)
+  - `tests/wood_advisor.py` (`ALL 27 wood-advisor checks PASSED`)
+  - `tests/typing_ruler.py`
+  - `tests/doc_claims.py`
   - `tests/open_meteo.py`
   - `tests/finite_boundary.py`
   - `tests/guard_pins.py`
   - `tests/config_flow_steps.py`
   - `tests/env_drift.py`
-  - `GOLDEN_MODE=drift tests/golden.py` ("NO UNCLAIMED DRIFT")
+  - `GOLDEN_MODE=drift tests/golden.py` ("NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes")
   - `tests/structure.py` ("STRUCTURE RATCHET PASSED")
   - the two features blocks, through `tools/audit/seat/features_block.py`
 
   The rest of `scope.run` is left to CI (brief: scoped prepr, CI is the authority).
 
-<!-- figure-block: scope-line mb=bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f head=fe297f1b14ac6107174c41ef8ecea58d6871570d -->
+<!-- figure-block: scope-line mb=ae0ed64af898d8923ac35afe6e9c031ac1e6b111 head=2b56d7b4e27a71f2d6f14be29d0648d58492fef9 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
@@ -112,10 +146,13 @@ MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 - custom_components/heatpump_optimizer/entry_config.py:52 CMP_BOUND*2: pinned by mutation-autofix; `0.0 <` loosened is killed by "an optimization interval outside (0, a day] parses as the default" (0 reads as stored), `<= _MAX_INTERVAL_MINUTES` tightened by "and one inside it, both ends' neighbours included, is read as stored (null control)" (1440 reads as default) (`tests/entities.py`)
 - custom_components/heatpump_optimizer/entry_config.py:52 GUARD_OFF: pinned by mutation-autofix; every interval then reads as the default, killed by the same null control (`tests/entities.py`)
 - custom_components/heatpump_optimizer/entry_config.py:54 RETURN_DEL: pinned by mutation-autofix; an in-domain interval then reads `None`, killed by the same null control (`tests/entities.py`)
+- custom_components/heatpump_optimizer/entry_config.py:65 CMP_BOUND*2: pinned by mutation-autofix; `0.0 <=` made strict and `<= _MAX_PLAN_MINUTES` made strict are each killed by "a lead inside [0, a day] is its own: 0 lights at the window's start, 240 four hours before, and a day's lead lights now" (0 and 1440 then read the default 60) (`tests/wood_advisor.py`)
+- custom_components/heatpump_optimizer/entry_config.py:65 GUARD_OFF: pinned by mutation-autofix; every lead then reads as stored, killed by "a stored lead outside [0, a day] is the default 60 min: ..." (`tests/wood_advisor.py`)
+- custom_components/heatpump_optimizer/entry_config.py:67 RETURN_DEL: pinned by mutation-autofix; an in-domain lead then reads `None`, and the script dies with `TypeError: unsupported type for timedelta minutes component: NoneType` (`tests/wood_advisor.py`)
 
 ## Red checks
 
-- `mutation`: red by construction on the 9 sites under `## Unpinned sites`; mutation-autofix pins killed sites after the push. No cheaper detector exists: the ledger pin is written only from CI's own mutant run (ci-autofix.md).
+- `tests / mutation`: red at 40328a85 by construction, on the unpinned sites listed under `## Unpinned sites`. Each has a killing check named there. mutation-autofix writes the ledger pin for a killed site after the push (ci-autofix.md), so the bot commit repairs the red and this branch does not duplicate it. Cheaper detector: none exists. The ledger pin is written only from CI's own mutant run, and `prepr.sh` step 6d already predicts the same sites locally (the list under `## Unpinned sites` is its output).
 
 ## Forward-carry
 
