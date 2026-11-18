@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Carry destination for round 9's stage covering #1646, from the endgame review's EG-B5 design seats (#1748).",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1646,
+  "stage": "round 9 group R9-F10.3 (#1646, #1663): owned gate scripts and the I1 per-site mutation ratchet",
+  "carries": [
+    {
+      "from": "the round-9 endgame architecture review's EG-B5 design seats (ALT plan and EG-B5 design spec on the handoff/audit-r9-alt branch), not a pull request; filed as #1748",
+      "effect": "narrows",
+      "control": "Established by reading the prototype and simulating the move it would judge. At 8eda51a2 (branch handoff/r9-rca-i1) added_unpinned in tests/mutation_table.py identifies a site as file, kind and stripped text, and base_unpinned_sites enumerates only files present at the base. A skeptic seat simulated the DHW planner move (#1743) into a new module at origin/main 31394964 with every ledger row correctly re-keyed (completeness_problems empty): the prototype reported every unpinned site of the moved cluster as added. The null control is the same site moved within one file, which the prototype already counts as the base's.",
+      "remeasure": "Re-run the simulation at your own merge base: move the planner core as the EG-B5 design spec describes, re-key the ledger rows, and run the per-site check; the count is a snapshot.",
+      "brief": "Count a site as moved, not added, when its kind and stripped text leave one file and reappear unchanged in another in the same diff. Restrict the match to files the diff removes lines from and adds lines to, and to the same trailing scope name, so a generic line such as a bare return cannot launder a new unpinned guard. Demonstrate it failing on the move simulation at the base and passing on the fixed ratchet, and still refusing a genuinely new unpinned guard inside a moved file. R9-EG-B5 does not start until this has landed."
+    }
+  ]
+}

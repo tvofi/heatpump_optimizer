@@ -1,0 +1,72 @@
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:178: RuntimeWarning: Mean of empty slice
+  print(f"RESULT {arm}_gap_mean_drop_best={np.delete(g, int(np.argmax(g))).mean():.4e} ratio")
+/usr/local/lib/python3.11/dist-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:179: RuntimeWarning: Mean of empty slice
+  loo = [np.delete(g, i).mean() for i in range(len(g))]
+CELL winter_typical|winter_cold J=77.699680 cost=58.633 nfev=852 short=1.0907 | cont=+2.425e-03(COMFORT-WORSE) dcost=+0.745 nfev=852 ds0=+0.000 short=1.2549
+RESULT thread_factor=1.000
+RESULT load1=7.44
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:178: RuntimeWarning: Mean of empty slice
+  print(f"RESULT {arm}_gap_mean_drop_best={np.delete(g, int(np.argmax(g))).mean():.4e} ratio")
+/usr/local/lib/python3.11/dist-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:179: RuntimeWarning: Mean of empty slice
+  loo = [np.delete(g, i).mean() for i in range(len(g))]
+CELL winter_typical|winter_mild J=29.642360 cost=19.636 nfev=814 short=0.5110 | cont=+0.000e+00 dcost=+0.000 nfev=814 ds0=+0.000 short=0.5110
+RESULT thread_factor=1.000
+RESULT load1=7.38
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:178: RuntimeWarning: Mean of empty slice
+  print(f"RESULT {arm}_gap_mean_drop_best={np.delete(g, int(np.argmax(g))).mean():.4e} ratio")
+/usr/local/lib/python3.11/dist-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:179: RuntimeWarning: Mean of empty slice
+  loo = [np.delete(g, i).mean() for i in range(len(g))]
+CELL shoulder|winter_cold J=58.794098 cost=50.593 nfev=1143 short=0.0000 | cont=+1.290e-05 dcost=+0.002 nfev=1143 ds0=-0.001 short=0.0000
+RESULT thread_factor=1.000
+RESULT load1=7.25
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:178: RuntimeWarning: Mean of empty slice
+  print(f"RESULT {arm}_gap_mean_drop_best={np.delete(g, int(np.argmax(g))).mean():.4e} ratio")
+/usr/local/lib/python3.11/dist-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:179: RuntimeWarning: Mean of empty slice
+  loo = [np.delete(g, i).mean() for i in range(len(g))]
+CELL winter_narrow|winter_cold J=123.961646 cost=111.115 nfev=1662 short=0.0000 | cont=+5.702e-05 dcost=+0.006 nfev=1662 ds0=+0.004 short=0.0000
+RESULT thread_factor=1.000
+RESULT load1=7.14
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:178: RuntimeWarning: Mean of empty slice
+  print(f"RESULT {arm}_gap_mean_drop_best={np.delete(g, int(np.argmax(g))).mean():.4e} ratio")
+/usr/local/lib/python3.11/dist-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:179: RuntimeWarning: Mean of empty slice
+  loo = [np.delete(g, i).mean() for i in range(len(g))]
+CELL winter_narrow|winter_mild J=50.598246 cost=40.621 nfev=2054 short=0.0000 | cont=+1.160e-04 dcost=+0.046 nfev=2054 ds0=-0.000 short=0.0000
+RESULT thread_factor=1.000
+RESULT load1=6.97
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:178: RuntimeWarning: Mean of empty slice
+  print(f"RESULT {arm}_gap_mean_drop_best={np.delete(g, int(np.argmax(g))).mean():.4e} ratio")
+/usr/local/lib/python3.11/dist-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:179: RuntimeWarning: Mean of empty slice
+  loo = [np.delete(g, i).mean() for i in range(len(g))]
+CELL winter_moderate|winter_cold J=95.311989 cost=81.131 nfev=1083 short=0.0000 | cont=+4.597e-03(COMFORT-WORSE) dcost=+1.622 nfev=1083 ds0=+0.000 short=0.0000
+RESULT thread_factor=1.000
+RESULT load1=7.10
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:178: RuntimeWarning: Mean of empty slice
+  print(f"RESULT {arm}_gap_mean_drop_best={np.delete(g, int(np.argmax(g))).mean():.4e} ratio")
+/usr/local/lib/python3.11/dist-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:179: RuntimeWarning: Mean of empty slice
+  loo = [np.delete(g, i).mean() for i in range(len(g))]
+CELL winter_moderate|winter_mild J=38.028212 cost=29.948 nfev=1576 short=0.0000 | cont=+8.655e-05 dcost=+0.007 nfev=1576 ds0=-0.003 short=0.0000
+RESULT thread_factor=1.000
+RESULT load1=7.07
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:178: RuntimeWarning: Mean of empty slice
+  print(f"RESULT {arm}_gap_mean_drop_best={np.delete(g, int(np.argmax(g))).mean():.4e} ratio")
+/usr/local/lib/python3.11/dist-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/claude/audit-r8/seats/D0-v1/tools/audit/round8/D0/v1_descent.py:179: RuntimeWarning: Mean of empty slice
+  loo = [np.delete(g, i).mean() for i in range(len(g))]
+CELL flat|winter_cold J=99.350160 cost=90.410 nfev=1296 short=0.0000 | cont=+5.110e-04 dcost=+0.112 nfev=1296 ds0=+0.129 short=0.0000
+RESULT thread_factor=1.000
+RESULT load1=7.63

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._start_gap_cost CLAMP_DROP 31b40b21",
+  "killed_by": "tests/features.py",
+  "old": "        displaced = max(0.0, space_baseline_cost) + max(0.0, -end_cost)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 806aa2ce89aeb6c00cf756195f31026ab798f3ca: CLAMP_DROP (`displaced = (0.0) + max(0.0, -end_cost)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7. Each of the 2 sites under this anchor was killed."
+}

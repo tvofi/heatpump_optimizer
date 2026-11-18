@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:DutySwitchLearner.note_pass CMP_BOUND 0c4017b7",
+  "killed_by": "tests/features.py",
+  "old": "            if not pending and utc_elapsed_seconds(when, ep.at) >= STOP_WINDOW_S:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if not pending and utc_elapsed_seconds(when, ep.at) > STOP_WINDOW_S:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

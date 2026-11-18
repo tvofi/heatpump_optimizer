@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_first_screen_schema RETURN_DEL 9013ad74",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    return vol.Schema({**_user_credentials_fields(), **_user_sensors_fields(hass)})",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

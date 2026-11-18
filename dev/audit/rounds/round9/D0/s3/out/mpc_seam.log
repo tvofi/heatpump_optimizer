@@ -1,0 +1,30 @@
+one|0|winter_typical|winter_cold arm prod  realized_J    62.1359  energy   38.607 SEK  viol 0.000  starts 3  cpu 68.3s
+one|0|winter_typical|winter_cold arm cold  realized_J    62.1683  energy   38.742 SEK  viol 0.000  starts 3  cpu 53.0s
+one|0|winter_typical|winter_cold arm shift realized_J    62.2890  energy   39.374 SEK  viol 0.000  starts 2  cpu 63.1s
+RESULT realized_gap_prod_minus_cold_winter_typical=-0.0521 %  (energy -0.135 SEK)
+RESULT realized_gap_prod_minus_shift_winter_typical=-0.2463 %  (energy -0.767 SEK)
+RESULT seam_cycles_winter_typical=47
+RESULT seam_cycles_better_winter_typical=4
+RESULT seam_cycles_worse_winter_typical=4
+RESULT seam_gap_mean_winter_typical=-0.0026 %  (max 0.0194, min -0.0435)
+RESULT seam_step0_differs_winter_typical=4
+RESULT warm_candidate_misaligned_winter_typical=10
+one|0|shoulder|winter_cold arm prod  realized_J    50.4853  energy   39.125 SEK  viol 0.000  starts 2  cpu 90.3s
+one|0|shoulder|winter_cold arm cold  realized_J    49.4185  energy   38.009 SEK  viol 0.000  starts 2  cpu 73.5s
+one|0|shoulder|winter_cold arm shift realized_J    50.3769  energy   39.007 SEK  viol 0.000  starts 2  cpu 84.3s
+RESULT realized_gap_prod_minus_cold_shoulder=2.1130 %  (energy 1.116 SEK)
+RESULT realized_gap_prod_minus_shift_shoulder=0.2146 %  (energy 0.119 SEK)
+RESULT seam_cycles_shoulder=47
+RESULT seam_cycles_better_shoulder=11
+RESULT seam_cycles_worse_shoulder=4
+RESULT seam_gap_mean_shoulder=0.0336 %  (max 0.6470, min -0.1727)
+RESULT seam_step0_differs_shoulder=1
+RESULT warm_candidate_misaligned_shoulder=7
+RESULT thread_factor=1.000
+RESULT load1=6.74
+
+real	18m23.501s
+user	12m7.284s
+sys	0m5.221s
+
+[exited with code 0]

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:plan_stale_limit_minutes CLAMP_DROP 8ee35b1a",
+  "killed_by": "tests/structure.py",
+  "old": "    return max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (PLAN_STALE_INTERVALS * interval)`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

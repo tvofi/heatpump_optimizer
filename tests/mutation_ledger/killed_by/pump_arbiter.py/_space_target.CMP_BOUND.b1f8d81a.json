@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_space_target CMP_BOUND b1f8d81a",
+  "killed_by": "tests/features.py",
+  "old": "    misdeclared = room is not None and low is not None and low > room + SETPOINT_TOLERANCE",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9a1ce39c3e901c814fceb015f09eec75f1a5ef5f: CMP_BOUND (`misdeclared = room is not None and low is not None and low >= room + SETPOINT_TOLERANCE`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

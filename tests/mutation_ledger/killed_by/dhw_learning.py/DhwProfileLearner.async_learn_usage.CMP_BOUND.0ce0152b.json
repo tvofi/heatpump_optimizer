@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.async_learn_usage CMP_BOUND 0ce0152b",
+  "killed_by": "tests/entities.py",
+  "old": "        if temp_drop < 0.15 or heated:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if temp_drop <= 0.15 or heated:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

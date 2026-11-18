@@ -1,0 +1,30 @@
+# One row per BLOCKING item of the eight `claim-false` verdicts in v7.0.5..origin/main.
+# Source: the verdict comment on the PR (gh api repos/tvofi/heatpump_optimizer/issues/<pr>/comments), its
+# `## Block` list or its items marked "(blocking, claim-false)"; non-blocking and "Verified" items are omitted.
+# path: T typed or carried citation (a symbol, line, figure or step the tree re-derives in one grep/git log)
+#       V proposal id from a second id writer (P219's cause)
+#       R a ruling's rule never run on its own counted instance
+#       C a Cost: that read no cap
+#       O another semantic claim (ownership, procedure)
+#       F a fixer's behavioural promise, closed for the demonstrated seams only
+#       B a body claim about the head's check state
+# replay_or_cost_clause: would proposal-triage.md's new sentence (run the rule on each instance; Cost reads the cap) have reached it
+pr	verdict_at	head8	item	path	replay_or_cost_clause	what
+2883	2026-10-27T17:54:54Z	8f05b74d	1	F	no	unreadable roster at --roster-ref exits rc 1 with a traceback, not UNAVAILABLE
+2883	2026-10-27T17:54:54Z	8f05b74d	2	F	no	malformed roster commit reads as 0 closures
+2883	2026-10-27T17:54:54Z	8f05b74d	3	F	no	unreadable critical-path.json prints WIP lane A as 0
+2883	2026-10-27T17:54:54Z	8f05b74d	4	F	no	default window excludes the event at its own tip
+2883	2026-10-27T17:54:54Z	8f05b74d	5	B	no	tests / closures red while ## Red checks says none
+2883	2026-10-27T22:22:25Z	3bd284f7	1	F	no	git cat-file -e cannot tell an absent path from an unreadable blob: still a zero
+2890	2026-10-27T20:42:28Z	54ac455a	B1	T	no	names tests/env_drift.py conflicting_claims_message, which never existed (merge_claim_refusal)
+2890	2026-10-27T20:42:28Z	54ac455a	B2	T	no	45-minute roster churn window; git log gives 1 h 45 m
+2890	2026-10-27T20:42:28Z	54ac455a	B3	O	no	P214 carries a merge_main_bot.py change into a group that does not own the file
+2890	2026-10-27T20:42:28Z	54ac455a	B4	O	no	P215 guards append-group, which nudge.md runs directly
+2890	2026-10-27T21:05:00Z	adf5ef47	N1	V	no	headings V132-V135 beside Source V125-V128
+2890	2026-10-27T21:05:00Z	adf5ef47	N2	T	no	body: ruling_verdict at 456, triage_refusal at 464; tree: 455, 466
+2890	2026-10-27T21:05:00Z	adf5ef47	N3	T	no	"nudge.md steps 12 and 18 require set-stage"; step 18 does not
+2891	2026-10-27T20:56:12Z	4a276b6a	1	V	no	heading V136 beside Source V129
+2891	2026-10-27T20:56:12Z	4a276b6a	2	T	no	body: ruling_verdict at 456, triage_refusal at 464 (the same pair as 2890 N2)
+2891	2026-10-28T02:04:23Z	f975e044	F1	C	yes	Cost says one CLAUDE.md paragraph, no check to keep green; CLAUDE.md is at 3605/3605
+2900	2026-10-28T02:00:35Z	75cfbce6	F1	R	yes	every-failed-job rule: the instance's own gate job 122526090837 matches none of the three strings
+2900	2026-10-28T02:51:59Z	ebbc01ea	F1	R	yes	gate rule reads FAIL-prefixed lines; gate.py:295 prints reasons 2..n unprefixed, as the instance's log does

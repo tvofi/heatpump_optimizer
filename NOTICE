@@ -1,0 +1,10 @@
+Heat Pump Cost Optimizer
+
+Portions Copyright (c) 2026 strutsfarm
+https://github.com/strutsfarm/heatpump_optimizer
+
+This project began from the work above and remains indebted to it. The
+attribution lives here rather than in LICENSE because GitHub's licence detector
+reads any deviation from the verbatim MIT text as an unidentifiable licence,
+which in turn fails HACS validation. The obligation is unchanged: the MIT terms
+in LICENSE cover this project and the portions derived from upstream alike.

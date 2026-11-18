@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.release RETURN_DEL 50f90b0a",
+  "killed_by": "tests/features.py",
+  "old": "        return [r for r in rows if not waits and self._base_folds(r, params)]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

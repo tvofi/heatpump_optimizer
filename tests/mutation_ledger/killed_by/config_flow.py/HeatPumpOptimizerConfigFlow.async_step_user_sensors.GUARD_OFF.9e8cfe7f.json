@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_user_sensors GUARD_OFF 9e8cfe7f",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        if self._reconfigure_entry is not None:",
+  "reason": "Recorded by `mutation_table.py --drain` against cff39dad61c4cc15dbaabd03c3a2e3746bca1fab: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

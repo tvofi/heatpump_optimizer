@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict._grid_of BOOLOP 44abecf2",
+  "killed_by": "tests/features.py",
+  "old": "                    cells.append(value if value is not None and ok(value) else None)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 92bce7c452dd36dfb239953af7f29e1f2348050b: BOOLOP (`cells.append(value if value is not None or ok(value) else None)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

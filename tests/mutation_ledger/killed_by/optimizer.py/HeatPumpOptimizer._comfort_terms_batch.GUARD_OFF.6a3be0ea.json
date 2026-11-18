@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._comfort_terms_batch GUARD_OFF 6a3be0ea",
+  "killed_by": "tests/features.py",
+  "old": "        if self.model.params.two_zone_enabled:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_stored_peaks RETURN_DEL d0d73124",
+  "killed_by": "tests/features.py",
+  "old": "    return ranked",
+  "reason": "#1512: `_stored_peaks` returning None makes every `PeakTracker.from_dict` with a dict payload raise TypeError, so tests/features.py exits 1 against a baseline exit of 0 (tests/finite_boundary.py also goes red, loader_escape_total above 0). Measured at the #1512 branch head, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3129 FEATURE CHECKS PASSED."
+}

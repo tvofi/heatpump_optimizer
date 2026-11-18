@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:machine_score GUARD_OFF 86442053",
+  "killed_by": "tests/features.py",
+  "old": "    if not _watched_cop_buckets(baseline):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4e38e7d7b3138b24c97e7d0fbea74965c1d43d62: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

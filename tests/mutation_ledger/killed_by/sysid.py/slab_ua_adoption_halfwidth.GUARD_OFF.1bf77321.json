@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:slab_ua_adoption_halfwidth GUARD_OFF 1bf77321",
+  "killed_by": "tests/features.py",
+  "old": "    if profile_halfwidth is None:",
+  "reason": "The round-7 D7-01 fix's gate combiner. `if profile_halfwidth is None:` -> `if False:` (an absent profile reaches np.hypot against None, which raises, instead of refusing the fit) makes tests/features.py exit 1 against a baseline exit of 0, on `round-7 D7-01 (#1459): the gate's combiner answers all four arms of its own contract`. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
+}

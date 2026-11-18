@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF e4bc944c",
+  "killed_by": "tests/features.py",
+  "old": "    if inp.mode == MODE_OFF or mode != DUTY_CONTROL:",
+  "reason": "pump-duty arbiter revision; `if coord._mode == MODE_OFF or mode != DUTY_CONTROL:` -> `if False:` fails 3 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24. Re-measured on a git-archive export of 13a82a9d, 2026-10-05: the mutant crashes tests/features.py almost immediately (an injected solver failure propagates out of async_run_optimization; the run ends before the first check prints), against the export baseline's two artefacts (the #363 recorded_at check and the machine-sensitive R9-F2.1 P3 check). Re-keyed by R9-EG-B6 (#1739): the collaborator-interface rename made the line `    if coord._mode == MODE_OFF or mode != DUTY_CONTROL:` into `    if inp.mode == MODE_OFF or mode != DUTY_CONTROL:`."
+}

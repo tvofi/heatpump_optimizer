@@ -1,0 +1,6 @@
+{"id": "M15", "rc": 0, "sec": 75.1, "moved": ["DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed", "bypass    DRIFT_NO_CACHE=1 to capture the baseline from scratch", "NO UNCLAIMED DRIFT: 56 scenario(s) checked against 17f1c55fad1bc97daf27174f2fbd6a18210d1fb7"], "tail": "imum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 56 scenario(s) checked against 17f1c55fad1bc97daf27174f2fbd6a18210d1fb7\nNO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes\n"}
+RESULT M15_drift_rc=0 exitcode
+{"id": "M18", "rc": 0, "sec": 74.8, "moved": ["DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed", "bypass    DRIFT_NO_CACHE=1 to capture the baseline from scratch", "NO UNCLAIMED DRIFT: 56 scenario(s) checked against 17f1c55fad1bc97daf27174f2fbd6a18210d1fb7"], "tail": "imum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 56 scenario(s) checked against 17f1c55fad1bc97daf27174f2fbd6a18210d1fb7\nNO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes\n"}
+RESULT M18_drift_rc=0 exitcode
+RESULT load1=3.55
+RESULT thread_factor=1.00  (subprocess-only harness)

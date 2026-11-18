@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._peak_tariff_errors GUARD_OFF 67752ca1",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        if not _valid_months_spec(submit.get(CONF_PEAK_TARIFF_MONTHS, \"\")):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
+}

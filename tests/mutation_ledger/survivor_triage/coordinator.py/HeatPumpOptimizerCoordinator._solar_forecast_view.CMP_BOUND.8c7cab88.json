@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._solar_forecast_view CMP_BOUND 8c7cab88",
+  "old": "            if t < now or t > horizon:",
+  "reason": "R10 mutation-anchor: the `killed_by: tests/entities.py` pin was vacuous. Re-driven at 0be5e2de5 by dev/audit/harnesses/r10_anchor_vacuous.py with the 2 ledger row(s) the mutant itself makes stale hidden from its tree, 1 of 2 site(s) were killed by tests/entities.py: the recorded kill was a check refusing a ledger row the mutant made stale (the --anchor self-test, or the survivor_triage staleness check), not one that saw the mutation. Was: Recorded by `mutation_table.py --drain` against 3976515a08228598ea3863f4f36dc4c7c4846865: CMP_BOUND (`if t <= now or t > horizon:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed. Not re-driven here against the other drivers in its closure, so a gap until one is shown to kill it.",
+  "verdict": "gap"
+}

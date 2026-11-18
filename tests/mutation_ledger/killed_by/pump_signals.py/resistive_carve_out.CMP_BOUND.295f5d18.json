@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_signals.py:resistive_carve_out CMP_BOUND 295f5d18",
+  "killed_by": "tests/features.py",
+  "old": "    if not latched or hours <= 0.0 or threshold_kw <= 0.0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if not latched or hours < 0.0 or threshold_kw <= 0.0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now RETURN_DEL 6682c3af",
+  "killed_by": "tests/features.py",
+  "old": "    return None if temperature is None else finite_float(temperature, 5.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

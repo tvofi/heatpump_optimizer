@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_plateau_aware_topk_sum RETURN_DEL 6dc3d450",
+  "killed_by": "tests/features.py",
+  "old": "    return peak if k == 1 else _exact_topk_sum(excess, k)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8747bbfc4d4628fa8419634792229fd15dcc21e2: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

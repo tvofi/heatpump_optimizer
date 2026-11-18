@@ -1,0 +1,20 @@
+
+=== Stress and economics ===
+RESULT flat.optimize_calls=51 count
+RESULT flat.msm_entries_total=51 count
+RESULT flat.msm_entries_per_optimize=1.000 ratio
+RESULT flat.msm_entries[optimize:L2869]=51 count
+RESULT flat.njev[optimize:L2869]=19763 count
+RESULT flat.coopt_resolves_adopted=0 count
+RESULT flat.coopt_resolves_discarded=0 count
+RESULT flat.njev_total=19763 count
+RESULT flat.coopt_discarded_njev_share=0.0000 ratio
+RESULT flat.coopt_adopted_njev_share=0.0000 ratio
+RESULT flat.loo.cells=51 count
+RESULT flat.loo.min=0.0000 ratio
+RESULT flat.loo.max=0.0000 ratio
+RESULT flat.loo.cells_nonzero=0 count
+RESULT flat.loo.mean_drop_highest=0.0000 ratio
+RESULT thread_factor=1.000
+RESULT load1=19.33
+RESULT swapins=0

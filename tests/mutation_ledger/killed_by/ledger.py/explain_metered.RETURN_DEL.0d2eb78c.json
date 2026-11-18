@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:explain_metered RETURN_DEL 0d2eb78c",
+  "killed_by": "tests/features.py",
+  "old": "    return list(shares.items())",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4a8c89d037709c01b2f1787c3b95ba36d44f1e6f: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,3 @@
+{"class": "N-gate-yield", "instances": 0, "barriered": false,
+ "enumerator": "node dev/audit/rounds/round10/D14/sweep-N-gate-yield/enumerate.mjs <window.json>",
+ "instance_list": [{"file": ".claude/workflows/web-fix-wave.js", "symbol": "VERDICT_CLASSES:root-cause-unanswered", "probe": "node dev/audit/rounds/round10/D14/sweep-N-gate-yield/enumerate.mjs <window.json> | grep 'SEAM root-cause-unanswered .* INSTANCE' (37 > engineering max 23; fails when the class no longer dominates)", "beyond_finding": false}]}

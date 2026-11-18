@@ -1,0 +1,4 @@
+{"id": "CTRL", "rc": 0, "sec": 291.3, "moved": ["DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed", "bypass    DRIFT_NO_CACHE=1 to capture the baseline from scratch", "NO UNCLAIMED DRIFT: 56 scenario(s) checked against 17f1c55fad1bc97daf27174f2fbd6a18210d1fb7"], "tail": "imum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 56 scenario(s) checked against 17f1c55fad1bc97daf27174f2fbd6a18210d1fb7\nNO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes\n"}
+RESULT CTRL_drift_rc=0 exitcode
+RESULT load1=45.36
+RESULT thread_factor=1.00  (subprocess-only harness)

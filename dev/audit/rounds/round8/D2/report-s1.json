@@ -1,0 +1,178 @@
+{
+ "dimension": "D2",
+ "seat": "s1",
+ "tree": "/home/claude/audit-r8/seats/D2-s1",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "report_path": "tools/audit/round8/D2/REPORT-s1.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D2-s1-01",
+   "title": "DHW planner prices COP at current humidity, not the forecast; published DHW runs up to 5 K below the plan",
+   "severity": "medium",
+   "stop_rule_class": "bug",
+   "provisional": false,
+   "claim": "With a learned humid-bucket defrost derate and a humidity forecast that differs from the current reading, the DHW schedule the optimizer chooses, re-simulated through ThermalModel.simulate_dhw_only (the model every DHW planning stage runs), deviates from the published OptimizationResult.dhw_temp_trajectory by 3.27 to 4.97 K over six weather x humidity cells, and the planner buys 13-15 % less DHW electricity (4.848 vs 5.624 kWh on winter_mild) than it does when the current humidity equals the forecast.",
+   "mechanism": "ThermalModel.extend_dhw_temps/simulate_dhw_only call compute_cop_dhw(outdoor, temp) with no humidity, and so do the optimizer's DHW planning seams (optimizer.py compute_cop_dhw / marginal_cop('dhw') calls at 3297, 4315, 4961, 5344, 5358, 5462, 5741); _cop_law then falls back to params.ambient_humidity, which the coordinator sets to the CURRENT reading (coordinator.py:5398). simulate_trajectory_with_dhw passes the per-step forecast humidity. The DefrostDerate factor is humidity-dependent, so the planner and the physics price the same DHW kWh at different COPs.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_dhw_humidity.py",
+    "harness_path": "tools/audit/round8/D2/s1_dhw_humidity.py",
+    "value": 4.9717,
+    "unit": "K",
+    "tolerance": "+-0.3 K (deterministic solve; BLAS-build drift only)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container, 15 GB, shared with up to 13 seats (not the audit box)",
+    "cpu_or_wall": "n/a",
+    "contention_note": "fan-out, load1 15.26, thread_factor 1.000; the metric is a temperature, not a timing",
+    "load1": 15.26,
+    "thread_factor": 1.0,
+    "leave_one_out": {
+     "cells": 6,
+     "min": 3.2716,
+     "max": 4.9717,
+     "drop_most_favourable": 4.8884
+    },
+    "null_control": {
+     "forecast_equals_ambient": 0.0,
+     "no_learned_derate": 0.0
+    }
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.simulate_dhw_only (planner) vs heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize -> OptimizationResult.dhw_temp_trajectory; ThermalModel._cop_law spied for humidity=None calls",
+   "perturbation": {
+    "change": "config: params.ambient_humidity set equal to the forecast humidity (harness flag --ambient-matches); equivalently a production edit threading h.humidity into extend_dhw_temps and the optimizer's DHW compute_cop_dhw calls",
+    "expected_direction": "to_zero",
+    "observed": "gap_max 0.0000 K in all 6 cells; DHW electricity rises to 5.624/5.640/4.903/4.910/6.152/6.171 kWh"
+   },
+   "metric_definition": "max over the horizon of |simulate_dhw_only(optimizer's dhw_power_schedule) - result.dhw_temp_trajectory| in K, frost-band outdoor, ambient 55 % RH vs forecast 85/95 % RH",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_dhw_humidity.py",
+    "value": "0.0000 K (forecast == ambient) and 0.0000 K (no learned derate)",
+    "note": "both arms printed as RESULT null_* by the same run"
+   },
+   "leave_one_out": {
+    "cells": 6,
+    "min": 3.2716,
+    "max": 4.9717,
+    "drop_most_favourable": 4.8884
+   },
+   "phenomenon_property": "Every COP evaluated for a future horizon step -- planner, settlement, cap refund, baseline -- is evaluated at that step's forecast humidity, the one simulate_trajectory_with_dhw uses; no future-step COP falls back to the current reading while a forecast series exists.",
+   "seam_rule": "grep -nE 'compute_cop(_dhw)?\\(|marginal_cop\\(' custom_components/heatpump_optimizer/optimizer.py custom_components/heatpump_optimizer/thermal_model.py | grep -v humidity  (plus coordinator.py:_capacity_caps)",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "proposed_fix_scope": "Give extend_dhw_temps/simulate_dhw_only an optional per-step humidity array and pass h.humidity from every optimizer DHW planning seam (and from the other future-step COP calls the seam rule lists); fixtures with no humidity series stay byte-identical.",
+   "expected_golden_drift": [
+    "none expected: no golden scenario passes a humidity series together with a learned derate"
+   ]
+  },
+  {
+   "id": "D2-s1-02",
+   "title": "Two COP laws for one lift: DHW tank priced up to 45 % more efficient than a buffer at the same water temperature",
+   "severity": "low",
+   "stop_rule_class": "bug",
+   "provisional": false,
+   "claim": "With cop_flow_carnot on, marginal_cop(o,'dhw',T)/marginal_cop(o,'buffer',T) exceeds 1.01 in 102 of 105 grid cells (T 40-70 C, outdoor -15..12 C, three nameplates), max 1.4548 at 70 C / 7 C, and compute_cop_dhw grants a 12 % boost over the space curve below the 35 C reference that the space/buffer law refuses by design.",
+   "mechanism": "compute_cop_dhw applies a linear, outdoor-independent penalty max(0.5, 1-0.008*(T-35)) that is two-sided about 35 C, while the buffer (and the direct-plant curve) use the Carnot ratio flow_lift_factor, which is one-sided and outdoor-dependent. The same compressor lifting water to the same temperature gets two different COPs depending on which tank the water is in; a coil-fed DHW tank should be at or below, not above, the buffer. The DHW law also overstates the warm-vs-cold advantage at 55 C (1.4286 vs 1.2500), so DHW timing and DHW-vs-buffer charging are valued on inconsistent physics.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_cop_laws.py",
+    "harness_path": "tools/audit/round8/D2/s1_cop_laws.py",
+    "value": 1.4548,
+    "unit": "ratio",
+    "tolerance": "exact (pure arithmetic, +-1e-4)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container, 15 GB, shared with up to 13 seats (not the audit box)",
+    "cpu_or_wall": "ratio",
+    "contention_note": "fan-out, load1 18.19, thread_factor 1.002; contention-immune",
+    "load1": 18.19,
+    "thread_factor": 1.002,
+    "leave_one_out": {
+     "cells": 105,
+     "min": 1.0,
+     "max": 1.4548,
+     "drop_most_favourable": 1.4548
+    }
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:ThermalModel.marginal_cop / compute_cop_dhw / flow_lift_factor",
+   "perturbation": {
+    "change": "one-line production edit (harness --perturb, class-attribute swap restored in finally): in compute_cop_dhw replace the linear dhw_penalty with self.flow_lift_factor(outdoor_temp, dhw_temp)",
+    "expected_direction": "down",
+    "observed": "ratio_max 1.0000, boost_below_ref 1.0000, cells_ratio_gt_1_01 0"
+   },
+   "metric_definition": "max over 105 (nameplate, tank temp, outdoor) cells of marginal_cop(o,'dhw',T)/marginal_cop(o,'buffer',T) with cop_flow_carnot=True",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_cop_laws.py",
+    "value": "0.000000",
+    "note": "at the 35 C reference flow both laws agree exactly (RESULT null_at_reference_flow)"
+   },
+   "leave_one_out": {
+    "cells": 105,
+    "min": 1.0,
+    "max": 1.4548,
+    "drop_most_favourable": 1.4548
+   },
+   "phenomenon_property": "One lift, one price: the COP at which heat enters any water store at temperature T and outdoor o is a single function of (o, T) up to an explicit, documented coil-approach penalty that can only lower it.",
+   "seam_rule": "grep -nE 'def (compute_cop_dhw|flow_lift_factor|_batch_cop|marginal_cop)|dhw_penalty' custom_components/heatpump_optimizer/thermal_model.py",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "proposed_fix_scope": "Derive the DHW penalty from flow_lift_factor (plus an optional coil approach delta) behind the cop_flow_carnot flag, so fixtures without the flag stay byte-identical; decide explicitly whether a sub-35 C tank earns a boost in both laws or in neither.",
+   "expected_golden_drift": [
+    "fixtures with cop_flow_carnot and DHW, e.g. everything_on, wood_coil (if the flag is set there)"
+   ]
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Per-step energy conservation holds in _simulate_step_two_zone (none/valve/two-tank wood/valve_upper_direct_slab, 3000 random cases), _simulate_step_single (1000) and simulate_dhw_step (2000) once booked refusals/injections are counted; dropping the booked refusals makes the residual 10.55 kWh (perturbation moves)",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_identities.py ; PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_identities.py --drop-refused",
+   "value": "3.331e-14 / 3.286e-14 / 2.387e-15 kWh (perturbed: 1.055e+01 kWh)"
+  },
+  {
+   "claim": "simulate_trajectory_batch is bitwise identical to simulate_trajectory on 600 random cases x 5 rows across 8 input kinds (single, two-zone, valve, Carnot, wood two-tank, direct slab, capped buffer, flow-curve COP) with learned derate, NaN humidity, internal-gains profile, valve targets, external heat and dt 0.25/1 h",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_identities.py",
+   "value": "parity_mismatch=0"
+  },
+  {
+   "claim": "dt-invariance: end-state error vs a 1/32 h reference halves with dt (first-order Euler); throttled buffers substep so 1 h, 30 min and 15 min steps integrate identically",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_identities.py",
+   "value": "dt_order 2.348/2.336/2.450/2.349 (single, two-zone, valve 300 L, wood)"
+  },
+  {
+   "claim": "Monotonicity over trajectories: +1e-3 kW at any earlier step never lowers any later store temperature (valved Carnot buffer 35-300 L, 3-12 kW, tank start 30/60 C) despite the COP-vs-tank-temperature coupling",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_identities.py",
+   "value": "monotone_violations=0"
+  },
+  {
+   "claim": "Buffer and DHW caps clamp the charging rate, not the state: a tank read 5 K above its cap cools at its physical rate in an idle step instead of snapping to the cap",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_identities.py",
+   "value": "buffer 65->62.77 C (2.2302 K), DHW 0.1350 K"
+  },
+  {
+   "claim": "compute_cop and compute_cop_dhw are monotone non-decreasing in outdoor and non-increasing in flow/tank temperature across 5 configurations on a 551x56 grid",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_identities.py",
+   "value": "cop_monotone_viol=0"
+  },
+  {
+   "claim": "DefrostDerate.factor stays inside [DERATE_MIN, 1] and is continuous across bucket edges and the 0/5 C band edges (max step 4.29e-4 per 0.01 K / 0.01 %RH); note it is non-unity up to 0.18 just outside the learning band because the interpolation support reaches the adjacent centres (-2.5 and 6.5 C), not pursued as a finding",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_identities.py",
+   "value": "derate_min 0.8497, derate_max 1.0000, max jump 4.29e-04"
+  },
+  {
+   "claim": "simulate_dhw_step's inlet floor injects heat (booked, conservative) only when a tank is drawn at more than ~3x its volume inside a 1 h window: 45/288 configs at dt 0.25 h, all but a 0.05 kW case in tanks <= 100 L",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_identities.py",
+   "value": "dhw_floor_hits=45/288; max 0.0500 kW for tanks >= 150 L"
+  },
+  {
+   "claim": "Store bounds in the recorded golden fixtures: no buffer exceeds its cap or falls below the coldest zone it feeds, no wood tank exceeds 95 C, no DHW tank exceeds its hard max",
+   "command": "python3 -c 'scan tests/golden/*.json buffer/dhw/wood trajectories' (inline scan, see REPORT-s1.md)",
+   "value": "buffer 16.56..62.11 C (min >= min(upper,slab) at the same step), DHW 30.0..60.0 C, wood <= 55.0 C"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D2/s1_dhw_humidity.py",
+  "tools/audit/round8/D2/s1_cop_laws.py",
+  "tools/audit/round8/D2/s1_identities.py"
+ ],
+ "unfinished": "Capacity-envelope check (envelope vs demand-at-derate reason code) not run; _capacity_caps divides the thermal envelope by compute_cop(outdoor) without forecast humidity or flow lift -- same phenomenon as D2-s1-01, listed in its seam rule but not separately measured. Schema conflict: the task mandates ids 'D2-s1-NN' but finding.schema.json pins '^D(1[0-3]|[0-9])-[0-9]{2}$', so report-s1.json fails that one pattern and nothing else."
+}

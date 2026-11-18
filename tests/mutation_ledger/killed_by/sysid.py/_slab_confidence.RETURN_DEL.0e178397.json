@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_slab_confidence RETURN_DEL 0e178397",
+  "killed_by": "tests/features.py",
+  "old": "    return confidence * _snr_weight(rooms, float(np.sqrt(ss_res / max(len(error), 1))))",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. RETURN_DEL (`pass`) took tests/features.py from rc=1 failed=2 to rc=1 failed=1, newly failing [\"TypeError: type NoneType doesn't define __round__ method\"]."
+}

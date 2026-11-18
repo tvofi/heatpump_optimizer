@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:_repair GUARD_OFF 6f1430d9",
+  "old": "    if stamp is None:",
+  "reason": "GUARD_OFF (`if False:`) on `_repair`'s `if stamp is None` changes no return. The line above already returns when `admitted(\"debug\", {field: [item]})` is false, and that admission is false for every stamp `stored_instant` refuses: a non-instant fails Domain(\"instant\"), and a value that parses is rewritten aware. Measured by applying the mutant and running `PYTHONPATH=tests/hastub python3 tests/debug_collect.py`: rc=0, the same checks, including the unparseable-stamp drop. The domain check is the refusal.",
+  "verdict": "equivalent"
+}

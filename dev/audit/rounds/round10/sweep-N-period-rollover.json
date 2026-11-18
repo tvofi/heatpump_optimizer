@@ -1,0 +1,14 @@
+{
+  "class": "N-period-rollover",
+  "instances": 0,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round10/D14/period_rollover_seams.py",
+  "instance_list": [
+    {
+      "file": "custom_components/heatpump_optimizer/tariff.py",
+      "symbol": "PeakTracker.observe",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D2/s3/month_last_window.py (last_window_reached=0 of 24; --perturb 24 of 24)",
+      "beyond_finding": false
+    }
+  ]
+}

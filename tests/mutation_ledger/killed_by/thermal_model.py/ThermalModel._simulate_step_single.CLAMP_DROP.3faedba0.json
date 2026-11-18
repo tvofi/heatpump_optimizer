@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._simulate_step_single CLAMP_DROP 3faedba0",
+  "killed_by": "tests/features.py",
+  "old": "        thermal_power = pump_heat_kw + max(0.0, external_heat_kw)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: CLAMP_DROP (`thermal_power = pump_heat_kw + (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=23."
+}

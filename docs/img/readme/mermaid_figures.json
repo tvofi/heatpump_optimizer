@@ -1,0 +1,28 @@
+{
+ "generator": "docs/img/readme/render_mermaid.mjs",
+ "mermaid": "12.3.0",
+ "source": "README.md",
+ "figures": [
+  {
+   "png": "docs/img/readme/mermaid-how-the-pieces-fit.png",
+   "png_dark": "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
+   "block_sha256": "5cec01a40765b96e51f85a4cd8e65a223162c034c58701cc43acb088668dac57",
+   "png_sha256": "20b98c412361363d5fd1a5dd172f60630f5de432351d3168db0740ad52afb1f6",
+   "png_dark_sha256": "aa93a61d222e40baff87f1fad1bbdb16b252db64c729156f5b73bfb2e040f2c4"
+  },
+  {
+   "png": "docs/img/readme/mermaid-setup-flow.png",
+   "png_dark": "docs/img/readme/mermaid-setup-flow-dark.png",
+   "block_sha256": "e14dda04c9aa932ef2255be95c1220aacb2475423f59db71972a7d84d51e0e64",
+   "png_sha256": "57b03429cdbed126c15494b4a1515517447730685f9a418ac03fee39a47b43b4",
+   "png_dark_sha256": "3fd4a950793a122073d89662333d1dfb016a7317bbad47077ece1a0041e482d5"
+  },
+  {
+   "png": "docs/img/readme/mermaid-one-interval.png",
+   "png_dark": "docs/img/readme/mermaid-one-interval-dark.png",
+   "block_sha256": "a9e8fdb9d6f7956aff52a9a123766d95cdbdce1764536b2edf050447f088429a",
+   "png_sha256": "5efa80ae8c2358b86510bc67f9b1d3f3603a8c5a1adf9b8ad3bafa53afd10b84",
+   "png_dark_sha256": "e3cefd8a1dbd3b885586cc07b3444a9b2180ec778c8853a6636233bde308537e"
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._outage_dhw_hold GUARD_OFF 1ebfd9f2",
+  "killed_by": "tests/features.py",
+  "old": "        if floor is None:",
+  "reason": "Recorded by hand for R9-EG-B1 (#1736) on the branch worktree, 2026-10-04, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS; green on CI) and the count rule cannot credit this kill against that red baseline: GUARD_OFF (`if False:`) takes tests/features.py from rc=1 failed=2 to rc=1 failed=1 -- the mutant's run aborts the whole file early with an uncaught TypeError (\"'<' not supported between instances of 'float' and 'NoneType'\", raised at the guard's own comparison), before the environment-red check prints its FAIL line, so the failing-check count lands BELOW the baseline's. A kill is a red run naming a traceback the unmutated baseline does not carry (the hand rule this ledger's R9-EG-A2 entry set); on CI's green baseline the same abort reads failed=1 > 0 and the lane's own rule counts it. Reproduced at the head by applying the mutant alone and running the suite."
+}

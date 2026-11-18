@@ -1,0 +1,16 @@
+### owners_lint_base_ref
+RESULT p2_owner[two_zone_enabled@f88e6af8]=ok hits=0 stray=0 owner_missing=0 stale=0
+RESULT p2_owner[wood_furnace_on@f88e6af8]=ok hits=21 stray=0 owner_missing=0 stale=0
+SEAM dhw_enabled config_flow.py:2175 in _omit_unstored_defaults (outside owner; D14-s2-01)
+SEAM dhw_enabled config_flow.py:2914 in HeatPumpOptimizerConfigFlow.async_step_dhw (outside owner; D14-s2-01)
+RESULT p2_owner[dhw_enabled@f88e6af8]=FAIL hits=15 stray=2 owner_missing=0 stale=0
+RESULT p2_owner[state_age@f88e6af8]=ok hits=3 stray=0 owner_missing=0 stale=0
+SEAM on_threshold_kw coordinator.py:10010 in HeatPumpOptimizerCoordinator._observe_compressor_start (outside owner; D12-s2-01)
+SEAM on_threshold_kw optimizer.py:7098 in HeatPumpOptimizer._power_to_heat_pump_schedule (outside owner; D12-s2-01)
+SEAM on_threshold_kw optimizer.py:7163 in HeatPumpOptimizer.get_current_action (outside owner; D12-s2-01)
+SEAM on_threshold_kw pump_arbiter.py:432 in _on_kw (outside owner; D12-s2-01)
+OWNER-MISSING on_threshold_kw thermal_model.py::on_threshold_kw
+RESULT p2_owner[on_threshold_kw@f88e6af8]=FAIL hits=4 stray=4 owner_missing=1 stale=0
+RESULT p2_owner[entity_write_domain@f88e6af8]=ok hits=1 stray=0 owner_missing=0 stale=0
+RESULT p2_owner_entries_failing=2 count
+RESULT p2_owner_wall_s=2.34 s

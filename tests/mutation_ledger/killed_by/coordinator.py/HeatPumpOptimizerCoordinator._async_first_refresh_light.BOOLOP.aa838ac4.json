@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_first_refresh_light BOOLOP aa838ac4",
+  "killed_by": "tests/features.py",
+  "old": "        if handover is not None and away_mode.published_under(self._away_state, handover):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if handover is not None or away_mode.published_under(self._away_state, handover):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

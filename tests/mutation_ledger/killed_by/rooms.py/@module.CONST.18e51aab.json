@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/rooms.py:<module> CONST 18e51aab",
+  "killed_by": "tests/features.py",
+  "old": "ROOM_LIFT_RAMP_C_PER_H = 0.25",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`ROOM_LIFT_RAMP_C_PER_H = 0.5`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

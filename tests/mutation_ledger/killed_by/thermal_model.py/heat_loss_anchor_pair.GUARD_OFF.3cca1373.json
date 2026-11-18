@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair GUARD_OFF 3cca1373",
+  "killed_by": "tests/features.py",
+  "old": "    if min(total_then, total_now) <= 1e-9:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

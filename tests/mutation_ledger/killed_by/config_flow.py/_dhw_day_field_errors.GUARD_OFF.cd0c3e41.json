@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_dhw_day_field_errors GUARD_OFF cd0c3e41",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "            if problem is not None:",
+  "reason": "Recorded by `mutation_table.py --drain` against c77f89dc619c4f13704406e790d2199529105254: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
+}

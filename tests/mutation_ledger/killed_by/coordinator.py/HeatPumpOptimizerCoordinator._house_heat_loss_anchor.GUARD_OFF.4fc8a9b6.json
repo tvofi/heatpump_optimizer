@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._house_heat_loss_anchor GUARD_OFF 4fc8a9b6",
+  "killed_by": "tests/features.py",
+  "old": "        if p.two_zone_enabled:",
+  "reason": "Recorded by `mutation_table.py --drain` against 9a51f6d7295e1b5bf57f723485ae5dc9da7c0bec: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

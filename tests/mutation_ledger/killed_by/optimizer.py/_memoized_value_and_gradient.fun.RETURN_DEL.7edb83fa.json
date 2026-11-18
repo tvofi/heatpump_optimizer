@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_memoized_value_and_gradient.fun RETURN_DEL 7edb83fa",
+  "killed_by": "tests/plan_view.py",
+  "old": "        return out",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7311cc51318f72dc03409ed793b8e4c6772815e8: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

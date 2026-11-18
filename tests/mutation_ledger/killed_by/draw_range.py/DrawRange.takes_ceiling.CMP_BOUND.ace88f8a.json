@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange.takes_ceiling CMP_BOUND ace88f8a",
+  "killed_by": "tests/features.py",
+  "old": "            and drawn_kw > self.above_idle_kw()",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`and drawn_kw >= self.above_idle_kw()`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

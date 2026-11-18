@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.from_dict BOOLOP c05e48cf",
+  "killed_by": "tests/features.py",
+  "old": "                if isinstance(snap.get(\"accuracy\"), dict) and not admitted(\"snapshots\", summary):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a15e3e33507bde9e566858ce32b2ded840edfa02: BOOLOP (`if isinstance(snap.get(\"accuracy\"), dict) or not admitted(\"snapshots\", summary):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

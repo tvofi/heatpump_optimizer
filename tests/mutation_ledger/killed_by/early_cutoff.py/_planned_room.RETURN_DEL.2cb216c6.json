@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_planned_room RETURN_DEL 2cb216c6",
+  "killed_by": "tests/features.py",
+  "old": "    return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else []",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

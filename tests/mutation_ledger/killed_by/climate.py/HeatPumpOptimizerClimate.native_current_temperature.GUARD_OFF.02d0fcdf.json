@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.native_current_temperature GUARD_OFF 02d0fcdf",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        if flags.get(\"upper_floor_temperature\"):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

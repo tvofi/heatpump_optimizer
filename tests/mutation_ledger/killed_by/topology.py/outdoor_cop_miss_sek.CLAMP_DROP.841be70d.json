@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/topology.py:outdoor_cop_miss_sek CLAMP_DROP 841be70d",
+  "killed_by": "tests/entities.py",
+  "old": "    return max(0.0, extra_kwh * float(price))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return (0.0)`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=6."
+}

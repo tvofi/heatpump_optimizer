@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:roll_receipts CMP_BOUND eabf182e",
+  "old": "    closed = sorted(k for k in ledger.months if k < current and k not in reports)",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. k < current -> k <= current freezes a ledger month whose key equals the current month -- the still-open month would be closed and frozen early. It requires ledger.months to hold the current month key while roll_receipts runs; tests/features.py's UX-6 rolling fixtures advance the clock past the month first, so every key is strictly less than current; no recorded driver rolls with the live month present.",
+  "verdict": "gap"
+}

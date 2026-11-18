@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:spec_problem GUARD_OFF 5ec152c1",
+  "killed_by": "tests/features.py",
+  "old": "    if any(rule.rate > fee_bound(currency) for rule in rules):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 59c2543bdbc244ff4f1e99fffe358edd92060995: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

@@ -1,0 +1,93 @@
+{
+  "dimension": "D11",
+  "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+  "report_path": "tools/audit/round6/D11/REPORT.md",
+  "report_written": false,
+  "report_note": "Finder's Write of REPORT.md refused; orchestrator reconstructed it from the inline return. 4 harnesses on disk.",
+  "exposure": "GitHub API read-only (rulesets 22628467/23698884, 45-merge window of PR bodies/reviews/files, per-head and per-merge-commit check-runs, releases); git history (log -S, tags). Audit register/HANDOVER/plan/RELEASE_NOTES not opened. Incidental grep printed round3/4/5 filenames only, not opened.",
+  "findings": [
+    {
+      "id": "D11-01",
+      "title": "The required-check enforcement surface is outside the code-owner boundary",
+      "severity": "high",
+      "claim": "Of the 37 tracked files that produce or implement the checks the live ruleset requires, 0 are matched by an owner-carrying .github/CODEOWNERS pattern, so require_code_owner_review cannot demand the repository owner for a change to the checks themselves, and 9 of the 14 merges whose diff touched that surface in the window were approved by the hpo-approver App alone.",
+      "mechanism": "main-protect-checks (23698884) arms require_code_owner_review; .github/CODEOWNERS decides which paths that bites on. Its owner patterns cover the 39 capped policy files and nothing that executes inside the required-check jobs. The enforcement surface is derived: 6 .github/workflows/*.yml + 26 scripts their non-comment lines execute + 4 wired hooks + .claude/settings.json.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D11/codeowners_gap.py",
+        "harness_path": "tools/audit/round6/D11/codeowners_gap.py",
+        "value": "0/37",
+        "unit": "files matched by an owner-carrying CODEOWNERS pattern / enforcement-surface files",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "8-core Apple M1, 8 GB, shared audit box",
+        "cpu_or_wall": "count",
+        "contention_note": "counts from tree + API, not contention-sensitive; load1 12-31 quoted not gated",
+        "tolerance": "exact",
+        "load1": 20.7,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": ".github/CODEOWNERS (armed by ruleset 23698884 pull_request.require_code_owner_review)",
+      "perturbation": {
+        "change": "append '/.claude/workflows/  @tvofi' to a COPY of .github/CODEOWNERS, then one ownerless line naming policy_lint.mjs",
+        "expected_direction": "up",
+        "observed_value": "covered 0 -> 11, then 11 -> 10 (last-match-wins)"
+      },
+      "metric_definition": "count of enforcement-surface files matched by a CODEOWNERS pattern that carries an owner (last-match-wins)",
+      "null_control": {"command": "codeowners_gap.py arm none (unmodified file)", "value": "0 covered", "note": "arm add-dir-unown separates 'reads owners' from 'a line was added'"},
+      "leave_one_out": {"cells": 14, "min": 0, "max": 1, "drop_most_favourable": 0.6923},
+      "reproduction_steps": ["python3 tools/audit/round6/D11/codeowners_gap.py", "PYTHONPATH=tests/hastub python3 tools/audit/round6/D11/conformance.py --since 2026-09-13 --limit 45"],
+      "proposed_fix_scope": "extend .github/CODEOWNERS by ~6 lines (.claude/workflows/, .claude/hooks/, .claude/settings.json, .github/workflows/, tests/* scripts), or record the refusal in its header",
+      "files": [".github/CODEOWNERS", ".claude/workflows/policy_lint.mjs", ".github/workflows/governance.yml", ".github/workflows/tests.yml", ".claude/settings.json"],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D11-02",
+      "title": "A required check is executed from the change it is checking",
+      "severity": "high",
+      "claim": "A one-line change to .claude/workflows/policy_lint.mjs (process.exit(errors > 0 || rc ? 1 : 0) -> process.exit(0)) makes the policy-docs required-check command exit 0 on a corpus the same run reports as red, with stdout byte-identical, and the lane built to catch a gutted check does not notice.",
+      "mechanism": "governance.yml's policy-docs runs actions/checkout with no ref:, so corpus and checker both come from the PR's tree; the job conclusion is the script's exit status. policy_lint_mutants.mjs exercises assertAcceptance, which returns before the mutated exit line.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D11/check_in_diff.py",
+        "harness_path": "tools/audit/round6/D11/check_in_diff.py",
+        "value": "1 -> 0",
+        "unit": "exit status of the required-check command on a red corpus, before -> after the one-line change",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "8-core Apple M1, 8 GB, shared audit box",
+        "cpu_or_wall": "count",
+        "contention_note": "exit statuses + ERROR-line counts in a scratch clone, not contention-sensitive; load1 14.4",
+        "tolerance": "exact",
+        "load1": 14.42,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": ".claude/workflows/policy_lint.mjs:main",
+      "perturbation": {
+        "change": "replace process.exit(errors > 0 || rc ? 1 : 0) with process.exit(0) in a scratch clone, corpus made red by renaming one citation target",
+        "expected_direction": "to_zero",
+        "observed_value": "rc_red_unmodified=1, rc_red_one_line_changed=0, total_errors identical, stdout_identical_red_arms=1"
+      },
+      "metric_definition": "exit status of node .claude/workflows/policy_lint.mjs on a corpus the same run reports red (TOTAL > 0)",
+      "null_control": {"command": "check_in_diff.py arm D (one-line change on GREEN corpus)", "value": "rc 0, TOTAL 0 - no verdict change of its own", "note": "arm E: policy_lint_mutants.mjs in the mutated tree, verdict unchanged"},
+      "reproduction_steps": ["python3 tools/audit/round6/D11/check_in_diff.py", "read check_in_diff.py header for the exact line + corpus edit"],
+      "proposed_fix_scope": "re-execute the checker from a trusted ref (git show origin/main:.claude/workflows/policy_lint.mjs against the diff's corpus), or take D11-01's fix. ~15 lines of workflow.",
+      "files": [".claude/workflows/policy_lint.mjs", ".github/workflows/governance.yml", ".claude/workflows/policy_lint_mutants.mjs"],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {"claim": "No required context red at a merged head in the window", "command": "conformance.py --since 2026-09-13 --limit 45", "value": "required_red_at_head_last=0/45"},
+    {"claim": "Every merged body passes its day's contract at its merged head", "command": "contract_replay.py --since 2026-09-13 --limit 45", "value": "refused_at_merged_head=0/45; one-hex perturbation -> 43/45 refused"},
+    {"claim": "pr-body authorship rule (0011) is executable", "command": "contract_replay.py per-head checker", "value": "45/45 authored by hpo-author App (baseline checker's 10 refusals were anachronisms)"},
+    {"claim": "No workflow interpolates untrusted free text into a shell line", "command": "grep '${{...}}' over .github/workflows/*.yml", "value": "0 interpolations of github.event body/title in a run: line"},
+    {"claim": "No pull_request_target / workflow_run trigger", "command": "grep -rn 'pull_request_target|workflow_run'", "value": "0 triggers (8 matches are API calls in prose)"},
+    {"claim": "Every action SHA-pinned", "command": "grep -rhoE 'uses: *[^ ]+'", "value": "65/65 40-hex pinned"},
+    {"claim": "Hook roster pinned by membership", "command": "node policy_lint.mjs --hooks", "value": "HOOKS ok: 3 wired, self-test passes"},
+    {"claim": "No check class dead", "command": "node policy_lint_mutants.mjs", "value": "21 arms, 0 SKIP, MUTANTS ok"},
+    {"claim": "Structural ratchet healthy", "command": "python3 tests/structure.py", "value": "STRUCTURE RATCHET PASSED, 12/12 at cap"},
+    {"claim": "Conservative budget ratchet inside band", "command": "node policy_lint.mjs --budgets", "value": "all 5 aggregates inside band; 26/39 files at cap"},
+    {"claim": "Wave briefs lint clean", "command": "node brief_lint.mjs", "value": "rc 0, carry acceptance pins"},
+    {"claim": "REFUTED - red record job on main is documented batch state", "command": "check-runs at merge commits + governance.yml text", "value": "red at 45/45 merge commits, green at stamp where window is empty"},
+    {"claim": "NULL RESULT - strict_required_status_checks_policy=false", "command": "check-runs for fast (3.14)", "value": "no separation; change-failure rate is D13's"}
+  ],
+  "harnesses": ["tools/audit/round6/D11/codeowners_gap.py", "tools/audit/round6/D11/conformance.py", "tools/audit/round6/D11/contract_replay.py", "tools/audit/round6/D11/check_in_diff.py"]
+}

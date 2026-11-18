@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_omit_unstored_computed GUARD_OFF d2830659",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        if row.key in current or row.key not in cleaned:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

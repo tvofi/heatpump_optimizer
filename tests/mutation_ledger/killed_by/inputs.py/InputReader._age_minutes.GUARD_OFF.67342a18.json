@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:InputReader._age_minutes GUARD_OFF 67342a18",
+  "killed_by": "tests/features.py",
+  "old": "        if age is None or age < timedelta(0):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 48b696c19761a7f5f0a440891a932c87fa509515: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

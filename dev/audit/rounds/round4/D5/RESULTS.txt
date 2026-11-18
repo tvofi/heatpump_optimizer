@@ -1,0 +1,102 @@
+######## tools/audit/round4/D5/links.py
+RESULT links_scanned_reader=85 count
+RESULT links_scanned_all=85 count
+RESULT internal_broken_reader=0 count
+RESULT anchor_broken_reader=0 count
+RESULT internal_broken_all=0 count
+RESULT anchor_broken_all=0 count
+RESULT absent_in_export_reader=4 count
+RESULT absent_in_export_all=4 count
+RESULT external_urls_reader=6 count
+RESULT external_urls_all=6 count
+RESULT thread_factor=1.0
+RESULT load1=7.64
+RESULT swapins=0
+######## tools/audit/round4/D5/dup.py
+RESULT documents=7 count
+RESULT paragraphs_ge20w=433 count
+RESULT dup_paragraph_pairs=0 count
+RESULT dup_sentence_pairs=0 count
+RESULT dup_sentence_bytes=0 bytes
+RESULT intra_doc_repeated_paragraphs=0 count
+RESULT near_dup_para_pairs=0 count
+RESULT thread_factor=1.0
+RESULT load1=7.64
+RESULT swapins=0
+######## tools/audit/round4/D5/comment_symbols.py
+RESULT comments_scanned=7292 count
+RESULT refs_extracted=995 count
+RESULT dangling_refs=19 count
+RESULT dangling_distinct_names=18 count
+RESULT thread_factor=1.0
+RESULT load1=7.67
+RESULT swapins=0
+######## tools/audit/round4/D5/comment_numbers.py
+RESULT numeric_constants=505 count
+RESULT constants_with_commented_numbers=73 count
+RESULT loose_unreconciled=25 count
+RESULT unit_matched_citations=4 count
+RESULT unit_matched_unreconciled=2 count
+RESULT thread_factor=1.0
+RESULT load1=7.67
+RESULT swapins=0
+######## tools/audit/round4/D5/reader_paths.py
+RESULT tokens_install=101 count
+RESULT tokens_configure=201 count
+RESULT tokens_develop=35 count
+RESULT deadends_install=0 count
+RESULT deadends_configure=0 count
+RESULT deadends_develop=0 count
+RESULT deadends_total=0 count
+RESULT thread_factor=1.0
+RESULT load1=7.67
+RESULT swapins=0
+######## tools/audit/round4/D5/options_placement.py
+RESULT sections_matched=21 count
+RESULT sections_orphan=0 count
+RESULT steps_undocumented=0 count
+RESULT rows_total=139 count
+RESULT rows_misplaced=4 count
+RESULT fields_total=200 count
+RESULT fields_undocumented=63 count
+RESULT fields_elsewhere=35 count
+RESULT fields_nowhere=28 count
+RESULT labels_absent_distinct=15 count
+RESULT labels_absent_occurrences=34 count
+RESULT labels_checked=200 count
+RESULT thread_factor=1.0
+RESULT load1=7.67
+RESULT swapins=0
+######## tools/audit/round4/D5/d5_doc_structure.py
+RESULT documents_walked=18 count
+RESULT corpus=14 count
+RESULT orphans=2 count
+RESULT reader_docs=6 count
+RESULT unreachable_reader_docs=0 count
+RESULT level_skips=0 count
+RESULT docs_without_single_h1=0 count
+RESULT max_depth=4 level
+RESULT thread_factor=1.0
+RESULT load1=7.67
+RESULT swapins=0
+######## tools/audit/round4/D5/comment_restates.py
+RESULT files=56 count
+RESULT comment_lines=5991 count
+RESULT code_lines=33419 count
+RESULT comment_density=0.1793 ratio
+RESULT comments_ge3_lines=890 count
+RESULT blocks_checked=846 count
+RESULT restating_comments=20 count
+RESULT thread_factor=1.0
+RESULT load1=7.67
+RESULT swapins=0
+######## tools/audit/round4/D5/versions.py
+RESULT documents=7 count
+RESULT released_total=122 count
+RESULT refs_total=9 count
+RESULT ref_occurrences=22 count
+RESULT refs_unreleased=0 count
+RESULT refs_future=0 count
+RESULT thread_factor=1.0
+RESULT load1=7.67
+RESULT swapins=0

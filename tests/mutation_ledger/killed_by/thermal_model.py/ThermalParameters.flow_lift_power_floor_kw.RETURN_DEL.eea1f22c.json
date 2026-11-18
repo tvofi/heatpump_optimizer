@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.flow_lift_power_floor_kw RETURN_DEL eea1f22c",
+  "killed_by": "tests/features.py",
+  "old": "        return self.nameplate_power_floor_kw",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `RETURN_DEL` (pass) flips the condition of tests/features.py's R.check \"with no modulation floor configured the nameplate floor still applies\" -- reads False, and TypeError in the sibling check that subtracts the floor: `pass` makes the property answer None where it answered 4.2. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:commanded_power_kw GUARD_OFF a3803f1c",
+  "killed_by": "tests/entities.py",
+  "old": "    if action.get(\"heat_pump_on\") is False:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd79bc9e0e7ee5bb8d7fac6a400f5e077f3c3266: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_ctx_of RETURN_DEL bf96ad1c",
+  "killed_by": "tests/features.py",
+  "old": "    return ctx",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 1655100779c1c920bfa4890134d05f9ac74c5727: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

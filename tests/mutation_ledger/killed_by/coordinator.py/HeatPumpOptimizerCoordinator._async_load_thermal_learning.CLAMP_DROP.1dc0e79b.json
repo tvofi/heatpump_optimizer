@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning CLAMP_DROP 1dc0e79b",
+  "killed_by": "tests/features.py",
+  "old": "        self._snow_accum_cm = max(0.0, finite_float(stored.get(\"snow_accum_cm\"), 0.0))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`self._snow_accum_cm = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

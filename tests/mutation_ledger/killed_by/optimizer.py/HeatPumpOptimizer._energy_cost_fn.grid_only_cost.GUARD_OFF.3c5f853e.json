@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._energy_cost_fn.grid_only_cost GUARD_OFF 3c5f853e",
+  "killed_by": "tests/plan_view.py",
+  "old": "                if np.ndim(total_power) == 1:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

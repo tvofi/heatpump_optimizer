@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_thermostat_demand_single CLAMP_DROP 7a1ca391",
+  "killed_by": "tests/features.py",
+  "old": "        + max(0.0, q_demand) / k_slab",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0: CLAMP_DROP (`+ (0.0) / k_slab`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

@@ -1,0 +1,136 @@
+# store constructions: 12
+SITE away.py:330:Store
+SITE boost.py:144:Store
+SITE coordinator.py:1755:Store
+SITE coordinator.py:1931:Store
+SITE coordinator.py:1992:Store
+SITE coordinator.py:2017:Store
+SITE coordinator.py:2103:Store
+SITE coordinator.py:2158:Store
+SITE coordinator.py:2170:Store
+SITE dhw_learning.py:103:Store
+SITE dhw_learning.py:122:Store
+SITE legionella.py:80:Store
+NOTE seed arbiter: ModuleNotFoundError: No module named 'heatpump_optimizer.pump_arbiter'
+RESULT seams_accuracy=126 count
+RESULT seams_away=3 count
+RESULT seams_boost=2 count
+RESULT seams_dhw_draws=7 count
+RESULT seams_dhw_legionella=3 count
+RESULT seams_dhw_profile=14 count
+RESULT seams_energy=8 count
+RESULT seams_ledger=28 count
+RESULT seams_manual_plan=10 count
+RESULT seams_price_model=30 count
+RESULT seams_snapshots=226 count
+RESULT seams_thermal_learning=45 count
+# stores seeded: 12; unread by any discovered loader: []
+WEDGE store=boost path=dhw/until failed_cycles=0/3
+WEDGE store=dhw_legionella path=last_attempt failed_cycles=3/3
+WEDGE store=dhw_legionella path=last_cycle failed_cycles=3/3
+WEDGE store=ledger path=ledger/months/2026-01/lines/savings_baseline/kwh failed_cycles=3/3
+WEDGE store=ledger path=ledger/months/2026-01/lines/savings_baseline/sek failed_cycles=3/3
+WEDGE store=ledger path=ledger/months/2026-01/meta/spot_price/count failed_cycles=3/3
+WEDGE store=ledger path=ledger/months/2026-01/meta/spot_price/sum failed_cycles=3/3
+WEDGE store=snapshots path=snapshots/#/accuracy/temperature_bias failed_cycles=0/3
+WEDGE store=snapshots path=snapshots/#/learners failed_cycles=0/3
+WEDGE store=snapshots path=snapshots/#/learners/dhw_profile/profile_weekday_samples failed_cycles=0/3
+WEDGE store=snapshots path=snapshots/#/learners/dhw_profile/profile_weekend_samples failed_cycles=0/3
+RESULT wedge_null_control_failed_cycles=0 count
+RESULT p1_wedged_seams=6 count
+SEAM escape store=boost path=dhw/until loader boost.restore_session: TypeError subs=['"2026-01-15T20:00:00"']
+SEAM escape store=dhw_legionella path=last_attempt consumer publish: TypeError subs=['"2026-01-15T20:00:00"']
+SEAM escape store=dhw_legionella path=last_cycle consumer publish: TypeError subs=['"2026-01-15T20:00:00"']
+SEAM escape store=ledger path=ledger/months/2026-01/lines/savings_baseline/kwh consumer publish: TypeError subs=['[]', 'null', '{}']
+SEAM escape store=ledger path=ledger/months/2026-01/lines/savings_baseline/kwh consumer publish: ValueError subs=['"12,5"', '"garbage"']
+SEAM escape store=ledger path=ledger/months/2026-01/lines/savings_baseline/sek consumer publish: TypeError subs=['[]', 'null', '{}']
+SEAM escape store=ledger path=ledger/months/2026-01/lines/savings_baseline/sek consumer publish: ValueError subs=['"12,5"', '"garbage"']
+SEAM escape store=ledger path=ledger/months/2026-01/meta/spot_price/count consumer publish: OverflowError subs=['-inf', 'inf']
+SEAM escape store=ledger path=ledger/months/2026-01/meta/spot_price/count consumer publish: ValueError subs=['"12,5"', '"Infinity"', '"NaN"', '"garbage"', 'nan']
+SEAM escape store=ledger path=ledger/months/2026-01/meta/spot_price/sum consumer publish: TypeError subs=['[]', 'null', '{}']
+SEAM escape store=ledger path=ledger/months/2026-01/meta/spot_price/sum consumer publish: ValueError subs=['"12,5"', '"garbage"']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer service.restore_learned_snapshot: TypeError subs=['"NaN"', '"garbage"', '{}']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer service.restore_learned_snapshot: ValueError subs=['[]']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer snapshot.best_restore: TypeError subs=['"NaN"', '"garbage"', '{}']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer snapshot.best_restore: ValueError subs=['[]']
+SEAM escape store=snapshots path=snapshots/#/learners consumer service.restore_learned_snapshot: AttributeError subs=['"x"', '3.0']
+SEAM escape store=snapshots path=snapshots/#/learners/dhw_profile/profile_weekday_samples consumer service.restore_learned_snapshot: OverflowError subs=['-inf', 'inf']
+SEAM escape store=snapshots path=snapshots/#/learners/dhw_profile/profile_weekend_samples consumer service.restore_learned_snapshot: OverflowError subs=['-inf', 'inf']
+SEAM poison store=accuracy path=comfort/evidence subs=['"Infinity"', '"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=accuracy path=comfort/learned_weight subs=['"Infinity"', '"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=accuracy path=defrost/duty/#/# subs=['"Infinity"', '"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=dhw_legionella path=last_attempt_peak subs=['-inf', 'inf', 'nan']
+SEAM poison store=dhw_profile path=cooling_rate subs=['"NaN"', 'nan']
+SEAM poison store=ledger path=ledger/months/2026-01/lines/savings_baseline/kwh subs=['"Infinity"', '"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=ledger path=ledger/months/2026-01/lines/savings_baseline/sek subs=['"Infinity"', '"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=ledger path=ledger/months/2026-01/meta/spot_price/count subs=['-inf', 'inf', 'nan']
+SEAM poison store=ledger path=ledger/months/2026-01/meta/spot_price/sum subs=['"Infinity"', '"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=price_model path=model/residual_var/#/# subs=['"Infinity"', 'inf']
+SEAM poison store=snapshots path=snapshots/#/accuracy/predicted_cost subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/accuracy/realised_cost subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/accuracy/samples subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/accuracy/trust subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/comfort/configured_weight subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/comfort/evidence subs=['"Infinity"', '"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/comfort/learned_weight subs=['"Infinity"', '"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/comfort/overrides subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/defrost/duty/#/# subs=['"Infinity"', '"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/defrost/version subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/dhw_draws/open_kwh subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/dhw_profile/cooling_rate subs=['"NaN"', '-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/dhw_profile/cooling_samples subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/dhw_profile/hourly_profile/# subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/dhw_profile/profile_weekday/# subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/dhw_profile/profile_weekday_samples subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/dhw_profile/profile_weekend/# subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/dhw_profile/profile_weekend_samples subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/price_model/days/# subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/price_model/quarter_days/# subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/price_model/residual_var/#/# subs=['"Infinity"', 'inf']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/buffer_cooling_rate subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/buffer_cooling_samples subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/cop_health_cusum/stat subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/cop_samples subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/cop_scale subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/curve_learner/bias subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/curve_learner/comfortable_days subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/curve_learner/resets subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/flow_bias/bias_k subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/flow_bias/samples subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/house_heat_loss_anchor subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/house_heat_loss_samples subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/house_heat_loss_scale subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/lower_floor_loss_ratio subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/lower_floor_loss_samples subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/snow_accum_cm subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/solar_aperture/cov subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/solar_aperture/mx subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/solar_aperture/my subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/solar_aperture/n subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/solar_aperture/scale subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/solar_aperture/var subs=['-inf', 'inf', 'nan']
+SEAM poison store=snapshots path=snapshots/#/learners/thermal_learning/vent_cusum/stat subs=['-inf', 'inf', 'nan']
+SEAM poison store=thermal_learning path=cop_health_cusum/stat subs=['"Infinity"', 'inf']
+SEAM poison store=thermal_learning path=snow_accum_cm subs=['"Infinity"', 'inf']
+SEAM poison store=thermal_learning path=vent_cusum/stat subs=['"Infinity"', 'inf']
+RESULT escapes_boost=1 count
+RESULT escapes_dhw_legionella=2 count
+RESULT escapes_ledger=23 count
+RESULT escapes_snapshots=12 count
+RESULT poison_accuracy=84 count
+RESULT poison_dhw_legionella=4 count
+RESULT poison_dhw_profile=2 count
+RESULT poison_ledger=22 count
+RESULT poison_price_model=12 count
+RESULT poison_snapshots=277 count
+RESULT poison_thermal_learning=9 count
+RESULT store_constructions=12 count
+RESULT stores_seeded=12 count
+RESULT mutants=3980 count
+RESULT clean_fixture_escapes=0 count
+RESULT p1_escaping_mutants=38 count
+RESULT p1_escape_seams=11 count
+RESULT p1_poison_mutants=410 count
+RESULT thread_factor=1.000
+RESULT load1=7.44
+RESULT swapins=0

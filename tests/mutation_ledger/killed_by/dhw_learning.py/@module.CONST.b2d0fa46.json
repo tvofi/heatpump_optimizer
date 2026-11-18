@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:<module> CONST b2d0fa46",
+  "killed_by": "tests/features.py",
+  "old": "DHW_COOLING_ALPHA_DOWN = 0.25",
+  "reason": "drawn by the round-7 D2-03 diff's per-file sample over dhw_learning.py, not introduced by it (CI's mutation job at 8e41434e reported it LIVES). Doubling to 0.5 makes each quieter cooling reading close half the gap instead of a quarter. Killed by tests/features.py's `a quieter cooling reading closes a quarter of the gap each time`: FAIL [rates [2.0, 1.158236, 0.737354]; successive-step ratio 0.5, expected 1 - 0.25], 1 of 3141, measured at b5121ba3. The check pins a design constant and says so."
+}

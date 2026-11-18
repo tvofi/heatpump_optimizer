@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP 99e5fb39",
+  "killed_by": "tests/features.py",
+  "old": "                        if two_tank and T_wood is not None:",
+  "reason": "Recorded by `mutation_table.py --drain` against 3976515a08228598ea3863f4f36dc4c7c4846865: BOOLOP (`if two_tank or T_wood is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

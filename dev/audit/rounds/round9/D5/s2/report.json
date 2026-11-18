@@ -1,0 +1,219 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D5/s2/REPORT.md",
+ "exposure": "Read CLAUDE.md, .claude/rules listing, tools/audit/briefs/COMMON.md, D5.md, tools/audit/README.md, tools/audit/finding.schema.json, tools/audit/bugclasses.json (ids and mechanism lines, which list earlier instance ids such as 'R1 D1-01'), tools/audit/round9/BASELINE.md. Production code comments cite earlier finding ids (D2-01, D2-07, R1-D0-01, R3-D2-03, R5-D12-01, D4-03, D4-05, D6-03, #numbers) -- read as context only. Listed the tools/audit/ directory names once (round3..round8 visible as names); opened no file under round3..round8 or any other round. Did not read docs/ (outside my cells), RELEASE_NOTES.md, or GitHub.",
+ "coverage": [
+  {
+   "step": "D5.M4",
+   "depth": "deep",
+   "evidence": "All 67 cells: module docstrings of all 66 .py read in full; executable identifier checks over every comment/docstring of the 66 .py (global and qualified resolution, scan_qualified_refs.py) and every comment of the card (TS-parser split, card_comment_names.mjs: 2215 comment ranges, 215 live members); constant-adjacent number scan; numeric-comment vs next-literal adjacency scan over all 669 >3-line comment blocks (78 flagged, each reviewed); 9 numeric claims driven through production symbols (comment_numbers.py); docstring count claims (entities, services, platforms, boost, snapshots, curve, freq, guard) checked."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D5.M4",
+   "what": "Hand judgement of concision/precision and 'explains what the next line does' comments was sampled (~60 of 669 >3-line blocks, weighted to const.py, defrost, drift, topology, sysid, thermal_model, boost, card header) rather than read exhaustively; the card's 2215 comment ranges were checked mechanically for names only, not read for numeric claims. No harnessed finding came from the qualitative pass; examples of 'what' comments (thermal_model.py:684-689) are listed in REPORT.md without a finding."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D5-s2-01",
+   "scope": "D5-s2",
+   "step": "D5.M4",
+   "title": "Card comments cite 12 private members the card no longer has (17 mentions)",
+   "severity": "low",
+   "claim": "Comments in www/heatpump-optimizer-card.js name 12 distinct `_name` members (17 mentions) that resolve to nothing in the loaded card, its code, or the backend code; 7 were renamed to module functions without the underscore, 5 have no successor.",
+   "mechanism": "The card's private methods were moved out of the element classes into module-level functions (`_lineLabel` -> `lineLabel`, `_resolveEntity` -> `resolveEntity`, `_fieldPoints`, `_extraFields`, `_seriesUnit`, `_laneGroupInner`, `_onSlotEdit`) or refactored into collaborator classes (`_refreshLayout`, `_applyView`, `_restoreSlotFocus`, `_onWhatIfInput`, `_runWhatIf`); the prose that routes a reader through them kept the old names, so a reader grepping for the named method finds only the comment.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node tools/audit/round9/D5/s2/card_comment_names.mjs",
+    "harness_path": "tools/audit/round9/D5/s2/card_comment_names.mjs",
+    "value": 12,
+    "unit": "distinct stale names (17 mentions)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B2 cloud container, Linux x86_64, 4 CPU; CPython 3.14.0rc2 (numpy 2.4.6), node v22.22.2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: D0-s2, D3-s2, D6-s2, D10-s2 seats sharing the box; a pure count, contention-immune",
+    "tolerance": "exact",
+    "load1": 5.29,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:HeatpumpOptimizerCard (loaded via tests/card_rig.mjs:loadCard; live members of every class the card defines, plus its top-level bindings)",
+   "perturbation": {
+    "change": "--perturb: rewrite, in memory, each stale comment name to the name the code now carries (7 renames: _lineLabel->lineLabel etc.)",
+    "expected_direction": "down",
+    "observed_value": 5
+   },
+   "metric_definition": "Distinct `_name` identifiers in card comments that are neither a live card binding/class member nor a token of card code (comments stripped by the TS parser) or backend code.",
+   "phenomenon_property": "Every identifier a card comment names in backticks resolves to a binding or member the card (or the backend it reads) actually defines.",
+   "seam_rule": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node tools/audit/round9/D5/s2/card_comment_names.mjs  (prints one STALE row per name with its comment lines)",
+   "null_control": {
+    "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node tools/audit/round9/D5/s2/card_comment_names.mjs",
+    "value": "py_stale_private_names=3",
+    "note": "Same rule over the production Python comments: 3 unresolved, none a current-code reference (`_async_configure` is HA core, `_CERT_BARS` lives in tests/optimality.py, `_draftRuns` is cited as v3.2.0 history) -- the rule is not noisy; the card is where the names rotted."
+   },
+   "reproduction_steps": [
+    "cd <export root>",
+    "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node tools/audit/round9/D5/s2/card_comment_names.mjs",
+    "expect RESULT card_stale_private_names=12, card_stale_private_mentions=17",
+    "append --perturb: expect 5 / 6"
+   ],
+   "proposed_fix_scope": "Comment-only edit in heatpump-optimizer-card.js: rename the 7 references to their current function names; for the 5 without a successor, name the method that now does the job (LayoutEditor / ViewWindow / WhatIfPanel / restoreFocus) or drop the reference. Optionally add the harness's rule as a card lint.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5"
+  },
+  {
+   "id": "D5-s2-02",
+   "scope": "D5-s2",
+   "step": "D5.M4",
+   "title": "Three comments cite a number the code beside them does not deliver",
+   "severity": "low",
+   "claim": "Three production comments state a number that the value measured from the production symbol contradicts: the defrost derate floor is described as 'less than half' but clamps at 0.55; the valve-write epsilon comment says the write recurs 'every 15 minutes' but the default cycle is 30; the plan-stale floor comment reasons about a '5-minute update interval' the config flow's minimum of 10 never admits.",
+   "mechanism": "Each comment carries a literal restatement of a value owned elsewhere (DERATE_MIN, DEFAULT_OPTIMIZATION_INTERVAL, the optimization-interval selector minimum); the value moved or never matched, and nothing ties the prose to the symbol.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py",
+    "harness_path": "tools/audit/round9/D5/s2/comment_numbers.py",
+    "value": 3,
+    "unit": "rows (numeric_citation_mismatches)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B2 cloud container, Linux x86_64, 4 CPU; CPython 3.14.0rc2 (numpy 2.4.6), node v22.22.2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: D0-s2, D3-s2, D6-s2, D10-s2 seats sharing the box; a pure count, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.42,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.defrost:DefrostDerate.observe (clamp output); heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.__init__ (update_interval handed to DataUpdateCoordinator); heatpump_optimizer.config_flow:_OPTION_FIELDS (optimization_interval NumberSelector min)",
+   "perturbation": {
+    "change": "--perturb: in memory, defrost.DERATE_MIN=0.5, coordinator.DEFAULT_OPTIMIZATION_INTERVAL=15, interval selector min=5 (the values each comment states)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of claim rows where the number a comment states differs from the value measured by driving the named production symbol.",
+   "phenomenon_property": "A number a comment states about a value the code owns equals what the code delivers (or the comment names the symbol instead of restating its value).",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py  (one ROW line per claim; probe rows are the seams, hold rows the control)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py",
+    "value": "comment_number_hold_failures=0 of 5",
+    "note": "Same method on five comment claims that are true (fortnight of history at 30 min, 3 CUSUM samples to trip, 90-minute stale floor, 8 weekly snapshots, 3x(0.5/7)~0.2 K step): 0 mismatches under both arms, so the probe is not biased toward mismatch."
+   },
+   "reproduction_steps": [
+    "cd <export root>",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py",
+    "expect RESULT numeric_citation_mismatches=3",
+    "append --perturb: expect 0"
+   ],
+   "proposed_fix_scope": "Comment-only: defrost.py:109-110 say 'below DERATE_MIN (0.55) of rated output'; const.py:750 say 'every optimization cycle (30 minutes by default)'; coordinator.py:639-641 say 'a short 10-minute interval (the selector minimum)'.",
+   "files": [
+    "custom_components/heatpump_optimizer/defrost.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5"
+  },
+  {
+   "id": "D5-s2-03",
+   "scope": "D5-s2",
+   "step": "D5.M4",
+   "title": "DHW_COLD_WATER_TEMP comment claims the draw model heats from it; the draw reads the configured inlet",
+   "severity": "low",
+   "claim": "const.py:337-339 says DHW_COLD_WATER_TEMP is 'the mains temperature the DHW draw model already assumes (thermal_model's dhw_draw_power heats from ~10 C) -- named so the coil math and the draw model cannot quietly disagree', but dhw_draw_power heats from ThermalParameters.dhw_inlet_reference, which differs from the constant at 46 of the 47 inlet settings the config flow offers.",
+   "mechanism": "The v4.0.0 T3 inlet model (configured annual mean, seasonal swing, live sensor) replaced the constant in the draw; thermal_model.dhw_coil_draw_reduction's own docstring (thermal_model.py:1291-1297) records that using the constant beside the new draw misallocated heat. The const.py comment still describes the pre-T3 coupling, and the constant now survives only as a default argument.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py",
+    "harness_path": "tools/audit/round9/D5/s2/comment_numbers.py",
+    "value": 46,
+    "unit": "of 47 inlet settings where the draw's cold end != DHW_COLD_WATER_TEMP",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B2 cloud container, Linux x86_64, 4 CPU; CPython 3.14.0rc2 (numpy 2.4.6), node v22.22.2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: D0-s2, D3-s2, D6-s2, D10-s2 seats sharing the box; a pure count, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.42,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalParameters.dhw_draw_power (cold end recovered from its output over config_flow._OPTION_FIELDS' dhw_inlet_temp selector range)",
+   "perturbation": {
+    "change": "--perturb: patch ThermalParameters.dhw_inlet_reference to return const.DHW_COLD_WATER_TEMP (the coupling the comment claims)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Inlet selector settings (2..25 C, step 0.5) at which the cold end dhw_draw_power heats from differs from DHW_COLD_WATER_TEMP.",
+   "phenomenon_property": "A comment that asserts a coupling between two production values describes the coupling the code actually has.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py  (RESULT draw_cold_end_off_constant)",
+   "reproduction_steps": [
+    "cd <export root>",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py",
+    "expect RESULT draw_cold_end_off_constant=46 of 47",
+    "append --perturb: expect 0 of 47"
+   ],
+   "proposed_fix_scope": "Comment-only in const.py:337-339: say the constant is dhw_coil_draw_reduction's default inlet only, and that real call sites pass ThermalParameters.dhw_inlet_reference (see its docstring); or retire the constant in favour of DEFAULT_DHW_INLET_TEMP (a D7 call, see lead).",
+   "files": [
+    "custom_components/heatpump_optimizer/const.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Comment-named private identifiers in production Python resolve (no current-code reference is stale)",
+   "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node tools/audit/round9/D5/s2/card_comment_names.mjs",
+   "value": "py_stale_private_names=3, all external or explicit history (_async_configure HA core, _CERT_BARS tests/optimality.py, _draftRuns cited as v3.2.0)"
+  },
+  {
+   "claim": "Qualified module.name / Class.member references in production Python comments and docstrings resolve",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/scan_qualified_refs.py",
+   "value": "qualified_ref_rows=19, all false positives (entity ids, services.yaml, datetime.weekday); 0 real misses"
+  },
+  {
+   "claim": "Comments that put a number right after a constant's name match the constant",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/scan_const_numbers.py",
+   "value": "const_adjacent_checked=2, const_adjacent_mismatch=0 (DERATE_MAX 1.0, BUFFER_STORE_MIN_VOLUME 100)"
+  },
+  {
+   "claim": "Five sampled numeric comment claims hold against the driven symbol (history fortnight, vent CUSUM 3 samples, 90-min stale floor, 8 weekly snapshots, 0.2 K curve step)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py",
+   "value": "comment_number_hold_failures=0 of 5 (both arms)"
+  },
+  {
+   "claim": "Module-docstring entity/service/platform counts match setup code: binary_sensor 'Six', button 'Four', switch 'Four', services 'twelve', entity.py 'six platforms'",
+   "command": "grep -c 'Sensor(coordinator, entry)' custom_components/heatpump_optimizer/binary_sensor.py; grep -c 'async_register(' custom_components/heatpump_optimizer/services.py; grep -c 'Platform\\.' custom_components/heatpump_optimizer/__init__.py",
+   "value": "6 binary sensors, 4 buttons, 4 switches, 12 service registrations, 6 platforms in PLATFORMS"
+  },
+  {
+   "claim": "Docstring numbers that name module constants hold: boost BOOST_HOURS=2 and DHW 0.8 of nameplate, curve_learning clamp [-4,0], freq_control 3 watchdog ticks, power_guard 2/2 hysteresis, wear 2-sample, snapshots ring 8 / 5 days, DEFAULT_BUFFER_TANK_VOLUME 35 L ~0.8 kWh over 20 K",
+   "command": "grep -nE '^(BOOST_HOURS|BIAS_MIN|BIAS_MAX|FREQ_WATCHDOG_TICKS|HYSTERESIS_SAMPLES|RING_SIZE|BIAS_TRIP_DAYS)' custom_components/heatpump_optimizer/*.py; grep -n 'max_power \\* 0.8' custom_components/heatpump_optimizer/boost.py",
+   "value": "all equal to the docstring's number"
+  },
+  {
+   "claim": "file:line citations in production comments",
+   "command": "grep -nE '[A-Za-z_/]+\\.(py|js):[0-9]+' custom_components/heatpump_optimizer/*.py",
+   "value": "2 citations (device_prefill.py:110, :151), both into the external tvofi/tuya_heat_pump repository at fda9bed -- not verifiable from this export; 0 in-repo line citations"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D5/s2/card_comment_names.mjs",
+  "tools/audit/round9/D5/s2/comment_numbers.py",
+  "tools/audit/round9/D5/s2/scan_qualified_refs.py",
+  "tools/audit/round9/D5/s2/scan_const_numbers.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "tests/hastub/homeassistant/helpers/update_coordinator.py",
+   "symbol": "DataUpdateCoordinator.__init__",
+   "what": "The stub accepts update_interval and drops it (no attribute), so no harness or test can read the cadence a coordinator was built with; comment_numbers.py had to spy on the base __init__. Upstream stores self.update_interval."
+  },
+  {
+   "owner_seat": "D7-s2",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalParameters.dhw_inlet_temp",
+   "what": "Default is a bare literal 10.0 (thermal_model.py:469) beside const.DEFAULT_DHW_INLET_TEMP=10.0 and const.DHW_COLD_WATER_TEMP=10.0: three copies of the cold-water default, one of them (DHW_COLD_WATER_TEMP) now only a default argument of dhw_coil_draw_reduction."
+  }
+ ]
+}

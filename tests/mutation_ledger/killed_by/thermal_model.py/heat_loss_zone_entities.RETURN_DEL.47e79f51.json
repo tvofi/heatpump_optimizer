@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:heat_loss_zone_entities RETURN_DEL 47e79f51",
+  "killed_by": "tests/features.py",
+  "old": "    return {key: cfg.get(key) or None for key in HEAT_LOSS_ZONE_ENTITIES}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

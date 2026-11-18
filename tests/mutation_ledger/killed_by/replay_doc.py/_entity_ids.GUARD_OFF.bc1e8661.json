@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_entity_ids GUARD_OFF bc1e8661",
+  "killed_by": "tests/entities.py",
+  "old": "    elif isinstance(node, dict):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`elif False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

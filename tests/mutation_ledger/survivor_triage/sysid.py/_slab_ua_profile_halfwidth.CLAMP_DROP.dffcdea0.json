@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth CLAMP_DROP dffcdea0",
+  "old": "        step = 1e-6 * max(abs(float(x_hat[i])), 1.0)",
+  "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: dropping `max(..., 1.0)` shrinks the finite-difference step to `1e-6 * |x_hat[i]|` for any `|x_hat[i]| < 1` (a fitted G below 1), which moves the Jacobian and the published interval in its low digits -- inside the driver's margin to the bar, which reads a comparison and never the number. An assertion on the half-width's value would pin it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
+  "verdict": "gap"
+}

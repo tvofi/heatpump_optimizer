@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_floor RETURN_DEL d7923b87",
+  "old": "        return None",
+  "reason": "Equivalent (RETURN_DEL): `return None` is the last statement of `MeasuredCop.judge_floor` (accuracy.py:674-680), so the mutant's `pass` leaves the frame to fall off the end of the function body, which returns None -- the same value on the same path. Measured over the guard's own inputs (asked and drawn each of 0.1/0.3/0.79/0.8/0.81/2.4/5.0, against min_electrical_power 1.0/2.0/0.0): the digest of all 147 answers is `c9de3e5afb05d098757ed6f9e47095b9ccdec1ad` at the tree and the same on the mutant, so no pair the guard can receive tells the two apart.",
+  "verdict": "equivalent"
+}

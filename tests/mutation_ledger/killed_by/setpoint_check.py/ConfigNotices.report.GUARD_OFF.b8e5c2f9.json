@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/setpoint_check.py:ConfigNotices.report GUARD_OFF b8e5c2f9",
+  "killed_by": "tests/features.py",
+  "old": "        if offending is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

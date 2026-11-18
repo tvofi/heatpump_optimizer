@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:choose_price_entity BOOLOP 96059945",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    if isinstance(chosen, str) and chosen in live:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: BOOLOP (`if isinstance(chosen, str) or chosen in live:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
+}

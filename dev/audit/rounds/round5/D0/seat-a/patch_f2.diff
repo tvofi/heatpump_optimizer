@@ -1,0 +1,27 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index c2a78f0..902b885 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2831,7 +2831,11 @@ class HeatPumpOptimizer:
+                 return self._optimize_with_dhw(horizon)
+             return self._optimize_space_only(horizon)
+ 
+-        result = _solve()
++        # AUDIT PERTURBATION D0-a: warm-start from the previous shipped plan
++        _prev = getattr(self, "_prev_shipped_plan", None)
++        if _prev is not None and len(_prev) != n_steps:
++            _prev = None
++        result = _solve((_prev,) if _prev is not None else None)
+ 
+         # A blocked channel is withheld from the release loop entirely. Its
+         # floor IS breached — that is the whole point, and the plan reports it
+@@ -2972,6 +2976,9 @@ class HeatPumpOptimizer:
+             result, power_caps_extra, space_blocked, dhw_blocked, n_steps,
+             temp_min_bounds,
+         )
++        # AUDIT PERTURBATION D0-a: stash for the next cycle's warm start
++        self._prev_shipped_plan = np.asarray(
++            result.power_schedule, dtype=float).copy()
+         return result
+ 
+     def _stash_price_horizon(

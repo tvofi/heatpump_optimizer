@@ -1,0 +1,64 @@
+# store constructions: 13
+SITE away.py:361:QuarantiningStore
+SITE boost.py:153:QuarantiningStore
+SITE coordinator.py:1935:QuarantiningStore
+SITE coordinator.py:2111:QuarantiningStore
+SITE coordinator.py:2172:QuarantiningStore
+SITE coordinator.py:2197:QuarantiningStore
+SITE coordinator.py:2283:QuarantiningStore
+SITE coordinator.py:2338:QuarantiningStore
+SITE coordinator.py:2350:QuarantiningStore
+SITE dhw_learning.py:103:QuarantiningStore
+SITE dhw_learning.py:122:QuarantiningStore
+SITE legionella.py:80:QuarantiningStore
+SITE pump_arbiter.py:596:QuarantiningStore
+RESULT seams_accuracy=129 count
+RESULT seams_away=3 count
+RESULT seams_boost=2 count
+RESULT seams_dhw_draws=7 count
+RESULT seams_dhw_legionella=3 count
+RESULT seams_dhw_profile=14 count
+RESULT seams_energy=8 count
+RESULT seams_ledger=28 count
+RESULT seams_manual_plan=10 count
+RESULT seams_price_model=30 count
+RESULT seams_pump_duty=4 count
+RESULT seams_snapshots=226 count
+RESULT seams_thermal_learning=45 count
+# stores seeded: 13; unread by any discovered loader: []
+WEDGE store=boost path=dhw/until failed_cycles=0/3
+WEDGE store=dhw_legionella path=last_attempt failed_cycles=3/3
+WEDGE store=dhw_legionella path=last_cycle failed_cycles=3/3
+WEDGE store=pump_duty path=written failed_cycles=0/3
+WEDGE store=pump_duty path=written/dhw_setpoint failed_cycles=0/3
+WEDGE store=snapshots path=snapshots/#/accuracy failed_cycles=0/3
+WEDGE store=snapshots path=snapshots/#/accuracy/temperature_bias failed_cycles=0/3
+WEDGE store=snapshots path=snapshots/#/learners failed_cycles=0/3
+RESULT wedge_null_control_failed_cycles=0 count
+RESULT p1_wedged_seams=2 count
+SEAM escape store=boost path=dhw/until loader boost.restore_session: TypeError subs=['"2026-01-15T20:00:00"']
+SEAM escape store=dhw_legionella path=last_attempt consumer publish: TypeError subs=['"2026-01-15T20:00:00"']
+SEAM escape store=dhw_legionella path=last_cycle consumer publish: TypeError subs=['"2026-01-15T20:00:00"']
+SEAM escape store=pump_duty path=written loader pump_arbiter._load: AttributeError subs=['"x"', '3.0']
+SEAM escape store=pump_duty path=written/dhw_setpoint loader pump_arbiter._load: KeyError subs=['{}']
+SEAM escape store=snapshots path=snapshots/#/accuracy consumer service.restore_learned_snapshot: AttributeError subs=['"x"', '3.0']
+SEAM escape store=snapshots path=snapshots/#/accuracy consumer snapshot.best_restore: AttributeError subs=['"x"', '3.0']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer service.restore_learned_snapshot: TypeError subs=['"garbage"', '{}']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer service.restore_learned_snapshot: ValueError subs=['[]']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer snapshot.best_restore: TypeError subs=['"garbage"', '{}']
+SEAM escape store=snapshots path=snapshots/#/accuracy/temperature_bias consumer snapshot.best_restore: ValueError subs=['[]']
+SEAM escape store=snapshots path=snapshots/#/learners consumer service.restore_learned_snapshot: AttributeError subs=['"x"', '3.0']
+RESULT escapes_boost=1 count
+RESULT escapes_dhw_legionella=2 count
+RESULT escapes_pump_duty=3 count
+RESULT escapes_snapshots=7 count
+RESULT store_constructions=13 count
+RESULT stores_seeded=13 count
+RESULT mutants=4027 count
+RESULT clean_fixture_escapes=0 count
+RESULT p1_escaping_mutants=13 count
+RESULT p1_escape_seams=8 count
+RESULT p1_poison_mutants=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.67
+RESULT swapins=0

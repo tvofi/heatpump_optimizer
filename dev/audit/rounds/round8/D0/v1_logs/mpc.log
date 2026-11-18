@@ -1,0 +1,17 @@
+CELL winter_typical|winter_cold prod cost=66.539 below=0.0000 pull=48.093 end=19.039 slab=23.866 nfev=10897 | ftol12 cost=62.094 below=0.0000 pull=49.139 end=18.550 slab=23.162 nfev=24918 | adj prod=69.142 ftol12=68.080 d_adj=+1.0620 SEK (+1.536%) d_raw=+4.444
+CELL winter_extreme|winter_mild prod cost=21.053 below=0.1192 pull=48.459 end=17.505 slab=20.165 nfev=12425 | ftol12 cost=20.090 below=0.5438 pull=49.519 end=17.333 slab=19.918 nfev=25964 | adj prod=34.693 ftol12=34.693 d_adj=-0.0002 SEK (-0.001%) d_raw=+0.963
+CELL shoulder|shoulder prod cost=1.877 below=0.0000 pull=27.064 end=19.535 slab=20.559 nfev=7534 | ftol12 cost=1.664 below=0.0000 pull=29.290 end=19.438 slab=20.446 nfev=14764 | adj prod=6.026 ftol12=6.117 d_adj=-0.0911 SEK (-1.512%) d_raw=+0.213
+CELL winter_narrow|winter_cold prod cost=116.008 below=0.0000 pull=55.779 end=20.091 slab=25.256 nfev=13346 | ftol12 cost=114.867 below=0.0000 pull=55.678 end=19.982 slab=25.099 nfev=35527 | adj prod=111.720 ftol12=111.165 d_adj=+0.5542 SEK (+0.496%) d_raw=+1.140
+CELL flat|winter_cold prod cost=99.351 below=0.0000 pull=56.345 end=20.983 slab=26.135 nfev=11887 | ftol12 cost=98.089 below=0.0000 pull=56.057 end=20.830 slab=26.022 nfev=34617 | adj prod=91.232 ftol12=90.800 d_adj=+0.4323 SEK (+0.474%) d_raw=+1.263
+RESULT cells=5 count
+RESULT nonflat_d_adjcost_mean=0.3812 SEK/day
+RESULT nonflat_d_adjcost_pct_mean=0.130 pct
+RESULT flat_d_adjcost_mean=0.4323 SEK/day
+RESULT cells_arm_cheaper=3 count
+RESULT cells_arm_dearer=2 count
+RESULT d_below_total=0.4246 degree_hours
+RESULT d_pull_total=3.9430 degree_hours
+RESULT nfev_total_ratio=2.421 ratio
+RESULT thread_factor=1.000
+RESULT load1=5.29
+RESULT swapins=0

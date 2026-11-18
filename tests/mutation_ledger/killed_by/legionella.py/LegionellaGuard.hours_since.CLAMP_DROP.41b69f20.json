@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.hours_since CLAMP_DROP 41b69f20",
+  "killed_by": "tests/features.py",
+  "old": "        return max(0.0, since)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

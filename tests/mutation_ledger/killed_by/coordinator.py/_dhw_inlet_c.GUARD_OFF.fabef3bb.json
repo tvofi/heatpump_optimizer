@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_dhw_inlet_c GUARD_OFF fabef3bb",
+  "killed_by": "tests/features.py",
+  "old": "    if state is None or age is None or age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES):",
+  "reason": "#1513 (R8-P8) round 2: GUARD_OFF on the inlet reader or the weather temperature_unit conversion. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `AttributeError: 'NoneType' object has no attribute 'state'` out of the production reader the #1513 section drives. Measured at 64cdb76b, 2026-09-24."
+}

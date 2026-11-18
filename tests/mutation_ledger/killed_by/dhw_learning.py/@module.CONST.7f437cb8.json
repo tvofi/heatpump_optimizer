@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:<module> CONST 7f437cb8",
+  "killed_by": "tests/features.py",
+  "old": "DHW_CHARGE_SETTLE_HOURS = 0.25",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`DHW_CHARGE_SETTLE_HOURS = 0.5`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_factory_reset RETURN_DEL f30dc257",
+  "killed_by": "tests/features.py",
+  "old": "        return self.async_abort(reason=\"factory_reset_done\" if done else \"factory_reset_not_applied\")",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

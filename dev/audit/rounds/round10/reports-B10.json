@@ -1,0 +1,126 @@
+{
+  "box": "B10",
+  "missing": [],
+  "reports": {
+    "D4-s3": {
+      "dimension": "D4",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D4/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D4.M3",
+          "depth": "spot",
+          "evidence": "m3_look.mjs + explore.mjs in Chromium 131: tile/expanded/no_plan/setup at 375/768/1280 (+1920/2560 dialog), light+dark; rendered font sizes, font families, legend dot vs series paint, empty state. Spacing tokens, headline alignment, error states and sv not measured."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D4.M3",
+          "what": "Spacing consistency against the --hpo-space scale across states, headline-number alignment across tiles/stats, error states (pin_fail, save_fail, status_fallback), and the sv language were not measured."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D4-s3-01",
+          "scope": "D4-s3",
+          "step": "D4.M3",
+          "title": "No-plan empty state shows all 8 legend chips (focusable) above the diagnosis on the inline card",
+          "severity": "low",
+          "claim": "With no plan entities (hass.states={}), the inline card renders 8 visible, focusable legend chips for series that do not exist, while the expanded dialog in the same state renders 0.",
+          "evidence": {
+            "command": "HPO_PLANDATA=$TMPDIR/d4s3-plandata.json NODE_PATH=<pw>/node_modules HPO_CHROMIUM=<chromium> node dev/audit/rounds/round10/D4/s3/m3_look.mjs",
+            "harness_path": "dev/audit/rounds/round10/D4/s3/m3_look.mjs",
+            "value": 8,
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B10 macOS, Chromium 131 (chromium-1148), playwright 1.56.1",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, load1 21-29; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 21.12,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:HeatPumpOptimizerCard._render (const legend = savingsTile ? \"\" : this.legend.html(...))",
+          "perturbation": {
+            "change": "--perturb=legend: the line becomes `savingsTile || !anyData ? \"\" : this.legend.html(`",
+            "expected_direction": "empty_state_chips 8 -> 0 (measured 0)"
+          },
+          "metric_definition": "Count of `.legend .chip` elements with a client rect in the card shadow root when hass.states is empty; control: same count inside the open dialog (0).",
+          "phenomenon_property": "A chart-only control (legend chip) is rendered when no chart is rendered; the inline and dialog paths gate the legend differently on anyData.",
+          "seam_rule": "grep -n 'this.legend.html(' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js  (every call site must gate on anyData)",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "proposed_fix_scope": "Gate the inline legend on anyData as the dialog already does (one line in _render)."
+        },
+        {
+          "id": "D4-s3-02",
+          "scope": "D4-s3",
+          "step": "D4.M3",
+          "title": "Expanded dialog chart and setup-diagram text render larger than the dialog title",
+          "severity": "low",
+          "claim": "In the expanded dialog the largest chart SVG text renders at 1.104x the dialog title at 1280 px and 1.112x at 1920/2560, and the setup diagram text at 1.190/1.198x, inverting the heading hierarchy.",
+          "evidence": {
+            "command": "HPO_PLANDATA=$TMPDIR/d4s3-plandata.json NODE_PATH=<pw>/node_modules HPO_CHROMIUM=<chromium> node dev/audit/rounds/round10/D4/s3/m3_look.mjs",
+            "harness_path": "dev/audit/rounds/round10/D4/s3/m3_look.mjs",
+            "value": 1.112,
+            "unit": "ratio (max svg text px / dialog title px, plan page, 1920)",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B10 macOS, Chromium 131 (chromium-1148), playwright 1.56.1",
+            "cpu_or_wall": "ratio",
+            "contention_note": "shared box, load1 21-29; geometry ratio is contention-immune",
+            "tolerance": "±0.02",
+            "load1": 21.12,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:chartFontUnits / FONT_EXPANDED (chart font in _chartBlock)",
+          "perturbation": {
+            "change": "--perturb=font: `const font = Math.min(chartFontUnits(drawnWidth, expanded ? FONT_EXPANDED : FONT_BASE), drawnWidth ? 13 * VIEW_W / drawnWidth : Infinity);`",
+            "expected_direction": "plan ratio down below 1 (measured 0.884 at 1280, 0.889 at 1920/2560); setup seam unchanged at 1.19"
+          },
+          "metric_definition": "max over visible <text> in the dialog's chart (or setup) svg of computed fontSize x getScreenCTM().a, divided by the dialog .title computed font-size.",
+          "phenomenon_property": "Dialog SVG text is sized in viewBox units with no px ceiling relative to the HTML chrome, so it scales past the dialog's heading.",
+          "seam_rule": "grep -n 'viewBox=\"0 0 ${' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js  (each dialog svg whose text is in viewBox units)",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "proposed_fix_scope": "Cap rendered dialog svg text (chart and setup diagram) below the dialog title size, in the same place the floor is computed."
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Legend dot colour equals the series' painted stroke/fill for every drawn series, light and dark; the dashed solar series gets a dashed swatch",
+          "command": "VW=1280 HPO_PLANDATA=... NODE_PATH=... node dev/audit/rounds/round10/D4/s3/explore.mjs (also VW=375, 768)",
+          "value": "7/7 equal per theme (e.g. price rgb(74,58,167) light, rgb(144,133,233) dark)"
+        },
+        {
+          "claim": "All card text uses one inherited font family; only the diagnostic entity ids use monospace (<code>)",
+          "command": "same explore.mjs",
+          "value": "families {Arial, monospace(4 code runs in no_plan)}"
+        },
+        {
+          "claim": "Tile chart text keeps the 8 px rendered floor on a phone",
+          "command": "VW=375 ... explore.mjs",
+          "value": "8.0 px min rendered svg text at 375"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D4/s3/m3_look.mjs",
+        "dev/audit/rounds/round10/D4/s3/explore.mjs"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D4-s3",
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "symbol": "cardStyleBlock (var(--hpo-text-sm, 14px))",
+          "what": "3 uses fall back to 14px while CARD_SCALE_TOKENS declares --hpo-text-sm as 13px; unmeasured, only bites if the :host declaration is absent"
+        }
+      ]
+    }
+  }
+}

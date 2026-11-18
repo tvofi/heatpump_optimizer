@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/const.py:buffer_tank_surface_area CLAMP_DROP 19215d1f",
+  "killed_by": "tests/features.py",
+  "old": "    volume_m3 = max(volume, 1e-6) / 1000.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`volume_m3 = (volume) / 1000.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

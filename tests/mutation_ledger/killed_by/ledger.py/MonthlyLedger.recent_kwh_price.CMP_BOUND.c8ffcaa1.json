@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.recent_kwh_price CMP_BOUND c8ffcaa1",
+  "killed_by": "tests/features.py",
+  "old": "        fee = sum(f[\"sek\"] for f in fees) / fee_kwh if fee_kwh > 0 else 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`fee = sum(f[\"sek\"] for f in fees) / fee_kwh if fee_kwh >= 0 else 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

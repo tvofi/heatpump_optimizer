@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_differs GUARD_OFF 7f522a98",
+  "killed_by": "tests/features.py",
+  "old": "    if slot == \"mode\":",
+  "reason": "pump-duty arbiter revision; `if slot == \"mode\":` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

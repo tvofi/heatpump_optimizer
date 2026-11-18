@@ -1,0 +1,60 @@
+one|0|shoulder|winter_cold arm prod  realized_J    50.4853  energy  147.029 SEK  viol 0.000  starts 8  cpu 347.5s
+    per day SEK/kWh: d1 39.13/60.9  d2 36.32/57.4  d3 35.71/56.6  d4 35.87/56.8  end room 19.06 slab 27.79 upper 19.06 lower 19.06 dhw 48.0
+one|0|shoulder|winter_cold arm open  realized_J    48.7636  energy  151.949 SEK  viol 0.000  starts 15  cpu 10.6s
+    per day SEK/kWh: d1 37.87/59.3  d2 39.04/60.8  d3 37.72/59.2  d4 37.31/58.6  end room 20.03 slab 26.81 upper 20.03 lower 20.03 dhw 48.0
+RESULT realized_excess_prod_over_open_shoulder=3.5307 %  (J 1.7217; energy -4.920 SEK)
+RESULT settled_objective_excess_prod_over_daily_shoulder=0.3513 %  (+0.567 units: money+settle 155.46 vs 156.16, comfort penalty+pull 6.58 vs 5.31)
+RESULT settled_excess_prod_over_daily_shoulder=-0.4506 %  (-0.704 SEK over 4 d: money 147.03 vs 151.95, settle 8.43 vs 4.21, room mean 19.56 vs 19.78, viol 0.000 vs 0.000)
+RESULT lastday_excess_prod_over_daily_shoulder=-3.8576 %  (-1.439 SEK on 37.31; kWh 56.8 vs 58.6)
+RESULT realized_gap_prod_minus_open_shoulder=3.4103 %  (energy -4.920 SEK)
+one|0|winter_narrow|winter_cold arm prod  realized_J   103.1677  energy  308.725 SEK  viol 0.000  starts 8  cpu 240.0s
+    per day SEK/kWh: d1 73.52/50.0  d2 78.50/53.6  d3 78.31/53.5  d4 78.40/53.5  end room 17.90 slab 26.59 upper 17.90 lower 17.90 dhw 48.0
+one|0|winter_narrow|winter_cold arm open  realized_J   103.1362  energy  311.714 SEK  viol 0.000  starts 8  cpu 3.0s
+    per day SEK/kWh: d1 74.92/51.0  d2 79.12/54.0  d3 78.91/53.8  d4 78.76/53.7  end room 18.05 slab 26.76 upper 18.05 lower 18.05 dhw 48.0
+RESULT realized_excess_prod_over_open_winter_narrow=0.0305 %  (J 0.0315; energy -2.989 SEK)
+RESULT settled_objective_excess_prod_over_daily_winter_narrow=0.0370 %  (+0.130 units: money+settle 334.01 vs 335.23, comfort penalty+pull 17.09 vs 15.75)
+RESULT settled_excess_prod_over_daily_winter_narrow=-0.3618 %  (-1.213 SEK over 4 d: money 308.72 vs 311.71, settle 25.29 vs 23.51, room mean 18.54 vs 18.64, viol 0.000 vs 0.000)
+RESULT lastday_excess_prod_over_daily_winter_narrow=-0.4531 %  (-0.357 SEK on 78.76; kWh 53.5 vs 53.7)
+RESULT realized_gap_prod_minus_open_winter_narrow=0.0305 %  (energy -2.989 SEK)
+RESULT thread_factor=1.000
+RESULT load1=5.99
+one|0|winter_extreme|winter_cold arm prod  realized_J    83.2668  energy  249.494 SEK  viol 0.000  starts 11  cpu 442.7s
+    per day SEK/kWh: d1 53.94/49.0  d2 66.96/56.2  d3 63.29/54.2  d4 65.30/55.3  end room 17.63 slab 25.97 upper 17.63 lower 17.63 dhw 48.0
+one|0|winter_extreme|winter_cold arm open  realized_J    80.7406  energy  234.213 SEK  viol 0.000  starts 10  cpu 8.4s
+    per day SEK/kWh: d1 41.40/42.0  d2 61.90/53.4  d3 65.16/55.2  d4 65.75/55.5  end room 16.99 slab 23.48 upper 16.99 lower 16.99 dhw 48.0
+RESULT realized_excess_prod_over_open_winter_extreme=3.1288 %  (J 2.5262; energy 15.281 SEK)
+RESULT settled_objective_excess_prod_over_daily_winter_extreme=-2.0836 %  (-6.172 units: money+settle 274.27 vs 271.24, comfort penalty+pull 15.77 vs 24.96)
+RESULT settled_excess_prod_over_daily_winter_extreme=1.1142 %  (+3.022 SEK over 4 d: money 249.49 vs 234.21, settle 24.77 vs 37.03, room mean 18.66 vs 18.08, viol 0.000 vs 0.000)
+RESULT lastday_excess_prod_over_daily_winter_extreme=-0.6946 %  (-0.457 SEK on 65.75; kWh 55.3 vs 55.5)
+RESULT realized_gap_prod_minus_open_winter_extreme=3.0339 %  (energy 15.281 SEK)
+one|0|winter_moderate|winter_cold arm prod  realized_J    76.2958  energy  224.688 SEK  viol 0.000  starts 5  cpu 244.6s
+    per day SEK/kWh: d1 54.62/52.4  d2 56.70/54.0  d3 56.70/54.0  d4 56.66/54.0  end room 17.57 slab 25.92 upper 17.57 lower 17.57 dhw 48.0
+one|0|winter_moderate|winter_cold arm open  realized_J    75.9051  energy  216.372 SEK  viol 0.000  starts 10  cpu 12.6s
+    per day SEK/kWh: d1 41.10/42.0  d2 59.93/56.5  d3 55.65/53.2  d4 59.70/56.3  end room 17.20 slab 24.60 upper 17.20 lower 17.20 dhw 48.0
+RESULT realized_excess_prod_over_open_winter_moderate=0.5147 %  (J 0.3907; energy 8.316 SEK)
+RESULT settled_objective_excess_prod_over_daily_winter_moderate=-2.4232 %  (-6.487 units: money+settle 246.83 vs 244.40, comfort penalty+pull 14.39 vs 23.30)
+RESULT settled_excess_prod_over_daily_winter_moderate=0.9932 %  (+2.427 SEK over 4 d: money 224.69 vs 216.37, settle 22.14 vs 28.03, room mean 18.78 vs 18.17, viol 0.000 vs 0.000)
+RESULT lastday_excess_prod_over_daily_winter_moderate=-5.0836 %  (-3.035 SEK on 59.70; kWh 54.0 vs 56.3)
+RESULT realized_gap_prod_minus_open_winter_moderate=0.5121 %  (energy 8.316 SEK)
+RESULT thread_factor=1.000
+RESULT load1=4.86
+one|0|winter_typical|winter_cold arm prod  realized_J    62.1359  energy  184.578 SEK  viol 0.000  starts 11  cpu 316.1s
+    per day SEK/kWh: d1 38.61/48.5  d2 48.66/58.2  d3 48.28/57.8  d4 49.02/58.4  end room 18.09 slab 24.55 upper 18.09 lower 18.09 dhw 48.0
+one|0|winter_typical|winter_cold arm open  realized_J    60.1043  energy  157.683 SEK  viol 0.000  starts 8  cpu 9.9s
+    per day SEK/kWh: d1 23.28/36.0  d2 43.32/55.5  d3 45.80/57.6  d4 45.29/57.2  end room 16.69 slab 21.07 upper 16.69 lower 16.69 dhw 48.0
+RESULT realized_excess_prod_over_open_winter_typical=3.3802 %  (J 2.0316; energy 26.895 SEK)
+RESULT settled_objective_excess_prod_over_daily_winter_typical=-2.4236 %  (-5.340 units: money+settle 204.55 vs 193.15, comfort penalty+pull 10.43 vs 27.18)
+RESULT settled_excess_prod_over_daily_winter_typical=5.9059 %  (+11.407 SEK over 4 d: money 184.58 vs 157.68, settle 19.98 vs 35.46, room mean 18.98 vs 17.97, viol 0.000 vs 0.000)
+RESULT lastday_excess_prod_over_daily_winter_typical=8.2539 %  (+3.738 SEK on 45.29; kWh 58.4 vs 57.2)
+RESULT realized_gap_prod_minus_open_winter_typical=3.2697 %  (energy 26.895 SEK)
+one|0|flat|winter_cold arm prod  realized_J    92.0866  energy  258.603 SEK  viol 0.000  starts 7  cpu 353.3s
+    per day SEK/kWh: d1 75.81/63.2  d2 61.84/51.5  d3 61.20/51.0  d4 59.75/49.8  end room 19.30 slab 29.19 upper 19.30 lower 19.30 dhw 48.0
+one|0|flat|winter_cold arm open  realized_J    82.4633  energy  252.647 SEK  viol 0.000  starts 7  cpu 11.4s
+    per day SEK/kWh: d1 68.99/57.5  d2 60.88/50.7  d3 61.31/51.1  d4 61.47/51.2  end room 19.27 slab 26.81 upper 19.27 lower 19.27 dhw 48.0
+RESULT realized_excess_prod_over_open_flat=11.6697 %  (J 9.6232; energy 5.956 SEK)
+RESULT settled_objective_excess_prod_over_daily_flat=1.5310 %  (+4.296 units: money+settle 269.69 vs 263.95, comfort penalty+pull 15.21 vs 16.66)
+RESULT settled_excess_prod_over_daily_flat=2.1777 %  (+5.748 SEK over 4 d: money 258.60 vs 252.65, settle 11.09 vs 11.30, room mean 18.91 vs 18.73, viol 0.000 vs 0.000)
+RESULT lastday_excess_prod_over_daily_flat=-2.8037 %  (-1.723 SEK on 61.47; kWh 49.8 vs 51.2)
+RESULT realized_gap_prod_minus_open_flat=10.4502 %  (energy 5.956 SEK)
+RESULT thread_factor=1.000
+RESULT load1=5.11

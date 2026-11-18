@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_plateau_aware_topk_sum_batch CMP_BOUND c1441c77",
+  "old": "    n_at_peak = np.sum(x >= peak[:, None] - _PEAK_TIE_BAND, axis=1)",
+  "reason": "R10-TARIFF (#2282): The batch tie count `x >= peak - _PEAK_TIE_BAND`, moved out of peak_cost_batch by 01b (at base: `chargeable >= peak[:, None] - _PEAK_TIE_BAND`, unpinned). `>=` -> `>` differs only for a window exactly at peak - 1e-3 in float, which no driver constructs; there the window would leave the tie count and the row could take the exact arm instead of the smooth one. That is a real if measure-zero difference, so it is a gap, not an equivalence. Pre-existing: the base's spelling of the same comparison was unpinned. Survival measured by CI's mutation-pins run 38796525102 at f09549085: no driver killed it.",
+  "verdict": "gap"
+}

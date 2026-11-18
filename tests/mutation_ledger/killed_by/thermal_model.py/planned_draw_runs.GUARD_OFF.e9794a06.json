@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:planned_draw_runs GUARD_OFF e9794a06",
+  "killed_by": "tests/features.py",
+  "old": "    if below_floor:",
+  "reason": "Recorded by applying the mutant on this branch: GUARD_OFF (`if False:`) leaves planned_draw_runs(0.3, modulation_floor=3.0) True, and tests/features.py expects False. `mutation_table.py --pin-killed` records no verdict on this machine because tests/features.py's baseline is red on R9-F2.1 P3, the same pair origin/main fails."
+}

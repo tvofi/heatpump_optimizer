@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_stage_box CLAMP_DROP 60ed0d0d",
+  "old": "        hi = np.minimum(hi, np.maximum(p_max - other, 0.0))",
+  "reason": "Survived tests/features.py, the one driver run, under `mutation_table.py --pin-killed --scripts tests/features.py` at 3f0149a81b (R11-OUTSIDE-HONEST-STARTS-RUNS, repair round 4; pull request 3602, the build of Bankaifan's pull request 3529); the other drivers of the file's closure were not run. The stage box's tank room: the space cap less what the tank draws, never under zero. The block's solves beside hot water never hand the stage a cap above that room, so dropping either clamp moves no candidate. A killing check is in R11-OUTSIDE-HONEST-STARTS-RUNS-P2's brief (item i).",
+  "verdict": "gap"
+}

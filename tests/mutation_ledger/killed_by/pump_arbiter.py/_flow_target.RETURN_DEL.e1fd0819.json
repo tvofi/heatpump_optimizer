@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_flow_target RETURN_DEL e1fd0819",
+  "killed_by": "tests/features.py",
+  "old": "    return _bounded(inp, \"space_setpoint\", hold, _gate_floor_c(inp.config))",
+  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (gate fix, over e0d2751f6): RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4991 to rc=1 failed=12 of 4991: every baseline-hold check (the rated 35 degC, the curve above it, the ceiling cap, and the return target's hold less the rated spread, D5) reads None."
+}

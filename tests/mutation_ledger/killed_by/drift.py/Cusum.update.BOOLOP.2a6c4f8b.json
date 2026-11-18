@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/drift.py:Cusum.update BOOLOP 2a6c4f8b",
+  "killed_by": "tests/features.py",
+  "old": "        if not (np.isfinite(residual) and all(np.isfinite(x) for x in regressors)):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cb93535d88a9fcf7ba5a8eb0ec66d8be116e672b: BOOLOP (`if not (np.isfinite(residual) or all(np.isfinite(x) for x in regressors)):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

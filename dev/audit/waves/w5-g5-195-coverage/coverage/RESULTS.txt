@@ -1,0 +1,7 @@
+RESULT coverage_total_pct=91.9 pct
+RESULT coverage_statements=14295 count
+RESULT coverage_missing=1151 count
+RESULT coverage_climate_pct=100.0 pct (climate.py 150 statements, 0 missed)
+RESULT coverage_open_meteo_pct=100.0 pct (open_meteo.py 201 statements, 0 missed)
+RESULT coverage_frontend_pct=100.0 pct (frontend.py 82 statements, 0 missed)
+RESULT wall_s=476 s

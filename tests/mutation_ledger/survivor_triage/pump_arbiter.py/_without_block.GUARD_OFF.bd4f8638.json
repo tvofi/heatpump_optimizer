@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_without_block GUARD_OFF bd4f8638",
+  "old": "    if space and dhw:",
+  "reason": "Equivalent (GUARD_OFF). `if space and dhw` is not reached while a block is set, because one flag is then false, and it is not reached while no block is set, because the function has already returned the duty unchanged. The body never runs. if False is the same.",
+  "verdict": "equivalent"
+}

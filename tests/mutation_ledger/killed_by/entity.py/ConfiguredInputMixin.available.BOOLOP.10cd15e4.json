@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:ConfiguredInputMixin.available BOOLOP 10cd15e4",
+  "killed_by": "tests/entities.py",
+  "old": "        return bool(super().available and self.entity_registry_enabled_default)",
+  "reason": "added by R8-P2 (#1542 widened). `and` -> `or` in ConfiguredInputMixin.available lights every input-gated entity regardless of its input, and after a failed refresh: tests/entities.py fails `and none of them is available after a failed coordinator refresh`, the ordinary-install dead-roster check and `an input-gated entity is off and unavailable with its input unconfigured`, 12 -> 15 failed. Measured at 3568643c on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+}

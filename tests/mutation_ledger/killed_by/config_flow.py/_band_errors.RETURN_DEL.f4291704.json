@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_band_errors RETURN_DEL f4291704",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    return comfort_band.errors(candidate, current)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=15."
+}

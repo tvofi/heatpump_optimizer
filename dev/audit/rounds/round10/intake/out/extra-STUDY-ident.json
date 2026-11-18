@@ -1,0 +1,87 @@
+{
+  "dimension": "D2",
+  "baseline_sha": "a77faf30d",
+  "findings": [
+    {
+      "id": "R10-ID-01",
+      "step": "D2.M5",
+      "severity": "medium",
+      "stop_rule_class": "bug",
+      "class_guess": "new",
+      "title": "Heat-loss learners absorb solar-model error: UA bias +0.094 to +0.254 per unit aperture error over 6 plants",
+      "claim": "the heat-loss learners absorb solar-model error.",
+      "instrumented_symbol": "coordinator:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss and _async_learn_lower_floor_loss",
+      "metric_definition": "effective house UA / truth - 1, mean of the last 7 of 42 days.",
+      "evidence": {
+        "command": "dev/audit/rounds/round10/study-ident/run_q1.sh OUTDIR; python3 dev/audit/rounds/round10/study-ident/collect_q1.py OUTDIR",
+        "harness_path": "dev/audit/rounds/round10/study-ident/ident_rolling.py",
+        "value": "slope +0.094 to +0.254 per unit aperture error over 6 plants; leave-one-out +0.161 to +0.254",
+        "unit": "relative UA error per unit relative aperture error",
+        "baseline_sha": "a77faf30d",
+        "cpu_or_wall": "ratio",
+        "thread_factor": 1.0
+      },
+      "null_control": {
+        "command": "flat irradiance arm of run_q1.sh",
+        "value": "spread 0.0000"
+      },
+      "perturbation": {
+        "change": "night-only folding",
+        "expected_direction": "down",
+        "observed_value": "spread <= 0.0001"
+      },
+      "phenomenon_property": "a learner must not fold a residual containing an unmodelled regressor whose mean is not zero",
+      "seam_rule": "grep -n \"_replay_interval(\" custom_components/heatpump_optimizer/coordinator.py",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "proposed_fix_scope": "G-ID-1: heat-loss learners fold night intervals only (coordinator.py, const.py)",
+      "missing_in_source": [
+        "evidence.machine",
+        "evidence.contention_note",
+        "evidence.tolerance",
+        "evidence.load1"
+      ]
+    },
+    {
+      "id": "R10-ID-02",
+      "step": "D2.M5",
+      "severity": "high",
+      "stop_rule_class": "bug",
+      "class_guess": "new",
+      "title": "Open-window detector trips on model bias and freezes every learner: 15-19 % of intervals at delivery 0.4, 0 at 1.0",
+      "claim": "the open-window detector trips on model bias and freezes every learner, including the ones that would remove the bias.",
+      "instrumented_symbol": "_vent_cusum.update, reached through _async_learn_house_heat_loss",
+      "metric_definition": "share of intervals tripped.",
+      "evidence": {
+        "command": "dev/audit/rounds/round10/study-ident/run_q1.sh OUTDIR",
+        "harness_path": "dev/audit/rounds/round10/study-ident/ident_rolling.py",
+        "value": "15-19 % tripped at delivery 0.4, 0 % at 1.0 (windows closed); owner install figure cited by commit 4f2d513c9",
+        "unit": "share of intervals",
+        "baseline_sha": "a77faf30d",
+        "cpu_or_wall": "ratio",
+        "thread_factor": 1.0
+      },
+      "null_control": {
+        "command": "--delivery 1.0",
+        "value": "0.000 on 6 plants"
+      },
+      "perturbation": {
+        "change": "--delivery 1.0",
+        "expected_direction": "to_zero"
+      },
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "proposed_fix_scope": "G-ID-2: ventilation detector distinguishes bias from an open window",
+      "missing_in_source": [
+        "phenomenon_property",
+        "seam_rule",
+        "evidence.machine",
+        "evidence.contention_note",
+        "evidence.tolerance",
+        "evidence.load1"
+      ]
+    }
+  ]
+}

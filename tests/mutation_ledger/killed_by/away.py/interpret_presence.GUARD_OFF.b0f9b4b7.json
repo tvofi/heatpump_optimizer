@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:interpret_presence GUARD_OFF b0f9b4b7",
+  "killed_by": "tests/features.py",
+  "old": "            if value in _TOGGLE_ON_STATES:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

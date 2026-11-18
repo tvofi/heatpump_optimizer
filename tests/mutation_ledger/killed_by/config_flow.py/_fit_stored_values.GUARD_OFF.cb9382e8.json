@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_fit_stored_values GUARD_OFF cb9382e8",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "            if inner_widened:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

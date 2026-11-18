@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:gchv_fits_pump GUARD_OFF fb5eee6a",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if days is None or any(len(day) != 1 for day in days):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=3."
+}

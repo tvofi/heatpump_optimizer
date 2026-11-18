@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:plan_promise GUARD_OFF bfbe77e7",
+  "killed_by": "tests/features.py",
+  "old": "        if dhw:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6be88834e8c4658b3e4832cd24c00aa97b3da2d3: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

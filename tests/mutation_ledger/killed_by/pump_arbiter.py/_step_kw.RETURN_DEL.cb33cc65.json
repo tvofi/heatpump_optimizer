@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_step_kw RETURN_DEL cb33cc65",
+  "killed_by": "tests/features.py",
+  "old": "    return finite_float(_planned_room(result, now, \"power_schedule\"))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+}

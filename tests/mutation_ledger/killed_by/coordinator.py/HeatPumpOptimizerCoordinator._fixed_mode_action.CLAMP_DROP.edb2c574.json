@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fixed_mode_action CLAMP_DROP edb2c574",
+  "killed_by": "tests/features.py",
+  "old": "                           \"displace_value\": min(4.0, self._ecl110_displace_max),",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c5e1be1967de4b1d29b203aaf73162046dc85bd1: CLAMP_DROP (`\"displace_value\": (4.0),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:peak_cost_batch GUARD_OFF bdb18df9",
+  "old": "    if above.size == 0:",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); the nothing-chargeable guard. With it off, an all-below-threshold batch flows on as an empty `chargeable` matrix and every downstream reduction over zero rows returns empty arrays, so `out[above]` assigns nothing and the batch still prices as zeros -- measured directly (probe in this PR's triage: `[0. 0. 0.]`). Equivalent. Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

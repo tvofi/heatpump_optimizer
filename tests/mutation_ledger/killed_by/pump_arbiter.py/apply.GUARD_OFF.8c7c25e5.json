@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:apply GUARD_OFF 8c7c25e5",
+  "killed_by": "tests/features.py",
+  "old": "        if inp.entry_released:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7428d87af49bf0f1d827feedc7f1a4a953b179ff: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Re-measured on a git-archive export of 13a82a9d, 2026-10-05: `an apply queued before the unload arms no listener and writes nothing after it (D1-s3-02); a live coordinator re-arms both (null control)` fails, against the export baseline's two artefacts (#363 recorded_at, R9-F2.1 P3). Re-keyed by R9-EG-B6 (#1739): the collaborator-interface rename made the line `        if getattr(coord, \"_entry_released\", False):` into `        if inp.entry_released:`."
+}

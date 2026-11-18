@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/topology.py:_advisor_edge_params RETURN_DEL f181ca3e",
+  "killed_by": "tests/env_drift.py",
+  "old": "    return dataclass_replace(params, buffer_cooling_rate=value)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=10."
+}

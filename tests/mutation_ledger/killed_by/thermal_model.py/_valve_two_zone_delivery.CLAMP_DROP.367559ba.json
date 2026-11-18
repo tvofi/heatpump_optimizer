@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CLAMP_DROP 367559ba",
+  "killed_by": "tests/features.py",
+  "old": "        max(wood_temp, T_buf)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`(wood_temp)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

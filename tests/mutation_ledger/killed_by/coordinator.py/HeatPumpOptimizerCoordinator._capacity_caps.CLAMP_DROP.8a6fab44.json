@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps CLAMP_DROP 8a6fab44",
+  "killed_by": "tests/features.py",
+  "old": "            cap_i = float(np.clip(power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i), floor, p_max))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`cap_i = float((power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i)))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

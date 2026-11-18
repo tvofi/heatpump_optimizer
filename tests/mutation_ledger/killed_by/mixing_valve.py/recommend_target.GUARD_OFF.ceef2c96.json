@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/mixing_valve.py:recommend_target GUARD_OFF ceef2c96",
+  "killed_by": "tests/features.py",
+  "old": "    if price_ratio is not None and price_ratio > 0.9:",
+  "reason": "Recorded by `mutation_table.py --drain` against 15f0b5924f3c2a75befe984d156cb3e602effd2e: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

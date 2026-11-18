@@ -1,0 +1,7 @@
+id	site	rc	failed	load1_start	load1_end	seconds
+NULL		0		2.96	4.08	1520
+M08	custom_components/heatpump_optimizer/coordinator.py:6522	0		3.99	3.86	1442
+M01	custom_components/heatpump_optimizer/optimizer.py:5541	0		3.79	6.10	1613
+M03	custom_components/heatpump_optimizer/optimizer.py:5557	0		6.10	3.79	1654
+M35	custom_components/heatpump_optimizer/ledger.py:306	0		3.79	3.05	1438
+M26	custom_components/heatpump_optimizer/snapshots.py:239	0		3.29	5.09	1462

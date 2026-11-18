@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.record_setpoint_override BOOLOP 1b2d9dbb",
+  "killed_by": "tests/features.py",
+  "old": "        relative = spot / mean_price if spot is not None and mean_price > 1e-6 else 1.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0570b86e9351dfeda88d630093cfe4d442a6d664: BOOLOP (`relative = spot / mean_price if spot is not None or mean_price > 1e-6 else 1.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

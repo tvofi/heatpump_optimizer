@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._solve_objectives RETURN_DEL ac696c3f",
+  "killed_by": "tests/doc_claims.py",
+  "old": "        return _space_traj, objective, objective_batch, energy_cost_of",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d: RETURN_DEL (`pass`) took tests/doc_claims.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,145 @@
+[
+ {
+  "key": "custom_components/heatpump_optimizer/coordinator.py:7743:BOOLOP",
+  "drivers": 10,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/coordinator.py:5202:GUARD_OFF",
+  "drivers": 10,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/sensor.py:1864:RETURN_DEL",
+  "drivers": 7,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/coordinator.py:8708:GUARD_OFF",
+  "drivers": 10,
+  "killed": 1,
+  "kills": [
+   "tests/structure.py(rc=2 fails=0 base_rc=0 base_f=0)"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/legionella.py:528:GUARD_OFF",
+  "drivers": 10,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/away.py:520:BOOLOP",
+  "drivers": 10,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/optimizer.py:5783:GUARD_OFF",
+  "drivers": 12,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/open_meteo.py:149:GUARD_OFF",
+  "drivers": 11,
+  "killed": 1,
+  "kills": [
+   "tests/open_meteo.py(rc=1 fails=1 base_rc=0 base_f=0)"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/sensor.py:1197:RETURN_DEL",
+  "drivers": 7,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/name_match.py:351:RETURN_DEL",
+  "drivers": 6,
+  "killed": 2,
+  "kills": [
+   "tests/config_flow_steps.py(rc=1 fails=5 base_rc=0 base_f=0)",
+   "tests/structure.py(rc=1 fails=1 base_rc=0 base_f=0)"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/config_flow.py:522:RETURN_DEL",
+  "drivers": 6,
+  "killed": 1,
+  "kills": [
+   "tests/config_flow_steps.py(rc=1 fails=1 base_rc=0 base_f=0)"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/optimizer.py:3131:GUARD_OFF",
+  "drivers": 12,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/optimizer.py:6377:CLAMP_DROP",
+  "drivers": 12,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/config_flow.py:846:GUARD_OFF",
+  "drivers": 6,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/coordinator.py:5960:CLAMP_DROP",
+  "drivers": 10,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/dhw_schedule.py:116:RETURN_DEL",
+  "drivers": 12,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/sysid.py:729:GUARD_OFF",
+  "drivers": 10,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/thermal_model.py:155:GUARD_OFF",
+  "drivers": 12,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/legionella.py:531:GUARD_OFF",
+  "drivers": 10,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/sensor.py:2547:GUARD_OFF",
+  "drivers": 7,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/dhw_draws.py:165:GUARD_OFF",
+  "drivers": 12,
+  "killed": 0,
+  "kills": []
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/presets.py:291:RETURN_DEL",
+  "drivers": 6,
+  "killed": 1,
+  "kills": [
+   "tests/config_flow_steps.py(rc=1 fails=0 base_rc=0 base_f=0)"
+  ]
+ }
+]

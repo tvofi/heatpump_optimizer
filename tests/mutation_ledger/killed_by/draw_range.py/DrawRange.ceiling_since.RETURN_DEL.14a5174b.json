@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange.ceiling_since RETURN_DEL 14a5174b",
+  "killed_by": "tests/features.py",
+  "old": "        return self.ceiling[-1][1] if self.ceiling else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}

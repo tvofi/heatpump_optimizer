@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:BoostState._expire_one CMP_BOUND 78bb1ce3",
+  "old": "        elif utc_elapsed_seconds(end, now) > lead.total_seconds():",
+  "reason": "Equivalent (CMP_BOUND, `>` to `>=`). The arms differ only when utc_elapsed_seconds(end, now) equals lead.total_seconds(). The body then assigns utc_shift(now, lead), which is the instant end already is, so the slot's value does not change. tests/block_duty.py clamps a block five hours ahead, which is the strict side both operators take.",
+  "verdict": "equivalent"
+}

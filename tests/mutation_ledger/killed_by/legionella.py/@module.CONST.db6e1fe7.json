@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:<module> CONST db6e1fe7",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "LEGIONELLA_STORE_VERSION = 1",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 03ba7f70f007147bda32ac0fc5dd83b11499bbaf: CONST (`LEGIONELLA_STORE_VERSION = 2`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_snow_memory CLAMP_DROP a959aba6",
+  "killed_by": "tests/features.py",
+  "old": "            dt_true = max(0.0, utc_elapsed_seconds(now, last) / 3600.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 787fe137cc72c77188a54a5125dc351c95ba84b3: CLAMP_DROP (`dt_true = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:freeze_month_report CMP_BOUND 9ccdc7b1",
+  "old": "                abs(reason_kwh - raw_spot[\"kwh\"]) <= 0.05",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Moving the tolerance bound flips reasons_reconcile only for a month whose reason lines differ from the raw spot energy by exactly 0.05 kWh. The partition flag is published, not asserted, and tests/features.py's UX-6 fixtures reconcile at 0 or well inside the band; no recorded driver builds an exactly-0.05 month.",
+  "verdict": "gap"
+}

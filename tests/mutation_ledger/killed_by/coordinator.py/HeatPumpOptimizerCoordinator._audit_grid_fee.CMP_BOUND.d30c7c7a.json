@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._audit_grid_fee CMP_BOUND d30c7c7a",
+  "killed_by": "tests/features.py",
+  "old": "        notices.report(self.hass, \"grid_fee_sign\", lowest if lowest < 0.0 else None, {",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: CMP_BOUND (`notices.report(self.hass, \"grid_fee_sign\", lowest if lowest <= 0.0 else None, {`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

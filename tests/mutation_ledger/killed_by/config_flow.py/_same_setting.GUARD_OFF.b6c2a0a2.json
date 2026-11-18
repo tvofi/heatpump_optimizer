@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_same_setting GUARD_OFF b6c2a0a2",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    if isinstance(posted, str) and isinstance(stored, (int, float)):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

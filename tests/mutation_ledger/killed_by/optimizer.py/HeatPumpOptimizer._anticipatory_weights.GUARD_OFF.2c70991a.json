@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._anticipatory_weights GUARD_OFF 2c70991a",
+  "killed_by": "tests/env_drift.py",
+  "old": "            if future_loss > 1.1:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+}

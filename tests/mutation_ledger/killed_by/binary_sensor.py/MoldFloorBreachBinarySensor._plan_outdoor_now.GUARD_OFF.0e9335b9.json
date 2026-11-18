@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now GUARD_OFF 0e9335b9",
+  "killed_by": "tests/entities.py",
+  "old": "            if start is None or end is None:",
+  "reason": "the #1495 breach sensor's step-label guard. `if start is None or end is None:` -> `if False:` hands an unparsed label to dt_util.as_utc on the arm `a plan step with no parseable label publishes no floor`: rc=0 -> rc=1 (AttributeError: 'NoneType' object has no attribute 'tzinfo'). Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+}

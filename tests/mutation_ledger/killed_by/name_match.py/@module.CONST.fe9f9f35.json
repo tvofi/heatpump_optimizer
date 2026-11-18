@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/name_match.py:<module> CONST fe9f9f35",
+  "killed_by": "tests/features.py",
+  "old": "THRESHOLD = 0.60",
+  "reason": "Recorded by `mutation_table.py --drain` against a1da8d381aa0afd2d1be6753678a8fc6191604ec: CONST (`THRESHOLD = 1.2`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

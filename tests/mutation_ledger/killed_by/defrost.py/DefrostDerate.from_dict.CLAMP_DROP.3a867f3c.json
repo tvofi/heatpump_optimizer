@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict CLAMP_DROP 3a867f3c",
+  "killed_by": "tests/features.py",
+  "old": "                    instance.factors[t][h] = min(DERATE_MAX, max(DERATE_MIN, f))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 92bce7c452dd36dfb239953af7f29e1f2348050b: CLAMP_DROP (`instance.factors[t][h] = (DERATE_MAX)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7. Each of the 2 sites under this anchor was killed."
+}

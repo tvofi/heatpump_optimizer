@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:temperature_from_c RETURN_DEL 3be446b0",
+  "killed_by": "tests/features.py",
+  "old": "    return value_c / factor - offset",
+  "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: type NoneType doesn't define __round__ method` out of the production reader the #1513 section drives. Measured at d6d79847, 2026-09-24."
+}

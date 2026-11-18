@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_boost_ceiling_c BOOLOP e74f8c8c",
+  "killed_by": "tests/features.py",
+  "old": "    if limit is not None and limit > _gate_floor_c(inp.config):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if limit is not None or limit > _gate_floor_c(inp.config):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

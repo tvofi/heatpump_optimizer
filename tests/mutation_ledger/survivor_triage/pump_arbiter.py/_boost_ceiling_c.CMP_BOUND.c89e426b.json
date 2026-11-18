@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_boost_ceiling_c CMP_BOUND c89e426b",
+  "old": "    if high is None or not _gate_floor_c(inp.config) < high <= FLOW_HEAT_C_MAX:",
+  "reason": "Equivalent (CMP_BOUND on the first comparator, `_gate_floor_c(...) < high` -> `<=`): the two arms differ only at an entity maximum exactly equal to the gate, where the boost either writes min(high, ...) = the gate or keeps the planned level; the entity's own range (`_bounded`) clamps every heating write on that entity to its maximum, the gate, so both arms write the same value on every input. Measured by the R10-HOTFIX-BOOST-FLOW-CEILING repair seat's `mutation_table.py --pin-killed --base origin/main` (tests/features.py, tests/config_flow_steps.py, tests/guard_pins.py): the site lived while the anchor's other comparator (`<= FLOW_HEAT_C_MAX` -> `<`) is killed by the arbiter block's `max 70, the bound` row, and the same line's GUARD_OFF is pinned (killed by tests/features.py).",
+  "verdict": "equivalent"
+}

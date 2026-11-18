@@ -1,0 +1,33 @@
+SEAM away:estimate_recovery_hours:step_hours floors=['0.001'] n_floored=1 n_raw=1 raw_divisor=False
+SEAM coordinator:HeatPumpOptimizerCoordinator._learn_measured_cop:commanded floors=['1e-06'] n_floored=1 n_raw=2 raw_divisor=False
+SEAM coordinator:HeatPumpOptimizerCoordinator._learn_measured_cop:ewma floors=['1e-06'] n_floored=1 n_raw=1 raw_divisor=False
+SEAM cop_nominal floors=['1.0'] n_floored=5 n_raw=2 raw_divisor=False
+SEAM dhw_tank_heat_loss_coefficient floors=['1e-05', '1e-06'] n_floored=4 n_raw=6 raw_divisor=False
+SEAM dhw_tank_thermal_mass floors=['0.05', '1e-06'] n_floored=4 n_raw=7 raw_divisor=True
+SEAM dt_hours floors=['1e-06'] n_floored=1 n_raw=8 raw_divisor=True
+SEAM heat_loss_coefficient floors=['0.001'] n_floored=1 n_raw=5 raw_divisor=False
+SEAM horizon_hours floors=['1.0'] n_floored=1 n_raw=1 raw_divisor=False
+SEAM house_heat_loss_scale floors=['0.1'] n_floored=1 n_raw=5 raw_divisor=False
+SEAM max_electrical_power floors=['0.1'] n_floored=1 n_raw=16 raw_divisor=False
+SEAM optimizer:HeatPumpOptimizer._build_dhw_requirements:dt floors=['1e-06'] n_floored=1 n_raw=1 raw_divisor=True
+SEAM optimizer:HeatPumpOptimizer._dhw_legionella_ceilings:decay floors=['1e-06'] n_floored=1 n_raw=1 raw_divisor=False
+SEAM optimizer:HeatPumpOptimizer._plan_dhw_cheapest_first:c_dhw floors=['0.05'] n_floored=1 n_raw=2 raw_divisor=False
+SEAM optimizer:HeatPumpOptimizer._plan_dhw_min_cost:dt floors=['1e-06'] n_floored=1 n_raw=7 raw_divisor=False
+SEAM optimizer:HeatPumpOptimizer._repair_dhw_floor:c_dhw floors=['0.05'] n_floored=1 n_raw=2 raw_divisor=False
+SEAM peaks_averaged floors=['1.0'] n_floored=2 n_raw=1 raw_divisor=False
+SEAM slab_heat_transfer floors=['1e-06', '1e-09'] n_floored=4 n_raw=6 raw_divisor=False
+SEAM sysid:SystemIdentification._size_step_power:cop floors=['0.1'] n_floored=1 n_raw=3 raw_divisor=True
+SEAM sysid:SystemIdentification.identify:s_noise floors=['1e-09'] n_floored=1 n_raw=2 raw_divisor=False
+SEAM thermal_model:ThermalModel._simulate_step_two_zone:dt_hours floors=['1e-06'] n_floored=5 n_raw=5 raw_divisor=False
+SEAM thermal_model:ThermalModel.simulate_dhw_step:dt_hours floors=['1e-06'] n_floored=2 n_raw=1 raw_divisor=False
+SEAM thermal_model:ThermalModel.simulate_trajectory_batch:dt floors=['1e-06'] n_floored=5 n_raw=7 raw_divisor=False
+SEAM thermal_model:mold_safe_room_floor:frsi floors=['0.3'] n_floored=1 n_raw=1 raw_divisor=True
+SEAM time_step_minutes floors=['1.0'] n_floored=4 n_raw=3 raw_divisor=True
+SEAM wood_tank_thermal_mass floors=['0.01'] n_floored=1 n_raw=8 raw_divisor=True
+RESULT p3_seam_groups=26 count
+RESULT p3_raw_divisor_groups=7 count
+RESULT p3_capacity_groups=4 count
+RESULT buffer_tank_thermal_mass_seam=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.09
+RESULT swapins=0

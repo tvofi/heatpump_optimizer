@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:AccuracyTracker.trust CLAMP_DROP ebcc8bac",
+  "killed_by": "tests/features.py",
+  "old": "        return float(np.clip(1.0 - (mae - 0.25) / 1.75, 0.0, 1.0))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return float((1.0 - (mae - 0.25) / 1.75))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

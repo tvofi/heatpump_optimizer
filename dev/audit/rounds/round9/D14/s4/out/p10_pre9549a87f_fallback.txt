@@ -1,0 +1,413 @@
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 4 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1204, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+        hass, optimize_in_process, optimizer, state, positional, keywords
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1116, in _await_process
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 243, in _exec
+    return await loop.run_in_executor(pool, _job, func, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 166, in _job
+    return func(*args)
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1085, in _run_in_process
+    worker = _ensure_worker()
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 212, in _refuse
+    raise cm.ProcessWorkerUnavailable("p10 perturbation: the worker cannot start")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: p10 perturbation: the worker cannot start
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 4860, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+    ...<35 lines>...
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1211, in _await_optimize
+    raise UpdateFailed(
+    ...<2 lines>...
+    ) from err
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 4 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 5 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1204, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+        hass, optimize_in_process, optimizer, state, positional, keywords
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1116, in _await_process
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 243, in _exec
+    return await loop.run_in_executor(pool, _job, func, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 166, in _job
+    return func(*args)
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1085, in _run_in_process
+    worker = _ensure_worker()
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 212, in _refuse
+    raise cm.ProcessWorkerUnavailable("p10 perturbation: the worker cannot start")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: p10 perturbation: the worker cannot start
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 4860, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+    ...<35 lines>...
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1211, in _await_optimize
+    raise UpdateFailed(
+    ...<2 lines>...
+    ) from err
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 5 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 6 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1204, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+        hass, optimize_in_process, optimizer, state, positional, keywords
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1116, in _await_process
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 243, in _exec
+    return await loop.run_in_executor(pool, _job, func, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 166, in _job
+    return func(*args)
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1085, in _run_in_process
+    worker = _ensure_worker()
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 212, in _refuse
+    raise cm.ProcessWorkerUnavailable("p10 perturbation: the worker cannot start")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: p10 perturbation: the worker cannot start
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 4860, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+    ...<35 lines>...
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1211, in _await_optimize
+    raise UpdateFailed(
+    ...<2 lines>...
+    ) from err
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 6 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 7 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1204, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+        hass, optimize_in_process, optimizer, state, positional, keywords
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1116, in _await_process
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 243, in _exec
+    return await loop.run_in_executor(pool, _job, func, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 166, in _job
+    return func(*args)
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1085, in _run_in_process
+    worker = _ensure_worker()
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 212, in _refuse
+    raise cm.ProcessWorkerUnavailable("p10 perturbation: the worker cannot start")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: p10 perturbation: the worker cannot start
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 4860, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+    ...<35 lines>...
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1211, in _await_optimize
+    raise UpdateFailed(
+    ...<2 lines>...
+    ) from err
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 7 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Plan is 120 minutes old after 4 failed solves; holding comfort on the pump's own curve instead of actuating it
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 8 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1204, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+        hass, optimize_in_process, optimizer, state, positional, keywords
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1116, in _await_process
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 243, in _exec
+    return await loop.run_in_executor(pool, _job, func, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 166, in _job
+    return func(*args)
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1085, in _run_in_process
+    worker = _ensure_worker()
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 212, in _refuse
+    raise cm.ProcessWorkerUnavailable("p10 perturbation: the worker cannot start")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: p10 perturbation: the worker cannot start
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 4860, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+    ...<35 lines>...
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1211, in _await_optimize
+    raise UpdateFailed(
+    ...<2 lines>...
+    ) from err
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 8 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Plan is 150 minutes old after 5 failed solves; holding comfort on the pump's own curve instead of actuating it
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 9 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1204, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+        hass, optimize_in_process, optimizer, state, positional, keywords
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1116, in _await_process
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 243, in _exec
+    return await loop.run_in_executor(pool, _job, func, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 166, in _job
+    return func(*args)
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1085, in _run_in_process
+    worker = _ensure_worker()
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 212, in _refuse
+    raise cm.ProcessWorkerUnavailable("p10 perturbation: the worker cannot start")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: p10 perturbation: the worker cannot start
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 4860, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+    ...<35 lines>...
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1211, in _await_optimize
+    raise UpdateFailed(
+    ...<2 lines>...
+    ) from err
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 9 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Plan is 180 minutes old after 6 failed solves; holding comfort on the pump's own curve instead of actuating it
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 10 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1204, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+        hass, optimize_in_process, optimizer, state, positional, keywords
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1116, in _await_process
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 243, in _exec
+    return await loop.run_in_executor(pool, _job, func, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 166, in _job
+    return func(*args)
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1085, in _run_in_process
+    worker = _ensure_worker()
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 212, in _refuse
+    raise cm.ProcessWorkerUnavailable("p10 perturbation: the worker cannot start")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: p10 perturbation: the worker cannot start
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 4860, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+    ...<35 lines>...
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1211, in _await_optimize
+    raise UpdateFailed(
+    ...<2 lines>...
+    ) from err
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 10 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Plan is 210 minutes old after 7 failed solves; holding comfort on the pump's own curve instead of actuating it
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 11 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1204, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+        hass, optimize_in_process, optimizer, state, positional, keywords
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1116, in _await_process
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 243, in _exec
+    return await loop.run_in_executor(pool, _job, func, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 166, in _job
+    return func(*args)
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1085, in _run_in_process
+    worker = _ensure_worker()
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 212, in _refuse
+    raise cm.ProcessWorkerUnavailable("p10 perturbation: the worker cannot start")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: p10 perturbation: the worker cannot start
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 4860, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+    ...<35 lines>...
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1211, in _await_optimize
+    raise UpdateFailed(
+    ...<2 lines>...
+    ) from err
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 11 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Plan is 240 minutes old after 8 failed solves; holding comfort on the pump's own curve instead of actuating it
+Process-solve worker unusable (ProcessWorkerUnavailable: p10 perturbation: the worker cannot start); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Optimization failed: process-solve worker unusable for 12 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1204, in _await_optimize
+    result = await _await_process(
+             ^^^^^^^^^^^^^^^^^^^^^
+        hass, optimize_in_process, optimizer, state, positional, keywords
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1116, in _await_process
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 243, in _exec
+    return await loop.run_in_executor(pool, _job, func, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/root/.local/share/uv/python/cpython-3.14.0rc2-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 166, in _job
+    return func(*args)
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1085, in _run_in_process
+    worker = _ensure_worker()
+  File "/home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_seams.py", line 212, in _refuse
+    raise cm.ProcessWorkerUnavailable("p10 perturbation: the worker cannot start")
+heatpump_optimizer.coordinator.ProcessWorkerUnavailable: p10 perturbation: the worker cannot start
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 4860, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+    ...<35 lines>...
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/2efe4c66-2ebf-546a-945a-9f611404e24b/scratchpad/pre9549a87f/custom_components/heatpump_optimizer/coordinator.py", line 1211, in _await_optimize
+    raise UpdateFailed(
+    ...<2 lines>...
+    ) from err
+homeassistant.helpers.update_coordinator.UpdateFailed: process-solve worker unusable for 12 consecutive cycles; keeping the last plan rather than holding the GIL (#783)
+Plan is 270 minutes old after 9 failed solves; holding comfort on the pump's own curve instead of actuating it
+# units >= 10.0 ms of GIL-holding CPU, by thread and innermost production frame:
+#  executor optimizer.py:HeatPumpOptimizer._plan_dhw_min_cost            units=3 max_ms=87.7 total_ms=207.3 via=['optimize_in_process']
+# executor jobs: func jobs max_loop_gap_during_job_ms max_job_cpu_ms
+#  _run_in_process jobs=12 max_gap_ms=12.7 cpu_ms_max=0.0
+#  optimize_in_process jobs=3 max_gap_ms=18.0 cpu_ms_max=87.7
+RESULT executor_funcs_starving_loop=1 count ['optimize_in_process']
+RESULT arm=fallback
+RESULT config=fixture
+RESULT cycles=12 count
+RESULT cycle_failures=0 count
+RESULT hold_ms=10.0
+RESULT seams=1 count
+RESULT loop_thread_seams=0 count
+RESULT executor_thread_seams=1 count
+RESULT max_unit_cpu_ms=87.7 ms provisional
+RESULT max_loop_unit_cpu_ms=0.0 ms provisional
+RESULT starved_share=0.3976 ratio provisional
+RESULT null_idle_starved_share=0.0064 ratio provisional
+RESULT max_gap_ms=12.7 ms provisional
+RESULT null_idle_max_gap_ms=6.4 ms provisional
+RESULT executor_cpu_s=0.21 s provisional
+RESULT deliberate_thread_cpu_s=0.21 s provisional
+RESULT thread_factor=0.951 (sampler thread CPU included)
+RESULT wall_s=2.3 s provisional
+RESULT load1=2.68
+RESULT swapins=0

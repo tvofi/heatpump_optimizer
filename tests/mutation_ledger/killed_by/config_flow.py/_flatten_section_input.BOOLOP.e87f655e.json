@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_flatten_section_input BOOLOP e87f655e",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        if key in groups and isinstance(value, dict):",
+  "reason": "Recorded by `mutation_table.py --drain` against cff39dad61c4cc15dbaabd03c3a2e3746bca1fab: BOOLOP (`if key in groups or isinstance(value, dict):`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=5."
+}

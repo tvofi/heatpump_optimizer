@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps CMP_BOUND 8c3893c0",
+  "old": "                abs(finite_float(action.get(\"displace_value\"), 0.0)) > 0.01",
+  "reason": "Survival measured by `python3 tests/mutation_table.py --pin-killed --base origin/main` on the R10-ARCH-SHAPES branch (#2819), and by CI's pin shards over every recorded driver at 4b513acdd (mutation-autofix: skip-nothing-killed): no driver killed it. The mutant moves `> 0.01` to `>= 0.01`, so it differs only for a curve displacement of exactly 0.01 K, where it marks the space pump curve-driven. The line predates this branch (it read `_as_float` on main, unpinned there too); #2819 changed only the coercer name, which re-keys the site. A check driving `_async_drive_pumps` with `displace_value == 0.01` and reading the pump command would kill it; none is recorded.",
+  "verdict": "gap"
+}

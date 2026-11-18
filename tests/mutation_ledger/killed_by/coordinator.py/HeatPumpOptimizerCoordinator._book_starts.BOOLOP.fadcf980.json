@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._book_starts BOOLOP fadcf980",
+  "killed_by": "tests/features.py",
+  "old": "        if starts and not self._entry_released:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if starts or not self._entry_released:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

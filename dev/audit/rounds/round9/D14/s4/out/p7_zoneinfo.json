@@ -1,0 +1,154 @@
+{
+ "per_day": {
+  "spring": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 75,
+   "wrong_sites": 8
+  },
+  "autumn": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 75,
+   "wrong_sites": 9
+  },
+  "plain": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 75,
+   "wrong_sites": 0
+  },
+  "spring2025": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 75,
+   "wrong_sites": 8
+  },
+  "autumn2025": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 75,
+   "wrong_sites": 9
+  },
+  "spring2027": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 75,
+   "wrong_sites": 8
+  },
+  "autumn2027": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 75,
+   "wrong_sites": 9
+  },
+  "plain_autumn": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 75,
+   "wrong_sites": 0
+  }
+ },
+ "sites": [
+  {
+   "file": "accuracy.py",
+   "line": 182,
+   "func": "score_lead_predictions",
+   "kind": "aware-shared-zone",
+   "hits": 49332,
+   "crossing": 774,
+   "wrong": 774,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 3169,
+   "func": "close",
+   "kind": "add-shared-zone",
+   "hits": 67,
+   "crossing": 0,
+   "wrong": 0,
+   "max_err_s": 0.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 4684,
+   "func": "_async_update_data",
+   "kind": "add-shared-zone",
+   "hits": 384,
+   "crossing": 6,
+   "wrong": 6,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 6207,
+   "func": "_forecast_arrays",
+   "kind": "aware-shared-zone",
+   "hits": 384,
+   "crossing": 252,
+   "wrong": 252,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 9205,
+   "func": "_record_accuracy",
+   "kind": "aware-shared-zone",
+   "hits": 376,
+   "crossing": 6,
+   "wrong": 6,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 9405,
+   "func": "_file_dhw_lead_predictions",
+   "kind": "add-shared-zone",
+   "hits": 1920,
+   "crossing": 126,
+   "wrong": 126,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 9445,
+   "func": "_file_lead_predictions",
+   "kind": "add-shared-zone",
+   "hits": 1920,
+   "crossing": 126,
+   "wrong": 126,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "dhw_learning.py",
+   "line": 347,
+   "func": "async_learn_dynamics",
+   "kind": "aware-shared-zone",
+   "hits": 376,
+   "crossing": 6,
+   "wrong": 6,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "external_heat.py",
+   "line": 206,
+   "func": "_rate",
+   "kind": "aware-shared-zone",
+   "hits": 752,
+   "crossing": 12,
+   "wrong": 12,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "tariff.py",
+   "line": 58,
+   "func": "_window_slot",
+   "kind": "add-shared-zone",
+   "hits": 768,
+   "crossing": 492,
+   "wrong": 492,
+   "max_err_s": 3600.0
+  }
+ ]
+}

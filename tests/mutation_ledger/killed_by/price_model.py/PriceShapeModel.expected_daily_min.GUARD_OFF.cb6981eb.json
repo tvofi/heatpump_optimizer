@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.expected_daily_min GUARD_OFF cb6981eb",
+  "killed_by": "tests/features.py",
+  "old": "            if self.days[idx] < SHAPE_CONFIDENCE_DAYS:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

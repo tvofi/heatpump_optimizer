@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_cycle_guard CMP_BOUND 9c1c7d56",
+  "killed_by": "tests/features.py",
+  "old": "    if run is None or run < MIN_ON:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if run is None or run <= MIN_ON:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

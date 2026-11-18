@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.async_load_profile GUARD_OFF fff58d08",
+  "killed_by": "tests/features.py",
+  "old": "        if isinstance(profile, list) and len(profile) == 24:",
+  "reason": "drawn by the round-7 D2-03 diff's per-file sample over dhw_learning.py, not introduced by it. `if False:` ignores a well-formed stored pooled profile, so the learner keeps its seeded pattern. Killed by tests/features.py's `a stored 24-hour DHW profile is restored on load`: FAIL [loaded [0.2078, 0.1039, 0.1039]... from a flat store, against a seeded [0.2078, ...]], 1 of 3133, measured at bc1903f8. Survival measured UNMARKED at d413ba84 plus this branch's production diff, with 17 drivers in the net (env_drift and stress excluded for a red baseline)."
+}

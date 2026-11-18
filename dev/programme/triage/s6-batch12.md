@@ -1,0 +1,14 @@
+# Proposal triage, session s6, batch 12 (P81)
+
+One bot issue, #2746 "[policy] recurring friction: .claude/rules/gate-scoping.md"
+(count 3 in v7.0.4..main), dispositioned as P81. Numbering continues after
+`s6-batch11.md` (P80, unmerged at this base). GitHub calls: 4 reads (the window
+stats, one body search, five body reads, #2675's body).
+
+## P81: recurring friction on gate-scoping.md, count 3 (issue #2746)
+Verdict: REJECT the issue as a defect to fix: all three counted entries predate the gate-scoping disposition or are it, and none is a new friction. Disposition cites #2700 (merge commit c686fe36).
+Source: bot issue #2746; the orchestrator's disposition request.
+Instances: 3 distinct pull requests, found by `node tools/policy/policy_lint.mjs --stats --since v7.0.4` (run with a token; it prints `friction rule id 3 / 3 .claude/rules/gate-scoping.md` and `WOULD OPEN` for it, but not the pull requests) and then the `## Friction` section of each merged body that names `gate-scoping`. Exactly three carry a `gate-scoping:` friction line in the window: #2622 (merged 2026-10-22T22:23Z, `gate-scoping: unenforced`: its handoff reported `ref_privacy --check` but did not run `tmp_paths.py --check`), #2627 (merged 2026-10-23T01:03Z, `gate-scoping: cost`: the cloud container's default `python3` is 3.11 and cannot parse `tests/entities.py`), and #2700 itself (merged 2026-10-24T16:15Z, `gate-scoping: cost`: the file is back at its token cap, 794/794; its own disposition is `Carry: dismissed: an observation, no defect`). #2528 also names the rule file but in its policy-half prose, not a friction line. c686fe36 is #2700's merge (`git merge-base --is-ancestor c686fe36 origin/main` succeeds); no counted entry postdates it.
+What #2700 answered: its diff of `dev/governance/rules/gate-scoping.md` adds the interpreter paragraph ("It runs `$PYTHON`, else `.venv/bin/python`, else `python3`, and the tree needs 3.12+ with the pins ... set `PYTHON` to `tools/audit/seat/seat_venv.sh`'s venv (#2207, #2582, #2627)"), which is #2627's friction. #2622's friction is not about the rule's text: a handoff skipped a quick check. That is owned, not new: R10-FLOW-JIDOKA's owner-ruled carry names `ref_privacy --check` and `tmp_paths --check` as the quick checks its prepr replay must run, and P78 (`s6-batch9.md`) raises the ref_privacy arm. #2700's own line is a token-cap observation it dismissed.
+Cost: not applicable; no instrument.
+Binding: the threshold counts the rule id a body writes after `gate-scoping:`, which seats use as a tag for any gate-adjacent friction (an interpreter, a skipped check, a file's size), so 3 entries are 3 different causes, one answered by #2700, one owned by JIDOKA, one dismissed. Opening a fix for the file would address none of them. Would change the answer: a friction line naming the rule in a pull request merged after c686fe36 whose cause is the rule's text.

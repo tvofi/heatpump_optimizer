@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe CLAMP_DROP 0b2380b1",
+  "killed_by": "tests/features.py",
+  "old": "                max(FLOW_SUPPLY_MAX_C - float(curve_supply), 0.0),",
+  "reason": "R9 F4.1 fix review round 2 (#1704): the mutant applied in a copy of the tree at 30f610f6 plus this commit's pins, and the class-named block of tests/features.py (header through `R9 P2`) run beside an unmutated copy, which passes: dropping the max fails `D2-s2-02: on a curve above the ceiling the hot-side bound is zero, not negative` [80 C curve -5.0, 100 C curve -25.0]. Without it a positive bias is pulled below zero, and on a curve above 90 C np.clip's bounds invert past the cold clamp."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:wood_slots_to_kw BOOLOP 51c8d49f",
+  "killed_by": "tests/guard_pins.py",
+  "old": "            if ts < end and ts + step > start:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if ts < end or ts + step > start:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

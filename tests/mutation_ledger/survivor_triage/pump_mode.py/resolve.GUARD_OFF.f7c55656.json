@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_mode.py:resolve GUARD_OFF f7c55656",
+  "old": "    if raw is None:",
+  "reason": "resolve()'s `raw is None` guard is redundant: _fold(None) is 'none', no alias key folds to 'none', and 'none' is in neither _ALIASES nor _STATUS_AMBIGUOUS, so _ALIASES.get('none') returns None on both paths -- measured on this tree (round-5 D3-07; the probe is tools/audit/round5/D3/equiv_probe.py).",
+  "verdict": "equivalent"
+}

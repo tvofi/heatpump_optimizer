@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_exempt RETURN_DEL 90c66f0b",
+  "killed_by": "tests/structure.py",
+  "old": "    return _plant_exempt(inp)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd59a4af1b2616a7f00761a3769d22a335e4df7c: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

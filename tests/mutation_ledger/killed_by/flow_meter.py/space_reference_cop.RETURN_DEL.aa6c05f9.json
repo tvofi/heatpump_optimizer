@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_meter.py:space_reference_cop RETURN_DEL aa6c05f9",
+  "killed_by": "tests/features.py",
+  "old": "    return float(model.compute_cop_dhw(outdoor_c, supply_c))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

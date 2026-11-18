@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_peak_excess GUARD_OFF c3fdf6fc",
+  "killed_by": "tests/features.py",
+  "old": "    if not np.any(excess > 0):",
+  "reason": "#1562 round-3 CI survivor: with _peak_excess's nothing-chargeable guard off, a non-finite window below the threshold flows into the per-day maxima and the top-k sum; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `a plan with nothing above the threshold is charged exactly 0.0, even with a non-finite window in it, on both rules` (charges NaN). Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
+}

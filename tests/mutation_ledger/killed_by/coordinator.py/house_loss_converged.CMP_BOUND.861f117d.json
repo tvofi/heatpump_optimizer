@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:house_loss_converged CMP_BOUND 861f117d",
+  "killed_by": "tests/features.py",
+  "old": "    return house_loss_confidence(samples) >= _HOUSE_LOSS_CONVERGED_CONFIDENCE",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4e38e7d7b3138b24c97e7d0fbea74965c1d43d62: CMP_BOUND (`return house_loss_confidence(samples) > _HOUSE_LOSS_CONVERGED_CONFIDENCE`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:restore GUARD_OFF c4fb16e3",
+  "killed_by": "tests/features.py",
+  "old": "        if not isinstance(tile, Mapping) or not isinstance(tile.get(\"days\"), list):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e7c664856776542bf60bd770c98aba1eaadb4041: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

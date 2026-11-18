@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/const.py:default_buffer_cooling_rate CLAMP_DROP 0ce0b9e4",
+  "killed_by": "tests/features.py",
+  "old": "    capacity = max(float(volume_litres), 1e-6) * WATER_SPECIFIC_HEAT",
+  "reason": "#1562 round-3 CI survivor: dropping the capacity floor in default_buffer_cooling_rate hands an empty or negative tank the flat 6 C/h default, slower than a one-litre tank; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `the buffer cooling prior never falls as the tank shrinks, down to an empty tank`. Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
+}

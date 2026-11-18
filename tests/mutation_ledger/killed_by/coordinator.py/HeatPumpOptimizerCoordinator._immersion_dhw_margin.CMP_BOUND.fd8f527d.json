@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._immersion_dhw_margin CMP_BOUND fd8f527d",
+  "killed_by": "tests/features.py",
+  "old": "        return 2.0 if recent >= 3 else 0.0",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`return 2.0 if recent > 3 else 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

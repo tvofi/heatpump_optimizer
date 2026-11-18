@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:_due_inside_horizon CMP_BOUND 26206c9c",
+  "killed_by": "tests/block_duty.py",
+  "old": "        return float(due) < float(horizon)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 62f604eb062bf88d3dc4b0f4ec85ca17359af229: CMP_BOUND (`return float(due) <= float(horizon)`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}

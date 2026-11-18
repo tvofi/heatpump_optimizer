@@ -1,0 +1,109 @@
+  one|winter_typical|winter_cold|dhw=0 prod=   60.1043 best=   60.1043 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 36.00 step0 6.000->6.000 steps_diff= 0 replay=True
+  one|winter_typical|winter_mild|dhw=0 prod=   23.4031 best=   23.3927 gap= 0.0445% arm=seeds8_all    dSEK=+0.000 bill= 0.001% kWh= 27.21 step0 0.000->0.000 steps_diff= 7 replay=True
+  one|winter_typical|summer_warm|dhw=0 prod= 6435.6202 best= 6435.6202 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|winter_typical|summer_cool|dhw=0 prod=    3.3181 best=    3.3069 gap= 0.3383% arm=seeds8_all    dSEK=-0.090 bill=-5.034% kWh=  2.46 step0 0.000->0.000 steps_diff=17 replay=True
+  one|winter_typical|shoulder|dhw=0  prod=    6.7218 best=    6.7218 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  7.01 step0 2.079->2.079 steps_diff= 0 replay=True
+  one|winter_extreme|winter_cold|dhw=0 prod=   80.7406 best=   80.7406 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 42.00 step0 6.000->6.000 steps_diff= 0 replay=True
+  one|winter_extreme|winter_mild|dhw=0 prod=   33.3028 best=   33.2223 gap= 0.2416% arm=seeds8_all    dSEK=-0.486 bill=-1.842% kWh= 27.09 step0 0.596->0.000 steps_diff=22 replay=True
+  one|winter_extreme|summer_warm|dhw=0 prod= 6435.6202 best= 6435.6202 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|winter_extreme|summer_cool|dhw=0 prod=    4.4293 best=    4.4293 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  2.48 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|winter_extreme|shoulder|dhw=0  prod=    9.4464 best=    9.4101 gap= 0.3846% arm=seeds8_all    dSEK=-0.293 bill=-3.957% kWh=  6.96 step0 0.582->0.000 steps_diff=28 replay=True
+  one|summer_typical|winter_cold|dhw=0 prod=   19.5108 best=   19.5108 gap= 0.0000% arm=seeds8_all    dSEK=-0.000 bill=-0.000% kWh= 55.57 step0 6.000->6.000 steps_diff= 0 replay=True
+  one|summer_typical|winter_mild|dhw=0 prod=    7.5535 best=    7.5514 gap= 0.0266% arm=seeds8_all    dSEK=-0.032 bill=-0.566% kWh= 30.35 step0 0.001->0.000 steps_diff=37 replay=True
+  one|summer_typical|summer_warm|dhw=0 prod= 6435.6202 best= 6435.6202 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|summer_typical|summer_cool|dhw=0 prod=    1.6635 best=    1.6626 gap= 0.0550% arm=seeds8_all    dSEK=+0.005 bill= 1.103% kWh=  2.40 step0 0.000->0.000 steps_diff= 3 replay=True
+  one|summer_typical|shoulder|dhw=0  prod=    2.6985 best=    2.6985 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  6.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|summer_negative|winter_cold|dhw=0 prod=   12.9592 best=   12.9592 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 69.60 step0 6.000->6.000 steps_diff= 0 replay=True
+  one|summer_negative|winter_mild|dhw=0 prod=    0.6223 best=    0.6223 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill=-0.000% kWh= 31.22 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|summer_negative|summer_warm|dhw=0 prod= 6435.6202 best= 6435.6202 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|summer_negative|summer_cool|dhw=0 prod=    0.6694 best=    0.6603 gap= 1.3576% arm=seeds8_all    dSEK=-0.021 bill= 3.517% kWh=  5.04 step0 0.000->0.000 steps_diff=16 replay=True
+  one|summer_negative|shoulder|dhw=0 prod=    0.2865 best=    0.2545 gap=11.1729% arm=seeds8_all    dSEK=+0.065 bill=-4.394% kWh= 12.82 step0 0.000->0.000 steps_diff=13 replay=True
+  one|shoulder|winter_cold|dhw=0     prod=   48.8137 best=   48.4792 gap= 0.6853% arm=seeds8_all    dSEK=-0.152 bill=-0.380% kWh= 62.12 step0 4.552->6.000 steps_diff=48 replay=True
+  one|shoulder|winter_mild|dhw=0     prod=   18.0013 best=   17.9936 gap= 0.0432% arm=seeds8_all    dSEK=-0.285 bill=-1.958% kWh= 30.21 step0 0.000->0.000 steps_diff=17 replay=True
+  one|shoulder|summer_warm|dhw=0     prod= 6435.6202 best= 6435.6202 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|shoulder|summer_cool|dhw=0     prod=    2.8939 best=    2.8889 gap= 0.1740% arm=seeds8_all    dSEK=-0.057 bill=-5.447% kWh=  2.56 step0 0.000->0.000 steps_diff=14 replay=True
+  one|shoulder|shoulder|dhw=0        prod=    5.5915 best=    5.5893 gap= 0.0393% arm=seeds8_all    dSEK=-0.015 bill=-0.339% kWh=  8.30 step0 0.000->0.000 steps_diff=32 replay=True
+  one|winter_narrow|winter_cold|dhw=0 prod=  103.1362 best=  103.1362 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 51.00 step0 6.000->6.000 steps_diff= 0 replay=True
+  one|winter_narrow|winter_mild|dhw=0 prod=   45.0135 best=   44.9761 gap= 0.0832% arm=seeds8_all    dSEK=-0.120 bill=-0.401% kWh= 20.96 step0 0.000->0.000 steps_diff=25 replay=True
+  one|winter_narrow|summer_warm|dhw=0 prod= 6435.6202 best= 6435.6202 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|winter_narrow|summer_cool|dhw=0 prod=    5.1900 best=    5.1865 gap= 0.0669% arm=seeds8_all    dSEK=-0.056 bill=-1.992% kWh=  1.95 step0 0.000->0.000 steps_diff= 8 replay=True
+  one|winter_narrow|shoulder|dhw=0   prod=   11.5918 best=   11.4647 gap= 1.0958% arm=seeds8_all    dSEK=+0.177 bill= 2.388% kWh=  5.04 step0 0.000->0.016 steps_diff=17 replay=True
+  one|winter_moderate|winter_cold|dhw=0 prod=   75.9051 best=   75.9051 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 42.00 step0 6.000->6.000 steps_diff= 0 replay=True
+  one|winter_moderate|winter_mild|dhw=0 prod=   32.1212 best=   32.0959 gap= 0.0789% arm=seeds8_all    dSEK=-0.748 bill=-3.224% kWh= 23.53 step0 0.000->0.000 steps_diff=20 replay=True
+  one|winter_moderate|summer_warm|dhw=0 prod= 6435.6202 best= 6435.6202 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|winter_moderate|summer_cool|dhw=0 prod=    3.9970 best=    3.9969 gap= 0.0047% arm=seeds8_all    dSEK=-0.003 bill=-0.142% kWh=  1.94 step0 0.000->0.000 steps_diff= 8 replay=True
+  one|winter_moderate|shoulder|dhw=0 prod=    8.5652 best=    8.5425 gap= 0.2648% arm=seeds8_all    dSEK=+0.094 bill= 1.813% kWh=  4.98 step0 0.007->0.021 steps_diff=20 replay=True
+  one|flat|winter_cold|dhw=0         prod=   82.4633 best=   82.4633 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 57.49 step0 6.000->6.000 steps_diff= 0 replay=True
+  one|flat|winter_mild|dhw=0         prod=   37.4692 best=   37.4195 gap= 0.1327% arm=seeds8_all    dSEK=+0.296 bill= 0.970% kWh= 25.41 step0 5.639->5.383 steps_diff=91 replay=True
+  one|flat|summer_warm|dhw=0         prod= 6435.6202 best= 6435.6202 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  one|flat|summer_cool|dhw=0         prod=    4.4497 best=    4.4457 gap= 0.0891% arm=seeds8_all    dSEK=-0.000 bill=-0.014% kWh=  2.25 step0 0.000->0.000 steps_diff=18 replay=True
+  one|flat|shoulder|dhw=0            prod=    9.6139 best=    9.6139 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  5.70 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|winter_typical|winter_cold|dhw=0 prod=   77.8842 best=   77.7145 gap= 0.2180% arm=seeds8_all    dSEK=+0.889 bill= 1.512% kWh= 67.86 step0 6.000->6.000 steps_diff=40 replay=True
+  two|winter_typical|winter_mild|dhw=0 prod=   29.6815 best=   29.6561 gap= 0.0857% arm=seeds8_all    dSEK=+0.071 bill= 0.361% kWh= 26.82 step0 0.000->0.000 steps_diff=34 replay=True
+  two|winter_typical|summer_warm|dhw=0 prod=10597.9676 best=10597.9676 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|winter_typical|summer_cool|dhw=0 prod=    3.8235 best=    3.8141 gap= 0.2475% arm=seeds8_all    dSEK=+0.075 bill= 3.253% kWh=  3.23 step0 0.000->0.000 steps_diff= 7 replay=True
+  two|winter_typical|shoulder|dhw=0  prod=    8.3270 best=    8.3175 gap= 0.1143% arm=seeds8_all    dSEK=+0.102 bill= 1.673% kWh=  8.88 step0 0.000->0.000 steps_diff=15 replay=True
+  two|winter_extreme|winter_cold|dhw=0 prod=  111.5768 best=  111.5142 gap= 0.0561% arm=seeds8_all    dSEK=-0.109 bill=-0.116% kWh= 71.30 step0 6.000->6.000 steps_diff=44 replay=True
+  two|winter_extreme|winter_mild|dhw=0 prod=   41.1351 best=   41.0242 gap= 0.2694% arm=seeds8_all    dSEK=-1.800 bill=-6.159% kWh= 27.23 step0 1.253->2.723 steps_diff=68 replay=True
+  two|winter_extreme|summer_warm|dhw=0 prod=10597.9676 best=10597.9676 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|winter_extreme|summer_cool|dhw=0 prod=    5.1854 best=    5.1799 gap= 0.1076% arm=seeds8_all    dSEK=-0.038 bill=-1.181% kWh=  2.85 step0 0.000->0.000 steps_diff= 9 replay=True
+  two|winter_extreme|shoulder|dhw=0  prod=   11.7769 best=   11.7570 gap= 0.1690% arm=seeds8_all    dSEK=+0.049 bill= 0.525% kWh=  8.83 step0 0.000->0.000 steps_diff=22 replay=True
+  two|summer_typical|winter_cold|dhw=0 prod=   25.0242 best=   25.0022 gap= 0.0880% arm=seeds8_all    dSEK=-0.111 bill=-0.685% kWh= 67.11 step0 4.740->3.507 steps_diff=32 replay=True
+  two|summer_typical|winter_mild|dhw=0 prod=    8.6707 best=    8.6707 gap= 0.0004% arm=seeds8_all    dSEK=-0.001 bill=-0.020% kWh= 32.28 step0 0.000->0.000 steps_diff=19 replay=True
+  two|summer_typical|summer_warm|dhw=0 prod=10597.9676 best=10597.9676 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|summer_typical|summer_cool|dhw=0 prod=    1.7228 best=    1.7227 gap= 0.0028% arm=seeds8_all    dSEK=-0.001 bill=-0.193% kWh=  3.01 step0 0.000->0.000 steps_diff=10 replay=True
+  two|summer_typical|shoulder|dhw=0  prod=    3.2949 best=    3.2949 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  8.37 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|summer_negative|winter_cold|dhw=0 prod=   17.2138 best=   17.2138 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 82.04 step0 0.011->0.011 steps_diff= 0 replay=True
+  two|summer_negative|winter_mild|dhw=0 prod=    1.9463 best=    1.9320 gap= 0.7339% arm=seeds8_all    dSEK=+0.007 bill=-2.484% kWh= 32.72 step0 0.000->0.000 steps_diff=41 replay=True
+  two|summer_negative|summer_warm|dhw=0 prod=10597.9676 best=10597.9676 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|summer_negative|summer_cool|dhw=0 prod=    0.4645 best=    0.4645 gap= 0.0012% arm=seeds8_all    dSEK=+0.000 bill=-0.023% kWh=  5.42 step0 0.000->0.000 steps_diff=14 replay=True
+  two|summer_negative|shoulder|dhw=0 prod=    0.2160 best=    0.2160 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill=-0.000% kWh= 12.74 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|shoulder|winter_cold|dhw=0     prod=   59.0586 best=   58.9810 gap= 0.1313% arm=seeds8_all    dSEK=-0.393 bill=-0.775% kWh= 75.39 step0 1.640->1.496 steps_diff=60 replay=True
+  two|shoulder|winter_mild|dhw=0     prod=   23.3231 best=   23.3028 gap= 0.0868% arm=seeds8_all    dSEK=-0.116 bill=-0.624% kWh= 31.49 step0 0.000->0.000 steps_diff=64 replay=True
+  two|shoulder|summer_warm|dhw=0     prod=10597.9676 best=10597.9676 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|shoulder|summer_cool|dhw=0     prod=    3.3421 best=    3.3380 gap= 0.1225% arm=seeds8_all    dSEK=+0.000 bill= 0.015% kWh=  4.24 step0 0.000->0.000 steps_diff= 7 replay=True
+  two|shoulder|shoulder|dhw=0        prod=    6.8941 best=    6.8941 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 10.33 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|winter_narrow|winter_cold|dhw=0 prod=  124.2629 best=  124.2629 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 74.54 step0 5.989->5.989 steps_diff= 0 replay=True
+  two|winter_narrow|winter_mild|dhw=0 prod=   50.6730 best=   50.6160 gap= 0.1126% arm=seeds8_all    dSEK=+0.400 bill= 0.982% kWh= 27.70 step0 0.000->0.119 steps_diff=59 replay=True
+  two|winter_narrow|summer_warm|dhw=0 prod=10597.9676 best=10597.9676 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|winter_narrow|summer_cool|dhw=0 prod=    6.0842 best=    6.0751 gap= 0.1486% arm=seeds8_all    dSEK=+0.087 bill= 2.382% kWh=  2.51 step0 0.000->0.000 steps_diff= 8 replay=True
+  two|winter_narrow|shoulder|dhw=0   prod=   14.4830 best=   14.4830 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  6.31 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|winter_moderate|winter_cold|dhw=0 prod=   95.3390 best=   95.0305 gap= 0.3235% arm=seeds8_all    dSEK=+2.225 bill= 2.742% kWh= 71.89 step0 6.000->6.000 steps_diff=64 replay=True
+  two|winter_moderate|winter_mild|dhw=0 prod=   38.1620 best=   38.1245 gap= 0.0983% arm=seeds8_all    dSEK=-0.650 bill=-2.254% kWh= 27.63 step0 0.400->0.313 steps_diff=79 replay=True
+  two|winter_moderate|summer_warm|dhw=0 prod=10597.9676 best=10597.9676 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|winter_moderate|summer_cool|dhw=0 prod=    4.6783 best=    4.6633 gap= 0.3214% arm=seeds8_all    dSEK=+0.125 bill= 4.805% kWh=  2.48 step0 0.000->0.000 steps_diff= 8 replay=True
+  two|winter_moderate|shoulder|dhw=0 prod=   10.9202 best=   10.9163 gap= 0.0352% arm=seeds8_all    dSEK=+0.082 bill= 1.088% kWh=  7.35 step0 0.000->0.000 steps_diff=22 replay=True
+  two|flat|winter_cold|dhw=0         prod=  100.0011 best=   99.6924 gap= 0.3087% arm=seeds8_all    dSEK=-0.097 bill=-0.107% kWh= 74.99 step0 5.478->6.000 steps_diff=96 replay=True
+  two|flat|winter_mild|dhw=0         prod=   41.4947 best=   41.4947 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh= 29.33 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|flat|summer_warm|dhw=0         prod=10597.9676 best=10597.9676 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  0.00 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|flat|summer_cool|dhw=0         prod=    5.1895 best=    5.1895 gap= 0.0000% arm=seeds8_all    dSEK=+0.000 bill= 0.000% kWh=  2.37 step0 0.000->0.000 steps_diff= 0 replay=True
+  two|flat|shoulder|dhw=0            prod=   12.2324 best=   12.2289 gap= 0.0292% arm=seeds8_all    dSEK=+0.051 bill= 0.594% kWh=  7.19 step0 0.000->0.000 steps_diff=28 replay=True
+
+RESULT cells=80
+RESULT production_replay_bitwise_cells=80/80
+RESULT n_cells=80 n_no_heating_cells_excluded=16
+RESULT null_control_bitwise_cells=80/80
+RESULT gap_null_median=0.0000 % max=0.0000 % n_gt_0.1pct=0
+RESULT gap_cut1_median=-0.0018 % max=0.0000 % n_gt_0.1pct=0
+RESULT gap_seeds8_all_median=0.0615 % max=11.1729 % n_gt_0.1pct=24
+RESULT gap_median=0.0615 % gap_max=11.1729 %
+RESULT n_cells_gap_gt_0.1pct=24 n_gt_0.5pct=5
+RESULT gap_loo_range=[0.0000, 11.1729] % (most favourable cell dropped)
+RESULT delta_sek_max=2.2252 SEK/day median=0.0000 sum_over_64_cells=-0.876
+RESULT null_flat_cells=8 flat_gap_max=0.3087 % flat_gap_median=0.0146 %
+RESULT nonflat_gap_max=11.1729 % nonflat_gap_median=0.0729 %
+RESULT null_control_max_abs=0.000000 %
+  ten widest gaps
+    one|summer_negative|shoulder|dhw=0 gap=11.1729% dSEK= +0.065 bill=-4.394% arm=seeds8_all
+    one|summer_negative|summer_cool|dhw=0 gap= 1.3576% dSEK= -0.021 bill= 3.517% arm=seeds8_all
+    one|winter_narrow|shoulder|dhw=0   gap= 1.0958% dSEK= +0.177 bill= 2.388% arm=seeds8_all
+    two|summer_negative|winter_mild|dhw=0 gap= 0.7339% dSEK= +0.007 bill=-2.484% arm=seeds8_all
+    one|shoulder|winter_cold|dhw=0     gap= 0.6853% dSEK= -0.152 bill=-0.380% arm=seeds8_all
+    one|winter_extreme|shoulder|dhw=0  gap= 0.3846% dSEK= -0.293 bill=-3.957% arm=seeds8_all
+    one|winter_typical|summer_cool|dhw=0 gap= 0.3383% dSEK= -0.090 bill=-5.034% arm=seeds8_all
+    two|winter_moderate|winter_cold|dhw=0 gap= 0.3235% dSEK= +2.225 bill= 2.742% arm=seeds8_all
+    two|winter_moderate|summer_cool|dhw=0 gap= 0.3214% dSEK= +0.125 bill= 4.805% arm=seeds8_all
+    two|flat|winter_cold|dhw=0         gap= 0.3087% dSEK= -0.097 bill=-0.107% arm=seeds8_all
+RESULT wall_s=768.4 provisional=1
+RESULT thread_factor=1.0000 (BLAS threads pinned to 1 before numpy)
+RESULT load1=6.25 swapins=0

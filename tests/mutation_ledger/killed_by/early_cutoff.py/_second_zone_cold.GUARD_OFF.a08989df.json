@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_second_zone_cold GUARD_OFF a08989df",
+  "killed_by": "tests/features.py",
+  "old": "    if not getattr(inp.params, \"two_zone_enabled\", False):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

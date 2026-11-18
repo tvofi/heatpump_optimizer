@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.meta_mean GUARD_OFF 73d10b3a",
+  "killed_by": "tests/features.py",
+  "old": "        if not isinstance(entry, dict) or not entry.get(\"count\"):",
+  "reason": "Recorded by `mutation_table.py --drain` against e3f3b312fff572904f24d78a44a2c4492b1a8ddb: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

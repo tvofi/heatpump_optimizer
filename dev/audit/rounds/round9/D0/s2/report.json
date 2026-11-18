@@ -1,0 +1,209 @@
+{
+ "dimension": "D0",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D0/s2/REPORT.md",
+ "exposure": "Listed directory names under tools/audit/round8/ (BASELINE.md and dimension folders) before its removal; no file there was opened. Read tests/optimality.py (earlier-round ids, _CERT_CLAIMS) as test code, and optimizer.py comments citing earlier D0 ids.",
+ "coverage": [
+  {
+   "step": "D0.M1",
+   "depth": "deep",
+   "evidence": "race.py captures every _multi_start_minimize call (objective, candidates, bounds, args, maxiter, batch jac, fd_eps, x) and counts every _scoped_minimize run: 80 cells at 24 h, 64 at 6 h, 32 at 48 h; maxiter hits 0/698 at 24 h and 0/544 at 6 h."
+  },
+  {
+   "step": "D0.M2",
+   "depth": "deep",
+   "evidence": "Challengers: re-polish at ftol=1e-12; an Emax-fraction bang-bang ladder of 13 seeds through the production seam; ladder then polish; #1294-style baseline-multiple anchors (anchor.py); per-seed breakdown (seedwin.py); the deep 0.20x anchor on the DHW seam. No global outer bound was run (see unfinished)."
+  },
+  {
+   "step": "D0.M3",
+   "depth": "deep",
+   "evidence": "Every raced arm is scored for degree-steps below temp_min_bounds from the closure's own _space_traj (room, or both zones on two-zone); the challenger is never worse (viol_worse=0). DHW feasibility is identical by construction, because the DHW plan is the recorded args."
+  },
+  {
+   "step": "D0.M4",
+   "depth": "spot",
+   "evidence": "4 prices x 5 weather x single/two-zone x DHW on/off at 24 h (80 cells) and 6 h (64 cells); 48 h on 32 cells. Valve storage, wood and coordinator captures were not run."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D0.M4",
+   "what": "Not run: valve-storage and wood-tank topologies, the coordinator captures (golden.py:_capture_coordinator), and 48 h cells with winter_mild and summer_cool weather."
+  },
+  {
+   "step": "D0.M2",
+   "what": "No global outer bound (differential_evolution or a coarsened dynamic program) was run on the recorded objective; the gaps reported are lower bounds."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D0-s2-01",
+   "scope": "D0-s2",
+   "step": "D0.M2",
+   "title": "L-BFGS-B ftol=1e-6 stops the solve and its in-loop restart short of their own fixed point",
+   "severity": "low",
+   "claim": "On two|dhw|summer_typical|winter_cold at 48 h, production's own L-BFGS-B restarted from the shipped plan at ftol=1e-12 lowers the recorded objective by 0.6507 % (55.3274 to 54.9674) at equal comfort.",
+   "mechanism": "Every main run stops on RELATIVE REDUCTION OF F <= FACTR*EPSMCH after 8-36 iterations on 192 variables; _lbfgsb_restart then stops after 1 iteration on the same test, so the in-loop polish adopts nothing.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 48",
+    "harness_path": "tools/audit/round9/D0/s2/polish.py",
+    "value": 0.6507,
+    "unit": "% of shipped objective",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B2: 4-CPU Linux container, python3.14 venv, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "ratio",
+    "contention_note": "up to two other seats' finders running (load1 3-6); the value is an objective ratio and is contention-immune",
+    "tolerance": "+-0.05 pp on this box; BLAS-dependent across boxes",
+    "load1": 5.23,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize (captured) and _scoped_minimize (hooked)",
+   "perturbation": {
+    "change": "polish.py --perturb ftol_tight: production's ftol passed to _scoped_minimize rewritten from 1e-6 to 1e-12 in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "0.0000 % (shipped objective 54.7889)"
+   },
+   "metric_definition": "(f_prod - f_polish)/|f_prod| on the first seam call's recorded objective; f_polish is production's L-BFGS-B from the shipped x at ftol 1e-12, gtol 1e-10",
+   "phenomenon_property": "The shipped plan is a fixed point of production's own L-BFGS-B (same objective, bounds and jac) to within a relative 1e-4.",
+   "seam_rule": "tools/audit/round9/D0/s2/polish.py --horizon 24 --weather winter_cold,winter_mild,summer_cool,shoulder ; tools/audit/round9/D0/s2/polish.py --horizon 48",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 48 --prices flat",
+    "value": "0.0231 % max (0.048)",
+    "note": "At flat prices the residue is at most 0.0231 % (48 h) and 0.0070 % (24 h, race.py)."
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 0.0,
+    "max": 0.6507,
+    "drop_most_favourable": 0.0005
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 48 --prices summer_typical --weather winter_cold --tz 1 --dhw 1",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 48 --prices summer_typical --weather winter_cold --tz 1 --dhw 1 --perturb ftol_tight",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/polish.py --horizon 24 --prices shoulder --weather winter_cold,summer_cool --tz 0 --dhw 0"
+   ],
+   "proposed_fix_scope": "optimizer.py _multi_start_minimize / _lbfgsb_restart stop rule (ftol) or a gradient-norm-based stop; weigh against the recorded #1293 refusal (tests/optimality.py claim for one|shoulder|winter_cold).",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P4"
+  },
+  {
+   "id": "D0-s2-02",
+   "scope": "D0-s2",
+   "step": "D0.M2",
+   "title": "Multi-start seed set misses lower basins on shoulder prices, above the flat-price null",
+   "severity": "low",
+   "claim": "On the 24 h shoulder-price grid (16 cells, excluding summer_warm), the production seed set's plan is beaten by the recorded candidates plus an Emax-fraction bang-bang ladder by up to 1.2012 % (mean 0.3909 %, 8 of 16 cells over 0.1 %) at equal comfort, against a flat-price null of at most 0.3247 % (mean 0.0918 %).",
+   "mechanism": "The objective landscape is rugged: on one|nodhw|shoulder|shoulder, single seeds refine to between -3.5 % and +1.2 % of the shipped objective. Production's four or five energy-anchored starts all descend into a ~7.2 kWh basin, while an 8.5 kWh basin is reached only from seeds unrelated to the baseline energy (for example 0.8*Emax). The 1.25-2.0x baseline anchors do not reach it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --horizon 24",
+    "harness_path": "tools/audit/round9/D0/s2/race.py",
+    "value": 1.2012,
+    "unit": "% of shipped objective (max over shoulder cells)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B2: 4-CPU Linux container, python3.14 venv, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "ratio",
+    "contention_note": "other seats' finders running (load1 3-6); the value is an objective ratio and is contention-immune",
+    "tolerance": "+-0.05 pp on this box; the basin choice is BLAS-dependent across boxes",
+    "load1": 4.42,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize",
+   "perturbation": {
+    "change": "race.py --perturb add_emax_ladder: the 13 Emax-fraction bang-bang seeds are appended to the candidates production hands its own seam (in memory)",
+    "expected_direction": "down",
+    "observed_value": "shoulder mean 0.3909 % -> 0.0503 %; 15/16 cells 0.0000 %; the remaining cell (0.80 %) is D0-s2-01's polish residue"
+   },
+   "metric_definition": "(f_prod - min(f_ladder, f_ladder_polish))/|f_prod| on the first seam call's recorded objective, with the recorded candidates plus 13 bang-bang seeds at fractions of the bounds' max energy",
+   "phenomenon_property": "No start set reachable by a cheap structural seed family (bang-bang at any energy fraction) finds a lower objective than the shipped plan by more than the flat-price null.",
+   "seam_rule": "tools/audit/round9/D0/s2/race.py --horizon 24 --cells shoulder,flat",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --horizon 24 --cells flat",
+    "value": "max 0.3247 %, mean 0.0918 %, max absolute 0.185",
+    "note": "A basin gap exists at flat prices too (comfort/terminal trade); the shoulder excess over the matched flat cell is the price-optimality part, up to 1.17 pp on one|dhw|shoulder|shoulder."
+   },
+   "leave_one_out": {
+    "cells": 16,
+    "min": 0.0,
+    "max": 1.2012,
+    "drop_most_favourable": 0.3369
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --cells shoulder,flat --weather winter_cold,winter_mild,summer_cool,shoulder --first-only",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --cells shoulder --weather winter_cold,winter_mild,summer_cool,shoulder --first-only --perturb add_emax_ladder",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/seedwin.py --cell one,nodhw,shoulder,shoulder"
+   ],
+   "proposed_fix_scope": "optimizer.py seed construction in _optimize_space_only/_solve_space: more diverse structural starts, weighed against the #1294 cost refusal; the baseline-multiple anchors alone do not close it (anchor.py).",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P4"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "The iteration budget never binds: no L-BFGS-B run reaches maxiter",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py (maxiter_hits in evidence/grid24.jsonl, grid6.jsonl)",
+   "value": "0/698 runs (24 h), 0/544 (6 h)"
+  },
+  {
+   "claim": "Every candidate handed to the seam is refined (runs = 2 x candidates)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py",
+   "value": "8 runs per single-zone solve, 10 per two-zone solve, 8 per first DHW call, in every cell"
+  },
+  {
+   "claim": "The co-optimize replan (single warm start) never flips its adoption decision when solved to the best challenger",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py (analysis of call 0/1 in evidence/grid24.jsonl)",
+   "value": "0 flips over 9 cells with a replan call"
+  },
+  {
+   "claim": "No gap at a 6 h horizon on this axis",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --horizon 6 --weather winter_cold,winter_mild,summer_cool,shoulder",
+   "value": "gap_max 0.0005 % over 64 cells"
+  },
+  {
+   "claim": "Comfort-feasibility parity: no challenger plan is less comfort-feasible than production's",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/anchor.py",
+   "value": "viol_worse=0 on all 64 cells; 0.0000 -> 0.0000 on the grid logs"
+  },
+  {
+   "claim": "The deep 0.20x anchor absent from the with-DHW seam is not what the DHW-path gaps need",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --cells summer_typical,shoulder --weather winter_cold --tz 1 --dhw 1 --perturb deep_anchor_dhw --first-only",
+   "value": "two|dhw|summer_typical|winter_cold 28.1152 -> 28.1039 (gap 0.22 % -> 0.18 %); shoulder cell unchanged"
+  },
+  {
+   "claim": "On summer prices the relative gaps are immaterial in money",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D0/s2/race.py --cells summer_typical,summer_negative",
+   "value": "max absolute gap 0.062 (summer_typical) and 0.042 (summer_negative), on days of 0.2-28 objective units"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D0/s2/race.py",
+  "tools/audit/round9/D0/s2/polish.py",
+  "tools/audit/round9/D0/s2/anchor.py",
+  "tools/audit/round9/D0/s2/seedwin.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D0-s3",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_multi_start_minimize",
+   "what": "D0-s2-01 and D0-s2-02 change step 0 in some cells (two|nodhw|shoulder|winter_cold 1.52->0.89 kW; 48 h two|dhw|summer_typical|winter_cold 0.99->0.93 kW); M6 receding-horizon realisation unmeasured."
+  },
+  {
+   "owner_seat": "D0-s3",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._terminal_cost",
+   "what": "At 6 h horizon 36 of 64 cells plan 0 kWh space heating; the terminal credit alone decides the plan (M7)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._comfort_terms",
+   "what": "Under summer_warm weather objective_value is a plan-independent overshoot constant (6435 single-zone, 10598 two-zone) from warmth no heater can remove; dominates objective_value (D2 objective shape)."
+  }
+ ]
+}

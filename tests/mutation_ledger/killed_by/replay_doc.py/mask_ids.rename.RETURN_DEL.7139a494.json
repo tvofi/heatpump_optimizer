@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:mask_ids.rename RETURN_DEL 7139a494",
+  "killed_by": "tests/debug_collect.py",
+  "old": "        return node",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=30."
+}

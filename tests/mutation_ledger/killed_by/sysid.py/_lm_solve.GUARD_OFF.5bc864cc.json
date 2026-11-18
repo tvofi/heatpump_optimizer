@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_lm_solve GUARD_OFF 5bc864cc",
+  "killed_by": "tests/features.py",
+  "old": "        if not accepted or float(np.max(np.abs(delta))) < 1e-10:",
+  "reason": "Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

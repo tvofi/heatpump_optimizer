@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:temperature_c GUARD_OFF 5cd1f888",
+  "killed_by": "tests/features.py",
+  "old": "    if value is None:",
+  "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: unsupported operand type(s) for +: 'NoneType' and 'float'` out of the production reader the #1513 section drives. Measured at d6d79847, 2026-09-24."
+}

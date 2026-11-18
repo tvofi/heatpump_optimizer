@@ -1,0 +1,53 @@
+{
+ "_comment": "R10-CI-LAYOUT P2b U5: the closed map of tests.yml's move into the umbrella (DESIGN-P2 10, U5's row). cancel-superseded is ci.yml's alone; fast's 'Decide the gate scope' moved to the prelude (its `scope` output, passed as inputs.gate_scope); browser and typing stand down at the step level behind a gained first step (4.2: no required job ever skips); lane-proofs and laneskip read inputs.*; the autofix pushes dispatch ci.yml; ci-ratchet's runs fetch is U9a's --gather-runs.",
+ "dropped": [
+  "cancel-superseded|",
+  "cancel-superseded|order",
+  "cancel-superseded|Cancel this branch's runs at superseded heads",
+  "cancel-superseded|uses:actions/checkout@<sha>",
+  "fast|Decide the gate scope"
+ ],
+ "gained": [
+  "browser|Say the lane-skip decision this run stands on",
+  "typing|Say the lane-skip decision this run stands on",
+  "arch-instrument|",
+  "arch-instrument|order",
+  "arch-instrument|Say the lane-skip decision this run stands on",
+  "arch-instrument|uses:actions/checkout@<sha>",
+  "arch-instrument|uses:actions/setup-python@<sha>",
+  "arch-instrument|Install pinned test dependencies",
+  "arch-instrument|Run the architecture-score pair"
+ ],
+ "after": {
+  "browser|Say the lane-skip decision this run stands on": "browser|^",
+  "typing|Say the lane-skip decision this run stands on": "typing|^"
+ },
+ "changed": [
+  "|triggers",
+  "browser|",
+  "browser|Cache the lane's Chromium",
+  "browser|Install pinned test dependencies",
+  "browser|Install playwright and Chromium",
+  "browser|Run the layout lane",
+  "browser|Write the plan payload",
+  "browser|uses:actions/checkout@<sha>",
+  "browser|uses:actions/setup-node@<sha>",
+  "browser|uses:actions/setup-python@<sha>",
+  "typing|",
+  "typing|Install the pinned toolchain",
+  "typing|Run the ruler and ratchet its three numbers",
+  "typing|uses:actions/checkout@<sha>",
+  "typing|uses:actions/setup-python@<sha>",
+  "typing|uses:actions/upload-artifact@<sha>",
+  "fast|Run the suite",
+  "lane-proofs|",
+  "closure-scope|Identify the diff and base the heavy lanes would judge",
+  "closures-autofix|Push the merged closures",
+  "claims-autofix|Push emptied claim files",
+  "mutation-autofix|Push the pinned ledger",
+  "ci-ratchet|Fetch the recent push runs' durations",
+  "lane-proofs|Record fast's green run at this base and diff",
+  "lane-proofs|Save fast's proof"
+ ],
+ "_comment_u5b": "U5b (its own commit range): the gained job arch-instrument runs tests/arch_score.py and tests/arch_score_head.py through run.sh's RUN_PART=arch, standing down on fast's decision; fast's Run the suite (already changed by U5) gains RUN_PART=fast; lane-proofs records fast's proof only when arch-instrument also passed."
+}

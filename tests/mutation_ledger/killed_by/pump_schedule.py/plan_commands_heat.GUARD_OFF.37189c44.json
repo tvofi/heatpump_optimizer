@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_schedule.py:plan_commands_heat GUARD_OFF 37189c44",
+  "killed_by": "tests/features.py",
+  "old": "    if not space_heating:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

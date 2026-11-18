@@ -1,0 +1,50 @@
+{
+ "class": "N-staleness",
+ "instances": 5,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round10/D14/sweep-N-staleness/enumerate.py (controls: --controls)",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "INPUT_MAX_AGE_MINUTES[CONF_POWER_ENTITY]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-staleness/probe.py CONF_POWER_ENTITY",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_MODE_ENTITY]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-staleness/probe.py CONF_HEAT_PUMP_MODE_ENTITY",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "INPUT_MAX_AGE_MINUTES[CONF_ENERGY_ENTITY]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-staleness/probe.py CONF_ENERGY_ENTITY",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-staleness/probe.py CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-staleness/probe.py CONF_HEAT_PUMP_RETURN_TEMP_ENTITY",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-staleness/probe.py CONF_FLOW_METER_ENTITY",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HUMIDITY_MAX_AGE_MINUTES",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-staleness/probe.py HUMIDITY",
+   "beyond_finding": true
+  }
+ ]
+}

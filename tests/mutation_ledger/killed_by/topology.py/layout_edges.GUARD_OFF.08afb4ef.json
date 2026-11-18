@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/topology.py:layout_edges GUARD_OFF 08afb4ef",
+  "killed_by": "tests/features.py",
+  "old": "        if dhw_coil:",
+  "reason": "R8-I1b (#1540): the refill-coil edge of two_tank_4way. `if False:` drops the published wood_tank->dhw_tank edge. Measured at 8627feee on a detached worktree with this mutant (and the three #1532/#1533 finder mutants in other modules): tests/features.py rc=0 failed=0 -> rc=1, 4 of 3189 FAILED, the one reading topology being `a wood coil in the hot water tank draws wood_tank->dhw_tank, and only with the coil (#1540)`. At the merge base 87cf56a3 the same four mutants left tests/features.py green (ALL 3185 FEATURE CHECKS PASSED)."
+}

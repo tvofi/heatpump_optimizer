@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:_clock GUARD_OFF f9e658eb",
+  "killed_by": "tests/features.py",
+  "old": "    if hour > 23 or minute > 59:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

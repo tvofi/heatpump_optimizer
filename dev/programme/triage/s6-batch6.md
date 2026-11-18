@@ -1,0 +1,17 @@
+# Proposal triage, session s6, batch 6 (P64)
+
+One ruling, S6-V10 of the s6 orchestrator's out-of-tree `proposals.md`, filed
+2026-10-24T14:15Z. Numbering continues after `s6-batch5.md` (P63). GitHub calls: 0.
+
+## P64: opener seat's worktree holds the branch update_pr.sh needs (S6-V10)
+Verdict: ACCEPT narrowed -> R10-FLY-OPENPR-ATOMIC (owns app_push.sh and its openers); carry: an instrument that pushes a PR branch from a worktree it keeps detaches that worktree once, after the last push of its run, and only when `status --porcelain` is empty and HEAD equals the pushed sha. Never inside app_push.sh. A later run that pushes from that worktree re-attaches it without carrying a tracked edit.
+Source: s6 proposals.md S6-V10. Proposed `update_pr.sh --free-holders` rejected.
+Instances: 2, from the s6 orchestrator's out-of-tree record. `grep -n 'rows blocked by triage worktree holders' seat-ledger.md` prints line 99 (#2734/#2735), and `grep -n '^- V10 2026' proposals.md` prints line 89. The refusal they hit is update_pr.sh's `checked out elsewhere` exit.
+Cost: S -- one helper in `pr_args.sh`, which open_pr.sh, update_pr.sh and handoff_push.sh all source, called at each site's last push; a re-attach in handoff_push.sh's update arm; a self-test arm per site.
+Binding: the detach comes after the run's last push, because app_push.sh's committed-tip gate (`is not the committed tip`) refuses a detached HEAD, and open_pr.sh and handoff_push.sh's open arm each commit a row between two pushes. handoff_push.sh's update arm (ending at `mut:push-update`) reuses that arm's worktree, and today it runs `git reset -q --hard "origin/$BR"`, which on a detached worktree moves only HEAD. So the arm re-attaches with `git checkout -q -f -B "$BR" "origin/$BR"` before that reset and keeps the reset. Plain `checkout -B` is not enough: it carries tracked edits into the arm's `commit -qam` and the push (review 2738 round 3, `origin/review/2738:evidence/repro_checkoutB_keeps_dirt.txt`).
+Sites: `git grep -nE 'bash "?\$_push"?|push_app [0-9]' -- tools ':!tools/pr/app_push.sh'` returns 8 lines. A detach follows handoff_push.sh `mut:push-row` and `mut:push-update`, open_pr.sh's second push (`$D/p2.log`), and update_pr.sh's push (`$WT.log`). No detach follows the `push_app()` body, `mut:push-open` or open_pr.sh's first push (`$D/p1.log`), which other pushes follow in the same worktree, nor remerge_main.sh's `--recarry`, which opens no PR.
+Why not `update_pr.sh --free-holders`: merge_train.py's `freeable` already frees a clean holder at `origin/<br>` with no prefix restriction, and loses nothing. A second copy of it in each consumer is the cost; a detach where the holder is made frees every consumer.
+Carry: R10-FLY-OPENPR-ATOMIC -- a handoff_push.sh self-test arm that runs open, then update, on the same worktree, and pushes a head that is on `refs/heads/$BR`.
+Carry: R10-FLY-OPENPR-ATOMIC -- a handoff_push.sh self-test arm in which a tracked edit made in the worktree before an update run is absent from the pushed head; its mutant drops the `-f`.
+Carry: R10-FLY-OPENPR-ATOMIC -- the helper's null control: a worktree with an untracked file, or with HEAD off the pushed sha, stays on its branch. Mutants: the clean condition, then the HEAD-equals-pushed condition.
+Carry: R10-FLY-OPENPR-ATOMIC -- the next run of each site is checked against a detached worktree: open_pr.sh adds a fresh one with `-b`; update_pr.sh removes and re-adds its own with `-B`.

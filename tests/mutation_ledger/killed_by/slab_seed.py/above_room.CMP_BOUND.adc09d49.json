@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/slab_seed.py:above_room CMP_BOUND adc09d49",
+  "killed_by": "tests/features.py",
+  "old": "    return return_c - room_c > SLAB_SEED_MAX_ABOVE_ROOM_K",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return return_c - room_c >= SLAB_SEED_MAX_ABOVE_ROOM_K`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

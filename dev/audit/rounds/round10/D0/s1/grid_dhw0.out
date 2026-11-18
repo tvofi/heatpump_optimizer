@@ -1,0 +1,91 @@
+cell tz=0 winter_typical   winter_cold  call0 f_prod=60.10428 f_best=60.10428 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=23.28 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_typical   winter_mild  call0 f_prod=23.40310 f_best=23.39307 gap_rel=4.286e-04 by=c2 dSEK=0.000 bill=17.83 infeasible_discarded=0 c1=4.28e-04 c2=4.29e-04 c3=4.28e-04
+cell tz=0 winter_typical   summer_warm  call0 f_prod=6435.62017 f_best=6435.62017 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_typical   summer_cool  call0 f_prod=3.31808 f_best=3.31578 gap_rel=6.927e-04 by=c3 dSEK=-0.170 bill=1.78 infeasible_discarded=0 c1=6.92e-04 c2=6.92e-04 c3=6.93e-04
+cell tz=0 winter_typical   shoulder     call0 f_prod=6.72181 f_best=6.70495 gap_rel=2.509e-03 by=c3 dSEK=-0.246 bill=4.90 infeasible_discarded=0 c1=2.51e-03 c2=2.51e-03 c3=2.51e-03
+cell tz=0 winter_extreme   winter_cold  call0 f_prod=80.74056 f_best=80.74056 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=41.40 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_extreme   winter_mild  call0 f_prod=33.30281 f_best=33.22350 gap_rel=2.381e-03 by=c3 dSEK=-0.402 bill=26.41 infeasible_discarded=0 c1=2.38e-03 c2=2.38e-03 c3=2.38e-03
+cell tz=0 winter_extreme   summer_warm  call0 f_prod=6435.62017 f_best=6435.62017 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_extreme   summer_cool  call0 f_prod=4.42932 f_best=4.42932 gap_rel=2.990e-07 by=c3 dSEK=-0.000 bill=2.75 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=2.99e-07
+cell tz=0 winter_extreme   shoulder     call0 f_prod=9.44643 f_best=9.43324 gap_rel=1.396e-03 by=c3 dSEK=0.156 bill=7.40 infeasible_discarded=0 c1=1.40e-03 c2=1.40e-03 c3=1.40e-03
+cell tz=0 winter_narrow    winter_cold  call0 f_prod=103.13623 f_best=103.13623 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=74.92 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_narrow    winter_mild  call0 f_prod=45.01355 f_best=45.00807 gap_rel=1.217e-04 by=c2 dSEK=0.052 bill=29.85 infeasible_discarded=0 c1=1.14e-04 c2=1.22e-04 c3=1.14e-04
+cell tz=0 winter_narrow    summer_warm  call0 f_prod=6435.62017 f_best=6435.62017 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_narrow    summer_cool  call0 f_prod=5.18997 f_best=5.18612 gap_rel=7.404e-04 by=c3 dSEK=-0.064 bill=2.83 infeasible_discarded=0 c1=7.40e-04 c2=7.40e-04 c3=7.40e-04
+cell tz=0 winter_narrow    shoulder     call0 f_prod=11.59176 f_best=11.50143 gap_rel=7.793e-03 by=c3 dSEK=0.395 bill=7.42 infeasible_discarded=0 c1=7.79e-03 c2=7.79e-03 c3=7.79e-03
+cell tz=0 winter_moderate  winter_cold  call0 f_prod=75.90508 f_best=75.90508 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=41.10 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_moderate  winter_mild  call0 f_prod=32.12124 f_best=32.12124 gap_rel=8.470e-08 by=c3 dSEK=-0.000 bill=23.22 infeasible_discarded=0 c1=3.66e-09 c2=4.46e-08 c3=8.47e-08
+cell tz=0 winter_moderate  summer_warm  call0 f_prod=6435.62017 f_best=6435.62017 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_moderate  summer_cool  call0 f_prod=3.99704 f_best=3.99625 gap_rel=1.991e-04 by=c2 dSEK=-0.020 bill=2.04 infeasible_discarded=0 c1=1.96e-04 c2=1.99e-04 c3=1.96e-04
+cell tz=0 winter_moderate  shoulder     call0 f_prod=8.56522 f_best=8.55324 gap_rel=1.398e-03 by=c3 dSEK=0.151 bill=5.20 infeasible_discarded=0 c1=1.40e-03 c2=1.40e-03 c3=1.40e-03
+cell tz=0 summer_typical   winter_cold  call0 f_prod=19.51079 f_best=19.51079 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=12.56 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 summer_typical   winter_mild  call0 f_prod=7.55346 f_best=7.55044 gap_rel=3.999e-04 by=c2 dSEK=-0.035 bill=5.69 infeasible_discarded=0 c1=2.66e-04 c2=4.00e-04 c3=2.66e-04
+cell tz=0 summer_typical   summer_warm  call0 f_prod=6435.62017 f_best=6435.62017 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 summer_typical   summer_cool  call0 f_prod=1.66349 f_best=1.66258 gap_rel=5.502e-04 by=c3 dSEK=0.005 bill=0.43 infeasible_discarded=0 c1=5.50e-04 c2=5.50e-04 c3=5.50e-04
+cell tz=0 summer_typical   shoulder     call0 f_prod=2.69847 f_best=2.69847 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=1.08 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 summer_negative  winter_cold  call0 f_prod=12.95920 f_best=12.94739 gap_rel=9.117e-04 by=c3 dSEK=0.009 bill=10.80 infeasible_discarded=0 c1=9.12e-04 c2=9.12e-04 c3=9.12e-04
+cell tz=0 summer_negative  winter_mild  call0 f_prod=0.62232 f_best=0.62160 gap_rel=1.166e-03 by=c2 dSEK=-0.007 bill=-0.71 infeasible_discarded=0 c1=1.16e-03 c2=1.17e-03 c3=1.16e-03
+cell tz=0 summer_negative  summer_warm  call0 f_prod=6435.62017 f_best=6435.62017 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 summer_negative  summer_cool  call0 f_prod=0.66935 f_best=0.66353 gap_rel=8.698e-03 by=c3 dSEK=-0.023 bill=-0.60 infeasible_discarded=0 c1=8.70e-03 c2=8.70e-03 c3=8.70e-03
+cell tz=0 summer_negative  shoulder     call0 f_prod=0.28654 f_best=0.27203 gap_rel=5.065e-02 by=c2 dSEK=0.105 bill=-1.47 infeasible_discarded=0 c1=3.36e-02 c2=5.06e-02 c3=3.36e-02
+cell tz=0 shoulder         winter_cold  call0 f_prod=48.81373 f_best=48.38317 gap_rel=8.820e-03 by=c2 dSEK=-0.726 bill=40.09 infeasible_discarded=0 c1=8.81e-03 c2=8.82e-03 c3=8.81e-03
+cell tz=0 shoulder         winter_mild  call0 f_prod=18.00133 f_best=17.99451 gap_rel=3.787e-04 by=c2 dSEK=-0.267 bill=14.57 infeasible_discarded=0 c1=2.11e-04 c2=3.79e-04 c3=2.11e-04
+cell tz=0 shoulder         summer_warm  call0 f_prod=6435.62017 f_best=6435.62017 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 shoulder         summer_cool  call0 f_prod=2.89390 f_best=2.89390 gap_rel=2.625e-07 by=c3 dSEK=-0.000 bill=1.05 infeasible_discarded=0 c1=1.69e-15 c2=4.45e-15 c3=2.63e-07
+cell tz=0 shoulder         shoulder     call0 f_prod=5.59145 f_best=5.59145 gap_rel=1.920e-07 by=c3 dSEK=-0.000 bill=4.44 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=1.92e-07
+cell tz=0 flat             winter_cold  call0 f_prod=82.46331 f_best=82.46326 gap_rel=6.882e-07 by=c3 dSEK=-0.000 bill=68.99 infeasible_discarded=0 c1=5.05e-07 c2=5.05e-07 c3=6.88e-07
+cell tz=0 flat             winter_mild  call0 f_prod=37.46916 f_best=37.44883 gap_rel=5.427e-04 by=c1 dSEK=1.544 bill=30.49 infeasible_discarded=0 c1=5.43e-04 c2=5.43e-04 c3=5.43e-04
+cell tz=0 flat             summer_warm  call0 f_prod=6435.62017 f_best=6435.62017 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 flat             summer_cool  call0 f_prod=4.44968 f_best=4.44749 gap_rel=4.933e-04 by=c3 dSEK=0.076 bill=2.70 infeasible_discarded=0 c1=4.93e-04 c2=4.93e-04 c3=4.93e-04
+cell tz=0 flat             shoulder     call0 f_prod=9.61392 f_best=9.57067 gap_rel=4.498e-03 by=c1 dSEK=-0.576 bill=6.84 infeasible_discarded=0 c1=4.50e-03 c2=4.50e-03 c3=4.50e-03
+cell tz=1 winter_typical   winter_cold  call0 f_prod=77.78986 f_best=77.47935 gap_rel=3.992e-03 by=c3 dSEK=1.207 bill=58.85 infeasible_discarded=0 c1=1.37e-03 c2=1.37e-03 c3=3.99e-03
+cell tz=1 winter_typical   winter_mild  call0 f_prod=29.78495 f_best=29.63981 gap_rel=4.873e-03 by=c2 dSEK=-0.113 bill=19.62 infeasible_discarded=0 c1=4.87e-03 c2=4.87e-03 c3=4.87e-03
+cell tz=1 winter_typical   summer_warm  call0 f_prod=10597.96756 f_best=10597.96756 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=1 winter_typical   summer_cool  call0 f_prod=3.82352 f_best=3.81693 gap_rel=1.724e-03 by=c3 dSEK=0.071 bill=2.31 infeasible_discarded=0 c1=1.72e-03 c2=1.72e-03 c3=1.72e-03
+cell tz=1 winter_typical   shoulder     call0 f_prod=8.32705 f_best=8.31689 gap_rel=1.219e-03 by=c3 dSEK=0.005 bill=6.11 infeasible_discarded=0 c1=1.22e-03 c2=1.22e-03 c3=1.22e-03
+cell tz=1 winter_extreme   winter_cold  call0 f_prod=111.69013 f_best=111.69011 gap_rel=2.299e-07 by=c2 dSEK=-0.000 bill=94.67 infeasible_discarded=0 c1=1.20e-07 c2=2.30e-07 c3=2.22e-07
+cell tz=1 winter_extreme   winter_mild  call0 f_prod=41.00053 f_best=41.00053 gap_rel=8.401e-08 by=c3 dSEK=-0.000 bill=31.03 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=8.40e-08
+cell tz=1 winter_extreme   summer_warm  call0 f_prod=10597.96756 f_best=10597.96756 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=1 winter_extreme   summer_cool  call0 f_prod=5.18544 f_best=5.17639 gap_rel=1.746e-03 by=c3 dSEK=0.093 bill=3.23 infeasible_discarded=0 c1=1.75e-03 c2=1.75e-03 c3=1.75e-03
+cell tz=1 winter_extreme   shoulder     call0 f_prod=11.77687 f_best=11.75767 gap_rel=1.630e-03 by=c3 dSEK=0.032 bill=9.27 infeasible_discarded=0 c1=1.63e-03 c2=1.63e-03 c3=1.63e-03
+cell tz=1 winter_narrow    winter_cold  call0 f_prod=124.67859 f_best=124.04494 gap_rel=5.082e-03 by=c3 dSEK=1.931 bill=112.38 infeasible_discarded=0 c1=4.71e-03 c2=4.71e-03 c3=5.08e-03
+cell tz=1 winter_narrow    winter_mild  call0 f_prod=50.77174 f_best=50.61616 gap_rel=3.064e-03 by=c3 dSEK=1.178 bill=41.55 infeasible_discarded=0 c1=1.98e-03 c2=1.98e-03 c3=3.06e-03
+cell tz=1 winter_narrow    summer_warm  call0 f_prod=10597.96756 f_best=10597.96756 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=1 winter_narrow    summer_cool  call0 f_prod=6.08417 f_best=6.06876 gap_rel=2.533e-03 by=c2 dSEK=0.168 bill=3.63 infeasible_discarded=0 c1=2.53e-03 c2=2.53e-03 c3=2.53e-03
+cell tz=1 winter_narrow    shoulder     call0 f_prod=14.48299 f_best=14.48299 gap_rel=7.077e-08 by=c3 dSEK=-0.000 bill=9.16 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=7.08e-08
+cell tz=1 winter_moderate  winter_cold  call0 f_prod=95.60900 f_best=95.60900 gap_rel=2.137e-08 by=c3 dSEK=-0.000 bill=81.35 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=2.14e-08
+cell tz=1 winter_moderate  winter_mild  call0 f_prod=38.12680 f_best=38.12678 gap_rel=4.556e-07 by=c3 dSEK=0.000 bill=29.65 infeasible_discarded=0 c1=4.36e-07 c2=4.36e-07 c3=4.56e-07
+cell tz=1 winter_moderate  summer_warm  call0 f_prod=10597.96756 f_best=10597.96756 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=1 winter_moderate  summer_cool  call0 f_prod=4.65792 f_best=4.65792 gap_rel=1.312e-07 by=c3 dSEK=-0.000 bill=2.42 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=1.31e-07
+cell tz=1 winter_moderate  shoulder     call0 f_prod=10.92019 f_best=10.91618 gap_rel=3.669e-04 by=c3 dSEK=0.117 bill=7.53 infeasible_discarded=0 c1=3.67e-04 c2=3.67e-04 c3=3.67e-04
+cell tz=1 summer_typical   winter_cold  call0 f_prod=25.03981 f_best=24.99097 gap_rel=1.951e-03 by=c3 dSEK=-0.246 bill=16.20 infeasible_discarded=0 c1=1.95e-03 c2=1.95e-03 c3=1.95e-03
+cell tz=1 summer_typical   winter_mild  call0 f_prod=8.67068 f_best=8.67061 gap_rel=7.709e-06 by=c3 dSEK=0.000 bill=6.57 infeasible_discarded=0 c1=3.39e-06 c2=7.71e-06 c3=7.71e-06
+cell tz=1 summer_typical   summer_warm  call0 f_prod=10597.96756 f_best=10597.96756 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=1 summer_typical   summer_cool  call0 f_prod=1.72276 f_best=1.72270 gap_rel=3.109e-05 by=c3 dSEK=-0.001 bill=0.54 infeasible_discarded=0 c1=1.64e-05 c2=3.11e-05 c3=3.11e-05
+cell tz=1 summer_typical   shoulder     call0 f_prod=3.29487 f_best=3.29483 gap_rel=1.192e-05 by=c3 dSEK=-0.001 bill=1.58 infeasible_discarded=0 c1=7.73e-06 c2=1.19e-05 c3=1.19e-05
+cell tz=1 summer_negative  winter_cold  call0 f_prod=17.21987 f_best=17.21870 gap_rel=6.796e-05 by=c2 dSEK=0.118 bill=14.62 infeasible_discarded=0 c1=5.65e-05 c2=6.80e-05 c3=5.65e-05
+cell tz=1 summer_negative  winter_mild  call0 f_prod=1.93316 f_best=1.93039 gap_rel=1.436e-03 by=c3 dSEK=-0.023 bill=-0.29 infeasible_discarded=0 c1=1.44e-03 c2=1.44e-03 c3=1.44e-03
+cell tz=1 summer_negative  summer_warm  call0 f_prod=10597.96756 f_best=10597.96756 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=1 summer_negative  summer_cool  call0 f_prod=0.46452 f_best=0.46452 gap_rel=1.466e-05 by=c3 dSEK=-0.000 bill=-0.65 infeasible_discarded=0 c1=8.85e-06 c2=1.47e-05 c3=1.47e-05
+cell tz=1 summer_negative  shoulder     call0 f_prod=0.21596 f_best=0.21125 gap_rel=2.184e-02 by=c3 dSEK=-0.007 bill=-1.53 infeasible_discarded=0 c1=2.18e-02 c2=2.18e-02 c3=2.18e-02
+cell tz=1 shoulder         winter_cold  call0 f_prod=59.01451 f_best=58.76345 gap_rel=4.254e-03 by=c3 dSEK=0.354 bill=51.09 infeasible_discarded=0 c1=1.79e-03 c2=2.28e-03 c3=4.25e-03
+cell tz=1 shoulder         winter_mild  call0 f_prod=23.29283 f_best=23.29282 gap_rel=3.810e-08 by=c3 dSEK=-0.000 bill=18.84 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=3.81e-08
+cell tz=1 shoulder         summer_warm  call0 f_prod=10597.96756 f_best=10597.96756 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=1 shoulder         summer_cool  call0 f_prod=3.34206 f_best=3.33665 gap_rel=1.618e-03 by=c1 dSEK=0.015 bill=2.15 infeasible_discarded=0 c1=1.62e-03 c2=1.62e-03 c3=1.62e-03
+cell tz=1 shoulder         shoulder     call0 f_prod=6.89410 f_best=6.87973 gap_rel=2.086e-03 by=c3 dSEK=-0.056 bill=5.28 infeasible_discarded=0 c1=2.09e-03 c2=2.09e-03 c3=2.09e-03
+cell tz=1 flat             winter_cold  call0 f_prod=100.30191 f_best=99.80228 gap_rel=4.981e-03 by=c3 dSEK=-0.287 bill=90.06 infeasible_discarded=0 c1=2.08e-03 c2=2.22e-03 c3=4.98e-03
+cell tz=1 flat             winter_mild  call0 f_prod=41.47842 f_best=41.47842 gap_rel=2.444e-08 by=c2 dSEK=-0.000 bill=35.41 infeasible_discarded=0 c1=1.88e-08 c2=2.44e-08 c3=1.88e-08
+cell tz=1 flat             summer_warm  call0 f_prod=10597.96756 f_best=10597.96756 gap_rel=0.000e+00 by=prod dSEK=0.000 bill=0.00 infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=1 flat             summer_cool  call0 f_prod=5.18950 f_best=5.18776 gap_rel=3.357e-04 by=c3 dSEK=0.016 bill=2.84 infeasible_discarded=0 c1=3.36e-04 c2=3.36e-04 c3=3.36e-04
+cell tz=1 flat             shoulder     call0 f_prod=12.23245 f_best=12.22616 gap_rel=5.144e-04 by=c3 dSEK=0.014 bill=8.63 infeasible_discarded=0 c1=5.14e-04 c2=5.14e-04 c3=5.14e-04
+RESULT cells=80 count
+RESULT gap_rel_max=5.0648e-02 ratio
+RESULT gap_rel_mean=2.0019e-03 ratio
+RESULT cells_gap_gt_1e-3=26 count
+RESULT cells_gap_gt_1e-2=2 count
+RESULT gap_rel_mean_drop_max=1.3861e-03 ratio
+RESULT flat_gap_rel_max=4.9813e-03 ratio
+RESULT nonflat_gap_rel_max=5.0648e-02 ratio
+RESULT thread_factor=1.000
+RESULT load1=15.88
+RESULT swapins=0

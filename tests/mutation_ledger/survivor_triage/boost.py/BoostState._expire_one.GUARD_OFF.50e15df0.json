@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:BoostState._expire_one GUARD_OFF 50e15df0",
+  "old": "            if settle and channel == CHANNEL_SPACE:",
+  "reason": "Equivalent (GUARD_OFF). The only call is expire's block loop, which passes settle=False. False and channel == CHANNEL_SPACE is False, so the body that sets space_settle_until never runs. if False is the same. A space block expired by tests/block_duty.py leaves space_settle_until None.",
+  "verdict": "equivalent"
+}

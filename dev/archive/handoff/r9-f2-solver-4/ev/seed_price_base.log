@@ -1,0 +1,137 @@
+one|nodhw|shoulder|winter_cold|h24           fr=None  f0=48.76359 cpu_s=1.39 n_cand=4
+one|nodhw|shoulder|winter_cold|h24           fr=0.2   f0=48.76359 cpu_s=1.40 n_cand=5
+one|nodhw|shoulder|winter_cold|h24           fr=0.4   f0=48.74767 cpu_s=1.39 n_cand=5
+one|nodhw|shoulder|winter_cold|h24           fr=0.6   f0=48.73581 cpu_s=1.61 n_cand=5
+one|nodhw|shoulder|winter_cold|h24           fr=0.8   f0=48.76359 cpu_s=1.57 n_cand=5
+one|nodhw|shoulder|winter_cold|h24           fr=1.0   f0=48.52222 cpu_s=1.77 n_cand=5
+one|dhw|shoulder|winter_cold|h24             fr=None  f0=54.79017 cpu_s=2.31 n_cand=4
+one|dhw|shoulder|winter_cold|h24             fr=0.2   f0=54.79017 cpu_s=2.81 n_cand=5
+one|dhw|shoulder|winter_cold|h24             fr=0.4   f0=54.79017 cpu_s=2.72 n_cand=5
+one|dhw|shoulder|winter_cold|h24             fr=0.6   f0=54.79017 cpu_s=2.73 n_cand=5
+one|dhw|shoulder|winter_cold|h24             fr=0.8   f0=54.79017 cpu_s=3.23 n_cand=5
+one|dhw|shoulder|winter_cold|h24             fr=1.0   f0=54.79017 cpu_s=2.49 n_cand=5
+two|nodhw|shoulder|winter_cold|h24           fr=None  f0=58.92081 cpu_s=4.39 n_cand=5
+two|nodhw|shoulder|winter_cold|h24           fr=0.2   f0=58.92081 cpu_s=5.24 n_cand=6
+two|nodhw|shoulder|winter_cold|h24           fr=0.4   f0=58.92081 cpu_s=5.57 n_cand=6
+two|nodhw|shoulder|winter_cold|h24           fr=0.6   f0=58.92081 cpu_s=5.04 n_cand=6
+two|nodhw|shoulder|winter_cold|h24           fr=0.8   f0=58.92081 cpu_s=5.38 n_cand=6
+two|nodhw|shoulder|winter_cold|h24           fr=1.0   f0=58.90877 cpu_s=6.49 n_cand=6
+two|dhw|shoulder|winter_cold|h24             fr=None  f0=65.36059 cpu_s=3.83 n_cand=4
+two|dhw|shoulder|winter_cold|h24             fr=0.2   f0=65.28426 cpu_s=4.72 n_cand=5
+two|dhw|shoulder|winter_cold|h24             fr=0.4   f0=65.36059 cpu_s=4.76 n_cand=5
+two|dhw|shoulder|winter_cold|h24             fr=0.6   f0=65.36059 cpu_s=6.43 n_cand=5
+two|dhw|shoulder|winter_cold|h24             fr=0.8   f0=65.36059 cpu_s=6.47 n_cand=5
+two|dhw|shoulder|winter_cold|h24             fr=1.0   f0=65.36059 cpu_s=6.21 n_cand=5
+one|nodhw|shoulder|winter_mild|h24           fr=None  f0=17.99962 cpu_s=1.43 n_cand=4
+one|nodhw|shoulder|winter_mild|h24           fr=0.2   f0=17.99962 cpu_s=1.77 n_cand=5
+one|nodhw|shoulder|winter_mild|h24           fr=0.4   f0=17.99941 cpu_s=1.63 n_cand=5
+one|nodhw|shoulder|winter_mild|h24           fr=0.6   f0=17.99962 cpu_s=2.08 n_cand=5
+one|nodhw|shoulder|winter_mild|h24           fr=0.8   f0=17.99962 cpu_s=1.81 n_cand=5
+one|nodhw|shoulder|winter_mild|h24           fr=1.0   f0=17.99962 cpu_s=1.43 n_cand=5
+one|dhw|shoulder|winter_mild|h24             fr=None  f0=21.81296 cpu_s=1.88 n_cand=4
+one|dhw|shoulder|winter_mild|h24             fr=0.2   f0=21.81296 cpu_s=2.80 n_cand=5
+one|dhw|shoulder|winter_mild|h24             fr=0.4   f0=21.81296 cpu_s=2.81 n_cand=5
+one|dhw|shoulder|winter_mild|h24             fr=0.6   f0=21.81296 cpu_s=2.88 n_cand=5
+one|dhw|shoulder|winter_mild|h24             fr=0.8   f0=21.81296 cpu_s=2.82 n_cand=5
+one|dhw|shoulder|winter_mild|h24             fr=1.0   f0=21.81296 cpu_s=2.65 n_cand=5
+two|nodhw|shoulder|winter_mild|h24           fr=None  f0=23.29432 cpu_s=5.09 n_cand=5
+two|nodhw|shoulder|winter_mild|h24           fr=0.2   f0=23.29432 cpu_s=5.67 n_cand=6
+two|nodhw|shoulder|winter_mild|h24           fr=0.4   f0=23.29432 cpu_s=5.84 n_cand=6
+two|nodhw|shoulder|winter_mild|h24           fr=0.6   f0=23.29432 cpu_s=6.29 n_cand=6
+two|nodhw|shoulder|winter_mild|h24           fr=0.8   f0=23.29432 cpu_s=5.48 n_cand=6
+two|nodhw|shoulder|winter_mild|h24           fr=1.0   f0=23.29432 cpu_s=5.39 n_cand=6
+two|dhw|shoulder|winter_mild|h24             fr=None  f0=27.03372 cpu_s=3.72 n_cand=4
+two|dhw|shoulder|winter_mild|h24             fr=0.2   f0=27.03372 cpu_s=4.39 n_cand=5
+two|dhw|shoulder|winter_mild|h24             fr=0.4   f0=27.03372 cpu_s=3.43 n_cand=5
+two|dhw|shoulder|winter_mild|h24             fr=0.6   f0=27.03372 cpu_s=3.68 n_cand=5
+two|dhw|shoulder|winter_mild|h24             fr=0.8   f0=27.03372 cpu_s=3.28 n_cand=5
+two|dhw|shoulder|winter_mild|h24             fr=1.0   f0=27.03372 cpu_s=3.77 n_cand=5
+one|nodhw|shoulder|summer_cool|h24           fr=None  f0=2.89939 cpu_s=1.31 n_cand=4
+one|nodhw|shoulder|summer_cool|h24           fr=0.2   f0=2.89939 cpu_s=1.44 n_cand=5
+one|nodhw|shoulder|summer_cool|h24           fr=0.4   f0=2.89939 cpu_s=1.43 n_cand=5
+one|nodhw|shoulder|summer_cool|h24           fr=0.6   f0=2.89939 cpu_s=1.39 n_cand=5
+one|nodhw|shoulder|summer_cool|h24           fr=0.8   f0=2.86656 cpu_s=1.59 n_cand=5
+one|nodhw|shoulder|summer_cool|h24           fr=1.0   f0=2.88925 cpu_s=1.73 n_cand=5
+one|dhw|shoulder|summer_cool|h24             fr=None  f0=6.14294 cpu_s=1.03 n_cand=4
+one|dhw|shoulder|summer_cool|h24             fr=0.2   f0=6.14294 cpu_s=1.16 n_cand=5
+one|dhw|shoulder|summer_cool|h24             fr=0.4   f0=6.14294 cpu_s=1.11 n_cand=5
+one|dhw|shoulder|summer_cool|h24             fr=0.6   f0=6.14294 cpu_s=1.14 n_cand=5
+one|dhw|shoulder|summer_cool|h24             fr=0.8   f0=6.07782 cpu_s=1.60 n_cand=5
+one|dhw|shoulder|summer_cool|h24             fr=1.0   f0=6.13150 cpu_s=1.21 n_cand=5
+two|nodhw|shoulder|summer_cool|h24           fr=None  f0=3.33853 cpu_s=2.78 n_cand=5
+two|nodhw|shoulder|summer_cool|h24           fr=0.2   f0=3.33853 cpu_s=3.31 n_cand=6
+two|nodhw|shoulder|summer_cool|h24           fr=0.4   f0=3.33853 cpu_s=3.59 n_cand=6
+two|nodhw|shoulder|summer_cool|h24           fr=0.6   f0=3.33853 cpu_s=3.35 n_cand=6
+two|nodhw|shoulder|summer_cool|h24           fr=0.8   f0=3.33853 cpu_s=3.35 n_cand=6
+two|nodhw|shoulder|summer_cool|h24           fr=1.0   f0=3.33853 cpu_s=3.33 n_cand=6
+two|dhw|shoulder|summer_cool|h24             fr=None  f0=6.55040 cpu_s=2.74 n_cand=4
+two|dhw|shoulder|summer_cool|h24             fr=0.2   f0=6.55040 cpu_s=3.09 n_cand=5
+two|dhw|shoulder|summer_cool|h24             fr=0.4   f0=6.55040 cpu_s=3.06 n_cand=5
+two|dhw|shoulder|summer_cool|h24             fr=0.6   f0=6.55040 cpu_s=3.35 n_cand=5
+two|dhw|shoulder|summer_cool|h24             fr=0.8   f0=6.55040 cpu_s=3.31 n_cand=5
+two|dhw|shoulder|summer_cool|h24             fr=1.0   f0=6.55040 cpu_s=3.13 n_cand=5
+one|nodhw|shoulder|shoulder|h24              fr=None  f0=5.72955 cpu_s=0.87 n_cand=4
+one|nodhw|shoulder|shoulder|h24              fr=0.2   f0=5.72955 cpu_s=1.01 n_cand=5
+one|nodhw|shoulder|shoulder|h24              fr=0.4   f0=5.72955 cpu_s=0.95 n_cand=5
+one|nodhw|shoulder|shoulder|h24              fr=0.6   f0=5.72955 cpu_s=0.94 n_cand=5
+one|nodhw|shoulder|shoulder|h24              fr=0.8   f0=5.66113 cpu_s=1.28 n_cand=5
+one|nodhw|shoulder|shoulder|h24              fr=1.0   f0=5.72955 cpu_s=1.04 n_cand=5
+one|dhw|shoulder|shoulder|h24                fr=None  f0=9.14101 cpu_s=0.94 n_cand=4
+one|dhw|shoulder|shoulder|h24                fr=0.2   f0=9.14101 cpu_s=1.15 n_cand=5
+one|dhw|shoulder|shoulder|h24                fr=0.4   f0=9.14101 cpu_s=1.03 n_cand=5
+one|dhw|shoulder|shoulder|h24                fr=0.6   f0=9.14101 cpu_s=1.17 n_cand=5
+one|dhw|shoulder|shoulder|h24                fr=0.8   f0=9.14101 cpu_s=1.14 n_cand=5
+one|dhw|shoulder|shoulder|h24                fr=1.0   f0=9.10734 cpu_s=1.21 n_cand=5
+two|nodhw|shoulder|shoulder|h24              fr=None  f0=6.88633 cpu_s=2.78 n_cand=5
+two|nodhw|shoulder|shoulder|h24              fr=0.2   f0=6.88308 cpu_s=3.49 n_cand=6
+two|nodhw|shoulder|shoulder|h24              fr=0.4   f0=6.88633 cpu_s=3.34 n_cand=6
+two|nodhw|shoulder|shoulder|h24              fr=0.6   f0=6.88633 cpu_s=3.50 n_cand=6
+two|nodhw|shoulder|shoulder|h24              fr=0.8   f0=6.88633 cpu_s=3.22 n_cand=6
+two|nodhw|shoulder|shoulder|h24              fr=1.0   f0=6.88633 cpu_s=3.18 n_cand=6
+two|dhw|shoulder|shoulder|h24                fr=None  f0=10.36119 cpu_s=1.94 n_cand=4
+two|dhw|shoulder|shoulder|h24                fr=0.2   f0=10.36119 cpu_s=2.58 n_cand=5
+two|dhw|shoulder|shoulder|h24                fr=0.4   f0=10.36119 cpu_s=2.70 n_cand=5
+two|dhw|shoulder|shoulder|h24                fr=0.6   f0=10.36119 cpu_s=2.45 n_cand=5
+two|dhw|shoulder|shoulder|h24                fr=0.8   f0=10.36119 cpu_s=2.55 n_cand=5
+two|dhw|shoulder|shoulder|h24                fr=1.0   f0=10.36119 cpu_s=2.42 n_cand=5
+RESULT fr=0.2 cells=16 count
+RESULT fr=0.2 obj_gain_sum=0.0796 sek_per_day
+RESULT fr=0.2 obj_gain_mean=0.0050 sek_per_day
+RESULT fr=0.2 obj_gain_max=0.0763 sek_per_day
+RESULT fr=0.2 obj_gain_worse=0 count
+RESULT fr=0.2 obj_gain_zero=14 count
+RESULT fr=0.2 cpu_ratio_mean=1.1989 ratio
+RESULT fr=0.2 cpu_ratio_max=1.4917 ratio
+RESULT fr=0.4 cells=16 count
+RESULT fr=0.4 obj_gain_sum=0.0161 sek_per_day
+RESULT fr=0.4 obj_gain_mean=0.0010 sek_per_day
+RESULT fr=0.4 obj_gain_max=0.0159 sek_per_day
+RESULT fr=0.4 obj_gain_worse=0 count
+RESULT fr=0.4 obj_gain_zero=14 count
+RESULT fr=0.4 cpu_ratio_mean=1.1720 ratio
+RESULT fr=0.4 cpu_ratio_max=1.4978 ratio
+RESULT fr=0.6 cells=16 count
+RESULT fr=0.6 obj_gain_sum=0.0278 sek_per_day
+RESULT fr=0.6 obj_gain_mean=0.0017 sek_per_day
+RESULT fr=0.6 obj_gain_max=0.0278 sek_per_day
+RESULT fr=0.6 obj_gain_worse=0 count
+RESULT fr=0.6 obj_gain_zero=15 count
+RESULT fr=0.6 cpu_ratio_mean=1.2392 ratio
+RESULT fr=0.6 cpu_ratio_max=1.6813 ratio
+RESULT fr=0.8 cells=16 count
+RESULT fr=0.8 obj_gain_sum=0.1664 sek_per_day
+RESULT fr=0.8 obj_gain_mean=0.0104 sek_per_day
+RESULT fr=0.8 obj_gain_max=0.0684 sek_per_day
+RESULT fr=0.8 obj_gain_worse=0 count
+RESULT fr=0.8 obj_gain_zero=13 count
+RESULT fr=0.8 cpu_ratio_mean=1.2805 ratio
+RESULT fr=0.8 cpu_ratio_max=1.6921 ratio
+RESULT fr=1.0 cells=16 count
+RESULT fr=1.0 obj_gain_sum=0.3087 sek_per_day
+RESULT fr=1.0 obj_gain_mean=0.0193 sek_per_day
+RESULT fr=1.0 obj_gain_max=0.2414 sek_per_day
+RESULT fr=1.0 obj_gain_worse=0 count
+RESULT fr=1.0 obj_gain_zero=11 count
+RESULT fr=1.0 cpu_ratio_mean=1.2277 ratio
+RESULT fr=1.0 cpu_ratio_max=1.6245 ratio
+RESULT load1=0.96

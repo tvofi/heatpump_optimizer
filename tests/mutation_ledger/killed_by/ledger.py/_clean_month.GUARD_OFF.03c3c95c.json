@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:_clean_month GUARD_OFF 03c3c95c",
+  "killed_by": "tests/features.py",
+  "old": "    if not isinstance(lines, dict) or not isinstance(meta, dict):",
+  "reason": "R8-P1 (#1518): `if False:` lets a string `lines` reach .items(), and the D1-01 wrong-shape check raises AttributeError out of from_dict; tests/features.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+}

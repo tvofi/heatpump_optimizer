@@ -1,0 +1,344 @@
+[
+  {
+    "id": "C01",
+    "source": "VERSION / manifest.json / RELEASE_NOTES.md",
+    "claim": "the release version is one number everywhere",
+    "check": "read VERSION, manifest.version, RELEASE_NOTES heading",
+    "result": "VERSION=6.6.9 manifest=6.6.9 notes=v6.6.9",
+    "verdict": "true",
+    "true_statement": "VERSION, manifest.json version and the RELEASE_NOTES heading agree"
+  },
+  {
+    "id": "C02",
+    "source": "README.md / hacs.json",
+    "claim": "the README requirement line, its badge and hacs.json name the same HA floor",
+    "check": "grep README for '2025.2.0 or newer' and the badge; read hacs.json",
+    "result": "hacs=2025.2.0 badge=True reqline=True",
+    "verdict": "true",
+    "true_statement": "all three state 2025.2.0"
+  },
+  {
+    "id": "C03",
+    "source": "docs/architecture.md",
+    "claim": "65 modules, 22 import homeassistant at module level, 1 inside a function, the rest 42",
+    "check": "count *.py and parse top-level vs function-level HA imports",
+    "result": "modules=65 module_level=22 fn_level=1 rest=42",
+    "verdict": "true",
+    "true_statement": "65 / 22 / 1 / 42"
+  },
+  {
+    "id": "C04",
+    "source": "README.md / docs/setup.md",
+    "claim": "the options menu is 23 pages (8 everyday + 15 advanced), 22 editable + 1 read-only overview",
+    "check": "len(config_flow._OPTION_PAGES), split by .menu",
+    "result": "total=23 top=8 advanced=15",
+    "verdict": "true",
+    "true_statement": "23 pages = 8 top + 15 advanced"
+  },
+  {
+    "id": "C05",
+    "source": "docs/setup.md",
+    "claim": "the overview page is read-only and is one of the 23",
+    "check": "which page carries menu='top' and step='setup_overview'",
+    "result": "setup_overview present",
+    "verdict": "true",
+    "true_statement": "setup_overview is the read-only overview"
+  },
+  {
+    "id": "C06",
+    "source": "README.md / services.yaml / services.py",
+    "claim": "12 services are registered, and services.yaml lists the same fields as each voluptuous schema",
+    "check": "len(each vol schema) vs the 4-space field names under each service in services.yaml",
+    "result": "services=12 yaml_services=12 mismatches={}",
+    "verdict": "true",
+    "true_statement": "12 services; yaml fields == schema fields"
+  },
+  {
+    "id": "C07",
+    "source": "README.md",
+    "claim": "set_thermal_parameters has 28 fields",
+    "check": "len(SERVICE_SCHEMA_SET_THERMAL_PARAMS.schema)",
+    "result": "fields=28",
+    "verdict": "true",
+    "true_statement": "28 fields"
+  },
+  {
+    "id": "C08",
+    "source": "README.md / docs/architecture.md",
+    "claim": "All 74 entities appear; 59 sensors, 5 binary sensors, 4 buttons, 4 switches, 1 climate, 1 datetime",
+    "check": "tests/entities.py:collect(<platform>) per platform, through async_setup_entry",
+    "result": "total=74 {'sensor': 59, 'binary_sensor': 5, 'button': 4, 'switch': 4, 'climate': 1, 'datetime': 1}",
+    "verdict": "true",
+    "true_statement": "74 = 59+5+4+4+1+1"
+  },
+  {
+    "id": "C09",
+    "source": "README.md",
+    "claim": "Nineteen entities (eighteen sensors and the wood binary sensor) are disabled by default",
+    "check": "count static entity_registry_enabled_default=False classes per platform",
+    "result": "sensors=18 binary=1 total=19",
+    "verdict": "true",
+    "true_statement": "18 sensors + 1 binary = 19"
+  },
+  {
+    "id": "C10",
+    "source": "docs/architecture.md",
+    "claim": "the ECL110 below-0 nudge threshold is max(0.1, min_electrical_power*0.5)",
+    "check": "read the named production constant",
+    "result": "optimizer:6814 literal=True",
+    "verdict": "true",
+    "true_statement": "expected True"
+  },
+  {
+    "id": "C11",
+    "source": "docs/how-it-works.md",
+    "claim": "the DHW congestion premium refills within a 6-hour window either side",
+    "check": "read the named production constant",
+    "result": "optimizer._DHW_REFILL_WINDOW_HOURS=6.0 h",
+    "verdict": "true",
+    "true_statement": "expected 6.0"
+  },
+  {
+    "id": "C12",
+    "source": "README.md",
+    "claim": "the first plan is solved within one optimisation interval (30 minutes by default)",
+    "check": "read the named production constant",
+    "result": "const.DEFAULT_OPTIMIZATION_INTERVAL=30 min",
+    "verdict": "true",
+    "true_statement": "expected 30"
+  },
+  {
+    "id": "C13",
+    "source": "README.md / docs/how-it-works.md",
+    "claim": "at most one number.set_value per five minutes",
+    "check": "read the named production constant",
+    "result": "freq_control.FREQ_WRITE_MIN_INTERVAL_S=300.0 s",
+    "verdict": "true",
+    "true_statement": "expected 300.0"
+  },
+  {
+    "id": "C14",
+    "source": "README.md",
+    "claim": "the frequency watchdog stands the controller down after three active ticks",
+    "check": "read the named production constant",
+    "result": "freq_control.FREQ_WATCHDOG_TICKS=3 ticks",
+    "verdict": "true",
+    "true_statement": "expected 3"
+  },
+  {
+    "id": "C15",
+    "source": "README.md / docs/how-it-works.md",
+    "claim": "the heat-curve correction moves at most 0.5 K per week",
+    "check": "read the named production constant",
+    "result": "curve_learning.MAX_DOWN_PER_WEEK=0.5 K/week",
+    "verdict": "true",
+    "true_statement": "expected 0.5"
+  },
+  {
+    "id": "C16",
+    "source": "README.md",
+    "claim": "the last eight learner snapshots are kept",
+    "check": "read the named production constant",
+    "result": "snapshots.RING_SIZE=8",
+    "verdict": "true",
+    "true_statement": "expected 8"
+  },
+  {
+    "id": "C17",
+    "source": "README.md / strings.json",
+    "claim": "the open-window relax lowers the target by 1 C",
+    "check": "read the named production constant",
+    "result": "const.OPEN_WINDOW_RELAX_C=1.0 C",
+    "verdict": "true",
+    "true_statement": "expected 1.0"
+  },
+  {
+    "id": "C18",
+    "source": "docs/automations.md / strings.json",
+    "claim": "economy rides up to 1.5 C below the comfort floor, never below 15 C",
+    "check": "read the named production constant",
+    "result": "const.ECONOMY_MIN_TEMP_WIDENING / ECONOMY_ABSOLUTE_FLOOR=1.5/15.0",
+    "verdict": "true",
+    "true_statement": "expected 1.5/15.0"
+  },
+  {
+    "id": "C19",
+    "source": "README.md",
+    "claim": "the card's editor pins run slots for up to 20 hours",
+    "check": "read the named production constant",
+    "result": "const.MANUAL_PLAN_WINDOW_HOURS=20 h",
+    "verdict": "true",
+    "true_statement": "expected 20"
+  },
+  {
+    "id": "C20",
+    "source": "docs/architecture.md / strings.json",
+    "claim": "the leaning offset of the flow curve is capped at 15 C",
+    "check": "read the named production constant",
+    "result": "flow_lift.FLOW_BIAS_CLAMP_K=15.0 C",
+    "verdict": "true",
+    "true_statement": "expected 15.0"
+  },
+  {
+    "id": "C21",
+    "source": "docs/how-it-works.md",
+    "claim": "capacity is floored at 60 % of nameplate",
+    "check": "read the named production constant",
+    "result": "const.CAPACITY_FLOOR_FRACTION=0.6",
+    "verdict": "true",
+    "true_statement": "expected 0.6"
+  },
+  {
+    "id": "C22",
+    "source": "docs/how-it-works.md",
+    "claim": "the defrost derate is clamped at 1.0, not 1.05",
+    "check": "read the named production constant",
+    "result": "defrost.DERATE_MAX=1.0",
+    "verdict": "true",
+    "true_statement": "expected 1.0"
+  },
+  {
+    "id": "C23",
+    "source": "docs/how-it-works.md",
+    "claim": "the solar split puts 40 % on the upper floor",
+    "check": "read the named production constant",
+    "result": "const.DEFAULT_SOLAR_UPPER_FRACTION=0.4",
+    "verdict": "true",
+    "true_statement": "expected 0.4"
+  },
+  {
+    "id": "C24",
+    "source": "docs/dashboard-card.md",
+    "claim": "the optimizer horizon defaults to 24 hours",
+    "check": "read the named production constant",
+    "result": "optimizer.OptimizationConfig.horizon_hours default=24.0 h",
+    "verdict": "true",
+    "true_statement": "expected 24.0"
+  },
+  {
+    "id": "C38",
+    "source": "README.md",
+    "claim": "the peak guard needs two agreeing samples to engage and two to clear",
+    "check": "read the named production constant",
+    "result": "power_guard.HYSTERESIS_SAMPLES=2 samples",
+    "verdict": "true",
+    "true_statement": "expected 2"
+  },
+  {
+    "id": "C25",
+    "source": "docs/dashboard-card.md / README.md",
+    "claim": "the card and the integration use the same keys in both languages, no Swedish entry missing",
+    "check": "flat-leaf diff of strings.json, en.json, sv.json",
+    "result": "en_leaves=1279 sv_leaves=1279 only_en=0 only_sv=0 strings==en=True",
+    "verdict": "true",
+    "true_statement": "identical key sets, strings.json == en.json"
+  },
+  {
+    "id": "C26",
+    "source": "README.md / docs/*.md",
+    "claim": "every relative link in the user-facing docs resolves",
+    "check": "resolve each [..](path) target against the tree",
+    "result": "links=90 broken=4 broken_excluding_stripped=0",
+    "verdict": "true",
+    "true_statement": "the only unresolved targets are the three deliberately stripped docs"
+  },
+  {
+    "id": "C27",
+    "source": "README.md / docs/*.md",
+    "claim": "every in-page anchor link resolves to a heading",
+    "check": "GitHub slug each heading and each #anchor",
+    "result": "anchors=37 unresolved=0",
+    "verdict": "true",
+    "true_statement": ""
+  },
+  {
+    "id": "C28",
+    "source": "docs/dashboard-card.md",
+    "claim": "card option defaults are hours 24, what_if true, show_stats true, and hours is capped at 168",
+    "check": "grep DEFAULTS and the hours validator in the card JS",
+    "result": "hours=24 what_if=true show_stats=true cap168=True",
+    "verdict": "true",
+    "true_statement": "24 / true / true / 168"
+  },
+  {
+    "id": "C29",
+    "source": "DISCLAIMER.md",
+    "claim": "the disclaimer refers to a LICENSE file that is the MIT licence",
+    "check": "read LICENSE",
+    "result": "exists=True mit=True",
+    "verdict": "true",
+    "true_statement": "LICENSE is MIT"
+  },
+  {
+    "id": "C30",
+    "source": "DISCLAIMER.md",
+    "claim": "the README carries a condensed summary of the disclaimer",
+    "check": "grep README for a ## Disclaimer section linking DISCLAIMER.md",
+    "result": "present",
+    "verdict": "true",
+    "true_statement": ""
+  },
+  {
+    "id": "C31",
+    "source": "docs/automations.md",
+    "claim": "three blueprints ship, one per automation example",
+    "check": "ls blueprints/automation/*.yaml",
+    "result": "count=3",
+    "verdict": "true",
+    "true_statement": "3 blueprints"
+  },
+  {
+    "id": "C32",
+    "source": "docs/automations.md",
+    "claim": "the blueprints take inputs rather than hard-coding entity ids",
+    "check": "grep blueprints for a hard-coded sensor id without an !input",
+    "result": "suspect=0",
+    "verdict": "true",
+    "true_statement": ""
+  },
+  {
+    "id": "C33",
+    "source": "README.md / docs/automations.md / docs/dashboard-card.md",
+    "claim": "every entity id the docs name is a sensor this integration creates",
+    "check": "collect the sensor.heat_pump_optimizer_* ids the docs name; check each stem appears in sensor.py",
+    "result": "ids=5 unaccounted=0",
+    "verdict": "true",
+    "true_statement": "all named ids trace to sensor.py"
+  },
+  {
+    "id": "C34",
+    "source": "docs/architecture.md",
+    "claim": "2025.2.0 is the first Home Assistant whose own pyproject requires-python >=3.13.0",
+    "check": "no executed check from this tree (an external release fact)",
+    "result": "external",
+    "verdict": "unverifiable",
+    "true_statement": "requires Home Assistant's own repository"
+  },
+  {
+    "id": "C35",
+    "source": "README.md",
+    "claim": "display names have been translated since v5.0.0",
+    "check": "no executed check from this tree (a historical release point)",
+    "result": "historical",
+    "verdict": "unverifiable",
+    "true_statement": "no git history in the export"
+  },
+  {
+    "id": "C36",
+    "source": "docs/how-it-works.md",
+    "claim": "the comfort-weight table (5 -> 19.4 C / 53 %) measures the author's house",
+    "check": "doc itself labels it a one-off measurement, not a test-pinned guarantee",
+    "result": "self-declared one-off",
+    "verdict": "unverifiable",
+    "true_statement": "author's house, not pinned"
+  },
+  {
+    "id": "C37",
+    "source": "README.md",
+    "claim": "the first plan is solved within one optimisation interval",
+    "check": "wall-clock; the fan-out box is shared, count is not reproducible here",
+    "result": "provisional",
+    "verdict": "unverifiable",
+    "true_statement": "needs the quiet box"
+  }
+]

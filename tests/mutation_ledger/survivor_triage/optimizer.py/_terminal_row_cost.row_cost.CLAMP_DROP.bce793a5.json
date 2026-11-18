@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_terminal_row_cost.row_cost CLAMP_DROP bce793a5",
+  "old": "                + buffer_deficit / max(cop_buffer, 1e-6)",
+  "reason": "Equivalent on every reachable input. `_terminal_row_cost` has one caller, `HeatPumpOptimizer._terminal_cost`, which passes `cop_end = self.model.compute_cop(...)` and `cop_buffer = self.model.marginal_cop(..., \"buffer\", ...)`; the buffer arm of `marginal_cop` is `compute_cop(..., flow_temp=store_temp)`, and `compute_cop` returns `_cop_law`, whose last line is `return max(cop, 1.0)` (#928's resistive bound), so both COPs are at least 1.0 and the 1e-6 floor never binds. Measured at R10-SAV-VALUATION-RESIDUE round 2: the 2723 drop (`max(cop_end, 1e-6)` -> `(cop_end)`) leaves all three of that group's features.py checks green, the split-arm guard drop beside it fails the valved check.",
+  "verdict": "equivalent"
+}

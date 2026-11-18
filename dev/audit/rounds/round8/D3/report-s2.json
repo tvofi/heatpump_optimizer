@@ -1,0 +1,122 @@
+{
+  "dimension": "D3",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D3-s2-01",
+      "title": "LegionellaGuard.hours_since() negative-elapsed clamp is untested",
+      "severity": "medium",
+      "claim": "hours_since() clamps a negative elapsed time to 0.0, but no test in the tree ever sets last_cycle/attempt to a future timestamp, so removing the clamp is undetected by the committed suite and would silently push the anti-legionella due time later after a backward clock step.",
+      "mechanism": "due_in_hours() = interval_days*24 - hours_since(); an unclamped negative hours_since() (last_cycle in the future) increases due_in_hours(), delaying the disinfection cycle beyond the configured interval.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D3/s2_finding01_hours_since.py",
+        "harness_path": "tools/audit/round8/D3/s2_finding01_hours_since.py",
+        "value": -1.999999996388889,
+        "unit": "hours",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "shared 4-vCPU cloud container, round-8 audit box",
+        "cpu_or_wall": "n/a",
+        "contention_note": "other seats (D3-s1 and others) concurrently running entities.py/features.py/config_flow_steps.py",
+        "tolerance": "exact (direct function return value); null control within 1e-4 h of timing jitter",
+        "load1": 23.0,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer.legionella:LegionellaGuard.hours_since",
+      "perturbation": {
+        "change": "delete max(0.0, ...) clamp around since.total_seconds()/3600.0 in hours_since()",
+        "expected_direction": "sign_flip",
+        "observed_value": -1.999999996388889
+      },
+      "metric_definition": "hours_since() return value with last_cycle set 2h in the future, baseline vs mutant",
+      "phenomenon_property": "a defensive clamp on a derived quantity whose only-ever-negative input direction (a timestamp after now) is never constructed by any test in the tree",
+      "seam_rule": "grep -n \"last_cycle *=\\|attempt *=\" tests/features.py tests/dst_checks.py tests/entities.py",
+      "null_control": {
+        "command": "same harness, last_cycle 2h in the past",
+        "value": 2.000000007222222,
+        "note": "matches baseline (2.000000011111111) within 1e-4h; the clamp only bites on a negative delta so the ordinary-direction case is unaffected by the mutation"
+      },
+      "reproduction_steps": [
+        "cd <tree root>",
+        "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D3/s2_finding01_hours_since.py"
+      ],
+      "proposed_fix_scope": "no code fix proposed by this finder; this is a test-suite-gap finding (D3) \u2014 the fix is a new test asserting hours_since()/due_in_hours() behaviour when last_cycle or attempt is set after \"now\", covering both the clamp and its absence-of-clamp failure mode",
+      "files": [
+        "custom_components/heatpump_optimizer/legionella.py",
+        "tools/audit/round8/D3/s2_finding01_hours_since.py"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D3-s2-02",
+      "title": "dhw-min/setpoint deadband boundary untested at both service call sites",
+      "severity": "low",
+      "claim": "handle_set_thermal_params and handle_apply_schedule each independently enforce \"minimum must leave a deadband below setpoint\" with a strict > comparison, and minimum == ceiling (exact zero deadband) is accepted by both at baseline; no test in the tree calls either service at that exact boundary, so a boundary-off mutation (> to >=) in either survives.",
+      "mechanism": "two independently-written copies of one invariant (ceiling = setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN; if value > ceiling: raise) in services.py, each covered by its own tests/features.py assertion, neither reaching minimum == ceiling exactly.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D3/s2_finding02_deadband_boundary.py",
+        "harness_path": "tools/audit/round8/D3/s2_finding02_deadband_boundary.py",
+        "value": "both call sites: baseline accepts minimum==ceiling (None), mutant (> -> >=) raises ServiceValidationError at minimum==ceiling",
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "shared 4-vCPU cloud container, round-8 audit box",
+        "cpu_or_wall": "n/a",
+        "contention_note": "other seats concurrently active; this harness makes no solver call and completed in well under a second",
+        "tolerance": "exact (raise vs no-raise)",
+        "load1": 24.9,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer.services:handle_set_thermal_params,handle_apply_schedule",
+      "perturbation": {
+        "change": "if float(minimum) > ceiling: -> >= (line ~485); if wanted > ceiling: -> >= (line ~822)",
+        "expected_direction": "to_zero",
+        "observed_value": "accepted (None) at baseline -> ServiceValidationError at mutant, both call sites, minimum==ceiling"
+      },
+      "metric_definition": "whether handle_set_thermal_params/handle_apply_schedule raise ServiceValidationError for minimum == ceiling exactly",
+      "phenomenon_property": "a cross-field boundary invariant duplicated at two independent call sites, with a suite that covers both call sites but never the one input value (the boundary itself) that would show the two copies have diverged",
+      "seam_rule": "grep -n \"dhw_min_temperature\" tests/*.py",
+      "null_control": {
+        "command": "same harness, minimum == ceiling - 0.01",
+        "value": "accepted (None) under both baseline and mutant, both call sites",
+        "note": "the ordinary (non-boundary) case is unaffected by the mutation, confirming the mutation only bites at the exact boundary"
+      },
+      "reproduction_steps": [
+        "cd <tree root>",
+        "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D3/s2_finding02_deadband_boundary.py"
+      ],
+      "proposed_fix_scope": "no code fix proposed by this finder; test-suite-gap finding (D3) \u2014 add one boundary-value test per call site (minimum == ceiling exactly) asserting acceptance, so a future accidental tightening of either copy is caught",
+      "files": [
+        "custom_components/heatpump_optimizer/services.py",
+        "tools/audit/round8/D3/s2_finding02_deadband_boundary.py"
+      ],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "ledger.py _prune()'s max(0, len(months)-KEEP_MONTHS) is a live guard against a negative slice",
+      "command": "python3 -c \"print(sorted(['a','b'])[:2-24], sorted(['a','b'])[:max(0,2-24)])\"",
+      "value": "equivalent: [] == [] for every len tried; Python slice semantics clamp an out-of-range negative stop index identically to the explicit max(0,...)"
+    },
+    {
+      "claim": "tests/golden.py --only coord_minimal is a usable pre-screen signal on this box",
+      "command": "PYTHONPATH=tests/hastub python3 tests/golden.py --only coord_minimal",
+      "value": "1 of 1 GOLDEN SCENARIOS CHANGED on a clean, unmutated baseline checkout (solver-float non-reproducibility across BLAS builds, CLAUDE.md rule 3) -- excluded from every mutant pre-screen here"
+    },
+    {
+      "claim": "tests/entities.py is fully green on this baseline checkout",
+      "command": "PYTHONPATH=tests/hastub python3 tests/entities.py",
+      "value": "9 of 1732 ENTITY CHECKS FAILED, matching BASELINE.md's documented preparation-artefact count exactly (1 unstripped-checkout + 8 stripped-round artefacts); reproduced twice with the same count"
+    },
+    {
+      "claim": "__init__.py _take_fresh_handover's staleness guard (age_min > interval_minutes) is a suite gap",
+      "command": "grep -n \"_take_fresh_handover\" tests/dst_checks.py",
+      "value": "tests/dst_checks.py:774-782 (driven by features.py) already asserts a 2h-old handover against a 60-min window returns None; a 1000x widening of the guard would still accept a 2h-old stamp, so this existing test would catch it -- static-evidence non-finding, not independently executed to completion here"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D3/s2_mutate.py",
+    "tools/audit/round8/D3/s2_finding01_hours_since.py",
+    "tools/audit/round8/D3/s2_finding02_deadband_boundary.py"
+  ]
+}

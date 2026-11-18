@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:interpret_presence GUARD_OFF 88a2be42",
+  "killed_by": "tests/features.py",
+  "old": "        if device_class in _PRESENCE_DEVICE_CLASSES:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

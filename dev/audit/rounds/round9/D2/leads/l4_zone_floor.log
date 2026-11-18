@@ -1,0 +1,37 @@
+CELL one|dhw|winter_typical         floor 17.0 deg_steps   0.1471 (upper/room 0.1471 lower 0.0000) coldest 16.923 C cost 30.641
+CELL two|dhw|winter_typical         floor 17.0 deg_steps   1.3144 (upper/room 1.3144 lower 0.0000) coldest 16.539 C cost 67.496
+CELL one|nodhw|winter_typical       floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.065 C cost 23.280
+CELL two|nodhw|winter_typical       floor 17.0 deg_steps   1.1391 (upper/room 1.1391 lower 0.0000) coldest 16.575 C cost 57.979
+CELL one|dhw|winter_extreme         floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.143 C cost 54.716
+CELL two|dhw|winter_extreme         floor 17.0 deg_steps   0.0126 (upper/room 0.0126 lower 0.0000) coldest 16.987 C cost 111.670
+CELL one|nodhw|winter_extreme       floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.288 C cost 41.400
+CELL two|nodhw|winter_extreme       floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.000 C cost 94.471
+CELL one|dhw|winter_moderate        floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.143 C cost 48.054
+CELL two|dhw|winter_moderate        floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.000 C cost 90.965
+CELL one|nodhw|winter_moderate      floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.288 C cost 41.100
+CELL two|nodhw|winter_moderate      floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.000 C cost 78.850
+CELL one|dhw|winter_narrow          floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.347 C cost 80.975
+CELL two|dhw|winter_narrow          floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.000 C cost 120.270
+CELL one|nodhw|winter_narrow        floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.496 C cost 74.925
+CELL two|nodhw|winter_narrow        floor 17.0 deg_steps   0.0011 (upper/room 0.0011 lower 0.0000) coldest 16.999 C cost 111.599
+CELL one|dhw|shoulder               floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 19.007 C cost 46.833
+CELL two|dhw|shoulder               floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.000 C cost 56.837
+CELL one|nodhw|shoulder             floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 18.574 C cost 37.872
+CELL two|nodhw|shoulder             floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.000 C cost 50.874
+CELL one|dhw|flat                   floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.443 C cost 73.150
+CELL two|dhw|flat                   floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.000 C cost 97.723
+CELL one|nodhw|flat                 floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.488 C cost 68.990
+CELL two|nodhw|flat                 floor 17.0 deg_steps   0.0000 (upper/room 0.0000 lower 0.0000) coldest 17.000 C cost 90.647
+RESULT two_zone_floor_deg_steps_sum=2.4672 degree-steps
+RESULT two_zone_cells_breaching=2 of 12
+RESULT two_zone_floor_deg_steps_max=1.3144 degree-steps
+RESULT two_zone_floor_deg_steps_min=0.0000 degree-steps
+RESULT two_zone_mean_drop_most_favourable=0.1048 degree-steps (mean 0.2056)
+RESULT two_zone_priced_sum=2.4672 degree-steps
+RESULT two_zone_flat_sum=0.0000 degree-steps
+RESULT single_zone_floor_deg_steps_sum=0.1471 degree-steps (null arm)
+RESULT single_zone_cells_breaching=1 of 12
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=1.26
+RESULT swapins=0

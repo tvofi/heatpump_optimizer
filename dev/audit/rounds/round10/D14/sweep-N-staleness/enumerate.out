@@ -1,0 +1,35 @@
+ok   const.py:73 OPEN_METEO_OBSERVED_MAX_AGE_MINUTES limit=90.0 quiet=None
+ok   const.py:282 CONF_INDOOR_TEMP_ENTITY limit=360.0 quiet=360.0
+ok   const.py:283 CONF_OUTDOOR_TEMP_ENTITY limit=180.0 quiet=60.0
+ok   const.py:284 CONF_DHW_TEMP_ENTITY limit=360.0 quiet=360.0
+ok   const.py:285 CONF_FLOOR_RETURN_TEMP_ENTITY limit=360.0 quiet=360.0
+FLAG const.py:286 CONF_SOLAR_RADIATION_ENTITY limit=90.0 quiet=inf
+FLAG const.py:287 CONF_POWER_ENTITY limit=30.0 quiet=inf
+FLAG const.py:288 CONF_ENERGY_ENTITY limit=180.0 quiet=inf
+ok   const.py:289 CONF_HOUSE_POWER_ENTITY limit=30.0 quiet=5.0
+ok   const.py:1459 CONF_BUFFER_TANK_TEMP_ENTITY limit=360.0 quiet=360.0
+FLAG const.py:1460 CONF_PV_PRODUCTION_ENTITY limit=30.0 quiet=inf
+ok   const.py:1464 CONF_LOWER_FLOOR_TEMP_ENTITY limit=360.0 quiet=360.0
+FLAG const.py:1474 CONF_VALVE_OUTLET_TEMP_ENTITY limit=60.0 quiet=inf
+FLAG const.py:1475 CONF_WOOD_TANK_TOP_ENTITY limit=60.0 quiet=inf
+FLAG const.py:1476 CONF_WOOD_TANK_BOTTOM_ENTITY limit=60.0 quiet=inf
+FLAG const.py:1486 CONF_EXTERNAL_HEAT_ENTITY limit=60.0 quiet=inf
+FLAG const.py:1496 CONF_HEAT_PUMP_MODE_ENTITY limit=60.0 quiet=inf
+FLAG const.py:1512 MODE_LAST_GOOD_MAX_AGE_MINUTES limit=180.0 quiet=inf
+FLAG const.py:1513 CONF_HEAT_PUMP_FAULT_ENTITY limit=60.0 quiet=inf
+FLAG const.py:1518 CONF_HEAT_PUMP_DEFROST_ENTITY limit=30.0 quiet=inf
+FLAG const.py:1526 CONF_HEAT_PUMP_ONLINE_ENTITY limit=30.0 quiet=inf
+FLAG const.py:1533 CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY limit=30.0 quiet=inf
+FLAG const.py:1534 CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY limit=30.0 quiet=inf
+FLAG const.py:1535 CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY limit=30.0 quiet=inf
+FLAG const.py:1543 CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY limit=30.0 quiet=120.0
+FLAG const.py:1544 CONF_HEAT_PUMP_RETURN_TEMP_ENTITY limit=30.0 quiet=120.0
+FLAG const.py:1546 CONF_FLOW_METER_ENTITY limit=30.0 quiet=inf
+FLAG coordinator.py:1129 HUMIDITY_MAX_AGE_MINUTES limit=120.0 quiet=240.0
+ok   coordinator.py:1130 DHW_INLET_MAX_AGE_MINUTES limit=1440.0 quiet=720.0
+RESULT seams=29 flagged=20
+positive HEAD re-finds D14-s3-02 power+mode: True
+positive R9 D1-s5-51 (indoor limit 60, pre-fix value) re-found: True
+null clean fixture flagged=0 (expect 0)
+perturbation one-line re-introduction flagged=1 (expect 1)
+RESULT controls_ok=True

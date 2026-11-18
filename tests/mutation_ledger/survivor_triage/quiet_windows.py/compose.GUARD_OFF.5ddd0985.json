@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:compose GUARD_OFF 5ddd0985",
+  "old": "    if not silent_spec and not off_spec:",
+  "reason": "Equivalent. tools/audit/round9/SW1/quiet_survivor_equiv.py (`PYTHONPATH=tests/hastub python3 tools/audit/round9/SW1/quiet_survivor_equiv.py`) reports cases=6 mutant_differs=0 control_differs=3: the operator's own mutant matches head on every case, and the tie-only control in that file moves on the cases the mutant does not. tests/manual_plan.py's 118 checks pass on the mutant.",
+  "verdict": "equivalent"
+}

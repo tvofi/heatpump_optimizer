@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_window_floors CLAMP_DROP be94c779",
+  "killed_by": "tests/features.py",
+  "old": "            ready_temps[ready_idx] = max(ready_temps[ready_idx], required_ready)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`ready_temps[ready_idx] = (ready_temps[ready_idx])`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}

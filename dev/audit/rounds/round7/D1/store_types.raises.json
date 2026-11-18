@@ -1,0 +1,56 @@
+{
+ "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+ "raising_pairs": 0,
+ "mutant_pairs": 626,
+ "per_store": {
+  "dhw_profile": [
+   0,
+   60
+  ],
+  "dhw_draws": [
+   0,
+   60
+  ],
+  "dhw_legionella": [
+   0,
+   49
+  ],
+  "boost": [
+   0,
+   22
+  ],
+  "away": [
+   0,
+   53
+  ],
+  "snapshots": [
+   0,
+   60
+  ],
+  "thermal_learning": [
+   0,
+   60
+  ],
+  "price_model": [
+   0,
+   60
+  ],
+  "ledger": [
+   0,
+   60
+  ],
+  "accuracy": [
+   0,
+   60
+  ],
+  "energy": [
+   0,
+   60
+  ],
+  "manual_plan": [
+   0,
+   22
+  ]
+ },
+ "raises": []
+}

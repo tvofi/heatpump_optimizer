@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:_gchv_merge GUARD_OFF 273dc166",
+  "old": "    if not segments:",
+  "reason": "GUARD_OFF (`if False:`) on an empty `segments` falls through: `segs` is [], `len(segs) >= 2` is false so wrap stays None, `out = list(segs)` is [], and the function returns []. Same as the early `return []`. tests/guard_pins.py empty_merge holds.",
+  "verdict": "equivalent"
+}

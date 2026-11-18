@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings CLAMP_DROP 725a61cf",
+  "old": "        max_temp = np.full(max(n_steps, 0), float(store.charge_max_temp))",
+  "reason": "Equivalent on every reachable input (CLAMP_DROP, `max(n_steps, 0)` -> `(n_steps)`): the two differ only for a negative `n_steps`, where `np.full` raises and the head returns an empty array, and no horizon carries one. `_dhw_legionella_ceilings` reads `h.n_steps`, which `HeatPumpOptimizer.optimize` sets to `min(len(prices), len(outdoor_temps), self.config.n_steps)`, two lengths and `OptimizationConfig.n_steps`'s `int(horizon_hours * 60 / time_step_minutes)` over a positive horizon; the other `_Horizon` builders carry a series length. The line beside it, `runup_temps = np.zeros(max(n_steps, 0))`, is the same idiom and unpinned at the merge base. Survival measured by the R10-COMBI-TANK repair fixer's mutant_run.py drive against tests/features.py's R10-COMBI-TANK blocks, and named unpinned by tests / mutation (job 128944437769) at 74df96f1, the mutation-autofix pin drive's own commit, so no driver of that drive killed it.",
+  "verdict": "equivalent"
+}

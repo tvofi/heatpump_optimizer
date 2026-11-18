@@ -1,0 +1,13 @@
+{
+  "class": "N-structure-blind",
+  "instances": 0,
+  "barriered": 4,
+  "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-structure-blind/enumerate.py",
+  "instance_list": [
+    {"file": "tests/structure.py", "symbol": "measure:max_class_loc", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/s1/class_growth.py -> keys_moved_second_class=0 (1201 lines)", "beyond_finding": false},
+    {"file": "tests/structure.py", "symbol": "dead_members:name_kept", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/s3/namekept_receivers.py -> candidates_with_zero_typed_hits=6", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js", "symbol": "textWidth (no dead-code metric reads .js)", "probe": "PYTHONPATH=tests/hastub sh dev/audit/rounds/round10/D7/s3/card_dead_fn.sh -> textWidth_calls=0", "beyond_finding": false},
+    {"file": "tools/audit/archscore/metrics/untyped_payload_keys.py", "symbol": "Flow.returned_keys", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s3/payload_census_coverage.py -> blind_keys=10", "beyond_finding": false},
+    {"file": "tools/audit/archscore/metrics/untyped_payload_keys.py", "symbol": "is_any", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s3/payload_any_spellings.py -> 4 spellings read 0", "beyond_finding": false}
+  ]
+}

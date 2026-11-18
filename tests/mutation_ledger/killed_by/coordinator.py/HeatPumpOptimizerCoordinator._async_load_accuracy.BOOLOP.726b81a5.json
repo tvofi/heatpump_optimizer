@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_accuracy BOOLOP 726b81a5",
+  "killed_by": "tests/features.py",
+  "old": "        if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if isinstance(stored_mode, str) or stored_mode in OPERATION_MODES:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

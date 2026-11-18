@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:own GUARD_OFF fa26a9b8",
+  "killed_by": "tests/features.py",
+  "old": "    if duty_mode(inp.config) != DUTY_CONTROL or inp.mode == MODE_OFF:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 67a0cb9816565113447bb54415989090706435b4: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6. Re-measured on a git-archive export of 13a82a9d, 2026-10-05: the mutant hangs tests/features.py with no output growth (alarm-killed at 12 min; the unmutated export completes), against the export baseline's two artefacts (#363 recorded_at, R9-F2.1 P3). Re-keyed by R9-EG-B6 (#1739): the collaborator-interface rename made the line `    if duty_mode(coord._config) != DUTY_CONTROL or coord._mode == MODE_OFF:` into `    if duty_mode(inp.config) != DUTY_CONTROL or inp.mode == MODE_OFF:`."
+}

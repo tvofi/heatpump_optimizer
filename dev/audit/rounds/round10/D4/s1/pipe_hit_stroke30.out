@@ -1,0 +1,10 @@
+RESULT cells=12 count
+RESULT cells_not_editing=0 count
+RESULT pipes_measured=60 count
+RESULT pipes_under_44_coarse=23 count
+RESULT pipes_under_24_fine=14 count
+RESULT band_max=52.75 px
+RESULT band_min=0.75 px
+RESULT thread_factor=1.0
+RESULT load1=38.44
+RESULT swapins=0

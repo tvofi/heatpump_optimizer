@@ -1,0 +1,21 @@
+RESULT winter_two_zone_no_dhw.horizons prod=51766.0 fused=51722.0 delta=44.0 horizons (exact)
+RESULT winter_two_zone_no_dhw.scalar_steps prod=10464 fused=2016 rows prod=51657 fused=51701 count
+RESULT winter_two_zone_no_dhw.rewrites fused=1 count
+RESULT winter_two_zone_no_dhw.plan_identical=True (7bb22377188f vs 7bb22377188f)
+RESULT winter_two_zone_no_dhw.solve_cpu_ms prod=2532 fused=2374 ratio_prod_over_fused=1.067 (provisional)
+RESULT winter_two_zone_no_dhw.scalar_step_cpu_ms prod=121 fused=23 (provisional)
+RESULT winter_single_no_dhw.horizons prod=1658.0 fused=1658.0 delta=0.0 horizons (exact)
+RESULT winter_single_no_dhw.scalar_steps prod=864 fused=864 rows prod=1649 fused=1649 count
+RESULT winter_single_no_dhw.rewrites fused=0 count
+RESULT winter_single_no_dhw.plan_identical=True (d63c9a1f6fc4 vs d63c9a1f6fc4)
+RESULT winter_single_no_dhw.solve_cpu_ms prod=62 fused=61 ratio_prod_over_fused=1.005 (provisional)
+RESULT winter_single_no_dhw.scalar_step_cpu_ms prod=5 fused=5 (provisional)
+RESULT winter_two_zone_dhw.horizons prod=30470.0 fused=30470.0 delta=0.0 horizons (exact)
+RESULT winter_two_zone_dhw.scalar_steps prod=1152 fused=1152 rows prod=30458 fused=30458 count
+RESULT winter_two_zone_dhw.rewrites fused=0 count
+RESULT winter_two_zone_dhw.plan_identical=True (eda08b307967 vs eda08b307967)
+RESULT winter_two_zone_dhw.solve_cpu_ms prod=1487 fused=1493 ratio_prod_over_fused=0.996 (provisional)
+RESULT winter_two_zone_dhw.scalar_step_cpu_ms prod=13 fused=14 (provisional)
+RESULT thread_factor=1.000
+RESULT load1=13.12
+RESULT swapins=0

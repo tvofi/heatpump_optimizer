@@ -1,0 +1,16 @@
+RESULT idle.max_gap_rest_ms=7.0 ms (provisional)
+RESULT idle.max_gap_cont_ms=0.0 ms (provisional)
+RESULT idle.starvation_share=0.018 ratio (provisional)
+RESULT idle.solve_wall_ms=3010 ms (provisional)
+RESULT winter_two_zone_dhw.max_gap_rest_ms=83.9 ms (provisional)
+RESULT winter_two_zone_dhw.max_gap_cont_ms=0.0 ms (provisional)
+RESULT winter_two_zone_dhw.starvation_share=0.440 ratio (provisional)
+RESULT winter_two_zone_dhw.solve_wall_ms=2669 ms (provisional)
+RESULT shoulder_two_zone.max_gap_rest_ms=65.6 ms (provisional)
+RESULT shoulder_two_zone.max_gap_cont_ms=0.0 ms (provisional)
+RESULT shoulder_two_zone.starvation_share=0.184 ratio (provisional)
+RESULT shoulder_two_zone.solve_wall_ms=1808 ms (provisional)
+RESULT deliberate_thread_cpu_ms=6935 ms
+RESULT thread_factor=1.005
+RESULT load1=14.98
+RESULT swapins=0

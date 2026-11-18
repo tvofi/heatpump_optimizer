@@ -1,0 +1,97 @@
+  one|winter_typical|winter_cold|dhw=0     n_cand=5 drop=1 shipped=  60.10428 all=  60.10428 gap= 0.0000%
+  one|winter_typical|winter_mild|dhw=0     n_cand=5 drop=1 shipped=  23.40310 all=  23.40310 gap= 0.0000%
+  one|winter_typical|summer_warm|dhw=0     n_cand=5 drop=1 shipped=6435.62017 all=6435.62017 gap= 0.0000%
+  one|winter_typical|summer_cool|dhw=0     n_cand=5 drop=1 shipped=   3.31808 all=   3.31808 gap= 0.0000%
+  one|winter_typical|shoulder|dhw=0        n_cand=5 drop=1 shipped=   6.72181 all=   6.72181 gap= 0.0000%
+  one|winter_extreme|winter_cold|dhw=0     n_cand=5 drop=1 shipped=  80.74056 all=  80.74056 gap= 0.0000%
+  one|winter_extreme|winter_mild|dhw=0     n_cand=5 drop=1 shipped=  33.30281 all=  33.30281 gap= 0.0000%
+  one|winter_extreme|summer_warm|dhw=0     n_cand=5 drop=1 shipped=6435.62017 all=6435.62017 gap= 0.0000%
+  one|winter_extreme|summer_cool|dhw=0     n_cand=5 drop=1 shipped=   4.42932 all=   4.42932 gap= 0.0000%
+  one|winter_extreme|shoulder|dhw=0        n_cand=5 drop=1 shipped=   9.44643 all=   9.44643 gap= 0.0000%
+  one|summer_typical|winter_cold|dhw=0     n_cand=5 drop=1 shipped=  19.51079 all=  19.51079 gap= 0.0000%
+  one|summer_typical|winter_mild|dhw=0     n_cand=5 drop=1 shipped=   7.55346 all=   7.55346 gap= 0.0000%
+  one|summer_typical|summer_warm|dhw=0     n_cand=5 drop=1 shipped=6435.62017 all=6435.62017 gap= 0.0000%
+  one|summer_typical|summer_cool|dhw=0     n_cand=5 drop=1 shipped=   1.66258 all=   1.66258 gap= 0.0000%
+  one|summer_typical|shoulder|dhw=0        n_cand=5 drop=1 shipped=   2.69847 all=   2.69847 gap= 0.0000%
+  one|summer_negative|winter_cold|dhw=0    n_cand=5 drop=1 shipped=  12.95920 all=  12.95920 gap= 0.0000%
+  one|summer_negative|winter_mild|dhw=0    n_cand=5 drop=1 shipped=   0.62232 all=   0.62232 gap= 0.0000%
+  one|summer_negative|summer_warm|dhw=0    n_cand=5 drop=1 shipped=6435.62017 all=6435.62017 gap= 0.0000%
+  one|summer_negative|summer_cool|dhw=0    n_cand=5 drop=1 shipped=   0.66935 all=   0.66935 gap= 0.0000%
+  one|summer_negative|shoulder|dhw=0       n_cand=5 drop=1 shipped=   0.27691 all=   0.27691 gap= 0.0000%
+  one|shoulder|winter_cold|dhw=0           n_cand=5 drop=1 shipped=  48.81372 all=  48.81372 gap= 0.0000%
+  one|shoulder|winter_mild|dhw=0           n_cand=5 drop=1 shipped=  18.00133 all=  18.00133 gap= 0.0000%
+  one|shoulder|summer_warm|dhw=0           n_cand=5 drop=1 shipped=6435.62017 all=6435.62017 gap= 0.0000%
+  one|shoulder|summer_cool|dhw=0           n_cand=5 drop=1 shipped=   2.89390 all=   2.89390 gap= 0.0000%
+  one|shoulder|shoulder|dhw=0              n_cand=5 drop=1 shipped=   5.59145 all=   5.59145 gap= 0.0000%
+  one|winter_narrow|winter_cold|dhw=0      n_cand=5 drop=1 shipped= 103.13623 all= 103.13623 gap= 0.0000%
+  one|winter_narrow|winter_mild|dhw=0      n_cand=5 drop=1 shipped=  45.01355 all=  45.01355 gap= 0.0000%
+  one|winter_narrow|summer_warm|dhw=0      n_cand=5 drop=1 shipped=6435.62017 all=6435.62017 gap= 0.0000%
+  one|winter_narrow|summer_cool|dhw=0      n_cand=5 drop=1 shipped=   5.18997 all=   5.18997 gap= 0.0000%
+  one|winter_narrow|shoulder|dhw=0         n_cand=5 drop=1 shipped=  11.59176 all=  11.59176 gap= 0.0000%
+  one|winter_moderate|winter_cold|dhw=0    n_cand=5 drop=1 shipped=  75.90508 all=  75.90508 gap= 0.0000%
+  one|winter_moderate|winter_mild|dhw=0    n_cand=5 drop=1 shipped=  32.12124 all=  32.12124 gap= 0.0000%
+  one|winter_moderate|summer_warm|dhw=0    n_cand=5 drop=1 shipped=6435.62017 all=6435.62017 gap= 0.0000%
+  one|winter_moderate|summer_cool|dhw=0    n_cand=5 drop=1 shipped=   3.99704 all=   3.99704 gap= 0.0000%
+  one|winter_moderate|shoulder|dhw=0       n_cand=5 drop=1 shipped=   8.56522 all=   8.56522 gap= 0.0000%
+  one|flat|winter_cold|dhw=0               n_cand=5 drop=1 shipped=  82.46327 all=  82.46327 gap= 0.0000%
+  one|flat|winter_mild|dhw=0               n_cand=5 drop=1 shipped=  37.46916 all=  37.46916 gap= 0.0000%
+  one|flat|summer_warm|dhw=0               n_cand=5 drop=1 shipped=6435.62017 all=6435.62017 gap= 0.0000%
+  one|flat|summer_cool|dhw=0               n_cand=5 drop=1 shipped=   4.44968 all=   4.44968 gap= 0.0000%
+  one|flat|shoulder|dhw=0                  n_cand=5 drop=1 shipped=   9.61392 all=   9.61392 gap= 0.0000%
+  two|winter_typical|winter_cold|dhw=0     n_cand=5 drop=1 shipped=  77.88423 all=  77.88423 gap= 0.0000%
+  two|winter_typical|winter_mild|dhw=0     n_cand=5 drop=1 shipped=  29.65491 all=  29.65491 gap= 0.0000%
+  two|winter_typical|summer_warm|dhw=0     n_cand=5 drop=1 shipped=10597.96756 all=10597.96756 gap= 0.0000%
+  two|winter_typical|summer_cool|dhw=0     n_cand=5 drop=1 shipped=   3.82352 all=   3.82352 gap= 0.0000%
+  two|winter_typical|shoulder|dhw=0        n_cand=5 drop=1 shipped=   8.32705 all=   8.32705 gap= 0.0000%
+  two|winter_extreme|winter_cold|dhw=0     n_cand=5 drop=1 shipped= 111.52596 all= 111.52596 gap= 0.0000%
+  two|winter_extreme|winter_mild|dhw=0     n_cand=5 drop=1 shipped=  41.13501 all=  41.13501 gap= 0.0000%
+  two|winter_extreme|summer_warm|dhw=0     n_cand=5 drop=1 shipped=10597.96756 all=10597.96756 gap= 0.0000%
+  two|winter_extreme|summer_cool|dhw=0     n_cand=5 drop=1 shipped=   5.18544 all=   5.18544 gap= 0.0000%
+  two|winter_extreme|shoulder|dhw=0        n_cand=5 drop=1 shipped=  11.77687 all=  11.77687 gap= 0.0000%
+  two|summer_typical|winter_cold|dhw=0     n_cand=5 drop=1 shipped=  25.02422 all=  25.02422 gap= 0.0000%
+  two|summer_typical|winter_mild|dhw=0     n_cand=5 drop=1 shipped=   8.67070 all=   8.67070 gap= 0.0000%
+  two|summer_typical|summer_warm|dhw=0     n_cand=5 drop=1 shipped=10597.96756 all=10597.96756 gap= 0.0000%
+  two|summer_typical|summer_cool|dhw=0     n_cand=5 drop=1 shipped=   1.72276 all=   1.72276 gap= 0.0000%
+  two|summer_typical|shoulder|dhw=0        n_cand=5 drop=1 shipped=   3.29487 all=   3.29487 gap= 0.0000%
+  two|summer_negative|winter_cold|dhw=0    n_cand=5 drop=1 shipped=  17.21383 all=  17.21383 gap= 0.0000%
+  two|summer_negative|winter_mild|dhw=0    n_cand=5 drop=1 shipped=   1.93238 all=   1.93238 gap= 0.0000%
+  two|summer_negative|summer_warm|dhw=0    n_cand=5 drop=1 shipped=10597.96756 all=10597.96756 gap= 0.0000%
+  two|summer_negative|summer_cool|dhw=0    n_cand=5 drop=1 shipped=   0.46452 all=   0.46452 gap= 0.0000%
+  two|summer_negative|shoulder|dhw=0       n_cand=5 drop=1 shipped=   0.21596 all=   0.21596 gap= 0.0000%
+  two|shoulder|winter_cold|dhw=0           n_cand=5 drop=1 shipped=  59.05344 all=  59.05344 gap= 0.0000%
+  two|shoulder|winter_mild|dhw=0           n_cand=5 drop=1 shipped=  23.32308 all=  23.32308 gap= 0.0000%
+  two|shoulder|summer_warm|dhw=0           n_cand=5 drop=1 shipped=10597.96756 all=10597.96756 gap= 0.0000%
+  two|shoulder|summer_cool|dhw=0           n_cand=5 drop=1 shipped=   3.34206 all=   3.34206 gap= 0.0000%
+  two|shoulder|shoulder|dhw=0              n_cand=5 drop=1 shipped=   6.89410 all=   6.89410 gap= 0.0000%
+  two|winter_narrow|winter_cold|dhw=0      n_cand=5 drop=1 shipped= 124.25747 all= 124.25747 gap= 0.0000%
+  two|winter_narrow|winter_mild|dhw=0      n_cand=5 drop=1 shipped=  50.66369 all=  50.66369 gap= 0.0000%
+  two|winter_narrow|summer_warm|dhw=0      n_cand=5 drop=1 shipped=10597.96756 all=10597.96756 gap= 0.0000%
+  two|winter_narrow|summer_cool|dhw=0      n_cand=5 drop=1 shipped=   6.08417 all=   6.08417 gap= 0.0000%
+  two|winter_narrow|shoulder|dhw=0         n_cand=5 drop=1 shipped=  14.48299 all=  14.48299 gap= 0.0000%
+  two|winter_moderate|winter_cold|dhw=0    n_cand=5 drop=1 shipped=  95.32886 all=  95.32886 gap= 0.0000%
+  two|winter_moderate|winter_mild|dhw=0    n_cand=5 drop=1 shipped=  38.16204 all=  38.16204 gap= 0.0000%
+  two|winter_moderate|summer_warm|dhw=0    n_cand=5 drop=1 shipped=10597.96756 all=10597.96756 gap= 0.0000%
+  two|winter_moderate|summer_cool|dhw=0    n_cand=5 drop=1 shipped=   4.67831 all=   4.67831 gap= 0.0000%
+  two|winter_moderate|shoulder|dhw=0       n_cand=5 drop=1 shipped=  10.92019 all=  10.92019 gap= 0.0000%
+  two|flat|winter_cold|dhw=0               n_cand=5 drop=1 shipped=  99.95299 all=  99.95299 gap= 0.0000%
+  two|flat|winter_mild|dhw=0               n_cand=5 drop=1 shipped=  41.49473 all=  41.49473 gap= 0.0000%
+  two|flat|summer_warm|dhw=0               n_cand=5 drop=1 shipped=10597.96756 all=10597.96756 gap= 0.0000%
+  two|flat|summer_cool|dhw=0               n_cand=5 drop=1 shipped=   5.18950 all=   5.18950 gap= 0.0000%
+  two|flat|shoulder|dhw=0                  n_cand=5 drop=1 shipped=  12.23244 all=  12.23244 gap= 0.0000%
+
+RESULT cells=80
+RESULT n_cells_with_n_cand_gt_4=80
+RESULT gap_max=0.0000 %
+RESULT gap_median=0.0000 %
+RESULT n_cells_gap_gt_0=0
+RESULT n_cells_gap_gt_0.1pct=0
+  worst five
+    one|winter_typical|winter_cold|dhw=0     gap= 0.0000% start_scores=[60.104, 63.06, 69.52, 99.85, 115.892]
+    two|summer_negative|summer_warm|dhw=0    gap= 0.0000% start_scores=[10597.968, 10733.567, 10923.318, 10988.037, 192091.479]
+    two|summer_negative|winter_mild|dhw=0    gap= 0.0000% start_scores=[1.946, 10.242, 264.522, 844.193, 18935.01]
+    two|summer_negative|winter_cold|dhw=0    gap= 0.0000% start_scores=[17.214, 20.625, 21.608, 135.618, 12484.377]
+    two|summer_typical|shoulder|dhw=0        gap= 0.0000% start_scores=[3.295, 3.637, 3.698, 7.143, 84804.473]
+RESULT gap_loo=[0.0000, 0.0000] % (range across cells with the most favourable dropped)
+RESULT wall_s=356.2 provisional=1
+RESULT thread_factor=1.0000 (single BLAS thread pinned; no deliberate second thread)
+RESULT load1=6.20 swapins=0

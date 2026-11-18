@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_return_unit RETURN_DEL 49b4bb0f",
+  "killed_by": "tests/features.py",
+  "old": "    return EntryConfig.from_mapping(config).space_setpoint_unit == \"return\"",
+  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (review fixes): RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4990 to rc=1 failed=8: every return target is written as a flow one (no 5 K shift, the valve rung, no headroom rule)."
+}

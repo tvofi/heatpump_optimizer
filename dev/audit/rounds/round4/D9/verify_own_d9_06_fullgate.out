@@ -1,0 +1,94 @@
+
+=== Stress and economics ===
+
+-- Single-scenario detection (#346, #387)
+  ok   the live ceiling covers the measured CI ruler-vs-real expansion
+  ok   and the wobble still leaves a 2x detection floor on the recorded worst
+  ok   an unchanged sweep fires the work check on no scenario, and covers all of them
+  ok   a 2x regression confined to one scenario is seen
+  ok   ...and it is still under the per-scenario CPU factor, so this is the gap #346 records and not a different one
+  ok   a runner whose basins are in no table changes no verdict at all
+  ok   ...and it still sees the one-scenario 2x from there, which is what makes it a check rather than a machine that always says yes
+  ok   ...and every scenario moving at once is still not a coverage collapse, however far the objectives move
+  ok   a scenario this branch re-planned is exempted and named, not judged
+  ok   ...and 2.28x is still inside the loose per-scenario CPU factor, so the gate stays green on it rather than exempting it twice
+  ok   the basin tolerance sits between float drift and the smallest measured flip
+  ok   a missing or non-finite fingerprint is 'cannot tell', never 'agrees'
+  ok   a comparison with no baseline covers nothing, and says so
+  ok   a scenario on only one side is named, not judged against nothing
+  ok   a figure more than the stale factor cheaper is still caught
+  ok   ...and one less than the stale factor cheaper is still allowed
+  ok   the solver-work counter sees a real solve, and doubles with it
+  ok   ...and the hook is restored, so nothing downstream is left wrapped
+  ok   a real 2x on one scenario reaches the rule the sweep applies, and an unchanged one does not
+
+-- Combination sweep
+  solver-work baseline: solving 51 scenarios from origin/main in a pristine worktree, to compare computed against computed (#387); this is the sweep's cost again
+  solver-work baseline: 51 scenarios from origin/main (fc5f65da38c3), captured in 97 s on this machine
+  solve-time guard: reference solve 19.5 ms of CPU on this machine, budget 860x that per scenario (= 16.7 s of CPU), sweep budget 134x, absolute wall ceiling 600000 ms
+  ok   all 51 combinations satisfy the invariants
+  ok   the comfort floor is never breached beyond what physics forces
+  ok   hot water is available when promised
+  ok   the solve-time guard calibrated against a reference solve per scenario
+  reference solve over the sweep: 18.9 / 19.4 / 20.5 ms of CPU (min/median/max of 58 samples); the same samples in wall clock: 18.9 / 19.4 / 20.6 ms -- the wall spread is the machine's load, the CPU spread is all the guard has to tolerate
+  calibration overhead: 1.2 s of wall clock for 58 samples
+  worst scenario: shoulder/tariff+pv+cycle used 15908 ms of CPU = 812.2x its 19.6 ms reference; budget is 860x
+  ok   every scenario's solve costs what it should, in CPU, for this machine
+  ok   every scenario has a per-scenario budget on record
+  ok   no scenario exceeds its own recorded cost by the budget factor
+  ok   no scenario got dramatically cheaper without a re-record
+  solver work: 51 of 51 scenarios judged against the baseline captured beside this run, at 1.50x; 0 re-planned by this branch, 0 new here, 0 dropped
+  ok   the solver-work counter counted something for every scenario
+  ok   this tree's solver work has a baseline to be judged against
+  ok   no scenario's solver work grew on an unchanged plan
+  ok   the solver-work check still covers most of the sweep
+  ok   the solver-work floor is a literal, not an environment override
+
+-- Memory (D9-04)
+  winter/cycle                       RSS peak    83.0 MiB, traced   3.5 MiB (recorded 96 / 3.5)
+  winter/pv+cycle                    RSS peak    85.4 MiB, traced   3.5 MiB (recorded 96 / 3.5)
+  heavy_old/shoulder                 RSS peak    90.1 MiB, traced   3.5 MiB (recorded 96 / 3.5)
+  winter/pv                          RSS peak   216.8 MiB, traced   6.9 MiB (recorded 98 / 3.5)
+  winter/2z/dhw                      RSS peak    89.0 MiB, traced   3.5 MiB (recorded 98 / 3.5)
+  typical_slab/winter                RSS peak    87.8 MiB, traced   3.4 MiB (recorded 98 / 3.4)
+  parent RSS watermark growth over the memory pass: 0.0 MiB (ru_maxrss is a high-water mark; growth here means the pass itself retained memory)
+  ok   the memory pass probes the recorded peak on each axis
+  ok   the probed scenarios' memory peaks stay within their recorded budgets
+  ok   every memory-pass scenario has recorded peaks
+  ok   the memory pass retains less than 512 MiB of RSS in the parent
+  whole sweep: 93.5 s of solver CPU against 1.0 s of reference CPU = 94.14x; budget is 134.32x
+  ok   the sweep as a whole costs what it has always cost, relative to this machine
+  detection against the RECORDED costs: per-scenario ceiling 1.43x, sweep budget 1.32x, per-scenario table 3.00x -- the smallest of those is the smallest UNIFORM regression this gate can see where it was recorded; a regression confined to one scenario is seen at 1.50x of that scenario's recorded solver work instead, and in nothing denominated in CPU
+  detection on THIS machine: per-scenario ceiling 1.06x (782x x 1.1 wobble), sweep budget 1.43x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
+  ok   the budgets are tight enough to see a 2x regression, uniform or confined to one scenario
+  thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
+  ok   the reference and the scenarios are parallelised alike, so the thread factor cancels in the ratio
+  ok   no scenario hits the absolute pathological-solve ceiling
+
+-- Economics
+  ok   winter: cheaper than holding the setpoint
+  ok   winter_extreme: cheaper than holding the setpoint
+  ok   shoulder: cheaper than holding the setpoint
+  ok   a flat price curve produces no fictitious saving
+  ok   a flat price curve still respects comfort
+  ok   a wider price spread yields a larger saving
+  ok   a higher comfort weight is warmer, across the documented range
+  ok   a higher comfort weight saves less, across the documented range
+  ok   the README's comfort-weight table still holds
+  ok   solver noise under an economically nil perturbation stays small
+  ok   a capacity tariff lowers the projected peak
+  ok   and does not wreck comfort doing it
+  ok   a cycling cost reduces compressor starts
+  ok   PV surplus is self-consumed
+  ok   a more efficient heat pump is never worse, and is better somewhere
+  ok   a leakier, larger house costs more to heat
+
+-- Edge conditions
+  ok   all 17 edge conditions produce a sound plan
+  ok   an undersized pump runs flat out rather than giving up
+  ok   negative prices are exploited rather than ignored
+  ok   the baseline scenario plans electric hot water inside the 2 h horizon
+  ok   an external heat source suppresses electric hot water
+  ok   suppression lowers total electric DHW energy, not just moves it
+
+ALL 62 STRESS CHECKS PASSED

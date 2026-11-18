@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_solver_status RETURN_DEL 4eadee84",
+  "killed_by": "tests/entities.py",
+  "old": "    return f\"suboptimal ({result.message})\"",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=51."
+}

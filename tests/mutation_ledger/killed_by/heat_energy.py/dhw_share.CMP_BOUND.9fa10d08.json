@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:dhw_share CMP_BOUND 9fa10d08",
+  "killed_by": "tests/features.py",
+  "old": "    return a.dhw / total if total > 1e-6 else 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return a.dhw / total if total >= 1e-6 else 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

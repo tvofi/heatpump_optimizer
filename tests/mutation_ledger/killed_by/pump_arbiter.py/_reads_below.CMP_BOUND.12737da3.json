@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_reads_below CMP_BOUND 12737da3",
+  "killed_by": "tests/features.py",
+  "old": "    return reading is not None and setpoint is not None and float(reading) < float(setpoint)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return reading is not None and setpoint is not None and float(reading) <= float(setpoint)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,64 @@
+away_setback                 leaves_moved=1
+capacity_tariff              leaves_moved=16
+coord_all_features           leaves_moved=0
+coord_dhw                    leaves_moved=0
+coord_grid_fee               leaves_moved=0
+coord_minimal                leaves_moved=0
+coord_two_zone               leaves_moved=0
+dhw_cold_tank                leaves_moved=2
+horizon_48h                  leaves_moved=1
+mild_windy_rain              leaves_moved=1
+start_below_band             leaves_moved=2
+valve_storage_flat_prices    leaves_moved=14
+valve_storage_low_target     leaves_moved=7
+valve_storage_small_tank     leaves_moved=2
+RESULT scenarios_moved=9 count
+RESULT leaves_moved=46 count
+RESULT leaves_by_field[heat_pump_on_schedule]=46 count
+RESULT leaves_by_direction[False -> True]=46 count
+LEAF away_setback.heat_pump_on_schedule[41]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[40]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[41]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[42]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[43]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[44]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[45]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[46]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[47]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[48]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[49]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[50]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[51]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[52]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[53]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[54]: False -> True
+LEAF capacity_tariff.heat_pump_on_schedule[55]: False -> True
+LEAF dhw_cold_tank.heat_pump_on_schedule[22]: False -> True
+LEAF dhw_cold_tank.heat_pump_on_schedule[63]: False -> True
+LEAF horizon_48h.heat_pump_on_schedule[26]: False -> True
+LEAF mild_windy_rain.heat_pump_on_schedule[2]: False -> True
+LEAF start_below_band.heat_pump_on_schedule[53]: False -> True
+LEAF start_below_band.heat_pump_on_schedule[54]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[21]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[22]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[23]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[24]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[25]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[26]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[27]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[28]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[29]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[30]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[31]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[32]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[33]: False -> True
+LEAF valve_storage_flat_prices.heat_pump_on_schedule[34]: False -> True
+LEAF valve_storage_low_target.heat_pump_on_schedule[20]: False -> True
+LEAF valve_storage_low_target.heat_pump_on_schedule[21]: False -> True
+LEAF valve_storage_low_target.heat_pump_on_schedule[22]: False -> True
+LEAF valve_storage_low_target.heat_pump_on_schedule[23]: False -> True
+LEAF valve_storage_low_target.heat_pump_on_schedule[47]: False -> True
+LEAF valve_storage_low_target.heat_pump_on_schedule[48]: False -> True
+LEAF valve_storage_low_target.heat_pump_on_schedule[49]: False -> True
+LEAF valve_storage_small_tank.heat_pump_on_schedule[78]: False -> True
+LEAF valve_storage_small_tank.heat_pump_on_schedule[88]: False -> True

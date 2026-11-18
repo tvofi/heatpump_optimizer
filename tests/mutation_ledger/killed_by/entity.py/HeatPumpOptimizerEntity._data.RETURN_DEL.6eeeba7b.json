@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:HeatPumpOptimizerEntity._data RETURN_DEL 6eeeba7b",
+  "killed_by": "tests/entities.py",
+  "old": "        return self.coordinator.data or Payload()",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against aa7a81192325614999803e40e3cedc024e22ce2b: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.flow_lift_factor CLAMP_DROP af7b8ddc",
+  "killed_by": "tests/features.py",
+  "old": "        return max(0.25, carnot_flow / carnot_ref)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return (0.25)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=37."
+}

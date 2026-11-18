@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:<module> BOOLOP c1ede8b5",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    \"instant\": lambda v, d: _parses(v, datetime.fromisoformat, 16) and v[10] in \"T \",",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a15e3e33507bde9e566858ce32b2ded840edfa02: BOOLOP (`\"instant\": lambda v, d: _parses(v, datetime.fromisoformat, 16) or v[10] in \"T \",`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

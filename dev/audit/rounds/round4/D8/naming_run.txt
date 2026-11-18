@@ -1,0 +1,32 @@
+# family dhw            n=10  id_intruders=44  id_breaks=1  name_intruders=7   name_breaks=1
+# family tariff         n=7   id_intruders=49  id_breaks=4  name_intruders=60  name_breaks=4
+# family learning       n=5   id_intruders=28  id_breaks=3  name_intruders=45  name_breaks=3
+# family accuracy       n=3   id_intruders=44  id_breaks=2  name_intruders=29  name_breaks=2
+# family ecl110         n=2   id_intruders=0   id_breaks=0  name_intruders=0   name_breaks=0
+# family pv             n=3   id_intruders=0   id_breaks=0  name_intruders=0   name_breaks=0
+# family card_headline  n=5   id_intruders=13  id_breaks=4  name_intruders=18  name_breaks=4
+RESULT perturbation=none arm
+RESULT entities=74 count
+RESULT families=7 count
+RESULT id_order_intruders=178 entities
+RESULT name_order_intruders=159 entities
+RESULT sensor_id_order_intruders=92 entities
+RESULT entity_without_icon_entry=4 entities
+RESULT orphan_icon_keys=0 keys
+RESULT strings_vs_en_mismatch=0 keys
+RESULT strings_vs_sv_missing=0 keys
+RESULT sv_untranslated=0 keys
+RESULT entity_without_strings_entry=0 entities
+RESULT strings_entry_without_entity=0 keys
+RESULT enabled_default_off=6 entities
+RESULT card_suffixes=6 suffixes
+RESULT card_needs=12 entities
+RESULT card_needs_disabled=0 entities
+RESULT readme_named_by_id=0 entities
+RESULT readme_named_by_display_name=72 entities
+RESULT readme_named_disabled=6 entities
+# detail written to tools/audit/round4/D8/naming_detail.json
+RESULT thread_factor=1.00 ratio
+RESULT timing_results_reported=0 count
+RESULT swapins=0 count
+RESULT load1=4.13 load

@@ -1,0 +1,40 @@
+CELL winter_typical   tz=0 A=68.81957 B=68.81957 C=68.81957  A->B=+0.0000%  B->C=+0.0000%  A->C=+0.0000%
+CELL winter_typical   tz=1 A=87.27327 B=86.57876 C=86.57876  A->B=+0.7958%  B->C=+0.0000%  A->C=+0.7958%
+CELL winter_extreme   tz=0 A=95.78439 B=95.78439 C=95.78439  A->B=+0.0000%  B->C=+0.0000%  A->C=+0.0000%
+CELL winter_extreme   tz=1 A=128.37548 B=128.35406 C=128.31246  A->B=+0.0167%  B->C=+0.0324%  A->C=+0.0491%
+CELL summer_typical   tz=0 A=22.19000 B=22.19000 C=22.19000  A->B=+0.0000%  B->C=+0.0000%  A->C=+0.0000%
+CELL summer_typical   tz=1 A=28.03655 B=28.03655 C=27.97197  A->B=+0.0000%  B->C=+0.2303%  A->C=+0.2303%
+CELL summer_negative  tz=0 A=15.17211 B=15.11671 C=15.04963  A->B=+0.3652%  B->C=+0.4437%  A->C=+0.8073%
+CELL summer_negative  tz=1 A=19.33594 B=19.32111 C=19.31174  A->B=+0.0767%  B->C=+0.0485%  A->C=+0.1252%
+CELL shoulder         tz=0 A=54.53902 B=54.49351 C=54.44670  A->B=+0.0834%  B->C=+0.0859%  A->C=+0.1693%
+CELL shoulder         tz=1 A=64.98693 B=64.89249 C=64.89036  A->B=+0.1453%  B->C=+0.0033%  A->C=+0.1486%
+CELL winter_narrow    tz=0 A=113.75171 B=113.75171 C=113.75171  A->B=+0.0000%  B->C=+0.0000%  A->C=+0.0000%
+CELL winter_narrow    tz=1 A=134.56296 B=134.52440 C=134.52440  A->B=+0.0287%  B->C=+0.0000%  A->C=+0.0287%
+CELL winter_moderate  tz=0 A=84.40599 B=84.40599 C=84.40599  A->B=+0.0000%  B->C=+0.0000%  A->C=+0.0000%
+CELL winter_moderate  tz=1 A=104.35158 B=104.18263 C=104.13328  A->B=+0.1619%  B->C=+0.0474%  A->C=+0.2092%
+CELL flat             tz=0 A=90.55169 B=90.53745 C=90.40090  A->B=+0.0157%  B->C=+0.1508%  A->C=+0.1665%
+CELL flat             tz=1 A=107.67103 B=107.07425 C=107.07425  A->B=+0.5543%  B->C=+0.0000%  A->C=+0.5543%
+RESULT mean_gap_A_to_B_priced_pct=0.119549 %
+RESULT max_gap_A_to_B_priced_pct=0.795787 %
+RESULT min_gap_A_to_B_priced_pct=0 %
+RESULT loo_mean_gap_A_to_B_priced_pct=0.0675303 %
+RESULT mean_gap_A_to_B_flat_pct=0.284989 %
+RESULT max_gap_A_to_B_flat_pct=0.554255 %
+RESULT mean_gap_B_to_C_priced_pct=0.0636779 %
+RESULT max_gap_B_to_C_priced_pct=0.443725 %
+RESULT min_gap_B_to_C_priced_pct=0 %
+RESULT loo_mean_gap_B_to_C_priced_pct=0.0344435 %
+RESULT mean_gap_B_to_C_flat_pct=0.0754091 %
+RESULT max_gap_B_to_C_flat_pct=0.150818 %
+RESULT mean_gap_A_to_C_priced_pct=0.183097 %
+RESULT max_gap_A_to_C_priced_pct=0.807287 %
+RESULT min_gap_A_to_C_priced_pct=0 %
+RESULT loo_mean_gap_A_to_C_priced_pct=0.135082 %
+RESULT mean_gap_A_to_C_flat_pct=0.360386 %
+RESULT max_gap_A_to_C_flat_pct=0.554255 %
+RESULT cells_priced=14
+RESULT cells_flat_null_control=2
+RESULT cells_wider_search_worse_than_B=0
+RESULT thread_factor=1
+RESULT load1=5.3
+RESULT swapins=42497402

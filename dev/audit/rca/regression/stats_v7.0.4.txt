@@ -1,0 +1,91 @@
+dev/audit/rca/claim-false:
+items.tsv
+stats_v7.0.5.txt
+
+dev/audit/rca/harness-friction:
+blocked_rounds.tsv
+blocked_rounds_v7.0.4.tsv
+rounds.py
+stats_v7.0.0.txt
+stats_v7.0.4.txt
+verdict_first_lines.tsv
+window_prs.txt
+
+dev/audit/rca/headmoved:
+hm.py
+hm2.py
+hm2_out.tsv
+hm3.py
+hm3_out.tsv
+hm4.py
+hm4_out.tsv
+hm5.py
+hm5_out.tsv
+hm6.py
+hm6_out.tsv
+hm_out.tsv
+5f3a5dd61 Merge remote-tracking branch 'origin/main' into fix/r10-rca-friction-residue
+15abe48e5 rca(R10-RCA-HEADMOVED): bucket on the full file list, correct CM-2's population and #2673's lag, reconcile with triage P242
+8db235793 rca(R10-RCA-HEADMOVED): heads moved under a review after the round-10 flow fixes; carry a handed-off main merge
+GAP: 0 merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []
+WINDOW_CACHE: off -- no --window-cache, so this mode fetched the window itself
+STATS: 319 merged pull request(s) in v7.0.4..origin/main; verdict grammar ["blocked","merge"] over block classes ["mutation-vacuous","harness","null-control","claims","version","head-moved","carry-missing","root-cause-unanswered","preflight-mismatch","class-open","conflict","other","product-tradeoff-regression","metric-gamed","architecture-unsound","root-cause-detectable","root-cause-unrecorded"] read from .claude/workflows/web-fix-wave.js
+STATS COVERAGE: 268 of 319 merged pull request(s) in the window carried a parsable verdict; 51 carried none (#2984 #2943 #2941 #2940 #2911 #2893 #2868 #2863 #2847 #2845 +41 more); the histogram's verdict denominator is 268, not the window's merge count
+STATS COVERAGE BY CLASS: merged pull request(s) carrying no parsable verdict, of each class's window, by the title's type -- record 50 of 65 (#2984 #2943 #2941 #2940 #2911 #2893 #2868 #2863 #2847 #2845 +40 more); build 1 of 3 (#2774); (untyped) 0 of 137; ci 0 of 2; coordinator 0 of 1; depgraph 0 of 1; fix 0 of 15; flow 0 of 1; fly 0 of 1; harness 0 of 1; inputs 0 of 1; plan 0 of 1; policy 0 of 2; rca 0 of 7; roles 0 of 1; roster 0 of 30; train 0 of 1; triage 0 of 49
+STATS ENDPOINTS: parsable verdict(s) by the endpoint they arrived on -- /issues/<n>/comments (issue comment): 558; /pulls/<n>/reviews (review): 0. Both endpoints are read, so a verdict posted as a review is counted rather than read as a merge that carried none.
+STATS ROUNDS: over the 268 merged pull request(s) carrying a parsable verdict, first-verdict yield 151/268 = 0.563 (the first verdict was `merge`), one-round yield 119/268 = 0.444 (merged on that one verdict, no later parsable one). Of the 290 parsable verdict(s) after a pull request's first, by the verdict before each: 54 re-verified a head that moved after a `merge` (32 PR(s), the "head-moved (rework)" row), 188 repaired after a `blocked`, 48 repeated the previous verdict's head. A `Fix review:` line outside the grammar is in none of these; each is reported below.
+
+verdict class (PRs / entries):
+   268 / 370   merge   <- at or over threshold
+    33 / 39    carry-missing   <- at or over threshold
+    14 / 15    mutation-vacuous   <- at or over threshold
+    12 / 20    class-open   <- at or over threshold
+     6 / 6     root-cause-detectable   <- at or over threshold
+     5 / 9     claim-false   <- at or over threshold
+     4 / 6     mutation-survivor   <- at or over threshold
+     4 / 4     ci-red   <- at or over threshold
+     4 / 4     harness   <- at or over threshold
+     3 / 4     merge-conflict   <- at or over threshold
+     3 / 3     body-stale   <- at or over threshold
+     3 / 3     head-moved   <- at or over threshold
+     3 / 3     regression   <- at or over threshold
+     2 / 4     ruling-unsound
+     2 / 3     other
+     2 / 2     ci-unconcluded
+     2 / 2     figure-wrong
+     2 / 2     root-cause-unanswered
+     2 / 2     verdict-word
+     2 / 2     ruling-refuted
+     2 / 2     body-head-stale
+     1 / 2     class-rule-missing
+     1 / 2     instrument-broken
+     1 / 2     budget-exceeded
+     1 / 2     claim
+     1 / 2     claim-drift
+     1 / 2     vacuous-test
+     1 / 1     mutation-survivors
+     1 / 1     conflict
+     1 / 1     countermeasure-silenced
+     1 / 1     null-control
+     1 / 1     predicate-over-fire
+     1 / 1     delivery-row-stale
+     1 / 1     ruling
+     1 / 1     prior
+     1 / 1     metric-gamed
+     1 / 1     harness-nondeterministic
+     1 / 1     nondeterministic-arm
+     1 / 1     duplicate-ruling
+     1 / 1     root-cause-unrecorded
+     1 / 1     ratchet-unrecorded
+     1 / 1     body-figure
+     1 / 1     ruling-incomplete
+     1 / 1     ruling-change
+     1 / 1     released-early
+     1 / 1     claims
+     1 / 1     pr-contract-refused
+     1 / 1     pin-wrong
+     1 / 1     structure-breach
+     1 / 1     carry-dest-done
+     1 / 1     ruling-misrouted
+
+[exited with code 0]

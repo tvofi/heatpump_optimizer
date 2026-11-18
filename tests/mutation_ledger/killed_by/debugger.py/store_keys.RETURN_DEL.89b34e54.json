@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:store_keys RETURN_DEL 89b34e54",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return {name: f\"{DOMAIN}_{entry_id}_{name}\" for name in DOMAINS if name != \"debug\"}",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8d7903e69cfebb3db279b7a17a0ca066f04c40e0: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

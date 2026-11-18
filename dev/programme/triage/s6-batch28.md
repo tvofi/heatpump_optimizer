@@ -1,0 +1,82 @@
+# Proposal triage, session s6, batch 28 (P150-P157)
+
+Proposals from the s6 `proposals.md`. Numbering continues after `s6-batch27.md` (P140-P149). This batch holds 8-10 entries and merges only through the train queue (tvofi, 2026-10-25). Entries are ordered by round-10 closure time saved; the six structural proposals (V73-V78) save none in round 10; after the round-1 re-cut each is DEFER naming its measurement.
+
+Round-1 re-cut (verdict 6402369226, 2026-10-25): every entry is DEFER. P150 and P151 name their owning carries and state their REJECT arm. P152-P157 name the measurement that would change the answer. The owner's acceptance of these ideas can reach R10-ROUND-PLAYBOOK as an owner-sourced carry citing tvofi, not through a triage ACCEPT. P157's carry, which also restated P144's daemon, is dropped.
+
+A roster op citing an ACCEPT below resolves only once this file is on the roster branch or origin/main (`roster_edit.py` reads the ruling from there).
+
+## P150: generated body facts (S6-V66)
+Verdict: DEFER -> owned by the carries named below (Head notes already generated; red-check fill is R10-FLOW-JIDOKA carry 16; Figures go to P154's measurement). The UTC-timestamp generator is REJECTED on its binding cost: a body tool has no source event to render a time from, so it would need the author to name the event, which is the hand step it claims to remove. (Round-1 re-cut, verdict 6402369226 item 3: an ACCEPT that routes nothing is a DEFER that names its owner.)
+Source: s6 `proposals.md` `## V66` (orchestrator, 2026-10-25, tvofi-accepted idea 3).
+Instances: read at origin/main dfcd8d9be.
+- `## Head`: generated today. `app_push.sh` writes the note naming the new head under the heading (`app_push.sh:89`, `:442`), and `open_pr.sh` and `update_pr.sh` use `head_note.py` (`open_pr.sh:17`, `update_pr.sh:3`, `:24`). A stale Head is refused before push (fixture `tools/policy/fixtures/policy-rot/prepr/wrong-head.md`).
+- `## Red checks` from the head's check runs: R10-FLOW-JIDOKA carry 16 (`prepr.sh --fill-red`, triage P67).
+- Figures: ruled with V75 (P154), where a claim's harness renders its figure.
+- Timestamps in UTC: rejected as a generator. A body's time refers to an event (a commit, a verdict, a measurement) that the body tool cannot identify from the prose, so it has nothing to render from. The one instance (#2822 round 2) was a commit time copied with its `+01:00` offset dropped. The cheap guard is the writer's own command, `TZ=UTC git log -1 --format=%cd --date=iso-local <sha>`, which this seat now uses.
+- #2823's "stale body against the diff" is a judgement about prose, not a fact a tool can render.
+Cost: none new.
+Binding: the facts that can be generated already are, or are carried to a group. Closure saving: 0 h new (credited to JIDOKA's carry 16 and to P154).
+
+## P151: pre-review mechanical lint (S6-V67)
+Verdict: DEFER -> owned by the carries named below (R10-FLOW-JIDOKA carries 11 and 18; prepr's unnamed-red and claims arms; running them before reviewer dispatch is triage P135 -> R10-ORCH-REVIEW-PACKET). The UTC-timestamp lint is REJECTED on its binding cost: a `Z`-labelled local time cannot be told from a correct one without its source, so every rule is either vacuous or refuses correct bodies. (Round-1 re-cut, verdict 6402369226 item 3.)
+Source: s6 `proposals.md` `## V67` (orchestrator, 2026-10-25, tvofi-accepted idea 4).
+Instances: read at origin/main dfcd8d9be.
+- Carry routed to a done group: `carry_audit.py:334` refuses a done destination. `prepr.sh --body-check` gains the call in R10-FLOW-JIDOKA carry 11 (triage P-Q). An absorbed destination passing as open is R10-ORCH-ROSTER-SCHEMA carry 16 (`roster_lib.py:33`, DONE_STAGES).
+- Host paths: the `ref_privacy` arm of prepr, R10-FLOW-JIDOKA carry 18 (triage P78).
+- `## Red checks` complete: prepr's policy_lint unnamed-red arm (`prepr.sh:1417`).
+- Claimed-drift VERSION match: `prepr.sh` `claims_check` (`:278`, `tests/env_drift.py --claims-only`).
+Cost: none new.
+Binding: the gap was where the rules run, not which rules exist, and that gap is carried. Closure saving: 0 h new (credited to P135).
+
+## P152: speculative integration branch (S6-V73)
+Verdict: DEFER. What would change the answer: the share of verdict-to-merge time spent waiting for a batch proof's CI after the verdict, from the train logs (`train/s*/train.log`: verdict time per entry against proof start and merge lines), which a speculative branch would remove. (Round-1 re-cut, verdict 6402369226 item 1.)
+Source: s6 `proposals.md` `## V73` (orchestrator, 2026-10-25, tvofi-accepted idea 11).
+Instances:
+- The train already proves a batch on a proof branch cut from main (`batch/<tag>-<n>`, `merge_train.py:5435`) and, on a red proof, drops the entry the red names and proves the rest again (the prove step, `merge_train.py:129-135`).
+- What V73 adds is continuous rebuilding ahead of the merge decision, and the dropping of a red entry without stalling the entries before it.
+- The repository merges through pull requests only (`gh pr merge`, `merge_train.py:1071`), so "fast-forward main to the green prefix" becomes "merge the green prefix's pull requests at their proven heads". That is a design question about ruleset and check identity, not a script.
+Cost: L to XL (merge_train.py, CI triggers on the integration branch, check-run reuse at merge).
+Binding: measured verdict-to-merge median 1.89 h (plan-opt study, `bin/cycle.py` over fix PRs since 2026-10-21, n=110; out of tree, so it motivates the measurement named above rather than standing as one) is the prize. A build of this size in round 10 would finish near closure (plan v47 end 2026-11-01), so it pays in round 11. Closure saving: 0 h in round 10.
+
+## P153: CI results cached by measured closure (S6-V74)
+Verdict: DEFER. What would change the answer: the count of recarries and batch-proof reruns whose measured closure was unchanged (head-to-head `tests/closures.json` script sets against the files each recarry changed), with their CI minutes, from the check-runs of the last 48 h of proofs and recarries. (Round-1 re-cut, verdict 6402369226 item 1.)
+Source: s6 `proposals.md` `## V74` (orchestrator, 2026-10-25, tvofi-accepted idea 12).
+Instances:
+- `GATE_SCOPE=auto` already runs only the scripts a branch's diff can reach (`.github/workflows/tests.yml:43`, `:363`), and a push to main is forced to full (`:47`, CLAUDE.md rule 1).
+- The delta is reuse across heads of one pull request whose closure did not change.
+- For the design to settle: a cached pass must be keyed on every input the measured closure misses (runner image, BLAS build: CLAUDE.md rule 3 says solver floats do not reproduce across builds). The forced full run on main must stay uncached, or a wrong closure never reddens main, which is the property rule 1 exists for.
+Cost: L. The risk falls on the gate's own correctness.
+Binding: the saving is CI minutes per recarry (PR run wall median 920 s, plan-opt study's CI read; out of tree), but a cache that hides a red costs more than the minutes. Design before build. Closure saving: 0 h in round 10.
+
+## P154: executable claims in place of prose evidence (S6-V75)
+Verdict: DEFER. What would change the answer: the count of round-10 blocked verdicts whose class is a stale or unreproduced figure (body-stale, body-head-stale and figure blocks, by verdict comment id), with their round-trip time. (Round-1 re-cut, verdict 6402369226 item 1.)
+Source: s6 `proposals.md` `## V75` (orchestrator, 2026-10-25, tvofi-accepted idea 13).
+Instances: `figure_lint.mjs` already refuses a figure whose command names a missing script (fixtures under `tools/policy/fixtures/figures/`), but it does not run the command. The plan-opt study (out of tree) counted 14 PRs blocked 3 or more times and 14 rounds past the third since 2026-10-21; no share is attributed to stale figures, which is the measurement this DEFER names.
+Cost: L (a claims-file format, a CI job that runs each harness at the head, body rendering, and the PR template and `checkPrBody` contract change, which is policy).
+Binding: high value, but it changes the PR contract every open PR answers. Switching mid-round would re-open every in-flight body. Closure saving: 0 h in round 10.
+
+## P155: test-first review (S6-V76)
+Verdict: DEFER. What would change the answer: the share of round-10 blocked verdicts whose finding a pre-implementation test-and-seam review would have caught (real design-level blocks by verdict id), priced against one added review round per group. (Round-1 re-cut, verdict 6402369226 item 1.)
+Source: s6 `proposals.md` `## V76` (orchestrator, 2026-10-25, tvofi-accepted idea 14).
+Instances:
+- the plan-opt study's review-strength read (out of tree), window B: 174 verdicts, of which 16 were real blocks and 52 were book (mechanical).
+- Window C: 63 blocks, of which 16 were real, 14 or more mechanical and 14 carry-missing.
+- So most round trips in round 10 are mechanical, which P135, P140 and JIDOKA address. A contract review up front targets the real minority.
+- Round 10 already has a contract-review stage for L and XL groups (`designer.md`, `design-review.md`).
+Cost: M (a stage in R10-FLOW-DESIGN-STAGES' mechanism, `fixer.md` and `fix-review.md` edits). It adds one review round trip (median 1.45 h to 2.35 h) per group before any code.
+Binding: in round 10 that added trip lengthens every remaining group to save on about 1 in 4 blocks. Round 11, starting with its plan, can price it. Closure saving: negative in round 10 if built now.
+
+## P156: split the hot files by seam (S6-V77)
+Verdict: DEFER. What would change the answer: per-file counts of train SERIAL routes, `conflict onto` lines and conflict-invalidated verdicts from the train logs (`train/s*/train.log`), which name the files a seam split would pay for. (Round-1 re-cut, verdict 6402369226 item 1.)
+Source: s6 `proposals.md` `## V77` (orchestrator, 2026-10-25, tvofi-accepted idea 15).
+Instances: `custom_components/heatpump_optimizer/coordinator.py` is 11299 lines at dfcd8d9be. Four open PRs touched it at once (filing). Round-10 groups still moving code out of it include R10-ARCH-SHAPES and R10-ADVISOR-RESIDUE (P141).
+Cost: XL in the code. Measuring is cheap: conflicts and serial-routed entries per file from the train logs.
+Binding: a seam restructure mid-round collides with every open coordinator group, and owner ruling R10 ARCH-DOCS waits on the architecture being finished. Round 11's P3 is the seat that plans exactly this. Closure saving: 0 h in round 10.
+
+## P157: check-yield sunset (S6-V78)
+Verdict: DEFER. What would change the answer: one round of per-check catch data (real catches against self-inflicted ones) with each check's minutes. Round 10 records none per check, so D13 owns the measurement. (Round-1 re-cut, verdict 6402369226 item 1.)
+Source: s6 `proposals.md` `## V78` (orchestrator, 2026-10-25, tvofi-accepted idea 16).
+Instances: D13 already measures first-pass yield and rounds per merge (`D13.md:19-24`). The round-10 yield instruments exist (R10-GATE-YIELD, R10-FLY-YIELD-GUARD, both done), but no check records its own catches.
+Cost: M (a per-check catch record, a retirement proposal path through `proposal-triage.md`, and a D13 brief extension, which is policy and the owner's words).
+Binding: a ratchet on process overhead needs a round of catch data before any retirement is honest. Round 10 has none per check. Closure saving: 0 h in round 10.

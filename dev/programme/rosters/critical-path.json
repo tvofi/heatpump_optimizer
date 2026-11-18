@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-20T17:00:00Z",
+  "critical": [
+    "R10-SAV-REASONS",
+    "R10-ADVISOR",
+    "R10-SCORES",
+    "R10-LIVESTATE",
+    "R10-CONFIG-NOTICES",
+    "R10-PARAMS-OWNER",
+    "R10-ARCH-SHAPES",
+    "R10-LEARNER-ETA",
+    "R10-HEAT-METER",
+    "R10-COP-GATE",
+    "R10-UX-HEALTH",
+    "R10-ARCH-DOCS"
+  ]
+}

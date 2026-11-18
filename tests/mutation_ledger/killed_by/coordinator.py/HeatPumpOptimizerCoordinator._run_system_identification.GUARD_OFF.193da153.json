@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._run_system_identification GUARD_OFF 193da153",
+  "killed_by": "tests/features.py",
+  "old": "        if why is not None:",
+  "reason": "R8-P5 (#1523/#1525) added this site. `if why is not None:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 6 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a cooling mode aborts an armed experiment instead of commanding heat`; `a hot-water-only mode aborts an armed experiment instead of commanding heat`; `a pump that is off the network aborts an armed experiment instead of commanding heat`; `the aborted result carries the cause`."
+}

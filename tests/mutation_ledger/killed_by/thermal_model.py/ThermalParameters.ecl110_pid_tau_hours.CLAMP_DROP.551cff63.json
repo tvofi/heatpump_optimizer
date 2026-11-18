@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.ecl110_pid_tau_hours CLAMP_DROP 551cff63",
+  "killed_by": "tests/features.py",
+  "old": "        return max(0.1, self.ecl110_pid_time_constant_hours)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 404a5fb0fb6041a9d430cbff08be9aae6fab4a21: CLAMP_DROP (`return (0.1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

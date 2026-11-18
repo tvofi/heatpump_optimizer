@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:_gap_probe_terms RETURN_DEL 3792d6bd",
+  "killed_by": "tests/entities.py",
+  "old": "    return terms",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

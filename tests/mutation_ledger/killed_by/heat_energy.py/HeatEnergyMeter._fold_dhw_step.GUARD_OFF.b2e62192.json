@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:HeatEnergyMeter._fold_dhw_step GUARD_OFF b2e62192",
+  "killed_by": "tests/features.py",
+  "old": "        if heat_kwh is None or last is None or last_at is None or not open_span:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

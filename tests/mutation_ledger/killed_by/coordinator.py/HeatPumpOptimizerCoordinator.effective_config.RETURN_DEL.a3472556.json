@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.effective_config RETURN_DEL a3472556",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "        return config",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+}

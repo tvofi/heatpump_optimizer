@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:<module> CLAMP_DROP 9443f0ad",
+  "old": "_MAX_LEAD = timedelta(hours=max(BOOST_HOURS, BLOCK_HOURS))",
+  "reason": "Equivalent (CLAMP_DROP, max dropped to its first argument). BOOST_HOURS and BLOCK_HOURS are both 2, so max(BOOST_HOURS, BLOCK_HOURS) is BOOST_HOURS. The mutant `_MAX_LEAD = timedelta(hours=(BOOST_HOURS))` is the same two hours. tests/block_duty.py asserts both constants and `_MAX_LEAD` are two hours.",
+  "verdict": "equivalent"
+}

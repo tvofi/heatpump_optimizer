@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors GUARD_OFF 2a9c0142",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "            if verdict == \"invalid_auth\":",
+  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_entities GUARD_OFF c680d852` (the guard moved into `HeatPumpOptimizerOptionsFlow._entities_errors`). Previous: Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

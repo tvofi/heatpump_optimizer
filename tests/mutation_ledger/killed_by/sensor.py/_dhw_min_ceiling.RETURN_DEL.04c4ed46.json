@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:_dhw_min_ceiling RETURN_DEL 04c4ed46",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return None if value is None else round(value - DHW_MIN_TEMP_SETPOINT_MARGIN, 1)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

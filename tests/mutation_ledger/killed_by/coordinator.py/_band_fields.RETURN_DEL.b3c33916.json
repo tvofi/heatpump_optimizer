@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_band_fields RETURN_DEL b3c33916",
+  "killed_by": "tests/features.py",
+  "old": "    return {\"max_electrical_power\": band.max_kw, \"min_electrical_power\": band.min_kw}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

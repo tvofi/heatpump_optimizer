@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop BOOLOP dfc119de",
+  "killed_by": "tests/features.py",
+  "old": "        if self._measured_power is None and not heat_energy.meter_of(self).counter:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self._measured_power is None or not heat_energy.meter_of(self).counter:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

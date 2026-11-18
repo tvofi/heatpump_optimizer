@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/slab_seed.py:judge BOOLOP 84552d11",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "    return value is not None and refusal(value, room_c, signals) is None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return value is not None or refusal(value, room_c, signals) is None`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+}

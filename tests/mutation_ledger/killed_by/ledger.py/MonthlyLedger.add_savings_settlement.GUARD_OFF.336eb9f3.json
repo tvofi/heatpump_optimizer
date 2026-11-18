@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.add_savings_settlement GUARD_OFF 336eb9f3",
+  "killed_by": "tests/features.py",
+  "old": "        if baseline_kw is None or not all(np.isfinite(v) for v in (baseline_kw, actual_kwh, spot, dt)):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

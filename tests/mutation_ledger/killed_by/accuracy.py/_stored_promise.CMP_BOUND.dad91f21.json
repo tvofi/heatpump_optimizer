@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:_stored_promise CMP_BOUND dad91f21",
+  "killed_by": "tests/features.py",
+  "old": "    if (start.tzinfo is None or not (np.isfinite(step) and step > 0)",
+  "reason": "Recorded from `mutation_table.py --anchor 'custom_components/heatpump_optimizer/accuracy.py:_stored_promise CMP_BOUND dad91f21' --scripts tests/features.py --base 3364b0c68` at e00d03ce9 (baseline rc=0 failed=0, null control survived) and the hand-applied proof at the same head: CMP_BOUND (`step > 0`->`step >= 0`) takes tests/features.py from rc=0 failed=0 to rc=1 failed=1, failing 'UX-6: a stored promise with a non-positive step is dropped, not loaded' alone of 4060. Supersedes the survivor_triage gap row the CI pin chain recorded at 18a04ed62 (run 38090917611), whose 'no driver killed it' this check falsifies."
+}

@@ -1,0 +1,3 @@
+### enum_p2_selftest
+RESULT selftest_seams[clean]=0 count
+RESULT selftest_seams[reintroduced]=1 count

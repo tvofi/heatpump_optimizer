@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:<module> CONST f34de8e4",
+  "old": "_EVAL_MEMO_MAX_ENTRIES = 512",
+  "reason": "The memo's LRU capacity doubled to 1024 by the CONST operator; the memo it bounds is an exact cache, so the constant's value decides only which repeats are reused and how many keys are retained, never a number any check reads. A hit returns the (value, gradient) an earlier evaluation of the same x computed, to the bit (the wrapper's own contract; the batched answers it caches are asserted equal to scipy's per variable by tests/features.py::_grad_parity), so plans, costs and gradients are identical for any bound at or above the per-solve reuse span -- measured p99 = 111 evaluations in the constant's own comment. The bound is a memory cap, not a tuning constant: an x key is ~0.8 KiB, so 1024 entries stay near 1 MiB of retained state, orders of magnitude under the 27-41 MiB row-matrix key cost this memo replaced, and the stress gate's per-scenario traced peaks are bounded under either value. Survival measured at the pin drive (`mutation_table.py --pin-killed --base origin/main`, head c1a56b4e2, ratchet base 7311cc51318f72dc03409ed793b8e4c6772815e8, 2026-10-13): the mutant survived every driver in play whose run completed, tests/stress.py included, with none red.",
+  "verdict": "equivalent"
+}

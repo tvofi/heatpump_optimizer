@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:_within CMP_BOUND 6468bb22",
+  "killed_by": "tests/features.py",
+  "old": "    return [d for d in days if oldest <= d[\"day\"] <= today.isoformat()]",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e7c664856776542bf60bd770c98aba1eaadb4041: CMP_BOUND (`return [d for d in days if oldest < d[\"day\"] <= today.isoformat()]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

@@ -1,0 +1,575 @@
+diff --git a/custom_components/heatpump_optimizer/binary_sensor.py b/custom_components/heatpump_optimizer/binary_sensor.py
+index 9e588a495..34c2ad74c 100644
+--- a/custom_components/heatpump_optimizer/binary_sensor.py
++++ b/custom_components/heatpump_optimizer/binary_sensor.py
+@@ -32,7 +32,7 @@ from homeassistant.util import dt as dt_util
+ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+ from .entity import HeatPumpOptimizerEntity
+ from .payload import Payload
+-from .inputs import _finite
++from .inputs import finite_float
+ 
+ # Coordinator-fed and read-only: the coordinator serialises the one inbound
+ # refresh, and no entity here calls out, so there is nothing to throttle
+@@ -220,7 +220,7 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
+             if start is None or end is None:
+                 continue
+             if dt_util.as_utc(start) <= now < dt_util.as_utc(end):
+-                return _finite(step.get("outdoor"))
++                return finite_float(step.get("outdoor"))
+         return None
+ 
+     @property
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..1c27eb4fa 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -190,6 +190,7 @@ from .inputs import (
+     InputHealth,
+     InputReader,
+     age_of,
++    finite_float,
+     normalize_power_kw,
+     normalize_price_per_kwh,
+     parse_bool,
+@@ -377,26 +378,6 @@ def _plain_types(value: Any) -> Any:
+     return value
+ 
+ 
+-def _as_float(value: Any, default: float) -> float:
+-    """Coerce a forecast/sensor value to a finite float.
+-
+-    Weather integrations are free to report a key as ``None`` (Home Assistant's
+-    own ``Forecast`` type allows it) or as a non-numeric string. Letting either
+-    through produces a ``TypeError`` on the next comparison, or a silent NaN
+-    that poisons the whole optimization horizon, so anything that is not a
+-    finite number falls back to ``default``.
+-    """
+-    if value is None:
+-        return default
+-    try:
+-        result = float(value)
+-    except (TypeError, ValueError, OverflowError):
+-        return default
+-    if not np.isfinite(result):
+-        return default
+-    return result
+-
+-
+ def _storable_sample_count(raw: Any) -> int:
+     """A stored sample count a fold could have written (D1-s2-03).
+ 
+@@ -417,11 +398,8 @@ def _at_least(raw: Any, lo: float, default: float) -> float:
+     The aperture fit's sums of squares and sample weight are never negative
+     as its fold writes them (F9.3); its means and covariance are signed.
+     """
+-    try:
+-        value = float(raw)
+-    except (TypeError, ValueError, OverflowError):
+-        return default
+-    return value if np.isfinite(value) and value >= lo else default
++    value = finite_float(raw)
++    return value if value is not None and value >= lo else default
+ 
+ 
+ def _learned_pair(entry: Any) -> list[Any]:
+@@ -644,7 +622,7 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
+         # `_weather_series` falls back to, which starts the series at now.
+         entry = forecast[0]
+     temperature = entry.get("temperature")
+-    return None if temperature is None else _as_float(temperature, 5.0)
++    return None if temperature is None else finite_float(temperature, 5.0)
+ 
+ 
+ # A failed solve keeps the last good plan published — deliberately, a solver
+@@ -2058,9 +2036,9 @@ def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list
+         if value is not None:
+             row["temperature"] = value
+         if wind != 1.0:  # every reader takes a missing wind as 0.0 anyway
+-            row["wind_speed"] = _as_float(entry.get("wind_speed"), 0.0) * wind
++            row["wind_speed"] = finite_float(entry.get("wind_speed"), 0.0) * wind
+         if rain != 1.0:  # and a missing precipitation as 0.0
+-            row["precipitation"] = _as_float(entry.get("precipitation"), 0.0) * rain
++            row["precipitation"] = finite_float(entry.get("precipitation"), 0.0) * rain
+         rows.append(row)
+     return rows
+ 
+@@ -3599,7 +3577,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             )
+             action = self._current_action or {}
+             curve_driven = bool(action.get("heat_pump_on")) or (
+-                abs(_as_float(action.get("displace_value"), 0.0)) > 0.01
++                abs(finite_float(action.get("displace_value"), 0.0)) > 0.01
+             )
+             state = ctx._current_state
+             zones = [state.room_temperature]
+@@ -4722,8 +4700,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         if self._weather_forecast:
+             first = self._weather_forecast[0]
+             return (
+-                max(0.0, _as_float(first.get("wind_speed"), 0.0)),
+-                max(0.0, _as_float(first.get("precipitation"), 0.0)),
++                max(0.0, finite_float(first.get("wind_speed"), 0.0)),
++                max(0.0, finite_float(first.get("precipitation"), 0.0)),
+             )
+         return 0.0, 0.0
+ 
+@@ -6495,7 +6473,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                         sr = fc.get("solar_irradiance") or fc.get(
+                             "native_solar_irradiance", 0.0
+                         )
+-                        self._solar_radiation_forecast.append(_as_float(sr, 0.0))
++                        self._solar_radiation_forecast.append(finite_float(sr, 0.0))
+ 
+                     self._weather_fetch_recovered()
+                     _LOGGER.debug(
+@@ -6700,13 +6678,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         for entry in self._prices:
+             ts = _comparable_ts(entry.get("starts_at"), step_starts[0])
+             if ts is not None:
+-                entries.append((ts, _as_float(entry.get("total"), 0.0)))
++                entries.append((ts, finite_float(entry.get("total"), 0.0)))
+         if not entries:
+             # Data with no timestamps at all: keep the old positional
+             # assumption of hourly entries starting at the first step.
+             known: list[float] = []
+             for entry in self._prices:
+-                known.extend([_as_float(entry.get("total"), 0.0)] * 4)
++                known.extend([finite_float(entry.get("total"), 0.0)] * 4)
+             return known[: len(step_starts)]
+ 
+         entries.sort(key=lambda item: item[0])
+@@ -6764,19 +6742,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             tuple[datetime | None, tuple[float, float, float, float, float]]
+         ] = []
+         for idx, entry in enumerate(self._weather_forecast):
+-            temp = _as_float(entry.get("temperature"), 5.0)
+-            gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0))
+-            rain = max(0.0, _as_float(entry.get("precipitation"), 0.0))
++            temp = finite_float(entry.get("temperature"), 5.0)
++            gust = max(0.0, finite_float(entry.get("wind_speed"), 0.0))
++            rain = max(0.0, finite_float(entry.get("precipitation"), 0.0))
+             # NaN, not a guess: the model reads NaN as "use the ambient
+             # value", while any invented number would select a real
+             # defrost bucket (#21).
+-            rh = _as_float(entry.get("humidity"), float("nan"))
++            rh = finite_float(entry.get("humidity"), float("nan"))
+ 
+             irradiance = 0.0
+             if idx < len(self._solar_radiation_forecast):
+-                irradiance = _as_float(self._solar_radiation_forecast[idx], 0.0)
++                irradiance = finite_float(self._solar_radiation_forecast[idx], 0.0)
+             if irradiance == 0.0:
+-                irradiance = _as_float(
++                irradiance = finite_float(
+                     entry.get("solar_irradiance")
+                     or entry.get("native_solar_irradiance"),
+                     0.0,
+@@ -7728,7 +7706,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # coordinator's data stays byte-for-byte identical.
+             return {}
+         totals = [
+-            _as_float(entry.get("total"), 0.0) for entry in self._prices
++            finite_float(entry.get("total"), 0.0) for entry in self._prices
+         ]
+         positives = [t for t in totals if t > 0.0]
+         ratio = (
+@@ -10047,7 +10025,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         planned_total = planned_space + planned_dhw
+ 
+         when = pending.get("when") or dt_util.now()
+-        spot = _as_float(pending.get("spot_price"), 0.0)
++        spot = finite_float(pending.get("spot_price"), 0.0)
+ 
+         # T6 #40: a settlement landing in a new month means the old month
+         # just closed — freeze its receipt before anything else books.
+@@ -10108,7 +10086,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # so every later SEK claim can reconcile against the month's
+         # receipts, and the fee never contaminates the spot column the
+         # contract comparison settles on.
+-        fee = _as_float(pending.get("grid_fee"), 0.0)
++        fee = finite_float(pending.get("grid_fee"), 0.0)
+         # T4a #11: while the immersion element runs, the draw beyond what
+         # the plan commanded is resistive heat. Its kWh are CARVED OUT of
+         # the spot line, not booked on top of it — the lines must sum to
+@@ -10329,15 +10307,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             book.update(
+                 {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_h": 0.0}
+             )
+-        book["kwh"] = _as_float(book.get("kwh"), 0.0) + max(0.0, kwh)
+-        book["sek"] = _as_float(book.get("sek"), 0.0) + (
++        book["kwh"] = finite_float(book.get("kwh"), 0.0) + max(0.0, kwh)
++        book["sek"] = finite_float(book.get("sek"), 0.0) + (
+             sek if np.isfinite(sek) else 0.0
+         )
+         if spot_known and np.isfinite(spot) and elapsed_hours > 0:
+             book["spot_sum"] = (
+-                _as_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
++                finite_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
+             )
+-            book["spot_h"] = _as_float(book.get("spot_h"), 0.0) + elapsed_hours
++            book["spot_h"] = finite_float(book.get("spot_h"), 0.0) + elapsed_hours
+ 
+     def _close_score_day(self) -> None:
+         """Replay yesterday against its own realised prices, fold the score.
+@@ -10349,23 +10327,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         """
+         book = self._score_day
+         self._score_day = {}
+-        kwh = _as_float(book.get("kwh"), 0.0)
+-        hours = _as_float(book.get("spot_h"), 0.0)
++        kwh = finite_float(book.get("kwh"), 0.0)
++        hours = finite_float(book.get("spot_h"), 0.0)
+         if kwh < 0.2 or hours < 1.0:
+             return
+-        mean_spot = _as_float(book.get("spot_sum"), 0.0) / hours
++        mean_spot = finite_float(book.get("spot_sum"), 0.0) / hours
+         if mean_spot <= 0.01:
+             # Free or negative-price days: the ratio is meaningless, no
+             # evidence. A short run freezes the EMA in place; past
+             # SCORE_FREE_SPAN_RESET closes (1/SCORE_ALPHA, the EMA's
+             # memory horizon) it resets (#908) -- no stale spring grade
+             # on a summer date, and the streak rides the day book.
+-            streak = _as_float(book.get("free_streak"), 0.0) + 1.0
++            streak = finite_float(book.get("free_streak"), 0.0) + 1.0
+             self._score_day = {"free_streak": streak}
+             if streak >= SCORE_FREE_SPAN_RESET:
+                 self._operation_score = None
+         else:
+-            paid_mean = _as_float(book.get("sek"), 0.0) / kwh
++            paid_mean = finite_float(book.get("sek"), 0.0) / kwh
+             saved_fraction = 1.0 - paid_mean / mean_spot
+             sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
+             if self._operation_score is not None:
+@@ -10812,7 +10790,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         planned = float(self._current_action.get("setpoint", requested))
+         delta = float(requested) - planned
+         prices = [p.get("total", 0.0) for p in self._prices] or [1.0]
+-        mean_price = float(np.mean([_as_float(p, 0.0) for p in prices]))
++        mean_price = float(np.mean([finite_float(p, 0.0) for p in prices]))
+         # Spot on BOTH sides of the ratio: the denominator is a mean over raw
+         # Tibber entries, so a fee-inclusive numerator (T1's #1) would inflate
+         # every override's price-weight by the fee regardless of hour.
+diff --git a/custom_components/heatpump_optimizer/entry_config.py b/custom_components/heatpump_optimizer/entry_config.py
+index 1d9cb684f..ab5ed65a6 100644
+--- a/custom_components/heatpump_optimizer/entry_config.py
++++ b/custom_components/heatpump_optimizer/entry_config.py
+@@ -15,7 +15,6 @@ schedule, the topology).
+ """
+ from __future__ import annotations
+ 
+-import math
+ from collections.abc import Callable, Container, Iterator, Mapping
+ from dataclasses import dataclass, field, fields
+ from types import MappingProxyType
+@@ -24,36 +23,18 @@ from typing import Any
+ from . import mixing_valve
+ from .freq_control import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE
+ from . import const
++from .inputs import finite_float
+ 
+ Parse = Callable[[Any, Any], Any]
+ 
+ 
+-def _number(value: Any, default: float) -> float:
+-    """A finite float; anything else, a stored string or a NaN, is the default."""
+-    try:
+-        result = float(value)
+-    except (TypeError, ValueError, OverflowError):
+-        return default
+-    return result if math.isfinite(result) else default
+-
+-
+ def _refused_number(value: Any, default: float) -> float | None:
+     """A finite float, or None for a stored value that is not one."""
+-    result = _number(value, math.nan)
+-    return None if math.isnan(result) else result
++    return finite_float(value)
+ 
+ 
+ def _nonzero_number(value: Any, default: float) -> float:
+-    return _number(value, default) or default
+-
+-
+-def _optional_number(value: Any, default: float | None) -> float | None:
+-    """A finite float, or the default (None for every optional field).
+-
+-    An empty string is absent, not zero: it is refused like any other text.
+-    """
+-    result = _refused_number(value, math.nan)
+-    return default if result is None else result
++    return finite_float(value, default) or default
+ 
+ 
+ def _whole(value: Any, default: int | None) -> int | None:
+@@ -168,53 +149,53 @@ class EntryConfig(Mapping[str, Any]):
+     wear_autotune_enabled: bool = _key(const.DEFAULT_WEAR_AUTOTUNE_ENABLED, _flag)
+ 
+     # Numbers.
+-    comfort_temp_day: float = _key(const.DEFAULT_COMFORT_TEMP_DAY, _number)
+-    comfort_temp_night: float = _key(const.DEFAULT_COMFORT_TEMP_NIGHT, _number)
+-    comfort_weight: float = _key(const.DEFAULT_COMFORT_WEIGHT, _number)
+-    compressor_cycling_cost: float = _key(const.DEFAULT_CYCLING_COST, _number)
+-    compressor_freq_max_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MAX_HZ, _number)
+-    compressor_freq_min_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MIN_HZ, _number)
+-    compressor_rated_starts: float = _key(const.DEFAULT_COMPRESSOR_RATED_STARTS, _number)
+-    compressor_replacement_cost: float = _key(const.DEFAULT_COMPRESSOR_REPLACEMENT_COST, _number)
+-    contract_fixed_price: float = _key(const.DEFAULT_CONTRACT_FIXED_PRICE, _number)
+-    cop_scale: float = _key(const.DEFAULT_COP_SCALE, _number)
++    comfort_temp_day: float = _key(const.DEFAULT_COMFORT_TEMP_DAY, finite_float)
++    comfort_temp_night: float = _key(const.DEFAULT_COMFORT_TEMP_NIGHT, finite_float)
++    comfort_weight: float = _key(const.DEFAULT_COMFORT_WEIGHT, finite_float)
++    compressor_cycling_cost: float = _key(const.DEFAULT_CYCLING_COST, finite_float)
++    compressor_freq_max_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MAX_HZ, finite_float)
++    compressor_freq_min_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MIN_HZ, finite_float)
++    compressor_rated_starts: float = _key(const.DEFAULT_COMPRESSOR_RATED_STARTS, finite_float)
++    compressor_replacement_cost: float = _key(const.DEFAULT_COMPRESSOR_REPLACEMENT_COST, finite_float)
++    contract_fixed_price: float = _key(const.DEFAULT_CONTRACT_FIXED_PRICE, finite_float)
++    cop_scale: float = _key(const.DEFAULT_COP_SCALE, finite_float)
+     # A volume of 0 is an unset field, not an empty tank.
+     dhw_tank_volume: float = _key(const.DEFAULT_DHW_TANK_VOLUME, _nonzero_number)
+-    ecl110_displace_max: float = _key(const.DEFAULT_ECL110_DISPLACE_MAX, _number)
+-    ecl110_displace_min: float = _key(const.DEFAULT_ECL110_DISPLACE_MIN, _number)
+-    external_heat_decay_minutes: float = _key(const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, _number)
+-    external_heat_min_rise: float = _key(const.DEFAULT_EXTERNAL_HEAT_MIN_RISE, _number)
+-    main_fuse_amperes: float = _key(const.DEFAULT_MAIN_FUSE_A, _number)
+-    main_fuse_phases: float = _key(const.DEFAULT_MAIN_FUSE_PHASES, _number)
+-    max_temperature: float = _key(const.DEFAULT_MAX_TEMP, _number)
+-    min_temperature: float = _key(const.DEFAULT_MIN_TEMP, _number)
+-    mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, _number)
+-    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, _number)
+-    peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, _number)
+-    peak_tariff_offpeak_factor: float = _key(const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, _number)
+-    peak_tariff_peaks_averaged: float = _key(const.DEFAULT_PEAK_TARIFF_COUNT, _number)
+-    peak_tariff_price_per_kw: float = _key(const.DEFAULT_PEAK_TARIFF_PRICE, _number)
+-    peak_tariff_window_minutes: float = _key(const.DEFAULT_PEAK_TARIFF_WINDOW, _number)
+-    price_risk_lambda: float = _key(const.DEFAULT_PRICE_RISK_LAMBDA, _number)
+-    price_weight: float = _key(const.DEFAULT_PRICE_WEIGHT, _number)
+-    pv_export_price: float = _key(const.DEFAULT_PV_EXPORT_PRICE, _number)
+-    pv_peak_kw: float = _key(const.DEFAULT_PV_PEAK_KW, _number)
+-    pv_system_efficiency: float = _key(const.DEFAULT_PV_EFFICIENCY, _number)
+-    shower_flow_lpm: float = _key(const.DEFAULT_SHOWER_FLOW_LPM, _number)
+-    staleness_max_age_scale: float = _key(const.DEFAULT_STALENESS_SCALE, _number)
+-    target_temperature: float = _key(const.DEFAULT_TARGET_TEMP, _number)
+-    thermal_bridge_frsi: float = _key(const.DEFAULT_THERMAL_BRIDGE_FRSI, _number)
+-    vvc_lead_minutes: float = _key(const.DEFAULT_VVC_LEAD_MINUTES, _number)
+-    wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, _number)
++    ecl110_displace_max: float = _key(const.DEFAULT_ECL110_DISPLACE_MAX, finite_float)
++    ecl110_displace_min: float = _key(const.DEFAULT_ECL110_DISPLACE_MIN, finite_float)
++    external_heat_decay_minutes: float = _key(const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, finite_float)
++    external_heat_min_rise: float = _key(const.DEFAULT_EXTERNAL_HEAT_MIN_RISE, finite_float)
++    main_fuse_amperes: float = _key(const.DEFAULT_MAIN_FUSE_A, finite_float)
++    main_fuse_phases: float = _key(const.DEFAULT_MAIN_FUSE_PHASES, finite_float)
++    max_temperature: float = _key(const.DEFAULT_MAX_TEMP, finite_float)
++    min_temperature: float = _key(const.DEFAULT_MIN_TEMP, finite_float)
++    mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, finite_float)
++    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, finite_float)
++    peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, finite_float)
++    peak_tariff_offpeak_factor: float = _key(const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, finite_float)
++    peak_tariff_peaks_averaged: float = _key(const.DEFAULT_PEAK_TARIFF_COUNT, finite_float)
++    peak_tariff_price_per_kw: float = _key(const.DEFAULT_PEAK_TARIFF_PRICE, finite_float)
++    peak_tariff_window_minutes: float = _key(const.DEFAULT_PEAK_TARIFF_WINDOW, finite_float)
++    price_risk_lambda: float = _key(const.DEFAULT_PRICE_RISK_LAMBDA, finite_float)
++    price_weight: float = _key(const.DEFAULT_PRICE_WEIGHT, finite_float)
++    pv_export_price: float = _key(const.DEFAULT_PV_EXPORT_PRICE, finite_float)
++    pv_peak_kw: float = _key(const.DEFAULT_PV_PEAK_KW, finite_float)
++    pv_system_efficiency: float = _key(const.DEFAULT_PV_EFFICIENCY, finite_float)
++    shower_flow_lpm: float = _key(const.DEFAULT_SHOWER_FLOW_LPM, finite_float)
++    staleness_max_age_scale: float = _key(const.DEFAULT_STALENESS_SCALE, finite_float)
++    target_temperature: float = _key(const.DEFAULT_TARGET_TEMP, finite_float)
++    thermal_bridge_frsi: float = _key(const.DEFAULT_THERMAL_BRIDGE_FRSI, finite_float)
++    vvc_lead_minutes: float = _key(const.DEFAULT_VVC_LEAD_MINUTES, finite_float)
++    wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, finite_float)
+ 
+     # A fraction this version cannot read caps nothing: None, not the default.
+     silent_mode_power_fraction: float | None = _key(const.DEFAULT_SILENT_MODE_FRACTION, _refused_number)
+ 
+     # Optional numbers: None keeps the weekday or ordinary-day value.
+-    comfort_temp_day_weekend: float | None = _key(None, _optional_number)
+-    comfort_temp_night_weekend: float | None = _key(None, _optional_number)
+-    holiday_comfort_temp_day: float | None = _key(None, _optional_number)
+-    holiday_comfort_temp_night: float | None = _key(None, _optional_number)
++    comfort_temp_day_weekend: float | None = _key(None, finite_float)
++    comfort_temp_night_weekend: float | None = _key(None, finite_float)
++    holiday_comfort_temp_day: float | None = _key(None, finite_float)
++    holiday_comfort_temp_night: float | None = _key(None, finite_float)
+ 
+     # Whole numbers.
+     day_end_hour: int = _key(const.DEFAULT_DAY_END_HOUR, _whole)
+diff --git a/custom_components/heatpump_optimizer/freq_control.py b/custom_components/heatpump_optimizer/freq_control.py
+index 800313de7..15eae7755 100644
+--- a/custom_components/heatpump_optimizer/freq_control.py
++++ b/custom_components/heatpump_optimizer/freq_control.py
+@@ -30,7 +30,7 @@ from typing import Any, Callable
+ 
+ import numpy as np
+ 
+-from .inputs import _finite
++from .inputs import finite_float
+ from .payload import FreqMapBucket
+ 
+ #: The two stages. Anything unrecognised in config reads as observe.
+@@ -94,14 +94,14 @@ def resolve_reading(
+         if reading is None:
+             return (None, 0.0, 0.0, source)
+         attrs = getattr(reading, "attributes", {}) or {}
+-        lo, hi = _finite(attrs.get("min")), _finite(attrs.get("max"))
++        lo, hi = finite_float(attrs.get("min")), finite_float(attrs.get("max"))
+         hz_min = hz_min if lo is None else lo
+         hz_max = hz_max if hi is None else hi
+     if sensor_id:
+         reading = get_state(sensor_id)
+     if reading is None:
+         return (None, hz_min, hz_max, source)
+-    return (_finite(reading.state), hz_min, hz_max, source)
++    return (finite_float(reading.state), hz_min, hz_max, source)
+ 
+ 
+ @dataclass
+diff --git a/custom_components/heatpump_optimizer/inputs.py b/custom_components/heatpump_optimizer/inputs.py
+index c85c81376..de7adfae9 100644
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -41,7 +41,7 @@ import math
+ from dataclasses import dataclass, field
+ from datetime import datetime, timedelta
+ from collections.abc import Callable
+-from typing import Any
++from typing import Any, overload
+ 
+ from .const import (
+     ENERGY_UNIT_TO_KWH,
+@@ -317,12 +317,26 @@ def state_unit(state: Any) -> Any:
+     return (getattr(state, "attributes", None) or {}).get("unit_of_measurement")
+ 
+ 
+-def _finite(raw: Any) -> float | None:
++@overload
++def finite_float(value: Any) -> float | None: ...
++@overload
++def finite_float(value: Any, default: float) -> float: ...
++@overload
++def finite_float(value: Any, default: float | None) -> float | None: ...
++def finite_float(value: Any, default: float | None = None) -> float | None:
++    """``value`` as a finite float; anything else is ``default``.
++
++    The one coercion every reader shares: ``None``, text that is not a
++    number, NaN, an infinity and an int past a double (an attribute- or
++    service-fed value orjson never parsed) are all unreadable, never a raise
++    and never a non-finite number handed on to the solver. ``bool`` is a
++    number here, as it is to ``float()``.
++    """
+     try:
+-        value = float(raw)
++        result = float(value)
+     except (TypeError, ValueError, OverflowError):
+-        return None
+-    return value if math.isfinite(value) else None
++        return default
++    return result if math.isfinite(result) else default
+ 
+ 
+ def temperature_c(raw: Any, unit: Any) -> float | None:
+@@ -331,7 +345,7 @@ def temperature_c(raw: Any, unit: Any) -> float | None:
+     Converted when ``unit`` is a temperature unit and adopted raw otherwise,
+     which is what :func:`_value_in_model_units` does for ``read`` (#961).
+     """
+-    value = _finite(raw)
++    value = finite_float(raw)
+     if value is None:
+         return None
+     converted = normalize_temperature_c(value, unit)
+@@ -379,7 +393,7 @@ def price_per_kwh(raw: Any, unit: Any) -> float | None:
+     number. An unparseable unit keeps the raw number, as every install read
+     it before; the coordinator's ``price_unit_unrecognised`` notice names it.
+     """
+-    value = _finite(raw)
++    value = finite_float(raw)
+     if value is None:
+         return None
+     converted = normalize_price_per_kwh(value, unit)
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 9ac069d47..fe8e74f97 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -154,7 +154,7 @@ from .const import (
+ )
+ from .entry_config import EntryConfig
+ from .modbus_prefill import night_mode_write_ids, package_prefix
+-from .inputs import state_unit, temperature_c, temperature_from_c
++from .inputs import finite_float, state_unit, temperature_c, temperature_from_c
+ from .payload import CurrentAction
+ from .repairs import _write_setpoint
+ from .accuracy import utc_elapsed_seconds, utc_shift
+@@ -438,15 +438,7 @@ def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | No
+ 
+ def _step_kw(result: Any, now: datetime) -> float | None:
+     """The plan's space power for the step covering ``now``, or ``None``."""
+-    return (
+-        _finite_or_none(_planned_room(result, now, "power_schedule"))
+-    )
+-
+-
+-def _finite_or_none(value: Any) -> float | None:
+-    return (
+-        float(value) if isinstance(value, (int, float)) else None
+-    )
++    return finite_float(_planned_room(result, now, "power_schedule"))
+ 
+ 
+ def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index bad273fd8..f5355b4ea 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -109,6 +109,7 @@ from .const import (
+     topology_layout_valid,
+ )
+ from .flow_lift import FLOW_SUPPLY_MAX_C, curve_supply_temp
++from .inputs import finite_float
+ from .wood_fuel import wood_furnace_on
+ from .dhw_schedule import (
+     DHWWindowError,
+@@ -1457,10 +1458,10 @@ def flow_setpoint_for_level(
+     constant.
+     """
+     heat = float(heat_c)
+-    planned = _optional_float(planned_kw)
+-    lo = _optional_float(p_min)
+-    hi = _optional_float(p_max)
+-    inlet = _optional_float(inlet_c)
++    planned = finite_float(planned_kw)
++    lo = finite_float(p_min)
++    hi = finite_float(p_max)
++    inlet = finite_float(inlet_c)
+     ready = all((
+         planned is not None, lo is not None, hi is not None,
+         inlet is not None, math.isfinite(heat),
+@@ -1495,26 +1496,11 @@ def flow_setpoint_for_level(
+     )
+ 
+ 
+-def _optional_float(value: Any) -> float | None:
+-    try:
+-        number = float(value)
+-    except (TypeError, ValueError):
+-        number = None
+-    return (
+-        number
+-        if (
+-            number is not None
+-            and math.isfinite(number)
+-        )
+-        else None
+-    )
+-
+-
+ def configured_flow_heat_c(config: Any, default: float | None = None) -> float:
+     """The heating-flow ceiling from config, else ``default`` (°C)."""
+     fallback = const.DEFAULT_FLOW_HEAT_C if default is None else default
+     raw = (config or {}).get(const.CONF_FLOW_HEAT_C, fallback)
+-    number = _optional_float(raw)
++    number = finite_float(raw)
+     return (
+         float(fallback) if number is None else number
+     )

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/curve_learning.py:CurveLearner.record_day CMP_BOUND cfe9ea49",
+  "killed_by": "tests/features.py",
+  "old": "        if self.comfortable_days >= DAYS_PER_STEP:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if self.comfortable_days > DAYS_PER_STEP:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

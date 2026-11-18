@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/freq_control.py:<module> CONST 5e66b823",
+  "killed_by": "tests/features.py",
+  "old": "FREQ_MAX_KW_PER_HZ = 1.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7428d87af49bf0f1d827feedc7f1a4a953b179ff: CONST (`FREQ_MAX_KW_PER_HZ = 2.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

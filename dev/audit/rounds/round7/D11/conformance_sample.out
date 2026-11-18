@@ -1,0 +1,33 @@
+RESULT sample_size=15 count
+RESULT sample_prs=1446,1444,1445,1442,1425,1443,1426,1441,1423,1433,1439,1436,1437,1429,1421
+RESULT required_contexts=16 count
+RESULT prs_with_every_required_context_green=15 count
+RESULT prs_with_every_required_context_green_perturbed=0 count
+RESULT prs_with_a_required_context_red_or_missing=0 count
+RESULT prs_touching_a_code_owned_path=6 count
+RESULT code_owned_prs_with_tvofi_approval=6 count
+RESULT code_owned_prs_without_tvofi_approval=0 count
+RESULT prs_with_a_fix_review_verdict=10 count
+RESULT prs_with_a_verdict_from_a_non_author=10 count
+RESULT prs_whose_verdict_and_approval_share_an_identity=1 count
+RESULT prs_with_a_delivery_row=14 count
+RESULT prs_authored_by_someone_but_the_author_app=0 count
+RESULT api_failures=0 count
+  #1446 author=hpo-author[bot] code_owned=0 approvers=['hpo-approver[bot]'] verdicts=['tvofi'] row=False missing=[] red=[]
+  #1444 author=hpo-author[bot] code_owned=0 approvers=['hpo-approver[bot]'] verdicts=['tvofi'] row=True missing=[] red=[]
+  #1445 author=hpo-author[bot] code_owned=1 approvers=['tvofi'] verdicts=[] row=True missing=[] red=[]
+  #1442 author=hpo-author[bot] code_owned=2 approvers=['tvofi'] verdicts=[] row=True missing=[] red=[]
+  #1425 author=hpo-author[bot] code_owned=0 approvers=['hpo-approver[bot]'] verdicts=['tvofi'] row=True missing=[] red=[]
+  #1443 author=hpo-author[bot] code_owned=0 approvers=['hpo-approver[bot]'] verdicts=['tvofi'] row=True missing=[] red=[]
+  #1426 author=hpo-author[bot] code_owned=1 approvers=['tvofi'] verdicts=['tvofi'] row=True missing=[] red=[]
+  #1441 author=hpo-author[bot] code_owned=0 approvers=['hpo-approver[bot]'] verdicts=['tvofi'] row=True missing=[] red=[]
+  #1423 author=hpo-author[bot] code_owned=2 approvers=['tvofi'] verdicts=[] row=True missing=[] red=[]
+  #1433 author=hpo-author[bot] code_owned=0 approvers=['hpo-approver[bot]'] verdicts=['tvofi'] row=True missing=[] red=[]
+  #1439 author=hpo-author[bot] code_owned=1 approvers=['tvofi'] verdicts=[] row=True missing=[] red=[]
+  #1436 author=hpo-author[bot] code_owned=4 approvers=['tvofi'] verdicts=[] row=True missing=[] red=[]
+  #1437 author=hpo-author[bot] code_owned=0 approvers=['hpo-approver[bot]'] verdicts=['tvofi'] row=True missing=[] red=[]
+  #1429 author=hpo-author[bot] code_owned=0 approvers=['hpo-approver[bot]'] verdicts=['tvofi'] row=True missing=[] red=[]
+  #1421 author=hpo-author[bot] code_owned=0 approvers=['hpo-approver[bot]'] verdicts=['tvofi'] row=True missing=[] red=[]
+RESULT thread_factor=1.0000
+RESULT load1=7.49
+RESULT swapins=90732556

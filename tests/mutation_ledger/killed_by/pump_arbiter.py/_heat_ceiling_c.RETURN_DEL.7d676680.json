@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_heat_ceiling_c RETURN_DEL 7d676680",
+  "killed_by": "tests/features.py",
+  "old": "    return ceiling if ceiling > FLOW_GATE_C else FLOW_HEAT_C",
+  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (review fixes): RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4990 to rc=1 with an uncaught TypeError (failing_count reads the traceback as one): the heating ceiling is None and `flow_setpoint_for_level`'s `float(heat_c)` raises in the first pump-duty pass."
+}

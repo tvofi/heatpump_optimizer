@@ -1,0 +1,13 @@
+
+=== Stress and economics ===
+flat/1z/space          cpu x1.75 kernel x1.97 evals 658/658 ratio 41.3 budget 54.54 -> evals=False sim=False kernel=True budget=False global=False
+flat/2z/dhw            cpu x1.90 kernel x2.08 evals 726/726 ratio 90.4 budget 125.88 -> evals=False sim=False kernel=True budget=False global=False
+winter/1z/dhw          cpu x1.37 kernel x1.93 evals 52/52 ratio 6.9 budget 14.549999999999999 -> evals=False sim=False kernel=True budget=False global=False
+shoulder/2z/space      cpu x1.78 kernel x1.96 evals 782/782 ratio 101.4 budget 143.10000000000002 -> evals=False sim=False kernel=True budget=False global=False
+winter/tariff+cycle    cpu x1.75 kernel x2.05 evals 878/878 ratio 113.9 budget 148.17000000000002 -> evals=False sim=False kernel=True budget=False global=False
+RESULT flagged_kernel_arm=5 of 5 scenarios
+RESULT solve_cpu_ratio_median=1.753 x (provisional)
+RESULT scenario_budget_factor=3.0
+RESULT thread_factor=1.000
+RESULT load1=24.25
+RESULT swapins=0

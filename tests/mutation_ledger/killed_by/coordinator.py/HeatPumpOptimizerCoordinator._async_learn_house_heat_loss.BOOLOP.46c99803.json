@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss BOOLOP 46c99803",
+  "killed_by": "tests/features.py",
+  "old": "        if frozen and not vent_only:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if frozen or not vent_only:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:_scan_wood_night CMP_BOUND dac87f6c",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        cop = finite_float(cops[i] if i < len(cops) else 0.0, 0.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`cop = finite_float(cops[i] if i <= len(cops) else 0.0, 0.0)`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

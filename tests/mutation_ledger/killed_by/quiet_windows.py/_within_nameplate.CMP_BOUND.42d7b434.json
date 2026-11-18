@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:_within_nameplate CMP_BOUND 42d7b434",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return kw if kw is not None and 0.0 < kw <= p_max else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return kw if kw is not None and 0.0 <= kw <= p_max else None`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
+}

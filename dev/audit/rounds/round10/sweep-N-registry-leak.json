@@ -1,0 +1,5 @@
+{"class": "N-registry-leak", "instances": 0, "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/N-registry-leak/registry_leak.py [--rounds N] [--clean] [--plant]",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/early_cutoff.py", "symbol": "_STATES", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/N-registry-leak/registry_leak.py -> early_cutoff._STATES pins_key=3, torn_alive=3 (CutoffState.wiring -> CutoffInputs.inputs = bound coord.arbiter_inputs; release() never clears wiring)", "beyond_finding": false}
+ ]}

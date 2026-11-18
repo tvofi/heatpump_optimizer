@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_propagated_slab RETURN_DEL a6225a7f",
+  "killed_by": "tests/features.py",
+  "old": "    return _open_loop_plan_value(coord._optimization_result, \"slab_temp_trajectory\", now)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

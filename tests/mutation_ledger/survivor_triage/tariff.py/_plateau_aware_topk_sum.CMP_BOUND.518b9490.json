@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_plateau_aware_topk_sum CMP_BOUND 518b9490",
+  "old": "    if int(np.sum(excess >= peak - _PEAK_TIE_BAND)) > k:",
+  "reason": "R10-TARIFF (#2282): The scalar tie rule `int(np.sum(excess >= peak - _PEAK_TIE_BAND)) > k`, which 01b folds onto one line (at base, lines 849-850, both unpinned). Two mutants survive: `>=` -> `>` at the band edge, which differs only for a window exactly at peak - 1e-3; and `> k` -> `>= k`, which sends a plan with exactly k tied windows to the smooth sum, a bounded under-approximation of its exact top-k. No driver prices an exactly-k plateau through the scalar surrogate. The batch twin's `n_at_peak > k` is killed (127889ed, by the parity checks), but the scalar alone is not. Gap, pre-existing at base. Survival measured by CI's mutation-pins run 38796525102 at f09549085: no driver killed it.",
+  "verdict": "gap"
+}

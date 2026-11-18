@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._learning_view CMP_BOUND 9be1c707",
+  "killed_by": "tests/env_drift.py",
+  "old": "            \"buffer_cooling_rate_learned\": self._buffer_cooling_samples > 0,",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`\"buffer_cooling_rate_learned\": self._buffer_cooling_samples >= 0,`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=5."
+}

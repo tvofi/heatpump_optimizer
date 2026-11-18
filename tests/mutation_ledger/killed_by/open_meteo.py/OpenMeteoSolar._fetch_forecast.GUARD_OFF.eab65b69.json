@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/open_meteo.py:OpenMeteoSolar._fetch_forecast GUARD_OFF eab65b69",
+  "killed_by": "tests/open_meteo.py",
+  "old": "        if fine and coarse and fine.end and coarse.end:",
+  "reason": "Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: GUARD_OFF (`if False:`) took tests/open_meteo.py from rc=0 failed=0 to rc=1 failed=1."
+}

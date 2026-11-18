@@ -1,0 +1,33 @@
+{
+  "_source": "GitHub REST pulls/{n}/reviews and pulls?state=closed (head.sha), read 2026-09-26 by D11-s2 through the read-only GitHub MCP. Sample: the 12 first-parent merge commits reachable from baseline 1936d5ca (git log --merges --first-parent -12). user.type is inferred from profile_url (github.com/<login> = User, github.com/apps/<app> = Bot). body is the first 160 characters.",
+  "prs": [
+    {"n": 1638, "head": "ba172336af7a9f16203ba99420ee89e6a328e083", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "hpo-approver[bot]", "id": 330097732, "type": "Bot"}, "state": "APPROVED", "commit_id": "ba172336af7a9f16203ba99420ee89e6a328e083", "body": "Approved by `hpo-approver` at `ba172336af7a9f16203ba99420ee89e6a328e083` on the verdict"}]},
+    {"n": 1637, "head": "e3d0d634f459fb13e94d0998b4e538518b4a4968", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "e3d0d634f459fb13e94d0998b4e538518b4a4968", "body": "Owner approval of the code-owned tools/audit/prepr.sh at head e3d0d634f459fb13e94d0998b4e538518b4a4968. The orchestrator gives it under tvofi's explicit mandate"},
+      {"user": {"login": "hpo-approver[bot]", "id": 330097732, "type": "Bot"}, "state": "APPROVED", "commit_id": "e3d0d634f459fb13e94d0998b4e538518b4a4968", "body": "Approved by `hpo-approver` at `e3d0d634f459fb13e94d0998b4e538518b4a4968` on the verdict"}]},
+    {"n": 1639, "head": "7078363b2d261e827f350ab28fa5f302854ea2c1", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "7078363b2d261e827f350ab28fa5f302854ea2c1", "body": "Owner approval of the code-owned .claude/workflows/audit-verify.js and tests/closure.py at head 7078363b2d261e827f350ab28fa5f302854ea2c1. The orchestrator gives it under tvofi's explicit mandate"}]},
+    {"n": 1636, "head": "5f7ca60d987c93dfa16c1990c871960c2403dce9", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "5f7ca60d987c93dfa16c1990c871960c2403dce9", "body": "Owner approval of the code-owned .claude/workflows/audit-find.js at head 5f7ca60d987c93dfa16c1990c871960c2403dce9. The orchestrator gives it under tvofi's explicit mandate"}]},
+    {"n": 1635, "head": "9534f5ec1fb8c3c102d9b0a7142adb9ac2e1b6ed", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "hpo-approver[bot]", "id": 330097732, "type": "Bot"}, "state": "APPROVED", "commit_id": "9534f5ec1fb8c3c102d9b0a7142adb9ac2e1b6ed", "body": "Approved by `hpo-approver` at `9534f5ec1fb8c3c102d9b0a7142adb9ac2e1b6ed` on the verdict"}]},
+    {"n": 1633, "head": "0c14689f7c0fe12424fbc853714c9e575d436ca5", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "hpo-approver[bot]", "id": 330097732, "type": "Bot"}, "state": "APPROVED", "commit_id": "0c14689f7c0fe12424fbc853714c9e575d436ca5", "body": "Approved by `hpo-approver` at `0c14689f7c0fe12424fbc853714c9e575d436ca5` on the verdict"}]},
+    {"n": 1634, "head": "9e9bad63ae2aa6599c835b4eb9defe8d1d04c459", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "9e9bad63ae2aa6599c835b4eb9defe8d1d04c459", "body": "Owner approval of code-owned policy (.claude/workflows/web-fragments.md and its web-*.js copies) at head 9e9bad63ae2aa6599c835b4eb9defe8d1d04c459. The orchestrator gives it under tvofi's explicit mandate"}]},
+    {"n": 1632, "head": "f493fec1a34fd176377c324ee1aa9a3618afc047", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "f493fec1a34fd176377c324ee1aa9a3618afc047", "body": "Owner approval of code-owned policy (tools/audit/README.md, tools/audit/briefs/D4.md, .claude/skills/steward/SKILL.md) at head f493fec1a34fd176377c324ee1aa9a3618afc047. The orchestrator gives it under tvofi's explicit mandate"}]},
+    {"n": 1631, "head": "98561169c52d3803facfe1d52ac26a2ed9adf37f", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "hpo-approver[bot]", "id": 330097732, "type": "Bot"}, "state": "APPROVED", "commit_id": "98561169c52d3803facfe1d52ac26a2ed9adf37f", "body": "Approved by `hpo-approver` at `98561169c52d3803facfe1d52ac26a2ed9adf37f` on the verdict"}]},
+    {"n": 1621, "head": "99fcc3f2f3325308fba8e1d833248759d2cb6007", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "ecb7af8edda8c6eee273682e197518faf7d3dbf3", "body": ""}]},
+    {"n": 1617, "head": "240b96f3c4d82c34d9fc5b5222b6233a2dfa2fc2", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "9a0c964929b1aeac21410d150208b6fb3b11a708", "body": ""},
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "9a0c964929b1aeac21410d150208b6fb3b11a708", "body": ""},
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "240b96f3c4d82c34d9fc5b5222b6233a2dfa2fc2", "body": "Owner approval of policy and code-owned paths at head 240b96f3c4d82c34d9fc5b5222b6233a2dfa2fc2, given by the orchestrator under tvofi's explicit mandate"}]},
+    {"n": 1619, "head": "9081f36d91d08d63acc6a11f37feb9d30991e224", "author": "hpo-author[bot]", "reviews": [
+      {"user": {"login": "tvofi", "id": 70032254, "type": "User"}, "state": "APPROVED", "commit_id": "a6b398d32e3208d6f1f27555077e30e360697f34", "body": ""},
+      {"user": {"login": "hpo-approver[bot]", "id": 330097732, "type": "Bot"}, "state": "APPROVED", "commit_id": "9081f36d91d08d63acc6a11f37feb9d30991e224", "body": "Approved by `hpo-approver` at `9081f36d91d08d63acc6a11f37feb9d30991e224` on the verdict"}]}
+  ]
+}

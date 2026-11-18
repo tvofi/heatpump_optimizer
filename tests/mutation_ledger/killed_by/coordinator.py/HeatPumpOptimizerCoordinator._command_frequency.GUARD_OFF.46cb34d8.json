@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._command_frequency GUARD_OFF 46cb34d8",
+  "killed_by": "tests/features.py",
+  "old": "        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e2521decae02e9bb27e6a8237790d8ca98adca62: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

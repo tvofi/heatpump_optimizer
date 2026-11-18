@@ -1,0 +1,71 @@
+STORE accuracy lead=24h coordinator.py:3053
+STORE away lead=infh away.py:332
+STORE boost lead=2h boost.py:399
+STORE debug lead=0h debugger.py:83
+STORE dhw_draws lead=0h dhw_learning.py:128
+STORE dhw_legionella lead=0h legionella.py:82
+STORE dhw_profile lead=0h dhw_learning.py:109
+STORE energy lead=0h coordinator.py:3107
+STORE ledger lead=0h coordinator.py:2967
+STORE manual_plan lead=20h coordinator.py:3119
+STORE notifier lead=infh notifier.py:256
+STORE price_model lead=0h coordinator.py:2942
+STORE pump_duty lead=0h pump_arbiter.py:1083
+STORE snapshots lead=0h coordinator.py:2710
+STORE thermal_learning lead=0h coordinator.py:2892
+SEAM thermal_learning:vent_cusum/last_fed host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2892
+SEAM thermal_learning:cop_health_cusum/last_fed host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2892
+SEAM thermal_learning:immersion_events/# host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2892
+SEAM thermal_learning:snow_accum_last host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2892
+SEAM thermal_learning:last_heavy_snow host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2892
+SEAM thermal_learning:curve_learner/last_step_at host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2892
+SEAM thermal_learning:updated_at host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2892
+SEAM accuracy:accuracy/samples/#/t host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM accuracy:accuracy/lead_pending/#/0 host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM accuracy:accuracy/evidence_since host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM accuracy:accuracy/promises/*/start host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM accuracy:dhw_accuracy/samples/#/t host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM accuracy:dhw_accuracy/lead_pending/#/0 host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM accuracy:dhw_accuracy/evidence_since host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM accuracy:dhw_accuracy/promises/*/start host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM accuracy:comfort/last_update host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM accuracy:comfort/history/#/t host_lead=24h origin=accuracy origin_lead=24h site=coordinator.py:3053
+SEAM energy:last_tick host_lead=0h origin=energy origin_lead=0h site=coordinator.py:3107
+SEAM ledger:fuse_advisor_at host_lead=0h origin=ledger origin_lead=0h site=coordinator.py:2967
+SEAM dhw_profile:updated_at host_lead=0h origin=dhw_profile origin_lead=0h site=dhw_learning.py:109
+SEAM dhw_legionella:last_cycle host_lead=0h origin=dhw_legionella origin_lead=0h site=legionella.py:82
+SEAM dhw_legionella:last_attempt host_lead=0h origin=dhw_legionella origin_lead=0h site=legionella.py:82
+SEAM boost:dhw/until host_lead=2h origin=boost origin_lead=2h site=boost.py:399
+SEAM boost:space/until host_lead=2h origin=boost origin_lead=2h site=boost.py:399
+SEAM boost:block_dhw/until host_lead=2h origin=boost origin_lead=2h site=boost.py:399
+SEAM boost:block_space/until host_lead=2h origin=boost origin_lead=2h site=boost.py:399
+SEAM away:return_time host_lead=infh origin=away origin_lead=infh site=away.py:332
+SEAM pump_duty:written/mode/1 host_lead=0h origin=pump_duty origin_lead=0h site=pump_arbiter.py:1083
+SEAM pump_duty:written/dhw_setpoint/1 host_lead=0h origin=pump_duty origin_lead=0h site=pump_arbiter.py:1083
+SEAM pump_duty:written/space_setpoint/1 host_lead=0h origin=pump_duty origin_lead=0h site=pump_arbiter.py:1083
+SEAM manual_plan:space_slots/#/start host_lead=20h origin=manual_plan origin_lead=20h site=coordinator.py:3119
+SEAM manual_plan:space_slots/#/end host_lead=20h origin=manual_plan origin_lead=20h site=coordinator.py:3119
+SEAM manual_plan:dhw_slots/#/start host_lead=20h origin=manual_plan origin_lead=20h site=coordinator.py:3119
+SEAM manual_plan:dhw_slots/#/end host_lead=20h origin=manual_plan origin_lead=20h site=coordinator.py:3119
+SEAM manual_plan:expires_at host_lead=20h origin=manual_plan origin_lead=20h site=coordinator.py:3119
+SEAM manual_plan:created_at host_lead=20h origin=manual_plan origin_lead=20h site=coordinator.py:3119
+SEAM snapshots:snapshots/#/taken_at host_lead=0h origin=snapshots origin_lead=0h site=coordinator.py:2710
+SEAM snapshots:snapshots/#/learners/thermal_learning/vent_cusum/last_fed host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2710
+SEAM snapshots:snapshots/#/learners/thermal_learning/cop_health_cusum/last_fed host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2710
+SEAM snapshots:snapshots/#/learners/thermal_learning/immersion_events/# host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2710
+SEAM snapshots:snapshots/#/learners/thermal_learning/snow_accum_last host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2710
+SEAM snapshots:snapshots/#/learners/thermal_learning/last_heavy_snow host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2710
+SEAM snapshots:snapshots/#/learners/thermal_learning/curve_learner/last_step_at host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2710
+SEAM snapshots:snapshots/#/learners/thermal_learning/updated_at host_lead=0h origin=thermal_learning origin_lead=0h site=coordinator.py:2710
+SEAM snapshots:snapshots/#/learners/dhw_profile/updated_at host_lead=0h origin=dhw_profile origin_lead=0h site=coordinator.py:2710
+SEAM snapshots:snapshots/#/learners/accuracy/samples/#/t host_lead=0h origin=accuracy origin_lead=24h site=coordinator.py:2710  FLAG
+SEAM snapshots:snapshots/#/learners/accuracy/lead_pending/#/0 host_lead=0h origin=accuracy origin_lead=24h site=coordinator.py:2710  FLAG
+SEAM snapshots:snapshots/#/learners/accuracy/evidence_since host_lead=0h origin=accuracy origin_lead=24h site=coordinator.py:2710  FLAG
+SEAM snapshots:snapshots/#/learners/accuracy/promises/*/start host_lead=0h origin=accuracy origin_lead=24h site=coordinator.py:2710  FLAG
+SEAM snapshots:snapshots/#/learners/comfort/last_update host_lead=0h origin=accuracy origin_lead=24h site=coordinator.py:2710  FLAG
+SEAM snapshots:snapshots/#/learners/comfort/history/#/t host_lead=0h origin=accuracy origin_lead=24h site=coordinator.py:2710  FLAG
+SEAM debug:started_at host_lead=0h origin=debug origin_lead=0h site=debugger.py:83
+SEAM debug:rows/#/t host_lead=0h origin=debug origin_lead=0h site=debugger.py:83
+SEAM debug:rows/#/accuracy_sample/t host_lead=0h origin=accuracy origin_lead=24h site=debugger.py:83  FLAG
+SEAM debug:snapshots/#/t host_lead=0h origin=debug origin_lead=0h site=debugger.py:83
+RESULT live instant_leaves=55 flagged_leaves=7 flagged_host_origin_pairs=2 [('debug', 'accuracy'), ('snapshots', 'accuracy')]

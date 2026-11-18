@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:probe_step_hours RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "R10-CEILING-PROBE: the last statement of probe_step_hours, after the loop that returns the first fitting duration. Deleting `return None` leaves the function to fall off its end, which returns None: indistinguishable at every input. Measured: the mutant passes all 55 checks of the R10-CEILING-PROBE block of tests/features.py (features_block.py), whose duration-search checks drive the None arm (a house no two-cycle step fits). Kept: the explicit `None` names the refusal arm the docstring states.",
+  "verdict": "equivalent"
+}

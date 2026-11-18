@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize GUARD_OFF f33dcd5d",
+  "killed_by": "tests/plan_view.py",
+  "old": "        if np.isfinite(score) and score < best_score:",
+  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: GUARD_OFF (`if False:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/open_meteo.py:_parse_block GUARD_OFF 4dbd7835",
+  "killed_by": "tests/open_meteo.py",
+  "old": "    if not isinstance(times_raw, list) or not isinstance(values_raw, list):",
+  "reason": "R8-P1 (#1519): `if False:` lets a scalar `time` or value member reach zip(), and the scalar-time and scalar-values _parse_block checks fail with TypeError; tests/open_meteo.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+}

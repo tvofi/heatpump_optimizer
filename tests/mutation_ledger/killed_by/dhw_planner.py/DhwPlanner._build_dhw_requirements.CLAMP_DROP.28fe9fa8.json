@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 28fe9fa8",
+  "killed_by": "tests/features.py",
+  "old": "            p_dhw_run = max(0.1, min(p_dhw_run, float(p_run_cap)))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`p_dhw_run = (0.1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

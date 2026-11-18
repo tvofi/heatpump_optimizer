@@ -1,0 +1,106 @@
+CELL winter_typical   winter_cold  tz=0 gap=+0.0000%  J 68.81957->68.81957  cost 30.641->30.641 (+0.0000 SEK)  viol 0.1471->0.1471  minT 16.923->16.923  p0 1.9993->1.9993
+CELL winter_typical   winter_cold  tz=1 gap=+0.7958%  J 87.27327->86.57876  cost 67.890->67.336 (+0.5539 SEK)  viol 0.0000->0.0000  minT 17.565->17.604  p0 1.9993->1.9993
+CELL winter_typical   winter_mild  tz=0 gap=+0.0224%  J 29.29223->29.28568  cost 23.713->23.712 (+0.0006 SEK)  viol 0.0000->0.0000  minT 19.466->19.466  p0 0.0000->0.0000
+CELL winter_typical   winter_mild  tz=1 gap=+0.0804%  J 35.61506->35.58641  cost 25.605->25.593 (+0.0115 SEK)  viol 0.0000->0.0000  minT 17.674->17.676  p0 0.0000->0.0000
+CELL winter_typical   summer_warm  tz=0 gap=+0.0000%  J 6440.18815->6440.18815  cost 4.568->4.568 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.037->21.037  p0 0.0000->0.0000
+CELL winter_typical   summer_warm  tz=1 gap=+0.0000%  J 10602.53553->10602.53553  cost 4.568->4.568 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.049->21.049  p0 0.0000->0.0000
+CELL winter_typical   summer_cool  tz=0 gap=+0.0874%  J 8.54735->8.53988  cost 7.067->7.068 (-0.0011 SEK)  viol 0.0000->0.0000  minT 20.688->20.680  p0 0.0000->0.0000
+CELL winter_typical   summer_cool  tz=1 gap=+0.0704%  J 9.04185->9.03549  cost 7.356->7.455 (-0.0987 SEK)  viol 0.0000->0.0000  minT 20.148->20.204  p0 0.0000->0.0000
+CELL winter_typical   shoulder     tz=0 gap=+0.0000%  J 12.26188->12.26188  cost 11.020->11.020 (+0.0000 SEK)  viol 0.0000->0.0000  minT 20.534->20.534  p0 0.0000->0.0000
+CELL winter_typical   shoulder     tz=1 gap=+0.0464%  J 13.89642->13.88997  cost 11.665->11.676 (-0.0116 SEK)  viol 0.0000->0.0000  minT 19.744->19.733  p0 0.0000->0.0000
+CELL winter_extreme   winter_cold  tz=0 gap=+0.0000%  J 95.78439->95.78439  cost 54.716->54.716 (+0.0000 SEK)  viol 0.0000->0.0000  minT 17.143->17.143  p0 1.9993->1.9993
+CELL winter_extreme   winter_cold  tz=1 gap=+0.0167%  J 128.37548->128.35406  cost 111.768->111.797 (-0.0292 SEK)  viol 0.0000->0.0000  minT 17.908->17.909  p0 1.9993->1.9993
+CELL winter_extreme   winter_mild  tz=0 gap=+0.0000%  J 43.94828->43.94827  cost 37.451->37.451 (-0.0001 SEK)  viol 0.0000->0.0000  minT 19.483->19.483  p0 0.0000->0.0000
+CELL winter_extreme   winter_mild  tz=1 gap=+0.7796%  J 52.00239->51.59699  cost 36.867->42.011 (-5.1436 SEK)  viol 0.0000->0.0000  minT 17.722->17.717  p0 0.8289->0.0000
+CELL winter_extreme   summer_warm  tz=0 gap=+0.0000%  J 6444.33788->6444.33788  cost 8.718->8.718 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.037->21.037  p0 0.0000->0.0000
+CELL winter_extreme   summer_warm  tz=1 gap=+0.0000%  J 10606.68526->10606.68526  cost 8.718->8.718 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.049->21.049  p0 0.0000->0.0000
+CELL winter_extreme   summer_cool  tz=0 gap=+0.1276%  J 14.14098->14.12295  cost 12.320->12.532 (-0.2126 SEK)  viol 0.0000->0.0000  minT 20.632->20.629  p0 0.0000->0.0000
+CELL winter_extreme   summer_cool  tz=1 gap=+0.2584%  J 14.90228->14.86378  cost 13.181->12.802 (+0.3793 SEK)  viol 0.0000->0.0000  minT 20.251->20.111  p0 0.0000->0.0000
+CELL winter_extreme   shoulder     tz=0 gap=+0.2215%  J 19.73494->19.69122  cost 17.959->18.117 (-0.1575 SEK)  viol 0.0000->0.0000  minT 20.545->20.553  p0 0.6501->0.0000
+CELL winter_extreme   shoulder     tz=1 gap=+0.1763%  J 22.05255->22.01367  cost 19.610->19.452 (+0.1577 SEK)  viol 0.0000->0.0000  minT 19.882->19.764  p0 0.2285->0.0000
+CELL summer_typical   winter_cold  tz=0 gap=+0.0000%  J 22.19000->22.19000  cost 14.894->14.894 (+0.0000 SEK)  viol 0.0000->0.0000  minT 19.329->19.329  p0 1.9993->1.9993
+CELL summer_typical   winter_cold  tz=1 gap=+0.0000%  J 28.03655->28.03655  cost 19.120->19.120 (+0.0000 SEK)  viol 0.0000->0.0000  minT 17.599->17.599  p0 1.9976->1.9976
+CELL summer_typical   winter_mild  tz=0 gap=+0.0512%  J 9.40920->9.40439  cost 7.509->7.492 (+0.0169 SEK)  viol 0.0000->0.0000  minT 18.635->18.618  p0 0.0000->0.0000
+CELL summer_typical   winter_mild  tz=1 gap=+0.0008%  J 10.54978->10.54970  cost 8.399->8.396 (+0.0028 SEK)  viol 0.0000->0.0000  minT 18.429->18.422  p0 0.0000->0.0000
+CELL summer_typical   summer_warm  tz=0 gap=+0.0000%  J 6437.13227->6437.13227  cost 1.512->1.512 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.037->21.037  p0 0.0000->0.0000
+CELL summer_typical   summer_warm  tz=1 gap=+0.0000%  J 10599.47965->10599.47965  cost 1.512->1.512 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.049->21.049  p0 0.0000->0.0000
+CELL summer_typical   summer_cool  tz=0 gap=+0.0000%  J 3.36138->3.36138  cost 2.104->2.104 (+0.0000 SEK)  viol 0.0000->0.0000  minT 20.494->20.494  p0 0.0000->0.0000
+CELL summer_typical   summer_cool  tz=1 gap=+0.0007%  J 3.41880->3.41877  cost 2.237->2.237 (+0.0006 SEK)  viol 0.0000->0.0000  minT 19.952->19.952  p0 0.0000->0.0000
+CELL summer_typical   shoulder     tz=0 gap=+0.0000%  J 4.49335->4.49335  cost 2.849->2.849 (-0.0000 SEK)  viol 0.0000->0.0000  minT 19.895->19.895  p0 0.0000->0.0000
+CELL summer_typical   shoulder     tz=1 gap=+0.0008%  J 5.08158->5.08154  cost 3.360->3.361 (-0.0009 SEK)  viol 0.0000->0.0000  minT 19.061->19.061  p0 0.0000->0.0000
+CELL summer_negative  winter_cold  tz=0 gap=+0.3652%  J 15.17211->15.11671  cost 12.750->13.125 (-0.3751 SEK)  viol 0.0000->0.0000  minT 19.271->19.312  p0 1.9160->1.8652
+CELL summer_negative  winter_cold  tz=1 gap=+0.0767%  J 19.33594->19.32111  cost 16.739->16.755 (-0.0156 SEK)  viol 0.0000->0.0000  minT 18.606->18.565  p0 0.0274->0.0001
+CELL summer_negative  winter_mild  tz=0 gap=+0.1633%  J 2.05793->2.05457  cost 0.814->0.769 (+0.0449 SEK)  viol 0.0000->0.0000  minT 19.168->19.138  p0 0.0000->0.0000
+CELL summer_negative  winter_mild  tz=1 gap=+0.4471%  J 3.31208->3.29728  cost 1.343->1.337 (+0.0065 SEK)  viol 0.0000->0.0000  minT 18.465->18.469  p0 0.0000->0.0000
+CELL summer_negative  summer_warm  tz=0 gap=+0.0000%  J 6436.45361->6436.45361  cost 0.833->0.833 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.037->21.037  p0 0.0000->0.0000
+CELL summer_negative  summer_warm  tz=1 gap=+0.0000%  J 10598.80100->10598.80100  cost 0.833->0.833 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.049->21.049  p0 0.0000->0.0000
+CELL summer_negative  summer_cool  tz=0 gap=+0.6428%  J 1.53940->1.52950  cost 0.281->0.302 (-0.0210 SEK)  viol 0.0000->0.0000  minT 20.494->20.494  p0 0.0000->0.0000
+CELL summer_negative  summer_cool  tz=1 gap=+0.0003%  J 1.33807->1.33806  cost 0.222->0.222 (-0.0002 SEK)  viol 0.0000->0.0000  minT 19.952->19.952  p0 0.0000->0.0000
+CELL summer_negative  shoulder     tz=0 gap=+0.6863%  J 1.08992->1.08244  cost -0.737->-0.710 (-0.0268 SEK)  viol 0.0000->0.0000  minT 19.895->19.895  p0 0.0000->0.0000
+CELL summer_negative  shoulder     tz=1 gap=+0.0000%  J 1.04792->1.04792  cost -0.689->-0.689 (+0.0000 SEK)  viol 0.0000->0.0000  minT 18.899->18.899  p0 0.0000->0.0000
+CELL shoulder         winter_cold  tz=0 gap=+0.0834%  J 54.53902->54.49351  cost 46.833->46.007 (+0.8263 SEK)  viol 0.0000->0.0000  minT 19.007->18.930  p0 5.9999->1.9437
+CELL shoulder         winter_cold  tz=1 gap=+0.1453%  J 64.98693->64.89249  cost 57.050->56.547 (+0.5037 SEK)  viol 0.0000->0.0000  minT 17.909->17.932  p0 2.0344->1.3094
+CELL shoulder         winter_mild  tz=0 gap=+0.0131%  J 21.69540->21.69256  cost 18.577->18.569 (+0.0083 SEK)  viol 0.0000->0.0000  minT 20.200->20.191  p0 0.0000->0.0000
+CELL shoulder         winter_mild  tz=1 gap=+0.0234%  J 26.93629->26.92999  cost 22.292->22.398 (-0.1066 SEK)  viol 0.0000->0.0000  minT 19.268->19.048  p0 0.0000->0.0000
+CELL shoulder         summer_warm  tz=0 gap=+0.0000%  J 6438.54999->6438.54999  cost 2.930->2.930 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.037->21.037  p0 0.0000->0.0000
+CELL shoulder         summer_warm  tz=1 gap=+0.0000%  J 10600.89737->10600.89737  cost 2.930->2.930 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.049->21.049  p0 0.0000->0.0000
+CELL shoulder         summer_cool  tz=0 gap=+0.3733%  J 6.03891->6.01637  cost 4.985->4.977 (+0.0083 SEK)  viol 0.0000->0.0000  minT 20.857->20.823  p0 0.0000->0.0000
+CELL shoulder         summer_cool  tz=1 gap=+0.0000%  J 6.47685->6.47685  cost 5.285->5.285 (-0.0000 SEK)  viol 0.0000->0.0000  minT 20.535->20.535  p0 0.0000->0.0000
+CELL shoulder         shoulder     tz=0 gap=+0.7998%  J 9.05922->8.98676  cost 8.111->8.079 (+0.0319 SEK)  viol 0.0000->0.0000  minT 20.648->20.621  p0 0.0000->0.0000
+CELL shoulder         shoulder     tz=1 gap=+0.0623%  J 10.27600->10.26961  cost 8.758->8.732 (+0.0266 SEK)  viol 0.0000->0.0000  minT 20.293->20.241  p0 0.0000->0.0000
+CELL winter_narrow    winter_cold  tz=0 gap=+0.0000%  J 113.75171->113.75171  cost 80.975->80.975 (-0.0000 SEK)  viol 0.0000->0.0000  minT 17.347->17.347  p0 1.9993->1.9993
+CELL winter_narrow    winter_cold  tz=1 gap=+0.0287%  J 134.56296->134.52440  cost 120.842->120.940 (-0.0979 SEK)  viol 0.0000->0.0000  minT 17.855->17.854  p0 1.9984->1.9993
+CELL winter_narrow    winter_mild  tz=0 gap=+0.0026%  J 52.16912->52.16774  cost 36.749->36.735 (+0.0144 SEK)  viol 0.0000->0.0000  minT 18.087->18.084  p0 0.0000->0.0000
+CELL winter_narrow    winter_mild  tz=1 gap=+0.5686%  J 58.03156->57.70162  cost 48.593->47.656 (+0.9372 SEK)  viol 0.0000->0.0000  minT 17.955->17.751  p0 0.0140->0.0000
+CELL winter_narrow    summer_warm  tz=0 gap=+0.0000%  J 6440.85435->6440.85435  cost 5.234->5.234 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.037->21.037  p0 0.0000->0.0000
+CELL winter_narrow    summer_warm  tz=1 gap=+0.0000%  J 10603.20173->10603.20173  cost 5.234->5.234 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.049->21.049  p0 0.0000->0.0000
+CELL winter_narrow    summer_cool  tz=0 gap=+0.0000%  J 11.31687->11.31687  cost 8.954->8.954 (+0.0000 SEK)  viol 0.0000->0.0000  minT 20.494->20.494  p0 0.0000->0.0000
+CELL winter_narrow    summer_cool  tz=1 gap=+0.0000%  J 12.19637->12.19637  cost 9.610->9.610 (-0.0000 SEK)  viol 0.0000->0.0000  minT 19.952->19.952  p0 0.0000->0.0000
+CELL winter_narrow    shoulder     tz=0 gap=+0.0139%  J 18.17281->18.17029  cost 13.697->14.126 (-0.4290 SEK)  viol 0.0000->0.0000  minT 19.895->19.895  p0 0.0000->0.0000
+CELL winter_narrow    shoulder     tz=1 gap=+0.5543%  J 21.24133->21.12359  cost 16.399->15.818 (+0.5808 SEK)  viol 0.0000->0.0000  minT 18.917->18.899  p0 0.0000->0.0000
+CELL winter_moderate  winter_cold  tz=0 gap=+0.0000%  J 84.40599->84.40599  cost 48.054->48.054 (+0.0000 SEK)  viol 0.0000->0.0000  minT 17.143->17.143  p0 1.9993->1.9993
+CELL winter_moderate  winter_cold  tz=1 gap=+0.1619%  J 104.35158->104.18263  cost 90.262->90.236 (+0.0253 SEK)  viol 0.0000->0.0000  minT 17.870->17.969  p0 1.9993->1.9992
+CELL winter_moderate  winter_mild  tz=0 gap=+0.0000%  J 37.99558->37.99558  cost 29.890->29.890 (-0.0000 SEK)  viol 0.0000->0.0000  minT 18.825->18.825  p0 0.0000->0.0000
+CELL winter_moderate  winter_mild  tz=1 gap=+0.1835%  J 44.06386->43.98302  cost 35.910->36.105 (-0.1948 SEK)  viol 0.0000->0.0000  minT 17.786->17.809  p0 0.3064->0.2423
+CELL winter_moderate  summer_warm  tz=0 gap=+0.0000%  J 6439.98792->6439.98792  cost 4.368->4.368 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.037->21.037  p0 0.0000->0.0000
+CELL winter_moderate  summer_warm  tz=1 gap=+0.0000%  J 10602.33530->10602.33530  cost 4.368->4.368 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.049->21.049  p0 0.0000->0.0000
+CELL winter_moderate  summer_cool  tz=0 gap=+0.0295%  J 9.09427->9.09158  cost 7.142->7.180 (-0.0381 SEK)  viol 0.0000->0.0000  minT 20.494->20.494  p0 0.0000->0.0000
+CELL winter_moderate  summer_cool  tz=1 gap=+0.0669%  J 9.77103->9.76450  cost 7.667->7.612 (+0.0544 SEK)  viol 0.0000->0.0000  minT 19.952->19.952  p0 0.0000->0.0000
+CELL winter_moderate  shoulder     tz=0 gap=+0.0000%  J 14.04577->14.04577  cost 10.701->10.701 (+0.0000 SEK)  viol 0.0000->0.0000  minT 19.895->19.895  p0 0.0000->0.0000
+CELL winter_moderate  shoulder     tz=1 gap=+0.0064%  J 16.43677->16.43571  cost 13.126->13.140 (-0.0136 SEK)  viol 0.0000->0.0000  minT 19.343->19.350  p0 0.0000->0.0000
+CELL flat             winter_cold  tz=0 gap=+0.0157%  J 90.55169->90.53745  cost 73.676->73.678 (-0.0024 SEK)  viol 0.0000->0.0000  minT 17.152->17.155  p0 1.9993->1.9983
+CELL flat             winter_cold  tz=1 gap=+0.5543%  J 107.67103->107.07425  cost 97.477->97.132 (+0.3450 SEK)  viol 0.0000->0.0000  minT 17.790->17.738  p0 1.2156->1.8793
+CELL flat             winter_mild  tz=0 gap=+0.2321%  J 42.82323->42.72382  cost 37.278->34.955 (+2.3228 SEK)  viol 0.0000->0.0000  minT 18.389->18.689  p0 3.3728->0.5370
+CELL flat             winter_mild  tz=1 gap=+0.0653%  J 46.77133->46.74076  cost 40.607->40.523 (+0.0840 SEK)  viol 0.0000->0.0000  minT 18.445->18.292  p0 0.0000->0.0000
+CELL flat             summer_warm  tz=0 gap=+0.0000%  J 6439.57234->6439.57234  cost 3.952->3.952 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.037->21.037  p0 0.0000->0.0000
+CELL flat             summer_warm  tz=1 gap=+0.0000%  J 10601.91972->10601.91972  cost 3.952->3.952 (+0.0000 SEK)  viol 0.0000->0.0000  minT 21.049->21.049  p0 0.0000->0.0000
+CELL flat             summer_cool  tz=0 gap=+0.0000%  J 8.87533->8.87533  cost 6.912->6.912 (+0.0000 SEK)  viol 0.0000->0.0000  minT 20.494->20.494  p0 0.0000->0.0000
+CELL flat             summer_cool  tz=1 gap=+0.0608%  J 9.62768->9.62183  cost 7.391->7.331 (+0.0599 SEK)  viol 0.0000->0.0000  minT 19.952->19.952  p0 0.0000->0.0000
+CELL flat             shoulder     tz=0 gap=+0.0569%  J 14.47848->14.47024  cost 12.126->11.853 (+0.2732 SEK)  viol 0.0000->0.0000  minT 19.895->19.895  p0 0.0000->0.0000
+CELL flat             shoulder     tz=1 gap=+0.0631%  J 17.09892->17.08814  cost 13.778->13.746 (+0.0315 SEK)  viol 0.0000->0.0000  minT 18.899->18.899  p0 0.0000->0.0000
+RESULT cells_total=80
+RESULT cells_priced=70
+RESULT cells_flat_null_control=10
+RESULT mean_gap_priced_pct=0.117642 %
+RESULT max_gap_priced_pct=0.799815 %
+RESULT min_gap_priced_pct=0 %
+RESULT loo_mean_gap_priced_pct=0.107755 %
+RESULT mean_gap_flat_pct=0.104822 %
+RESULT max_gap_flat_pct=0.554255 %
+RESULT loo_mean_gap_flat_pct=0.0548848 %
+RESULT cells_gap_above_0p01pct=34
+RESULT cells_gap_above_0p1pct=18
+RESULT cells_negative_gap=0
+RESULT cells_challenger_worse_comfort=0
+RESULT max_comfort_violation_either_arm=0.147084
+RESULT cells_step0_differs_gt_0p01kW=9
+RESULT max_step0_delta_kW=4.05621 kW
+RESULT mean_energy_cost_delta_priced_SEK_per_day=-0.039745 SEK
+RESULT max_energy_cost_delta_priced_SEK_per_day=0.937188 SEK
+RESULT mean_bill_priced_SEK_per_day=19.8116 SEK
+RESULT mean_energy_cost_delta_flat_SEK_per_day=0.311395 SEK
+RESULT lbfgsb_solves_observed=420
+RESULT maxiter_binding_solves=0
+RESULT thread_factor=1
+RESULT load1=11.51
+RESULT swapins=42527920

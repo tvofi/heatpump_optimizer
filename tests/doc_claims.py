@@ -1,0 +1,5349 @@
+#!/usr/bin/env python3
+"""#1413: derive the claim set from the documents and the fact set from code.
+
+The round-6 stale-prose class (CONDENSED.md section 6): a reader doc asserts a
+fact about shipped code that the code no longer makes, and the only
+doc-vs-code machinery is keyed to claims someone hand-enumerated -- so a newly
+written sentence escapes until a later round names it. This check derives BOTH
+sides for seven claim shapes, and fails closed on a contradiction:
+
+  * generated-figure freshness    -- D5-01 #1389 (marginal-cop.svg predates the
+    #928 resistive clamp)
+  * ECL110 topic shipped defaults -- D6-01 #1391 (README tells users to clear
+    topics that ship empty)
+  * entity object-id prefix       -- D6-03 #1393 (docs say the prefix follows
+    the entry name; the code pins a hard-coded literal)
+  * README requirements vs manifest.json -- D6-s1 #1537
+  * Quick start step numbering    -- D5-s1 #1535
+  * quality_scale strict-typing census -- R8-D10-s1-01 #1545 (the yaml states
+    qs_entry_param_bare=0 while annotations still name the bare ConfigEntry)
+  * quality_scale exception-translation census -- R8-D10-s1-02 #1546 (the
+    yaml marks every raise site translated while four UpdateFailed raises
+    carried no translation_domain / translation_key)
+  * product page pin -- R9-WEB-1 (docs/index.html: every data-src claim is in
+    its section of the README or a reader doc, the page's features and docs
+    cards equal the README's "What it does" leads and Documentation table, and
+    it refuses a stray number, a version, a dead link or image and any
+    third-party request)
+  * docs sub-pages build -- R9-WEB-3 (tools/site/build_docs.mjs renders the
+    README and every README Documentation row into one page each over the
+    vendored markdown-it; the arm runs it over the working tree and fails on
+    every FAIL line: a dead anchor, a missing image, a link to an untracked
+    file, a row whose file does not exist, a stale EXCLUDE entry. It also
+    refuses a link from the product page to a page the build does not
+    produce, and a third-party icon, preload or iframe on any page)
+
+The fact set is derived by importing and executing production code; the claim
+set is derived by scanning the reader documents and the shipped blueprints.
+For the two quality_scale arms the "document" is quality_scale.yaml, which
+hassfest never reads for a custom integration, so nothing else checks it.
+Neither side is a hand-maintained enumeration: a new sentence of the same shape
+enters the check the moment it lands.
+
+Every arm carries an anchor (null control): the absence of the claim's subject
+is itself red, so the check cannot go green by skipping.
+
+RUN (from the repository root, never elsewhere):
+    PYTHONPATH=tests/hastub:tests:custom_components python3 tests/doc_claims.py
+"""
+from __future__ import annotations
+
+import ast
+import importlib.util
+import collections
+import itertools
+import json
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import tempfile
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+for _extra in ("tools/audit", "tests/hastub", "tests", "custom_components"):
+    sys.path.insert(0, str(ROOT / _extra))
+
+from harness import Results, SHIPPED_CATALOGUES, TRANSLATED_LANGS  # noqa: E402
+from throwaway_git import throwaway_git_init  # noqa: E402
+
+R = Results("doc claims vs code facts (#1413)")
+
+PKG = ROOT / "custom_components" / "heatpump_optimizer"
+BLUEPRINTS_DIR = ROOT / "blueprints" / "automation"
+
+README = (ROOT / "README.md").read_text()
+# Reader-facing prose only: the audit-* pages and backlog.md are measurement
+# RECORDS that may legitimately quote a stale claim, and plan-* / HANDOVER.md
+# are internal programme state -- a record stays as written (fixer.md step 10),
+# so they are not scanned.
+DOCS = {
+    p.name: p.read_text()
+    for p in sorted((ROOT / "docs").glob("*.md"))
+    if (
+        not p.name.startswith("plan-")
+        and not p.name.startswith("audit-")
+        and p.name not in ("HANDOVER.md", "backlog.md")
+    )
+}
+BLUEPRINTS = {
+    p.name: p.read_text() for p in sorted(BLUEPRINTS_DIR.glob("*.yaml"))
+}
+# The reader corpus this check scans: README, the top-level user docs, and the
+# shipped blueprints (docs/automations.md links them, and a blueprint input
+# description is reader-facing prose).
+CORPUS = {"README.md": README, **DOCS, **{"blueprints/automation/" + k: v for k, v in BLUEPRINTS.items()}}
+
+
+# ---------------------------------------------------------------------------
+# Fact set, derived from code
+# ---------------------------------------------------------------------------
+
+def ecl110_topic_defaults() -> dict[str, str]:
+    """Shipped defaults of the three ECL110 topic options, by execution.
+
+    The empty-string default is the fact #1391's README prose contradicts:
+    ``_F("heat_curve", CONF_ECL110_*_TOPIC, "", str)``.
+    """
+    from heatpump_optimizer import const
+    from heatpump_optimizer import config_flow
+
+    keys = (
+        const.CONF_ECL110_DISPLACE_SET_TOPIC,
+        const.CONF_ECL110_COMMAND_TOPIC,
+        const.CONF_ECL110_STATE_TOPIC,
+    )
+    return {row.key: row.default for row in config_flow._OPTION_FIELDS if row.key in keys}
+
+
+def manifest_requirement_names() -> list[str]:
+    """Package names (PEP 508, stripped of version specifiers) that
+    ``manifest.json`` pins, in the order the manifest lists them.
+
+    #1537's fact: the manifest's own ``requirements`` list, which Home
+    Assistant installs automatically -- the set the README's Requirements
+    section claims to enumerate.
+    """
+    import json
+
+    manifest = json.loads((PKG / "manifest.json").read_text())
+    return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
+
+
+def entity_id_prefix_literals() -> dict[str, str]:
+    """The object-id prefix token each platform pins in its ``entity_id`` f-string.
+
+    Returns ``{module_name: prefix_token}`` for every module that assigns
+    ``entity_id = f"<domain>.<prefix>_{translation_key}"``, or the entity
+    base's one rule (``object_id = f"<prefix>_{self._attr_translation_key}"``,
+    R9-EG-B2) that every platform now pins through. A prefix that followed
+    the entry name would be written as an expression (``{slug(entry title)}``)
+    or omit the assignment; the shipped form is a hard-coded literal, which
+    is the fact #1393's prose contradicts.
+    """
+    pattern = re.compile(
+        r'(?:entity_id|object_id)\s*=\s*f"(?:[a-z_]+\.)?([a-z0-9_]+)_'
+        r'\{(?:self\._attr_)?translation_key\}"'
+    )
+    found: dict[str, str] = {}
+    for path in sorted(PKG.glob("*.py")):
+        text = path.read_text()
+        for m in pattern.finditer(text):
+            found[path.name] = m.group(1)
+    return found
+
+
+def regenerated_model_figures() -> dict[str, bytes]:
+    """Every docs/img model SVG re-derived from the shipped model, as bytes.
+
+    Imports ``docs/img/model/make_model_figures.py`` (which calls production
+    ``ThermalModel`` methods) and collects what ``__main__`` would write, so a
+    committed figure that stopped agreeing with the model is a byte difference
+    here rather than a stale picture. ``demand_windows`` reads the plan payload
+    ``tests/plan_view.py`` writes; both honour ``HPO_PLANDATA`` and agree on its
+    default, so the payload is written to a scratch path first. ``plan_view``
+    ends with a module-level ``sys.exit`` (it is written to be run, not
+    imported), so it is driven as a subprocess rather than imported.
+    """
+    import subprocess
+
+    _plan_dir = tempfile.mkdtemp(prefix="doc-claims-plan-")
+    plan_path = str(pathlib.Path(_plan_dir) / "plan.json")
+
+    env = dict(os.environ)
+    env["HPO_PLANDATA"] = plan_path
+    env["PYTHONPATH"] = os.pathsep.join(
+        [str(ROOT / "tests" / "hastub"), str(ROOT / "tests"), str(ROOT / "custom_components")]
+        + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else [])
+    )
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "tests" / "plan_view.py")],
+        cwd=ROOT,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"plan_view.py failed to write the plan payload (rc {proc.returncode}):\n{proc.stdout}"
+        )
+
+    # make_model_figures reads HPO_PLANDATA at import time, so it must be set
+    # to the same path before the module is executed.
+    os.environ["HPO_PLANDATA"] = plan_path
+    spec = importlib.util.spec_from_file_location(
+        "make_model_figures", ROOT / "docs" / "img" / "model" / "make_model_figures.py"
+    )
+    mmf = importlib.util.module_from_spec(spec)
+    sys.modules["make_model_figures"] = mmf
+    spec.loader.exec_module(mmf)
+
+    out: dict[str, bytes] = {}
+    svg = mmf.demand_windows()
+    out["dhw-demand-windows.svg"] = svg.encode()
+    svg, _identical = mmf.marginal_cop()
+    out["marginal-cop.svg"] = svg.encode()
+    svg, _ceiling, _retained = mmf.store_decay()
+    out["dhw-store-decay.svg"] = svg.encode()
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Arm 1 -- generated-figure freshness (D5-01 / #1389)
+# ---------------------------------------------------------------------------
+
+def check_figures() -> None:
+    R.section("generated-figure freshness (#1389)")
+    fresh = regenerated_model_figures()
+    names = sorted(fresh)
+    # Null control: the generator must produce exactly the committed set.
+    R.check("make_model_figures produces 3 model SVGs", names == sorted(
+        ["dhw-demand-windows.svg", "dhw-store-decay.svg", "marginal-cop.svg"]
+    ), repr(names))
+    for name in names:
+        committed_path = ROOT / "docs" / "img" / "model" / name
+        committed = committed_path.read_bytes()
+        R.check(
+            f"{name} matches the regenerated bytes",
+            committed == fresh[name],
+            f"committed {len(committed)} B vs regenerated {len(fresh[name])} B",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Arm 2 -- ECL110 topic shipped defaults (D6-01 / #1391)
+# ---------------------------------------------------------------------------
+
+# The false-claim shapes #1391 found in README.md. Scanned, not enumerated per
+# claim: any sentence of this shape is red while the defaults are empty.
+_SHIP_NONEMPTY = re.compile(r"ship non-empty")
+_CLEAR_TOPICS = re.compile(r"clear the (two )?command topics?")
+
+
+def check_ecl110_defaults() -> None:
+    R.section("ECL110 topic shipped defaults (#1391)")
+    defaults = ecl110_topic_defaults()
+    empty = {k: v for k, v in defaults.items() if v == ""}
+    # Fact: every topic option ships an empty-string default.
+    R.check(
+        "all three ECL110 topic options ship an empty-string default",
+        len(empty) == 3 and set(empty) == set(defaults),
+        repr(defaults),
+    )
+    # Anchor: README still documents the ECL110 path at all.
+    R.check(
+        "README still documents the ECL110 path (anchor)", "ECL110" in CORPUS["README.md"]
+    )
+    offenders: dict[str, list[str]] = {}
+    for name, text in CORPUS.items():
+        hits = _SHIP_NONEMPTY.findall(text) + _CLEAR_TOPICS.findall(text)
+        if hits:
+            offenders[name] = hits
+    R.check(
+        "no reader doc claims the ECL110 topics ship non-empty",
+        not offenders,
+        repr(offenders),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Arm 3 -- entity object-id prefix (D6-03 / #1393)
+# ---------------------------------------------------------------------------
+
+# The whitespace between words is ``\s+``: YAML folded scalars wrap a long
+# sentence across lines, and the same claim wrapped differently must still be
+# caught (#1393's own round named two blueprints and missed the third, whose
+# "prefix\n        follows" split the two words across a fold).
+_PREFIX_FOLLOWS_NAME = re.compile(
+    r"(?:entity\s+)?prefix\s+follows\s+the\s+name", re.IGNORECASE
+)
+_CHANGE_PREFIX = re.compile(r"change\s+the\s+prefix\s+if\s+you\s+named", re.IGNORECASE)
+_HAS_ENTITY_NAME_PREFIX = re.compile(
+    r"has_entity_name.{0,120}?prefix", re.IGNORECASE | re.DOTALL
+)
+
+
+def check_entity_prefix() -> None:
+    R.section("entity object-id prefix (#1393)")
+    literals = entity_id_prefix_literals()
+    # Fact: every platform that pins an object id uses the same hard-coded
+    # token, ``heat_pump_optimizer`` -- never a function of the entry title.
+    R.check(
+        "the object-id prefix is the hard-coded literal, not entry.title",
+        bool(literals) and set(literals.values()) == {"heat_pump_optimizer"},
+        repr(literals),
+    )
+    # Anchor: the reader corpus still documents entity ids at all.
+    ids_present = sum(
+        len(re.findall(r"heat_pump_optimizer_[a-z0-9_]+", text))
+        for text in CORPUS.values()
+    )
+    R.check(
+        "the reader corpus still documents entity ids (anchor)",
+        ids_present > 0,
+        f"{ids_present} id token(s) found",
+    )
+    offenders: dict[str, list[str]] = {}
+    for name, text in CORPUS.items():
+        hits = (
+            _PREFIX_FOLLOWS_NAME.findall(text)
+            + _CHANGE_PREFIX.findall(text)
+            + _HAS_ENTITY_NAME_PREFIX.findall(text)
+        )
+        if hits:
+            offenders[name] = hits
+    R.check(
+        "no reader doc claims the entity prefix follows the entry name",
+        not offenders,
+        repr(offenders),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Arm 4 -- README requirements claim vs manifest.json (D6-s1 / #1537)
+# ---------------------------------------------------------------------------
+
+def check_requirements_claim() -> None:
+    R.section("README requirements vs manifest.json (#1537)")
+    names = manifest_requirement_names()
+    # Anchor: the manifest still pins requirements at all, and README still
+    # has a Requirements section -- the absence of either side is itself red.
+    R.check("manifest.json still pins requirements (anchor)", bool(names), repr(names))
+    m = re.search(r"## Requirements\n(.*?)\n## ", README, re.S)
+    section = m.group(1) if m else ""
+    R.check("README still has a Requirements section (anchor)", bool(section))
+    undocumented = [n for n in names if n.lower() not in section.lower()]
+    R.check(
+        "every manifest requirement is named in README's Requirements section",
+        not undocumented,
+        repr(undocumented),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Arm 5 -- Quick start step numbering: distinct, and diagram agrees with
+# prose (D5-s1 / #1535, round 2)
+# ---------------------------------------------------------------------------
+
+# #1535 round 1 shifted four prose headings down by one to agree with the
+# diagram's own numbered nodes, without noticing that the diagram's *menu*
+# node (unnumbered by construction, since it has no matching prose-side
+# label the finder's harness compares against) collided with the shifted
+# "Temperatures" heading -- both read "3 ·" at that PR's head. The finder's
+# own harness (s1_stepnum.py) cannot see this: it only compares a label that
+# is numbered on BOTH sides, and "the finish menu" has no diagram-side
+# numbered counterpart to compare against by construction. This arm adds the
+# property that harness never checked: every prose heading number in the
+# Quick start section is used exactly once.
+_QS_DIAGRAM_NODE_RE = re.compile(r'[\[{]"(\d+)\s*\xb7\s*([^"<]+?)(?:<br/>|")')
+_QS_PROSE_HEADING_RE = re.compile(r'^\*\*(\d+)\s*\xb7\s*([^*]+?)\.?\*\*', re.M)
+
+
+def _qs_normalize(label: str) -> str:
+    label = label.strip().rstrip(".?").lower()
+    label = re.sub(r"[^a-z0-9 ]", "", label)
+    return " ".join(label.split()[:3])
+
+
+def _qs_extract(text: str) -> tuple[dict[str, int], dict[str, int], list[int]]:
+    """(diagram label->number, prose label->number, prose numbers in order).
+
+    The third element carries every prose heading's number, duplicates and
+    all -- the first two dicts collapse repeats under `setdefault`, which is
+    exactly the shape that hid #1535 round 1's duplicate "3 ·": two distinct
+    labels sharing a number look like one entry per dict, so uniqueness has
+    to be checked over the list, not the dicts.
+    """
+    section = text.split("## Quick start", 1)[1]
+    section = section.split("\n## ", 1)[0]
+    diagram: dict[str, int] = {}
+    for m in _QS_DIAGRAM_NODE_RE.finditer(section):
+        diagram.setdefault(_qs_normalize(m.group(2)), int(m.group(1)))
+    prose: dict[str, int] = {}
+    prose_numbers: list[int] = []
+    for m in _QS_PROSE_HEADING_RE.finditer(section):
+        num = int(m.group(1))
+        prose.setdefault(_qs_normalize(m.group(2)), num)
+        prose_numbers.append(num)
+    return diagram, prose, prose_numbers
+
+
+def _qs_duplicates(numbers: list[int]) -> list[int]:
+    seen: set[int] = set()
+    dupes: list[int] = []
+    for n in numbers:
+        if n in seen and n not in dupes:
+            dupes.append(n)
+        seen.add(n)
+    return dupes
+
+
+def check_quickstart_numbering() -> None:
+    R.section("Quick start step numbering is distinct and diagram-agreed (#1535)")
+    diagram, prose, prose_numbers = _qs_extract(README)
+    # Anchor: the section still exists and still has several numbered
+    # headings on both sides -- the absence of the claim's subject (an empty
+    # section, or a Quick start rewritten with no numbered steps at all)
+    # would otherwise read as a vacuous pass.
+    R.check(
+        "the Quick start section still has 5+ numbered prose headings and "
+        "5+ numbered diagram nodes (anchor)",
+        len(prose_numbers) >= 5 and len(diagram) >= 5,
+        f"prose={prose_numbers!r} diagram={diagram!r}",
+    )
+    mismatches = [
+        (label, dnum, prose[label])
+        for label, dnum in diagram.items()
+        if label in prose and prose[label] != dnum
+    ]
+    R.check(
+        "every label numbered in both the diagram and the prose agrees on "
+        "its number",
+        not mismatches,
+        repr(mismatches),
+    )
+    dupes = _qs_duplicates(prose_numbers)
+    R.check(
+        "every Quick start prose heading number is used exactly once (the "
+        "property #1535 round 1's own fix broke: two headings both read "
+        "'3 \xb7' at that PR's head)",
+        not dupes,
+        f"duplicated number(s) {dupes!r} in {prose_numbers!r}",
+    )
+    # Null control: the duplicate-check must actually fire on the shape it
+    # exists to catch, not just on the (already-fixed) real README. Rebuild
+    # round 1's own regression -- the untouched "finish menu" heading at 3,
+    # colliding with a "Temperatures" heading shifted down to 3 as well --
+    # as a synthetic section, and confirm the duplicate is detected there.
+    _bad_section = (
+        "## Quick start\n\n"
+        "**1 \xb7 Basics.** x\n\n"
+        "**2 \xb7 Optional sensors.** x\n\n"
+        "**3 \xb7 The finish menu: Quick setup, Continue setup or Finish "
+        "setup now.** x\n\n"
+        "**3 \xb7 Temperatures.** x\n\n"
+        "## Entities\n"
+    )
+    _bad_diagram, _bad_prose, _bad_numbers = _qs_extract(_bad_section)
+    R.check(
+        "the duplicate-number check fires on round 1's own regression "
+        "(null control)",
+        _qs_duplicates(_bad_numbers) == [3],
+        f"got {_qs_duplicates(_bad_numbers)!r} from {_bad_numbers!r}",
+    )
+    # And the same synthetic section is clean once renumbered the way this
+    # PR's round 2 fix renumbers the real README (menu keeps 3, the shifted
+    # heading moves to 4 instead of colliding) -- the check must not flag a
+    # section that is actually fine.
+    _good_section = _bad_section.replace("**3 \xb7 Temperatures.**", "**4 \xb7 Temperatures.**")
+    _, _, _good_numbers = _qs_extract(_good_section)
+    R.check(
+        "and does not fire on the corrected shape (null control, other arm)",
+        _qs_duplicates(_good_numbers) == [],
+        f"got {_qs_duplicates(_good_numbers)!r} from {_good_numbers!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Round 9 F8.1 (#1645, class I5) -- configuration.md "Initial setup" against
+# the real ConfigFlow, and the simulate_plan field list against its schema.
+# D5-s1-01 / D6-s2-01 / D6-s2-02: the section documented the pre-v6.6.5
+# straight-line wizard -- no finish_setup menu, the Tibber token marked
+# unconditionally required, and a stale entity count. D6-s2-05: the
+# simulate_plan prose field list did not name the wood fields the schema
+# grew.
+# ---------------------------------------------------------------------------
+
+
+def check_initial_setup_menu() -> None:
+    R.section(
+        "Initial setup: the finish_setup menu and the token requirement "
+        "(#1645 D5-s1-01)"
+    )
+    import asyncio
+
+    from harness import FakeHass
+    from heatpump_optimizer import config_flow, const
+
+    text = DOCS["configuration.md"]
+    section = _section(text, "## Initial setup", "\n## ", "configuration.md")
+    if section is None:
+        return
+
+    async def _first_two_screens():
+        flow = config_flow.HeatPumpOptimizerConfigFlow()
+        flow.hass = FakeHass()
+        first = await flow.async_step_user(
+            {
+                "name": "Heat Pump Optimizer",
+                const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+                const.CONF_PRICE_ENTITY: "sensor.nordpool",
+                const.CONF_WEATHER_ENTITY: "weather.home",
+            }
+        )
+        second = await flow.async_step_user_sensors({})
+        return first, second
+
+    first, second = asyncio.run(_first_two_screens())
+    R.check(
+        "the first screen accepts a price entity with no Tibber token (anchor)",
+        first.get("step_id") == "user_sensors" and not first.get("errors"),
+        repr(first),
+    )
+    menu = dict(second.get("menu_options") or {})
+    R.check(
+        "async_step_finish_setup still shows a menu with these three options "
+        "(anchor)",
+        set(menu) == {"quick_setup", "temperature", "finish_now"},
+        repr(menu),
+    )
+    unnamed = [
+        label
+        for label in menu.values()
+        if re.sub(r"\s*\(.*?\)", "", label).lower() not in section.lower()
+    ]
+    R.check(
+        "every finish_setup menu option is named in the 'Initial setup' "
+        "section (D5-s1-01: the section drew the pre-v6.6.5 wizard, which "
+        "had no such menu)",
+        not unnamed,
+        f"menu={menu}, unnamed in section: {unnamed}",
+    )
+    token_required_claim = bool(
+        re.search(r"Tibber API token \| — \(\*\*required\*\*\)", section)
+    ) or "genuinely required: a tibber api token" in text.lower()
+    R.check(
+        "the section does not claim the Tibber token is unconditionally "
+        "required, now that a price-entity source clears the first screen "
+        "without one (D5-s1-01)",
+        not token_required_claim,
+        "token-required claim still present" if token_required_claim else "ok",
+    )
+    # Null control: the pre-v6.6.5 shape (no menu, token always required) is
+    # exactly what setup_section.py's --perturb arm re-creates, and it is
+    # what this check is written to catch.
+    _bad_section = (
+        "**Settings → Devices & services → Add integration → Heat Pump "
+        "Optimizer.**\n\n"
+        "| Setting | Default | What it means |\n"
+        "|---|---|---|\n"
+        "| Tibber API token | — (**required**) | Reads your hourly "
+        "electricity prices. |\n"
+    )
+    _bad_unnamed = [
+        label
+        for label in menu.values()
+        if re.sub(r"\s*\(.*?\)", "", label).lower() not in _bad_section.lower()
+    ]
+    _bad_token_claim = bool(
+        re.search(r"Tibber API token \| — \(\*\*required\*\*\)", _bad_section)
+    )
+    R.check(
+        "the check fires on the pre-v6.6.5 shape it was written for (null "
+        "control)",
+        bool(_bad_unnamed) and _bad_token_claim,
+        f"unnamed={_bad_unnamed} token_claim={_bad_token_claim}",
+    )
+
+
+def check_simulate_plan_fields() -> None:
+    R.section(
+        "simulate_plan's documented field list matches its schema "
+        "(#1645 D6-s2-05)"
+    )
+    from heatpump_optimizer.services import SERVICE_SCHEMA_SIMULATE_PLAN
+
+    schema_fields = {
+        str(getattr(key, "schema", key)) for key in SERVICE_SCHEMA_SIMULATE_PLAN.schema
+    }
+    R.check(
+        "the simulate_plan schema still has fields to document (anchor)",
+        bool(schema_fields),
+        repr(schema_fields),
+    )
+    text = DOCS["configuration.md"]
+    m = re.search(
+        r"\*\*`simulate_plan`\*\*.*?Fields,\s*\n?all optional:\s*(.*?)\.\s*An empty",
+        text,
+        re.S,
+    )
+    R.check(
+        "configuration.md still documents simulate_plan's field list (anchor)",
+        m is not None,
+    )
+    if m is None:
+        return
+    documented = set(re.findall(r"`([a-z0-9_]+)`", m.group(1)))
+    missing = schema_fields - documented
+    R.check(
+        "configuration.md's simulate_plan field list names every schema "
+        "field, including the wood fields the schema grew without the "
+        "prose following (D6-s2-05)",
+        not missing,
+        f"schema={sorted(schema_fields)} documented={sorted(documented)} "
+        f"missing={sorted(missing)}",
+    )
+    # Null control: re-run the SAME extraction regex on a mutated copy of the
+    # actual doc text with one real, currently-documented field's backtick
+    # literal deleted from the simulate_plan sentence, and confirm the
+    # missing-field check fires on that mutation -- not on set algebra that
+    # cannot fail regardless of whether the regex extraction works at all.
+    if not schema_fields & documented:
+        return
+    _dropped = sorted(schema_fields & documented)[0]
+    _mutated_text = text.replace(m.group(0), m.group(0).replace(f"`{_dropped}`", ""), 1)
+    _mutated_span = re.search(
+        r"\*\*`simulate_plan`\*\*.*?Fields,\s*\n?all optional:\s*(.*?)\.\s*An empty",
+        _mutated_text,
+        re.S,
+    )
+    _mutated_documented = (
+        set(re.findall(r"`([a-z0-9_]+)`", _mutated_span.group(1))) if _mutated_span else set()
+    )
+    _synthetic_missing = schema_fields - _mutated_documented
+    R.check(
+        "the missing-field check fires when a field is undocumented (null "
+        "control)",
+        _dropped in _synthetic_missing,
+        f"dropped={_dropped!r} synthetic missing={sorted(_synthetic_missing)}",
+    )
+
+
+def _section(text: str, start: str, end: str, where: str) -> str | None:
+    """The text between ``start`` and the next ``end``, or None after a named FAIL.
+
+    An anchor a doc rewrite moves must fail as a check, not abort the run with
+    an IndexError that hides every other arm's result (carry-1645.json).
+    """
+    parts = text.split(start, 1)
+    R.check(f"{where} still has {start.strip()!r} (anchor)", len(parts) == 2)
+    return parts[1].split(end, 1)[0] if len(parts) == 2 else None
+
+
+# ---------------------------------------------------------------------------
+# Round 9 F8.2 (#1645, class I5) -- field labels the options forms do not
+# show, the two-zone split's options-page placement, the Heat Pump Action
+# state list, and the disabled-by-default census on a no-hot-water install.
+# D5-s1-05 / D6-s1-02: configuration.md and README.md named fields by labels
+# the options forms do not use, and put the two-zone split and the solar
+# orientation factor on the wrong options page. D6-s1-01: the Heat Pump
+# Action sensor also publishes idle and system_identification, which
+# README's state list omitted. D6-s1-03: README's disabled-by-default census
+# assumed hot water is configured, and omitted the six DHW entities a
+# no-hot-water install also disables.
+# ---------------------------------------------------------------------------
+
+_EN_STRINGS = json.loads((PKG / "translations" / "en.json").read_text())
+
+
+def check_two_zone_field_labels_and_placement() -> None:
+    R.section(
+        "Two-zone field labels and options-page placement "
+        "(#1645 D5-s1-05, D6-s1-02)"
+    )
+    zones_sections = _EN_STRINGS["options"]["step"]["thermal_model_zones"]["sections"]
+    inter_zone_label = zones_sections["zones"]["data"]["inter_zone_heat_transfer"]
+    radiator_label = zones_sections["split"]["data"]["radiator_power_fraction"]
+    floor_return_label = (
+        _EN_STRINGS["options"]["step"]["entities"]["sections"]["plant"]["data"][
+            "floor_return_temp_entity"
+        ]
+    )
+    solar_source_label = (
+        _EN_STRINGS["options"]["step"]["entities_metering"]["sections"]["solar"][
+            "data"
+        ]["solar_forecast_source"]
+    )
+    # Anchor: the labels this check pins still exist and are non-empty.
+    R.check(
+        "the four labels this check pins are still non-empty strings "
+        "(anchor)",
+        all(
+            isinstance(s, str) and s
+            for s in (inter_zone_label, radiator_label, floor_return_label, solar_source_label)
+        ),
+        repr((inter_zone_label, radiator_label, floor_return_label, solar_source_label)),
+    )
+    config_text = DOCS["configuration.md"]
+    howitworks_text = DOCS["how-it-works.md"]
+    zones_section = _section(config_text, "### Two-zone model", "\n### ", "configuration.md") or ""
+    R.check(
+        "configuration.md's Two-zone model table names the inter-zone "
+        "transfer field by its actual options-form label, not a paraphrase "
+        "(D5-s1-05)",
+        f"| {inter_zone_label} |" in zones_section,
+        zones_section[:400],
+    )
+    R.check(
+        "...and the radiator-power-fraction field likewise (D5-s1-05)",
+        f"| {radiator_label} |" in zones_section,
+        zones_section[:400],
+    )
+    R.check(
+        "configuration.md's mixing-valve note cites the floor-return probe "
+        "by its actual options-form label (D5-s1-05)",
+        f"*{floor_return_label}*" in config_text,
+        "not found" if f"*{floor_return_label}*" not in config_text else "ok",
+    )
+    R.check(
+        "how-it-works.md's weather section cites the solar-source field by "
+        "its actual options-form label (D5-s1-05)",
+        f"*{solar_source_label}*" in howitworks_text,
+        "not found" if f"*{solar_source_label}*" not in howitworks_text else "ok",
+    )
+
+    # Page placement (D6-s1-02): derive each field's real options step from
+    # config_flow._OPTION_FIELDS, the same artifact the finder's claims.py
+    # reads, and check README's placement paragraph names that step for the
+    # two-zone split and the orientation factor rather than Thermal model
+    # (expert) or Building type and emitters.
+    from heatpump_optimizer import config_flow, const
+
+    step_title = {
+        name: step.get("title")
+        for name, step in _EN_STRINGS["options"]["step"].items()
+    }
+    fields_by_key = {row.key: row.step for row in config_flow._OPTION_FIELDS}
+    two_zone_page = step_title[fields_by_key[const.CONF_INTER_ZONE_TRANSFER]]
+    radiator_page = step_title[fields_by_key[const.CONF_RADIATOR_POWER_FRACTION]]
+    orientation_page = step_title[fields_by_key[const.CONF_SOLAR_ORIENTATION_FACTOR]]
+    thermal_expert_page = step_title["thermal_model"]
+    R.check(
+        "the two-zone split and the orientation factor are in fact one "
+        "options page (anchor)",
+        two_zone_page == radiator_page == orientation_page,
+        repr((two_zone_page, radiator_page, orientation_page)),
+    )
+    readme_para = _section(README, "Both paths land on the same model", "\n\n", "README.md") or ""
+    R.check(
+        "README's page-placement paragraph names the two-zone split's real "
+        "options page (D6-s1-02)",
+        two_zone_page in readme_para,
+        readme_para,
+    )
+    R.check(
+        "...and does not claim the two-zone split lives on Thermal model "
+        "(expert), which holds only the single-zone fields (D6-s1-02)",
+        f"two-zone split\nand the power limits are on **Advanced settings → {thermal_expert_page}**" not in readme_para
+        and not re.search(
+            r"two-zone split[^.]*\*\*[^*]*" + re.escape(thermal_expert_page), readme_para
+        ),
+        readme_para,
+    )
+    # Null control: the historical (wrong) claim -- masses, losses, the
+    # two-zone split and the power limits all on Thermal model (expert) --
+    # is exactly what D6-s1-02 measured at baseline; confirm both checks
+    # above fire against it.
+    _bad_para = (
+        " and every value either one sets can be edited afterwards. The "
+        "masses, losses, the two-zone split and the power limits are on "
+        f"**Advanced settings → {thermal_expert_page}**; buffer tank volume "
+        "is on **Heating system and heat storage**."
+    )
+    R.check(
+        "the placement checks fire on the baseline (wrong) claim (null "
+        "control)",
+        two_zone_page not in _bad_para
+        and re.search(r"two-zone split[^.]*\*\*[^*]*" + re.escape(thermal_expert_page), _bad_para),
+        _bad_para,
+    )
+
+
+def check_heat_pump_action_states() -> None:
+    R.section("Heat Pump Action state list matches the sensor (#1645 D6-s1-01)")
+    from heatpump_optimizer import const
+
+    states = const.HEAT_PUMP_ACTION_STATES
+    R.check(
+        "HEAT_PUMP_ACTION_STATES still has 'unknown' as its no-data "
+        "fallback and at least eight real states (anchor)",
+        "unknown" in states and len(states) >= 9,
+        repr(states),
+    )
+    row = next(
+        line for line in README.splitlines() if line.startswith("| Heat Pump Action |")
+    )
+    named = {s for s in states if s != "unknown" and f"`{s}`" in row}
+    missing = sorted(set(states) - {"unknown"} - named)
+    R.check(
+        "README's Heat Pump Action row names every state "
+        "HEAT_PUMP_ACTION_STATES lists except the no-data fallback "
+        "'unknown' (D6-s1-01: idle and system_identification were "
+        "omitted)",
+        not missing,
+        f"row={row!r} missing={missing}",
+    )
+    # Null control: the pre-fix row (idle and system_identification absent)
+    # is exactly the D6-s1-01 baseline shape.
+    _bad_row = (
+        "| Heat Pump Action | — | What the plan is doing now: `off` "
+        "(neither circuit runs), `hot_water` (only the tank heats), "
+        "`eco`, `normal`, `pre_heat` or `boost`, and `comfort` while "
+        "comfort mode holds | |"
+    )
+    _bad_missing = sorted(
+        s for s in states if s != "unknown" and f"`{s}`" not in _bad_row
+    )
+    R.check(
+        "the row check fires on the pre-fix row (null control)",
+        set(_bad_missing) == {"idle", "system_identification"},
+        repr(_bad_missing),
+    )
+
+
+# The direction each prose name stands for, keyed by duty_switch.DIRECTIONS.
+_DUTY_DIRECTION_PROSE = {"dhw_space": "hot water to heating", "space_dhw": "heating to hot water"}
+# Pre-fix sentences (6295f868a4), the null controls of check_duty_switch_claims.
+_LOST_HEAT_BAD = {
+    "configuration.md": (
+        "Once a direction has stopped the compressor on at least half of a weighted 5 or more "
+        "switches, seen on at least two calendar days (a switch weighs half after 14 days), the "
+        "plan charges that switch a share of the **Cost of one compressor start**, expects the "
+        "median measured off time as heat not delivered in the step that follows, and tries to "
+        "place hot water where no such switch follows it."
+    ),
+    "how-it-works.md": (
+        "With **Pump duty control** at Control the optimizer learns, per direction, how often a "
+        "switch it wrote stopped the compressor and for how long; once that is established, the "
+        "plan charges the switch `min(a, b) / p_max` cycles at the cycling cost times that "
+        "probability, and counts the off time as heat not delivered."
+    ),
+}
+_ENDS_SOON_BAD = (
+    "a run the plan would end within 10 minutes is not started unless the tank needs heat now "
+    "(below its minimum, or a disinfection hold)"
+)
+
+
+def _sentences_with(text: str, phrase: str) -> list[str]:
+    """The sentences of unwrapped prose that contain ``phrase``."""
+    flat = re.sub(r"\s+", " ", text)
+    return [s for s in re.split(r"(?<=[.;])\s+(?=[A-Z*(]|for |a )", flat) if phrase in s]
+
+
+def _lost_heat_direction() -> str | None:
+    """The one direction ``duty_legs.lost_share`` charges off time for, from the code."""
+    from heatpump_optimizer import duty_legs, duty_switch
+
+    charged = [
+        name for i, name in enumerate(duty_switch.DIRECTIONS)
+        if duty_legs.lost_share(tuple(0.5 * (j == i) for j in range(2)),
+                                tuple(300.0 * (j == i) for j in range(2))) > 0
+    ]
+    return charged[0] if len(charged) == 1 else None
+
+
+def _lost_heat_names(text: str, direction: str) -> bool:
+    """Every lost-heat sentence names ``direction`` and not the other one."""
+    other = next(v for k, v in _DUTY_DIRECTION_PROSE.items() if k != direction)
+    hits = _sentences_with(text, "heat not delivered")
+    return bool(hits) and all(
+        _DUTY_DIRECTION_PROSE[direction] in s and other not in s for s in hits
+    )
+
+
+def _ends_soon_held(duty: str) -> bool:
+    """``supply_hold._ends_soon`` for a cold tank, a run ending in 5 minutes, on a ``duty`` step."""
+    from datetime import datetime, timezone
+    from heatpump_optimizer import supply_hold
+
+    saved = supply_hold.step_supply, supply_hold.step_duty, supply_hold.tank_reason
+    supply_hold.step_supply = lambda *_: False
+    supply_hold.step_duty = lambda *_: duty
+    supply_hold.tank_reason = lambda *_: "tank_cold"
+    try:
+        inp = type("Inp", (), {"plan": None})()
+        return supply_hold._ends_soon(inp, None, datetime(2026, 1, 1, 0, 10, tzinfo=timezone.utc))
+    finally:
+        supply_hold.step_supply, supply_hold.step_duty, supply_hold.tank_reason = saved
+
+
+def _ends_soon_names_duty(row: str) -> bool:
+    """The on/off row's not-started exception names the step heating the tank."""
+    hits = [s for s in _sentences_with(row, "is not started unless")]
+    return bool(hits) and all("step heats the tank" in s for s in hits)
+
+
+def check_duty_switch_claims() -> None:
+    R.section("Duty-switch and supply-hold sentences match the code that decides them")
+    direction = _lost_heat_direction()
+    R.check(
+        "duty_legs.lost_share charges off time for exactly one direction (anchor)",
+        direction in _DUTY_DIRECTION_PROSE,
+        repr(direction),
+    )
+    for page in ("configuration.md", "how-it-works.md"):
+        R.check(
+            f"docs/{page}: every 'heat not delivered' sentence names the direction "
+            f"lost_share charges ({_DUTY_DIRECTION_PROSE.get(direction)}) and not the other",
+            direction is not None and _lost_heat_names(DOCS[page], direction),
+            repr(_sentences_with(DOCS[page], "heat not delivered")),
+        )
+        R.check(
+            f"docs/{page}: the lost-heat check fires on the pre-fix sentence (null control)",
+            direction is not None and not _lost_heat_names(_LOST_HEAT_BAD[page], direction),
+            _LOST_HEAT_BAD[page],
+        )
+    space_held, dhw_held = _ends_soon_held("space"), _ends_soon_held("dhw")
+    R.check(
+        "supply_hold._ends_soon holds a cold-tank start on a space step and passes it on a "
+        "hot-water step (anchor: the exemption needs a step that heats the tank)",
+        space_held and not dhw_held,
+        f"space={space_held} dhw={dhw_held}",
+    )
+    row = next((line for line in DOCS["configuration.md"].splitlines()
+                if line.startswith("| Heat pump on/off switch |")), "")
+    R.check(
+        "docs/configuration.md on/off switch row: the not-started exception names the step "
+        "heating the tank",
+        _ends_soon_names_duty(row),
+        repr(_sentences_with(row, "is not started unless")),
+    )
+    R.check(
+        "the on/off exception check fires on the pre-fix sentence (null control)",
+        not _ends_soon_names_duty(_ENDS_SOON_BAD),
+        _ENDS_SOON_BAD,
+    )
+
+
+def _row(page: str, label: str) -> str:
+    """The table row of ``page`` whose first cell is ``label``, or ``""``."""
+    return next((line for line in DOCS[page].splitlines() if line.startswith(f"| {label} |")), "")
+
+
+def _late_delta_facts() -> dict[str, object]:
+    """What the code decides for each sentence the late user-docs pass corrected.
+
+    Read by driving the deciding symbol, never a comment: the disinfection
+    write on a 5 degC step, the wood tank's one-probe means, the flow-bias
+    bounds, the both-step leg order with only hot water to heating stopping
+    the compressor, and the fixed transfer fee with no fee mode.
+    """
+    from heatpump_optimizer import const, duty_legs, external_heat, flow_lift, grid_fee
+    from heatpump_optimizer.inputs import SetpointGrid
+    from heatpump_optimizer.thermal_model import ThermalParameters, dhw_step_target_c
+
+    cycle = ThermalParameters(dhw_legionella_temp=62.0, dhw_setpoint=50.0, dhw_enabled=True)
+    fee = grid_fee.GridFeeSchedule.from_config(
+        {const.CONF_GRID_FEE_MODE: grid_fee.MODE_NONE, const.CONF_GRID_FEE_FIXED: 0.3})
+    return {
+        "cycle_write": dhw_step_target_c(cycle, True, SetpointGrid("°C", 5.0, 30.0, 75.0)),
+        "top_alone_drop": 60.0 - (external_heat.wood_mean_temperature(60.0, None) or 0.0),
+        "bottom_alone": external_heat.wood_mean_temperature(None, 40.0),
+        "bias_below": flow_lift.FLOW_BIAS_CLAMP_K,
+        "supply_max": flow_lift.FLOW_SUPPLY_MAX_C,
+        "first_leg": duty_legs.leg_rule((1.0, 0.0), (60.0, 60.0))[0],
+        "default_first": duty_legs.leg_rule((0.0, 0.0), (0.0, 0.0))[0],
+        "fixed_fee_no_mode": fee.fixed,
+    }
+
+
+#: The pre-fix sentences, verbatim: each check below must refuse its own.
+_LATE_DELTA_BAD = {
+    "cycle": "on the entity's step rounded up and never above the entity's maximum.",
+    "wood": "| Wood tank bottom sensor | none | a sensor | Both are needed for the remaining-energy "
+            "estimate; one alone is read conservatively. |",
+    "bias": "**The learned offset is capped at 15 °C**, so on a plant whose supply runs well "
+            "above the modelled curve only part of the extra work is priced.",
+    "split": "hot water first, for the step's hot-water power over its total power, times 15 "
+             "minutes, then heating for the rest.",
+    "fee": "| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every "
+           "hour, on top of any rules. |",
+}
+
+
+def _late_delta_true(facts: dict[str, object]) -> dict[str, object]:
+    """Per corrected sentence, a predicate over a text: does it say what ``facts`` decide?"""
+    drop, below, top = facts["top_alone_drop"], facts["bias_below"], facts["supply_max"]
+    return {
+        "cycle": lambda t: f"a 62 °C cycle writes {facts['cycle_write']:g} °C" in t,
+        "wood": lambda t: f"{drop:g} °C colder" in t and (
+            facts["bottom_alone"] is None and "bottom alone gives no" in t),
+        "bias": lambda t: f"at most {below:g} K below" in t and f"at most to a {top:g} °C supply" in t,
+        "split": lambda t: (facts["first_leg"], facts["default_first"]) == ("space", "dhw") and (
+            "Hot water runs first, unless the switch from hot water to heating" in t
+            and "then heating runs first" in t),
+        "fee": lambda t: facts["fixed_fee_no_mode"] == 0.0 and "Ignored while the grid transfer fee is None" in t,
+    }
+
+
+def check_late_delta_claims() -> None:
+    R.section("Late user-docs delta: corrected sentences match the code that decides them")
+    facts = _late_delta_facts()
+    says = _late_delta_true(facts)
+    config = DOCS["configuration.md"]
+    split = re.search(r"- \*\*A step the plan gives both duties is split\*\*.*?\n- ", config, re.S)
+    texts = {
+        "cycle": next(iter(_sentences_with(config, "62 °C cycle")), ""),
+        "wood": _row("configuration.md", "Wood tank bottom sensor"),
+        "bias": _row("configuration.md", "Price the supply temperature lift (no mixing valve)"),
+        "split": split.group(0) if split else "",
+        "fee": _row("configuration.md", "Fixed transfer fee"),
+    }
+    for key, text in texts.items():
+        R.check(f"docs/configuration.md {key}: the sentence states what the code decides",
+                says[key](text), f"{facts} {text[:300]!r}")
+        R.check(f"the {key} check refuses the pre-fix sentence (null control)",
+                not says[key](_LATE_DELTA_BAD[key]), _LATE_DELTA_BAD[key])
+    setup = DOCS["setup.md"]
+    R.check("docs/setup.md wood tank bottom sensor: one-probe readings as the code decides",
+            says["wood"](setup), repr(_sentences_with(setup, "bottom alone")))
+    R.check("docs/setup.md and docs/configuration.md no longer say both wood probes are needed",
+            "Both are needed" not in setup and "Both are needed" not in config,
+            repr(_sentences_with(setup + config, "Both are needed")))
+
+
+def check_disabled_by_default_without_hot_water() -> None:
+    R.section(
+        "Disabled-by-default census covers a no-hot-water install too "
+        "(#1645 D6-s1-03)"
+    )
+    import asyncio
+
+    from harness import FakeEntry, FakeHass
+    from heatpump_optimizer import const
+    import heatpump_optimizer as integ
+    from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+    def census(extra):
+        hass, entry = FakeHass(), FakeEntry(
+            data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home", **extra}
+        )
+        coord = HeatPumpOptimizerCoordinator(hass, entry)
+        entry.runtime_data = coord
+        out = []
+        for platform in integ.PLATFORM_LIST:
+            mod = importlib.import_module(f"heatpump_optimizer.{platform}")
+            added: list = []
+            asyncio.run(
+                mod.async_setup_entry(hass, entry, lambda e, *a, **k: added.extend(e))
+            )
+            for e in added:
+                key = getattr(e, "_attr_translation_key", None)
+                default = getattr(
+                    e,
+                    "entity_registry_enabled_default",
+                    getattr(e, "_attr_entity_registry_enabled_default", True),
+                )
+                out.append((str(platform), key, bool(default)))
+        return out
+
+    no_hot_water = census({})
+    R.check(
+        "a Finish-setup-now install (no hot water) still constructs "
+        "entities to census (anchor)",
+        bool(no_hot_water),
+        f"{len(no_hot_water)} entities",
+    )
+    disabled_keys = {key for _plat, key, default in no_hot_water if not default and key}
+    # The six DHW entities gated on has_hot_water() alone (no separate
+    # probe), per entity.DHWEntityMixin and F8.2's carry note.
+    dhw_only_keys = {
+        "dhw_cost", "dhw_energy", "dhw_heating_cost",
+        "dhw_heating_schedule", "dhw_setpoint_advisor", "plan_dhw_heating",
+    }
+    present = {k for k in dhw_only_keys if k in {key for _p, key, _d in no_hot_water}}
+    R.check(
+        "the six hot-water-gated translation keys this check names are "
+        "still real entities (anchor)",
+        present == dhw_only_keys,
+        f"missing from the census entirely: {sorted(dhw_only_keys - present)}",
+    )
+    still_enabled = sorted(dhw_only_keys - disabled_keys)
+    R.check(
+        "every one of the six is disabled by default on a no-hot-water "
+        "install (the property D6-s1-03 measured; a translation-key "
+        "rename would fail the anchor above instead of silently passing "
+        "here)",
+        not still_enabled,
+        f"unexpectedly enabled: {still_enabled}",
+    )
+    # README text: the paragraph documenting them must say so, by name.
+    six_names = [
+        "DHW Cost (lifetime)", "DHW Energy (lifetime)",
+        "DHW Heating Cost (next 24 h)", "DHW Heating Schedule",
+        "DHW Setpoint Advisor", "Plan DHW Heating (next 24 h)",
+    ]
+    prose = " ".join(ln for ln in README.splitlines() if not ln.startswith("|"))
+    missing_in_prose = [
+        name for name in six_names
+        if not any(
+            name in sent and "disabled by default" in sent
+            for sent in re.split(r"(?<=\.)\s", prose)
+        )
+    ]
+    R.check(
+        "README documents all six as disabled by default, in one sentence "
+        "naming each (D6-s1-03)",
+        not missing_in_prose,
+        f"undocumented: {missing_in_prose}",
+    )
+    # Null control: none of the six were named anywhere near "disabled by
+    # default" before this PR (the paragraph did not exist).
+    _bad_prose = (
+        "Since #1335 that list is every entity the ordinary install cannot "
+        "light. "
+    )
+    _bad_missing = [
+        name for name in six_names
+        if not any(
+            name in sent and "disabled by default" in sent
+            for sent in re.split(r"(?<=\.)\s", _bad_prose)
+        )
+    ]
+    R.check(
+        "the prose check fires when the six are undocumented (null "
+        "control)",
+        _bad_missing == six_names,
+        repr(_bad_missing),
+    )
+
+
+def check_multistart_starting_points() -> None:
+    R.section(
+        "how-it-works.md's multi-start count matches the optimizer "
+        "(#1645 D6-s2-04)"
+    )
+    from unittest import mock
+
+    from heatpump_optimizer import optimizer as optmod
+    import stress
+
+    starts_seen: list[int] = []
+    orig = optmod._multi_start_minimize
+
+    def spy(objective, candidates, *a, **k):
+        starts_seen.append(len(candidates))
+        return orig(objective, candidates, *a, **k)
+
+    with mock.patch.object(optmod, "_multi_start_minimize", spy):
+        stress.build_case(season="winter", two_zone=False, dhw=False)
+    R.check(
+        "the space solve was exercised at least once (anchor)",
+        bool(starts_seen),
+        repr(starts_seen),
+    )
+    n = starts_seen[0] if starts_seen else -1
+    text = DOCS["how-it-works.md"]
+    R.check(
+        "how-it-works.md no longer claims a fixed count of two starting "
+        "points now that the optimizer scores more (D6-s2-04: measured "
+        f"{n})",
+        "two starting points" not in text.lower() and "two candidate" not in text.lower(),
+        "still present" if "two starting points" in text.lower() else "ok",
+    )
+    m = re.search(r"scores (\w+) candidate", text)
+    _NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
+    R.check(
+        "...and the number it does state matches what the optimizer runs "
+        "(anchor + D6-s2-04)",
+        m is not None and _NUMBER_WORDS.get(m.group(1)) == n,
+        f"doc states {m.group(1) if m else None!r}, measured {n}",
+    )
+    # Corpus-wide (I5): every count of starting points anywhere in the reader
+    # docs is the count the optimizer runs, not only the sentence above.
+    claims = multistart_count_claims(CORPUS)
+    R.check(
+        "every starting-point count the corpus states is the count the "
+        f"optimizer runs (I5, measured {n})",
+        all(v == n for _, v in claims),
+        repr(claims),
+    )
+    R.check(
+        "the corpus count fires on a stale count (null control)",
+        multistart_count_claims({"probe.md": f"It runs from {n + 1} starting points."})
+        == [("probe.md", n + 1)],
+    )
+    # Null control: the exact pre-fix sentence is what this check exists to
+    # catch.
+    _bad_text = (
+        "**Two starting points, not one.** The space solve runs from two "
+        "candidate initial guesses and keeps the better result."
+    )
+    R.check(
+        "the claim check fires on the pre-fix sentence (null control)",
+        "two starting points" in _bad_text.lower(),
+        _bad_text,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Prose counts of a tree-measurable set (R9-RO-PC1; the I5 barrier's unit)
+# ---------------------------------------------------------------------------
+#
+# What the arms above cannot see. Each of them is keyed to a sentence: C32
+# reads architecture.md's opening line, entities.py's #939 block reads five
+# named sentences in that one document, check_service_fields reads
+# configuration.md's service paragraphs, the arm above reads one how-it-works
+# sentence and then the whole corpus for one noun. Two seats cut from one tip
+# made the BYTE-IDENTICAL prose edits to architecture.md -- 74 modules to 75,
+# 27 of the 74 to 27 of the 75, the other 46 to 47 -- and put the new
+# module-map row on different lines; git merged them rc 0, conflicted on
+# nothing, and the merged tree held 76 modules, so the sentence that landed
+# was false. Seven stale counts planted across the reader corpus (a README
+# field total, its editable-page count, two option-page counts, a setup-page
+# one, the card's page count, an ECL110 settings count) left entities.py at
+# 29 reds before and 29 after, claims.py at zero false, and this script's 160
+# checks and harness_headers' 109 all passing.
+#
+# The unit is the SHAPE, not the sentence. The multistart arm above already
+# states the promise for one noun -- "every count of starting points anywhere
+# in the reader docs is the count the optimizer runs, not only the sentence
+# above" -- and this arm is that same unit extended to every count of a
+# tree-measurable set the corpus states. A new sentence of a pinned shape
+# enters the check the moment it lands, wherever it lands.
+#
+# The rows the shapes deliberately do NOT claim, and what reads them:
+# `tools/audit/prose_counts_census.py` enumerates every count shape
+# in the corpus and names its reader, and the PR that landed this arm carries
+# that enumeration against a disposition for each. The two limits worth
+# naming here: a count spelled as a word ("five pages", "twelve files") is
+# not read by any shape, and the ~60 `steps` cells in configuration.md's
+# tables are compared only as C30's Default and C31's min/max -- planting
+# 0.5 steps to 0.7 steps leaves every instrument green.
+
+# (name, regex, ((group, quantity template), ...)). Narrow shapes first:
+# a span a shape has already claimed is not read again, which is what makes
+# "The other 47 modules" the HA-free count and not also a module total, and
+# "27 of the 75 modules" yield both the importer count and the total.
+_PROSE_COUNT_SHAPES: tuple[tuple[str, re.Pattern[str], tuple[tuple[str, str], ...]], ...] = (
+    ("the Home-Assistant-free module count",
+     re.compile(r"The other (?P<n>\d+) modules\b"),
+     (("n", "modules_free_of_homeassistant"),)),
+    ("the module-level importer count",
+     re.compile(r"\b(?P<n>\d+) of the \d+ modules\b"),
+     (("n", "modules_importing_homeassistant"),)),
+    ("the opening module total and its importer count",
+     re.compile(r"\b(?P<n>\d+) modules, of which\s+(?P<m>\d+) import"),
+     (("n", "modules"), ("m", "modules_importing_homeassistant"))),
+    ("the editable options-page count",
+     re.compile(r"(?P<n>\d+) you can edit plus a read-only overview"),
+     (("n", "editable_options_pages"),)),
+    ("the options-page count",
+     re.compile(r"\b(?P<n>\d+) (?:option|options) pages\b"),
+     (("n", "options_pages"),)),
+    ("the options-page count behind a menu",
+     re.compile(r"menu of (?P<n>\d+) pages\b"),
+     (("n", "options_pages"),)),
+    ("the options-page count in the configuration heading",
+     re.compile(r"There are \*\*(?P<n>\d+) pages\*\*"),
+     (("n", "options_pages"),)),
+    ("a named service's field count",
+     re.compile(r"\b(?P<n>\d+) fields of `(?P<svc>\w+)`"),
+     (("n", "fields_of_{svc}"),)),
+    ("the service-definition count",
+     re.compile(r"\b(?P<n>\d+) service definitions\b"),
+     (("n", "services"),)),
+    ("the services count",
+     re.compile(r"\b(?P<n>\d+) services\b"),
+     (("n", "services"),)),
+    ("the module total",
+     re.compile(r"\b(?P<n>\d+) modules\b"),
+     (("n", "modules"),)),
+)
+
+
+def _imports_homeassistant(node: ast.AST) -> bool:
+    """Is this statement an import of the ``homeassistant`` package?"""
+    if isinstance(node, ast.Import):
+        return any(alias.name.split(".")[0] == "homeassistant" for alias in node.names)
+    if isinstance(node, ast.ImportFrom):
+        return bool(node.module) and node.module.split(".")[0] == "homeassistant"
+    return False
+
+
+def _module_level(body):
+    """Module-scope statements, descending into a top-level try/if body only.
+
+    An import inside a top-level ``try`` or ``if`` still runs when the module
+    is imported, so the module cannot be imported without ``homeassistant``
+    -- which is what the boundary sentence claims. ``inputs.py``'s
+    function-level import is the deliberate exception and is not module
+    level.
+
+    This predicate is the one entities.py's #939 derived figures use, and the
+    copy is deliberate: entities.py runs its 2000-plus checks at import, so
+    its definition cannot be imported from here, and lifting both into a
+    third module would add a file to two scripts' measured closures, which
+    cannot be re-recorded off Linux (gate-scoping.md).
+    """
+    for node in body:
+        yield node
+        if isinstance(node, ast.Try):
+            for suite in (node.body, node.orelse, node.finalbody):
+                yield from _module_level(suite)
+            for handler in node.handlers:
+                yield from _module_level(handler.body)
+        elif isinstance(node, ast.If):
+            yield from _module_level(node.body)
+            yield from _module_level(node.orelse)
+
+
+def tree_count_facts() -> dict[str, int]:
+    """Every quantity a prose-count shape names, derived from the tree.
+
+    Nothing here is carried: the module totals come from the package glob
+    this script already parses, the boundary from an AST walk of those same
+    trees, the services and their field counts from the registered
+    voluptuous schemas (the helper the F8.3 arm above uses, never a second
+    reading of services.yaml), and the page counts from the registered
+    ``_OPTION_PAGES`` table with the pages the translation catalog actually
+    renders a field on.
+    """
+    from heatpump_optimizer import config_flow
+
+    module_level = {
+        name for name, tree in _PKG_TREES.items()
+        if any(_imports_homeassistant(node) for node in _module_level(tree.body))
+    }
+    anywhere = {
+        name for name, tree in _PKG_TREES.items()
+        if any(_imports_homeassistant(node) for node in ast.walk(tree))
+    }
+    pages = [page.step for page in config_flow._OPTION_PAGES]
+    rendering = {step for steps in options_field_pages()[1].values() for step in steps}
+    services = registered_service_fields()
+    return {
+        "modules": len(_PKG_TREES),
+        "modules_importing_homeassistant": len(module_level),
+        "modules_free_of_homeassistant": len(_PKG_TREES) - len(anywhere),
+        "services": len(services),
+        "options_pages": len(pages),
+        "editable_options_pages": sum(1 for step in pages if step in rendering),
+        **{f"fields_of_{name}": len(keys - {"entry_id"}) for name, keys in services.items()},
+    }
+
+
+def prose_count_scan(
+    corpus: dict[str, str], facts: dict[str, int] | None = None
+) -> tuple[list[tuple[str, int, int, int, str, int, int | None]], list[str]]:
+    """(rows, unread) for every count of a tree-measurable set the corpus states.
+
+    A row is (document, line, span start, span end, quantity, stated,
+    measured), the span being the digits a shape claimed -- what
+    ``tools/audit/prose_counts_census.py`` reads back to tell a count this
+    arm reads from one it does not, so the two cannot disagree about which
+    claim a shape took. ``measured`` is None where the quantity template
+    named nothing the tree measures: a ``fields of `x`` claim for an
+    unregistered ``x`` is refused rather than compared. ``unread`` names each
+    shape the corpus states nowhere, which is the anchor -- the absence of
+    the claim's subject -- so the census cannot go green by reading less than
+    it was written to read.
+    """
+    if facts is None:
+        facts = tree_count_facts()
+    rows: list[tuple[str, int, int, int, str, int, int | None]] = []
+    seen = [0] * len(_PROSE_COUNT_SHAPES)
+    for document, text in corpus.items():
+        for lineno, line in enumerate(text.splitlines(), 1):
+            claimed: list[tuple[int, int]] = []
+            for index, (_name, pattern, quantities) in enumerate(_PROSE_COUNT_SHAPES):
+                for match in pattern.finditer(line):
+                    spans = [(match.start(g), match.end(g)) for g, _ in quantities]
+                    if any(any(a <= start < b for a, b in claimed) for start, _ in spans):
+                        continue
+                    claimed.extend(spans)
+                    seen[index] += 1
+                    groups = match.groupdict()
+                    for group, template in quantities:
+                        quantity = template.format(**groups)
+                        rows.append(
+                            (document, lineno, match.start(group), match.end(group),
+                             quantity, int(match.group(group)), facts.get(quantity))
+                        )
+    unread = [
+        name for index, (name, _pattern, _quantities) in enumerate(_PROSE_COUNT_SHAPES)
+        if not seen[index]
+    ]
+    return rows, unread
+
+
+def prose_count_census(
+    corpus: dict[str, str], facts: dict[str, int] | None = None
+) -> tuple[list[tuple[str, int, str, int, int | None]], list[str]]:
+    """``prose_count_scan``'s rows without the span, for the arm's own checks."""
+    rows, unread = prose_count_scan(corpus, facts)
+    return [(document, line, quantity, stated, measured)
+            for document, line, _a, _b, quantity, stated, measured in rows], unread
+
+
+def check_prose_tree_counts() -> None:
+    R.section(
+        "every prose count of a tree-measurable set is the tree's "
+        "(R9-RO-PC1, I5)"
+    )
+    facts = tree_count_facts()
+    claims, unread = prose_count_census(CORPUS, facts)
+    tree_wide = ("modules", "modules_importing_homeassistant",
+                 "modules_free_of_homeassistant", "services",
+                 "options_pages", "editable_options_pages")
+    R.check(
+        "every tree-wide quantity a count shape names measured positive "
+        "(anchor: a measurement that read nothing cannot pass a census)",
+        all(facts[key] > 0 for key in tree_wide),
+        repr({key: facts[key] for key in tree_wide}),
+    )
+    R.check(
+        "exactly one options page renders no field, so 'plus a read-only "
+        "overview' is still singular (anchor for the editable-page count)",
+        facts["options_pages"] - facts["editable_options_pages"] == 1,
+        f"{facts['options_pages']} pages, {facts['editable_options_pages']} editable",
+    )
+    R.check(
+        "the census read a positive number of counts (anchor: not green by "
+        "skipping)",
+        bool(claims),
+        f"{len(claims)} counts in {len(CORPUS)} documents",
+    )
+    R.check(
+        "the corpus states every count shape at least once, so a reader "
+        "document deleted from it refuses instead of passing",
+        not unread,
+        f"no occurrence of: {unread}",
+    )
+    wrong = [row for row in claims if row[4] != row[3]]
+    R.check(
+        "every count of a tree-measurable set the reader corpus states is "
+        f"the tree's ({len(claims)} counts over {len(_PROSE_COUNT_SHAPES)} "
+        "shapes)",
+        not wrong,
+        "; ".join(
+            f"{document}:{line} {quantity}: documented={stated} "
+            + ("measured=unknown, no such measurement" if measured is None
+               else f"measured={measured}")
+            for document, line, quantity, stated, measured in wrong
+        ),
+    )
+    # Null control: a narrow shape claims its span, so the HA-free sentence
+    # yields one claim and not also a module total.
+    probe, _ = prose_count_census({"probe.md": "The other 99 modules are free."}, facts)
+    R.check(
+        "a narrow shape claims its span first, so the HA-free count is not "
+        "also read as the module total (null control)",
+        [quantity for _doc, _line, quantity, _stated, _measured in probe]
+        == ["modules_free_of_homeassistant"],
+        repr(probe),
+    )
+    # Null control: the stale count the class is named for, planted in both
+    # documents that state it. Keyed on the planted quantity, because the
+    # corpus this control runs over may be stale for some *other* reason --
+    # the arm was first run at the merge tree below, where architecture.md's
+    # module counts are the false ones and this control's assertion is not
+    # about them.
+    stale = {
+        name: text.replace(f"the {facts['options_pages']} options pages", "the 99 options pages", 1)
+        for name, text in CORPUS.items()
+    }
+    rows, _ = prose_count_census(stale, facts)
+    named = sorted({document for document, _line, quantity, stated, measured in rows
+                    if quantity == "options_pages" and stated != measured})
+    R.check(
+        "a stale options-page count planted in the two documents that state "
+        "it is FALSE in both (null control)",
+        named == ["configuration.md", "setup.md"],
+        repr(named),
+    )
+    # Null control: deleting a reader document refuses the shapes only it
+    # states. The arm cannot go green by reading less.
+    _, lost = prose_count_census(
+        {name: text for name, text in CORPUS.items() if name != "architecture.md"}, facts
+    )
+    R.check(
+        "deleting architecture.md refuses the module shapes only it states "
+        "(null control: failure-closed, not silent)",
+        bool(lost),
+        f"unread after the deletion: {lost}",
+    )
+    # Null control: a claim whose service is not registered has no
+    # measurement, and is refused rather than compared.
+    orphan, _ = prose_count_census(
+        {"probe.md": "The 5 fields of `no_such_service` are required."}, facts
+    )
+    R.check(
+        "a field count naming an unregistered service is refused, not "
+        "compared (null control)",
+        [measured for _doc, _line, _q, _stated, measured in orphan] == [None],
+        repr(orphan),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Arms 6 and 7 -- quality_scale.yaml censuses (#1545, #1546)
+# ---------------------------------------------------------------------------
+
+QUALITY_SCALE = (PKG / "quality_scale.yaml").read_text()
+_PKG_TREES = {p.name: ast.parse(p.read_text(), str(p)) for p in sorted(PKG.glob("*.py"))}
+
+
+def _rule_block(rule: str) -> str:
+    """The yaml text of one quality-scale rule, through the next rule's key."""
+    m = re.search(rf"^  {re.escape(rule)}:(.*?)(?=^  [a-z-]+:|\Z)", QUALITY_SCALE, re.M | re.S)
+    return m.group(0) if m else ""
+
+
+def _names_bare_entry(node: ast.AST | None) -> bool:
+    """Whether an annotation mentions ``ConfigEntry`` rather than the typed alias.
+
+    Walks the whole expression, so a union, an Optional and a subscript are
+    seen as well as the bare name; a string annotation is parsed first.
+    """
+    if node is None:
+        return False
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        try:
+            node = ast.parse(node.value, mode="eval")
+        except SyntaxError:
+            return False
+    return any(
+        (isinstance(n, ast.Name) and n.id == "ConfigEntry")
+        or (isinstance(n, ast.Attribute) and n.attr == "ConfigEntry")
+        for n in ast.walk(node)
+    )
+
+
+def bare_entry_annotations(trees: dict[str, ast.Module] | None = None) -> list[str]:
+    """Every parameter, return and variable annotation naming the bare ConfigEntry."""
+    hits: list[str] = []
+    for name, tree in (_PKG_TREES if trees is None else trees).items():
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                a = node.args
+                for arg in a.posonlyargs + a.args + a.kwonlyargs + [a.vararg, a.kwarg]:
+                    if arg is not None and _names_bare_entry(arg.annotation):
+                        hits.append(f"{name}:{node.lineno} {node.name}({arg.arg})")
+                if _names_bare_entry(node.returns):
+                    hits.append(f"{name}:{node.lineno} {node.name} -> return")
+            elif isinstance(node, ast.AnnAssign) and _names_bare_entry(node.annotation):
+                hits.append(f"{name}:{node.lineno} {ast.unparse(node.target)}")
+    return hits
+
+
+_EXC_FAMILY = {
+    "HomeAssistantError", "ServiceValidationError", "IntegrationError",
+    "ConfigEntryError", "ConfigEntryNotReady", "ConfigEntryAuthFailed",
+    "UpdateFailed",
+}
+
+
+def _callee(call: ast.AST) -> str | None:
+    if not isinstance(call, ast.Call):
+        return None
+    f = call.func
+    return f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else None
+
+
+def _translated(call: ast.Call) -> bool:
+    return {"translation_domain", "translation_key"} <= {kw.arg for kw in call.keywords}
+
+
+def exception_helpers(trees: dict[str, ast.Module] | None = None) -> dict[str, int]:
+    """Key-forwarding raise helpers: name -> the position of their key parameter.
+
+    #1546 routed the coordinator's UpdateFailed raises through one helper, so
+    the census counts each CALL of a helper as a site rather than losing it.
+    A helper is a module-level function in which every family exception it
+    builds is translated and takes ``translation_key`` from one of its own
+    parameters; any other function's family calls are counted where they are.
+    """
+    out: dict[str, int] = {}
+    for tree in (_PKG_TREES if trees is None else trees).values():
+        for node in tree.body:
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            params = [a.arg for a in node.args.posonlyargs + node.args.args]
+            built = [c for c in ast.walk(node) if _callee(c) in _EXC_FAMILY]
+            fwd = {
+                kw.value.id
+                for c in built
+                for kw in c.keywords
+                if kw.arg == "translation_key" and isinstance(kw.value, ast.Name)
+            }
+            if built and all(_translated(c) for c in built) and len(fwd) == 1 and fwd <= set(params):
+                out[node.name] = params.index(fwd.pop())
+    return out
+
+
+def exception_raise_census(
+    trees: dict[str, ast.Module] | None = None,
+) -> tuple[int, list[str], set[str]]:
+    """(exception sites, the untranslated ones, the translation keys they name).
+
+    A site is every construction of a family exception outside a helper,
+    every call of a helper, and every ``raise`` of a bare family class --
+    construction rather than ``raise``, so an error built into a variable
+    first, or returned by a factory, is still counted.
+    """
+    trees = _PKG_TREES if trees is None else trees
+    helpers = exception_helpers(trees)
+    total, missing, keys = 0, [], set()
+    for name, tree in trees.items():
+        inside = {
+            id(n)
+            for f in tree.body
+            if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef)) and f.name in helpers
+            for n in ast.walk(f)
+        }
+        for node in ast.walk(tree):
+            where = f"{name}:{getattr(node, 'lineno', 0)}"
+            callee = _callee(node)
+            key: ast.AST | None = None
+            if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Name) and node.exc.id in _EXC_FAMILY:
+                total += 1
+                missing.append(f"{where} {node.exc.id} (no call)")
+            elif callee in _EXC_FAMILY and id(node) not in inside:
+                total += 1
+                if not _translated(node):
+                    missing.append(f"{where} {callee}")
+                key = next((kw.value for kw in node.keywords if kw.arg == "translation_key"), None)
+            elif callee in helpers:
+                total += 1
+                pos = helpers[callee]
+                key = node.args[pos] if len(node.args) > pos else None
+                if key is None:
+                    missing.append(f"{where} {callee}() names no key")
+            if key is not None:
+                keys.add(key.value if isinstance(key, ast.Constant) else f"<{where}>")
+    return total, missing, keys
+
+
+# Self-test fixtures: synthetic modules with every defect shape the censuses
+# must see, and a clean module they must pass. A census that matched nothing,
+# or read every raise as translated, would leave the real tree's arms green
+# (the #1590 review measured both), so each census is held to exact results
+# on these every run. _RAISE_BAD's two extra helpers pin the helper rule: a
+# key-forwarding helper that omits the domain is not a helper (its own raise
+# is refused), and a helper's key may be any positional parameter.
+_TYPING_BAD = """
+from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry
+def name_param(entry: ConfigEntry) -> None: ...
+def attr_param(entry: config_entries.ConfigEntry) -> None: ...
+def posonly(entry: ConfigEntry, /) -> None: ...
+def kwonly(*, entry: ConfigEntry[X]) -> None: ...
+def star(*entries: ConfigEntry, **named: ConfigEntry) -> None: ...
+def union_return(n: int) -> config_entries.ConfigEntry | None: ...
+def stringly(entry: "ConfigEntry") -> None: ...
+async def coroutine(entry: ConfigEntry) -> None: ...
+class Flow:
+    def __init__(self) -> None:
+        self.entry: config_entries.ConfigEntry | None = None
+"""
+_TYPING_BAD_HITS = [
+    "m.py:4 name_param(entry)",
+    "m.py:5 attr_param(entry)",
+    "m.py:6 posonly(entry)",
+    "m.py:7 kwonly(entry)",
+    "m.py:8 star(entries)",
+    "m.py:8 star(named)",
+    "m.py:9 union_return -> return",
+    "m.py:10 stringly(entry)",
+    "m.py:11 coroutine(entry)",
+    "m.py:14 self.entry",
+]
+_TYPING_CLEAN = """
+def ok(entry: HeatPumpOptimizerConfigEntry, n: int, /, *a: str, k: ConfigEntryX = None) -> HeatPumpOptimizerConfigEntry: ...
+x: "HeatPumpOptimizerConfigEntry | None" = None
+"""
+_RAISE_BAD = """
+def _raise_helper(key, message, cause=None, **ph):
+    raise UpdateFailed(message, translation_domain=DOMAIN, translation_key=key) from cause
+def _literal_key(message):
+    return HomeAssistantError(message, translation_domain=DOMAIN, translation_key="lit")
+def _untranslated_factory(message):
+    return UpdateFailed(message)
+def _half_helper(key, message):
+    raise UpdateFailed(message, translation_key=key)
+def _second_key(message, key):
+    raise HomeAssistantError(message, translation_domain=DOMAIN, translation_key=key)
+def sites():
+    raise UpdateFailed("x")
+    raise ServiceValidationError(translation_domain=DOMAIN)
+    raise ServiceValidationError(translation_key="k1")
+    raise exceptions.HomeAssistantError("y", translation_domain=DOMAIN, translation_key="k2")
+    raise ConfigEntryNotReady
+    _raise_helper("k3", "m")
+    _raise_helper(key="k4", message="m")
+    _half_helper("k5", "m")
+    _second_key("m", "k6")
+    raise ValueError("not in the family")
+"""
+_RAISE_BAD_RESULT = (
+    11,
+    [
+        "m.py:7 UpdateFailed",
+        "m.py:9 UpdateFailed",
+        "m.py:13 UpdateFailed",
+        "m.py:14 ServiceValidationError",
+        "m.py:15 ServiceValidationError",
+        "m.py:17 ConfigEntryNotReady (no call)",
+        "m.py:19 _raise_helper() names no key",
+    ],
+    {"lit", "<m.py:9>", "k1", "k2", "k3", "k6"},
+)
+_RAISE_CLEAN = """
+def _raise_helper(key, message):
+    raise UpdateFailed(message, translation_domain=DOMAIN, translation_key=key)
+def sites():
+    raise ServiceValidationError(translation_domain=DOMAIN, translation_key="a")
+    raise exceptions.UpdateFailed(translation_domain=DOMAIN, translation_key="b")
+    _raise_helper("c", "m")
+    raise ValueError("not in the family")
+"""
+
+
+def _fixture(src: str) -> dict[str, ast.Module]:
+    return {"m.py": ast.parse(src)}
+
+
+def check_census_self_test() -> None:
+    """Hold both censuses to exact results on the synthetic fixtures above."""
+    R.section("quality_scale census self-test (#1545, #1546)")
+    hits = bare_entry_annotations(_fixture(_TYPING_BAD))
+    R.check(
+        "the typing census finds every bare ConfigEntry shape, and only those",
+        hits == _TYPING_BAD_HITS,
+        f"got {hits}",
+    )
+    clean = bare_entry_annotations(_fixture(_TYPING_CLEAN))
+    R.check("the typing census passes the alias and look-alike names (null control)", clean == [], repr(clean))
+    total, missing, keys = exception_raise_census(_fixture(_RAISE_BAD))
+    R.check(
+        "the exception census counts every site, refuses each untranslated one, and reads each key",
+        (total, sorted(missing), keys) == (_RAISE_BAD_RESULT[0], sorted(_RAISE_BAD_RESULT[1]), _RAISE_BAD_RESULT[2]),
+        f"got {(total, sorted(missing), sorted(keys))}",
+    )
+    R.check(
+        "the exception census passes a translated module (null control)",
+        exception_raise_census(_fixture(_RAISE_CLEAN)) == (3, [], {"a", "b", "c"}),
+        repr(exception_raise_census(_fixture(_RAISE_CLEAN))),
+    )
+
+
+def _exception_keys(path: pathlib.Path) -> set[str]:
+    return set(json.loads(path.read_text()).get("exceptions", {}))
+
+
+def check_quality_scale() -> None:
+    R.section("quality_scale.yaml censuses (#1545, #1546)")
+    typing_rule = _rule_block("strict-typing")
+    claimed = re.search(r"qs_entry_param_bare=(\d+)", typing_rule)
+    # Anchor: the claim is where the check reads it; a reworded comment is red.
+    R.check("strict-typing states qs_entry_param_bare (anchor)", claimed is not None, typing_rule[:200])
+    bare = bare_entry_annotations()
+    R.check(
+        "qs_entry_param_bare in quality_scale.yaml equals the annotation census",
+        claimed is not None and int(claimed.group(1)) == len(bare),
+        f"claimed {claimed.group(1) if claimed else None}, census {len(bare)}: {bare}",
+    )
+    # The census itself is held to exact results by check_census_self_test.
+
+    status = _rule_block("exception-translations").split(":", 1)[1]
+    done = re.match(r"\s*(?:status:\s*)?done\b", status) is not None
+    R.check("quality_scale.yaml marks exception-translations done (anchor)", done, status[:80])
+    total, missing, keys = exception_raise_census()
+    R.check("the census finds exception sites (anchor)", total > 0, f"{total} site(s)")
+    R.check(
+        "every exception site carries translation_domain and translation_key",
+        not missing,
+        f"{len(missing)} of {total}: {missing}",
+    )
+    for label, path in (
+        ("strings.json", PKG / "strings.json"),
+        ("translations/en.json", PKG / "translations" / "en.json"),
+        *((f"translations/{l}.json", PKG / "translations" / f"{l}.json") for l in TRANSLATED_LANGS),
+    ):
+        absent = sorted(keys - _exception_keys(path))
+        R.check(f"{label} has an exceptions entry for every raised key", not absent, repr(absent))
+
+
+# ---------------------------------------------------------------------------
+# Round 9 F8.3: quick-setup storage promises vs the answers (D5-s1-02),
+# the card-version banner vs the stamp (D5-s1-03), the curve-bias weekly
+# bound (D6-s2-03), the currency fallback claim (D6-s1-81), and the Services
+# paragraphs vs the registered schemas (the I5 barrier arm, landed early per
+# F8.1's carry). Each arm derives both sides and carries an anchor.
+# ---------------------------------------------------------------------------
+
+_STORAGE_PROMISE = re.compile(r"stores cheap heat|two-tank physics")
+_VALVE_GUARD = re.compile(r"mixing valve|valve mode", re.I)
+
+
+def quick_setup_storage_facts() -> tuple[bool, bool, bool, bool]:
+    """(buffer_is_store, two_tank_modelled) for the all-yes quick setup, then
+    the same two with a throttling mixing-valve mode added.
+
+    The five-question page never asks about the mixing valve, but
+    ``thermal_model`` gates both properties on one: ``buffer_is_store``
+    requires a throttling valve as well as a store-sized tank, and
+    ``two_tank_modelled`` requires the four-way topology, which the same
+    valve enables. The second pair is the control that the predicates
+    distinguish a throttling install from the quick setup's default valve.
+    """
+    from heatpump_optimizer import const, mixing_valve, quick_setup
+    from heatpump_optimizer.thermal_model import ThermalParameters
+
+    answers = {
+        quick_setup.FIELD_TWO_ZONE: True,
+        quick_setup.FIELD_BUFFER_TANK: True,
+        quick_setup.FIELD_DHW_TANK: True,
+        quick_setup.FIELD_WOOD_FURNACE: True,
+        quick_setup.FIELD_WOOD_BUFFER_TANK: True,
+        const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_top",
+        const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.wood_bottom",
+    }
+    cfg = quick_setup.derive(dict(answers))
+    p = ThermalParameters.from_config(cfg)
+    throttle = sorted(mixing_valve.THROTTLING_MODES)[0]
+    c = ThermalParameters.from_config({**cfg, const.CONF_MIXING_VALVE_MODE: throttle})
+    return p.buffer_is_store, p.two_tank_modelled, c.buffer_is_store, c.two_tank_modelled
+
+
+def _storage_unguarded(section: str) -> list[str]:
+    """The promise lines in a five-questions section that name no precondition."""
+    return [
+        line
+        for line in section.splitlines()
+        if _STORAGE_PROMISE.search(line) and not _VALVE_GUARD.search(line)
+    ]
+
+
+def check_quick_setup_promises() -> None:
+    R.section("quick-setup storage promises vs what the answers build (D5-s1-02)")
+    bis, ttm, cbis, cttm = quick_setup_storage_facts()
+    R.check(
+        "the all-yes quick setup builds neither a store nor the two-tank model",
+        not bis and not ttm,
+        f"buffer_is_store={bis} two_tank_modelled={ttm}",
+    )
+    R.check(
+        "with a throttling valve configured both properties turn on (control)",
+        cbis and cttm,
+        f"buffer_is_store={cbis} two_tank_modelled={cttm}",
+    )
+    section_m = re.search(r"### The five house questions\n(.*?)\n### ", DOCS["setup.md"], re.S)
+    section = section_m.group(1) if section_m else ""
+    R.check("the five-questions section is still there (anchor)", bool(section))
+    R.check(
+        "the section still says what the tank answers switch on (anchor)",
+        bool(_STORAGE_PROMISE.search(section)),
+    )
+    unguarded = _storage_unguarded(section)
+    R.check(
+        "every storage promise names its mixing-valve precondition",
+        not unguarded,
+        repr(unguarded),
+    )
+    # Null control: the pre-fix rows promised the store and the two-tank
+    # switch outright; the detector must fire on that shape, not merely pass
+    # on the fixed one.
+    pre_fix_section = (
+        "| Buffer tank | off | A tank between the heat pump and the heating "
+        "circuits. On stores cheap heat and releases it during expensive "
+        "hours. |\n"
+        "| Wood buffer tank | off | A second tank the wood furnace heats. "
+        "The two probes below it are what actually switch the two-tank "
+        "physics on. |\n"
+    )
+    fired = _storage_unguarded(pre_fix_section)
+    R.check(
+        "the pre-fix promise rows fire the precondition guard (null control)",
+        len(fired) == 2,
+        f"{len(fired)} of 2 rows fired",
+    )
+
+
+def stamp_tracks_card() -> tuple[str, float]:
+    """(card version now, share of simulated stamps that rewrite the banner).
+
+    Five successive patch releases of VERSION stamped over the real card
+    bytes with ``tools/release/stamp.py:rewrite_card_version`` -- the call
+    every stamp makes. The doc's old model (the banner "moves only when the
+    card file changes") predicts a share of 0.0; the stamp makes it 1.0.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "f83-stamp", ROOT / "tools" / "release" / "stamp.py"
+    )
+    stamp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(stamp)
+    card = (PKG / "www" / "heatpump-optimizer-card.js").read_text()
+    cur_m = re.search(r'const CARD_VERSION = "(\d+\.\d+\.\d+)";', card)
+    version = (ROOT / "VERSION").read_text().strip()
+    major, minor, patch = (int(x) for x in version.split("."))
+    text, tracks = card, 0
+    n = 5
+    for k in range(1, n + 1):
+        nxt = f"{major}.{minor}.{patch + k}"
+        text, _old = stamp.rewrite_card_version(text, nxt)
+        got = re.search(r'const CARD_VERSION = "(\d+\.\d+\.\d+)";', text)
+        tracks += int(got is not None and got.group(1) == nxt)
+    return cur_m.group(1) if cur_m else "", tracks / n
+
+
+_CARD_LAGS = re.compile(
+    r"often lower than the integration version|not against the integration version itself"
+)
+
+
+def check_card_version_tracks_stamp() -> None:
+    R.section("the card-version banner vs what a stamp writes (D5-s1-03)")
+    cur, share = stamp_tracks_card()
+    R.check("the bundled card carries a version (anchor)", bool(cur), cur)
+    R.check(
+        "every simulated stamp rewrites the card version (share == 1.0)",
+        share == 1.0,
+        f"card now {cur}, share {share}",
+    )
+    doc = DOCS["dashboard-card.md"]
+    m = re.search(r"heatpump-optimizer-card\s+v(\S+)", doc)
+    R.check("the banner section still shows an example version (anchor)", m is not None)
+    stale = _CARD_LAGS.findall(doc)
+    R.check(
+        "the doc no longer says the banner lags the integration version",
+        not stale,
+        repr(stale),
+    )
+    # Null control: re-inserting the pre-fix sentences must fire the claim scan.
+    mutated = doc.replace(
+        "is the card's own version",
+        "is the card's own version. It moves only when the card file "
+        "changes, so it is often lower than the integration version -- "
+        "compare it against the card version named in the release notes, "
+        "not against the integration version itself",
+        1,
+    )
+    R.check(
+        "re-inserting the pre-fix banner claim fires the scan (null control)",
+        mutated != doc and len(_CARD_LAGS.findall(mutated)) == len(_CARD_LAGS.findall(doc)) + 2,
+        f"{len(_CARD_LAGS.findall(doc))} -> {len(_CARD_LAGS.findall(mutated))}",
+    )
+
+
+def curve_bias_facts() -> tuple[float, int, float]:
+    """(bias after one cycle at a +2 K residual, its sample count, and the
+    per-fold step a settled fold takes at a +10 K residual).
+
+    The doc's old claim bounded the learner at "0.5 K per week". Both
+    regimes the code actually runs exceed 0.5 K within a single cycle: the
+    first residual is folded whole, and the settled EWMA takes
+    ``FLOW_BIAS_ALPHA`` of each new residual per cycle.
+    """
+    from heatpump_optimizer.flow_lift import FLOW_BIAS_MIN_SAMPLES, FlowCurveBias
+
+    one = FlowCurveBias()
+    one.observe(42.0, 40.0)
+    ewma = FlowCurveBias()
+    for _ in range(FLOW_BIAS_MIN_SAMPLES):
+        ewma.observe(50.0, 40.0)
+    prev = ewma.bias_k
+    ewma.observe(40.0, 40.0)
+    step = abs(ewma.bias_k - prev)
+    return one.bias_k, one.samples, step
+
+
+def check_curve_bias_no_weekly_bound() -> None:
+    R.section("the curve-bias learner against a weekly bound (D6-s2-03)")
+    first_k, samples, ewma_step = curve_bias_facts()
+    R.check(
+        "one cycle folds a full residual into the bias",
+        samples == 1 and first_k > 0.5,
+        f"{samples} sample(s), bias {first_k} K",
+    )
+    R.check(
+        "a settled fold tracks a changed residual by more than 0.5 K per cycle",
+        ewma_step > 0.5,
+        f"{ewma_step} K per fold",
+    )
+    hits = {
+        name: found
+        for name, text in CORPUS.items()
+        if (found := re.findall(r"0\.5 K per week|half a degree per week", text))
+    }
+    R.check(
+        "no reader doc bounds the curve-bias learner by a weekly amount",
+        not hits,
+        repr(hits),
+    )
+    R.check(
+        "the corpus still documents the heat-curve correction (anchor)",
+        any("heat-curve correction" in text for text in CORPUS.values()),
+    )
+    # Null control: re-adding the pre-fix bound to a README copy must fire.
+    mutated = README.replace(
+        "a cool-only heat-curve correction",
+        "a cool-only heat-curve correction of at most 0.5 K per week",
+    )
+    R.check(
+        "re-adding the weekly bound fires the scan (null control)",
+        bool(re.search(r"0\.5 K per week", mutated)),
+    )
+
+
+def currency_facts() -> tuple[str, str]:
+    """(resolve_currency under a real configured instance, under no config).
+
+    A normal Home Assistant instance always has a currency (defaulting to
+    EUR); the SEK fallback is what the code returns only when nothing is
+    readable. README's old parenthetical claimed the fallback is what an
+    unconfigured instance shows.
+    """
+    from heatpump_optimizer.currency import resolve_currency
+
+    class _EurConfig:
+        currency = "EUR"
+
+    class _Hass:
+        config = _EurConfig()
+
+    return resolve_currency(_Hass()), resolve_currency(object())
+
+
+# Whitespace-insensitive: the corpus wraps at ~90 columns, and the base's false
+# claim reads "(SEK when the instance has none\nconfigured)" -- an inline-only
+# pattern scans ok over the defect (the wrapped-fixture class; round-1 review).
+_CURRENCY_FALSE_CLAIM = r"SEK\s+when\s+the\s+instance\s+has\s+none\s+configured"
+
+# The merge base's exact wrapped sentence, restore-able for the null control.
+_CURRENCY_BASE_SENTENCE = (
+    "`CUR` is your Home Assistant instance currency "
+    "(SEK when the instance has none\nconfigured)."
+)
+
+
+def check_readme_currency_claim() -> None:
+    R.section("README's currency fallback claim vs resolve_currency (D6-s1-81)")
+    real, fallback = currency_facts()
+    R.check("a configured instance currency is returned as-is", real == "EUR", real)
+    R.check("with nothing readable the code falls back to SEK", fallback == "SEK", fallback)
+    hits = re.findall(_CURRENCY_FALSE_CLAIM, README)
+    R.check(
+        "README no longer claims SEK for an unconfigured instance",
+        not hits,
+        repr(hits),
+    )
+    R.check("README still documents the instance currency (anchor)", "instance currency" in README)
+    # Null control over the corpus's real shape: restore the base's WRAPPED
+    # sentence into the committed README text. At the merge base the committed
+    # text already carries the wrapped claim, so the restore is a no-op there
+    # and the scan check above is the red demonstration; at the head the
+    # restore is real, and an inline-only scan would pass it -- so the control
+    # pins the whitespace-insensitivity too.
+    anchor = "`CUR` is your Home Assistant instance currency."
+    mutated = README.replace(anchor, _CURRENCY_BASE_SENTENCE, 1)
+    R.check(
+        "restoring the base's wrapped claim fires the scan (null control)",
+        bool(re.findall(_CURRENCY_FALSE_CLAIM, mutated)),
+    )
+
+
+def registered_service_fields() -> dict[str, set[str]]:
+    """Service name -> the keys its registered voluptuous schema accepts."""
+    from harness import FakeHass
+    from heatpump_optimizer import services
+
+    hass = FakeHass()
+    services.async_register_services(hass)
+    out: dict[str, set[str]] = {}
+    for (_, name), schema in hass.services._schemas.items():
+        while schema is not None and not hasattr(schema, "schema"):
+            schema = next((v for v in getattr(schema, "validators", ()) if hasattr(v, "schema")), None)
+        out[name] = {str(getattr(k, "schema", k)) for k in (schema.schema if schema else {})}
+    return out
+
+
+def _service_paragraphs(doc: str) -> dict[str, str]:
+    """Service name -> the text of its `**`name`**` paragraph."""
+    return {
+        m.group(1): m.group(2)
+        for m in re.finditer(
+            r"^\*\*`(\w+)`\*\*(.*?)(?=^\*\*`\w+`\*\*|^#|\Z)", doc, re.M | re.S
+        )
+    }
+
+
+def _service_field_problems(
+    fields: dict[str, set[str]], paras: dict[str, str]
+) -> dict[str, str]:
+    """Paragraphs whose field list or count disagrees with the schema."""
+    wrong: dict[str, str] = {}
+    for name, keys in fields.items():
+        text = paras.get(name)
+        if text is None:
+            continue
+        stated = re.search(r"\b(?:All )?(\d+) fields\b", text)
+        named = set(re.findall(r"`(\w+)`", text)) & keys
+        if stated and int(stated.group(1)) != len(keys - {"entry_id"}):
+            wrong[name] = f"says {stated.group(1)} fields, schema has {len(keys - {'entry_id'})}"
+        elif not stated and len(named) > 1 and keys - named - {"entry_id"}:
+            wrong[name] = f"lists {len(named)}, omits {sorted(keys - named - {'entry_id'})}"
+    return wrong
+
+
+def check_service_fields() -> None:
+    R.section("service paragraphs vs the registered schemas (I5)")
+    doc = DOCS["configuration.md"]
+    fields = registered_service_fields()
+    paras = _service_paragraphs(doc)
+    R.check(
+        "the registry and the Services paragraphs are both there (anchor)",
+        bool(fields) and bool(set(fields) & set(paras)),
+        f"{sorted(fields)} / {sorted(paras)}",
+    )
+    wrong = _service_field_problems(fields, paras)
+    R.check(
+        "every service paragraph that lists or counts fields matches its schema",
+        not wrong,
+        repr(wrong),
+    )
+    # Null control: deleting a listed field name from the assign_entity
+    # paragraph must make the comparison fire again (a no-op while the field
+    # is missing, so the control is honest both before and after the fix).
+    para = paras.get("assign_entity", "")
+    mutated = {**paras, "assign_entity": para.replace("`manual_setpoint`", "", 1)}
+    R.check(
+        "removing a listed field from a paragraph fires the comparison "
+        "(null control)",
+        bool(_service_field_problems(fields, mutated)),
+    )
+
+
+# ---------------------------------------------------------------------------
+# I5 class barrier (round 9, #1645): shape-agnostic arms. The services arm is
+# F8.3's check_service_fields above, the leaf this barrier was written for. Each derives its claim
+# set from a whole corpus and its fact set from code, so a new sentence,
+# table row or comment of the shape joins the check the moment it lands; none
+# is keyed to a round-9 sentence. Every arm carries an anchor.
+# ---------------------------------------------------------------------------
+
+def entity_census(extra: dict) -> list[dict]:
+    """Every entity the platforms' real ``async_setup_entry`` add for an entry."""
+    import asyncio
+    import importlib
+
+    import heatpump_optimizer as integ
+    from harness import FakeEntry, FakeHass
+    from heatpump_optimizer import const
+    from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+    names = json.loads((PKG / "strings.json").read_text())["entity"]
+    cfg = {const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home", **extra}
+    hass, entry = FakeHass(), FakeEntry(data=cfg)
+    entry.runtime_data = HeatPumpOptimizerCoordinator(hass, entry)
+    out: list[dict] = []
+    for plat in integ.PLATFORM_LIST:
+        added: list = []
+        mod = importlib.import_module(f"heatpump_optimizer.{plat}")
+        asyncio.run(mod.async_setup_entry(hass, entry, lambda e, *a, **k: added.extend(e)))
+        for e in added:
+            key = getattr(e, "_attr_translation_key", None)
+            out.append({
+                "platform": str(plat),
+                "name": names.get(str(plat), {}).get(key, {}).get("name", f"<{plat}:{key}>"),
+                # The stub has no entity_registry_enabled_default property, so a class declaring only
+                # _attr_entity_registry_enabled_default read as enabled here; upstream's property returns that
+                # attribute. Same two-path rule as tests/entities.py registry_default.
+                "enabled": bool(getattr(e, "entity_registry_enabled_default",
+                                        getattr(e, "_attr_entity_registry_enabled_default", True))),
+                "options": set(getattr(e, "_attr_options", None) or ()) - {"unknown"},
+            })
+    return out
+
+
+_HEADS = {"Sensors": "sensor", "Binary Sensors": "binary_sensor", "Buttons": "button",
+          "Switches": "switch"}
+
+
+def check_entity_prose() -> None:
+    R.section("entity prose vs the constructed entity set (I5)")
+    from heatpump_optimizer import const
+
+    with_dhw = entity_census({const.CONF_DHW_TANK_VOLUME: 200.0})
+    bare = entity_census({})
+    R.check("the census constructs entities (anchor)", len(with_dhw) > 0 and len(bare) > 0)
+    total = len(with_dhw)
+    counts = [(n, int(m.group(1))) for n, text in CORPUS.items()
+              for m in re.finditer(r"\b(\d{2,3}) entities\b", text)]
+    R.check("the corpus states an entity count (anchor)", bool(counts))
+    R.check("every '<N> entities' in the corpus equals the constructed total",
+            all(v == total for _, v in counts), f"total {total}: {counts}")
+    heads = [(h, int(n)) for h, n in re.findall(r"^### (.+?) \((\d+) total\)", README, re.M)
+             if h in _HEADS]
+    per = {p: sum(1 for e in with_dhw if e["platform"] == p) for p in _HEADS.values()}
+    R.check("README states per-platform totals (anchor)", bool(heads))
+    R.check("every README '### <platform> (N total)' equals that platform's count",
+            all(per[_HEADS[h]] == n for h, n in heads), f"{heads} vs {per}")
+    rows = {}
+    for line in README.splitlines():
+        if line.startswith("| ") and line.count("|") >= 4:
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            rows.setdefault(cells[0], " ".join(cells[1:]))
+    listed = []
+    omitted = {}
+    for e in with_dhw:
+        named = set(re.findall(r"`(\w+)`", rows.get(e["name"], "")))
+        if e["options"] and named & e["options"]:
+            listed.append(e["name"])
+            if e["options"] - named:
+                omitted[e["name"]] = sorted(e["options"] - named)
+    R.check("README lists an enum entity's states (anchor)", bool(listed))
+    R.check("every README row that lists an enum entity's states lists all of them",
+            not omitted, repr(omitted))
+    m = re.search(r"Disabled by default: (.*?)\.\n", README, re.S)
+    R.check("README keeps its 'Disabled by default:' list (anchor)", m is not None)
+    census_list = {x.strip() for x in re.split(r",| and ", m.group(1).replace("\n", " "))} if m else set()
+    prose = " ".join(l for l in README.splitlines() if not l.startswith("|"))
+    sentences = [s for s in re.split(r"(?<=\.)\s", prose) if "disabled by default" in s.lower()]
+
+    def documented(name: str) -> bool:
+        return (name in census_list or "disabled by default" in rows.get(name, "").lower()
+                or any(name in s for s in sentences))
+
+    undoc = sorted(e["name"] for e in bare if not e["enabled"] and not documented(e["name"]))
+    R.check("every entity a no-hot-water install disables is documented as disabled",
+            not undoc, repr(undoc))
+
+
+CARD = PKG / "www" / "heatpump-optimizer-card.js"
+_TICKED_PRIVATE = re.compile(r"`(?:this\.)?(_[A-Za-z][\w$]*)(?:\(\))?`")
+
+
+# Module level, beside its one reader: an import at the top would shift every line below it, and carries cite them.
+from archscore.metrics.card import _IDENT  # noqa: E402
+
+
+def _tokens(text: str) -> set[str]:
+    """The card's JavaScript identifiers: the archscore card tokenizer's one grammar (``card._IDENT``)."""
+    return set(_IDENT.findall(text))
+
+
+def check_private_mentions() -> None:
+    R.section("backticked private names in the card resolve (I5)")
+    src = CARD.read_text()
+    cited = set(_TICKED_PRIVATE.findall(src))
+    R.check("the card's comments cite private names (anchor)", bool(cited), f"{len(cited)}")
+    known = _tokens(_TICKED_PRIVATE.sub(" ", src))
+    for path in sorted(PKG.rglob("*")):
+        if path.suffix in (".py", ".json", ".yaml") and "__pycache__" not in path.parts:
+            known |= _tokens(path.read_text())
+    stale = sorted(n for n in cited if n not in known)
+    R.check("every backticked private name in the card names something that exists",
+            not stale, repr(stale))
+
+
+_BARE_UNIT = re.compile(r"(\d) C\b|\bm2\b")
+
+
+def check_unit_typography() -> None:
+    R.section("translated text writes units as the selectors do (I5)")
+    hits: list[str] = []
+    leaves = 0
+    for rel in ("strings.json", *SHIPPED_CATALOGUES):
+        stack = [((rel,), json.loads((PKG / rel).read_text()))]
+        while stack:
+            path, node = stack.pop()
+            if isinstance(node, dict):
+                stack.extend((path + (k,), v) for k, v in node.items())
+            elif isinstance(node, str):
+                leaves += 1
+                if _BARE_UNIT.search(node):
+                    hits.append(".".join(path))
+    R.check("the catalogs carry text (anchor)", leaves > 0, f"{leaves} leaves")
+    R.check("no translated string writes '<n> C' or 'm2' for °C / m²", not hits, repr(sorted(hits)))
+
+
+def _label(s: str) -> str:
+    return re.sub(r"\s*\(.*?\)\s*", " ", s).strip().strip("*`").strip().lower()
+
+
+_LABEL_END = r"(?:temperature|sensor|source|switch|entity|enabled|mode|control|feedback|experiment|cycle|limit)"
+
+
+def check_option_labels() -> None:
+    R.section("option fields the docs name are fields the forms show (I5)")
+    en = json.loads((PKG / "translations" / "en.json").read_text())
+    steps = en.get("options", {}).get("step", {})
+    menu = {v: k for s in ("init", "advanced")
+            for k, v in steps.get(s, {}).get("menu_options", {}).items()}
+    R.check("the options flow keeps its init and advanced menus (anchor)", bool(menu))
+
+    def labels(node, out):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "data" and isinstance(v, dict):
+                    out |= {_label(x) for x in v.values() if isinstance(x, str)}
+                labels(v, out)
+        return out
+
+    every: set[str] = set()
+    stack = [en]
+    while stack:
+        n = stack.pop()
+        if isinstance(n, dict):
+            stack.extend(n.values())
+        elif isinstance(n, str):
+            every.add(_label(n))
+    rows, bad = 0, []
+    for name, text in CORPUS.items():
+        page = hdr = None
+        for line in text.splitlines():
+            if (m := re.match(r"^###\s+(.*)", line)):
+                page, hdr = m.group(1).strip(), None
+            elif line.startswith("|"):
+                cells = [c.strip() for c in line.strip().strip("|").split("|")]
+                if hdr is None:
+                    hdr = cells
+                elif (hdr[0] == "Setting" and page in menu and not set(line) <= set("|-: ")
+                      and not re.search(r" / |, |^The |Monday", cells[0])):
+                    rows += 1
+                    if _label(cells[0]) not in labels(steps.get(menu[page], {}), set()):
+                        bad.append(f"{name} '{page}': {cells[0]}")
+            else:
+                hdr = None
+            for m in re.finditer(r"(?<![*\w])\*([A-Z][^*\n]{3,70}?" + _LABEL_END + r")\*(?!\*)", line):
+                if not m.group(1).startswith("HP ") and _label(m.group(1)) not in every:
+                    bad.append(f"{name}: *{m.group(1)}*")
+    R.check("the docs tabulate options-page fields (anchor)", rows > 0, f"{rows} rows")
+    R.check("every options field the docs name is a label the forms render", not bad, repr(bad))
+
+
+def options_field_pages() -> tuple[dict[str, str], dict[str, set[str]]]:
+    """(step -> page title, field label -> the steps whose form renders it)."""
+    steps = _EN_STRINGS.get("options", {}).get("step", {})
+    titles = {name: step["title"] for name, step in steps.items()
+              if isinstance(step, dict) and isinstance(step.get("title"), str)}
+    pages: dict[str, set[str]] = {}
+    for name, step in steps.items():
+        stack = [step]
+        while stack:
+            node = stack.pop()
+            if not isinstance(node, dict):
+                continue
+            for key, value in node.items():
+                if key == "data" and isinstance(value, dict):
+                    for label in value.values():
+                        if isinstance(label, str):
+                            pages.setdefault(_label(label), set()).add(name)
+                else:
+                    stack.append(value)
+    return titles, pages
+
+
+def page_placement_problems(corpus: dict[str, str], titles: dict[str, str],
+                            pages: dict[str, set[str]]) -> tuple[int, list[str]]:
+    """(claims, wrong): italic field labels in a sentence naming a bold options page.
+
+    A sentence that names one or more options pages in bold (``**Hot water**``,
+    ``**Advanced settings → Thermal model (expert)**``) and the word "page"
+    places every italic field label in it on one of those pages; the field's
+    real page is the step whose form renders the label.
+    """
+    by_title = {_label(t): step for step, t in titles.items()}
+    claims, wrong = 0, []
+    for name, text in corpus.items():
+        for sentence in re.split(r"(?<=[.;])\s", text.replace("\n", " ")):
+            if "page" not in sentence:
+                continue
+            named = {by_title[_label(t.split("→")[-1])]
+                     for t in re.findall(r"\*\*([^*]+?)\*\*", sentence)
+                     if _label(t.split("→")[-1]) in by_title}
+            if not named:
+                continue
+            for field in re.findall(r"(?<![*\w])\*([^*\n]{3,80}?)\*(?!\*)", sentence):
+                homes = pages.get(_label(field))
+                if homes is None:
+                    continue
+                claims += 1
+                if not homes & named:
+                    wrong.append(f"{name}: *{field}* on {sorted(titles[s] for s in named)},"
+                                 f" rendered on {sorted(titles[s] for s in homes)}")
+    return claims, wrong
+
+
+def check_options_page_census() -> None:
+    R.section("a field the docs place on an options page is on that page (I5, D6-s1-02)")
+    titles, pages = options_field_pages()
+    R.check("the options forms have titled pages and labelled fields (anchor)",
+            bool(titles) and bool(pages), f"{len(titles)} pages, {len(pages)} labels")
+    claims, wrong = page_placement_problems(CORPUS, titles, pages)
+    R.check("the corpus places options fields on pages (anchor)", claims > 0, f"{claims} claims")
+    R.check("every field the corpus places on an options page is rendered there",
+            not wrong, repr(wrong))
+    # Null control: one real label, placed on a real page that does not render it.
+    field, homes = next((f, h) for f, h in sorted(pages.items()) if set(titles) - h)
+    elsewhere = titles[sorted(set(titles) - homes)[0]]
+    probe = {"probe.md": f"The *{field}* field is on the **{elsewhere}** page."}
+    R.check("the census fires on a field placed on a page that does not render it (null control)",
+            page_placement_problems(probe, titles, pages)[1] != [], probe["probe.md"])
+
+
+_COUNT_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+                "eight": 8, "nine": 9, "ten": 10}
+_START_COUNT = re.compile(
+    r"\b(\d+|" + "|".join(_COUNT_WORDS) + r")\s+(?:starting points|candidate"
+    r"(?: initial guesses| starting points| starts)?s?|initial guesses)\b", re.I)
+
+
+def multistart_count_claims(corpus: dict[str, str]) -> list[tuple[str, int]]:
+    """Every '<n> starting points / candidates / initial guesses' the corpus states."""
+    return [(name, int(m.group(1)) if m.group(1).isdigit() else _COUNT_WORDS[m.group(1).lower()])
+            for name, text in corpus.items() for m in _START_COUNT.finditer(text.replace("\n", " "))]
+
+
+def py_typed_files(root: pathlib.Path = PKG) -> int:
+    """How many ``py.typed`` markers a package tree carries."""
+    return sum(1 for _ in root.rglob("py.typed"))
+
+
+def check_py_typed_claim() -> None:
+    R.section("quality_scale.yaml's py.typed count vs the package (RCA-BULK-3, #1545)")
+    claims = [int(n) for n in re.findall(r"\bqs_py_typed_files=(\d+)", QUALITY_SCALE)]
+    R.check("strict-typing states qs_py_typed_files (anchor)", bool(claims), repr(claims))
+    shipped = py_typed_files()
+    R.check(
+        "every qs_py_typed_files the checklist states is the number of py.typed "
+        "files the package ships",
+        bool(claims) and all(n == shipped for n in claims),
+        f"stated {claims}, shipped {shipped}",
+    )
+    with tempfile.TemporaryDirectory() as _bare:
+        _unmarked = py_typed_files(pathlib.Path(_bare))
+    R.check(
+        "the count fires on a package that ships no marker (null control)",
+        bool(claims) and any(n != _unmarked for n in claims),
+        f"stated {claims}, a bare tree counts {_unmarked}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Arm 1b -- the product page is pinned to the reader documents (R9-WEB-1)
+# ---------------------------------------------------------------------------
+#
+# docs/index.html persuades, so it is where stale prose would live longest. Its
+# claim set is derived from the page (every element carrying data-src="<doc>#<
+# GitHub heading slug>") and its fact set from the reader documents in the
+# working tree, never a hand list or a git ref. Two claim modes: verbatim (the
+# default -- every text node, whole, with no ellipsis, must be in the section's
+# reader text) and key phrase (data-q: the phrase must be there and every number
+# in the element a number the section states). data-copy marks page copy that
+# states no fact. Refused: a digit outside any claim, an image that does not
+# resolve or has no alt text, a repository link whose path or slug does not
+# resolve, a third-party script, stylesheet, url() or image, the stamped VERSION
+# or a version literal. Two-sided: README "What it does" bold leads == the
+# page's data-feature headings; the page's data-doc set == the README
+# Documentation table's link targets. Anchor: no page, or zero claims, features
+# or docs rows, is red.
+
+import html  # noqa: E402
+from html.parser import HTMLParser  # noqa: E402
+
+SITE_PAGE = ROOT / "docs" / "index.html"
+_SITE_REPO = "https://github.com/tvofi/heatpump_optimizer/blob/main/"
+# The Pages URL the deploy serves the product page at, derived from the owner/repo
+# _SITE_REPO already names: pages.yml stages docs/index.html at the site root
+# (`cp docs/index.html _site/` -- the step tests/entities.py runs by name), and
+# GitHub Pages serves a project site at https://<owner>.github.io/<repo>/.
+# A README link must use this form: repo-relative docs/index.html opens the raw
+# file on github.com, and the published URL also works from the site itself,
+# where the docs build renders README links verbatim (build_docs.mjs resolveHref
+# keeps every absolute URL).
+SITE_PUBLISHED = "https://" + _SITE_REPO[len("https://github.com/"):].split("/blob/")[0].replace("/", ".github.io/", 1) + "/"
+_SITE_NUM = re.compile(r"\d+(?:[.,]\d+)*")
+_SITE_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr", "use",
+              "path", "circle", "rect"}
+
+
+def _site_norm(s: str) -> str:
+    s = s.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'")
+    return re.sub(r"\s+", " ", s.replace("\xa0", " ")).strip().lower()
+
+
+def _site_slug(title: str) -> str:
+    return re.sub(r"[^\w\- ]", "", title.strip().lower()).replace(" ", "-")
+
+
+def _site_sections(md: str) -> dict[str, str]:
+    """GitHub heading slug -> section text; a section runs to the next heading of level <= max(own, 2)."""
+    lines, heads, fence = md.splitlines(), [], False
+    for i, line in enumerate(lines):
+        if line.startswith("```"):
+            fence = not fence
+        m = None if fence else re.match(r"^(#{1,6})\s+(.*)", line)
+        if m:
+            heads.append((i, len(m.group(1)), m.group(2)))
+    out, seen = {}, {}
+    for k, (i, lvl, title) in enumerate(heads):
+        stop = next((j for j, l2, _ in heads[k + 1:] if l2 <= max(lvl, 2)), len(lines))
+        s = _site_slug(title)
+        n = seen.get(s, 0)
+        seen[s] = n + 1
+        out[s if n == 0 else f"{s}-{n}"] = "\n".join(lines[i:stop])
+    return out
+
+
+def _site_reader(md: str) -> str:
+    t = re.sub(r"<!--.*?-->", " ", md, flags=re.S)
+    t = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", t)
+    t = t.replace("**", "").replace("*", "").replace("`", "")
+    t = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", t)
+    return _site_norm(html.unescape(re.sub(r"<[^>]+>", " ", t)))
+
+
+class _SitePage(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.stack: list[dict] = []
+        self.texts: list[tuple] = []
+        self.elems: list[dict] = []
+        self.tags: list[tuple] = []
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        self.tags.append((tag, a))
+        if tag not in _SITE_VOID:
+            rec = {"tag": tag, "a": a, "text": []}
+            self.stack.append(rec)
+            self.elems.append(rec)
+
+    def handle_startendtag(self, tag, attrs):
+        self.tags.append((tag, dict(attrs)))
+
+    def handle_endtag(self, tag):
+        if tag in _SITE_VOID:
+            return
+        for k in range(len(self.stack) - 1, -1, -1):
+            if self.stack[k]["tag"] == tag:
+                del self.stack[k:]
+                return
+
+    def handle_data(self, data):
+        if not data.strip():
+            return
+        for r in self.stack:
+            r["text"].append(data)
+        owner = next((r for r in reversed(self.stack) if "data-src" in r["a"] or "data-copy" in r["a"]), None)
+        inert = any(r["tag"] in ("script", "style", "svg", "title") for r in self.stack)
+        self.texts.append((data, owner, inert))
+
+
+_SITE_EXT = re.compile(r"[a-z][a-z0-9+.-]*:|//", re.I)
+_SITE_ICON_REL = {"icon", "shortcut", "apple-touch-icon", "mask-icon"}
+_SITE_PRELOAD_REL = {"preload", "modulepreload", "prefetch", "preconnect", "dns-prefetch"}
+
+
+def _site_external(u: str) -> bool:
+    """An origin other than the page's own: a scheme or a protocol-relative URL (data: is the page's own bytes)."""
+    return bool(_SITE_EXT.match(u.strip())) and not u.strip().lower().startswith("data:")
+
+
+def _site_requests(tags: list[tuple]) -> list[tuple[str, str]]:
+    """(label, message) for every tag that asks another origin for something a page may not fetch from one.
+
+    Labels: script, stylesheet, icon, preload, iframe. R9-WEB-1's arm named script and stylesheet only; the design's
+    self-hosting rule names fonts and images too, so a <link rel=icon>, a <link rel=preload> font and an <iframe> are
+    refused here, on the product page and on every page the docs build produces (R9-WEB-3).
+    """
+    out: list[tuple[str, str]] = []
+    for t, a in tags:
+        if t == "script" and _site_external(a.get("src") or ""):
+            out.append(("script", f"external script: {a['src']}"))
+        elif t == "link" and _site_external(a.get("href") or ""):
+            rel = set((a.get("rel") or "").lower().split())
+            for label, names in (("stylesheet", {"stylesheet"}), ("icon", _SITE_ICON_REL), ("preload", _SITE_PRELOAD_REL)):
+                if rel & names:
+                    out.append((label, f"third-party <link rel={a.get('rel')}>: {a['href']}"))
+        elif t == "iframe" and _site_external(a.get("src") or ""):
+            out.append(("iframe", f"third-party <iframe>: {a['src']}"))
+    return out
+
+
+def _site_css_external(css: str) -> list[str]:
+    """Every other-origin URL a stylesheet names: @import (either form), url() in any case, image-set() candidates."""
+    found = [m.group(1) for m in re.finditer(r"(?:@import\s*(?:url\(\s*)?|url\(\s*)['\"]?([^'\")\s]+)", css, re.I)]
+    for m in re.finditer(r"image-set\(([^;{}]*)\)", css, re.I):
+        found += re.findall(r"['\"]((?:[a-z][a-z0-9+.-]*:|//)[^'\"]*)['\"]", m.group(1), re.I)
+    return [u for u in found if _site_external(u)]
+
+
+def subpage_findings(src: str, root: pathlib.Path = ROOT) -> list[tuple[str, str]]:
+    """A page the docs build produced: it may request nothing from another origin (S11), and neither may the
+    stylesheet it links (an @import or a url() in docs/site/docs.css is a font or image from elsewhere)."""
+    p = _SitePage()
+    p.feed(src)
+    out = [("third-party", m) for _, m in _site_requests(p.tags)]
+    for t, a in p.tags:
+        if t in ("img", "source"):
+            cands = [a.get("src") or ""] + [c.split()[0] for c in (a.get("srcset") or "").split(",") if c.split()]
+            out += [("third-party", f"third-party image: {u}") for u in cands if _site_external(u)]
+        if t == "link" and "stylesheet" in (a.get("rel") or "").split() and a.get("href") and not _site_external(a["href"]):
+            css = root / "docs" / a["href"]
+            if not css.is_file():
+                out.append(("third-party", f"linked stylesheet {a['href']} is not in the tree"))
+            else:
+                out += [("third-party", f"third-party resource in {a['href']}: {u}") for u in _site_css_external(css.read_text())]
+    out += [("third-party", f"third-party resource in CSS: {u}") for u in _site_css_external(src)]
+    return out
+
+
+def site_findings(src: str | None, root: pathlib.Path = ROOT,
+                  pages: dict[str, str] | None = None) -> tuple[list[tuple[str, str]], dict[str, int]]:
+    """(kind, message) findings for a page's source against the reader documents under `root`.
+
+    `pages` is the docs build's manifest, source path -> page name; given, a link to a sub-page the build does not
+    produce is refused and each docs card for a built document must link its page.
+    """
+    errs: list[tuple[str, str]] = []
+    st = {"claims": 0, "fragments": 0, "numbers": 0, "copy": 0, "features": 0, "docs": 0, "images": 0, "links": 0, "subpages": 0}
+    if src is None:
+        return [("anchor", "docs/index.html is absent")], st
+    p = _SitePage()
+    p.feed(src)
+    secs: dict[str, dict[str, str] | None] = {}
+    raw: dict[str, str | None] = {}
+
+    def read(path: str) -> str | None:
+        if path not in raw:
+            f = root / path
+            raw[path] = f.read_text() if f.is_file() else None
+        return raw[path]
+
+    def section(ds: str) -> str | None:
+        path, _, frag = ds.partition("#")
+        if path not in secs:
+            md = read(path)
+            secs[path] = None if md is None else {k: _site_reader(v) for k, v in _site_sections(md).items()}
+        if secs[path] is None:
+            errs.append(("claim", f"data-src {ds}: {path} is not in the tree"))
+            return None
+        if frag not in secs[path]:
+            errs.append(("claim", f"data-src {ds}: no heading with slug #{frag} in {path}"))
+            return None
+        return secs[path][frag]
+
+    for e in p.elems:
+        st["copy"] += "data-copy" in e["a"]
+        ds = e["a"].get("data-src")
+        if not ds:
+            continue
+        st["claims"] += 1
+        sec = section(ds)
+        if sec is not None and "data-q" in e["a"]:
+            if _site_norm(e["a"]["data-q"]) not in sec:
+                errs.append(("claim", f"{ds}: key phrase not in section: {e['a']['data-q']!r}"))
+            have = set(_SITE_NUM.findall(sec))
+            for n in _SITE_NUM.findall(" ".join(e["text"])):
+                st["numbers"] += 1
+                if n not in have:
+                    errs.append(("claim", f"{ds}: number {n} is not stated in the section"))
+    for data, owner, inert in p.texts:
+        if inert:
+            continue
+        if "…" in data or "..." in data:
+            errs.append(("ellipsis", f"an ellipsis in the page text: {_site_norm(data)[:80]!r}"))
+        if owner is None:
+            if _SITE_NUM.search(data):
+                errs.append(("number", f"a number outside any claim: {_site_norm(data)[:80]!r}"))
+            continue
+        if "data-copy" in owner["a"] or "data-q" in owner["a"]:
+            continue
+        sec = section(owner["a"]["data-src"])
+        for frag in (data,) if sec is not None else ():
+            f = _site_norm(frag).strip(" .,;:")
+            if f:
+                st["fragments"] += 1
+                if f not in sec:
+                    errs.append(("claim", f"{owner['a']['data-src']}: not in the section: {f[:90]!r}"))
+
+    readme = read("README.md") or ""
+    rsec = _site_sections(readme)
+    leads = {_site_norm(m).rstrip(".") for m in re.findall(r"^\*\*(.+?)\*\*", rsec.get("what-it-does", ""), flags=re.M)}
+    feats = {_site_norm(" ".join(e["text"])).rstrip(".") for e in p.elems if "data-feature" in e["a"]}
+    st["features"] = len(feats)
+    errs += [("feature", f"README 'What it does' lead missing from the page: {x!r}") for x in sorted(leads - feats)]
+    errs += [("feature", f"page feature README 'What it does' does not lead with: {x!r}") for x in sorted(feats - leads)]
+    rows = set(re.findall(r"^\|\s*\[[^\]]+\]\(([^)]+)\)", rsec.get("documentation", ""), flags=re.M))
+    # The README may link the product page by its published Pages URL; that is
+    # the same document the page's data-doc names by its source path.
+    rows = {"docs/index.html" if t.startswith(SITE_PUBLISHED) else os.path.normpath(t) for t in rows}
+    docs = {a["data-doc"] for _, a in p.tags if a.get("data-doc")}
+    st["docs"] = len(docs)
+    errs += [("docs", f"README Documentation row missing from the page: {x}") for x in sorted(rows - docs)]
+    errs += [("docs", f"page docs entry the README Documentation table does not list: {x}") for x in sorted(docs - rows)]
+    for target in re.findall(r"\]\(([^)\s]+)\)", readme):
+        if target.startswith(SITE_PUBLISHED):
+            continue
+        if re.search(r"(?:^|/)docs/index\.html$", target.split("#")[0]):
+            errs.append(("readme-link", f"README links the product page as {target!r}, which opens the raw file "
+                                       f"on github.com; it must be the published Pages URL {SITE_PUBLISHED}"))
+
+    for t, a in p.tags:
+        if t in ("img", "source"):
+            st["images"] += 1
+            rp, ref = a.get("data-repo"), a.get("src") or a.get("srcset") or ""
+            if t == "img" and not (a.get("alt") or "").strip():
+                errs.append(("image", f"image without alt text: {ref}"))
+            if not rp or not (root / rp).is_file():
+                errs.append(("image", f"image data-repo {rp!r} is not in the tree"))
+            elif ref != rp.removeprefix("docs/"):
+                errs.append(("image", f"image {ref} is not the path under docs/ that data-repo {rp} names"))
+            if ref.startswith("http"):
+                errs.append(("third-party", f"third-party image: {ref}"))
+        href = a.get("href") or ""
+        if t == "a" and href.startswith(_SITE_REPO):
+            st["links"] += 1
+            path, _, frag = href[len(_SITE_REPO):].partition("#")
+            if not (root / path).is_file():
+                errs.append(("link", f"link to {path}: not in the tree"))
+            elif frag and path.endswith(".md") and frag not in _site_sections(read(path) or ""):
+                errs.append(("link", f"link to {path}#{frag}: no such heading"))
+        if t == "script" and a.get("src"):
+            errs.append(("third-party", f"external script: {a['src']}"))
+        if t == "link" and "stylesheet" in (a.get("rel") or ""):
+            errs.append(("third-party", f"stylesheet: {a.get('href')}"))
+        if pages is not None and t == "a" and re.fullmatch(r"[\w.-]+\.html(#.*)?", href):
+            st["subpages"] += 1
+            if href.split("#")[0] not in {*pages.values(), "index.html"}:
+                errs.append(("subpage", f"link to {href}: not a page the docs build produces"))
+    errs += [("third-party", m) for lab, m in _site_requests(p.tags) if lab in ("icon", "preload", "iframe")]
+    if pages is not None:
+        for _, a in p.tags:
+            doc = a.get("data-doc")
+            if doc in pages and (a.get("href") or "").split("#")[0] != pages[doc]:
+                errs.append(("subpage", f"docs card {doc} links {a.get('href')!r}, not its page {pages[doc]}"))
+    for m in re.finditer(r"(?:@import\s*(?:url\(\s*)?|url\(\s*)['\"]?([^'\")\s]+)", src):
+        u = m.group(1)
+        if re.match(r"[a-z][a-z0-9+.-]*:|//", u, re.I) and not u.startswith("data:"):
+            errs.append(("third-party", f"third-party resource in CSS: {u}"))
+        elif not u.startswith(("data:", "#")) and not (root / "docs" / u).is_file():
+            errs.append(("third-party", f"CSS resource not in the tree: {u}"))
+
+    visible = " ".join(t for t, _, inert in p.texts if not inert)
+    version = (read("VERSION") or "").strip()
+    if version and version in visible:
+        errs.append(("version", f"the page states the version {version} (CLAUDE.md rule 4)"))
+    errs += [("version", f"a version literal on the page: {m.group(0)}") for m in re.finditer(r"\bv\d+\.\d+(?:\.\d+)?\b", visible)]
+    for k in ("claims", "features", "docs"):
+        if st[k] == 0:
+            errs.append(("anchor", f"zero {k} found; the check cannot pass by finding nothing"))
+    return errs, st
+
+
+def check_product_page() -> None:
+    R.section("product page pinned to the reader documents (R9-WEB-1)")
+    built = docs_build()
+    errs, st = site_findings(SITE_PAGE.read_text() if SITE_PAGE.is_file() else None, pages=built["pages"])
+    counts = ", ".join(f"{k} {v}" for k, v in st.items())
+    R.check("docs/index.html exists with claims, features and docs rows (anchor)",
+            not any(k == "anchor" for k, _ in errs), "; ".join(m for k, m in errs if k == "anchor"))
+    for kind, what in (
+        ("claim", "every data-src claim is in its section of the reader documents"),
+        ("ellipsis", "no claim is elided with an ellipsis: each text node is quoted whole"),
+        ("number", "no digit sits outside a claim"),
+        ("feature", "the page's features are the README 'What it does' leads, both ways"),
+        ("docs", "the page's docs cards are the README Documentation table, both ways"),
+        ("readme-link", "every README link to the product page is the published Pages URL, never a repo-relative path"),
+        ("image", "every image resolves, names its path under docs/ and has alt text"),
+        ("link", "every repository link resolves to a file and a heading"),
+        ("third-party", "the page requests nothing from a third party (script, stylesheet, icon, preload, iframe, image)"),
+        ("subpage", "every link to a sub-page names a page the docs build produces, and each docs card links its page"),
+        ("version", "the page states no version"),
+    ):
+        bad = [m for k, m in errs if k == kind]
+        R.check(what, not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
+    print(f"       ({counts})")
+    # The illustrative day is committed SVG that tools/site/day_chart.mjs owns: a page whose chart is not the
+    # generator's output, or a toy planner that broke its own invariants, is red here (R10-PRODUCT-PAGE-REDESIGN).
+    chart = subprocess.run(["node", str(SITE_CHART), "--self-test", "--check"], capture_output=True, text=True)
+    R.check("the page's illustrative chart is its generator's output, and the generator's self-test holds",
+            chart.returncode == 0, "; ".join((chart.stdout + chart.stderr).split("\n")[:4]))
+    page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
+    planted = page.replace("The heat-loss scale", "The heat-loss scale \u2026 the heat-loss scale", 1)
+    R.check("an ellipsis planted in a claim is refused (null control)",
+            planted != page and any(k == "ellipsis" for k, _ in site_findings(planted, pages=built["pages"])[0]))
+    # One setup flow, three documents: the diagram is the same text in each, so
+    # the three cannot drift into three different flows again (R9-WEB-4).
+    flows = {}
+    for doc in ("README.md", "docs/configuration.md", "docs/setup.md"):
+        text = (ROOT / doc).read_text()
+        blocks = [b for b in re.findall(r"```mermaid\n(flowchart TD\n.*?)```", text, re.S) if "Quick setup" in b]
+        flows[doc] = blocks
+    R.check("each of README, configuration.md and setup.md carries exactly one setup-flow diagram (anchor)",
+            all(len(v) == 1 for v in flows.values()), str({k: len(v) for k, v in flows.items()}))
+    R.check("the three setup-flow diagrams are identical",
+            len({v[0] for v in flows.values() if v}) == 1)
+
+
+# ---------------------------------------------------------------------------
+# Arm 1c -- the documentation sub-pages build is its own check (R9-WEB-3)
+# ---------------------------------------------------------------------------
+#
+# tools/site/build_docs.mjs renders the README and every row of the README
+# Documentation table (less its EXCLUDE list) into one page each. It writes only
+# into the directory it is given, so the arm builds the working tree into a
+# temporary one, handing it `git ls-files`, and fails on every FAIL line the
+# build prints. Anchor: zero pages built is red, so the arm cannot pass by
+# building nothing. The pages are then scanned for a third-party request.
+
+SITE_BUILD = ROOT / "tools" / "site" / "build_docs.mjs"
+# Old document path -> its new one; both addresses must resolve (build_docs.mjs's MOVED is the site half).
+MOVED_PAGES = {"docs/ecl110.md": "docs/heat-curve.md"}
+SITE_CHART = ROOT / "tools" / "site" / "day_chart.mjs"
+_BUILD_CACHE: dict[str, dict] = {}
+
+
+def docs_build(root: pathlib.Path = ROOT) -> dict:
+    """Run the docs build over `root` into a temp dir; its rc, FAIL lines, stats line, pages and manifest.
+
+    `pages` maps a built document's source path to its page name; `html` maps a page name to its source.
+    """
+    key = str(root)
+    if key in _BUILD_CACHE:
+        return _BUILD_CACHE[key]
+    res: dict = {"rc": None, "fails": [], "stats": "", "pages": {}, "html": {}, "moved": {}}
+    if not SITE_BUILD.is_file():
+        res["fails"] = [f"{str(SITE_BUILD).removeprefix(str(ROOT) + os.sep)} does not exist"]
+    else:
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = subprocess.run(["git", "ls-files"], cwd=root, capture_output=True, text=True)
+            if tree.returncode != 0 or not tree.stdout.strip():
+                res["fails"] = [f"git ls-files failed in {root}: {tree.stderr.strip()[:120]}"]
+            else:
+                tf, out = pathlib.Path(tmp) / "tree.txt", pathlib.Path(tmp) / "out"
+                tf.write_text(tree.stdout)
+                r = subprocess.run(["node", str(SITE_BUILD), "--root", str(root), "--tree", str(tf), "--out", str(out)],
+                                   capture_output=True, text=True)
+                res["rc"] = r.returncode
+                lines = r.stdout.splitlines()
+                res["fails"] = [l[5:] for l in lines if l.startswith("FAIL ")]
+                res["stats"] = next((l for l in lines if l.startswith("pages ")), "")
+                if r.returncode != 0 and not res["fails"]:
+                    res["fails"] = [f"build exited {r.returncode} with no FAIL line: {r.stderr.strip()[:200]}"]
+                man = out / "docs-manifest.json"
+                if man.is_file():
+                    res["pages"] = {b["src"]: b["out"] for b in json.loads(man.read_text())["built"]}
+                    res["html"] = {b["out"]: (out / b["out"]).read_text() for b in json.loads(man.read_text())["built"]}
+                    res["moved"] = {m["src"]: (m["to"], (out / m["out"]).read_text())
+                                    for m in json.loads(man.read_text()).get("moved", [])}
+    _BUILD_CACHE[key] = res
+    return res
+
+
+SITE_PKG = ROOT / "tools" / "site" / "package.json"
+SITE_LOCK = ROOT / "tools" / "site" / "package-lock.json"
+
+
+def mermaid_pin_findings(pkg: str, lock: str) -> list[str]:
+    """The deploy installs mermaid by `npm ci`; the pin must be one exact version that the lockfile resolves to."""
+    try:
+        want = json.loads(pkg).get("dependencies", {}).get("mermaid", "")
+        have = json.loads(lock).get("packages", {}).get("node_modules/mermaid", {}).get("version", "")
+    except (ValueError, AttributeError) as exc:
+        return [f"package.json or its lockfile is not JSON: {exc}"]
+    out = []
+    if not re.fullmatch(r"\d+\.\d+\.\d+", want):
+        out.append(f"mermaid is {want!r} in package.json, not one exact version")
+    if want != have:
+        out.append(f"package.json pins mermaid {want!r} but the lockfile resolves {have!r}")
+    return out
+
+
+def check_docs_subpages() -> None:
+    R.section("documentation sub-pages build (R9-WEB-3)")
+    b = docs_build()
+    R.check("the build exists and built at least one page (anchor)", len(b["pages"]) > 0,
+            "; ".join(b["fails"][:2]) or "no pages in the manifest")
+    R.check("the build exits 0 with no FAIL line", b["rc"] == 0 and not b["fails"],
+            "; ".join(b["fails"][:4]) + (f" (+{len(b['fails']) - 4})" if len(b["fails"]) > 4 else ""))
+    # the README row set is derived, so a new row is built and a missing one fails; the product page is not one
+    rows = {os.path.normpath(r) for r in re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M)}
+    missing = sorted((rows | {"README.md"}) - set(b["pages"]))
+    R.check("every README Documentation row is a built page", not missing, ", ".join(missing))
+    # A renamed page keeps its old address (R11-OWNER-GENERIC-CONTROL-TEXT): on GitHub the old file stays as a
+    # pointer to the new one, and on the site the build writes the old page name as a redirect to the new page.
+    for old, new in MOVED_PAGES.items():
+        to, page = b["moved"].get(old, ("", ""))
+        stub = (ROOT / old).read_text() if (ROOT / old).is_file() else ""
+        # The meta refresh drops the fragment; only the script line keeps it, so a deep link still lands.
+        keeps = f"location.replace({json.dumps(to)} + location.hash)" in page
+        R.check(f"{old} still resolves: a pointer to {new} in the tree, a redirect to its page on the site",
+                to == b["pages"].get(new) and f'url={to}"' in page and keeps and f"]({os.path.basename(new)})" in stub,
+                f"site redirect to {to or 'nothing'}, fragment kept: {keeps}; "
+                f"the in-tree file links {new}: {f']({os.path.basename(new)})' in stub}")
+    bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
+    R.check("no built page requests anything from a third party", bool(b["html"]) and not bad,
+            "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else "") or "no page built")
+    pin = mermaid_pin_findings(SITE_PKG.read_text() if SITE_PKG.is_file() else "", SITE_LOCK.read_text() if SITE_LOCK.is_file() else "")
+    R.check("mermaid is one exact version in package.json, and the lockfile resolves that version", not pin, "; ".join(pin))
+    lock = SITE_LOCK.read_text() if SITE_LOCK.is_file() else "{}"
+    R.check("the mermaid pin fires on a range and on a lockfile that disagrees (null controls)",
+            any("exact" in f for f in mermaid_pin_findings(
+                '{"dependencies":{"mermaid":"^12.1.0"}}', '{"packages":{"node_modules/mermaid":{"version":"^12.1.0"}}}'))
+            and any("lockfile resolves" in f for f in mermaid_pin_findings('{"dependencies":{"mermaid":"11.0.0"}}', lock)) and not pin)
+    print(f"       ({b['stats']})")
+
+
+def check_site_request_controls() -> None:
+    """Null controls for the third-party and sub-page rules: a planted tag turns the arm red; a same-origin one does not."""
+    R.section("third-party and sub-page rules fire on a planted tag (R9-WEB-3 null controls)")
+    built = docs_build()
+    page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
+    sub = next(iter(built["html"].values()), "")
+    plants = (
+        ("a third-party icon", '<link rel="icon" href="https://cdn.example.com/f.ico">', "third-party"),
+        ("a third-party preload font", '<link rel="preload" as="font" href="https://fonts.gstatic.com/x.woff2" crossorigin>', "third-party"),
+        ("a third-party iframe", '<iframe src="https://www.youtube.com/embed/x"></iframe>', "third-party"),
+        ("a link to a page the build does not produce", '<a href="tuning.html">t</a>', "subpage"),
+    )
+    built_only = (
+        ("a third-party script", '<script src="https://cdn.example.com/x.js"></script>'),
+        ("a third-party image", '<img src="https://example.com/x.png" alt="x">'),
+    )
+    R.check("the product page and a built page are the unplanted baseline (anchor)", bool(page) and bool(sub))
+    base = [k for k, _ in site_findings(page, pages=built["pages"])[0] if k in ("third-party", "subpage")]
+    R.check("the product page is clean before planting", not base, str(base))
+    for name, tag, kind in plants:
+        errs, _ = site_findings(page.replace("</head>", tag + "</head>", 1), pages=built["pages"])
+        R.check(f"product page: {name} is refused", any(k == kind for k, _ in errs))
+        if kind == "third-party":
+            R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
+    for name, tag in built_only:
+        R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
+    # Keyed on the card's own data-doc: the page also links that sub-page from its story, where GitHub is no finding.
+    card = page.replace('data-doc="docs/how-it-works.md" href="how-it-works.html"',
+                        f'data-doc="docs/how-it-works.md" href="{_SITE_REPO}docs/how-it-works.md"', 1)
+    R.check("product page: a docs card for a built document linked to GitHub is refused",
+            card != page and any(k == "subpage" for k, _ in site_findings(card, pages=built["pages"])[0]))
+    for name, css in (
+        ("a Google Fonts @import", '@import url("https://fonts.googleapis.com/css2?family=Outfit");\n'),
+        ("an uppercase URL() font", '@font-face{font-family:X;src:URL("https://fonts.gstatic.com/x.woff2")}\n'),
+        ("an image-set() string candidate", '.a{background:image-set("https://cdn.example.com/a.png" 1x)}\n'),
+        ("a third-party @font-face src", '@font-face{font-family:X;src:url(https://fonts.gstatic.com/x.woff2)}\n'),
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            planted = pathlib.Path(tmp) / "docs" / "site" / "docs.css"
+            planted.parent.mkdir(parents=True)
+            planted.write_text(css + (ROOT / "docs" / "site" / "docs.css").read_text())
+            R.check(f"the stylesheet a built page links: {name} is refused", bool(subpage_findings(sub, pathlib.Path(tmp))))
+    with tempfile.TemporaryDirectory() as tmp:
+        R.check("a linked stylesheet that is not in the tree is refused", any(
+            "not in the tree" in m for _, m in subpage_findings(sub, pathlib.Path(tmp))))
+    R.check("the real docs/site/docs.css is clean (baseline for the stylesheet scan)", not subpage_findings(sub))
+    R.check("a third-party srcset candidate is refused",
+            bool(subpage_findings(sub.replace("</head>", '<img src="a.png" srcset="b.png 1x, https://x.example/c.png 2x"></head>', 1))))
+    own = ('<link rel="icon" href="data:image/svg+xml,%3Csvg%3E%3C/svg%3E">', '<link rel="icon" href="site/favicon.svg">')
+    R.check("a same-origin icon is not refused (the rule is not over-broad)",
+            not [k for k, _ in subpage_findings(sub.replace("</head>", "".join(own) + "</head>", 1))])
+
+
+_THEME_STUB = """
+const saved = process.argv[1] === "none" ? null : process.argv[1];
+const src = {media: "(prefers-color-scheme: dark)", dataset: {}};
+const btn = {setAttribute() {}, addEventListener() {}};
+globalThis.document = {documentElement: {dataset: {}}, getElementById: () => btn,
+  querySelector: () => null, querySelectorAll: (q) => (q.includes("source") ? [src] : [])};
+globalThis.localStorage = {getItem: () => saved, setItem() {}};
+globalThis.matchMedia = () => ({matches: false});
+"""
+
+
+def theme_picture_media(html: str, saved: str | None) -> str | None:
+    """The `media` a built page's theme script leaves on a dark `<picture>` source, with `saved` in localStorage
+    (`hpo-theme`) and a light OS: the script run in node over a stub DOM. None when the page has no theme script."""
+    m = re.search(r"<script>(\(\(\)=>\{const r=document\.documentElement.*?)</script>", html, re.S)
+    if not m:
+        return None
+    js = _THEME_STUB + m.group(1) + "\nprocess.stdout.write(src.media);"
+    r = subprocess.run(["node", "-e", js, saved or "none"], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else f"node rc {r.returncode}: {r.stderr.strip()[:120]}"
+
+
+def check_theme_pictures(built: dict) -> None:
+    """A diagram's <picture> picks its dark render by <source media="(prefers-color-scheme: dark)">, the OS
+    preference; the site's own theme toggle must pick the same render, or a light picture sits on a dark page
+    (R10-USER-DOCS-VERIFY, carry from #3014). Null control: with no saved theme the OS query stands."""
+    html = next(iter(built.get("html", {}).values()), "")
+    got = {s: theme_picture_media(html, s) for s in ("light", "dark", None)}
+    R.check("the docs pages' theme toggle turns a dark <picture> source off on a light site theme",
+            got["light"] == "not all", repr(got))
+    R.check("... and on for a dark site theme on a light OS", got["dark"] == "all", repr(got))
+    R.check("null control: with no saved theme the source keeps its prefers-color-scheme query",
+            got[None] == "(prefers-color-scheme: dark)", repr(got))
+
+
+def check_docs_build_controls() -> None:
+    """Null controls for docs_build itself: a planted tree turns the arm's core red, and a missing build or tree is red."""
+    R.section("docs build arm fires on a planted tree (R9-WEB-3 null controls)")
+
+    def corpus(readme_doc: str | None = "# A\n\nText [self](#a).\n", git: bool = True, readme: bool = True) -> pathlib.Path:
+        d = pathlib.Path(tempfile.mkdtemp())
+        files = {"docs/site/docs.css": "", "docs/a.md": readme_doc or ""}
+        if readme:
+            files["README.md"] = "# T\n\n## Documentation\n\n| Document | What is in it |\n|---|---|\n| [docs/a.md](docs/a.md) | The a page |\n"
+        for name, text in files.items():
+            (d / name).parent.mkdir(parents=True, exist_ok=True)
+            (d / name).write_text(text)
+        if git:
+            env = throwaway_git_init(d, "-q")
+            subprocess.run(["git", "add", "-A"], cwd=d, check=True, env=env)
+        return d
+
+    base = docs_build(c := corpus())
+    check_theme_pictures(base)
+    R.check("a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)",
+            base["rc"] == 0 and not base["fails"] and set(base["pages"]) == {"README.md", "docs/a.md"},
+            f"rc {base['rc']}, {base['fails']}, {sorted(base['pages'])}")
+    bad = docs_build(corpus("# A\n\nText [dead](#no-such-heading).\n"))
+    R.check("a dead anchor makes the build red", bad["rc"] == 1 and any("no-such-heading" in f for f in bad["fails"]),
+            f"rc {bad['rc']}, {bad['fails']}")
+    crash = docs_build(corpus(readme=False))
+    R.check("a build that dies without a FAIL line is red, naming its exit", crash["rc"] not in (0, None) and any(
+        "no FAIL line" in f for f in crash["fails"]), f"rc {crash['rc']}, {crash['fails']}")
+    dup = corpus()
+    (dup / "docs" / "x").mkdir()
+    (dup / "docs" / "x" / "a.md").write_text("# A2\n\nNo anchors here.\n")
+    (dup / "docs" / "a.md").write_text("# A\n\nNo anchors here.\n")
+    readme = (dup / "README.md").read_text().replace(
+        "| [docs/a.md](docs/a.md) | The a page |",
+        "| [docs/a.md](docs/a.md) | The a page |\n| [docs/x/a.md](docs/x/a.md) | A second a |")
+    (dup / "README.md").write_text(readme)
+    subprocess.run(["git", "add", "-A"], cwd=dup, check=True)
+    dupb = docs_build(dup)
+    R.check("two anchor-free documents with one page name are red, naming the collision (not only through a dead anchor)",
+            dupb["rc"] == 1 and any("one page name" in f for f in dupb["fails"]), f"rc {dupb['rc']}, {dupb['fails']}")
+    nogit = docs_build(corpus(git=False))
+    R.check("a tree with no tracked-file list is red", nogit["rc"] is None and any("git ls-files" in f for f in nogit["fails"]),
+            f"rc {nogit['rc']}, {nogit['fails']}")
+    global SITE_BUILD
+    real, SITE_BUILD = SITE_BUILD, pathlib.Path(tempfile.gettempdir()) / "no-such-build.mjs"
+    try:
+        gone = docs_build(corpus())
+    finally:
+        SITE_BUILD = real
+    R.check("a missing build script is red with no page built",
+            not gone["pages"] and any("does not exist" in f for f in gone["fails"]), f"{gone['fails']}")
+    again = docs_build(c)
+    R.check("a second run over one root reuses the first result", again is base)
+
+
+# ---------------------------------------------------------------------------
+# Arm I5 -- docs name UI labels, a console banner and service counts the code
+# does not carry (R10-I5-DOCS; D5-s1-01, D5-s2-01, D5-s3-51), and the product
+# page's declared image sizes (#2298)
+# ---------------------------------------------------------------------------
+#
+# Each finding is a doc or comment sentence that was true when written and went
+# stale as the code moved. Each fact is derived from the production artifact:
+# the picker name from manifest.json, the menu buttons from strings.json, the
+# service count from what async_setup's registration path registers on a
+# FakeHass, the PNG size from the file's own header.
+
+_COUNT_WORDS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve "
+    "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+_STATED_COUNT = re.compile(
+    r"\b(\d+|" + "|".join(_COUNT_WORDS) + r")\s+"
+    r"(?:services|handlers|``hass\.services\.async_register``\s+calls)\b",
+    re.IGNORECASE,
+)
+
+
+def ui_label_findings(texts: dict[str, str], picker_name: str, menu_labels: set[str]) -> list[str]:
+    """Doc sentences that tell the reader to pick a label the UI does not show.
+
+    Rule A: ``Add integration -> X`` where X is not the manifest ``name`` (the
+    Add integration picker lists the manifest name). Rule B: a bold or quoted
+    doc label that starts with a menu button's label and adds a parenthetical
+    the button does not carry. Labels under ten characters are not read as
+    prefixes (``Back``, ``Done``): they would match ordinary words.
+    """
+    low = {x.lower(): x for x in menu_labels if len(x) >= 10}
+    out: list[str] = []
+    for name, text in texts.items():
+        for m in re.finditer(r"Add integration\s*\u2192\s*([^*.)]+?)\s*(?:\*\*|\.|\))", text):
+            got = " ".join(m.group(1).split())
+            if got != picker_name:
+                out.append(f"{name}: 'Add integration -> {got}' but the picker shows '{picker_name}'")
+        for i, line in enumerate(text.split("\n"), 1):
+            for m in re.finditer(r'\*\*([^*\n]+)\*\*|"([^"\n<]+)(?:<br/>([^"\n<]+))?"', line):
+                t = " ".join(p for p in m.groups() if p).strip().rstrip(".:")
+                for seg in (x.strip() for x in t.split("\u2192")):
+                    if seg.lower() in low:
+                        continue
+                    for lab_l, lab in low.items():
+                        if seg.lower().startswith(lab_l) and re.fullmatch(r"\s*\([^)]*\)", seg[len(lab):]):
+                            out.append(f"{name}:{i}: '{seg}' but the button reads '{lab}'")
+    return out
+
+
+def check_ui_labels() -> None:
+    R.section("docs name the labels the Add integration picker and menus show (D5-s1-01)")
+    manifest = json.loads((PKG / "manifest.json").read_text())
+    strings = json.loads((PKG / "strings.json").read_text())
+    labels: set[str] = set()
+    for flow in ("config", "options"):
+        for step in strings[flow]["step"].values():
+            labels.update(step.get("menu_options", {}).values())
+    R.check("the picker name and the menu buttons exist (anchor)",
+            bool(manifest.get("name")) and len(labels) > 5, f"{manifest.get('name')!r}, {len(labels)} labels")
+    texts = {"README.md": README, **{f"docs/{k}": v for k, v in DOCS.items()}}
+    bad = ui_label_findings(texts, manifest["name"], labels)
+    R.check("every 'Add integration' name and menu-button label in the docs is what the UI shows",
+            not bad, "; ".join(bad[:5]) + (f" (+{len(bad) - 5})" if len(bad) > 5 else ""))
+    # Null control: a drifted picker name and a suffixed button label must fire.
+    planted = {"x.md": "**Settings -> Add integration \u2192 Heat Pump Optimizer.**\n"
+                       "**Enter thermal values directly (expert)** is for experts\n"}
+    got = ui_label_findings(planted, manifest["name"], labels)
+    R.check("a drifted picker name and a suffixed button label are both refused (null control)",
+            len(got) == 2, repr(got))
+
+
+def banner_findings(doc: str, card_js: str) -> list[str]:
+    """The console-banner sample in dashboard-card.md against what the card prints.
+
+    The card prints ``%c <tag> %c v<CARD_VERSION>`` and ``stamp.py`` rewrites
+    CARD_VERSION on every release without touching the doc, so a literal
+    version in the sample is stale by the next stamp (it read 6.6.8 at 7.0.0).
+    The sample must therefore carry the placeholder ``v<version>``.
+    """
+    out: list[str] = []
+    tag = re.search(r'const CARD_TAG = "([^"]+)"', card_js)
+    prints = re.search(r"`%c \$\{CARD_TAG\} %c v\$\{CARD_VERSION\} `", card_js)
+    if not tag or not prints:
+        return ["the card no longer prints '<tag> v<CARD_VERSION>': re-derive this check"]
+    for m in re.finditer(re.escape(tag.group(1)) + r"[ \t]+v(\S+)", doc):
+        if m.group(1) != "<version>":
+            out.append(f"banner sample shows 'v{m.group(1)}', a literal the next stamp falsifies")
+    return out
+
+
+def check_banner_sample() -> None:
+    R.section("the console-banner sample carries no version a stamp would falsify (D5-s2-01)")
+    card = (PKG / "www" / "heatpump-optimizer-card.js").read_text()
+    doc = DOCS["dashboard-card.md"]
+    R.check("the sample banner is in the doc (anchor)", "heatpump-optimizer-card  v" in doc)
+    bad = banner_findings(doc, card)
+    R.check("the sample shows the placeholder, not a literal version", not bad, repr(bad))
+    mutated = doc.replace("heatpump-optimizer-card  v<version>", "heatpump-optimizer-card  v6.6.8", 1)
+    R.check("a literal version planted in the sample is refused (null control)",
+            mutated != doc and len(banner_findings(mutated, card)) == 1)
+
+
+def stated_service_counts(src: str) -> list[tuple[int, int]]:
+    """(line, number) for every whole-registry count a comment or docstring states.
+
+    Only numbers of ten or more are read as whole-registry counts; smaller ones
+    in these files name subsets ('one of two services that write to the entry').
+    """
+    import io
+    import tokenize
+
+    out = []
+    for tok in tokenize.generate_tokens(io.StringIO(src).readline):
+        if tok.type not in (tokenize.COMMENT, tokenize.STRING):
+            continue
+        for m in _STATED_COUNT.finditer(" ".join(tok.string.split())):
+            n = m.group(1).lower()
+            n = int(n) if n.isdigit() else _COUNT_WORDS[n]
+            if n >= 10:
+                out.append((tok.start[0], n))
+    return out
+
+
+def check_service_count_comments() -> None:
+    R.section("service counts stated in __init__.py and services.py are the registry's (D5-s3-51)")
+    import asyncio
+
+    from harness import FakeHass
+    import heatpump_optimizer as integ
+    from heatpump_optimizer.const import DOMAIN
+
+    hass = FakeHass()
+    asyncio.run(integ._async_register_services(hass))
+    registered = len(hass.services.async_services().get(DOMAIN, {}))
+    R.check("the registration path registers services (anchor)", registered > 0, str(registered))
+    stale = []
+    for name in ("__init__.py", "services.py"):
+        for line, n in stated_service_counts((PKG / name).read_text()):
+            if n != registered:
+                stale.append(f"{name}:{line} states {n}, registered {registered}")
+    R.check("no comment or docstring states a whole-registry count that differs from it", not stale, repr(stale))
+    planted = '"""Registers the twelve services."""\n'
+    R.check("a stated count that differs from the registry is read (null control)",
+            stated_service_counts(planted) == [(1, 12)], repr(stated_service_counts(planted)))
+    R.check("a subset count below ten is not read as the registry (null control)",
+            stated_service_counts('"""one of two services that write"""\n') == [])
+
+
+def png_size(path: pathlib.Path) -> tuple[int, int] | None:
+    """(width, height) from a PNG's IHDR, or None when the file is not a PNG."""
+    import struct
+
+    head = path.read_bytes()[:24]
+    if len(head) < 24 or head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR":
+        return None
+    return struct.unpack(">II", head[16:24])
+
+
+_IMG_TAG = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+
+
+def image_dim_findings(root: pathlib.Path, tracked: list[str]) -> tuple[list[str], int]:
+    """Declared width/height vs the PNG header, for every <img> in the pages named.
+
+    ``tracked`` lists the pages, relative to ``root``; only .html and .md are
+    read. ``src`` resolves relative to the page's own directory. An <img> that
+    declares both width and height and names a PNG is compared; the count
+    returned is how many were.
+    """
+    out, compared = [], 0
+    for rel in tracked:
+        if not rel.endswith((".html", ".md")):
+            continue
+        page = root / rel
+        if not page.is_file():
+            continue
+        for tag in _IMG_TAG.findall(page.read_text(errors="replace")):
+            src = re.search(r'\bsrc="([^"#?]+)"', tag)
+            w = re.search(r'\bwidth="(\d+)"', tag)
+            h = re.search(r'\bheight="(\d+)"', tag)
+            if not (src and w and h) or "://" in src.group(1):
+                continue
+            png = (page.parent / src.group(1)).resolve()
+            size = png_size(png) if png.is_file() and png.suffix.lower() == ".png" else None
+            if size is None:
+                continue
+            compared += 1
+            if size != (int(w.group(1)), int(h.group(1))):
+                out.append(f"{rel}: {src.group(1)} declares {w.group(1)}x{h.group(1)}, file is {size[0]}x{size[1]}")
+    return out, compared
+
+
+def published_pages() -> list[str]:
+    """The pages a reader loads: README, the reader-facing docs, and the product page.
+
+    The scanned corpus above (README.md and DOCS) plus every top-level
+    docs/*.html, which GitHub Pages serves. Records and programme state are
+    not pages a browser lays out for a reader, and reading every tracked file
+    would put the whole tree in this script's closure.
+    """
+    return ["README.md", *(f"docs/{k}" for k in DOCS),
+            *(f"docs/{p.name}" for p in sorted((ROOT / "docs").glob("*.html")))]
+
+
+def check_image_dimensions() -> None:
+    R.section("declared <img> sizes equal the PNG headers on every published page (#2298)")
+    pages = published_pages()
+    R.check("the product page is one of the pages read (anchor)", "docs/index.html" in pages, repr(pages))
+    bad, compared = image_dim_findings(ROOT, pages)
+    R.check("at least one sized <img> was compared (anchor)", compared > 0, str(compared))
+    R.check("every declared width and height equals the PNG header", not bad, "; ".join(bad))
+    with tempfile.TemporaryDirectory() as tmp:
+        t = pathlib.Path(tmp)
+        import zlib, struct
+
+        def chunk(kind: bytes, data: bytes) -> bytes:
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+        (t / "a.png").write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 10, 20, 8, 0, 0, 0, 0)))
+        (t / "p.html").write_text('<img src="a.png" width="10" height="20"><img src="a.png" width="10" height="30">')
+        got, n = image_dim_findings(t, ["p.html"])
+        R.check("a wrong declared height is refused and a right one passes (null control)",
+                n == 2 and len(got) == 1 and "10x30" in got[0], repr((n, got)))
+
+
+# ---------------------------------------------------------------------------
+# Arm W -- doc wiring: paths, target markers, mermaid blocks (R10-ARCH-DOCS-FIRST,
+# #2395), and the Buy Me a Coffee button in its three places (owner, 2026-10-22)
+# ---------------------------------------------------------------------------
+#
+# The architecture page and the developer onboarding describe the shape at
+# programme end, so some of what they name is not on main yet. Such an element
+# carries a marker naming the roster group that lands it; the grammar is the
+# approved design note's (dev/programme/designs/R10-ARCH-DOCS-FIRST.md, section 3).
+# The predicates of `doc_wiring_findings` hold before and after a named group
+# lands: none reads a group's stage except (c), which only notes. A marker whose
+# groups are all done is refused by `due_marker_findings` (R10-ARCH-DOCS): the
+# page then states the tree, or is corrected where the landed shape differs.
+
+WIRING_DOCS = ("docs/architecture.md", "README.md", "dev/README.md")
+# The user pages R10-USER-DOCS-FINAL drafts and R10-USER-DOCS-VERIFY re-checks. README.md is in both sets.
+USER_PAGES = ("README.md", "docs/setup.md", "docs/configuration.md", "docs/how-it-works.md", "docs/automations.md",
+              "docs/dashboard-card.md", "docs/heat-curve.md")
+_COMMENT = re.compile(r"<!--.*?-->", re.S)
+# (e) reads every reader doc that draws a mermaid block, plus the onboarding.
+MERMAID_STYLE_DOCS = ("README.md", "docs/architecture.md", "docs/how-it-works.md", "docs/configuration.md",
+                      "docs/setup.md", "dev/README.md")
+ROSTER = ROOT / "dev" / "programme" / "rosters" / "wave-r10-groups.json"
+_MARKER = re.compile(r"\[(target|retired-by): (R10-[A-Z0-9-]+(?:, R10-[A-Z0-9-]+)*)(; owner step)?\]")
+_MARKER_ANY = re.compile(r"\[(?:target|retired-by)\b[^\]\n]*\]?")
+_FENCE = re.compile(r"^```([^\n]*)\n(.*?)^```", re.M | re.S)
+_DIAGRAMS = ("flowchart", "graph", "sequenceDiagram")
+_SHAPES = (("([", "])"), ("[(", ")]"), ("((", "))"), ("{{", "}}"), ("[[", "]]"), ("[", "]"), ("(", ")"), ("{", "}"))
+_HEX = re.compile(r"(?:fill|stroke|color|background)[\w-]*\s*:\s*#[0-9a-fA-F]{3,8}\b|^\s*(?:style|classDef|linkStyle)\b.*#[0-9a-fA-F]{3,8}\b", re.M)
+
+
+def roster_stages(path: pathlib.Path = ROSTER) -> dict[str, str] | None:
+    """group -> resume.stage from the roster on this tree, or None when the file is absent (archived)."""
+    if not path.is_file():
+        return None
+    return {g["group"]: (g.get("resume") or {}).get("stage", "") for g in json.loads(path.read_text())["groups"]}
+
+
+def _in_comment(text: str, pos: int) -> bool:
+    """Whether `pos` lies inside an HTML comment. A marker wrapped in one is a user-doc marker, R10-USER-DOCS-VERIFY's
+    to resolve; a bare one is a wiring marker, R10-ARCH-DOCS's (design/R10-USER-DOCS-FINAL section 3: the wrapper is
+    the tag)."""
+    return any(m.start() < pos < m.end() for m in _COMMENT.finditer(text))
+
+
+def _wiring(text: str) -> list[re.Match]:
+    """The well-formed wiring markers in `text`: a user-doc marker excuses no wiring finding (udf-user-marker-path-mask)."""
+    return [m for m in _MARKER.finditer(text) if not _in_comment(text, m.start())]
+
+
+def _groups(text: str, kind: str = "target") -> list[str]:
+    """The roster groups every well-formed wiring marker of `kind` in `text` names."""
+    return [g for m in _wiring(text) if m.group(1) == kind for g in m.group(2).split(", ")]
+
+
+def _units(text: str) -> list[tuple[str, list[str]]]:
+    """(unit, groups of the marked headings above it) for prose outside fences: a list item, a table row, a heading
+    or a paragraph."""
+    out: list[tuple[str, list[str]]] = []
+    heads: list[tuple[int, list[str]]] = []
+    cur: list[str] = []
+
+    def flush() -> None:
+        if cur:
+            out.append(("\n".join(cur), [g for _, gs in heads for g in gs]))
+            cur.clear()
+
+    for line in _FENCE.sub("", text).splitlines():
+        h = re.match(r"(#+)\s", line)
+        if h:
+            flush()
+            heads[:] = [x for x in heads if x[0] < len(h.group(1))] + [(len(h.group(1)), _groups(line))]
+            out.append((line, [g for _, gs in heads for g in gs]))
+        elif not line.strip():
+            flush()
+        elif line.lstrip().startswith("|") or re.match(r"\s*(?:[-*+]|\d+\.)\s", line):
+            flush()
+            cur.append(line)
+        else:
+            cur.append(line)
+    flush()
+    return out
+
+
+def _flowchart_findings(name: str, body: list[str]) -> list[str]:
+    """A bare node id used exactly once and never given a shape is a typo'd endpoint (section 6 (d)).
+
+    Declared: the id appears with a shape at least once, or is a subgraph id. Edge labels (`|...|`, quoted) are skipped.
+    """
+    shaped: set[str] = set()
+    seen: dict[str, int] = {}
+    ident = re.compile(r"[A-Za-z_]\w*")
+    for line in body:
+        s = line.strip()
+        if re.match(r"(?:end|direction|classDef|class|style|linkStyle|click)\b", s):
+            continue
+        sub = re.match(r"subgraph\s+([A-Za-z_]\w*)", s)
+        if sub:
+            shaped.add(sub.group(1))
+            continue
+        i = 0
+        while i < len(s):
+            c = s[i]
+            if c in '"|':
+                i = s.find(c, i + 1) + 1 or len(s)
+                continue
+            m = ident.match(s, i)
+            if not m or (i and re.match(r"[\w-]", s[i - 1])):
+                i += 1
+                continue
+            j = m.end()
+            shape = next(((o, cl) for o, cl in _SHAPES if s.startswith(o, j)), None)
+            if shape:
+                k = j + len(shape[0])
+                if s[k:k + 1] == '"':
+                    k = s.find('"', k + 1) + 1
+                k = s.find(shape[1], k) if k else -1
+                if k < 0:
+                    return [f"{name}: unclosed shape in {s!r}"]
+                shaped.add(m.group(0))
+                i = k + len(shape[1])
+            else:
+                seen[m.group(0)] = seen.get(m.group(0), 0) + 1
+                i = j
+    return [f"{name}: node {t!r} appears once and is never declared with a shape" for t, n in seen.items()
+            if n == 1 and t not in shaped]
+
+
+def _sequence_findings(name: str, body: list[str]) -> list[str]:
+    """Every message and note endpoint is a declared participant or actor (section 6 (d), item T3)."""
+    declared = {m.group(1) for line in body if (m := re.match(r"\s*(?:participant|actor)\s+(\w+)", line))}
+    out = []
+    for line in body:
+        m = re.match(r"\s*(\w+)\s*(?:<<)?-{1,2}(?:>>|>|x|\))\s*[+-]?\s*(\w+)\s*:", line)
+        n = re.match(r"\s*[Nn]ote\s+(?:over|left of|right of)\s+([\w ,]+?)\s*:", line)
+        for who in (m.groups() if m else ()) + (tuple(w.strip() for w in n.group(1).split(",")) if n else ()):
+            if who not in declared:
+                out.append(f"{name}: {who!r} is not a declared participant")
+    return out
+
+
+def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs: dict[str, str] | None = None
+                        ) -> tuple[list[str], list[str]]:
+    """(findings, notes) for the marked documents. `roster` is called only when a marker is present (N1)."""
+    from layout import repo_path
+
+    out: list[str] = []
+    notes: list[str] = []
+    dirs = {p[:i + 1] for p in tree for i in range(len(p)) if p[i] == "/"}
+    tops = {p.split("/")[0] for p in tree}
+    groups: list[tuple[str, str, str]] = []
+    for name, text in docs.items():
+        # a marker quoted in inline code is the grammar being described, not a marker
+        for m in _MARKER_ANY.finditer(re.sub(r"`[^`\n]+`", "", text)):
+            g = _MARKER.fullmatch(m.group(0))
+            if not g:
+                out.append(f"{name}: malformed marker {m.group(0)!r}")
+            elif g.group(1) == "retired-by" and ("," in g.group(2) or g.group(3)):
+                out.append(f"{name}: a retired-by marker names one group and no owner step: {m.group(0)!r}")
+            else:
+                groups += [(name, g.group(1), x) for x in g.group(2).split(", ")]
+        # (a) every backticked repository path resolves, or its unit carries a wiring marker
+        for unit, covered in _units(text):
+            marked = covered or bool(_wiring(unit))
+            for span in re.findall(r"`([^`\n]+)`", unit):
+                for tok in span.split():
+                    tok = re.sub(r":\d+(?:-\d+)?$", "", tok)
+                    if not repo_path(tok, tops) or re.search(r"[<>*{}$]", span):
+                        continue
+                    if tok not in tree and tok.rstrip("/") + "/" not in dirs and not marked:
+                        out.append(f"{name}: `{tok}` is not in the tree and carries no marker")
+        # (d) every mermaid block opens with a known diagram type and names only declared nodes
+        for info, body in _FENCE.findall(text):
+            if info.strip() != "mermaid":
+                continue
+            lines = [l for l in body.splitlines() if l.strip() and not l.strip().startswith("%%")]
+            kind = lines[0].split()[0] if lines else ""
+            if kind not in _DIAGRAMS:
+                out.append(f"{name}: a mermaid block opens with {kind!r}, not one of {', '.join(_DIAGRAMS)}")
+            elif kind == "sequenceDiagram":
+                out += _sequence_findings(name, lines[1:])
+            else:
+                out += _flowchart_findings(name, lines[1:])
+    # (b) every marker names a group in this tree's roster; read only when a marker exists
+    if groups:
+        stages = roster()
+        if stages is None:
+            out.append(f"{len(groups)} marker(s) present and no roster to resolve them against")
+        else:
+            out += [f"{name}: [{kind}: {g}] names no group in the roster" for name, kind, g in groups if g not in stages]
+            # (c) report-only: resolving is R10-ARCH-DOCS's end-of-round predicate
+            notes += [f"{r['doc']}:{r['line']}: {r['marker']} names only done groups; R10-ARCH-DOCS resolves it"
+                      for r in marker_census(docs, stages) if r["due"] and r["scope"] == "wiring"]
+    # (e) no hex colour and no init directive inside a mermaid block
+    for name, text in {**(style_docs or {}), **docs}.items():
+        for info, body in _FENCE.findall(text):
+            if info.strip() == "mermaid":
+                if _HEX.search(body):
+                    out.append(f"{name}: a mermaid block carries a hex colour")
+                if "%%{init" in body:
+                    out.append(f"{name}: a mermaid block carries an %%{{init}} directive")
+    return out, notes
+
+
+def marker_census(docs: dict[str, str], stages: dict[str, str]) -> list[dict]:
+    """Every marker in the documents, in order, with each named group's roster stage (`absent` when the roster has
+    no such group). `due`: every group it names is done, so the marker is unresolved (R10-ARCH-DOCS-WIRING item 2).
+    `scope`: `user` for a marker inside an HTML comment, else `wiring` (`_in_comment`). A marker quoted in inline code
+    is the grammar being described, not a marker."""
+    rows = []
+    for name, text in docs.items():
+        bare = re.sub(r"`[^`\n]+`", lambda m: " " * len(m.group(0)), text)
+        for m in _MARKER.finditer(bare):
+            st = {g: stages.get(g, "absent") for g in m.group(2).split(", ")}
+            rows.append({"doc": name, "line": bare.count("\n", 0, m.start()) + 1, "marker": m.group(0),
+                         "stages": st, "due": all(v == "done" for v in st.values()),
+                         "scope": "user" if _in_comment(bare, m.start()) else "wiring"})
+    return rows
+
+
+def marker_docs(root: pathlib.Path = ROOT) -> dict[str, str]:
+    """The one dict the marker census reads: the wiring documents and the user pages, keyed by path, so README.md,
+    which is both, is read once and its markers counted once."""
+    return {p: (root / p).read_text() for p in dict.fromkeys(WIRING_DOCS + USER_PAGES) if (root / p).is_file()}
+
+
+def marker_placement_findings(rows: list[dict]) -> list[str]:
+    """A marker on the wrong page for its scope: a bare one on a user-only page renders as text, and a wrapped one
+    on a wiring-only page has no owner there. A user marker naming no roster group is refused as a wiring one is."""
+    out = [f"{r['doc']}:{r['line']}: bare marker {r['marker']} on a user page renders; wrap it in <!-- -->"
+           for r in rows if r["scope"] == "wiring" and r["doc"] in USER_PAGES and r["doc"] not in WIRING_DOCS]
+    out += [f"{r['doc']}:{r['line']}: user-doc marker {r['marker']} on a wiring page; leave it bare"
+            for r in rows if r["scope"] == "user" and r["doc"] in WIRING_DOCS and r["doc"] not in USER_PAGES]
+    out += [f"{r['doc']}:{r['line']}: {r['marker']} names no group in the roster" for r in rows
+            if r["scope"] == "user" and "absent" in r["stages"].values()]
+    return out
+
+
+def due_marker_findings(rows: list[dict]) -> list[str]:
+    """A wiring marker whose every group is done describes the tree as still to come (R10-ARCH-DOCS, #2395). A
+    user-doc marker is R10-USER-DOCS-VERIFY's (`--markers --user`), and is left to it."""
+    return [f"{r['doc']}:{r['line']}: {r['marker']} names only done groups; state the tree and drop the marker"
+            for r in rows if r["due"] and r["scope"] == "wiring"]
+
+
+# The machinery figure's edges (owner direction, tvofi 2026-10-22). The figure under MACHINERY_HEADING draws one
+# labelled arrow per line, actor to target, and the table under it cites the code performing each. The table is the
+# registry, kept on the page it describes: no edge list lives here.
+MACHINERY_DOC = "dev/README.md"
+MACHINERY_HEADING = "### Its components"
+MACHINERY_VERBS = ("runs", "writes")
+_M_NODE = re.compile(r'^\s*([A-Za-z_]\w*)(\(\[|\[\(|\[)"([^"]*)"', re.M)
+_M_EDGE = re.compile(r'^\s*([A-Za-z_]\w*)\s*-->\|"([^"]*)"\|\s*([A-Za-z_]\w*)\s*$')
+_M_ARROW = re.compile(r"-{2,}>|-\.+->|={2,}>|---|~~~|--[ox]")
+_M_ROW = re.compile(r"^\|([^|\n]+)\|([^|\n]+)\|([^|\n]+)\|\s*`([^`\n]+)`: `([^`\n]+)`\s*\|\s*$", re.M)
+_M_KIND = {"([": "seat", "[(": "store", "[": "script"}
+
+
+def machinery_edge_findings(text: str, read) -> list[str]:
+    """What the machinery figure draws against the code its table cites. `read(path)` is a tracked file's text or None.
+
+    An arrow means the actor runs or writes its target, so: every arrow is one labelled line with a verb of
+    MACHINERY_VERBS; none starts at a store, `writes` ends at a store and `runs` does not; the arrows and the
+    table's rows are the same set, which is what refuses a reversed arrow; a row's quoted text is in the file it
+    cites; a script node names one script and its row cites that script's file, which refuses a row reversed with
+    its arrow and an edge that only a second file grouped into the node performs; and the figure has one entry, a
+    seat nothing points at. A node is named by its label's first line, and a script's file is that line's first
+    word."""
+    at = text.find(MACHINERY_HEADING + "\n")
+    if at < 0:
+        return [f"no {MACHINERY_HEADING!r} section"]
+    body = text[at + len(MACHINERY_HEADING):]
+    nxt = re.search(r"^#{1,3} ", body, re.M)
+    section = body[:nxt.start()] if nxt else body
+    fig = next((b for i, b in _FENCE.findall(section) if i.strip() == "mermaid"), None)
+    rows = [(a.strip(), v.strip(), b.strip(), f, q) for a, v, b, f, q in _M_ROW.findall(_FENCE.sub("", section))]
+    if fig is None or not rows:
+        return [f"{MACHINERY_HEADING!r} draws no figure" if fig is None else f"{MACHINERY_HEADING!r} cites no code"]
+    nodes = {i: (label.split("<br/>")[0].strip(), _M_KIND[shape], label) for i, shape, label in _M_NODE.findall(fig)}
+    name = {i: n for i, (n, _, _) in nodes.items()}
+    out = [f"two nodes are named {n!r}" for n in sorted({n for n in name.values() if list(name.values()).count(n) > 1})]
+    out += [f"{n}: a script node names one script, and this names {len(_FILE.findall(n))}"
+            for n, k, _ in nodes.values() if k == "script" and len(_FILE.findall(n)) != 1]
+    drawn: set[tuple[str, str, str]] = set()
+    for line in fig.splitlines():
+        if not _M_ARROW.search(re.sub(r'"[^"]*"', '""', line)):  # a label's `--once` is no arrow
+            continue
+        m = _M_EDGE.match(line)
+        if not m or m.group(1) not in nodes or m.group(3) not in nodes:
+            out.append(f"not one labelled arrow between two declared nodes: {line.strip()!r}")
+            continue
+        a, verb, b = m.group(1), m.group(2), m.group(3)
+        edge = f"{name[a]} -{verb}-> {name[b]}"
+        if verb not in MACHINERY_VERBS:
+            out.append(f"{edge}: the verb is not one of {', '.join(MACHINERY_VERBS)}")
+        if nodes[a][1] == "store":
+            out.append(f"{edge}: starts at a store, and a store does nothing")
+        elif (verb == "writes") != (nodes[b][1] == "store"):
+            out.append(f"{edge}: `writes` ends at a store and `runs` at an actor")
+        drawn.add((name[a], verb, name[b]))
+    cited = {(a, v, b) for a, v, b, _, _ in rows}
+    out += [f"{a} -{v}-> {b}: drawn, and no row cites the code that performs it" for a, v, b in sorted(drawn - cited)]
+    out += [f"{a} -{v}-> {b}: cited in the table and not drawn" for a, v, b in sorted(cited - drawn)]
+    kind = {n: (k, label) for n, k, label in nodes.values()}
+    for a, v, b, path, quote in rows:
+        src = read(path)
+        if src is None:
+            out.append(f"{a} -{v}-> {b}: cites `{path}`, which is not a tracked file")
+        elif quote not in src:
+            out.append(f"{a} -{v}-> {b}: `{path}` no longer holds {quote!r}")
+        if kind.get(a, ("", ""))[0] == "script" and path.rsplit("/", 1)[-1] != a.split()[0]:
+            out.append(f"{a} -{v}-> {b}: cites `{path}`, which is not the script the actor's node names")
+    entries = sorted(n for i, n in name.items() if nodes[i][1] != "store" and all(b != n for _, _, b in drawn))
+    if len(entries) != 1 or kind[entries[0]][0] != "seat":
+        out.append(f"the figure has one entry, a seat nothing points at; it has {entries}")
+    return out
+
+
+# (f)-(i): what the architecture page and the onboarding name beyond a path -- a command's arguments, a module's
+# symbols, a workflow job, a ledger kind, a diagram node -- each resolved in the artifact that defines it (fixer.md
+# step 11), never in a list kept here. Read from these two only: README.md names the user's own files
+# (`configuration.yaml`), which no tree resolves.
+NAMED_DOCS = ("docs/architecture.md", "dev/README.md")
+PKG_REL = "custom_components/heatpump_optimizer"
+LEDGER = "tools/audit/seat/ledger.py"
+_FILE = re.compile(r"(?<![\w/.-])((?:[\w.-]+/)*[\w-]+\.(?:py|sh|mjs|js|json|ya?ml|md|toml))(?![\w/-])")
+# the lower-case kebab word: an argument after a script, and the diagram node that names a job; the job resolver,
+# not this shape, decides whether that job exists
+_WORD = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
+_ARG = re.compile(r"--[a-z][\w-]*|" + _WORD.pattern)
+_CAMEL = re.compile(r"(?<![\w.])([A-Z][a-z0-9]+(?:[A-Z][a-z0-9]*)+)(?:\.([a-z_]\w*))?")
+_CHECK_NAME = re.compile(r"([\w-]+) / ([\w-]+)(?: \(([^)]+)\))?")
+_KIND = re.compile(r"[a-z]+(?:-[a-z]+)+")
+_KIND_NOTE = re.compile(r"\b([a-z]+(?:-[a-z]+)+) (?:opens|closes)\b|\bopens ([a-z]+(?:-[a-z]+)+)")
+_LABEL = re.compile(r"\b[A-Za-z_]\w*\s*(?:\(\[|\[\(|\(\(|\{\{|\[\[|\[|\(|\{)\"([^\"]*)\"|--\s*\"([^\"]*)\"\s*-+>|\|\"([^\"]*)\"\|")
+
+
+def _symbols(src: str) -> dict[str, set[str]]:
+    """Top-level name -> its method names (empty for a function or an assignment)."""
+    out: dict[str, set[str]] = {}
+    for n in ast.parse(src).body:
+        if isinstance(n, ast.ClassDef):
+            out[n.name] = {m.name for m in n.body if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            out[n.name] = set()
+        elif isinstance(n, (ast.Assign, ast.AnnAssign)):
+            for t in n.targets if isinstance(n, ast.Assign) else [n.target]:
+                if isinstance(t, ast.Name):
+                    out[t.id] = set()
+    return out
+
+
+def _matrix_values(job: str) -> set[str]:
+    """Every scalar under a job's `strategy.matrix`, comments dropped: what a check name's `(...)` suffix can carry."""
+    m = re.search(r"^( *)matrix:[ \t]*$", job, re.M)
+    out: set[str] = set()
+    for line in job[m.end():].splitlines()[1:] if m else []:
+        if line.strip() and len(line) - len(line.lstrip()) <= len(m.group(1)):
+            break
+        item = line.split("#", 1)[0].strip().removeprefix("-").strip()
+        rhs = item.split(":", 1)[1] if ":" in item else item
+        out |= {v.strip(" \"'") for v in re.split(r"[\[\],]", rhs)} - {""}
+    return out
+
+
+def _ledger_kinds(src: str | None) -> set[str]:
+    """The keys of ledger.py's KINDS table, the one registry of obligation kinds; empty when it cannot be read."""
+    for n in ast.parse(src or "").body:
+        if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "KINDS" for t in n.targets):
+            return set(ast.literal_eval(n.value))
+    return set()
+
+
+def named_element_findings(docs: dict[str, str], tree: set[str], read
+                           ) -> tuple[list[str], list[tuple], collections.Counter]:
+    """(findings, pending, checked) for every element the documents name; `checked` counts them by class. `read(path)` is a tracked file's text or None.
+
+    An element that does not resolve is a finding, unless a marker covers it -- its unit, a heading above it, its
+    diagram label, or (a kind a diagram note names) the marked line that lists it -- when it is `pending`
+    (doc, groups, element), the delta R10-ARCH-DOCS resolves once those groups land. A command's argument resolves
+    when the script's text holds it as a word: a renamed subcommand or flag is caught, a reworded help text is not.
+    """
+    out: list[str] = []
+    pending: list[tuple] = []
+    checked: collections.Counter = collections.Counter()
+    bases: dict[str, list[str]] = {}
+    for p in tree:
+        bases.setdefault(p.rsplit("/", 1)[-1], []).append(p)
+    sym_cache: dict[str, dict[str, set[str]]] = {}
+
+    def files(tok: str) -> list[str]:
+        if tok in tree:
+            return [tok]
+        if "/" not in tok:
+            return sorted(bases.get(tok, []))
+        return sorted(p for p in tree if p.endswith("/" + tok))
+
+    def syms(path: str) -> dict[str, set[str]]:
+        if path not in sym_cache:
+            sym_cache[path] = _symbols(read(path) or "")
+        return sym_cache[path]
+
+    def judge(doc: str, groups: list[str] | None, element: str, problem: str | None) -> None:
+        checked[_element_class(element)] += 1
+        # None: under a retired-by marker, where an absent element is what the marker states
+        if problem is None or groups is None:
+            return
+        if groups:
+            pending.append((doc, tuple(dict.fromkeys(groups)), element))
+        else:
+            out.append(f"{doc}: {element} {problem}")
+
+    def file_and_args(doc: str, groups: list[str] | None, text: str, prose: bool) -> list[str]:
+        """Resolve each file token in `text` and the arguments that follow it; returns the resolved files.
+
+        In prose a bare config-format name (`pyproject.toml`) is not resolved: the page also names other projects'
+        files. A token closed by punctuation takes no arguments."""
+        found: list[str] = []
+        toks = text.split()
+        for i, raw in enumerate(toks):
+            tok = re.sub(r":\d+(?:-\d+)?$|[:,;.]$", "", raw)
+            if not _FILE.fullmatch(tok) or (prose and "/" not in tok and not re.search(r"\.(?:py|sh|mjs|js|md)$", tok)):
+                continue
+            hits = files(tok)
+            judge(doc, groups, f"`{tok}`", None if hits else "names no tracked file")
+            found += hits
+            for arg in itertools.takewhile(_ARG.fullmatch, toks[i + 1:] if raw == tok else []):
+                word = re.compile(r"(?<![\w-])" + re.escape(arg) + r"(?![\w-])")
+                judge(doc, groups, f"`{tok} {arg}`",
+                      None if any(word.search(read(h) or "") for h in hits) else "is an argument the script never reads")
+        return found
+
+    def job(doc: str, groups: list[str], stem: str, name: str, matrix: str | None) -> None:
+        text = read(f".github/workflows/{stem}.yml")
+        block = re.search(r"^  " + re.escape(name) + r":\s*\n(.*?)(?=^  [\w-]+:\s*$|\Z)", text or "", re.M | re.S)
+        problem = (f"names no workflow .github/workflows/{stem}.yml" if text is None
+                   else f"names no job of .github/workflows/{stem}.yml" if not block
+                   else "names a matrix value the job does not carry" if matrix and matrix not in _matrix_values(block.group(1))
+                   else None)
+        judge(doc, groups, f"job `{stem} / {name}" + (f" ({matrix})" if matrix else "") + "`", problem)
+
+    kinds = _ledger_kinds(read(LEDGER))
+    for doc in NAMED_DOCS:
+        text = docs.get(doc)
+        if text is None:
+            continue
+        # prose: a check name, a command, a module's symbol
+        for unit, heads in _units(text):
+            groups = None if _groups(unit, "retired-by") else heads + _groups(unit)
+            for span in re.findall(r"`([^`\n]+)`", unit):
+                cn = _CHECK_NAME.fullmatch(span)
+                if cn:
+                    job(doc, groups, *cn.groups())
+                    continue
+                file_and_args(doc, groups, span, True)
+                ms = re.fullmatch(r"([a-z_]\w*)\.([A-Za-z_]\w*)", span)
+                if ms and not _FILE.fullmatch(span) and f"{PKG_REL}/{ms.group(1)}.py" in tree:
+                    judge(doc, groups, f"`{span}`", None if ms.group(2) in syms(f"{PKG_REL}/{ms.group(1)}.py")
+                          else f"is not defined in {PKG_REL}/{ms.group(1)}.py")
+        # prose: the kinds listed under a list item naming the ledger
+        declared: dict[str, list[str]] = {}
+        stack: list[tuple[int, str]] = []
+        heads: list[tuple[int, list[str]]] = []
+        for line in _FENCE.sub("", text).splitlines():
+            h = re.match(r"(#+)\s", line)
+            if h:
+                heads[:] = [x for x in heads if x[0] < len(h.group(1))] + [(len(h.group(1)), _groups(line))]
+                stack.clear()
+                continue
+            li = re.match(r"(\s*)(?:[-*+]|\d+\.)\s", line)
+            if not li:
+                continue
+            ind = len(li.group(1))
+            stack[:] = [x for x in stack if x[0] < ind]
+            if any("ledger.py" in t for _, t in stack):
+                groups = [g for _, gs in heads for g in gs] + _groups(line + "".join(t for _, t in stack))
+                for k in re.findall(r"`([^`\n]+)`", line):
+                    if _KIND.fullmatch(k):
+                        declared[k] = groups
+                        judge(doc, groups, f"ledger kind `{k}`", None if k in kinds else f"is not a key of {LEDGER}'s KINDS")
+            stack.append((ind, line))
+        # diagrams: node and edge labels, sequence notes
+        for info, body in _FENCE.findall(text):
+            if info.strip() != "mermaid":
+                continue
+            labels = [next(x for x in m if x) for m in _LABEL.findall(body) if any(m)]
+            named = [f for lab in labels for seg in re.split(r"<br/?>", lab) for f in file_and_args(doc, _groups(lab), seg, False)]
+            flows = [f for f in named if re.fullmatch(r"\.github/workflows/[\w-]+\.yml", f)]
+            for lab in labels:
+                groups = _groups(lab)
+                segs = [x.strip() for x in re.split(r"<br/?>", lab)]
+                pys = [h for f in _FILE.findall(lab) for h in files(f) if h.startswith(PKG_REL + "/") and h.endswith(".py")]
+                for cm in _CAMEL.finditer(lab) if pys else ():
+                    owner = next((syms(f)[cm.group(1)] for f in pys if cm.group(1) in syms(f)), None)
+                    judge(doc, groups, f"`{cm.group(0)}`",
+                          f"is not defined in {', '.join(pys)}" if owner is None
+                          else f"is no method of {cm.group(1)}" if cm.group(2) and cm.group(2) not in owner else None)
+                for seg in segs:
+                    if re.fullmatch(r"[a-z_]\w*(?: · [a-z_]\w*)+", seg):
+                        for mod in seg.split(" · "):
+                            judge(doc, groups, f"module `{mod}`", None if f"{PKG_REL}/{mod}.py" in tree
+                                  or any(p.startswith(f"{PKG_REL}/{mod}/") for p in tree) else f"is no module of {PKG_REL}")
+                if lab.startswith("services:"):
+                    have = set(re.findall(r"^([a-z_]\w*):", read(f"{PKG_REL}/services.yaml") or "", re.M))
+                    for svc in re.findall(r"[a-z_]+", lab[len("services:"):].replace("<br/>", " ")):
+                        judge(doc, groups, f"service `{svc}`", None if svc in have else f"is not in {PKG_REL}/services.yaml")
+                if flows and _WORD.fullmatch(segs[0]):
+                    stem = flows[0].rsplit("/", 1)[-1][:-4]
+                    job(doc, groups, stem, segs[0], None)
+            for line in body.splitlines():
+                if re.match(r"\s*[Nn]ote\b", line):
+                    for k in (a or b for a, b in _KIND_NOTE.findall(line)):
+                        judge(doc, declared.get(k, []), f"ledger kind `{k}` in a diagram note",
+                              None if k in kinds else f"is not a key of {LEDGER}'s KINDS")
+    return out, pending, checked
+
+
+def _element_class(element: str) -> str:
+    """`a.py` file, `a.py --x` argument, `m.Sym` symbol, or the leading word: job, ledger kind, module, service."""
+    if not element.startswith("`"):
+        return element.split(" `", 1)[0]
+    body = element.strip("`")
+    return "argument" if " " in body else "file" if _FILE.fullmatch(body) else "symbol"
+
+
+
+COFFEE = "https://buymeacoffee.com/rpgshcwb2tp"
+COFFEE_SVG = "docs/img/brand/coffee.svg"
+# inline, or by reference: the image stays inline and its line carries no '://', which HACS's README image rewriter
+# needs (tests/entities.py pins that rewriter's rule)
+_COFFEE_MD = re.compile(r"\[!\[[^\]]+\]\(([^)\s]+)\)\](?:\(" + re.escape(COFFEE) + r"\)|\[([\w-]+)\])")
+_COFFEE_A = re.compile(r'<a\b[^>]*\bclass="bmc"[^>]*\bhref="' + re.escape(COFFEE) + r'"', re.S)
+
+
+def _css_vars(block: str) -> dict[str, str]:
+    return dict(re.findall(r"(--[\w-]+):\s*([^;}]+?)\s*[;}]", block))
+
+
+def coffee_button_findings(readme: str, index_html: str, built: dict[str, str], tree: set[str],
+                           svg: str | None, css: str) -> list[str]:
+    """The owner's button in its three places, drawn from in-tree assets in the docs.css tokens, light and dark.
+
+    1. README.md, above its first `## ` heading: an image link to COFFEE whose image is a tracked file.
+    2. docs/index.html's own <footer>, and 3. the shared footer of every page tools/site/build_docs.mjs renders: an
+    <a class="bmc"> to COFFEE, whose `.bmc` rule colours it from the page's own tokens.
+    """
+    out = []
+    top = readme.split("\n## ", 1)[0]
+    m = _COFFEE_MD.search(top)
+    if m and m.group(2) and not re.search(r"^\[" + re.escape(m.group(2)) + r"\]:\s*" + re.escape(COFFEE) + r"\s*$", readme, re.M | re.I):
+        m = None
+    if not m:
+        out.append("README.md: no button linking " + COFFEE + " above the first section")
+    elif m.group(1).removeprefix("./") not in tree:
+        out.append(f"README.md: the button's image {m.group(1)} is not a tracked file")
+    foot = re.search(r"<footer\b[^>]*>.*?</footer>", index_html, re.S)
+    if not (foot and _COFFEE_A.search(foot.group(0))):
+        out.append("docs/index.html: its <footer> has no button linking " + COFFEE)
+    if not re.search(r"\.bmc\s*\{[^}]*var\(--accent\)", index_html):
+        out.append("docs/index.html: no .bmc rule drawn from var(--accent)")
+    if not re.search(r"\.bmc\s*\{[^}]*var\(--accent\)", css):
+        out.append("docs/site/docs.css: no .bmc rule drawn from var(--accent)")
+    if not built:
+        out.append("the docs build produced no page to look for the shared footer in")
+    for page, html in sorted(built.items()):
+        foot = re.search(r'<footer class="site">.*?</footer>', html, re.S)
+        if not (foot and _COFFEE_A.search(foot.group(0))):
+            out.append(f"{page}: the shared footer has no button linking {COFFEE}")
+    # the README image cannot read CSS variables, so its colours are the tokens' values, compared here
+    if svg is None:
+        out.append(f"{COFFEE_SVG} is absent")
+    else:
+        light = _css_vars(css.split("@media", 1)[0])
+        dark = _css_vars(css.split(':root[data-theme="dark"]', 1)[-1].split("}", 1)[0])
+        sl, _, sd = svg.partition("@media")
+        for cls, var in ((".bg", "--accent"), (".fg", "--accent-ink")):
+            for where, part, want in (("light", sl, light.get(var)), ("dark", sd, dark.get(var))):
+                got = re.search(re.escape(cls) + r"\s*\{\s*fill:\s*([^;}]+)", part)
+                if not want or not got or got.group(1).strip().lower() != want.lower():
+                    out.append(f"{COFFEE_SVG}: {cls} in {where} is {got and got.group(1)!r}, docs.css {var} is {want!r}")
+    return out
+
+
+def _tracked(root: pathlib.Path = ROOT) -> set[str]:
+    return set(subprocess.run(["git", "ls-files"], cwd=root, capture_output=True, text=True, check=True).stdout.split("\n")) - {""}
+
+
+def check_doc_wiring() -> None:
+    R.section("doc wiring: paths, target markers and mermaid blocks (R10-ARCH-DOCS-FIRST)")
+    docs = {p: (ROOT / p).read_text() for p in WIRING_DOCS if (ROOT / p).is_file()}
+    R.check("docs/architecture.md, README.md and dev/README.md exist (anchor)", len(docs) == len(WIRING_DOCS),
+            ", ".join(sorted(set(WIRING_DOCS) - set(docs))))
+    style = {p: (ROOT / p).read_text() for p in MERMAID_STYLE_DOCS if (ROOT / p).is_file()}
+    tree = _tracked()
+    errs, notes = doc_wiring_findings(docs, tree, roster_stages, style)
+    blocks = sum(1 for t in docs.values() for i, _ in _FENCE.findall(t) if i.strip() == "mermaid")
+    marks = sum(len(_MARKER.findall(t)) for t in docs.values())
+    R.check("the marked documents draw mermaid blocks (anchor)", blocks > 0, f"{blocks} block(s), {marks} marker(s)")
+    R.check("every path resolves or is marked, every marker names a roster group, every block is well formed",
+            not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    for n in notes:
+        print(f"       note: {n}")
+    print(f"       ({blocks} mermaid block(s), {marks} marker(s), {len(notes)} note(s))")
+
+    stub = {"R10-A": "not-started", "R10-B": "done"}
+    t = {"tests/a.py", "docs/x.md"}
+    base = ("# T\n\nA marker reads `[target: <group>]`.\n\n- `tests/a.py` runs it.\n- `docs/y.md` lands later [target: R10-A]\n\n"
+            "```mermaid\nflowchart LR\n    A[a] --> B[\"b\"]\n    A -.->|\"[target: R10-A]\"| B\n```\n\n"
+            "```mermaid\nsequenceDiagram\n    participant F as fixer\n    participant O as orchestrator\n"
+            "    F->>O: handoff\n    Note over F,O: opens a ledger entry\n```\n")
+    calls = []
+
+    def ro():
+        calls.append(1)
+        return stub
+    clean, cn = doc_wiring_findings({"d.md": base}, t, ro)
+    R.check("the clean fixture yields no finding and no note (null control)", not clean and not cn and calls,
+            repr((clean, cn)))
+    plants = (
+        ("a renamed path", base.replace("`tests/a.py`", "`tests/b.py`"), "not in the tree"),
+        ("a marker naming no roster group", base.replace("[target: R10-A]\n\n", "[target: R10-NOPE]\n\n"), "names no group"),
+        ("a malformed marker", base.replace("[target: R10-A]\n\n", "[target R10-A]\n\n"), "malformed"),
+        ("a bare node id used once", base.replace("A -.->", "A --> Bx\n    A -.->"), "'Bx'"),
+        ("a block of an unknown diagram type", base.replace("flowchart LR", "pie"), "'pie'"),
+        ("a hex fill", base.replace("    A -.->", "    style A fill:#ff0000\n    A -.->"), "hex"),
+        ("an init directive", base.replace("flowchart LR\n", "%%{init: {'theme': 'dark'}}%%\nflowchart LR\n"), "init"),
+        ("an undeclared sequence participant", base.replace("F->>O", "F->>X"), "'X'"),
+    )
+    for what, doc, key in plants:
+        got, _ = doc_wiring_findings({"d.md": doc}, t, ro)
+        R.check(f"red fixture: {what} is a finding", doc != base and any(key in g for g in got), repr(got))
+    done = base.replace("[target: R10-A]\n\n", "[target: R10-B]\n\n") + "\n- `.github/workflows/gone.yml` [retired-by: R10-B]\n"
+    got, gn = doc_wiring_findings({"d.md": done}, t, ro)
+    R.check("state tolerance: a marker naming a done group, and an absent retired-by path, yield only notes",
+            not got and len(gn) == 2, repr((got, gn)))
+    calls.clear()
+    plain = "# T\n\n- `tests/a.py` runs it.\n"
+    got, gn = doc_wiring_findings({"d.md": plain}, t, lambda: calls.append(1))
+    R.check("no marker: no roster is read, and none needs to exist (null control, N1)", not got and not gn and not calls,
+            repr((got, gn, calls)))
+    got, _ = doc_wiring_findings({"d.md": base}, t, lambda: None)
+    R.check("a marker with no roster file to resolve it is a finding", any("no roster" in g for g in got), repr(got))
+    # udf-user-marker-path-mask: a user-doc marker on a README unit excuses no missing path there; a wiring one does.
+    user = "# T\n\n- `docs/gone.md` documents it <!-- [target: R10-A] -->\n"
+    got, gn = doc_wiring_findings({"README.md": user}, t, ro)
+    R.check("red fixture: a user-doc marker beside a missing path leaves the path a finding, and adds no due note",
+            any("`docs/gone.md` is not in the tree" in g for g in got) and not gn, repr((got, gn)))
+    got, _ = doc_wiring_findings({"README.md": user.replace("<!-- [target: R10-A] -->", "[target: R10-A]")}, t, ro)
+    R.check("null control: the same unit with a bare wiring marker excuses the path", not got, repr(got))
+
+
+def _read_tracked(tree: set[str]):
+    return lambda path: (ROOT / path).read_text() if path in tree and (ROOT / path).is_file() else None
+
+
+def check_named_elements() -> None:
+    R.section("doc wiring: every instrument, job, kind, symbol and diagram node the two pages name (R10-ARCH-DOCS-WIRING)")
+    tree = _tracked()
+    docs = {p: (ROOT / p).read_text() for p in NAMED_DOCS if (ROOT / p).is_file()}
+    errs, pending, checked = named_element_findings(docs, tree, _read_tracked(tree))
+    want = ("file", "argument", "symbol", "job", "ledger kind", "module", "service")
+    R.check("every class of named element is read on these pages (anchor)", all(checked[k] for k in want),
+            ", ".join(f"{k} {checked[k]}" for k in want))
+    R.check("every named element resolves in the artifact that defines it, or a marker covers it", not errs,
+            "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    for doc, groups, element in pending:
+        print(f"       pending: {doc}: {element} [target: {', '.join(groups)}]")
+
+    t = {".github/workflows/ci.yml", ".github/workflows/tests.yml", "tools/x.sh", f"{PKG_REL}/mod.py",
+         f"{PKG_REL}/services.yaml", LEDGER}
+    files = {".github/workflows/ci.yml": "jobs:\n  prelude:\n    runs-on: x\n  gate:\n    needs: [prelude]\n",
+             ".github/workflows/tests.yml": 'jobs:\n  fast:\n    strategy:\n      matrix:\n        python-version: ["3.14"]\n',
+             "tools/x.sh": "case $1 in\n  pass) ;;\n  --once) ;;\nesac\n",
+             f"{PKG_REL}/mod.py": "class ThingOne:\n    def run(self):\n        pass\n",
+             f"{PKG_REL}/services.yaml": "do_it:\n  name: x\n",
+             LEDGER: 'KINDS = {"handoff-no-pr": "derived", "train-stop": "event"}\n'}
+    base = ("# D\n\n- `tools/x.sh pass` runs it, under `tests / fast (3.14)`; it calls `mod.ThingOne`.\n"
+            "- The ledger, `tools/audit/seat/ledger.py`:\n  - kinds: `handoff-no-pr`, `train-stop`\n"
+            "  - later: `record-owed` [target: R10-A]\n\n"
+            "```mermaid\nflowchart LR\n    w[\"ci.yml: the umbrella\"] --> p[\"prelude<br/>kind\"]\n    p --> g[\"gate\"]\n"
+            "    g --> q[\"PUT\"]\n"
+            "    m[\"mod.py<br/>ThingOne.run\"] -- \"services: do_it\" --> x[\"x.sh --once\"]\n    l[\"mod · mod\"] --> m\n```\n\n"
+            "```mermaid\nsequenceDiagram\n    participant A as a\n    Note over A: handoff-no-pr closes, record-owed opens\n```\n")
+    clean, pend, n = named_element_findings({"dev/README.md": base}, t, files.get)
+    R.check("the clean fixture resolves every class and leaves only the marked kind pending (null control)",
+            not clean and all(n[k] for k in want) and {e for _, _, e in pend} ==
+            {"ledger kind `record-owed`", "ledger kind `record-owed` in a diagram note"}, repr((clean, pend, n)))
+    plants = (
+        ("a renamed script", "`tools/x.sh pass`", "`tools/y.sh pass`", "names no tracked file"),
+        ("a renamed subcommand", "`tools/x.sh pass`", "`tools/x.sh push`", "never reads"),
+        ("a removed flag in a diagram node", "x.sh --once", "x.sh --twice", "never reads"),
+        ("a renamed workflow in a diagram node", "ci.yml: the", "cx.yml: the", "names no tracked file"),
+        ("a removed workflow job in a diagram node", 'g["gate"]', 'g["gat"]', "names no job"),
+        ("a check name's matrix value", "(3.14)", "(3.15)", "matrix value"),
+        ("a removed class", "`mod.ThingOne`", "`mod.ThingTwo`", "not defined"),
+        ("a removed method in a diagram node", "ThingOne.run", "ThingOne.walk", "no method"),
+        ("a removed module in a module list", "mod · mod", "mod · gone", "no module"),
+        ("a removed service on an edge", "services: do_it", "services: undo_it", "services.yaml"),
+        ("a removed ledger kind in a list", "`train-stop`", "`train-halt`", "KINDS"),
+        ("a removed ledger kind in a diagram note", "handoff-no-pr closes", "handoff-gone closes", "KINDS"),
+    )
+    for what, old, new_, key in plants:
+        doc = base.replace(old, new_)
+        got, _, _ = named_element_findings({"dev/README.md": doc}, t, files.get)
+        R.check(f"red fixture: {what} is a finding", doc != base and any(key in g for g in got), repr(got))
+    got, pend, _ = named_element_findings({"dev/README.md": base.replace("`tools/x.sh pass` runs it",
+                                           "`tools/y.sh pass` runs it [target: R10-A]")}, t, files.get)
+    R.check("a marked element that does not resolve is pending, not a finding (null control)",
+            not got and any(e == "`tools/y.sh`" for _, _, e in pend), repr((got, pend)))
+
+
+def check_marker_census() -> None:
+    R.section("target-marker resolver: every marker with its group's roster stage (R10-ARCH-DOCS-WIRING item 2)")
+    docs = marker_docs()
+    stages = roster_stages()
+    rows = marker_census(docs, stages or {})
+    # no `> 0`: the end state of the round is a tree with no marker, and the fixtures below are the non-vacuity
+    R.check("the resolver reads every marker in the wiring documents and the user pages, README.md once (anchor)",
+            len(rows) == sum(len(_MARKER.findall(re.sub(r"`[^`\n]+`", "", t))) for t in docs.values())
+            and set(docs) == set(WIRING_DOCS) | set(USER_PAGES), str(len(rows)))
+    wiring = [r for r in rows if r["scope"] == "wiring"]
+    print(f"       ({sum(r['due'] for r in wiring)} of {len(wiring)} wiring marker(s) name only done groups: "
+          "python3 tests/doc_claims.py --markers lists them; "
+          f"{len(rows) - len(wiring)} user-doc marker(s): --markers --user)")
+    bad = marker_placement_findings(rows) if stages is not None else []
+    R.check("every marker sits on a page of its scope and names a roster group", not bad, "; ".join(bad[:4]))
+    due = due_marker_findings(rows)
+    R.check("no wiring marker names only done groups: each is resolved into a statement of the tree (#2395)",
+            not due, "; ".join(due[:4]) + (f" (+{len(due) - 4})" if len(due) > 4 else ""))
+    readme = "# T\n\n- `a.py` lands [target: R10-A]\n\n| Row | Cell <!-- [target: R10-B] --> |\n"
+    tagged = marker_census({"README.md": readme}, {"R10-A": "not-started", "R10-B": "done"})
+    R.check("null control: a README with one wiring and one wrapped marker gives one row of each scope",
+            [r["scope"] for r in tagged] == ["wiring", "user"], repr(tagged))
+    for page, doc, key in (("docs/setup.md", "# T\n\nA screen. [target: R10-A]\n", "renders"),
+                           ("docs/architecture.md", "# T\n\nA module. <!-- [target: R10-A] -->\n", "wiring page")):
+        got = marker_placement_findings(marker_census({page: doc}, {"R10-A": "not-started"}))
+        R.check(f"red fixture: {'a bare' if key == 'renders' else 'a wrapped'} marker in {page} is misplaced",
+                any(key in g for g in got), repr(got))
+    stub = {"R10-A": "not-started", "R10-B": "done"}
+    doc = "# T\n\n- `a.py` lands [target: R10-A]\n- quoted: `[target: R10-B]`\n"
+    null = marker_census({"d.md": doc}, stub)
+    red = marker_census({"d.md": doc.replace("[target: R10-A]\n", "[target: R10-B]\n")}, stub)
+    both = marker_census({"d.md": doc.replace("[target: R10-A]\n", "[target: R10-B, R10-A]\n")}, stub)
+    R.check("null control: a marker naming a not-started group is listed and not due; a quoted one is not a marker",
+            [(r["line"], r["due"]) for r in null] == [(3, False)], repr(null))
+    R.check("red fixture: a marker naming a done group is due", [r["due"] for r in red] == [True], repr(red))
+    R.check("red fixture: a due wiring marker is refused, and a not-yet-due one is not (null control)",
+            len(due_marker_findings(red)) == 1 and not due_marker_findings(null) and not due_marker_findings(both),
+            repr((due_marker_findings(red), due_marker_findings(null))))
+    wrapped = marker_census({"README.md": "# T\n\n| Row | Cell <!-- [target: R10-B] --> |\n"}, stub)
+    R.check("a due user-doc marker is left to its own resolver (null control)",
+            [r["due"] for r in wrapped] == [True] and not due_marker_findings(wrapped), repr(wrapped))
+    R.check("a marker naming a done and a not-started group is not due until both land", [r["due"] for r in both] == [False],
+            repr(both))
+
+
+def check_machinery_edges() -> None:
+    R.section("the machinery figure: every arrow runs from its actor, with the code that performs it (#2395)")
+    tree = _tracked()
+    text = (ROOT / MACHINERY_DOC).read_text()
+    errs = machinery_edge_findings(text, _read_tracked(tree))
+    R.check("every arrow is cited, every citation holds in the tree, and the figure has one entry", not errs,
+            "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+
+    files = {"t/loop.sh": 'bash "$relay" pass\nmv "$tmp" "$out"\n', "t/relay.sh": "push_verdict\n",
+             "t/role.md": "the orchestrator starts the loop\n"}
+    base = (MACHINERY_HEADING + "\n\n```mermaid\nflowchart TB\n"
+            '    orch(["orchestrator<br/>a person"])\n    subgraph actors["actors"]\n        loop["loop.sh"]\n'
+            '        relay["relay.sh pass<br/>two arms"]\n    end\n    board[("board file")]\n    bus[("bus refs")]\n'
+            '    orch -->|"runs"| loop\n    loop -->|"runs"| relay\n    loop -->|"writes"| board\n'
+            '    relay -->|"writes"| bus\n```\n\n'
+            "| actor | verb | target | performed at |\n|---|---|---|---|\n"
+            "| orchestrator | runs | loop.sh | `t/role.md`: `the orchestrator starts the loop` |\n"
+            '| loop.sh | runs | relay.sh pass | `t/loop.sh`: `bash "$relay" pass` |\n'
+            '| loop.sh | writes | board file | `t/loop.sh`: `mv "$tmp" "$out"` |\n'
+            "| relay.sh pass | writes | bus refs | `t/relay.sh`: `push_verdict` |\n\n### Next\n\n| a | b | c | `x`: `y` |\n")
+    clean = machinery_edge_findings(base, files.get)
+    R.check("the clean fixture yields no finding (null control)", not clean, repr(clean))
+    # design choice: an entry is an actor. Reads are not drawn, so a store that no drawn arrow writes is no entry.
+    idle = machinery_edge_findings(base.replace('    bus[("bus refs")]\n', '    bus[("bus refs")]\n    held[("hold list")]\n'),
+                                   files.get)
+    R.check("a store no arrow reaches is not an entry: the clean fixture with one yields no finding (null control)",
+            'held[("hold list")]' not in base and not idle, repr(idle))
+    row = '| loop.sh | runs | relay.sh pass | `t/loop.sh`: `bash "$relay" pass` |'
+    plants = (
+        ("one arrow reversed", ('loop -->|"runs"| relay', 'relay -->|"runs"| loop'), "no row cites"),
+        ("an arrow reversed together with its row",
+         ('loop -->|"runs"| relay', 'relay -->|"runs"| loop', row, row.replace("| loop.sh | runs | relay.sh pass |",
+                                                                              "| relay.sh pass | runs | loop.sh |")),
+         "not the script the actor's node names"),
+        ("a row citing a file its node names only below the first line",
+         ('relay["relay.sh pass<br/>two arms"]', 'relay["relay.sh pass<br/>loop.sh"]',
+          "`t/relay.sh`: `push_verdict`", '`t/loop.sh`: `mv "$tmp" "$out"`'), "not the script the actor's node names"),
+        ("a node grouping two scripts", ('loop["loop.sh"]', 'loop["loop.sh, relay.sh"]'), "names one script"),
+        ("a script node that names no script", ('loop["loop.sh"]', 'loop["the loop"]'), "this names 0"),
+        ("a row citing a file whose name is only a part of its node's script name",
+         ('relay["relay.sh pass<br/>two arms"]', 'relay["cloud_relay.sh pass<br/>two arms"]',
+          "| relay.sh pass |", "| cloud_relay.sh pass |"), "not the script the actor's node names"),
+        ("a single entry that is a script, not a seat",
+         ('orch(["orchestrator<br/>a person"])', 'orch["orchestrator<br/>a person"]'), "one entry"),
+        ("a store drawn as the actor (is read by)", ('loop -->|"writes"| board', 'board -->|"writes"| loop'), "starts at a store"),
+        ("a verb that is not runs or writes", ('relay -->|"writes"| bus', 'relay -->|"reads"| bus'), "the verb"),
+        ("writes ending at an actor", ('loop -->|"runs"| relay', 'loop -->|"writes"| relay'), "ends at a store"),
+        ("an unlabelled arrow", ('loop -->|"runs"| relay', "loop --> relay"), "not one labelled arrow"),
+        ("a dashed arrow", ('loop -->|"runs"| relay', 'loop -.->|"runs"| relay'), "not one labelled arrow"),
+        ("a row with no arrow", ('    relay -->|"writes"| bus\n', ""), "not drawn"),
+        ("a cited line the code no longer holds", ("`push_verdict`", "`post_verdict`"), "no longer holds"),
+        ("a cited file that is not tracked", ("`t/relay.sh`", "`t/relax.sh`"), "not a tracked file"),
+        ("an actor nothing starts, a second entry", ('    orch -->|"runs"| loop\n', ""), "one entry"),
+        ("two nodes of one name", ('relay["relay.sh pass<br/>two arms"]', 'relay["loop.sh<br/>two arms"]'), "two nodes"),
+        ("a table whose rows cite nothing", ("`: `", "` `"), "cites no code"),
+        ("no figure", ("```mermaid", "```text"), "draws no figure"),
+        ("no section", (MACHINERY_HEADING, "### Its parts"), "section"),
+    )
+    for what, swaps, key in plants:
+        doc = base
+        for old, new_ in zip(swaps[::2], swaps[1::2]):
+            doc = doc.replace(old, new_)
+        got = machinery_edge_findings(doc, files.get)
+        R.check(f"red fixture: {what} is a finding", doc != base and any(key in g for g in got), repr(got))
+    # the page's own figure: reversing any one of its arrows is refused (the owner's null control, on the real figure)
+    arrows = [m.group(0) for m in re.finditer(r'^    \w+ -->\|"\w+"\| \w+$', text, re.M)]
+    live = 0
+    for a in arrows:
+        s, lab, d = re.match(r'    (\w+) (-->\|"\w+"\|) (\w+)', a).groups()
+        live += bool(machinery_edge_findings(text.replace(a, f"    {d} {lab} {s}", 1), _read_tracked(tree)))
+    R.check("reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)",
+            not errs and arrows and live == len(arrows), f"{live} of {len(arrows)}")
+
+
+def print_marker_census(argv: list[str]) -> int:
+    """`--markers [--roster FILE]`: every wiring marker, its groups' stages, and what each due one still leaves
+    unresolved; exit 1 while any is due. `--markers --user`: only the comment-wrapped user-doc markers, ending
+    `N user-doc marker(s), M due`; exit 1 while N > 0 (R10-USER-DOCS-VERIFY's end condition is `0 ..., 0 due`).
+    FILE defaults to this tree's roster; the live one is on handoff/audit-r10-roster."""
+    roster = pathlib.Path(argv[argv.index("--roster") + 1]) if "--roster" in argv else ROSTER
+    stages = roster_stages(roster)
+    if stages is None:
+        print(f"no roster at {roster}")
+        return 2
+    if "--user" in argv:
+        rows = [r for r in marker_census(marker_docs(), stages) if r["scope"] == "user"]
+        for r in rows:
+            print(f"{'DUE ' if r['due'] else '    '}{r['doc']}:{r['line']} {r['marker']} "
+                  + ", ".join(f"{g}={v}" for g, v in r["stages"].items()))
+        print(f"{len(rows)} user-doc marker(s), {sum(r['due'] for r in rows)} due")
+        return 1 if rows else 0
+    docs = {p: (ROOT / p).read_text() for p in WIRING_DOCS if (ROOT / p).is_file()}
+    tree = _tracked()
+    _, pending, _ = named_element_findings(docs, tree, _read_tracked(tree))
+    rows = [r for r in marker_census(docs, stages) if r["scope"] == "wiring"]
+    for r in rows:
+        print(f"{'DUE ' if r['due'] else '    '}{r['doc']}:{r['line']} {r['marker']} "
+              + ", ".join(f"{g}={v}" for g, v in r["stages"].items()))
+    for doc, groups, element in pending:
+        if all(stages.get(g) == "done" for g in groups):
+            print(f"UNRESOLVED {doc}: {element}, though {', '.join(groups)} landed")
+    due = sum(r["due"] for r in rows)
+    print(f"{due} of {len(rows)} marker(s) due")
+    return 1 if due else 0
+
+
+# P40: the committed pictures of the card's pages are of the card this tree ships. tests/card_browser.mjs takes the
+# pages and compares each one's size and element structure to docs/img/card/pages.json, which it writes beside the
+# pictures (HPO_PAGES_OUT); this arm ties that record to the committed files, so neither moves without the other.
+CARD_FIGURES = ROOT / "docs" / "img" / "card"
+
+
+def card_figure_findings(recorded: dict[str, dict], sizes: dict[str, tuple[int, int] | None]) -> list[str]:
+    """`recorded`: pages.json's figures; `sizes`: each committed `<page>-<light|dark>.png` -> its PNG header size."""
+    out = [f"{n}: committed and not in pages.json" for n in sorted(set(sizes) - set(recorded))]
+    out += [f"{n}: in pages.json and not committed" for n in sorted(set(recorded) - set(sizes))]
+    for n in sorted(set(sizes) & set(recorded)):
+        want = (recorded[n].get("width"), recorded[n].get("height"))
+        if sizes[n] != want:
+            out.append(f"{n}: the PNG is {sizes[n]}, pages.json records {want}")
+    for n in sorted(recorded):
+        twin = n.replace("-light.png", "-dark.png")
+        if twin != n and twin in recorded and recorded[n].get("structure") != recorded[twin].get("structure"):
+            out.append(f"{n}: its dark twin records another page structure")
+    return out
+
+
+def check_card_figures() -> None:
+    R.section("P40: the committed card page figures are the pages tests/card_browser.mjs recorded")
+    man = CARD_FIGURES / "pages.json"
+    recorded = json.loads(man.read_text())["figures"] if man.is_file() else {}
+    sizes = {p.name: png_size(p) for p in sorted(CARD_FIGURES.glob("*.png")) if re.search(r"-(?:light|dark)\.png$", p.name)}
+    R.check("pages.json records the tile and every page in both themes (anchor)", len(recorded) >= 14, str(len(recorded)))
+    bad = card_figure_findings(recorded, sizes)
+    R.check("every committed page figure is recorded at its own size, and each theme pair is one page", not bad,
+            "; ".join(bad[:4]))
+    rec = {"a-light.png": {"width": 10, "height": 20, "structure": "s"}, "a-dark.png": {"width": 10, "height": 20, "structure": "s"}}
+    ok = {"a-light.png": (10, 20), "a-dark.png": (10, 20)}
+    R.check("null control: a record matching its files is clean", not card_figure_findings(rec, ok))
+    for what, r, z, key in (
+            ("a figure regenerated without its record", rec, {**ok, "a-dark.png": (10, 24)}, "pages.json records"),
+            ("a figure with no record", rec, {**ok, "b-light.png": (1, 1)}, "not in pages.json"),
+            ("a record with no figure", rec, {"a-light.png": (10, 20)}, "not committed"),
+            ("a theme pair of two pages", {**rec, "a-dark.png": {**rec["a-dark.png"], "structure": "t"}}, ok, "dark twin")):
+        R.check(f"red fixture: {what} is a finding", any(key in g for g in card_figure_findings(r, z)))
+
+
+def check_coffee_button() -> None:
+    R.section("Buy Me a Coffee button in its three places (owner, 2026-10-22)")
+    built = docs_build()["html"]
+    tree = _tracked()
+    css = (ROOT / "docs" / "site" / "docs.css").read_text()
+    svg = (ROOT / COFFEE_SVG).read_text() if (ROOT / COFFEE_SVG).is_file() else None
+    page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
+    errs = coffee_button_findings(README, page, built, tree, svg, css)
+    R.check("README top, the product page footer and every built page's footer link the button, from in-tree tokens",
+            not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    one = next(iter(sorted(built)), None)
+    plants = (
+        ("README.md", (README.replace(COFFEE, "https://example.com/x", 1), page, built)),
+        ("docs/index.html", (README, page.replace(f'href="{COFFEE}"', 'href="#"', 1), built)),
+        (str(one), (README, page, {**built, str(one): built.get(one, "").replace(f'href="{COFFEE}"', 'href="#"')})),
+    )
+    for where, (r, p, b) in plants:
+        got = coffee_button_findings(r, p, b, tree, svg, css)
+        R.check(f"red case: the button removed from {where} is a finding there", any(g.startswith(where) for g in got),
+                repr(got[:3]))
+    if svg:
+        off = svg.replace(".bg{fill:", ".bg{fill:#000000;x:", 1)
+        R.check("red case: an SVG colour that is not the docs.css token is a finding",
+                any(".bg in light" in g for g in coffee_button_findings(README, page, built, tree, off, css)))
+
+
+# ---------------------------------------------------------------------------
+# Arm 1d -- README.md in the Home Assistant Marketplace (R10-README-GRAPHICS)
+# ---------------------------------------------------------------------------
+#
+# The Marketplace renders README.md through the frontend's markdown worker: marked, then js-xss, whose safeAttrValue
+# blanks every `src` and `href` that is not absolute, `#`, `/`, `./` or `../` -- BEFORE the URL rewriter that would pin a
+# relative target to the installed ref runs -- and which has no mermaid at all. Both are invisible on GitHub. The
+# finder's replica of that pipeline is dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs; this arm is the barrier.
+#
+# Design choice, said here so the next seat does not read it as a bug: the figure check compares SOURCES, not pixels. A
+# PNG's bytes do not reproduce across machines (fonts, rasteriser: the reason value-bearing goldens are claimed), so the
+# manifest the generator writes (docs/img/readme/render_mermaid.mjs) records the sha256 of each mermaid block's text and of
+# each PNG, and the arm refuses a block or a PNG that moved without the other. Regenerate to repair.
+
+FIGURES_MANIFEST = "docs/img/readme/mermaid_figures.json"
+STATIC_FIGURES = (("docs/img/readme/how-it-works.png", "docs/img/readme/how-it-works-dark.png"),)
+_SAFE_SRC = ("http://", "https://", "mailto:", "tel:", "data:image/", "ftp://", "./", "../", "#", "/")  # xss lib/default.js:176-194
+_MD_TARGET = re.compile(r"\]\(\s*<?([^)\s>]*)")
+_MD_REFDEF = re.compile(r"^ {0,3}\[[^\]\n]+\]:\s*<?(\S+?)>?(?:\s|$)", re.M)
+_HTML_ATTR = re.compile(r"""\s(src|href|srcset)\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.I)
+_MERMAID_FENCE = re.compile(r"^```mermaid\n(.*?)^```", re.M | re.S)
+# the figure directly above a block's <details>: the light PNG as the <img>, the dark one as a prefers-color-scheme source
+_PICTURE_ABOVE = re.compile(
+    r'<picture>\n<source media="\(prefers-color-scheme: dark\)" srcset="([^"\s]+)">\n<img src="([^"\s]+)" alt="[^"\n]+">\n</picture>\n\n\Z')
+
+
+def _marketplace_blanks(target: str) -> bool:
+    """js-xss's safeAttrValue for `src` and `href`: True when it would blank `target` (an empty one included)."""
+    return not target.strip().startswith(_SAFE_SRC)
+
+
+def readme_figure_findings(readme: str, manifest: dict | None, png_sha) -> list[str]:
+    """What the Marketplace would blank or show as raw code in `readme`; `png_sha(path)` is a file's sha256 or None."""
+    import hashlib
+    out = []
+    prose = _FENCE.sub("", readme)
+    prose = re.sub(r"`[^`\n]+`", "", prose)
+    targets = _MD_TARGET.findall(prose) + _MD_REFDEF.findall(prose)
+    for m in _HTML_ATTR.finditer(prose):
+        v = m.group(2) if m.group(2) is not None else m.group(3)
+        targets += [(x.split() or [""])[0] for x in v.split(",")] if m.group(1).lower() == "srcset" else [v]
+    bare = sorted({x for x in targets if _marketplace_blanks(x)})
+    if bare:
+        out.append(f"README.md: the Marketplace blanks {len(bare)} bare-relative target(s), prefix each with ./: {bare[:4]}")
+    for light, dark in STATIC_FIGURES:  # hand-made figures: a light/dark pair, no source block to hash
+        if not re.search(r'<picture>\n<source media="\(prefers-color-scheme: dark\)" srcset="\./' + re.escape(dark)
+                         + r'">\n<img src="\./' + re.escape(light) + r'" alt="[^"\n]+">\n</picture>', readme):
+            out.append(f"README.md: no <picture> of ./{light} with the dark source ./{dark}")
+        out += [f"{f} is not a tracked file" for f in (light, dark) if png_sha(f) is None]
+    blocks = [(m.start(), m.group(1)) for m in _MERMAID_FENCE.finditer(readme)]
+    figs = (manifest or {}).get("figures")
+    if not isinstance(figs, list):
+        return out + [f"{FIGURES_MANIFEST} is absent or has no figures list"]
+    if len(figs) != len(blocks):
+        out.append(f"{len(blocks)} mermaid block(s) in README.md, {len(figs)} manifest figure(s)")
+    for i, (pos, body) in enumerate(blocks[:len(figs)]):
+        png, dark = figs[i].get("png", ""), figs[i].get("png_dark", "")
+        if hashlib.sha256(body.encode()).hexdigest() != figs[i].get("block_sha256"):
+            out.append(f"mermaid block {i + 1}: its text differs from the one {png} was rendered from; rerun render_mermaid.mjs")
+        if not dark:
+            out.append(f"mermaid block {i + 1}: the manifest names no dark variant")
+        for path, key in ((png, "png_sha256"), (dark, "png_dark_sha256")):
+            if not path:
+                continue
+            have = png_sha(path)
+            if have is None:
+                out.append(f"mermaid block {i + 1}: {path} is not a tracked file")
+            elif have != figs[i].get(key):
+                out.append(f"mermaid block {i + 1}: {path} differs from the PNG the manifest recorded; rerun render_mermaid.mjs")
+        opens = list(re.finditer(r"<details\b[^>]*>", readme[:pos]))
+        det = opens[-1] if opens else None
+        if det is None or "</details>" in readme[det.end():pos]:
+            out.append(f"mermaid block {i + 1}: it sits in no <details>")
+            continue
+        if re.search(r"\bopen\b", det.group(0)):
+            out.append(f"mermaid block {i + 1}: its <details> is open, so the Marketplace shows the raw source")
+        above = _PICTURE_ABOVE.search(readme[:det.start()])
+        if not above or (above.group(1), above.group(2)) != ("./" + dark, "./" + png):
+            out.append(f"mermaid block {i + 1}: no <picture> of ./{png} with the dark source ./{dark} directly above its <details>")
+    return out
+
+
+def check_readme_marketplace() -> None:
+    import hashlib
+    R.section("README.md in the Home Assistant Marketplace: relative targets and mermaid figures (R10-README-GRAPHICS)")
+
+    def sha_of(path: str) -> str | None:
+        f = ROOT / path
+        return hashlib.sha256(f.read_bytes()).hexdigest() if f.is_file() else None
+
+    mf = ROOT / FIGURES_MANIFEST
+    manifest = json.loads(mf.read_text()) if mf.is_file() else None
+    errs = readme_figure_findings(README, manifest, sha_of)
+    R.check("README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>",
+            not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    built = docs_build()["html"].get("readme.html", "")
+    R.check("the built readme page resolves every <picture> srcset and src to its docs/-relative image, none left ./-prefixed",
+            built.count('srcset="img/readme/mermaid-') == len(manifest["figures"]) and "./docs/" not in built
+            and built.count('<img src="img/readme/mermaid-') == len(manifest["figures"]), f"{built.count('srcset=')} srcset(s)")
+    n = len(_MERMAID_FENCE.findall(README))
+    R.check("README.md draws mermaid blocks and the manifest lists as many figures (anchor)",
+            n > 0 and manifest is not None and len(manifest["figures"]) == n, f"{n} block(s)")
+    R.check("the predicate blanks what js-xss blanks and keeps what it keeps (anchor)",
+            all(_marketplace_blanks(x) for x in ("docs/a.png", "", "docs/x.md#y", "img.png"))
+            and not any(_marketplace_blanks(x) for x in ("./a", "../a", "/a", "#a", "https://e/x", "mailto:a@b", "data:image/png;base64,x")))
+
+    def planted(what: str, text: str, key: str, man=manifest, sha=sha_of) -> None:
+        got = readme_figure_findings(text, man, sha)
+        changed = text != README or man is not manifest or sha is not sha_of
+        R.check(f"red case: {what} is a finding", changed and any(key in g for g in got), repr(got[:2]))
+
+    first = _MERMAID_FENCE.search(README)
+    edited = README[:first.start(1)] + README[first.start(1)].swapcase() + README[first.start(1) + 1:]
+    planted("a one-character edit of a mermaid block", edited, "its text differs")
+    planted("a ./ prefix removed from an image", README.replace("](./docs/img/", "](docs/img/", 1), "bare-relative")
+    planted("a ./ prefix removed from a link", README.replace("](./docs/architecture.md)", "](docs/architecture.md)", 1), "bare-relative")
+    planted("a bare <img src>", README + '\n<img src="docs/img/x.png">\n', "bare-relative")
+    planted("a bare <source srcset>", README + '\n<source srcset="./y.png 1x, docs/img/x.png 2x">\n', "bare-relative")
+    planted("a bare reference-style definition", README + "\n[ref]: docs/y.md\n", "bare-relative")
+    picture = re.compile(r"<picture>\n<source [^\n]*mermaid-how-the-pieces-fit-dark\.png\">\n[^\n]*\n</picture>\n\n")
+    planted("the figure deleted", picture.sub("", README, count=1), "directly above")
+    planted("a light-only figure (no dark <source>)", re.sub(r"<picture>\n<source [^\n]*mermaid-setup-flow-dark\.png\">\n(<img [^\n]*\n)</picture>", r"\1", README, count=1),
+            "directly above")
+    planted("a dark <source> pointing at the light PNG", README.replace("mermaid-one-interval-dark.png", "mermaid-one-interval.png", 1), "directly above")
+    planted("the how-it-works figure light-only (no dark <source>)",
+            re.sub(r"<source [^\n]*how-it-works-dark\.png\">\n", "", README, count=1), "how-it-works.png with the dark source")
+    planted("the how-it-works dark PNG missing", README, "how-it-works-dark.png is not a tracked file",
+            sha=lambda p: None if p.endswith("how-it-works-dark.png") else sha_of(p))
+    planted("a bare-relative dark srcset", README.replace('srcset="./docs/img/readme/mermaid-setup-flow-dark.png"', 'srcset="docs/img/readme/mermaid-setup-flow-dark.png"', 1),
+            "bare-relative")
+    planted("a manifest figure with no dark variant", README, "names no dark variant",
+            man={**manifest, "figures": [{k: v for k, v in manifest["figures"][0].items() if k != "png_dark"}] + manifest["figures"][1:]})
+    planted("a dark PNG that is not the recorded one", README, "differs from the PNG",
+            sha=lambda p: "0" * 64 if p.endswith("-dark.png") else sha_of(p))
+    planted("a dark PNG that is missing", README, "-dark.png is not a tracked file", sha=lambda p: None if p.endswith("-dark.png") else sha_of(p))
+    planted("an open <details>", README.replace("<details>\n<summary><b>The setup flow", "<details open>\n<summary><b>The setup flow", 1),
+            "is open")
+    planted("a PNG that is not the recorded one", README, "differs from the PNG", sha=lambda p: "0" * 64)
+    planted("a PNG that is missing", README, "not a tracked file", sha=lambda p: None)
+    planted("a manifest entry with no block", README, "manifest figure",
+            man={**manifest, "figures": list(manifest["figures"]) + [manifest["figures"][0]]})
+    planted("no manifest", README, "no figures list", man={})
+    # passes when fixed: the planted block edit is red above; the generator's bookkeeping (its new hash) makes it green
+    regen = {**manifest, "figures": [dict(f) for f in manifest["figures"]]}
+    for f, m in zip(regen["figures"], _MERMAID_FENCE.finditer(edited)):
+        f["block_sha256"] = hashlib.sha256(m.group(1).encode()).hexdigest()
+    R.check("regenerating the manifest after the planted block edit is green again (the repair path)",
+            not [g for g in readme_figure_findings(edited, regen, sha_of) if "its text differs" in g])
+
+
+# ---------------------------------------------------------------------------
+# R10-USER-DOCS-FINAL: every user-facing surface the tree exposes, and the one place in the user docs that describes
+# it (its home). The page map, the enumeration rule and the claim-check method are the group's design note,
+# dev/programme/designs/R10-USER-DOCS-FINAL.md; R10-USER-DOCS-VERIFY reruns `--surfaces --against` and
+# `--markers --user` at its own base. Each class's source is read from the tree, never from a list kept here.
+# ---------------------------------------------------------------------------
+
+# One class's home: (page, the heading its home sits under, or None for the whole page).
+_HOMES = {
+    "entity": ("README.md", "## Entities"),
+    "service": ("docs/configuration.md", "## Services"),
+    "setup_step": ("docs/setup.md", None),
+    "setup_field": ("docs/configuration.md", "## Initial setup"),
+    "option_page": ("docs/configuration.md", "## Changing settings later"),
+    "option": ("docs/configuration.md", "## Changing settings later"),
+    "blueprint": ("docs/automations.md", "## Blueprints"),
+    "event": ("docs/automations.md", "## Events"),
+    "card_view": ("docs/dashboard-card.md", None),
+    "card_option": ("docs/dashboard-card.md", "## Configuration options"),
+    "repair": ("README.md", "## Troubleshooting"),
+}
+# (class, id) -> why the surface needs no home of its own. Two or more words each; an id no longer enumerated is red.
+SURFACE_EXEMPT = {
+    ("option", "building_preset[questionnaire]"): "a block the questionnaire builds at render time; its fields are "
+    "the Describe your building questions, whose home is the setup screen of that name",
+}
+_NONE = "<none>"
+_COMPUTED = "<computed>"
+
+
+def _under(text: str, heading: str | None) -> str:
+    """The text below the first heading whose line starts with `heading`, up to the next heading at its level or
+    above; the whole text outside fences when `heading` is None. Fenced blocks are dropped first, so a `#` comment
+    in a YAML example is not a heading."""
+    lines = _FENCE.sub("", text).splitlines()
+    if heading is None:
+        return "\n".join(lines)
+    level, out = heading.split()[0].count("#"), None
+    for line in lines:
+        h = re.match(r"(#+)\s", line)
+        if out is not None:
+            if h and len(h.group(1)) <= level:
+                break
+            out.append(line)
+        elif h and len(h.group(1)) == level and line.startswith(heading):
+            out = []
+    return "\n".join(out or [])
+
+
+def _table_rows(text: str) -> list[tuple[str, list[str], list[str]]]:
+    """(nearest heading above, header cells, body cells) for every GFM table row, read after HTML comments are
+    stripped, so a marker at the end of a last cell is never part of a cell (design section 3, Placement)."""
+    rows, hdr, head = [], None, ""
+    for line in _COMMENT.sub("", text).splitlines():
+        h = re.match(r"#+\s+(.*)", line)
+        if h:
+            head, hdr = h.group(1).strip(), None
+        elif line.lstrip().startswith("|"):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if hdr is None:
+                hdr = cells
+            elif not set(line.strip()) <= set("|-: "):
+                rows.append((head, hdr, cells))
+        else:
+            hdr = None
+    return rows
+
+
+def _plain(s: str) -> str:
+    """A label as a reader compares it: `_label`, then only letters, digits and single spaces."""
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", _label(s)).split())
+
+
+def _js_literal(src: str) -> object:
+    src = src.strip().rstrip(",")
+    return json.loads(src) if re.fullmatch(r'"[^"]*"|-?\d+(?:\.\d+)?|true|false|null', src) else _COMPUTED
+
+
+def surface_sources(services: dict | None = None) -> list[dict]:
+    """Every surface the tree exposes: (class, id, label, value). `value` is the shipped default where the class has
+    one -- a literal, `_COMPUTED` for one derived at run time, `_NONE` for none -- and is otherwise ignored.
+    `services` replaces the parsed services.yaml (the coverage arm's red fixture plants one there)."""
+    import asyncio
+
+    import yaml
+
+    from harness import FakeHass
+    from heatpump_optimizer import config_flow, const
+
+    out: list[dict] = []
+
+    def add(cls: str, id_: str, label: str, value: object = _NONE, under: str = "") -> None:
+        out.append({"class": cls, "id": id_, "label": label, "value": value, "under": under})
+
+    for e in entity_census({const.CONF_DHW_TANK_VOLUME: 200.0}):
+        add("entity", f"{e['platform']}.{e['name']}", e["name"], "enabled" if e["enabled"] else "disabled")
+    if services is None:
+        services = yaml.safe_load((PKG / "services.yaml").read_text())
+    for name, spec in services.items():
+        add("service", name, (spec or {}).get("name", name))
+
+    def fields(step: dict) -> dict[str, str]:
+        got = dict(step.get("data", {}))
+        for sec in step.get("sections", {}).values():
+            got.update(sec.get("data", {}))
+        return got
+
+    async def rendered(step: str) -> dict[str, object]:
+        flow = config_flow.HeatPumpOptimizerConfigFlow()
+        flow.hass = FakeHass()
+        form = await getattr(flow, f"async_step_{step}")(None)
+        found: dict[str, object] = {}
+        stack = [form.get("data_schema")]
+        while stack:
+            sch = stack.pop()
+            for k, v in (getattr(sch, "schema", None) or {}).items():
+                if hasattr(v, "schema") and not isinstance(getattr(v, "schema"), (str, dict)):
+                    stack.append(v.schema)
+                    continue
+                d = k.default() if callable(getattr(k, "default", None)) else None
+                found[str(getattr(k, "schema", k))] = _NONE if d is None else (d if isinstance(
+                    d, (bool, int, float, str)) else _COMPUTED)
+        return found
+
+    for step, spec in _EN_STRINGS["config"]["step"].items():
+        add("setup_step", step, spec.get("title", step))
+        defaults = asyncio.run(rendered(step))
+        for key, label in fields(spec).items():
+            add("setup_field", f"{step}.{key}", label, defaults.get(key, _NONE), spec.get("title", step))
+    titles, _ = options_field_pages()
+    for page in config_flow._OPTION_PAGES:
+        add("option_page", page.step, titles.get(page.step, page.label))
+    opt_steps = _EN_STRINGS["options"]["step"]
+    for f in config_flow._OPTION_FIELDS:
+        # A `_Suggested` default renders its stored value, else its literal fallback: the fallback is the default a
+        # fresh entry shows, so its Default cell is compared like any literal's (carry from r10-min-power-floor).
+        d = f.default.fallback if isinstance(f.default, config_flow._Suggested) else f.default
+        value = d if isinstance(d, (bool, int, float, str)) and not isinstance(d, config_flow._Rule) else _COMPUTED
+        add("option", f.key or f"{f.step}[{f.group}]", fields(opt_steps.get(f.step, {})).get(f.key, ""), value,
+            titles.get(f.step, f.step))
+    for p in sorted(BLUEPRINTS_DIR.glob("*.yaml")):
+        add("blueprint", p.name, (re.search(r"^\s*name:\s*(.+)$", p.read_text(), re.M) or [None, p.stem])[1].strip())
+    for m in re.finditer(r'^EVENT_\w+ = f"\{DOMAIN\}_(\w+)"', (PKG / "notifier.py").read_text(), re.M):
+        add("event", f"{const.DOMAIN}_{m.group(1)}", m.group(1).replace("_", " "))
+    card = CARD.read_text()
+    for view in ["compact", *dict.fromkeys(re.findall(r'\btab\("(\w+)"', card))]:
+        add("card_view", view, view)
+    block = re.search(r"^const DEFAULTS = \{\n(.*?)^\};", card, re.M | re.S)
+    defaults = {m.group(1): _js_literal(m.group(2))
+                for m in re.finditer(r"^\s+(\w+):\s*(.+?)\s*$", block.group(1) if block else "", re.M)}
+    for key in sorted(set(defaults) | set(re.findall(r"\bconfig\.([a-z_]\w*)", card))):
+        add("card_option", key, key, defaults.get(key, _NONE))
+    for key, issue in json.loads((PKG / "strings.json").read_text())["issues"].items():
+        add("repair", key, issue.get("title", key))
+    return out
+
+
+def _selector_labels(value: str) -> set[str]:
+    return {opts["options"][value] for opts in _EN_STRINGS.get("selector", {}).values()
+            if isinstance(opts, dict) and value in opts.get("options", {})}
+
+
+def default_agrees(value: object, cell: str) -> bool:
+    """A Default cell states the shipped default: the number, the on/off, the choice, or "none" for an empty one. A
+    computed default, or a field with none, needs a non-empty cell naming no number (design section 4, item 1)."""
+    cell = _COMMENT.sub("", cell).strip()
+    flat = re.sub(r"[`*]", "", cell).replace("\u2212", "-").lower()
+    flat = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}\b)", "", flat)
+    if not flat:
+        return False
+    if value in (_COMPUTED, _NONE):
+        return not re.search(r"\d", flat)
+    if isinstance(value, bool):
+        words = r"on|enabled|yes|true" if value else r"off|disabled|no|false"
+        return bool(re.match(rf"(?:{words})\b", flat))
+    if isinstance(value, (int, float)):
+        m = re.search(r"-?\d+(?:[.,]\d+)?", flat)
+        return m is not None and abs(float(m.group(0).replace(",", ".")) - float(value)) < 1e-9
+    if value == "":
+        return bool(re.match(r"\(?(?:none|empty|not set|\u2014|-)(?:\W|$)", flat))
+    wanted = {value.lower(), value.lower().replace("_", " ")} | {s.lower() for s in _selector_labels(value)}
+    return any(w in flat for w in wanted)
+
+
+def _bold_leads(text: str) -> list[str]:
+    return [m.group(1) for m in re.finditer(r"^(?:[-*]\s+)?\*\*([^*\n]+?)\*\*", _COMMENT.sub("", text), re.M)]
+
+
+def _home(row: dict, pages: dict[str, str]) -> tuple[bool, str]:
+    """(found, why not) for one surface: its home shape is on its home page, and a default the class carries
+    agrees with the home's Default cell."""
+    cls, id_, label = row["class"], row["id"], row["label"]
+    page, heading = _HOMES[cls]
+    body = _under(pages.get(page, ""), heading)
+    if cls in ("option", "setup_field", "card_option", "entity", "event"):
+        want = (_label(label) if cls in ("option", "setup_field") else
+                f"`{id_}`" if cls in ("card_option", "event") else label)
+        for head, hdr, cells in _table_rows(body):
+            first = _label(cells[0]) if cls in ("option", "setup_field") else cells[0].strip("* ")
+            if cls == "event" and want in cells[0] or first == want:
+                # an option's row sits under its page's heading; a setup field's under a heading naming its screen
+                if cls == "option" and _plain(head) != _plain(row["under"]) or (
+                        cls == "setup_field" and f" {_plain(row['under'])} " not in f" {_plain(head)} "):
+                    continue
+                if cls == "entity":
+                    off = "disabled by default" in " ".join(cells).lower()
+                    return (off == (row["value"] == "disabled"),
+                            "" if off == (row["value"] == "disabled") else "the row's disabled-by-default disagrees")
+                if cls == "event":
+                    return True, ""
+                col = next((i for i, h in enumerate(hdr) if h.strip().lower() == "default"), None)
+                if col is None or col >= len(cells):
+                    return False, "its row has no Default cell"
+                return (default_agrees(row["value"], cells[col]),
+                        "" if default_agrees(row["value"], cells[col]) else f"Default cell {cells[col]!r}")
+        return False, "no table row names it"
+    if cls == "service":
+        para = _service_paragraphs(_COMMENT.sub("", body))
+        summary = {c[0] for _, _, c in _table_rows(_under(pages.get("README.md", ""), "## Services"))}
+        if id_ not in para:
+            return False, "no **`name`** paragraph under docs/configuration.md ## Services"
+        return (f"`{id_}`" in summary, "" if f"`{id_}`" in summary else "no row in README.md ## Services")
+    if cls in ("setup_step", "option_page", "card_view"):
+        heads = [re.sub(r"^#+\s+", "", l) for l in body.splitlines() if re.match(r"#{2,4}\s", l)]
+        if cls == "setup_step":
+            heads += [re.sub(r"^#+\s+", "", l) for l in _under(pages.get("docs/configuration.md", ""),
+                                                                 "## Initial setup").splitlines()
+                      if re.match(r"#{2,4}\s", l)]
+            hit = any(f" {_plain(label)} " in f" {_plain(h)} " for h in heads)
+        elif cls == "option_page":
+            hit = any(re.match(r"### ", l) and _plain(l[4:]) == _plain(label) for l in body.splitlines())
+        else:
+            want = {"plan": "reading the chart", "compact": "the card at a glance"}.get(id_, f"the {id_} page")
+            hit = any(_plain(h) == want for h in heads)
+        return hit, "" if hit else "no heading names it"
+    if cls == "blueprint":
+        hit = bool(re.search(r"^\s*[-*]\s.*\(https://raw\.githubusercontent\.com/\S+/blueprints/automation/"
+                             + re.escape(id_) + r"\)", _COMMENT.sub("", body), re.M))
+        return hit, "" if hit else "no bullet links its raw URL"
+    parts = [_plain(p) for p in re.split(r"\{\w+\}", label)]
+    pattern = r" \S+ ".join(re.escape(p) for p in parts if p)
+    hit = any(re.fullmatch(pattern, _plain(b)) for b in _bold_leads(body))
+    return hit, "" if hit else "no bold lead names its title"
+
+
+def _user_pages(root: pathlib.Path = ROOT) -> dict[str, str]:
+    return {p: (root / p).read_text() for p in USER_PAGES if (root / p).is_file()}
+
+
+def _shown(cls: str, value: object) -> str:
+    if cls == "entity":
+        return str(value)
+    if cls not in ("option", "setup_field", "card_option"):
+        return "-"
+    return value if value in (_COMPUTED, _NONE) else json.dumps(value, ensure_ascii=False)
+
+
+def surface_rows(pages: dict[str, str] | None = None, sources: list[dict] | None = None) -> list[dict]:
+    """One row per surface, sorted by its key `(class, id)`: the label, the home page, whether the home is there
+    (`home`, 0 or 1, with `why` when it is not), the default as `--surfaces` prints it, and the exemption reason."""
+    pages = _user_pages() if pages is None else pages
+    rows = []
+    for src in surface_sources() if sources is None else sources:
+        found, why = _home(src, pages)
+        rows.append({**src, "page": _HOMES[src["class"]][0], "home": int(found), "why": why,
+                     "default": _shown(src["class"], src["value"]),
+                     "exempt": SURFACE_EXEMPT.get((src["class"], src["id"]))})
+    return sorted(rows, key=lambda r: (r["class"], r["id"]))
+
+
+def surface_findings(rows: list[dict], exempt: dict[tuple[str, str], str] = SURFACE_EXEMPT) -> list[str]:
+    """What the coverage arm refuses: a duplicate key, a non-exempt surface with no home, an exemption whose
+    reason is under two words, and an exemption naming a key no longer enumerated."""
+    keys = [(r["class"], r["id"]) for r in rows]
+    out = [f"duplicate surface key {k}" for k, n in collections.Counter(keys).items() if n > 1]
+    out += [f"{r['class']} {r['id']!r} ({r['label']}): no home on {r['page']}: {r['why']}"
+            for r in rows if not r["home"] and (r["class"], r["id"]) not in exempt]
+    out += [f"exemption {k} gives a reason of under two words" for k, why in exempt.items()
+            if len(why.split()) < 2]
+    out += [f"exemption {k} names no enumerated surface" for k in exempt if k not in set(keys)]
+    return out
+
+
+def surface_tsv(rows: list[dict]) -> list[str]:
+    return ["\t".join((r["class"], r["id"], r["label"], r["page"], str(r["home"]), r["default"])) for r in rows]
+
+
+_DELTA_FIELDS = ("label", "home-page", "home-found", "default")
+
+
+def _parse_tsv(lines: list[str]) -> dict[tuple[str, str], dict[str, str]]:
+    out = {}
+    for line in lines:
+        cells = line.rstrip("\n").split("\t")
+        if len(cells) == 6:
+            out[(cells[0], cells[1])] = dict(zip(_DELTA_FIELDS, cells[2:]))
+    return out
+
+
+def surface_delta(old: list[str], new: list[str]) -> list[str]:
+    """The keyed delta between two `--surfaces` outputs: LANDED (keys only in `new`), REMOVED (keys only in
+    `old`) and CHANGED (keys in both whose label, home or default differs, naming each field old -> new). A relabel,
+    a lost home or a changed default is a CHANGED line, never a removal plus an addition."""
+    a, b = _parse_tsv(old), _parse_tsv(new)
+    landed = [f"  {c}\t{i}\t{b[(c, i)]['label']}" for c, i in sorted(set(b) - set(a))]
+    removed = [f"  {c}\t{i}\t{a[(c, i)]['label']}" for c, i in sorted(set(a) - set(b))]
+    changed = []
+    for k in sorted(set(a) & set(b)):
+        diff = [f"{f}: {a[k][f]!r} -> {b[k][f]!r}" for f in _DELTA_FIELDS if a[k][f] != b[k][f]]
+        if diff:
+            changed.append(f"  {k[0]}\t{k[1]}\t" + "; ".join(diff))
+    return ([f"LANDED ({len(landed)})", *landed, f"REMOVED ({len(removed)})", *removed,
+             f"CHANGED ({len(changed)})", *changed])
+
+
+def print_surfaces(argv: list[str]) -> int:
+    """`--surfaces`: one sorted line per surface, `class id label home-page home-found default`, tab-separated;
+    exit 1 while a non-exempt surface has no home. `--surfaces --against FILE`: the keyed delta from an earlier
+    `--surfaces` output (FILE) to this tree; exit 1 while any of its three sections is non-empty. Run each with cwd
+    at its own worktree's root: tests/harness.py puts the relative package first on sys.path."""
+    rows = surface_rows()
+    if "--against" in argv:
+        path = pathlib.Path(argv[argv.index("--against") + 1])
+        if not path.is_file():
+            print(f"no --surfaces output at {path}")
+            return 2
+        delta = surface_delta(path.read_text().splitlines(), surface_tsv(rows))
+        print("\n".join(delta))
+        return 1 if any(not line.endswith("(0)") for line in delta if not line.startswith("  ")) else 0
+    print("\n".join(surface_tsv(rows)))
+    bad = surface_findings(rows)
+    for b in bad:
+        print(f"# {b}", file=sys.stderr)
+    return 1 if bad else 0
+
+
+def check_surface_coverage() -> None:
+    R.section("every user-facing surface has its home in the user docs, default included (R10-USER-DOCS-FINAL)")
+    sources = surface_sources()
+    rows = surface_rows(sources=sources)
+    classes = collections.Counter(r["class"] for r in rows)
+    R.check("every surface class enumerates from the tree (anchor)", set(classes) == set(_HOMES),
+            ", ".join(f"{c}={classes.get(c, 0)}" for c in _HOMES))
+    from heatpump_optimizer import config_flow
+
+    # A `_Suggested` default's fallback is the default a fresh entry shows; read as <computed>, its Default cell
+    # would be compared against nothing (fix review of r10-user-docs-verify, block 2).
+    suggested = {f.key: f.default.fallback for f in config_flow._OPTION_FIELDS
+                 if isinstance(f.default, config_flow._Suggested)}
+    by_id = {r["id"]: r["value"] for r in rows if r["class"] == "option"}
+    R.check("every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)",
+            bool(suggested) and all(by_id.get(k) == v and v != _COMPUTED for k, v in suggested.items()),
+            repr({k: (v, by_id.get(k)) for k, v in suggested.items()}))
+    bad = surface_findings(rows)
+    R.check("every surface has its home, or a reasoned exemption that still names one",
+            not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
+    print(f"       ({len(rows)} surface(s), {sum(r['home'] for r in rows)} homed, {len(SURFACE_EXEMPT)} exempt: "
+          "python3 tests/doc_claims.py --surfaces lists them)")
+    import yaml
+
+    planted = surface_sources(services={**yaml.safe_load((PKG / "services.yaml").read_text()),
+                                        "probe_undocumented": {"name": "Probe"}})
+    got = surface_findings(surface_rows(sources=planted))
+    R.check("red fixture: a service planted in services.yaml with no home is the one finding",
+            len(got) == len(bad) + 1 and any("'probe_undocumented'" in g for g in got), repr(got[:3]))
+    pages = _user_pages()
+    opt = next(r for r in rows if r["class"] == "option" and isinstance(r["value"], float) and r["home"])
+    hdr = next(h for _, h, c in _table_rows(_under(pages["docs/configuration.md"], "## Changing settings later"))
+               if _label(c[0]) == _label(opt["label"]))
+    col = [h.lower() for h in hdr].index("default")
+    lines = pages["docs/configuration.md"].splitlines()
+    i = next(n for n, l in enumerate(lines) if l.startswith("|") and _label(l.strip("|").split("|")[0]) ==
+             _label(opt["label"]))
+    cells = lines[i].strip().strip("|").split("|")
+    cells[col] = " 9999 "
+    moved = {**pages, "docs/configuration.md": "\n".join(lines[:i] + ["|" + "|".join(cells) + "|"] + lines[i + 1:])}
+    got = surface_findings(surface_rows(pages=moved, sources=sources))
+    R.check(f"red fixture: a Default cell that disagrees with the shipped default ({opt['id']}) is a finding",
+            any(f"'{opt['id']}'" in g and "Default cell" in g for g in got), repr(got[:3]))
+    stale = {**SURFACE_EXEMPT, ("service", "gone_service"): "removed from the tree"}
+    R.check("red fixture: an exemption naming a surface no longer enumerated is a finding",
+            any("gone_service" in g for g in surface_findings(rows, stale)))
+    R.check("red fixture: a one-word exemption reason is a finding",
+            any("under two words" in g for g in surface_findings(rows, {**SURFACE_EXEMPT, ("x", "y"): "internal"})))
+    a = surface_tsv(rows)
+    flip = [l.rsplit("\t", 1)[0] + "\t" + json.dumps(9999.0) if l.startswith(f"option\t{opt['id']}\t") else l
+            for l in a]
+    R.check("null control: the delta of a surface list against itself is three empty sections",
+            surface_delta(a, a) == ["LANDED (0)", "REMOVED (0)", "CHANGED (0)"], repr(surface_delta(a, a)))
+    d = surface_delta(a, flip)
+    R.check("red fixture: a changed default is exactly one CHANGED line, nothing LANDED or REMOVED",
+            d[:2] == ["LANDED (0)", "REMOVED (0)"] and d[2] == "CHANGED (1)" and len(d) == 4
+            and "default:" in d[3], repr(d))
+    d = surface_delta(a[1:], a[:-1])
+    R.check("red fixture: an added key is LANDED and a dropped key is REMOVED",
+            d[0] == "LANDED (1)" and a[0].split("\t")[1] in d[1] and d[2] == "REMOVED (1)"
+            and a[-1].split("\t")[1] in d[3], repr(d))
+
+
+# The stateless arm (design section 4, item 2): the user pages state how the integration works, never how it came to
+# work that way -- RELEASE_NOTES.md is where the history lives. Every phrase has word boundaries: a bare `used to`
+# matches "Refused together" (carry udf-used-to-boundary). The bare word "now" is not in the lexicon: its hits are
+# "right now" and a UI label ("Finish setup now"), not history. The second line is the round-2 widening (fix review of
+# #3048): "earlier/older versions", "versions older than", "upgraded from", "the upgrade", "is now X rather than Y",
+# "breaking change", and a bare three-part version number, which states a release, not a behaviour. "now ... rather
+# than" needs the "is/are" before it, so "snaps back to now rather than show a past" stays a statement; its gap
+# admits a decimal point ("now 1.0 rather than") and a wrapped line, never a sentence end. A literal
+# version (a minimum Home Assistant release, the fork's attribution) goes in STATELESS_EXEMPT with its reason.
+# Round 3 (fix review of #3048 at 6d24f3ac6): "previous/old" + a thing that changes between releases (behaviour,
+# default, version, form, layout, formula, name, id, suffix), "older" + an install or integration, and "silently" + a
+# past-tense verb; then "historical default/form" and "before this/that/it was", the opening of a recounted change
+# ("Before this was shared, the simulation charged ..."). Bare "previous" and "old" stay out: "the previous day",
+# "the previous answer" and "the old plan stands" state what happens now, and "an older Home Assistant" / "older than
+# three solve cycles" compare, not recount. A past-tense counterfactual ("Sizing it from the whole house inflated the
+# cap") has no word-level shape; the round-3 census read every was/were/had hit for it instead.
+_HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviously\b|\bno longer\b|\bused to\b"
+                      r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d"
+                      r"|\b(?:earlier|older)\s+(?:versions?|releases?)\b"
+                      r"|\b(?:versions?|releases?)\s+(?:older|newer)\s+than\b"
+                      r"|\bupgraded\s+from\b|\bthe\s+upgrade\b|\bbreaking\s+change\b"
+                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b"
+                      r"|\bbefore\s+(?:this|that|it)\s+(?:was|were)\b"
+                      r"|\bhistorical\s+(?:[\w-]+\s+)?(?:defaults?|forms?|behaviou?rs?)\b"
+                      r"|\b(?:previous|old)\s+(?:behaviou?rs?|defaults?|versions?|releases?|forms?|layouts?|formulas?"
+                      r"|names?|ids?|suffix(?:es)?)\b"
+                      r"|\bolder\s+(?:integrations?|setups?|installs?|installations?|registry|ids?|suffix(?:es)?)\b"
+                      r"|\bsilently\s+(?:evaluated|was|were|did|read|returned|gave)\b)"
+                      r"|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b|\bR\d+-"
+                      r"|(?<![\w.])\d+\.\d+\.\d+\b")
+# `used to` in its purpose sense ("is used to size the tank", "Used to ..."), which states what a thing does now.
+_PURPOSE = re.compile(r"(?:^|[.!?|]\s*|,\s*|\b(?:is|are|only|also)\s+)$", re.I)
+# (page, fragment, reason): a literal use of a lexicon phrase. Each fragment must match exactly once on its page.
+STATELESS_EXEMPT: tuple[tuple[str, str, str], ...] = (
+    ("README.md", "Home Assistant: 2025.2.0+", "the minimum Home Assistant release, stated on the badge"),
+    ("README.md", "Home Assistant 2025.2.0 or newer", "the minimum Home Assistant release, stated as a requirement"),
+    ("README.md", "Home Assistant 2025.2.0 and Python", "the minimum Home Assistant release, stated at installation"),
+    ("README.md", "at version 2.2.0", "the fork's attribution names the upstream release it began from, as NOTICE does"),
+    ("README.md", "Versions 2.3.0 onward", "the fork's attribution names which releases are this fork's own work"),
+)
+
+
+def _blank(m: re.Match) -> str:
+    return re.sub(r"[^\n]", " ", m.group(0))
+
+
+def stateless_text(text: str) -> str:
+    """The prose a reader reads as a statement: fences, inline code, HTML comments and link targets blanked, line
+    breaks kept so a hit keeps its line number."""
+    text = _FENCE.sub(_blank, text)
+    text = _COMMENT.sub(_blank, text)
+    text = re.sub(r"`[^`\n]+`", _blank, text)
+    text = re.sub(r"(?<=\])\([^)\s]*(?:\s+\"[^\"]*\")?\)", _blank, text)
+    return re.sub(r"<[^>\n]+>", _blank, text)
+
+
+def stateless_findings(pages: dict[str, str], exempt=STATELESS_EXEMPT) -> list[str]:
+    """`page:line: phrase | context` for every history phrase outside an exemption, plus every exemption that does
+    not match exactly once."""
+    out = []
+    spans: dict[str, list[tuple[int, int]]] = {}
+    for page, fragment, _why in exempt:
+        text = stateless_text(pages.get(page, ""))
+        at = [m.start() for m in re.finditer(re.escape(fragment), text)]
+        if len(at) != 1:
+            out.append(f"exemption {page}: {fragment!r} matches {len(at)} times, not once")
+        spans.setdefault(page, []).extend((a, a + len(fragment)) for a in at)
+    for page, raw in pages.items():
+        text = stateless_text(raw)
+        for m in _HISTORY.finditer(text):
+            if m.group(0).lower() == "used to" and _PURPOSE.search(text[:m.start()]):
+                continue
+            if any(a <= m.start() < b for a, b in spans.get(page, ())):
+                continue
+            line = text.count("\n", 0, m.start()) + 1
+            ctx = text.splitlines()[line - 1].strip()
+            out.append(f"{page}:{line}: {m.group(0)!r} | {ctx[:90]}")
+    return out
+
+
+def power_feedback_facts() -> dict[str, str]:
+    """The phrases configuration.md owes the power-feedback loop, from its constants."""
+    from heatpump_optimizer import pump_arbiter as pa
+
+    return {
+        "start hold": f"first {pa.FEEDBACK_START_HOLD.total_seconds() / 60:g} minutes of a run",
+        "rate": f"{pa.FEEDBACK_RATE_K_PER_MIN:g} K per minute",
+        "window": f"averaged over {pa.FEEDBACK_WINDOW.total_seconds() / 60:g} minutes",
+        "deadband": f"within {pa.FEEDBACK_DEADBAND_SHARE * 100:g} % of the planned level",
+        "lower bound": f"no lower than {pa.FEEDBACK_DOWN_K:g} K below the inlet",
+    }
+
+
+#: The contributor's answers on the Luxtronik Smart Home Interface (Carry 8 of
+#: R10-WATER-SETPOINT-FEEDBACK): the source of the watchdog, clamp-register and
+#: hysteresis statements, cited where each is made.
+_SHI_ANSWERS = "pull/3372#issuecomment-6756915104"
+
+
+def check_power_feedback_claims() -> None:
+    R.section("the power-feedback loop's figures and controller facts (R10-WATER-SETPOINT-FEEDBACK Carry 8)")
+    text = DOCS["configuration.md"]
+    loop = _section(text, "- **Power feedback (", "\n- **", "configuration.md")
+    poll = _section(text, "  - The integration that exposes the controller must poll", "\n  - ", "configuration.md")
+    start = _section(text, "A controller that starts heating only once", "On the install this was written for", "configuration.md")
+    if loop is None or poll is None or start is None:
+        return
+    flat = " ".join(loop.split())
+    for name, phrase in power_feedback_facts().items():
+        R.check(f"the loop's {name} is the constant's: {phrase!r}", phrase in flat)
+    for name, body, facts in (
+        ("the polling precondition", poll, ("600 s", "restart")),
+        ("the start condition", start, ("10107", "0.5 K")),
+        ("the loop's preconditions", loop, ("10104", "10103", "0.5 K")),
+    ):
+        R.check(f"{name} cites the contributor's answers", _SHI_ANSWERS in body)
+        missing = [fact for fact in facts if fact not in body]
+        R.check(f"{name} states {', '.join(facts)}", not missing, repr(missing))
+    R.check("no start condition is stated as a 2 K Luxtronik default",
+            "2 K on a Luxtronik" not in " ".join(text.split()))
+    import inspect
+    from heatpump_optimizer import pump_arbiter as pa
+
+    source = inspect.getsource(pa)
+    down = re.search(r"((?:^#:.*\n)+)FEEDBACK_DOWN_K = ", source, re.M)
+    R.check("pump_arbiter still comments FEEDBACK_DOWN_K (anchor)", down is not None)
+    comment_id = _SHI_ANSWERS.rsplit("-", 1)[1]
+    R.check("the assumed minimum hysteresis behind FEEDBACK_DOWN_K cites the contributor's answers",
+            down is not None and comment_id in down.group(1))
+    R.check("the inferred clamp bounds (_clamp_cut) cite the contributor's answers and name both inputs",
+            all(fact in (pa._clamp_cut.__doc__ or "") for fact in (comment_id, "10104", "10103")))
+
+
+# ---------------------------------------------------------------------------
+# R10-DOCS-STRINGS-RESIDUE carries 5 to 13: reader sentences and option texts
+# that described behaviour the code does not have. Each arm takes its fact
+# from the producing code, refuses the old wording in the reader corpus and in
+# all four string files, and requires the corrected sentence to state the fact.
+# ---------------------------------------------------------------------------
+_STRING_FILES = {
+    name: json.loads((PKG / rel).read_text())
+    for name, rel in (("strings.json", "strings.json"), ("en.json", "translations/en.json"),
+                      ("de.json", "translations/de.json"), ("sv.json", "translations/sv.json"))
+}
+
+#: (carry, the old wording in any language) -- the sentences these carries corrected.
+_RESIDUE_REFUSED = (
+    ("Carry 5", r"lowers the (?:heating )?target by|Heizziel um|värmemålet med"),
+    ("Carry 6", r"headroom sensor dormant|Reserve inaktiv|utrymmessensorn vilande"),
+    ("Carry 7", r"correct itself against|Prognose sich anhand|rätta sig efter"),
+    ("Carry 8", r"in front of every (?:entity|sensor)|vorangestellt|Visas framför"),
+    ("Carry 9", r"compares spot cost only"),
+    ("Carry 10", r"measured delivery"),
+    ("Carry 11", r"first settled month"),
+)
+
+
+def _string_leaves(tree: object):
+    if isinstance(tree, dict):
+        for value in tree.values():
+            yield from _string_leaves(value)
+    elif isinstance(tree, str):
+        yield tree
+
+
+def residue_hits(corpus: dict[str, str], string_files: dict[str, dict]) -> dict[str, list[str]]:
+    """Every refused wording still present, by carry: the document or string file it is in."""
+    texts = {**{k: " ".join(v.split()) for k, v in corpus.items()},
+             **{k: "\n".join(_string_leaves(v)) for k, v in string_files.items()}}
+    return {carry: hits for carry, pattern in _RESIDUE_REFUSED
+            if (hits := [name for name, text in texts.items() if re.search(pattern, text)])}
+
+
+def menu_title_mismatches(strings: dict) -> tuple[int, list[str]]:
+    """Every options-menu entry whose target step has a title: (pairs compared, the pairs whose names differ).
+
+    Design choice: the options flow only. Its menu entries name the page they open; the config flow's are
+    actions ("Continue setup", "Describe my building (recommended)") and legitimately differ from the title."""
+    pairs, bad = 0, []
+    for flow in ("options",):
+        steps = strings.get(flow, {}).get("step", {})
+        for body in steps.values():
+            for key, label in (body.get("menu_options") or {}).items():
+                title = steps.get(key, {}).get("title")
+                if title is None:
+                    continue
+                pairs += 1
+                if title != label:
+                    bad.append(f"{flow}.step.{key}: menu {label!r}, title {title!r}")
+    return pairs, bad
+
+
+def check_docs_strings_residue() -> None:
+    R.section("reader text against the code that produces it (R10-DOCS-STRINGS-RESIDUE carries 5 to 13)")
+    import inspect
+    import types
+    from heatpump_optimizer import away, const, coordinator, entry_config, ledger, topology
+
+    flat = {k: " ".join(v.split()) for k, v in DOCS.items()}
+    cfg, en = flat.get("configuration.md", ""), _STRING_FILES["en.json"]
+    opts = en["options"]["step"]
+    hits = residue_hits(CORPUS, _STRING_FILES)
+    R.check("no reader doc or string file keeps a corrected sentence's old wording", not hits, repr(hits))
+
+    # Carry 5: the open-window relax widens the floor and leaves the target.
+    relax, floor = const.OPEN_WINDOW_RELAX_C, const.ECONOMY_ABSOLUTE_FLOOR
+    fields = dict.fromkeys(away._OPT_FIELDS, None) | {"target_temp": 21.0, "min_temp": 20.0}
+    thermal = types.SimpleNamespace(**dict.fromkeys(away._DHW_FIELDS, 45.0))
+    banded, _ = away.solve_bands(types.SimpleNamespace(**fields), thermal, None, (relax,))
+    R.check("solve_bands lowers min_temp by OPEN_WINDOW_RELAX_C and leaves target_temp",
+            banded["min_temp"] == 20.0 - relax and banded["target_temp"] == 21.0, repr(banded))
+    low, _ = away.solve_bands(types.SimpleNamespace(**(fields | {"min_temp": floor})), thermal, None, (relax,))
+    R.check("solve_bands never takes min_temp below ECONOMY_ABSOLUTE_FLOOR", low["min_temp"] == floor, repr(low))
+    phrase = f"by {relax:g} °C, never below {floor:g} °C"
+    R.check(f"configuration.md's open-window row says the coldest accepted temperature drops {phrase}",
+            f"lowers the coldest temperature the plan accepts {phrase}" in cfg)
+    R.check(f"the open-window option text says {phrase}",
+            phrase in opts["learning_features"]["sections"]["weather"]["data_description"]["open_window_relax_enabled"])
+
+    # Carry 6: fuse 0 is no fuse, so the headroom follows the capacity-tariff peak alone.
+    def fuse(amps: int) -> float | None:
+        cfg_ = types.SimpleNamespace(main_fuse_amperes=amps, main_fuse_phases=3)
+        cfg_.fuse_kw_at = lambda a: entry_config.EntryConfig.fuse_kw_at(cfg_, a)
+        return entry_config.EntryConfig.fuse_kw(cfg_)
+
+    R.check("EntryConfig.fuse_kw answers None at main fuse 0, and a capacity at 16 A (control)",
+            fuse(0) is None and fuse(16) is not None, repr((fuse(0), fuse(16))))
+    R.check("configuration.md's main-fuse row says the headroom sensor follows the capacity-tariff peak",
+            "the headroom sensor then follows the capacity-tariff peak alone" in cfg)
+    R.check("the main-fuse option text says the headroom sensor follows the capacity-tariff peak",
+            "headroom sensor following the capacity-tariff peak alone"
+            in opts["grid_connection"]["data_description"]["main_fuse_amperes"])
+
+    # Carry 7: the measured production replaces step 0 only.
+    pv = re.search(r"production\[0\] = min\(self\._pv_production, config\.peak_kw\)",
+                   inspect.getsource(coordinator))
+    R.check("the coordinator replaces production[0] alone, capped at peak_kw (anchor)", pv is not None)
+    for where, text in (("configuration.md", cfg),
+                        ("the PV sensor option text", opts["solar_pv"]["data_description"]["pv_production_entity"])):
+        R.check(f"{where} says only the current step is replaced, capped at the installed capacity",
+                "current step" in text and "capped at the installed capacity" in text)
+
+    # Carry 8: every entity is named from the device, whose name is a literal.
+    device = re.search(r'DeviceInfo\(\s*identifiers=.*?name="([^"]+)"', inspect.getsource(coordinator), re.S)
+    R.check("the coordinator's DeviceInfo names the device by a literal (anchor)", device is not None)
+    name = device.group(1) if device else "<none>"
+    for where, text in (("setup.md", flat.get("setup.md", "")), ("configuration.md", cfg),
+                        ("the name option text", en["config"]["step"]["user"]["data_description"]["name"])):
+        R.check(f"{where} says entities use the fixed device name {name!r}",
+                f"fixed device name, {name}" in text)
+
+    # Carry 9: both sides of the saving are priced at spot plus the per-kWh fee.
+    R.check("observe_spot_and_settle_savings prices the settlement at spot + fee_per_kwh (anchor)",
+            "spot=spot + fee_per_kwh" in inspect.getsource(ledger.MonthlyLedger.observe_spot_and_settle_savings))
+    card = flat.get("dashboard-card.md", "")
+    R.check("dashboard-card.md says both sides are priced at spot plus the per-kWh grid fee",
+            "both priced at spot plus the per-kWh grid fee" in card)
+
+    # Carry 10: the replay's power is the measured mean, else a fraction of the maximum.
+    half = {0.5: "half"}.get(topology._ADVISOR_DUTY_FRACTION)
+    R.check("_ADVISOR_DUTY_FRACTION is a fraction the page can name", half is not None,
+            repr(topology._ADVISOR_DUTY_FRACTION))
+    R.check("dashboard-card.md names the measured mean power, else the configured maximum's fraction",
+            f"mean electrical power your heat pump has measured where there is history, {half} its configured maximum"
+            in card)
+
+    # Carry 11: the Health picture's alt text names the booked-saving wait.
+    R.check("dashboard-card.md's Health picture waits for the first month with a booked saving",
+            "savings waiting for the first month with a booked saving" in card)
+
+    # Carry 13: one options page, one name per language.
+    for fname, strings in _STRING_FILES.items():
+        pairs, bad = menu_title_mismatches(strings)
+        R.check(f"{fname}: every options-menu entry names its page by the page's title ({pairs} pairs)",
+                pairs > 0 and not bad, "; ".join(bad))
+
+    # Null controls: each old wording, put back, fires; a renamed page title fires.
+    for carry, old in (
+        ("Carry 5", "this additionally lowers the target by 1 °C"), ("Carry 6", "the headroom sensor dormant"),
+        ("Carry 7", "Lets the forecast correct itself against what the roof"),
+        ("Carry 8", "Shown in front of every entity"), ("Carry 9", "the savings figure compares spot cost only"),
+        ("Carry 10", "your install's measured delivery"), ("Carry 11", "waiting for the first settled month"),
+    ):
+        R.check(f"{carry}: the old wording, put back, is refused (null control)",
+                carry in residue_hits({"setup.md": old}, {}))
+    renamed = json.loads(json.dumps(_STRING_FILES["de.json"]))
+    renamed["options"]["step"]["grid"]["title"] = "Netz-Spitzentarif"
+    R.check("a de grid page titled apart from its menu entry is refused (null control)",
+            bool(menu_title_mismatches(renamed)[1]))
+
+
+def check_stateless() -> None:
+    R.section("the user pages describe the integration as it is, with no change history (R10-USER-DOCS-FINAL)")
+    pages = _user_pages()
+    R.check("the seven user pages are there (anchor)", len(pages) == len(USER_PAGES),
+            ", ".join(sorted(set(USER_PAGES) - set(pages))))
+    bad = stateless_findings(pages)
+    R.check("no user page carries a history phrase outside a reasoned exemption",
+            not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
+    for plant in ("This mode is new in v9.", "The card previously showed the price.",
+                  "Earlier versions sized the dialog from a guess.", "Older releases kept the slab warm.",
+                  "It reads both ids, for integration versions older than the move.",
+                  "An install upgraded from the first layout keeps its ids.",
+                  "A learned derate survives the upgrade.", "Its upper clamp is now 1.0 rather than 1.05.",
+                  "The new floor was a breaking change.", "The card reads both ids before 2.6.1 too.",
+                  "The weather forecast, the previous behaviour and still the default.",
+                  "Installs that stored the previous default strings keep them.",
+                  "The card tries the old suffix after the current one.",
+                  "Older integrations publish none of them.", "An install that kept older registry ids is covered.",
+                  "The term silently evaluated to zero for many installs.",
+                  "Before this was shared, the simulation charged the buffer.",
+                  "Some labels read SEK, which is the historical default.",
+                  "The fit degrades to the historical two-column form.",
+                  # R10-UX-HEALTH part 3's phrase, refused in strings.json by tests/entities.py; here on the docs.
+                  "| Heat pump operating mode | none | Read only, exactly as before. |"):
+        got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
+        R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
+    R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "
+            "hourly clock\", \"an upgrade seems\", a calendar month \"2026.11\", a decimal \"0.55\") are not findings",
+            not stateless_findings({"probe.md": "# T\n\nThe window snaps back to now rather than show a past. 60 keeps "
+                                                "the older hourly clock. If an upgrade seems to change nothing, reload. "
+                                                "From Home Assistant 2026.11 the derate floor is 0.55. Run `2.6.1`.\n"}, ()))
+    R.check("null control: bare \"previous\", \"old\" and \"older\" in their current sense (\"the previous answer\", "
+            "\"the previous one\", \"the old plan stands\", \"an older Home Assistant\", \"older than three solve cycles\", "
+            "\"silently keeping\") are not findings",
+            not stateless_findings({"probe.md": "# T\n\nRapid repeats return the previous answer, not the previous one. "
+                                                "The call refuses while the old plan stands. An older Home Assistant is "
+                                                "not offered updates. The plan is older than three solve cycles. It "
+                                                "refuses rather than silently keeping the old plan.\n"}, ()))
+    R.check("null control: \"previous day\", a purpose-sense \"is used to\", \"Refused together\", a code span and "
+            "a link anchor are not findings",
+            not stateless_findings({"probe.md": "# T\n\nThe previous day's cost. The sensor is used to size the tank."
+                                                " Refused together. Run `v9.1 previously`. See [x](#1234-x).\n"}, ()))
+    R.check("red fixture: a history-sense \"used to\" is a finding",
+            len(stateless_findings({"probe.md": "# T\n\nThe card used to draw the price.\n"}, ())) == 1)
+    R.check("red fixture: an exemption that matches no fragment is a finding",
+            any("matches 0 times" in g for g in stateless_findings(pages, (("README.md", "no such words", "a b"),))))
+
+
+
+# R10-SAV-VALUATION-RESIDUE Carry 10: on a combi tank the three hot-water
+# figures publish ``dhw_split`` (entity.dhw_split_attributes). The README rows
+# naming them and configuration.md's combi option must name that attribute and
+# say what the code's own sentence says, so the docs cannot drift from it; the
+# null is a space figure's row, which must not carry the note.
+def check_combi_dhw_split() -> None:
+    from heatpump_optimizer import entity
+
+    claim = "what the heat pump spends in hot-water mode"
+    rows = {
+        name: next((ln for ln in README.splitlines() if ln.startswith(f"| {name} |")), "")
+        for name in ("DHW Heating Cost (next 24 h)", "DHW Energy (lifetime)",
+                     "DHW Cost (lifetime)", "Lifetime Space Heating Energy")
+    }
+    R.check(
+        "the code's combi split sentence carries the claim the docs repeat (anchor)",
+        claim in entity.COMBI_DHW_SPLIT
+        and "space heat drawn from the" in entity.COMBI_DHW_SPLIT,
+        entity.COMBI_DHW_SPLIT,
+    )
+    missing = [n for n, ln in rows.items()
+               if n != "Lifetime Space Heating Energy"
+               and not ("`dhw_split`" in ln and claim in ln and "space heat drawn from the" in ln)]
+    R.check(
+        "README's three hot-water rows say which split they show on a combi tank (Carry 10)",
+        not missing and all(rows.values()),
+        f"rows without the note: {missing}",
+    )
+    R.check(
+        "and a space figure's row does not (Carry 10 null)",
+        "`dhw_split`" not in rows["Lifetime Space Heating Energy"],
+        rows["Lifetime Space Heating Energy"],
+    )
+    combi = next((ln for ln in DOCS["configuration.md"].splitlines()
+                  if ln.startswith("| Hot water is made from the buffer tank (combi tank) |")), "")
+    R.check(
+        "configuration.md's combi option names the three figures and their dhw_split (Carry 10)",
+        all(n in combi for n in ("DHW Heating Cost (next 24 h)", "DHW Energy (lifetime)",
+                                 "DHW Cost (lifetime)"))
+        and "`dhw_split`" in combi and claim in combi,
+        combi[-400:],
+    )
+
+
+# R10-CONFIG-FLOW-TEXT-VERIFY: the flow help text that quotes a number the
+# code owns, and the flow help text on a slot the pump arbiter writes. Each pin
+# reads the shipped English (strings.json, which en.json copies leaf for leaf)
+# and the production symbol, so a constant moved without its sentence, or a
+# sentence promising "never writes" on a written slot, goes red here instead of
+# reaching a user. The record of every flow string's verdict, and which claims
+# stay prose-only, is dev/audit/rounds/round10/D6/flow-claims.md.
+_FLOW_DD = "options.step.entities_pump.data_description.pump_duty_mode"
+
+
+def flow_number_pins() -> list[tuple[str, str, float]]:
+    """``(dotted key, regex with one number group, the production value)``."""
+    import math
+
+    from heatpump_optimizer import const, curve_learning, duty_legs, flow_lift, thermal_model
+    from heatpump_optimizer import pump_arbiter as pa
+
+    pins = [
+        (_FLOW_DD, r"capped at (\d+) minutes", pa.LEASE_MINUTES),
+        (_FLOW_DD, r"\((\d+) below -?\d+ °C outdoors\)", pa.COLD_LEASE_MINUTES),
+        (_FLOW_DD, r"\(\d+ below (-?\d+) °C outdoors\)", pa.COLD_RAIL_C),
+        (_FLOW_DD, r"sent again every (\d+) minutes", pa.RETRY_MINUTES),
+        (_FLOW_DD, r"a share under (\d+) minutes", duty_legs.SPLIT_MIN_MINUTES),
+        (_FLOW_DD, r"the heating flow \((\d+) °C", pa.FLOW_HEAT_C),
+        (_FLOW_DD, r"\((\d+) °C when none is configured\)", pa.FLOW_HOLD_C),
+        (_FLOW_DD, r"(\d+) °C on steps that do not", pa.FLOW_GATE_C),
+        (_FLOW_DD, r"the hot water one to (\d+) °C", pa.DHW_GATE_C),
+        (_FLOW_DD, r"toward (\d+) °C \(or the Minimum lift", thermal_model.FLOW_MIN_LIFT_K),
+        # The realised worst case, not MAX_DOWN_PER_WEEK: STEP_K every
+        # DAYS_PER_STEP days lands three steps in one 7-day window (D6-s2-03).
+        ("options.step.learning_features.sections.model.data_description.curve_learning_enabled",
+         r"at most (six tenths) of a degree per week",
+         curve_learning.STEP_K * math.ceil(7 / curve_learning.DAYS_PER_STEP)),
+        ("options.step.tuning.sections.risk.data_description.confidence_margins_enabled",
+         r"capped at (\d+(?:\.\d+)?) °C", const.CONFIDENCE_MARGIN_CAP_C),
+        ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+         r"at most (\d+) K below", flow_lift.FLOW_BIAS_CLAMP_K),
+        ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+         r"at most to a (\d+) °C supply", flow_lift.FLOW_SUPPLY_MAX_C),
+        ("options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled",
+         r"held that temperature for (\d+) minutes", const.DHW_LEGIONELLA_HOLD_MINUTES),
+        ("config.step.temperature.data_description.min_temperature",
+         r"lowers it by a further (\d+(?:\.\d+)?) K", const.ECONOMY_MIN_TEMP_WIDENING),
+        ("config.step.temperature.data_description.min_temperature",
+         r"a detected open window by (\d+) K", const.OPEN_WINDOW_RELAX_C),
+        ("config.step.temperature.data_description.min_temperature",
+         r"never below (\d+) °C", const.ECONOMY_ABSOLUTE_FLOOR),
+        ("options.step.learning_features.sections.weather.data_description.open_window_relax_enabled",
+         r"accepts by (\d+) °C, never below", const.OPEN_WINDOW_RELAX_C),
+    ]
+    return pins
+
+
+def flow_number_findings(texts: dict, pins: list) -> list[str]:
+    """Each pin whose sentence is absent, or quotes a number its symbol does not hold."""
+    words = {"six tenths": 0.6}
+    bad = []
+    for key, pattern, value in pins:
+        node = texts
+        for part in key.split("."):
+            node = node.get(part, {}) if isinstance(node, dict) else {}
+        match = re.search(pattern, node) if isinstance(node, str) else None
+        if match is None:
+            bad.append(f"{key}: no sentence matches {pattern!r}")
+            continue
+        quoted = words.get(match.group(1)) or float(match.group(1))
+        if abs(quoted - float(value)) > 1e-9:
+            bad.append(f"{key}: quotes {match.group(1)}, the code holds {value}")
+    return bad
+
+
+#: Words that promise a slot is left alone. A sentence carrying one is true of
+#: an arbiter slot only where it names the mode that writes it.
+_NEVER_WRITES = re.compile(r"never (?:writes|recommends)|used only to notice|\bread only\b", re.I)
+
+
+def arbiter_slot_keys() -> dict[str, str]:
+    """``{slot: config key}`` for every slot ``pump_arbiter`` writes, derived by
+    feeding each ``CONF_*_ENTITY`` key a value naming itself and reading back
+    which one each slot took -- no hand list to fall behind a new slot."""
+    from heatpump_optimizer import const
+    from heatpump_optimizer import pump_arbiter as pa
+
+    keys = {v for k, v in vars(const).items() if k.startswith("CONF_") and k.endswith("_ENTITY")}
+    probe = {key: f"switch.{key}" for key in keys}
+    return {
+        slot: entity.split(".", 1)[1]
+        for slot, entity in pa._entities(probe).items()
+        if entity
+    }
+
+
+#: The one sentence another group owns: R10-HOTFIX-FLOW-SETPOINT-STUCK corrects
+#: it and its translations (the owner's brief for this group: leave it to that
+#: fix). Keyed on the exact false sentence, so the pass expires the moment that
+#: text changes and the key is then judged like every other; nothing to delete
+#: for either merge order. A design choice, not a tolerance: it silences
+#: nothing but that sentence while it is still the shipped one.
+_OWNED_ELSEWHERE = {
+    "options.step.entities.sections.indoor.data_description.space_setpoint_entity":
+        "The optimizer never writes a recommended space set-point.",
+}
+
+
+def flow_write_findings(texts: dict, slot_keys: dict, owned: dict | None = None) -> list[str]:
+    """Flow strings on (or named after) a written slot that say it is never written,
+    less a sentence ``owned`` names another group's while it is still shipped."""
+    owned = _OWNED_ELSEWHERE if owned is None else owned
+    stems = {key.removesuffix("_entity") for key in slot_keys.values()}
+    bad = []
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk(v, (*path, k))
+        elif isinstance(node, str) and path[-2:-1] == ("data_description",):
+            if any(path[-1].startswith(stem) for stem in stems) and _NEVER_WRITES.search(node) \
+                    and "Control" not in node:
+                dotted = ".".join(path)
+                if owned.get(dotted, "\0") not in node:
+                    bad.append(dotted)
+
+    for top in ("config", "options"):
+        walk(texts.get(top, {}), (top,))
+    return bad
+
+
+def check_flow_text_claims() -> None:
+    R.section("flow help text vs the code it describes (R10-CONFIG-FLOW-TEXT-VERIFY)")
+    texts = json.loads((PKG / "strings.json").read_text())
+    pins = flow_number_pins()
+    bad = flow_number_findings(texts, pins)
+    R.check(f"every quoted figure in the flow help ({len(pins)} pins) is its constant's value",
+            not bad, "; ".join(bad[:4]))
+    planted = json.loads(json.dumps(texts))
+    planted["options"]["step"]["entities_pump"]["data_description"]["pump_duty_mode"] = (
+        texts["options"]["step"]["entities_pump"]["data_description"]["pump_duty_mode"]
+        .replace("capped at 90 minutes", "capped at 60 minutes"))
+    R.check("null: a pump-duty text quoting 60 minutes for the 90-minute lease is found",
+            any(b.startswith(_FLOW_DD) and "quotes 60" in b for b in flow_number_findings(planted, pins)))
+    slots = arbiter_slot_keys()
+    R.check("the arbiter's written slots are derived (anchor: mode, both set-points)",
+            {"mode", "dhw_setpoint", "space_setpoint"} <= set(slots), repr(slots))
+    bad = flow_write_findings(texts, slots)
+    R.check("no flow help says a slot the arbiter writes is never written, unless it names Control",
+            not bad, "; ".join(bad))
+    indoor = planted["options"]["step"]["entities"]["sections"]["indoor"]["data_description"]
+    indoor["space_setpoint_unit"] = "The unit is a declaration: this integration never recommends a space set-point."
+    # Planted, not read from the tree: R10-HOTFIX-FLOW-SETPOINT-STUCK has replaced
+    # the shipped sentence, so only a plant still proves the exemption is all that
+    # hides it.
+    owned_key = "options.step.entities.sections.indoor.data_description.space_setpoint_entity"
+    indoor["space_setpoint_entity"] = _OWNED_ELSEWHERE[owned_key]
+    R.check("null: the other group's sentence is found once it is not exempted",
+            owned_key in flow_write_findings(planted, slots, owned={}))
+    R.check("null: the pre-fix space set-point unit sentence is found",
+            "options.step.entities.sections.indoor.data_description.space_setpoint_unit"
+            in flow_write_findings(planted, slots))
+
+
+def main() -> int:
+    check_figures()
+    check_product_page()
+    check_docs_subpages()
+    check_site_request_controls()
+    check_docs_build_controls()
+    check_ecl110_defaults()
+    check_entity_prefix()
+    check_requirements_claim()
+    check_quickstart_numbering()
+    check_initial_setup_menu()
+    check_simulate_plan_fields()
+    check_two_zone_field_labels_and_placement()
+    check_heat_pump_action_states()
+    check_duty_switch_claims()
+    check_disabled_by_default_without_hot_water()
+    check_multistart_starting_points()
+    check_prose_tree_counts()
+    check_census_self_test()
+    check_quality_scale()
+    check_py_typed_claim()
+    check_quick_setup_promises()
+    check_card_version_tracks_stamp()
+    check_curve_bias_no_weekly_bound()
+    check_readme_currency_claim()
+    check_service_fields()
+    check_entity_prose()
+    check_private_mentions()
+    check_unit_typography()
+    check_option_labels()
+    check_options_page_census()
+    check_ui_labels()
+    check_banner_sample()
+    check_service_count_comments()
+    check_image_dimensions()
+    check_doc_wiring()
+    check_named_elements()
+    check_marker_census()
+    check_machinery_edges()
+    check_card_figures()
+    check_coffee_button()
+    check_readme_marketplace()
+    check_surface_coverage()
+    check_power_feedback_claims()
+    check_late_delta_claims()
+    check_flow_text_claims()
+    check_docs_strings_residue()
+    check_stateless()
+    check_combi_dhw_split()
+    return R.close("checks")
+
+
+if __name__ == "__main__":
+    raise SystemExit(print_marker_census(sys.argv) if "--markers" in sys.argv
+                     else print_surfaces(sys.argv) if "--surfaces" in sys.argv else main())

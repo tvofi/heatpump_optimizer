@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery BOOLOP fcdd91c2",
+  "killed_by": "tests/features.py",
+  "old": "        if two_tank and wood_temp is not None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if two_tank or wood_temp is not None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

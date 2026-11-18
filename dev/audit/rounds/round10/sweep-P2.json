@@ -1,0 +1,236 @@
+{
+ "class": "P2",
+ "instances": 17,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py  (--control: positive, --fixture: null, --perturb: one-line re-introduction per family); probes: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py [--perturb]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "classify_space_steps.threshold",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py -> FAIL optimizer.classify_space_steps (0.07 kW: reason terminal_value, owner off)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "classify_dhw_steps.threshold",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py -> FAIL optimizer.classify_dhw_steps (0.07 kW: reason dhw_ready, owner off)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/freq_control.py",
+   "symbol": "FrequencyMap.recommend",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py -> FAIL FrequencyMap.recommend (0.07 kW -> 33.0 Hz, owner off)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/freq_control.py",
+   "symbol": "FrequencyMap.evidence_exhausted",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py -> FAIL FrequencyMap.evidence_exhausted (gate <=0.05 passes 0.07, owner off)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_async_learn_buffer_cooling.heating",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py -> FAIL coordinator._async_learn_buffer_cooling (heating=True, owner off)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_observe_frequency.watch_active",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py -> FAIL coordinator._observe_frequency (watch_active=True, owner off)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_accumulate_energy|_maybe_run_fuse_advisor|_settle_interval_diag",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #7 (pending interval's planned space/DHW split read 3x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_async_learn_house_heat_loss|_async_learn_lower_floor_loss",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #16 (sample-acceptance rule (dt, replay, finite, residual cap) 2x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_file_lead_predictions|_predicted_next_room_temp",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #17 (sensed-zone trajectory choice 2x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_fold_internal_gains|_fold_solar_aperture",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #18 (sensed-zone thermal capacity choice 2x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_buffer_charge_ceiling|hold_demand_kw",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #30 (house UA (two-zone sum vs hlc, x scale) 2x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_grid_report|tariff._peak_excess",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #31 (peak-window factor padding 2x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_peak_day_kwargs|_peak_window_factors",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #32 (metering window count 2x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "extra_state_attributes:2000|extra_state_attributes:2469",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #36 (accuracy + last_diagnosis attributes 2x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "symbol": "_close_window|from_dict",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #39 (ranked peaks -> peaks/peak_days unpack 2x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "symbol": "_window_means_batch|metering_windows",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #40 (steps-per-metering-window rule, scalar/batch, no parity test) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "symbol": "plan_window_days|window_factors",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #41 (window slot base (tz -> utc) 2x) listed; one owner would list 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_build_plan_views.active_now",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D8/s1/f1_active_now.py -> heating_now_while_off=1 (D8-s1-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_plan_slots.threshold",
+   "probe": "f1_active_now.py -> slot_steps_declared_off=4 (D8-s1-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "DHWScheduleSensor.native_value.fallback",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py -> F1 sensor:native_value:1274/1277 (D8-s1-01 seam_rule)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_observe_frequency.freq_map_observe",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/s2/learner_gates.py -> freq_map_defrost_folds=8 (D7-s2-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalModel.compute_cop_dhw",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D2/s2/cop_laws.py -> dhw_mode_ratio_max=1.4346 (D2-s2-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "handle_apply_schedule",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D10/leads/bogus_entry_actions.py -> actions_silent_on_bogus_entry=1 (D10-s1-51)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "native_value[11]:543",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #0 (D7-s2-52) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "native_value[4]:478",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #3 (D7-s2-52) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "native_value[5]:2463",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #2 (D7-s2-53) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "native_value[2]:2776",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #37 (D7-s2-53) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/climate.py",
+   "symbol": "extra_state_attributes[3]:231",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #6 (D7-s2-54) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "_options_suggested_numeric|_suggested_entity",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #13 (D7-s2-55) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "async_step_*[5]:3572",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #1 (D7-s2-56) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "async_step_grid|async_step_grid_fees",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #14 (D7-s2-56) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "async_step_grid_connection|async_step_hot_water",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #15 (D7-s2-56) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "symbol": "parse_day_range|parse_month_range",
+   "probe": "python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json | clone class #23 (D7-s2-59) listed; one owner would list 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_draws.py",
+   "symbol": "_fmt",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_hour_clock.py -> implementations=5, disagreeing_hours=2 (D7-s2-57)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "symbol": "fmt",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_hour_clock.py -> implementations=5, disagreeing_hours=2 (D7-s2-57)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_night_clock",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_hour_clock.py -> implementations=5, disagreeing_hours=2 (D7-s2-57)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/quiet_windows.py",
+   "symbol": "_gchv_at",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_hour_clock.py -> implementations=5, disagreeing_hours=2 (D7-s2-57)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/quiet_windows.py",
+   "symbol": "_fmt",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_hour_clock.py -> implementations=5, disagreeing_hours=2 (D7-s2-57)",
+   "beyond_finding": false
+  }
+ ]
+}

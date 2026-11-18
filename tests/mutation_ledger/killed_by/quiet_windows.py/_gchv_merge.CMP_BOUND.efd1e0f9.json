@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:_gchv_merge CMP_BOUND efd1e0f9",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if len(segs) >= 2 and segs[0][0] <= 0.0 and segs[-1][1] >= 24.0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: CMP_BOUND (`if len(segs) > 2 and segs[0][0] <= 0.0 and segs[-1][1] >= 24.0:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=7. Each of the 3 sites under this anchor was killed."
+}

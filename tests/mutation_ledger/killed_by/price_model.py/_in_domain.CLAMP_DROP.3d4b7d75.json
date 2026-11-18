@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:_in_domain CLAMP_DROP 3d4b7d75",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    clipped = np.clip(np.asarray(values, dtype=float), lo, hi)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`clipped = (np.asarray(values, dtype=float))`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

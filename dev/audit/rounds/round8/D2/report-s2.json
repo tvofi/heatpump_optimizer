@@ -1,0 +1,133 @@
+{
+ "dimension": "D2",
+ "seat": "s2",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "tree": "/home/claude/audit-r8/seats/D2-s2",
+ "report_path": "tools/audit/round8/D2/REPORT-s2.md",
+ "exposure": "README.md read to confirm Nord Pool is a documented price source; no audit register, GitHub or earlier findings read",
+ "findings": [
+  {
+   "id": "D2-s2-01",
+   "title": "Capacity-tariff peaks are the top-k metering windows, not the top-k days the tariff bills",
+   "severity": "high",
+   "claim": "tariff.PeakTracker keeps and averages the k highest metering windows regardless of day, so on the only two catalog rows (whose rule is 'the three highest peaks on three different days') a cold morning with three high hours publishes billed_peak_kw 9.80 kW against a true 7.83 kW (+96.37 SEK/month at 49 SEK/kW) and sets threshold_kw 9.60 kW against a true 6.50 kW, so a 9.0 kW hour on another day is priced free by the solver and the live guard while the bill charges 40.83 SEK for it.",
+   "mechanism": "PeakTracker._close_window appends every closed window to one sorted list; billed_peak_kw averages peaks[:k] and threshold_kw returns peaks[k-1]. Nothing groups by day, so several windows of one day fill the top-k. The plan side (peak_cost) likewise sums the k largest window excesses of the horizon, charging three same-morning windows 3x what one day's single billed peak costs.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s2_distinct_day_peaks.py",
+    "harness_path": "tools/audit/round8/D2/s2_distinct_day_peaks.py",
+    "value": 96.3667,
+    "unit": "SEK/month (headline_overbill_sek)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container, 15 GB, shared with ~13 seats (not the audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "deterministic arithmetic; no timing; load irrelevant",
+    "tolerance": "exact (1e-9)",
+    "load1": 7.14,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/tariff.py:PeakTracker.billed_peak_kw / PeakTracker.threshold_kw (fed by PeakTracker.observe); secondary seam tariff.py:peak_cost",
+   "perturbation": {
+    "change": "config: peaks_averaged 3 -> 1 (harness flag --k1), where the top window and the top day coincide",
+    "expected_direction": "to_zero",
+    "observed_value": "headline_overbill_sek 96.37 -> 0.0; grid 8/8 nonzero cells -> 0/8; plan_overcharge_ratio 3.0 -> 1.0"
+   },
+   "metric_definition": "price_per_kw x (PeakTracker.billed_peak_kw - mean of the k highest per-day maxima of the same observed windows), SEK/month",
+   "phenomenon_property": "Every quantity that stands for the monthly capacity bill (published billed peak, the threshold the solver and live guard price against, the plan's peak charge) must count at most one peak per calendar day when the tariff bills distinct-day peaks, as both catalog rows state.",
+   "seam_rule": "grep -n 'def _close_window\\|def billed_peak_kw\\|def threshold_kw\\|def peak_cost\\|def peak_cost_smooth\\|def peak_cost_batch' custom_components/heatpump_optimizer/tariff.py",
+   "null_control": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s2_distinct_day_peaks.py --k1",
+    "value": 0.0,
+    "note": "k=1: top window == top day, every error is exactly 0 (headline, 8 grid cells, plan ratio 1.0)"
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 1.421,
+    "max": 34.401,
+    "drop_most_favourable": 16.93
+   },
+   "reproduction_steps": [
+    "run the command; read RESULT headline_overbill_sek, free_hour_true_cost_sek, grid_overbill_*, plan_overcharge_ratio",
+    "rerun with --k1: all go to 0 / 1.0"
+   ],
+   "proposed_fix_scope": "tariff.py: keep one entry per local day (the day's max billed-equivalent window) in PeakTracker (or a day-keyed dict) behind a CapacityTariff.distinct_days flag set by the catalog rows and a config option; threshold_kw/billed_peak_kw read the per-day list; peak_cost takes per-day maxima of the plan windows (plus same-day comparison with today's recorded max). Unit rows in tests/features.py; capacity_tariff goldens may drift.",
+   "files": [
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": [
+    "capacity_tariff",
+    "capacity_tariff_15min",
+    "peak_masked"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D2-s2-02",
+   "title": "Entity price sources read unit-blind: öre/kWh or SEK/MWh prices enter the plan 100x/1000x",
+   "severity": "high",
+   "claim": "price_model.prices_from_entity_state and Coordinator._pv_export_price never read the sensor's unit, so a Nord Pool sensor publishing öre/kWh (its price_in_cents option) or SEK/MWh reaches the planning prices at 83.0x / 828.6x the true SEK/kWh (export price 100x / 1000x) while the grid fee, capacity tariff and cycling cost stay in SEK, shrinking the fee's share of the price spread from 0.132 to 0.0015 / 0.00015.",
+   "mechanism": "prices_from_entity_attributes copies raw_today[].value verbatim (only VAT multiplier and surcharge applied); _pv_export_price floats state.state; neither consults unit_of_measurement or price_in_cents. Coordinator._price_series then adds grid_fee.fee_vector (SEK/kWh) to the unscaled series, and the published predicted_cost/savings carry the resolved HA currency label.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s2_price_unit.py",
+    "harness_path": "tools/audit/round8/D2/s2_price_unit.py",
+    "value": 83.0147,
+    "unit": "ratio (planning price / true SEK/kWh, median over 96 steps, öre/kWh sensor)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container, 15 GB, shared with ~13 seats (not the audit box)",
+    "cpu_or_wall": "ratio",
+    "contention_note": "deterministic arithmetic; no timing",
+    "tolerance": "exact (1e-9)",
+    "load1": 12.7,
+    "thread_factor": 0.998
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._price_series (via price_model.pull_prices / prices_from_entity_state) and HeatPumpOptimizerCoordinator._pv_export_price",
+   "perturbation": {
+    "change": "input: the price/export sensor's unit_of_measurement SEK/kWh -> öre/kWh (values x100) or SEK/MWh (x1000), same true price",
+    "expected_direction": "up",
+    "observed_value": "ratio 1.0000 -> 83.0147 (öre) / 828.6029 (MWh); export ratio 1 -> 100 / 1000"
+   },
+   "metric_definition": "median over steps of Coordinator._price_series price / (spot converted to SEK/kWh by the sensor's own unit + SEK/kWh grid fee)",
+   "phenomenon_property": "Every price read from a Home Assistant entity (import series and PV export price) must be converted to currency/kWh from the entity's declared unit, or refused with a repair, before it is combined with the currency/kWh fee layer and currency/kW tariff terms.",
+   "seam_rule": "grep -n 'def prices_from_entity_attributes\\|def prices_from_entity_state\\|def _pv_export_price\\|def _grid_fee_entity_value' custom_components/heatpump_optimizer/price_model.py custom_components/heatpump_optimizer/coordinator.py",
+   "null_control": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s2_price_unit.py",
+    "value": 1.0,
+    "note": "SEK/kWh arm of the same run: ratio 1.0000, fee share 0.13228 == truth"
+   },
+   "reproduction_steps": [
+    "run the command; compare ratio_SEK_per_kWh (1.0) with ratio_ore_per_kWh and ratio_SEK_per_MWh"
+   ],
+   "proposed_fix_scope": "price_model.py: read unit_of_measurement (and price_in_cents) in prices_from_entity_state, scale öre/cents per kWh by 0.01 and per-MWh by 0.001, refuse an unrecognised unit with a repair; same helper for _pv_export_price and the grid-fee entity. Unit rows in tests/features.py.",
+   "files": [
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "predicted_cost == dt*sum(price*(P_space+P_dhw)) (piecewise in PV surplus) and predicted_savings == baseline - predicted - deferred, on all 50 golden plan fixtures (PV fixtures at the golden export price 0.0)",
+   "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s2_cost_identity.py",
+   "value": "fixtures=50, max_cost_residual=0.000131 SEK (power recorded to 1e-3 kW), max_savings_residual=0.000001 SEK"
+  },
+  {
+   "claim": "Grid-fee ToU windows fold onto the real step grid on both DST days: 16 local hours -> 64 steps on the 23 h, 25 h and a normal day; a wrapping 22-06 rule charges 28/36/32 steps (7/9/8 real hours)",
+   "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s2_fee_dst.py",
+   "value": "alldays 64/64/64; night_wrap 28/36/32; steps 92/100/96"
+  },
+  {
+   "claim": "Plan side of capacity tariff equals the stated bill algebra when k=1 (peak_cost == marginal_price x excess)",
+   "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s2_distinct_day_peaks.py --k1",
+   "value": "plan_overcharge_ratio=1.0000"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D2/s2_distinct_day_peaks.py",
+  "tools/audit/round8/D2/s2_price_unit.py",
+  "tools/audit/round8/D2/s2_cost_identity.py",
+  "tools/audit/round8/D2/s2_fee_dst.py"
+ ],
+ "unfinished": "Not reached: terminal credit vs re-simulated continuation; penalty scaling with price_weight beyond reading (energy, cycling, capacity and terminal refill price all carry price_weight in _terminal_cost/_grid_terms by code; not executed); solver forward-FD gradient vs central FD; sysid.identify bias under white/quantised/drifting noise and the COP/heat-loss learner clamps (method step 5); month-boundary horizons for the capacity term. Finding ids follow the task's D2-s2-NN form, which the schema's id pattern ^D..-NN$ does not accept."
+}

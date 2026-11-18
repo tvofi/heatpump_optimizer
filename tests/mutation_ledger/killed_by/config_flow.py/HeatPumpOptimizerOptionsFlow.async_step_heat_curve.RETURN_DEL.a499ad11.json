@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_heat_curve RETURN_DEL a499ad11",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        return await self._page(\"heat_curve\", user_input, clear=True, check=partial(_heat_curve_errors, self.hass))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

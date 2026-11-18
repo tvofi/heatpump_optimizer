@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_thermostat_held_state GUARD_OFF afe69856",
+  "killed_by": "tests/features.py",
+  "old": "    if not len(weather.outdoor_temps):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

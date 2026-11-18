@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:wood_furnace_inferred GUARD_OFF 038417e7",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    if config.get(CONF_EXTERNAL_HEAT_ENTITY):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
+}

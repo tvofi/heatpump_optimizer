@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now RETURN_DEL d7923b87",
+  "old": "        return None",
+  "reason": "MoldFloorBreachBinarySensor._plan_outdoor_now's trailing `return None` is the function's last statement, so deleting it (`pass`) falls off the end and returns the same None. Measured: the mutant leaves tests/entities.py at rc=0 failed=0, the same as the unmutated tree, at c4e68cac (#1497), 2026-09-24.",
+  "verdict": "equivalent"
+}

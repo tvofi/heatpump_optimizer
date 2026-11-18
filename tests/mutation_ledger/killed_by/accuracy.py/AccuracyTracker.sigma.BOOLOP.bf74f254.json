@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:AccuracyTracker.sigma BOOLOP bf74f254",
+  "killed_by": "tests/features.py",
+  "old": "                or (abs(distance - best[0]) <= 1e-12 and lead > best[2])",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`or (abs(distance - best[0]) <= 1e-12 or lead > best[2])`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

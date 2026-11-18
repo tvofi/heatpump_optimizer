@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:dhw_mixed_litres RETURN_DEL 700dd13c",
+  "killed_by": "tests/features.py",
+  "old": "    return usable_kwh / (WATER_SPECIFIC_HEAT * (mixed_c - store.inlet_c))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

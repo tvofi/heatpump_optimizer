@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize GUARD_OFF 2795eb13",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        if release_space is not None or release_dhw is not None:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=10."
+}

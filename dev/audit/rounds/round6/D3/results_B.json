@@ -1,0 +1,2071 @@
+{
+ "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+ "seed": 20260922,
+ "deadline_min": 75.0,
+ "clean": false,
+ "mutants": [
+  {
+   "index": 18,
+   "module": "optimizer.py",
+   "lineno": 3546,
+   "kind": "ALWAYS",
+   "weight": 3,
+   "detail": "if->if True",
+   "patch": "--- a/custom_components/heatpump_optimizer/optimizer.py\n+++ b/custom_components/heatpump_optimizer/optimizer.py\n@@ -3544,5 +3544,5 @@\n                 power_caps[i] = new_cap\n                 changed = True\n-        if changed:\n+        if True:\n             _LOGGER.debug(\n                 \"Buffer cap tightened %d step(s); re-solving\",\n\nAPPLIED index=18 optimizer.py:3546 ALWAYS",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/validate.py"
+   ],
+   "tier2": [
+    "tests/features.py",
+    "tests/optimality.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/backtest.py",
+    "tests/edge.py",
+    "tests/golden.py",
+    "tests/stress.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.2,
+     "load1": 6.67
+    },
+    {
+     "tier": "1",
+     "script": "tests/guard_pins.py",
+     "rc": 0,
+     "wall_s": 1.0,
+     "cpu_s": 0.9,
+     "load1": 6.67
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 1.1,
+     "cpu_s": 1.0,
+     "load1": 7.02
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.9,
+     "cpu_s": 0.9,
+     "load1": 7.02
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 1.2,
+     "cpu_s": 1.1,
+     "load1": 7.02
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.5,
+     "cpu_s": 2.3,
+     "load1": 6.94
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 2.1,
+     "cpu_s": 1.9,
+     "load1": 6.94
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 5.6,
+     "cpu_s": 7.2,
+     "load1": 7.1
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 8.6,
+     "cpu_s": 7.5,
+     "load1": 7.0
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 12.9,
+     "cpu_s": 14.8,
+     "load1": 7.38
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 18.3,
+     "cpu_s": 17.3,
+     "load1": 7.66
+    },
+    {
+     "tier": "1",
+     "script": "tests/validate.py",
+     "rc": 0,
+     "wall_s": 43.2,
+     "cpu_s": 41.3,
+     "load1": 7.04
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 0,
+     "wall_s": 198.9,
+     "cpu_s": 184.7,
+     "load1": 7.18
+    },
+    {
+     "tier": "2",
+     "script": "tests/optimality.py",
+     "rc": 0,
+     "wall_s": 86.1,
+     "cpu_s": 85.4,
+     "load1": 5.98
+    }
+   ],
+   "unreached_tier3": [
+    "tests/env_drift.py"
+   ],
+   "verdict": "PARTIAL",
+   "reason": "tier 3 not run: --no-tier3",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 0.999
+  },
+  {
+   "index": 19,
+   "module": "thermal_model.py",
+   "lineno": 1445,
+   "kind": "NOGUARD",
+   "weight": 3,
+   "detail": "if->if False",
+   "patch": "--- a/custom_components/heatpump_optimizer/thermal_model.py\n+++ b/custom_components/heatpump_optimizer/thermal_model.py\n@@ -1443,5 +1443,5 @@\n         curve below 35 \u00b0C earns no boost.\n         \"\"\"\n-        if not self.params.cop_flow_carnot:\n+        if False:\n             flow_temp = (\n                 self.curve_flow_temp(outdoor_temp)\n\nAPPLIED index=19 thermal_model.py:1445 NOGUARD",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/validate.py"
+   ],
+   "tier2": [
+    "tests/features.py",
+    "tests/optimality.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/backtest.py",
+    "tests/edge.py",
+    "tests/golden.py",
+    "tests/stress.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 5.98
+    },
+    {
+     "tier": "1",
+     "script": "tests/guard_pins.py",
+     "rc": 0,
+     "wall_s": 0.8,
+     "cpu_s": 0.8,
+     "load1": 5.98
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 5.98
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 5.98
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 1.0,
+     "cpu_s": 1.0,
+     "load1": 5.98
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.2,
+     "cpu_s": 2.1,
+     "load1": 5.98
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.9,
+     "cpu_s": 1.8,
+     "load1": 5.98
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 4.3,
+     "cpu_s": 6.2,
+     "load1": 6.14
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 7.1,
+     "cpu_s": 6.3,
+     "load1": 7.6
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 9.9,
+     "cpu_s": 12.9,
+     "load1": 7.43
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 15.3,
+     "cpu_s": 14.9,
+     "load1": 7.51
+    },
+    {
+     "tier": "1",
+     "script": "tests/validate.py",
+     "rc": 0,
+     "wall_s": 40.2,
+     "cpu_s": 38.5,
+     "load1": 8.77
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 1,
+     "wall_s": 170.5,
+     "cpu_s": 159.9,
+     "load1": 7.13,
+     "tail": "Could not turn_off the disinfection switch switch.pump_disinfection: entity unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval"
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 0.999
+  },
+  {
+   "index": 20,
+   "module": "name_match.py",
+   "lineno": 415,
+   "kind": "ALWAYS",
+   "weight": 2,
+   "detail": "if->if True",
+   "patch": "--- a/custom_components/heatpump_optimizer/name_match.py\n+++ b/custom_components/heatpump_optimizer/name_match.py\n@@ -413,5 +413,5 @@\n     entities: set[str] = set()\n     for match in sorted(candidates, key=lambda m: (-m.score, m.role, m.entity_id)):\n-        if match.role in roles or match.entity_id in entities:\n+        if True:\n             continue\n         roles.add(match.role)\n\nAPPLIED index=20 name_match.py:415 ALWAYS",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 7.13
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 1.8,
+     "cpu_s": 1.8,
+     "load1": 7.13
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.5,
+     "cpu_s": 1.5,
+     "load1": 6.96
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 1,
+     "wall_s": 13.6,
+     "cpu_s": 13.6,
+     "load1": 6.81,
+     "tail": "RESULT step_opt_thermal_model happy=3/3 error_branches=2/2\nRESULT step_opt_thermal_model_zones happy=1/1 error_branches=0/0\nRESULT step_opt_tuning happy=3/3 error_branches=0/0\nRESULT step_opt_heat_curve happy=2/2 error_branches=0/0\nRESULT step_opt_building_preset happy=3/3 error_branches=0/0\nRESULT step_opt_grid happy=6/6 error_branches=2/2\nRESULT step_opt_grid_connection happy=3/3 error_branches=2/2\nRESULT step_opt_grid_fees happy=7/7 error_branches=2/2\nRESULT step_opt_solar_pv happy=10/10 error_branches=0/0\nRESULT step_opt_away happy=11/11 error_branches=0/0\nRESULT step_opt_learning happy=3/3 error_branches=0/0\nRESULT step_opt_learning_features happy=1/1 error_branches=0/0\nRESULT step_opt_modbus_prefill happy=19/21 error_branches=4/4\nRESULT step_opt_quick_setup happy=14/14 error_branches=0/0\nRESULT options_steps_covered=25/25 pages\nRESULT step_reconfigure happy=4/4 error_branches=3/3\nRESULT reauth_round_trips=1\nRESULT reconfigure_round_trips=1\nRESULT options_close_round_trips=1\nRESULT duplicate_aborts=1\n\n5 of 449 checks FAILED\n/private/tmp/d3b/tests/harness.py:448: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited\n  callback()\nRuntimeWarning: Enable tracemalloc to get the object allocation traceback"
+    }
+   ],
+   "killed_by": "tests/config_flow_steps.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1"
+   ],
+   "thread_factor": 0.999
+  },
+  {
+   "index": 21,
+   "module": "thermal_model.py",
+   "lineno": 2277,
+   "kind": "ALWAYS",
+   "weight": 3,
+   "detail": "if->if True",
+   "patch": "--- a/custom_components/heatpump_optimizer/thermal_model.py\n+++ b/custom_components/heatpump_optimizer/thermal_model.py\n@@ -2275,5 +2275,5 @@\n             # its physical rate.\n             dT_cap = max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)\n-            if dT_buf > dT_cap:\n+            if True:\n                 self._step_buffer_refused = (dT_buf - dT_cap) * max(C_buf, 0.01)\n                 dT_buf = dT_cap\n\nAPPLIED index=21 thermal_model.py:2277 ALWAYS",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/validate.py"
+   ],
+   "tier2": [
+    "tests/features.py",
+    "tests/optimality.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/backtest.py",
+    "tests/edge.py",
+    "tests/golden.py",
+    "tests/stress.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 6.67
+    },
+    {
+     "tier": "1",
+     "script": "tests/guard_pins.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.6,
+     "load1": 6.67
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 6.67
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.6,
+     "load1": 6.67
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 0.9,
+     "cpu_s": 0.9,
+     "load1": 6.67
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 1.9,
+     "cpu_s": 1.9,
+     "load1": 6.53
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.6,
+     "cpu_s": 1.6,
+     "load1": 6.53
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 3.9,
+     "cpu_s": 5.8,
+     "load1": 6.49
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 6.1,
+     "cpu_s": 5.4,
+     "load1": 6.37
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 9.1,
+     "cpu_s": 12.4,
+     "load1": 6.24
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 14.2,
+     "cpu_s": 14.0,
+     "load1": 6.63
+    },
+    {
+     "tier": "1",
+     "script": "tests/validate.py",
+     "rc": 0,
+     "wall_s": 32.3,
+     "cpu_s": 31.7,
+     "load1": 6.71
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 1,
+     "wall_s": 29.9,
+     "cpu_s": 29.4,
+     "load1": 6.6,
+     "tail": "Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water\nInvalid DHW window configuration 'not a time range' (Invalid window 'not a time range' (expected HH:MM-HH:MM)); falling back to always-available hot water\nValve write entity switch.valve is a switch; smart_write can command number, input_number and climate entities\nTraceback (most recent call last):\n  File \"/private/tmp/d3b/tests/features.py\", line 7989, in <module>\n    float(_hold_r.valve_target_schedule[8]), 1\n          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^\nIndexError: list index out of range"
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 0.999
+  },
+  {
+   "index": 22,
+   "module": "config_flow.py",
+   "lineno": 1860,
+   "kind": "NOGUARD",
+   "weight": 2,
+   "detail": "if->if False",
+   "patch": "--- a/custom_components/heatpump_optimizer/config_flow.py\n+++ b/custom_components/heatpump_optimizer/config_flow.py\n@@ -1858,5 +1858,5 @@\n     for group in order:\n         bucket = buckets[group]\n-        if group is None:\n+        if False:\n             fields.update(bucket)\n             continue\n\nAPPLIED index=22 config_flow.py:1860 NOGUARD",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 6.64
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 1.9,
+     "cpu_s": 1.9,
+     "load1": 6.64
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.6,
+     "cpu_s": 1.6,
+     "load1": 6.64
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 1,
+     "wall_s": 0.8,
+     "cpu_s": 0.8,
+     "load1": 6.64,
+     "tail": "    sys.exit(asyncio.run(main()))\n             ^^^^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py\", line 190, in run\n    return runner.run(main)\n           ^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py\", line 653, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/tests/config_flow_steps.py\", line 6851, in main\n    await entity_clear_survives_the_flow_manager()\n  File \"/private/tmp/d3b/tests/config_flow_steps.py\", line 2488, in entity_clear_survives_the_flow_manager\n    await getattr(flow, f\"async_step_{step}\")(schema(payload))\n                                              ^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/voluptuous/schema_builder.py\", line 205, in __call__\n    return self._compiled([], data)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/voluptuous/schema_builder.py\", line 574, in validate_dict\n    return base_validate(path, data.items(), out)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/voluptuous/schema_builder.py\", line 407, in validate_mapping\n    raise er.MultipleInvalid(errors)\nvoluptuous.error.MultipleInvalid: not a valid value @ data['None']"
+    }
+   ],
+   "killed_by": "tests/config_flow_steps.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1"
+   ],
+   "thread_factor": 0.999
+  },
+  {
+   "index": 23,
+   "module": "services.py",
+   "lineno": 593,
+   "kind": "NOGUARD",
+   "weight": 2,
+   "detail": "if->if False",
+   "patch": "--- a/custom_components/heatpump_optimizer/services.py\n+++ b/custom_components/heatpump_optimizer/services.py\n@@ -591,5 +591,5 @@\n \n     if raw:\n-        if hass.states.get(raw) is None:\n+        if False:\n             raise ServiceValidationError(\n                 f\"Entity {raw} does not exist\",\n\nAPPLIED index=23 services.py:593 NOGUARD",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/manual_plan.py",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 6.5
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 1.9,
+     "cpu_s": 1.9,
+     "load1": 6.5
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.6,
+     "cpu_s": 1.6,
+     "load1": 6.5
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 6.3,
+     "cpu_s": 5.6,
+     "load1": 6.27
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 13.5,
+     "cpu_s": 13.4,
+     "load1": 6.08
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 1,
+     "wall_s": 161.7,
+     "cpu_s": 151.1,
+     "load1": 7.05,
+     "tail": "Could not turn_off the disinfection switch switch.pump_disinfection: entity unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval"
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 24,
+   "module": "coordinator.py",
+   "lineno": 9878,
+   "kind": "NOGUARD",
+   "weight": 3,
+   "detail": "if->if False",
+   "patch": "--- a/custom_components/heatpump_optimizer/coordinator.py\n+++ b/custom_components/heatpump_optimizer/coordinator.py\n@@ -9876,5 +9876,5 @@\n         \"\"\"#29: the current plan grouped by reason, with rendered lines.\"\"\"\n         result = self._optimization_result\n-        if result is None or not result.timestamps:\n+        if False:\n             return {\"items\": [], \"lines\": [], \"language\": \"en\"}\n         dt_hours = max(getattr(self, \"_ctx\", self)._opt_config.time_step_minutes, 1.0) / 60.0\n\nAPPLIED index=24 coordinator.py:9878 NOGUARD",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.2,
+     "load1": 7.05
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.9,
+     "cpu_s": 0.8,
+     "load1": 7.05
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 7.05
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 1.0,
+     "cpu_s": 0.9,
+     "load1": 6.97
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.0,
+     "cpu_s": 1.9,
+     "load1": 6.97
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.6,
+     "cpu_s": 1.6,
+     "load1": 6.97
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 4.1,
+     "cpu_s": 5.9,
+     "load1": 14.9
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 1,
+     "wall_s": 6.3,
+     "cpu_s": 5.5,
+     "load1": 14.11,
+     "tail": "             ^^^^^^\n  File \"/private/tmp/d3b/tests/manual_plan.py\", line 1056, in main\n    return _run()\n           ^^^^^^\n  File \"/private/tmp/d3b/tests/manual_plan.py\", line 1073, in _run\n    test_reload_handover_expiry(R)\n  File \"/private/tmp/d3b/tests/manual_plan.py\", line 959, in test_reload_handover_expiry\n    asyncio.run(ha_setup_entry(integ, expired_hass, expired_entry))\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py\", line 190, in run\n    return runner.run(main)\n           ^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py\", line 653, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/tests/harness.py\", line 432, in ha_setup_entry\n    ok = await integration.async_setup_entry(hass, entry)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/__init__.py\", line 309, in async_setup_entry\n    await coordinator.async_config_entry_first_refresh()\n  File \"/private/tmp/d3b/tests/hastub/homeassistant/helpers/update_coordinator.py\", line 234, in async_config_entry_first_refresh\n    raise ex\nhomeassistant.exceptions.ConfigEntryNotReady: Error updating data: 'NoneType' object has no attribute 'prices'"
+    }
+   ],
+   "killed_by": "tests/manual_plan.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 25,
+   "module": "coordinator.py",
+   "lineno": 5587,
+   "kind": "ALWAYS",
+   "weight": 3,
+   "detail": "if->if True",
+   "patch": "--- a/custom_components/heatpump_optimizer/coordinator.py\n+++ b/custom_components/heatpump_optimizer/coordinator.py\n@@ -5585,5 +5585,5 @@\n             return\n         entry = getattr(self, \"config_entry\", None)\n-        if entry is None or not hasattr(entry, \"async_start_reauth\"):\n+        if True:\n             return\n         self._tibber_reauth_started = True\n\nAPPLIED index=25 coordinator.py:5587 ALWAYS",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 13.38
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.8,
+     "cpu_s": 0.8,
+     "load1": 13.38
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 13.38
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 1.0,
+     "cpu_s": 1.0,
+     "load1": 13.38
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 1.9,
+     "cpu_s": 1.8,
+     "load1": 12.71
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.6,
+     "cpu_s": 1.6,
+     "load1": 12.71
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 3.9,
+     "cpu_s": 5.7,
+     "load1": 12.25
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 6.3,
+     "cpu_s": 5.6,
+     "load1": 11.91
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 8.9,
+     "cpu_s": 12.1,
+     "load1": 10.85
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 13.6,
+     "cpu_s": 13.6,
+     "load1": 9.78
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 0,
+     "wall_s": 162.5,
+     "cpu_s": 152.2,
+     "load1": 6.39
+    }
+   ],
+   "unreached_tier3": [
+    "tests/env_drift.py"
+   ],
+   "verdict": "PARTIAL",
+   "reason": "tier 3 not run: --no-tier3",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 26,
+   "module": "presets.py",
+   "lineno": 153,
+   "kind": "ALWAYS",
+   "weight": 2,
+   "detail": "if->if True",
+   "patch": "--- a/custom_components/heatpump_optimizer/presets.py\n+++ b/custom_components/heatpump_optimizer/presets.py\n@@ -151,5 +151,5 @@\n         if self.foundation not in _FOUNDATION_ADJUST:\n             self.foundation = FOUNDATION_NONE\n-        if self.upper_emitter not in EMITTERS:\n+        if True:\n             self.upper_emitter = EMITTER_RADIATORS\n         if self.lower_emitter not in EMITTERS:\n\nAPPLIED index=26 presets.py:153 ALWAYS",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/stress.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 6.39
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.0,
+     "cpu_s": 1.8,
+     "load1": 6.36
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.6,
+     "cpu_s": 1.6,
+     "load1": 6.36
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 12.9,
+     "cpu_s": 12.9,
+     "load1": 5.83
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 0,
+     "wall_s": 160.2,
+     "cpu_s": 150.3,
+     "load1": 7.51
+    }
+   ],
+   "unreached_tier3": [
+    "tests/env_drift.py"
+   ],
+   "verdict": "PARTIAL",
+   "reason": "tier 3 not run: --no-tier3",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 27,
+   "module": "coordinator.py",
+   "lineno": 527,
+   "kind": "NOGUARD",
+   "weight": 3,
+   "detail": "if->if False",
+   "patch": "--- a/custom_components/heatpump_optimizer/coordinator.py\n+++ b/custom_components/heatpump_optimizer/coordinator.py\n@@ -525,5 +525,5 @@\n             displace_raw = data[\"command\"].get(\"displace\")\n         effective_raw = data.get(\"effective_displace\")\n-    elif isinstance(data, (int, float)):\n+    elif False:\n         displace_raw = data\n     parsed = [None if raw is None else float(raw) for raw in (displace_raw, effective_raw)]\n\nAPPLIED index=27 coordinator.py:527 NOGUARD",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.2,
+     "load1": 7.51
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.9,
+     "cpu_s": 0.8,
+     "load1": 7.47
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 7.47
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 1.0,
+     "cpu_s": 0.9,
+     "load1": 7.47
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.1,
+     "cpu_s": 1.9,
+     "load1": 7.47
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.7,
+     "cpu_s": 1.7,
+     "load1": 7.35
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 4.2,
+     "cpu_s": 6.1,
+     "load1": 7.35
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 6.4,
+     "cpu_s": 5.7,
+     "load1": 7.14
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 9.3,
+     "cpu_s": 12.5,
+     "load1": 6.96
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 13.9,
+     "cpu_s": 13.8,
+     "load1": 6.66
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 1,
+     "wall_s": 162.0,
+     "cpu_s": 151.7,
+     "load1": 6.3,
+     "tail": "Could not turn_off the disinfection switch switch.pump_disinfection: entity unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval"
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 28,
+   "module": "price_model.py",
+   "lineno": 754,
+   "kind": "FLIPCMP",
+   "weight": 3,
+   "detail": "Eq",
+   "patch": "--- a/custom_components/heatpump_optimizer/price_model.py\n+++ b/custom_components/heatpump_optimizer/price_model.py\n@@ -752,5 +752,5 @@\n     \"\"\"`('ok', rows)` / `('fail', reason)` / `('reauth', reason)`.\"\"\"\n     source = config.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)\n-    if source == PRICE_SOURCE_ENTITY:\n+    if source != PRICE_SOURCE_ENTITY:\n         if not config.get(CONF_PRICE_ENTITY):\n             return \"fail\", \"Price entity is empty\"\n\nAPPLIED index=28 price_model.py:754 FLIPCMP",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.8,
+     "cpu_s": 0.2,
+     "load1": 6.3
+    },
+    {
+     "tier": "1",
+     "script": "tests/guard_pins.py",
+     "rc": 0,
+     "wall_s": 0.8,
+     "cpu_s": 0.7,
+     "load1": 6.3
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.8,
+     "cpu_s": 0.8,
+     "load1": 6.3
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 6.2
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 1.0,
+     "cpu_s": 1.0,
+     "load1": 6.2
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 1.8,
+     "cpu_s": 1.7,
+     "load1": 6.2
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.5,
+     "cpu_s": 1.4,
+     "load1": 6.2
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 3.5,
+     "cpu_s": 5.2,
+     "load1": 6.5
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 1,
+     "wall_s": 6.1,
+     "cpu_s": 5.2,
+     "load1": 6.38,
+     "tail": "             ^^^^^^\n  File \"/private/tmp/d3b/tests/manual_plan.py\", line 1056, in main\n    return _run()\n           ^^^^^^\n  File \"/private/tmp/d3b/tests/manual_plan.py\", line 1073, in _run\n    test_reload_handover_expiry(R)\n  File \"/private/tmp/d3b/tests/manual_plan.py\", line 959, in test_reload_handover_expiry\n    asyncio.run(ha_setup_entry(integ, expired_hass, expired_entry))\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py\", line 190, in run\n    return runner.run(main)\n           ^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py\", line 653, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/tests/harness.py\", line 432, in ha_setup_entry\n    ok = await integration.async_setup_entry(hass, entry)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/__init__.py\", line 309, in async_setup_entry\n    await coordinator.async_config_entry_first_refresh()\n  File \"/private/tmp/d3b/tests/hastub/homeassistant/helpers/update_coordinator.py\", line 234, in async_config_entry_first_refresh\n    raise ex\nhomeassistant.exceptions.ConfigEntryNotReady: No Tibber token configured"
+    }
+   ],
+   "killed_by": "tests/manual_plan.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 29,
+   "module": "inputs.py",
+   "lineno": 684,
+   "kind": "NOGUARD",
+   "weight": 3,
+   "detail": "if->if False",
+   "patch": "--- a/custom_components/heatpump_optimizer/inputs.py\n+++ b/custom_components/heatpump_optimizer/inputs.py\n@@ -682,5 +682,5 @@\n         if converted is None:\n             reading.value = None\n-            if reading.problem is None:\n+            if False:\n                 reading.problem = \"unknown_unit\"\n             return reading\n\nAPPLIED index=29 inputs.py:684 NOGUARD",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.5,
+     "cpu_s": 0.2,
+     "load1": 6.19
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 6.19
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.6,
+     "load1": 6.19
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 0.8,
+     "cpu_s": 0.8,
+     "load1": 6.19
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 1.8,
+     "cpu_s": 1.7,
+     "load1": 6.19
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.5,
+     "cpu_s": 1.4,
+     "load1": 6.09
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 3.6,
+     "cpu_s": 5.2,
+     "load1": 6.09
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 5.9,
+     "cpu_s": 5.2,
+     "load1": 8.4
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 7.8,
+     "cpu_s": 10.3,
+     "load1": 8.05
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 12.4,
+     "cpu_s": 12.2,
+     "load1": 7.44
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 1,
+     "wall_s": 154.3,
+     "cpu_s": 143.7,
+     "load1": 6.3,
+     "tail": "Could not turn_off the disinfection switch switch.pump_disinfection: entity unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval"
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 30,
+   "module": "defrost.py",
+   "lineno": 599,
+   "kind": "ALWAYS",
+   "weight": 3,
+   "detail": "if->if True",
+   "patch": "--- a/custom_components/heatpump_optimizer/defrost.py\n+++ b/custom_components/heatpump_optimizer/defrost.py\n@@ -597,5 +597,5 @@\n         if self._state and self._since is not None:\n             delta = self._elapsed(now, self._since)\n-            if delta is not None and delta > 0:\n+            if True:\n                 self._seconds_on += delta\n         self._since = now\n\nAPPLIED index=30 defrost.py:599 ALWAYS",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 6.2
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.8,
+     "cpu_s": 0.8,
+     "load1": 6.2
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 6.2
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 1.0,
+     "cpu_s": 1.0,
+     "load1": 6.18
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.0,
+     "cpu_s": 2.0,
+     "load1": 6.18
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.7,
+     "cpu_s": 1.7,
+     "load1": 6.18
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 4.0,
+     "cpu_s": 6.0,
+     "load1": 6.81
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 6.4,
+     "cpu_s": 5.6,
+     "load1": 6.9
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 9.6,
+     "cpu_s": 12.8,
+     "load1": 6.99
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 14.3,
+     "cpu_s": 14.2,
+     "load1": 6.91
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 0,
+     "wall_s": 149.6,
+     "cpu_s": 139.4,
+     "load1": 5.62
+    }
+   ],
+   "unreached_tier3": [
+    "tests/env_drift.py"
+   ],
+   "verdict": "PARTIAL",
+   "reason": "tier 3 not run: --no-tier3",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 31,
+   "module": "dhw_schedule.py",
+   "lineno": 273,
+   "kind": "ALWAYS",
+   "weight": 3,
+   "detail": "if->if True",
+   "patch": "--- a/custom_components/heatpump_optimizer/dhw_schedule.py\n+++ b/custom_components/heatpump_optimizer/dhw_schedule.py\n@@ -271,5 +271,5 @@\n     # digit: selectors are letters/commas/dashes only.\n     m = re.match(r\"^([A-Za-z][A-Za-z,\\s-]*?)\\s+(?=\\d)\", chunk)\n-    if m and _parse_day_selector(m.group(1)):\n+    if True:\n         chunk = chunk[m.end():]\n     if \"-\" not in chunk:\n\nAPPLIED index=31 dhw_schedule.py:273 ALWAYS",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/validate.py"
+   ],
+   "tier2": [
+    "tests/features.py",
+    "tests/optimality.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/backtest.py",
+    "tests/edge.py",
+    "tests/golden.py",
+    "tests/stress.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.5,
+     "cpu_s": 0.2,
+     "load1": 5.62
+    },
+    {
+     "tier": "1",
+     "script": "tests/guard_pins.py",
+     "rc": 1,
+     "wall_s": 0.6,
+     "cpu_s": 0.5,
+     "load1": 5.41,
+     "tail": "  File \"/private/tmp/d3b/tests/guard_pins.py\", line 196, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/private/tmp/d3b/tests/guard_pins.py\", line 170, in main\n    _coil_caption_present(),\n    ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/tests/guard_pins.py\", line 66, in _coil_caption_present\n    setup = topology.describe_setup(\n            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/topology.py\", line 397, in describe_setup\n    p = ThermalParameters.from_config(config)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/thermal_model.py\", line 1032, in from_config\n    values[\"dhw_windows\"] = parse_windows(windows_spec)\n                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/dhw_schedule.py\", line 174, in parse_windows\n    return _normalize(_raw_windows(spec))\n                      ^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/dhw_schedule.py\", line 254, in _raw_windows\n    windows.extend(_parse_one_range(chunk))\n                   ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/dhw_schedule.py\", line 274, in _parse_one_range\n    chunk = chunk[m.end():]\n                  ^^^^^\nAttributeError: 'NoneType' object has no attribute 'end'"
+    }
+   ],
+   "killed_by": "tests/guard_pins.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 32,
+   "module": "legionella.py",
+   "lineno": 157,
+   "kind": "ALWAYS",
+   "weight": 3,
+   "detail": "if->if True",
+   "patch": "--- a/custom_components/heatpump_optimizer/legionella.py\n+++ b/custom_components/heatpump_optimizer/legionella.py\n@@ -155,5 +155,5 @@\n     async def async_save(self) -> None:\n         \"\"\"Persist the timestamp of the last completed anti-legionella cycle.\"\"\"\n-        if self.last_cycle is None:\n+        if True:\n             return\n         payload: dict[str, Any] = {\n\nAPPLIED index=32 legionella.py:157 ALWAYS",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.4,
+     "cpu_s": 0.1,
+     "load1": 5.41
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.5,
+     "load1": 5.41
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.5,
+     "cpu_s": 0.5,
+     "load1": 5.41
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 5.41
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 1.4,
+     "cpu_s": 1.3,
+     "load1": 5.41
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.2,
+     "cpu_s": 1.2,
+     "load1": 5.3
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 3.4,
+     "cpu_s": 4.9,
+     "load1": 5.3
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 5.7,
+     "cpu_s": 4.9,
+     "load1": 5.1
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 7.5,
+     "cpu_s": 9.8,
+     "load1": 5.09
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 12.0,
+     "cpu_s": 11.8,
+     "load1": 5.4
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 1,
+     "wall_s": 150.0,
+     "cpu_s": 136.7,
+     "load1": 24.72,
+     "tail": "The disinfection switch switch.pump_disinfection did not read back on after turn_on\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nCould not turn_off the disinfection switch switch.pump_disinfection: entity unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval"
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 33,
+   "module": "sysid.py",
+   "lineno": 743,
+   "kind": "FLIPCMP",
+   "weight": 3,
+   "detail": "Gt",
+   "patch": "--- a/custom_components/heatpump_optimizer/sysid.py\n+++ b/custom_components/heatpump_optimizer/sysid.py\n@@ -741,5 +741,5 @@\n         if price_horizon is not None and len(price_horizon):\n             cutoff = float(np.percentile(price_horizon, cfg.max_price_percentile))\n-            if price > cutoff:\n+            if price <= cutoff:\n                 return False, \"electricity is not cheap enough\"\n         return True, \"ready\"\n\nAPPLIED index=33 sysid.py:743 FLIPCMP",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.2,
+     "load1": 23.14
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.9,
+     "cpu_s": 0.8,
+     "load1": 23.14
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 23.14
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 1.0,
+     "cpu_s": 0.9,
+     "load1": 23.14
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.0,
+     "cpu_s": 2.0,
+     "load1": 21.6
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.7,
+     "cpu_s": 1.7,
+     "load1": 21.6
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 4.2,
+     "cpu_s": 5.9,
+     "load1": 20.27
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 6.6,
+     "cpu_s": 5.7,
+     "load1": 19.13
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 8.9,
+     "cpu_s": 10.9,
+     "load1": 18.22
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 13.2,
+     "cpu_s": 12.9,
+     "load1": 15.15
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 1,
+     "wall_s": 88.8,
+     "cpu_s": 86.6,
+     "load1": 7.49,
+     "tail": "RuntimeError: solver exploded\nOptimization failed: solver exploded\nTraceback (most recent call last):\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/coordinator.py\", line 4647, in async_run_optimization\n    horizon = self._forecast_arrays(now)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/tests/features.py\", line 17050, in _g_boom\n    raise RuntimeError(\"solver exploded\")\nRuntimeError: solver exploded\nOptimization failed: solver exploded\nTraceback (most recent call last):\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/coordinator.py\", line 4647, in async_run_optimization\n    horizon = self._forecast_arrays(now)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/tests/features.py\", line 17050, in _g_boom\n    raise RuntimeError(\"solver exploded\")\nRuntimeError: solver exploded\nPlan is 100 minutes old after 3 failed solves; holding comfort on the pump's own curve instead of actuating it\nTraceback (most recent call last):\n  File \"/private/tmp/d3b/tests/features.py\", line 18677, in <module>\n    _sid_contaminate(_R3_LEGAL.samples, 0.10, 0.02, 20260911)\n  File \"/private/tmp/d3b/tests/features.py\", line 18660, in _sid_contaminate\n    t0 = samples[0].when\n         ~~~~~~~^^^\nIndexError: list index out of range"
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 34,
+   "module": "grid_fee.py",
+   "lineno": 273,
+   "kind": "NOGUARD",
+   "weight": 3,
+   "detail": "if->if False",
+   "patch": "--- a/custom_components/heatpump_optimizer/grid_fee.py\n+++ b/custom_components/heatpump_optimizer/grid_fee.py\n@@ -271,5 +271,5 @@\n \n         mode = str(config.get(const.CONF_GRID_FEE_MODE, const.DEFAULT_GRID_FEE_MODE))\n-        if mode not in MODES:\n+        if False:\n             mode = MODE_NONE\n         fixed = 0.0\n\nAPPLIED index=34 grid_fee.py:273 NOGUARD",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 7.29
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.7,
+     "load1": 7.29
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.6,
+     "load1": 7.29
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 0.9,
+     "cpu_s": 0.9,
+     "load1": 7.29
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.2,
+     "cpu_s": 2.0,
+     "load1": 7.1
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.6,
+     "cpu_s": 1.6,
+     "load1": 7.1
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 3.8,
+     "cpu_s": 5.6,
+     "load1": 6.77
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 6.1,
+     "cpu_s": 5.5,
+     "load1": 6.63
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 16.0,
+     "cpu_s": 13.9,
+     "load1": 7.05
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 15.4,
+     "cpu_s": 14.8,
+     "load1": 8.14
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 1,
+     "wall_s": 163.1,
+     "cpu_s": 150.5,
+     "load1": 5.95,
+     "tail": "Could not turn_off the disinfection switch switch.pump_disinfection: entity unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nCould not turn_off the disinfection switch switch.pump_disinfection: switch unavailable\nCould not turn_on the disinfection switch switch.pump_disinfection: switch unavailable\nDHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDisinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on\nThe disinfection switch switch.pump_disinfection did not read back off after turn_off\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval\nDHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval"
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  },
+  {
+   "index": 35,
+   "module": "config_flow.py",
+   "lineno": 2273,
+   "kind": "ALWAYS",
+   "weight": 2,
+   "detail": "if->if True",
+   "patch": "--- a/custom_components/heatpump_optimizer/config_flow.py\n+++ b/custom_components/heatpump_optimizer/config_flow.py\n@@ -2271,5 +2271,5 @@\n     ) -> ConfigFlowResult:\n         \"\"\"Optional entity pickers, after credentials (#198).\"\"\"\n-        if user_input is not None:\n+        if True:\n             self._data.update(_flatten_section_input(dict(user_input)))\n             await self.async_set_unique_id(entry_identity(self._data))\n\nAPPLIED index=35 config_flow.py:2273 ALWAYS",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py",
+    "tests/entities.py"
+   ],
+   "red_at_baseline": [
+    "tests/entities.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.7,
+     "cpu_s": 0.2,
+     "load1": 5.95
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.0,
+     "cpu_s": 1.9,
+     "load1": 5.95
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 1.7,
+     "cpu_s": 1.6,
+     "load1": 6.11
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 1,
+     "wall_s": 0.8,
+     "cpu_s": 0.8,
+     "load1": 6.11,
+     "tail": "    return runner.run(main)\n           ^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py\", line 653, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/tests/config_flow_steps.py\", line 6839, in main\n    await seed_base_entry()\n  File \"/private/tmp/d3b/tests/config_flow_steps.py\", line 1475, in seed_base_entry\n    BASE_ENTRY_DATA, BASE_UNIQUE_ID = await options_entry_data()\n                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/tests/config_flow_steps.py\", line 1483, in options_entry_data\n    await submit(\n  File \"/private/tmp/d3b/tests/config_flow_steps.py\", line 445, in submit\n    return await getattr(flow, f\"async_step_{step}\")(dict(answers))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/config_flow.py\", line 2253, in async_step_user\n    return await self.async_step_user_sensors()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/d3b/custom_components/heatpump_optimizer/config_flow.py\", line 2274, in async_step_user_sensors\n    self._data.update(_flatten_section_input(dict(user_input)))\n                                             ^^^^^^^^^^^^^^^^\nTypeError: 'NoneType' object is not iterable"
+    }
+   ],
+   "killed_by": "tests/config_flow_steps.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1"
+   ],
+   "thread_factor": 1.0
+  }
+ ]
+}

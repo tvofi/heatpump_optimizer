@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.flow_lift_power_floor_kw CMP_BOUND 0db38370",
+  "killed_by": "tests/features.py",
+  "old": "        if self.min_electrical_power > 0.0:",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `CMP_BOUND` (if self.min_electrical_power >= 0.0:) flips the condition of tests/features.py's R.check \"with no modulation floor configured the nameplate floor still applies\" -- reads False: `min_electrical_power >= 0.0` takes the modulation arm at 0 and answers 0.2 kW where the tree answers the nameplate third, 4.2 kW. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

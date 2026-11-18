@@ -1,0 +1,97 @@
+[
+ {
+  "id": "D1-s2-91",
+  "scope": "D1-s2",
+  "step": "D1.M5",
+  "title": "FlowCurveBias.observe raise aborts the cycle's accuracy pipeline and fails the whole update",
+  "severity": "medium",
+  "claim": "If FlowCurveBias.samples ever goes negative (the state flow_lift.py:210's `samples < 0` guard exists to refuse), coordinator._fold_flow_lift's call to FlowCurveBias.observe raises ZeroDivisionError uncaught, aborting HeatPumpOptimizerCoordinator._record_accuracy() before the accuracy-scoring calls that follow it in the same method, and propagating out of _async_update_data into its generic `except Exception` handler, which converts it to UpdateFailed for the whole cycle.\n\nFull original title (moved here by intake normalisation, tvofi decision 2026-09-26T13:02Z): The flow-curve bias fold is not contained: a raise from FlowCurveBias.observe aborts the whole cycle's accuracy pipeline and fails the update",
+  "mechanism": "observe()'s low-sample branch divides by `self.samples + 1`; at samples=-1 that denominator is 0. _record_accuracy calls _fold_flow_lift (and therefore observe) before its own lead-time and DHW accuracy scoring, with no try/except around any of these per-cycle folds; _async_update_data's caller wraps only _command_frequency and _async_drive_pumps individually in try/except Exception (\"never allowed to break the cycle\"), but calls self._record_accuracy() with no such wrapper, so a raise there is caught only by the outer method's blanket except, which converts ANY exception into UpdateFailed -- the whole update, not just the fold, fails.\n\nFull original metric_definition: Of 5 real coord._record_accuracy() calls (one fresh honest coordinator per call, _fold_flow_lift's five own gates satisfied), the count that raise ZeroDivisionError, and the count whose post-fold accuracy-scoring call still runs that same cycle.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s2/leads/lc_flow_bias_containment.py",
+   "harness_path": "tools/audit/round9/D1/s2/leads/lc_flow_bias_containment.py",
+   "value": "5/5 raises; 0/5 scored_after_fold",
+   "unit": "of 5 real _record_accuracy() calls on a real HeatPumpOptimizerCoordinator, with every other _fold_flow_lift gate satisfied and _flow_bias.samples forced to -1",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "LC catch-up box: 4-CPU Linux container, shared with sibling leads seats",
+   "cpu_or_wall": "count",
+   "contention_note": "counts only (no timing claim); load1 2.27 during the run",
+   "tolerance": "exact",
+   "load1": 2.27,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "coordinator:_fold_flow_lift, coordinator.HeatPumpOptimizerCoordinator._record_accuracy, flow_lift:FlowCurveBias.observe",
+  "perturbation": {
+   "change": "coord._flow_bias.samples = -1 (the state flow_lift.py:210's `samples < 0` guard exists to keep unreachable) vs. the null control coord._flow_bias.samples = 0 (guard-intact state), otherwise identical priming of _fold_flow_lift's five gates",
+   "expected_direction": "up",
+   "observed_value": "perturbed: 5/5 ZeroDivisionError, 0/5 scoring calls run afterward that cycle; null control: 0/5 raises, 5/5 scoring calls run"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s2/leads/lc_flow_bias_containment.py (the null_control_* RESULT lines: same harness, samples=0)",
+   "value": "0/5 raises, 5/5 scored_after_fold",
+   "note": "same five real cycles, same priming, only samples differs (0 vs -1); with the guard's own inert-at-zero state the fold never raises"
+  },
+  "metric_definition": "Of 5 real coord._record_accuracy() calls (one fresh honest coordinator per call, _fold_flow_lift's five own gates satisfied), the count that raise ZeroDivisionError, and the count whose post-fold ...",
+  "phenomenon_property": "Every learner folded inside _record_accuracy (flow-curve bias, defrost window close, compressor start/frequency observation, lead-time and DHW accuracy scoring) shares one call site with no per-fold try/except; a raise from any of them is caught only by _async_update_data's blanket `except Exception`, which fails the entire cycle's update rather than skipping just that fold -- unlike _command_frequency and _async_drive_pumps, which _async_update_data's caller explicitly wraps so a failure there cannot break the cycle.",
+  "seam_rule": "grep -n 'self\\._record_accuracy()\\|self\\._track_realised_peak()\\|self\\._async_save_accuracy()\\|self\\._async_save_energy_totals()' custom_components/heatpump_optimizer/coordinator.py; each of the calls _record_accuracy makes internally (_fold_flow_lift, _observe_compressor_start, _observe_frequency, defrost_window.close, score_lead_predictions, dhw score_lead_predictions) is an unwrapped seam of the same shape",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s2/leads/lc_flow_bias_containment.py",
+   "grep -n 'except Exception as err:' custom_components/heatpump_optimizer/coordinator.py | sed -n '1,3p'  # confirms the outer blanket catch that converts this to UpdateFailed (coordinator.py:4698)"
+  ],
+  "proposed_fix_scope": "production: wrap _fold_flow_lift's (and its sibling per-cycle folds') call in _record_accuracy with a local try/except that logs and continues, the same discipline _command_frequency/_async_drive_pumps already get in the caller; or make FlowCurveBias.observe defensive against a corrupted samples count directly.",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "custom_components/heatpump_optimizer/flow_lift.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new",
+  "notes": ""
+ },
+ {
+  "id": "D3-s1-91",
+  "scope": "D3-s1",
+  "step": "D3.M4",
+  "title": "coordinator.py tzinfo guards (:8112, :8384) are dead under the gate's naive clock; unblinded they crash",
+  "severity": "medium",
+  "claim": "coordinator.py:8384's `if when.tzinfo is None and now.tzinfo is not None: when = when.replace(tzinfo=now.tzinfo)` (and, by identical shape, :8112's) is unreachable under the gate's default environment, because dt_util.now() there is naive (HASTUB_TZ unset) so `now.tzinfo is not None` is always false; deleting the guard is then byte-identical (0.0 vs 0.0) on a 3-event, one-config scenario. Only once the coordinator's own clock is made timezone-aware (HASTUB_TZ=Europe/Stockholm, which only tests/dst_checks.py's subprocess sets, for a different file) does the deleted guard diverge -- not silently, but with an uncaught TypeError comparing an offset-naive and an offset-aware datetime.\n\nFull original title (moved here by intake normalisation, tvofi decision 2026-09-26T13:02Z): coordinator.py's now.tzinfo-reconciliation guards (:8112, :8384) are dead under the gate's default clock and only crash, never silently drift, once unblinded",
+  "mechanism": "Unlike open_meteo.py:209 (D3-s3-01), whose guard is blind to the *process* TZ because the gate always runs at TZ=UTC, this guard's live-or-dead state is governed by HASTUB_TZ (the stub's DEFAULT_TIME_ZONE), which the gate leaves unset by default: dt_util.now() is then always naive, so the `now.tzinfo is not None` half of the guard's condition never holds and the branch never executes, whatever the OS TZ is. This is the same family of finding (a guard the gate's default environment can never exercise) but a different governing knob.",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/leads/lc_tz_probe_coordinator.py",
+   "harness_path": "tools/audit/round9/D3/s1/leads/lc_tz_probe_coordinator.py",
+   "value": "0 divergence (HASTUB_TZ unset, now naive); TypeError once HASTUB_TZ=Europe/Stockholm (now aware)",
+   "unit": "guard_on vs guard_off output on HeatPumpOptimizerCoordinator._immersion_dhw_margin, one fixed 3-event scenario",
+   "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+   "machine": "LC catch-up box: 4-CPU Linux container, shared with sibling leads seats",
+   "cpu_or_wall": "count",
+   "contention_note": "counts only; load1 0.43 during the run",
+   "tolerance": "exact",
+   "load1": 0.43,
+   "thread_factor": 1.0
+  },
+  "instrumented_symbol": "coordinator.HeatPumpOptimizerCoordinator._immersion_dhw_margin (and, by identical guard shape, _detect_outage at :8112)",
+  "perturbation": {
+   "change": "GUARD_OFF: the same function object recompiled in memory with only the `if when.tzinfo is None and now.tzinfo is not None: when = when.replace(...)` two lines removed, vs GUARD_ON (real method), under HASTUB_TZ unset then HASTUB_TZ=Europe/Stockholm",
+   "expected_direction": "up",
+   "observed_value": "HASTUB_TZ unset: differs=0 (0.0 == 0.0); HASTUB_TZ=Europe/Stockholm: differs=1 (0.0 vs TypeError: can't compare offset-naive and offset-aware datetimes)"
+  },
+  "metric_definition": "Whether GUARD_ON and GUARD_OFF variants of _immersion_dhw_margin agree on one fixed scenario (3 naive stored events, one config), under two HASTUB_TZ settings.",
+  "phenomenon_property": "A tzinfo-is-None reconciliation guard keyed on `dt_util.now().tzinfo`, in a file whose gate closure never runs with HASTUB_TZ set, is untested by the gate's default drivers regardless of OS TZ -- distinct from, but the same family as, D3-s3-01's OS-TZ-governed open_meteo.py case.",
+  "seam_rule": "grep -nE 'tzinfo is None|\\.astimezone\\(|fromtimestamp\\(' custom_components/heatpump_optimizer/coordinator.py; grep -n HASTUB_TZ tests/*.py to see which drivers ever exercise an aware dt_util.now()",
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/leads/lc_tz_probe_coordinator.py (the 'HASTUB_TZ unset' line: guard_on=0.0 guard_off=0.0)",
+   "value": "differs=0",
+   "note": "under the gate's own default clock (naive), GUARD_ON and GUARD_OFF are indistinguishable -- exactly what makes the guard's deletion gate-invisible"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/leads/lc_tz_probe_coordinator.py"
+  ],
+  "proposed_fix_scope": "tests only: a features.py/dst_checks.py-style HASTUB_TZ=Europe/Stockholm scenario exercising _immersion_dhw_margin and _detect_outage with a naive stored timestamp, so the guard's coverage is not blind to the gate's own default clock.",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/dst_checks.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "I1",
+  "notes": ""
+ }
+]

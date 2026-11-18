@@ -1,0 +1,195 @@
+{
+ "tests/card.mjs": {
+  "checks": 961,
+  "cpu": 11.38,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 10.3,
+  "script": "tests/card.mjs",
+  "solves": 0,
+  "wall": 13.42
+ },
+ "tests/config_flow_steps.py": {
+  "checks": 454,
+  "cpu": 11.53,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 15.1,
+  "script": "tests/config_flow_steps.py",
+  "solves": 0,
+  "wall": 15.73
+ },
+ "tests/deployment_shape.py": {
+  "checks": 16,
+  "cpu": 1.55,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 1.1,
+  "script": "tests/deployment_shape.py",
+  "solves": 0,
+  "wall": 1.65
+ },
+ "tests/doc_claims.py": {
+  "checks": 30,
+  "cpu": 2.18,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 2.2,
+  "script": "tests/doc_claims.py",
+  "solves": 0,
+  "wall": 3.41
+ },
+ "tests/entities.py": {
+  "checks": 2025,
+  "cpu": 60.99,
+  "fail_names": [
+   "a3:roster  [1 registered, 75 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.heat_pump_optimizer_external_heat_source', 'binary_sensor.heat_pump_optimizer_input_problem', 'binary_sensor.heat_pump_optimizer_mold_floor_breach', 'binary_sensor.heat_pump_optimizer_open_window_detected', 'binary_sensor.heat_pump_optimizer_wood_cheaper', 'button.heat_pump_optimizer_diagnose_last_interval', 'button.heat_pump_optimizer_learning_reset_comfort_weight', 'button.heat_pump_optimizer_learning_run_system_identification', 'button.heat_pump_optimizer_optimize_now', 'climate.heat_pump_optimizer', 'datetime.heat_pump_optimizer_away_return', 'sensor.heat_pump_optimizer_buffer_tank_temperature_model', 'sensor.heat_pump_optimizer_compressor_frequency_advisor', 'sensor.heat_pump_optimizer_compressor_starts', 'sensor.heat_pump_optimizer_cost_baseline', 'sensor.heat_pump_optimizer_cost_contract_comparison', 'sensor.heat_pump_optimizer_cost_current_electricity_price', 'sensor.heat_pump_optimizer_cost_monthly_peak_power', 'sensor.heat_pump_optimizer_cost_power_headroom', 'sensor.heat_pump_optimizer_cost_predicted', 'sensor.heat_pump_optimizer_cost_total_heating', 'sensor.heat_pump_optimizer_dhw_cost', 'sensor.heat_pump_optimizer_dhw_energy', 'sensor.heat_pump_optimizer_dhw_heating_cost', 'sensor.heat_pump_optimizer_dhw_heating_schedule', 'sensor.heat_pump_optimizer_dhw_heavy_day_demand', 'sensor.heat_pump_optimizer_dhw_mixed_water', 'sensor.heat_pump_optimizer_dhw_setpoint_advisor', 'sensor.heat_pump_optimizer_dhw_temperature', 'sensor.heat_pump_optimizer_ecl110_displace', 'sensor.heat_pump_optimizer_ecl110_effective_displace', 'sensor.heat_pump_optimizer_floor_heating_return_temperature', 'sensor.heat_pump_optimizer_heat_pump_action', 'sensor.heat_pump_optimizer_indoor_temperature_optimizer', 'sensor.heat_pump_optimizer_last_optimization', 'sensor.heat_pump_optimizer_learning_comfort_weight', 'sensor.heat_pump_optimizer_learning_estimated_cop', 'sensor.heat_pump_optimizer_learning_observed_cop', 'sensor.heat_pump_optimizer_lower_floor_temperature', 'sensor.heat_pump_optimizer_measured_power', 'sensor.heat_pump_optimizer_next_optimization', 'sensor.heat_pump_optimizer_optimal_setpoint', 'sensor.heat_pump_optimizer_optimization_mode', 'sensor.heat_pump_optimizer_optimization_schedule', 'sensor.heat_pump_optimizer_optimization_schedule_steps', 'sensor.heat_pump_optimizer_optimization_status', 'sensor.heat_pump_optimizer_outdoor_temperature_optimizer', 'sensor.heat_pump_optimizer_plan_dhw_heating', 'sensor.heat_pump_optimizer_plan_monthly_savings', 'sensor.heat_pump_optimizer_plan_narrative', 'sensor.heat_pump_optimizer_plan_optimization_score', 'sensor.heat_pump_optimizer_plan_predicted_savings', 'sensor.heat_pump_optimizer_plan_savings_percentage', 'sensor.heat_pump_optimizer_plan_space_heating', 'sensor.heat_pump_optimizer_prediction_accuracy', 'sensor.heat_pump_optimizer_predictive_optimization_insight', 'sensor.heat_pump_optimizer_recommended_power', 'sensor.heat_pump_optimizer_sensor_gap_advisor', 'sensor.heat_pump_optimizer_slab_temperature_estimated', 'sensor.heat_pump_optimizer_solar_heat_gain', 'sensor.heat_pump_optimizer_solar_irradiance', 'sensor.heat_pump_optimizer_solar_surplus_forecast', 'sensor.heat_pump_optimizer_space_heating_cost', 'sensor.heat_pump_optimizer_space_heating_energy', 'sensor.heat_pump_optimizer_thermal_battery_charge', 'sensor.heat_pump_optimizer_thermal_battery_energy', 'sensor.heat_pump_optimizer_total_energy', 'sensor.heat_pump_optimizer_upper_floor_temperature', 'sensor.heat_pump_optimizer_valve_target_recommendation', 'sensor.heat_pump_optimizer_wood_burn_advisor', 'switch.heat_pump_optimizer_away', 'switch.heat_pump_optimizer_boost_space', 'switch.heat_pump_optimizer_dhw_boost', 'switch.heat_pump_optimizer_optimizer_active']; extra=['sensor.not_ours']]",
+   "a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]",
+   "a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]",
+   "a3:device_class_state_class  [1 forbidden pair(s): ['sensor.x:energy+measurement']]",
+   "a3:no_constructor_defaults  [1 constructor default(s) published as available: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer:temperature=21.0']]"
+  ],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 106.8,
+  "script": "tests/entities.py",
+  "solves": 0,
+  "wall": 122.36
+ },
+ "tests/env_drift.py": {
+  "checks": 37,
+  "cpu": 376.91,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 0.3,
+  "script": "tests/env_drift.py",
+  "solves": 0,
+  "wall": 474.22
+ },
+ "tests/features.py": {
+  "checks": 3420,
+  "cpu": 254.22,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 140.7,
+  "script": "tests/features.py",
+  "solves": 0,
+  "wall": 313.73
+ },
+ "tests/finite_boundary.py": {
+  "checks": 41,
+  "cpu": 10.95,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 62.3,
+  "script": "tests/finite_boundary.py",
+  "solves": 0,
+  "wall": 11.89
+ },
+ "tests/guard_pins.py": {
+  "checks": 7,
+  "cpu": 0.64,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 0.7,
+  "script": "tests/guard_pins.py",
+  "solves": 0,
+  "wall": 0.64
+ },
+ "tests/manual_plan.py": {
+  "checks": 85,
+  "cpu": 5.57,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 6.4,
+  "script": "tests/manual_plan.py",
+  "solves": 0,
+  "wall": 7.54
+ },
+ "tests/optimality.py": {
+  "checks": 84,
+  "cpu": 135.39,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 198.4,
+  "script": "tests/optimality.py",
+  "solves": 0,
+  "wall": 153.27
+ },
+ "tests/plan_view.py": {
+  "checks": 0,
+  "cpu": 0.89,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 1.0,
+  "script": "tests/plan_view.py",
+  "solves": 0,
+  "wall": 0.92
+ },
+ "tests/solar_alignment.py": {
+  "checks": 14,
+  "cpu": 0.65,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 0.6,
+  "script": "tests/solar_alignment.py",
+  "solves": 0,
+  "wall": 0.66
+ },
+ "tests/structure.py": {
+  "checks": 30,
+  "cpu": 1.92,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 1.8,
+  "script": "tests/structure.py",
+  "solves": 0,
+  "wall": 1.94
+ },
+ "tests/typing_ruler.py": {
+  "checks": 11,
+  "cpu": 0.17,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 0.1,
+  "script": "tests/typing_ruler.py",
+  "solves": 0,
+  "wall": 0.17
+ },
+ "tests/validate.py": {
+  "checks": 0,
+  "cpu": 33.78,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 56.5,
+  "script": "tests/validate.py",
+  "solves": 0,
+  "wall": 38.49
+ },
+ "tests/wood_advisor.py": {
+  "checks": 7,
+  "cpu": 0.69,
+  "fail_names": [],
+  "failed": 0,
+  "rc": 0,
+  "recorded_seconds": 0.6,
+  "script": "tests/wood_advisor.py",
+  "solves": 0,
+  "wall": 0.7
+ }
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views BOOLOP e283ea34",
+  "killed_by": "tests/features.py",
+  "old": "                    raw_dhw and channel_heating_steps(raw_dhw[:1], raw_space[:1])[0]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`raw_dhw or channel_heating_steps(raw_dhw[:1], raw_space[:1])[0]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

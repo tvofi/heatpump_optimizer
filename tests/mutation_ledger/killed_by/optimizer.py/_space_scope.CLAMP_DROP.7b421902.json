@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_space_scope CLAMP_DROP 7b421902",
+  "killed_by": "tests/features.py",
+  "old": "        headroom = np.minimum(headroom, h.power_caps)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`headroom = (headroom)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:heat_loss_entity_voids GUARD_OFF 02cbf88f",
+  "killed_by": "tests/features.py",
+  "old": "    if not isinstance(was, Mapping):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

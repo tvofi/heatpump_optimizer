@@ -1,0 +1,17 @@
+
+=== Wood-burn advisor availability (#796) ===
+
+-- The instance
+  ok   without a wood furnace the advisor is unavailable, not Unknown
+  ok   wood-ready with no advice publishes an idle state, not Unknown
+  ok   wood-ready with light advice still publishes the text
+
+-- The rule, not a roster
+  ok   no default-on sensor is available-and-None only because night_advice is absent
+  ok   the idle payload is the one-line gate's null control
+
+-- The COP guard, not a hole
+  ok   an hour whose COP is zero is skipped, not divided by
+  ok   and a usable COP still counts the hour when wood is cheaper
+
+ALL 7 wood-advisor checks PASSED

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:PredictedIndoorTempSensor._waiting_for RETURN_DEL fa3a01ba",
+  "killed_by": "tests/entities.py",
+  "old": "        return \"plan_not_in_control\" if plan.get(\"forecast\") else \"first_plan\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/battery.py:StorageComponent.soc CLAMP_DROP 5180a1ba",
+  "killed_by": "tests/features.py",
+  "old": "        return min(1.0, self.stored_kwh / usable)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return (1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

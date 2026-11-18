@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss GUARD_OFF a81aff66",
+  "killed_by": "tests/entities.py",
+  "old": "        if not params.two_zone_enabled or not ctx._config.lower_floor_temp_entity:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

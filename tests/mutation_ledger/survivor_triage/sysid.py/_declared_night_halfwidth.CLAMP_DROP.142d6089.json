@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_declared_night_halfwidth CLAMP_DROP 142d6089",
+  "old": "    x0 = np.array([np.log(max(ua0, 1e-3)), np.log(max(cr0, 1e-2)), g])",
+  "reason": "R9 F4.2: both floors on this line (the one key covers the ua0 and the cr0 drop) mirrors SystemIdentification.identify_slab's own seed floors (`np.log(max(ua0, 1e-3))`, `np.log(max(cr0, 1e-2))`, sysid.py:2160), so the pre-step prediction evaluates the interval at the same x0 the fit starts from. ua0 and cr0 are the declared plant's UA and room mass, recorded at arm time; the arm gate (slab_mode_identifiability) refuses c_r <= 1e-9 and every derived preset declares UA and room mass orders of magnitude above the floors, so the floors bind only for a declared UA under 1e-3 kW/K or a room mass under 1e-2 kWh/K. No driver reaches that band, which is why the drop survives; recorded as a gap rather than equivalence because a hand-written plant could reach it. Survival measured by the fix review of #1718 (`mutation_table.py --pin-killed --base origin/main` at e38ecc4e), 2026-09-27.",
+  "verdict": "gap"
+}

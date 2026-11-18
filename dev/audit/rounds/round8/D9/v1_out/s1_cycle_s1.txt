@@ -1,0 +1,36 @@
+## session 1 arm --null-seconds 4 6.66 10.20 12.66 7/206 1450
+RESULT null.default.cycle0.executor_busy_wall_ms=0 ms-wall (provisional)
+RESULT null.default.cycle0.max_gap_executor_busy_ms=0.0 ms-wall (provisional)
+RESULT null.default.cycle0.starvation_share_executor_busy=0.0000 ratio (provisional)
+RESULT null.default.cycle0.median_gap_executor_busy_ms=0.00 ms-wall (provisional)
+RESULT null.default.cycle0.plan_status=None
+RESULT null.default.cycle0.cycle_wall_ms=4000 ms-wall (provisional)
+RESULT thread_factor=1.000
+RESULT load1=6.61
+## session 1 arm --route process 6.61 10.13 12.62 7/206 1473
+RESULT process.default.cycle0.executor_busy_wall_ms=2937 ms-wall (provisional)
+RESULT process.default.cycle0.max_gap_executor_busy_ms=13.2 ms-wall (provisional)
+RESULT process.default.cycle0.starvation_share_executor_busy=0.0831 ratio (provisional)
+RESULT process.default.cycle0.median_gap_executor_busy_ms=1.10 ms-wall (provisional)
+RESULT process.default.cycle0.plan_status='optimal'
+RESULT process.default.cycle0.cycle_wall_ms=2984 ms-wall (provisional)
+RESULT thread_factor=1.012
+RESULT load1=6.72
+## session 1 arm --route inline 6.72 10.10 12.60 7/206 1490
+RESULT inline.default.cycle0.executor_busy_wall_ms=1834 ms-wall (provisional)
+RESULT inline.default.cycle0.max_gap_executor_busy_ms=24.9 ms-wall (provisional)
+RESULT inline.default.cycle0.starvation_share_executor_busy=0.3539 ratio (provisional)
+RESULT inline.default.cycle0.median_gap_executor_busy_ms=1.99 ms-wall (provisional)
+RESULT inline.default.cycle0.plan_status='optimal'
+RESULT inline.default.cycle0.cycle_wall_ms=1852 ms-wall (provisional)
+RESULT thread_factor=1.055
+RESULT load1=6.72
+## session 1 arm --route inline --no-gil-yield 6.72 10.10 12.60 9/206 1539
+RESULT inline.default.cycle0.executor_busy_wall_ms=1380 ms-wall (provisional)
+RESULT inline.default.cycle0.max_gap_executor_busy_ms=25.4 ms-wall (provisional)
+RESULT inline.default.cycle0.starvation_share_executor_busy=0.2101 ratio (provisional)
+RESULT inline.default.cycle0.median_gap_executor_busy_ms=2.64 ms-wall (provisional)
+RESULT inline.default.cycle0.plan_status='optimal'
+RESULT inline.default.cycle0.cycle_wall_ms=1389 ms-wall (provisional)
+RESULT thread_factor=1.136
+RESULT load1=6.74

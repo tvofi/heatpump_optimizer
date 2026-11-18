@@ -1,0 +1,513 @@
+// One wave of the open-issues program: fix, adversarially review and merge
+// each PR group from one fork SHA. See .claude/workflows/web-fragments.md for
+// the shared prompt block below, which is hand-copied into every web-*.js.
+export const meta = {
+  name: 'web-fix-wave',
+  description: 'Fix, adversarially review and merge PR groups from one fork SHA, honoring merge-gated dependencies',
+  phases: [{ title: 'Reconcile', detail: 'check the committed roster against origin, fail closed' }, { title: 'Wave', detail: 'fixer, adversarial reviewer, then a serialized merge per group' }],
+}
+const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
+ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
+heatpump_optimizer): issue_read (get / get_comments), pull_request_read
+(get, get_check_runs, get_comments, get_files, get_diff), list_pull_requests,
+actions_list (list_workflow_runs on tests.yml, branch main), actions_get,
+get_job_logs (failed_only). This grant is read-only.`
+
+const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
+(update: labels, state, state_reason), create_pull_request, update_pull_request.
+Hold only in a phase that writes. Never together with the merge grant.`
+
+const GH_MERGE = `Merge grant: merge_pull_request (merge commit, never squash).
+Hold only in the merge phase. Do not hold the read grant here.`
+
+const GATE = `Gate rules on this 4-core box. The shell's working directory
+resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
+direct script runs; python3 tests/structure.py before every push; the five
+BLAS thread variables pinned to 1.
+
+THE LOCK IS FOR tests/stress.py, SO ASK WHETHER YOUR CHANGE RUNS IT.
+/tmp/hpo-gate.lock exists because stress.py's solve-time guard measures this
+machine while it solves, and three concurrent stress runs at load 6.5 once
+destroyed the very budget table they were recording. Nothing else in the
+suite is timing-sensitive, so a change that does not select stress.py does
+not need the lock -- and taking it anyway serialises every other agent for
+no measurement reason. Decide it, do not assume it:
+
+    D=$(mktemp -d) && python3 tests/closure.py select \
+      --diff $(git merge-base origin/main HEAD) --workdir "$D"
+
+  * that command FAILS, or "$D/scope.txt" contains "MODE: FULL", or you are
+    deliberately running GATE_SCOPE=full  ->  TAKE THE LOCK. MODE: FULL is
+    how the gate reports a change it cannot reason about -- a gate file, or
+    a file in no recorded closure -- and it then runs every script including
+    stress.py. It prints ZERO selected scripts while meaning the opposite of
+    zero, so key on the mode line, never on the count. That line only exists
+    on a branch; a push to main forces GATE_SCOPE=full through the job
+    environment, which skips the code that prints a mode line at all -- the
+    only evidence in that log is the env line GATE_SCOPE: full.
+  * "$D/scope.run" names tests/stress.py  ->  TAKE THE LOCK.
+  * otherwise  ->  NO LOCK. Run the scripts scope.run names, directly.
+
+Taking the lock: python3 tests/gate_lock.py take --label <your-label>.
+If the lock exists, the lease has not expired, and the hold is not abandoned
+(holding marker, no live flock), wait and retry -- never remove a lock you did
+not create. An expired lease or abandoned hold may be taken without forensics;
+a live agent between commands keeps the lock by renewing. Under it
+run HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift
+GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh (run.sh holds
+flock for the gate run and renews the lease before every script). Renew between
+commands with python3 tests/gate_lock.py renew --label <your-label>; release
+with python3 tests/gate_lock.py release --label <your-label>. Status:
+python3 tests/gate_lock.py status. Print the concurrent process count beside
+every timing RESULT.
+
+CI IS THE AUTHORITY EITHER WAY. Its fast, closures and browser jobs run the
+same run.sh in the same drift mode against the same merge base, on a runner
+that is not competing with you -- so wait for them with actions_list and let
+them be the verdict. What you run locally is the evidence CI structurally
+CANNOT produce, and that is the reason to run it: the mutation proof (delete
+the production line, run the closure, paste the failing check names,
+restore), the failing test at the merge base before the fix exists, and the
+finder's harness before and after. CI only ever runs the committed tree, and
+tools/ is INERT so no CI job runs a harness at all.
+
+Browser lane: NODE_PATH=/opt/node22/lib/node_modules
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs
+(indicative only; CI's browser job decides). Value-bearing golden fixtures
+are never re-recorded on this box: value drift is claimed; golden.py
+--record --only is for new key paths, and the body says so.`
+
+const DOC = (session) => `Documentation you must leave, in this order: before
+cutting the branch, label every issue owner:${session} (issue_write update,
+keeping the existing labels) and comment "claimed-by: ${session} · branch
+<name> · <UTC>"; push the branch after the failing-test commit and after
+every commit thereafter; immediately after opening the PR, comment its URL
+and head SHA on every issue; if you cannot finish, comment "state at stop:
+<branch>, <pushed SHA>, <last green check>, <what is missing>" on every issue
+before returning.`
+
+const WT = (branch, fork) => `Work in your own worktree: from the repository
+run git fetch origin --tags; if ${branch} already exists on origin, git
+worktree add /home/user/wt/${branch} ${branch} (reuse the worktree if the
+path exists), otherwise git worktree add /home/user/wt/${branch} -b ${branch}
+${fork}. Never commit in /home/user/heatpump_optimizer itself.`
+
+const WT_REVIEW = (name, sha) => `Fresh detached worktree, per the reviewer's
+contract: git fetch origin; git worktree add --detach
+/home/user/wt/review-${name} ${sha}.`
+
+const RANK = { haiku: 0, sonnet: 1, opus: 2 }
+const tierOk = (f, r) => RANK[f] !== undefined && RANK[r] !== undefined && RANK[r] >= RANK[f]
+
+const MERGE = { type: 'object', required: ['merged'] }
+const mergePrompt = (pr, head) => `${GH_READ} ${GH_WRITE} ${GH_MERGE} Merge PR #${pr} only if ALL of:
+pull_request_read get shows mergeable_state clean and head sha ${head};
+get_check_runs shows every check success or skipped; the newest "Fix review:"
+comment says merge and post-dates that head; the diff touches neither VERSION
+nor manifest.json nor the RELEASE_NOTES.md heading. Then, so the owner label means IN-FLIGHT rather than ever-touched, remove owner:${session} from every issue this PR closes (issue_write update, keeping the other labels) -- a label that is only ever added cannot answer the question a resuming session actually asks. Then merge_pull_request
+with merge_method merge and expectedHeadSha ${head}, and return {merged: true, sha: <merge commit sha>}.
+If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
+do not merge main into the branch yourself, the fixer must, because a rebase
+invalidates the evidence. Otherwise {merged: false, reason}.`
+
+const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow tests.yml,
+branch main) until the run for ${sha} completes; check every three minutes,
+give up after two hours. Require both fast and closures to be success. On a
+red run, fetch the failing job log (get_job_logs, failed_only) and return
+{green: false, log_excerpt}. Return {green, run_id}.`
+
+const stampPrompt = (repo, bump, title) => `In ${repo}: if test -f
+~/.zcode/stamp-deploy.key fails, return {stamped: false, reason:
+"no deploy key in this runtime; hand the stamp to a local orchestrator"}
+and change nothing. Else git fetch origin --tags; git worktree add --detach
+/home/user/wt/stamp origin/main (if the path exists, reuse it and git reset
+--hard origin/main). If git tag --points-at HEAD is non-empty, return
+{stamped: false, reason: "already stamped"} and change nothing. Otherwise
+write the RELEASE_NOTES.md section "## v<next ${bump}>" at the top of the
+file: a "### <subsection>" per PR merged since the last tag, written from its
+body (git log <last-tag>..HEAD --format=%s lists them; read each body with
+pull_request_read), so every "(#N)" is named -- stamp.py rule 4 refuses notes
+that omit one. Run python3 tools/release/stamp.py --bump ${bump} --title
+"${title}" --dry-run, then the same command with --push --push-key
+~/.zcode/stamp-deploy.key --known-hosts ~/.zcode/github_known_hosts, never
+without the key. If it refuses, change nothing and return {stamped: false,
+reason: <its message>}. Return {stamped: true, version, tag_sha}.`
+
+// ---------------------------------------------------------------------------
+// One wave: every group is fixed, adversarially reviewed and merged. A group
+// with `after` waits for its dependencies to be MERGED (not merely to have a
+// PR) and then starts by merging origin/main, so its claim file and its
+// budget table are its own -- two consecutive movers that each kept the
+// other's claims is how a green PR turns main red.
+//
+// Concurrency is the runtime's own agent cap (min(16, CPUs-2)); this script
+// launches every ready group and lets the runtime queue them. Merges are
+// serialized through one promise chain, and main is waited on after each.
+//
+//   Workflow({name: 'web-fix-wave', args: {repo, fork, session, groups: [...]}})
+//   group: {group, issues: [..], brief, fixture: bool, after: [..],
+//           fixerModel, reviewerModel, effort}
+// ---------------------------------------------------------------------------
+
+const { groups = [], groupsFile, repo, fork, session = 'claude-web' } = args ?? {}
+if (!groups.length || !repo || !fork) throw new Error('args.groups, args.repo and args.fork are required')
+// PROVENANCE. The briefs are the most expensive artefact in a programme and the
+// container they were written in is the least durable thing about it, so a wave
+// runs from a roster committed to the repository -- never from an array that
+// exists only in one orchestrator's head. groupsFile names it; Reconcile below
+// reads it from the repo and refuses if what was passed does not match.
+if (!groupsFile) throw new Error('args.groupsFile is required: a wave runs from a committed roster (e.g. .claude/workflows/wave-ux-groups.json), so the briefs survive the session that wrote them')
+// THE STAGE VOCABULARY, DEFINED ONCE. The committed rosters and this script had
+// drifted into two vocabularies sharing ONE word: the script branched on
+// fix/merge/review/done, the rosters carried pending/in-review/blocked/done, and
+// 29 of 84 groups therefore fell through to the fresh-fixer branch -- which
+// re-opens merged work and hands a reviewer a head nobody measured. `fix`,
+// `merge` and `review` appeared in no roster at all.
+//
+// Both spellings are accepted and normalised, rather than the rosters renamed:
+// a roster is a record of what happened, and rewriting one to suit the script is
+// how the record stops being evidence. `pending` normalises to null, which is
+// the fresh-fixer path -- the same outcome as before, but reached deliberately.
+const STAGE_ALIASES = { 'in-review': 'review', pending: null }
+const KNOWN_STAGES = ['done', 'merge', 'review', 'fix', 'blocked', 'in-review', 'pending']
+const normaliseStage = (raw) =>
+  raw == null ? null : raw in STAGE_ALIASES ? STAGE_ALIASES[raw] : raw
+
+// THE VERDICT GRAMMAR. `fix-review.md` told a reviewer to return
+// "Fix review: blocked - <why>", and no script read the reason: every non-merge
+// verdict was one undifferentiated "not merged", so an orchestrator could not
+// tell a vacuous mutation proof from a head that moved under the review, and
+// the root-cause seat both other contracts delegate to was dispatched by
+// nothing at all. A class is the smallest thing that makes a blocked verdict
+// actionable by a script rather than only by a reader.
+const VERDICT_CLASSES = [
+  'mutation-vacuous', 'harness', 'null-control', 'claims', 'version',
+  'head-moved', 'carry-missing', 'root-cause-unanswered', 'preflight-mismatch',
+  'conflict', 'other',
+]
+// A class that means the fix is sound but the PROCESS owes an answer. The
+// root-cause seat runs beside a fix and never inside it (root-cause.md), so it
+// is dispatched here rather than folded into the repair.
+const ROOT_CAUSE_CLASSES = ['root-cause-unanswered']
+
+// The SHA must be the full 40-hex head SHA, not an unconstrained \S+: an
+// abbreviated form parses here but tools/audit/app_approve.sh requires exact
+// equality against the full head SHA and refuses it there, so an abbreviated
+// verdict passed this parser clean while being inert at the gate (#1106
+// comment 5721119468, reposted at the full SHA as 5721133970 before the merge
+// could proceed). The gate is the thing that must be exact; this parser
+// refuses what the gate would refuse, rather than the gate loosening to match
+// an unconstrained reporter.
+//
+// THE CLASS ARM IS OPTIONAL, AND THE HEAD IS WHY (#1239, D13-02). Measured at
+// the round-5 baseline, 16 of 30 blocked verdicts fell outside this grammar --
+// 7 bare (`blocked <sha>`, no class), 9 with a class word the vocabulary never
+// taught -- and every one took the unparseable path, which drops the head SHA
+// the reviewer measured and leaves the roster patch pointing nowhere. A
+// verdict that names a full head SHA is evidence about a tree; discarding it
+// unreadable costs more than routing it loosely. So the class word, when one
+// is written, may be ANY word: a taught word routes as itself, an untaught
+// word routes to `other` with the word kept at the front of the why (visible
+// to the repair agent and the orchestrator, not silently accepted as
+// vocabulary), and a bare verdict routes to `other` with no why -- the same
+// destination readVerdict already gave the unparseable ones, minus the lost
+// head. A `blocked <sha>: <why>` reason line without a class word parses the
+// same way. What still refuses is everything about the HEAD and the VERDICT
+// WORD: no SHA, an abbreviated SHA (#1106), a first word that is neither
+// merge nor blocked (`Fix review: PASS — merge <sha>`), or shapeless text
+// after the SHA. The vocabulary above is unchanged and still what the reviewer
+// prompt teaches -- this is the parser tolerating what reviewers demonstrably
+// write, not the prompt endorsing it.
+const VERDICT_RE = new RegExp(
+  `^Fix review:\\s+(?:(blocked)\\s+([0-9a-f]{40})` +
+    `(?:\\s+([a-z][a-z0-9-]*)\\s*:\\s*(.+)|\\s*:\\s*(.+)|\\s*))$`
+)
+
+// Throws on anything that does not parse. Called from inside the per-group
+// fan-out, where a throw is swallowed, so runGroup catches it and records the
+// raw text -- the failure mode to avoid is a verdict nobody can read being
+// treated as a merge, not a wave that stops.
+function parseVerdict(review) {
+  const raw = (review?.comment ?? review?.verdict ?? '').toString().trim().split('\n')[0]
+  const m = VERDICT_RE.exec(raw)
+  if (!m) {
+    throw new Error(
+      `verdict does not parse: ${JSON.stringify(raw.slice(0, 200))}. ` +
+        'Expected "Fix review: merge <sha>", "Fix review: blocked <sha>", ' +
+        'or "Fix review: blocked <sha> <class>: <why>" -- the sha is the full 40 hex of the head; ' +
+        `a class word outside ${VERDICT_CLASSES.join(', ')} routes to \`other\`.`
+    )
+  }
+  let parsed
+  if (m[1]) {
+    parsed = { verdict: 'merge', head_sha: m[2], class: null, why: null }
+  } else {
+    // An untaught class word keeps its place in the why (prefixed) so the
+    // repair round and the orchestrator see exactly what the reviewer wrote;
+    // only the ROUTE degrades, to `other`.
+    const taught = m[5] && VERDICT_CLASSES.includes(m[5])
+    parsed = {
+      verdict: 'blocked',
+      head_sha: m[4],
+      class: taught ? m[5] : 'other',
+      why: m[5] && !taught ? `${m[5]}: ${m[6] ?? ''}`.trim() : (m[6] ?? m[7] ?? null),
+    }
+    if (parsed.why === '') parsed.why = null
+  }
+  const field = review?.verdict
+  if (field && field !== parsed.verdict) {
+    throw new Error(
+      `verdict disagrees with itself: the schema field says ${JSON.stringify(field)} ` +
+        `and the comment's first line says ${JSON.stringify(parsed.verdict)}. ` +
+        'Neither is acted on; a reviewer whose two answers differ has not given one.'
+    )
+  }
+  return parsed
+}
+
+for (const g of groups) {
+  if (!g.group || !g.issues?.length || !g.brief) throw new Error(`every group needs group, issues and brief (${g.group ?? '?'})`)
+  if (!tierOk(g.fixerModel ?? 'opus', g.reviewerModel ?? 'opus')) throw new Error(`${g.group}: a reviewer below the fixer measures nothing`)
+  // Checked HERE, before Reconcile and before a single agent is spent, not
+  // inside the per-group function: parallel() settles its thunks, so a throw
+  // down there is swallowed into one null result and the wave carries on
+  // having silently skipped the group. An unrecognised stage has to fail the
+  // wave, because falling through to a fresh fixer is the one outcome that
+  // destroys work that already exists.
+  const raw = g.resume?.stage ?? null
+  if (raw !== null && !KNOWN_STAGES.includes(raw)) {
+    throw new Error(
+      `${g.group}: resume.stage "${raw}" is not one of ${KNOWN_STAGES.join(', ')}. ` +
+        'Refusing rather than starting a fresh fixer, which would duplicate or clobber the work this stage describes.'
+    )
+  }
+}
+
+const RESUMED = (g) => g.resume?.stage === 'fix' ? `THIS GROUP IS BEING RESUMED. An earlier fixer stopped after pushing ${g.resume.pushed_sha} to claude-web/${g.group.toLowerCase()}: ${g.resume.what}. That work is NOT lost and is NOT yours to redo -- the worktree command below re-attaches to that branch. Read the pushed diff first (git log origin/main..HEAD, git diff origin/main...HEAD) and continue from it. What is still missing: ${g.resume.missing}` : ''
+const fixerPrompt = (g, repair) => `You own fix group ${g.group} of the open-issues program: issues #${g.issues.join(', #')}. ${GH_READ} ${GH_WRITE} ${WT('claude-web/' + g.group.toLowerCase(), fork)} ${(g.after ?? []).length ? 'Your dependencies have already merged, so your first action in the worktree is: git merge origin/main (never rebase). Resolve any claim-file or budget-table conflict by keeping ONLY your own lines -- your dependency already landed its own.' : ''} ${RESUMED(g)} ${DOC(session)}
+Read tools/audit/briefs/fixer.md and tools/audit/README.md, then every issue's body AND its comments -- the comments carry corrections that override the body, and a fixer who reads only the body will implement the superseded plan. Your brief, which already applies those corrections:
+${g.brief}
+Follow every step of the fixer contract: a failing test first that imports the production symbol; the mutation proof with the failing check names pasted; the finding's own harness re-run before and after at your head SHA (copy a harness into the tree under test before running it -- the harnesses disagree about how they find the repository root); a null control on any cost, gain or time claim; both ends of the range for a learner or guard change. ${GATE}
+${g.fixture ? 'This group moves fixtures. Claim each one with its expected direction in the right claim file, and never claim a fixture that is already may-drift -- env_drift refuses a name that is both. Run env_drift.py --fixtures before and after.' : 'This group must move no fixture: env_drift.py --all against the merge base reports no unclaimed drift, and both claim files stay byte-identical to origin/main.'}
+Never touch VERSION, the manifest version or the RELEASE_NOTES.md heading. Open the pull request with a body that carries Closes #N for each issue, Part of #201, the head SHA you measured, and every executed number; then wait for CI (fast, closures, browser) with actions_list and fix red until it is green.
+${repair ? `A reviewer BLOCKED your previous head. Their comment: ${repair}\nRepair in the same worktree, re-execute fixer steps 2-8 (the evidence described the old tree, and the body is evidence too), push, and return the new head SHA.` : ''}
+Return {pr, head_sha, summary} where pr is the PR NUMBER as an integer. If you could not open a PR -- you ran out of budget, the gate never went green, anything -- return pr: null with the reason in summary, and post the contractual "state at stop:" comment on every issue first. NEVER put prose in the pr field: a sentence there satisfies the schema, is read as a PR number, and sends a reviewer to a PR that does not exist.`
+
+const reviewerPrompt = (g, fix, round) => `You are the adversarial fix reviewer for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW(g.group + '-' + round, fix.head_sha)}
+Read tools/audit/briefs/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one worse than its bug. Check that the numbers are real: re-run the mutation proof the body names and confirm those checks fail; measure with the FINDER's harness rather than the fixer's, at ${fork} and at ${fix.head_sha}, printing your own RESULT lines; re-run every null control and both-ends check the body claims; run env_drift.py --all (and card_drift.mjs for card changes) against the merge base and confirm every moved fixture is claimed, every claim moved, and no may-drift fixture is claimed; run python3 tests/structure.py against origin/main's budgets and require any loosened metric to be named and argued in the body; confirm VERSION, the manifest and the notes heading are untouched; attack the fix at other topologies, other price profiles and the zero-evidence install; confirm the head SHA in the body is the head you measured. ${GATE}
+Post your verdict as a PR comment whose FIRST LINE is exactly "Fix review: merge ${fix.head_sha}" or "Fix review: blocked ${fix.head_sha} <class>: <why>", where <class> is one of ${VERDICT_CLASSES.join(', ')}; your RESULT lines follow it. The class is read by a script, so a blocked verdict without one is unreadable and is treated as blocked with no route to a repair. Use root-cause-unanswered when the fix itself is sound but the branch turned a check red and the body does not name the cheaper detector or record that none exists -- that dispatches the root-cause seat rather than another repair round. Return {verdict, comment} where comment's first line is that same line.`
+
+// The root-cause seat: its own context, beside the fix and never inside it, per
+// tools/audit/briefs/root-cause.md. Until now the contracts named it and no
+// script started one.
+const rootCausePrompt = (g, fix, v) => `You are the root-cause seat for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW(g.group + '-rootcause', fix.head_sha)}
+Read tools/audit/briefs/root-cause.md and .cursor/rules/defect-root-cause.mdc, then follow the contract. The reviewer blocked this PR as ${v.class}: ${v.why}
+You do not fix the defect and you do not review the fix. You owe: the named cause; which of the four process states it is in (the process did not exist, existed and was not followed, was followed and did not work, was sound and its preconditions changed); a cost test measuring the class's recurrence against the standing cost of the countermeasure; and either a countermeasure demonstrated failing on the defect it was written for, or a recorded refusal saying none pays for itself. A recorded refusal is a legitimate result.
+Post it as a PR comment beginning "Root cause:" and return {cause, state, countermeasure, comment}.`
+
+// ---------------------------------------------------------------------------
+// RECONCILE, and fail closed. A roster records what WAS true when someone wrote
+// it down; origin records what IS true. Every previous failure in this programme
+// came from trusting the first: a killed agent never writes its own state-at-stop
+// comment, so the roster silently describes a world that has moved on. Worse, the
+// resume stages this script now honours make it trust the roster HARDER -- stage
+// 'done' returns merged without asking anyone, and stage 'merge' skips the
+// reviewer entirely. Neither may be taken on a written claim.
+//
+// One cheap agent, before any fixer, asking origin the three questions the roster
+// claims to answer. It costs no gate time: it runs in the workflow runtime, not
+// under the lock.
+phase('Reconcile')
+const rosterNames = groups.map((g) => g.group)
+const recon = await agent(`${GH_READ} You are the reconciler. Before a single fixer runs, check that a wave roster still describes the world. You change NOTHING -- no commits, no pushes, no comments, no merges. Read only.
+
+In ${repo}: git fetch origin --prune.
+
+FIRST, PROVENANCE. Read the committed roster at ${groupsFile}. Its groups, in order, must be exactly: ${rosterNames.join(', ')}. If the file is missing, unparseable, or names a different set, return provenance_ok false and say which -- the orchestrator is running from briefs that are not the ones in the repository, and that is the failure this check exists to catch.
+
+THEN, PER GROUP, ask origin rather than the roster:
+  - the branch tip: git ls-remote --heads origin claude-web/<group lowercased>
+  - the pull request: list_pull_requests with head "tvofi:claude-web/<group lowercased>" and state all -- its number, state, merged flag and head SHA
+  - the newest review verdict: pull_request_read get_comments, looking for the most recent comment starting "Fix review:", and whether it post-dates the PR's current head
+
+Compare each against the roster's own resume field and report a mismatch when:
+  - resume.stage is 'done' but the PR is not merged, or there is no PR at all
+  - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head does not count -- that is the whole reason this check exists)
+  - resume.stage is 'review' but the PR is closed or merged, or its head SHA differs from resume.head_sha
+  - resume.stage is 'fix' but the branch tip differs from resume.pushed_sha, or a PR is already open for it
+  - a group has NO resume field but a branch or an open PR already exists for it -- that is work the roster does not know about, and starting a fixer would duplicate or clobber it
+
+Report the observed values whether or not they match, so a human can audit the judgement rather than trust the verdict.
+
+Return {provenance_ok, groups: [{group, stage, matches, expected, observed}], mismatches: [<group names>], summary}.`, {
+  model: 'sonnet',
+  effort: 'medium',
+  label: 'reconcile roster against origin',
+  phase: 'Reconcile',
+  schema: {
+    type: 'object',
+    properties: {
+      provenance_ok: { type: 'boolean' },
+      groups: { type: 'array', items: { type: 'object', properties: {
+        group: { type: 'string' }, stage: { type: ['string', 'null'] }, matches: { type: 'boolean' },
+        expected: { type: 'string' }, observed: { type: 'string' },
+      }, required: ['group', 'matches', 'observed'] } },
+      mismatches: { type: 'array', items: { type: 'string' } },
+      summary: { type: 'string' },
+    },
+    required: ['provenance_ok', 'groups', 'mismatches', 'summary'],
+  },
+})
+
+if (!recon) throw new Error('Reconcile returned nothing. A wave does not start on an unverified roster -- re-run it, or fix the roster by hand and say why in the run.')
+if (!recon.provenance_ok) throw new Error(`Reconcile: the passed groups do not match the committed roster at ${groupsFile}. ${recon.summary}`)
+if (recon.mismatches?.length) {
+  for (const g of recon.groups.filter((x) => !x.matches)) log(`RECONCILE ${g.group}: roster says ${g.expected}, origin says ${g.observed}`)
+  throw new Error(`Reconcile: ${recon.mismatches.length} group(s) whose recorded resume state no longer matches origin -- ${recon.mismatches.join(', ')}. Fix the roster (it is committed; correct it and push) before running the wave. Starting anyway would redo finished work or skip a review nobody gave.`)
+}
+log(`reconciled ${recon.groups.length} groups against origin: ${recon.summary}`)
+
+phase('Wave')
+
+const promises = {}
+let mergeChain = Promise.resolve(null)
+
+// One merge at a time, main waited on after each, so two movers never land
+// together. Shared by the normal path and by a group resuming at stage 'merge'.
+const mergeGroup = async (g, fix) => {
+  const outcome = await (mergeChain = mergeChain.then(async () => {
+    const m = await agent(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${g.group}`, phase: 'Wave', schema: MERGE })
+    if (!m?.merged) return { merged: false, reason: m?.reason ?? 'merge agent returned null' }
+    const gate = await agent(waitMainPrompt(m.sha), { model: 'sonnet', label: `main after ${g.group}`, phase: 'Wave', schema: { type: 'object', required: ['green'] } })
+    return { merged: true, sha: m.sha, green: !!gate?.green, red: gate?.green ? null : gate }
+  }))
+  if (outcome.merged && !outcome.green) log(`MAIN IS RED after ${g.group} (${outcome.sha}) -- stop and repair before the next merge: ${JSON.stringify(outcome.red)}`)
+  return { group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha, verdict: 'merge', ...outcome }
+}
+
+const runGroup = async (g) => {
+  const deps = await Promise.all((g.after ?? []).map((d) => promises[d] ?? Promise.resolve(null)))
+  const unmet = (g.after ?? []).filter((d, i) => !deps[i]?.merged)
+  if (unmet.length) return { group: g.group, issues: g.issues, pr: null, merged: false, reason: `dependency not merged: ${unmet.join(', ')}` }
+
+  const fm = g.fixerModel ?? 'opus'
+  const rm = g.reviewerModel ?? 'opus'
+  const ef = g.effort ?? 'high'
+  const FIX = { type: 'object', required: ['pr', 'head_sha'],
+    properties: { pr: { type: ['integer', 'null'] }, head_sha: { type: ['string', 'null'] } } }
+  // `pattern` on the verdict is the schema half; the grammar of the COMMENT's
+  // first line is the half a script actually reads, and parseVerdict enforces it.
+  const VERDICT = {
+    type: 'object',
+    required: ['verdict', 'comment'],
+    properties: {
+      verdict: { type: 'string', pattern: '^(merge|blocked)$' },
+      comment: { type: 'string' },
+    },
+  }
+
+  // A group whose PR is already open -- because an earlier run of this wave was
+  // killed after the fixer finished -- starts at the ADVERSARIAL REVIEWER. Re-running
+  // a finished fixer redoes the work and, worse, hands the reviewer a head nobody
+  // measured. Set resume: {stage:'review', pr, head_sha} on the group to do that;
+  // resume: {stage:'fix', pushed_sha, what, missing} instead tells a fixer it is
+  // continuing from a pushed branch rather than starting clean.
+  // stage 'done': already merged. It stays in the roster so the group list is
+  // complete, but running it again would re-open finished work.
+  const stage = normaliseStage(g.resume?.stage ?? null)
+
+  // stage 'blocked': a reviewer returned a blocked verdict and nobody has acted
+  // on it. A fresh fixer would not see the verdict, so this is the orchestrator's
+  // to resolve; the wave records it and moves on rather than guessing.
+  if (stage === 'blocked') {
+    log(`${g.group}: resume.stage is blocked -- ${g.resume.note ?? 'no note'} -- skipping, the orchestrator resolves a blocked group`)
+    return { group: g.group, issues: g.issues, pr: g.resume.pr ?? g.resume.open_pr ?? null,
+      head_sha: g.resume.head_sha ?? null, merged: false, skipped: 'blocked', reason: g.resume.note ?? 'blocked' }
+  }
+
+  if (stage === 'done') {
+    log(`${g.group}: already merged as PR #${g.resume.merged_pr} (${g.resume.merge_sha}) -- skipping`)
+    return { group: g.group, issues: g.issues, pr: g.resume.merged_pr, head_sha: g.resume.merge_sha,
+      verdict: 'merge', merged: true, green: true, sha: g.resume.merge_sha, skipped: 'already merged' }
+  }
+  let fix
+  // stage 'merge': a reviewer already returned merge at THIS head, so re-reviewing
+  // spends a reviewer to re-derive a verdict that is already on the PR.
+  if (stage === 'merge') {
+    fix = { pr: g.resume.pr, head_sha: g.resume.head_sha }
+    log(`${g.group}: resuming at merge -- PR #${fix.pr} at ${fix.head_sha} is already reviewed`)
+    return await mergeGroup(g, fix)
+  }
+  if (stage === 'review') {
+    // wave-5 records the number under `open_pr`, wave-1b under `pr`. Reading
+    // only one of them handed the reviewer `pr: undefined`.
+    fix = { pr: g.resume.pr ?? g.resume.open_pr, head_sha: g.resume.head_sha }
+    log(`${g.group}: resuming at review -- PR #${fix.pr} at ${fix.head_sha}`)
+  } else {
+    fix = await agent(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group}`, phase: 'Wave', schema: FIX })
+    // Number.isInteger, not truthiness: a fixer that returns its excuse as the pr
+    // field satisfies the schema, and `!fix.pr` is false for a non-empty string.
+    if (!Number.isInteger(fix?.pr)) {
+      if (fix?.pr) log(`${g.group}: no usable PR number (${JSON.stringify(fix.pr).slice(0, 160)}) -- retrying`)
+      fix = await agent(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group} (retry)`, phase: 'Wave', schema: FIX })
+    }
+    if (!Number.isInteger(fix?.pr)) return { group: g.group, issues: g.issues, pr: null, head_sha: fix?.head_sha ?? null,
+      merged: false, reason: `fixer opened no PR after one retry: ${JSON.stringify(fix?.pr ?? null).slice(0, 300)}` }
+  }
+
+  // A blocked group leaves a roster patch behind it. The orchestrator applies it
+  // in the record PR, so the next wave resumes at `blocked` and does not spend a
+  // fresh fixer on work a reviewer has already ruled on.
+  const blockedResult = (v, note) => ({
+    group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha,
+    verdict: 'blocked', class: v?.class ?? 'other', why: v?.why ?? note ?? null, merged: false,
+    rosterPatch: { stage: 'blocked', pr: fix.pr, head_sha: fix.head_sha, class: v?.class ?? 'other', note: v?.why ?? note ?? null },
+  })
+
+  // An unparseable verdict is recorded, never merged and never retried as if it
+  // were a repair request: a reviewer whose verdict cannot be read has not
+  // approved anything, and guessing which it meant is how a bad head merges.
+  const readVerdict = (review, round) => {
+    try {
+      return parseVerdict(review)
+    } catch (e) {
+      log(`${g.group}: round ${round} verdict unreadable -- ${e.message}`)
+      return { verdict: 'blocked', class: 'other', why: `unparseable verdict: ${e.message}`, unparseable: true }
+    }
+  }
+
+  let review = await agent(reviewerPrompt(g, fix, 1), { model: rm, effort: 'high', label: `review ${g.group}`, phase: 'Wave', schema: VERDICT })
+  let v = review ? readVerdict(review, 1) : { verdict: 'blocked', class: 'other', why: 'reviewer returned null' }
+
+  // A blocked class that names a PROCESS debt is not repaired by another fixer
+  // round; it is answered by the root-cause seat, which runs beside the fix.
+  if (v.verdict === 'blocked' && ROOT_CAUSE_CLASSES.includes(v.class)) {
+    const rc = await agent(rootCausePrompt(g, fix, v), { model: rm, effort: 'high', label: `root-cause ${g.group}`, phase: 'Wave',
+      schema: { type: 'object', required: ['cause', 'state'], properties: { cause: { type: 'string' }, state: { type: 'string' }, countermeasure: { type: ['string', 'null'] }, comment: { type: ['string', 'null'] } } } })
+    log(`${g.group}: root-cause seat returned ${rc ? `${rc.state}: ${rc.cause}` : 'nothing'}`)
+    return { ...blockedResult(v), rootCause: rc ?? null }
+  }
+
+  if (v.verdict === 'blocked' && !v.unparseable) {
+    const repaired = await agent(fixerPrompt(g, review?.comment ?? `${v.class}: ${v.why}`), { model: fm, effort: ef, label: `repair ${g.group}`, phase: 'Wave', schema: FIX })
+    if (repaired?.head_sha) {
+      fix = repaired
+      review = await agent(reviewerPrompt(g, fix, 2), { model: rm, effort: 'high', label: `re-review ${g.group}`, phase: 'Wave', schema: VERDICT })
+      v = review ? readVerdict(review, 2) : { verdict: 'blocked', class: 'other', why: 'reviewer returned null' }
+    }
+  }
+
+  if (v.verdict !== 'merge') {
+    log(`${g.group}: not merged -- ${v.class}: ${v.why}`)
+    return blockedResult(v)
+  }
+
+  return await mergeGroup(g, fix)
+}
+
+for (const g of groups) promises[g.group] = runGroup(g)
+const settled = await parallel(groups.map((g) => () => promises[g.group]))
+const results = settled.map((r, i) => r ?? { group: groups[i].group, issues: groups[i].issues, pr: null, merged: false, reason: 'group threw' })
+const merged = results.filter((r) => r.merged)
+log(`wave done: ${merged.length} merged, ${results.length - merged.length} outstanding`)
+return { results, merged, redMain: results.some((r) => r.merged && !r.green) }

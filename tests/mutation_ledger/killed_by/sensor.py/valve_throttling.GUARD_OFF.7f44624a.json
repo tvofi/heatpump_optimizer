@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:valve_throttling GUARD_OFF 7f44624a",
+  "killed_by": "tests/entities.py",
+  "old": "    if params is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c2a0448d076e1f861bf4eb5ff7ea9abdefc0efe8: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

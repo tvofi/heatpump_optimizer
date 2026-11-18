@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._tighten_buffer_caps CLAMP_DROP 53178fd6",
+  "old": "                self.model.params, float(schedule[i]), -float(refused[i]) / max(cop_i, 1e-6))",
+  "reason": "R10-COP-PARTLOAD p2 round 2 moved this quotient into `added_power_for_heat_per_cop_kw`'s argument; the clamp is the old line's. `cop_i = marginal_cop(..., \"buffer\", ...)`, which is `compute_cop(..., flow_temp=...)`, which returns `_cop_law`'s `max(cop, 1.0)` (#928's resistive bound), so `max(cop_i, 1e-6)` cannot select its second arm.",
+  "verdict": "equivalent"
+}

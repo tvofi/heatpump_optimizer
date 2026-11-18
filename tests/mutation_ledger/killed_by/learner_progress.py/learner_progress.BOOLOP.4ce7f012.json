@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/learner_progress.py:learner_progress BOOLOP 4ce7f012",
+  "killed_by": "tests/features.py",
+  "old": "    if frozen is not None and pauses(frozen[0]):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if frozen is not None or pauses(frozen[0]):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

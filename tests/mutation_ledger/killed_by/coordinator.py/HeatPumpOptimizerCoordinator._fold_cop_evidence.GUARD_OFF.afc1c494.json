@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_cop_evidence GUARD_OFF afc1c494",
+  "killed_by": "tests/features.py",
+  "old": "        if (measured := probe_install(_ctx_of(self)._config).cop_sample(heat_kw, bool(cop_curve_dhw))) is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

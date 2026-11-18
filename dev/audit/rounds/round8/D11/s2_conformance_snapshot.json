@@ -1,0 +1,26 @@
+{
+  "_source": "GitHub API via the GitHub MCP tools, read 2026-09-23 ~21:30Z: pull_request_read get_reviews and get_check_runs (the MCP method exposes the /commits/<sha>/check-runs default filter=latest; filter=all is not reachable, so a red-then-green pr-contract is invisible here). Merged head = second parent of the merge commit in the tree. Sample: the 40 most recent first-parent merges at cdf82da, every 7th starting at the newest.",
+  "sample_rule": "git log --first-parent --merges --format=%h cdf82da | head -40 | awk 'NR%7==1'",
+  "author_identity": "hpo-author[bot]",
+  "prs": [
+    {"n": 1489, "merge": "cdf82da", "head": "3c7856cbc0b34b1fd406c7eddbd5fb44592cd8f3", "user": "hpo-author[bot]", "merged_by": "tvofi",
+     "reviews": [["hpo-approver[bot]", "DISMISSED", "39402345abf942729c6deeffee54a532a08adaa6"], ["hpo-approver[bot]", "APPROVED", "3c7856cbc0b34b1fd406c7eddbd5fb44592cd8f3"]],
+     "pr_contract": [["2026-09-23T17:33:51Z", "success"], ["2026-09-23T17:33:52Z", "success"]], "failed_at_head": []},
+    {"n": 1485, "merge": "ec202e0", "head": "486b2b04fd3e8f63e0500fb7507ef35e0581dcb3", "user": null, "merged_by": null,
+     "reviews": [["hpo-approver[bot]", "APPROVED", "486b2b04fd3e8f63e0500fb7507ef35e0581dcb3"]],
+     "pr_contract": [["2026-09-23T12:03:12Z", "success"], ["2026-09-23T12:03:13Z", "success"]], "failed_at_head": []},
+    {"n": 1483, "merge": "9de8fe2", "head": "2f83ef8eb87c5700aec9716563e802c8f2b6c753", "user": null, "merged_by": null,
+     "reviews": [["hpo-approver[bot]", "APPROVED", "2f83ef8eb87c5700aec9716563e802c8f2b6c753"]],
+     "pr_contract": [["2026-09-23T10:22:44Z", "success"]], "failed_at_head": []},
+    {"n": 1426, "merge": "43dd4c3", "head": "612bce49ee2e066993d452bc78b3931103925a0a", "user": null, "merged_by": null,
+     "reviews": [["tvofi", "DISMISSED", "e583488de2badc89b08bc39a6ede556f0ac114e0"], ["tvofi", "APPROVED", "612bce49ee2e066993d452bc78b3931103925a0a"]],
+     "review_note": "the DISMISSED tvofi review's body reads 'Approved as codeowner (owner mandate, session-only, 12h)'",
+     "pr_contract": [["2026-09-22T22:09:15Z", "success"]], "failed_at_head": []},
+    {"n": 1429, "merge": "06ec54b", "head": "f15767f71c9af0d3893b0d5cf18d530cc6ce815f", "user": null, "merged_by": null,
+     "reviews": [["hpo-approver[bot]", "APPROVED", "f15767f71c9af0d3893b0d5cf18d530cc6ce815f"]],
+     "pr_contract": [["2026-09-22T21:02:51Z", "success"], ["2026-09-22T21:02:51Z", "success"]], "failed_at_head": []},
+    {"n": 1431, "merge": "5b83e36", "head": "bb1a76029f2edce21588051bf49ae43f2a3bf3b8", "user": null, "merged_by": null,
+     "reviews": [["hpo-approver[bot]", "APPROVED", "bb1a76029f2edce21588051bf49ae43f2a3bf3b8"]],
+     "pr_contract": [["2026-09-22T19:17:14Z", "success"]], "failed_at_head": []}
+  ]
+}

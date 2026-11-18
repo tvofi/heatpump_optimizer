@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.best_restore GUARD_OFF 3456baaf",
+  "killed_by": "tests/features.py",
+  "old": "            if bias is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against db878b29fa301d44231ccec55a85a80d610e9b1e: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

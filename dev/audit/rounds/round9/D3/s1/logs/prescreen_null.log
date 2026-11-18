@@ -1,0 +1,52 @@
+CLOSURE tests/typing_ruler.py tests/solar_alignment.py tests/wood_advisor.py tests/plan_view.py tests/card.mjs tests/deployment_shape.py tests/structure.py tests/doc_claims.py tests/card_drift.mjs tests/manual_plan.py tests/config_flow_steps.py tests/finite_boundary.py tests/entities.py tests/features.py tests/env_drift.py
+SCRIPT tests/typing_ruler.py rc=0 wall=0.2s cpu=0.2s
+SCRIPT tests/solar_alignment.py rc=0 wall=0.9s cpu=0.9s
+SCRIPT tests/wood_advisor.py rc=0 wall=0.7s cpu=0.7s
+SCRIPT tests/plan_view.py rc=0 wall=1.0s cpu=0.9s
+SCRIPT tests/card.mjs rc=0 wall=11.5s cpu=12.2s
+SCRIPT tests/deployment_shape.py rc=0 wall=1.8s cpu=1.8s
+SCRIPT tests/structure.py rc=0 wall=2.3s cpu=2.2s
+SCRIPT tests/doc_claims.py rc=0 wall=2.4s cpu=2.3s
+SCRIPT tests/card_drift.mjs rc=0 wall=4.4s cpu=4.9s
+SCRIPT tests/manual_plan.py rc=0 wall=8.2s cpu=6.2s
+SCRIPT tests/config_flow_steps.py rc=0 wall=12.2s cpu=11.8s
+SCRIPT tests/finite_boundary.py rc=0 wall=11.3s cpu=11.2s
+SCRIPT tests/entities.py rc=0 wall=89.8s cpu=65.5s
+SCRIPT tests/features.py rc=0 wall=291.6s cpu=278.0s
+SCRIPT tests/env_drift.py rc=0 wall=218.0s cpu=205.8s
+RESULT wall_typing_ruler_py=0.2 s
+RESULT cpu_typing_ruler_py=0.2 s
+RESULT wall_solar_alignment_py=0.9 s
+RESULT cpu_solar_alignment_py=0.9 s
+RESULT wall_wood_advisor_py=0.7 s
+RESULT cpu_wood_advisor_py=0.7 s
+RESULT wall_plan_view_py=1.0 s
+RESULT cpu_plan_view_py=0.9 s
+RESULT wall_card_mjs=11.5 s
+RESULT cpu_card_mjs=12.2 s
+RESULT wall_deployment_shape_py=1.8 s
+RESULT cpu_deployment_shape_py=1.8 s
+RESULT wall_structure_py=2.3 s
+RESULT cpu_structure_py=2.2 s
+RESULT wall_doc_claims_py=2.4 s
+RESULT cpu_doc_claims_py=2.3 s
+RESULT wall_card_drift_mjs=4.4 s
+RESULT cpu_card_drift_mjs=4.9 s
+RESULT wall_manual_plan_py=8.2 s
+RESULT cpu_manual_plan_py=6.2 s
+RESULT wall_config_flow_steps_py=12.2 s
+RESULT cpu_config_flow_steps_py=11.8 s
+RESULT wall_finite_boundary_py=11.3 s
+RESULT cpu_finite_boundary_py=11.2 s
+RESULT wall_entities_py=89.8 s
+RESULT cpu_entities_py=65.5 s
+RESULT wall_features_py=291.6 s
+RESULT cpu_features_py=278.0 s
+RESULT wall_env_drift_py=218.0 s
+RESULT cpu_env_drift_py=205.8 s
+RESULT scripts_run=15 count
+RESULT killed_by=0 count
+KILLERS -
+RESULT thread_factor=1.000
+RESULT load1=3.87
+RESULT swapins=0

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:_leaf GUARD_OFF f5aa49a8",
+  "killed_by": "tests/features.py",
+  "old": "    if isinstance(raw, bool):",
+  "reason": "R8-P1 (#1518): `if False:` lets a JSON `true` load as the amount 1.0, so the #1518 check's bool case keeps the month and tests/features.py goes from rc=0 failed=0 to rc=1 failed=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+}

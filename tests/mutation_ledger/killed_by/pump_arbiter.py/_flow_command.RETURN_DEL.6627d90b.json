@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_flow_command RETURN_DEL 6627d90b",
+  "killed_by": "tests/features.py",
+  "old": "    return FlowCommand(float(written[0]), gate, _full_draw_c(inp, ceiling))",
+  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (review fixes): RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4990 to rc=1 failed=3 (the per-cycle fold records no held command; the guard and the return-with-headroom command checks), retiring anchor 872828fe whose line gained the `_full_draw_c` call."
+}

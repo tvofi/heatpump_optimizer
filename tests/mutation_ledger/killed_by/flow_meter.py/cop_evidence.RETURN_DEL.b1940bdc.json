@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_meter.py:cop_evidence RETURN_DEL b1940bdc",
+  "killed_by": "tests/features.py",
+  "old": "        return observed, cop_scale * commanded_kw / electrical_kw",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9586fce081411da3e552aab930919c40e2b2b233: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

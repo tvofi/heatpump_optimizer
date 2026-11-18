@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:build_wood_fuel_view GUARD_OFF 30141893",
+  "old": "        if count:",
+  "reason": "Equivalent output. The guard only skips cheaper_steps on a day whose cheaper_hour_count is 0. cheaper_hour_count is sum(cheaper_steps(...)) over the same arguments, so with the guard off a zero count yields an all-False list, and _attach_windows -> cheaper_windows publishes no window for an all-False list exactly as for the empty one the guard leaves; no other reader of `cheap` exists. Measured at head cb2b637bb with the guard replaced by `if True:`: tests/wood_advisor.py ALL 29 PASSED (jinja2 installed), tests/guard_pins.py ALL 61 PASSED, tests/features.py ALL 4606 PASSED. The guard stays as the cost saving on a Pi-class host (one O(steps) pass skipped on a day wood never wins).",
+  "verdict": "equivalent"
+}

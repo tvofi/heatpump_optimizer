@@ -1,0 +1,69 @@
+{
+  "dimension": "D4",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D4-01",
+      "title": "Keyboard Tab order jumps backward across the screen in the expanded dialog",
+      "severity": "medium",
+      "claim": "In the real-Chromium expanded dialog (what_if:true, plan-chart page), pressing Tab repeatedly from the dialog's start visits at least one pair of consecutive stops where the later stop sits above and not to the right of the earlier one, at every one of the three required viewports (375x812, 768x1024, 1280x800), so a sighted keyboard-only user's focus indicator jumps backward up the screen instead of following reading order.",
+      "mechanism": "The what-if panel's action row (`.wi-row.wi-actions`: apply/save/reset) and an earlier revert control (`.wi-revert`) sit inside `.whatif .wi-row { flex-wrap: wrap; ... }` rows; flex-wrap lets a later DOM child land visually above/left of an earlier one once the row wraps or the section above it reflows, but Tab order still follows DOM order, so the two orders diverge without the CSS engine or the card doing anything to keep them aligned.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NODE_PATH=/home/claude/audit-r8/pw/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers HPO_PLANDATA=/tmp/plandata-daa3b4ac87fe.json HPO_VP_W=375 HPO_VP_H=812 node tools/audit/round8/D4/s1_tab_order.mjs",
+        "harness_path": "tools/audit/round8/D4/s1_tab_order.mjs",
+        "value": 3,
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "4-vCPU cloud container, round-8 audit box (shared with up to 13 other seats)",
+        "cpu_or_wall": "count",
+        "contention_note": "count of backward Tab jumps, not a timing; contention-immune per COMMON.md",
+        "tolerance": "exact",
+        "load1": 0,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:WhatIfPanel.html (the `.whatif .wi-row` / `.wi-actions` markup) driven through real `page.keyboard.press(\"Tab\")` in Chromium",
+      "perturbation": {
+        "change": "One-line production CSS edit: `.whatif .wi-row { flex-wrap: wrap; ... }` -> `flex-wrap: nowrap;` (tools/audit/round8/D4/s1_tab_order.mjs reproduces the edit and restores the file in a finally-equivalent copy-back)",
+        "expected_direction": "down",
+        "observed_value": 2
+      },
+      "metric_definition": "inversions = # consecutive Tab stops where stop i+1's top is >0.6 row-heights above stop i's and not to its right (backward jump), via getBoundingClientRect().",
+      "phenomenon_property": "any focusable element inside a `flex-wrap: wrap` row group in the expanded dialog whose DOM position does not match its wrapped visual position on the current viewport",
+      "seam_rule": "grep -n \"flex-wrap: wrap\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js (marks each CSS rule class whose rows can host a DOM/visual order mismatch; s1_tab_order.mjs's per-viewport Tab walk enumerates which rows actually invert)",
+      "reproduction_steps": [
+        "cd <tree root>",
+        "PYTHONPATH=tests/hastub with the 5 BLAS thread vars =1",
+        "NODE_PATH=/home/claude/audit-r8/pw/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers",
+        "HPO_PLANDATA=<path from tests/plan_view.py> HPO_VP_W=375 HPO_VP_H=812 node tools/audit/round8/D4/s1_tab_order.mjs",
+        "observe 'RESULT inversions=3 count' and the printed (from,to) pairs"
+      ],
+      "proposed_fix_scope": "Reorder the `.wi-actions` / `.wi-row` markup (or the revert control's position) so DOM order matches the wrapped visual order at all three required viewports, or give the wrapping rows an explicit `order:` that tracks their visual position; re-run s1_tab_order.mjs at 375/768/1280 and require inversions=0 at each.",
+      "files": [
+        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "Every HTML control in the expanded dialog clears the 24 px / 44 px coarse-pointer hit-target floor (tests/card_browser.mjs's existing coarse-pointer lane, re-run unmodified against the baseline)",
+      "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NODE_PATH=/home/claude/audit-r8/pw/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers HPO_PLANDATA=/tmp/plandata-daa3b4ac87fe.json node tests/card_browser.mjs",
+      "value": "ok on both the 24 px and 44 px coarse-pointer checks; ALL BROWSER CHECKS PASSED"
+    },
+    {
+      "claim": "The Tab-order inversion count in the dialog is nonzero at every one of the three required viewports (375x812, 768x1024, 1280x800), i.e. it is not an artifact of the phone width alone",
+      "command": "as above with HPO_VP_W/HPO_VP_H set to 768/1024 and 1280/800",
+      "value": "inversions=1 at 768x1024, inversions=2 at 1280x800 (baseline, unperturbed)"
+    },
+    {
+      "claim": "tests/card_browser.mjs (existing, reused unmodified) has no keyboard-Tab-order lane and no 768x1024/1280x800 viewport pass of its own -- a harness-coverage gap this seat's s1_tab_order.mjs fills, not a to-do carried over from another dimension",
+      "command": "grep -n \"768\\|1280\\|keyboard\\|press(\\\"Tab\\\")\" tests/card_browser.mjs",
+      "value": "0 matches for a keyboard/Tab lane or a 768/1280 viewport in the existing harness"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D4/s1_tab_order.mjs"
+  ]
+}

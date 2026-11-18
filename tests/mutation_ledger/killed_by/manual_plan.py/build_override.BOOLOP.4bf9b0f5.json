@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/manual_plan.py:build_override BOOLOP 4bf9b0f5",
+  "killed_by": "tests/features.py",
+  "old": "        if _slots and _slots[-1][0] > cap:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8ff6827a9c2219bc6a32e81f47d0776ecdd94ecb: BOOLOP (`if _slots or _slots[-1][0] > cap:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

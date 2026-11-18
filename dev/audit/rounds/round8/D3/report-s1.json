@@ -1,0 +1,254 @@
+{
+ "dimension": "D3",
+ "seat": "s1",
+ "tree": "/home/claude/audit-r8/seats/D3-s1",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "report_path": "tools/audit/round8/D3/REPORT-s1.md",
+ "exposure": "none (no GitHub, no docs/ audit registers read; tests/mutation_budgets.json read as a gate artifact to exclude already-dispositioned sites)",
+ "findings": [
+  {
+   "id": "D3-s1-01",
+   "title": "env_drift's claim-hygiene refusal kills 17/17 production mutants pre-capture, a comment-only edit included",
+   "severity": "medium",
+   "claim": "With the fork point at the baseline (claim list of 5 scenarios, unchanged by the diff), tests/env_drift.py's claim-hygiene check refuses 17 of 17 production mutants -- including a comment-only edit and a threadpoolctl guard that is equivalent in every supported install -- with INHERITED CLAIMS before any capture, while the unmutated tree passes; tests/mutation_table.py:run_script scores that rc change as 'killed by tests/env_drift.py', and the D3 brief's own pre-screen (env_drift --all <baseline>) inherits the same false kill.",
+   "mechanism": "check_claims_hygiene() runs before the capture under --all (tests/env_drift.py main, 'if everything:' block). A mutation of integration Python makes claim_kinds() mark the solver claim file as owed; the tree's list equals the base's, so inherited_claims_error() fires. The mutation instrument's drive_spec() passes only ['--all', ref] and never rewrites the claim list for the mutant's diff (what claims-autofix does on a real PR), so the refusal is attributed to the mutant. Affected: every run whose three-dot does not already touch integration Python while the base carries claims -- mutation_table --scope changed on a test-only PR (its documented fallback), the D3 audit pre-screen and the quiet-window GATE_SCOPE=full GOLDEN_MODE=drift re-run of survivors at this baseline. The nightly (--scope full, ref HEAD^1) is NOT affected at this baseline: measured 0/17 refused.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_claimkill.py --ref cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "harness_path": "tools/audit/round8/D3/s1_claimkill.py",
+    "value": 17,
+    "unit": "mutants refused of 17 (unmutated rc=0)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container (x86_64, 15 GB), shared with ~13 seats; not the audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; load irrelevant",
+    "tolerance": "exact",
+    "load1": 1.8,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/env_drift.py:check_claims_hygiene (via `env_drift.py --claims-only`, and via env_drift.main --all in tools/audit/round8/D3/s1_envdrift.py); tests/mutation_table.py:gate_ref/drive_spec",
+   "perturbation": {
+    "change": "Empty the claim list in tests/golden/claimed_drift.txt (header and claims-for kept; harness --perturb, restored in finally)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 of 17 refused (the unmutated arm then goes red under the record-PR rule, as expected for an edited claim file)"
+   },
+   "metric_definition": "Count of pool mutants for which `env_drift.py --claims-only <ref>` exits non-zero with INHERITED CLAIMS while the unmutated tree exits 0.",
+   "phenomenon_property": "A mutant's env_drift verdict must depend on whether it moves a golden, not on the claim-file bookkeeping its diff triggers; any driver that invokes env_drift --all on a mutated tree without rewriting the claim list for that diff scores the claim rule, not the mutant.",
+   "seam_rule": "grep -n 'env_drift' tests/mutation_table.py tools/audit/briefs/D3.md tests/run.sh",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_claimkill.py   (ref HEAD^1, the nightly's gate_ref)",
+    "value": "0 of 17 refused; unmutated rc=0",
+    "note": "Where the base's last merge already rewrote the claim list the refusal vanishes, so the kill is the claim rule's, not the mutants'."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_claimkill.py --ref cdf82daabcfe3777d98b31489f36df5555ec9d82  -> refused_mutants=17, unmutated_rc=0",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_prescreen.py --run 6 --only ENVDRIFT -> env_drift main --all returns rc=1 in 0.1 s wall with 'INHERITED CLAIMS' as its first line (saved to /home/claude/audit-r8/tmp/D3-s1/envdrift_last_*.log); no capture ran",
+    "...s1_claimkill.py --ref cdf82daabcfe3777d98b31489f36df5555ec9d82 --perturb -> refused_mutants=0"
+   ],
+   "proposed_fix_scope": "tests/mutation_table.py (drive_spec/run_script for tests/env_drift.py): before driving env_drift on a mutant tree, apply the claims autofix for that tree's diff (env_drift's apply_inherited_claims, as the closures/claims-autofix CI job does) or judge only the drift section of the output; state the same in tools/audit/briefs/D3.md step 2 and the quiet-window gate recipe. Add an entities.py check that a comment-only production edit is NOT killed by the env_drift driver.",
+   "files": [
+    "tests/mutation_table.py",
+    "tests/env_drift.py",
+    "tools/audit/briefs/D3.md"
+   ],
+   "stop_rule_class": "bug",
+   "provisional": false
+  },
+  {
+   "id": "D3-s1-02",
+   "title": "env_drift cache key hashes HPO_* variables no capture reads, so locked or contract-following runs miss the cache",
+   "severity": "medium",
+   "claim": "tests/env_drift.py:cache_key over five environments that differ only in the three HPO_* variables the harness contract (HPO_PLANDATA) and tests/run.sh's locked path (run.sh:87-94: HPO_GATE_LOCK_LABEL, HPO_GATE_FLOCK_CHILD=1) set yields 4 distinct keys, while those names are read 0 times by anything a capture executes; each distinct key is a full baseline re-capture (one miss measured at 22m59s wall / 5m54s user at load1~23, provisional).",
+   "mechanism": "CACHE_ENV_PREFIXES includes 'HPO_' wholesale (tests/env_drift.py:330-334) and _relevant_environment() hashes every matching variable into cache_key_inputs()['environment']. The lock label is per seat and per person, so two locked gate runs of the same commit on one box never share a baseline, and none shares CI's.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_cachekey.py",
+    "harness_path": "tools/audit/round8/D3/s1_cachekey.py",
+    "value": 4,
+    "unit": "distinct cache keys over 4 capture-equivalent environments (+1 null repeat)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container (x86_64, 15 GB), shared with ~13 seats; not the audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "count only; the 22m59s miss cost is provisional (load1 ~23, 13 seats)",
+    "tolerance": "exact",
+    "load1": 19.14,
+    "thread_factor": 1.004
+   },
+   "instrumented_symbol": "tests/env_drift.py:cache_key / cache_key_inputs / _relevant_environment (CACHE_ENV_PREFIXES)",
+   "perturbation": {
+    "change": "Drop 'HPO_' from env_drift.CACHE_ENV_PREFIXES for the run (harness --perturb)",
+    "expected_direction": "down",
+    "observed_value": 1
+   },
+   "metric_definition": "Number of distinct env_drift cache keys for BASE over environments that differ only in HPO_PLANDATA, HPO_GATE_LOCK_LABEL, HPO_GATE_FLOCK_CHILD.",
+   "phenomenon_property": "The drift-cache key must contain only inputs a capture can depend on; a variable no capture reads must not split the key.",
+   "seam_rule": "grep -n 'CACHE_ENV_PREFIXES\\|CACHE_ENV_NAMES' -A6 tests/env_drift.py; grep -rhoE 'HPO_[A-Z_]+' tests custom_components | sort -u",
+   "null_control": {
+    "command": "same harness, arm clean_again vs clean",
+    "value": "identical key (null_equal=1)",
+    "note": "the key is deterministic; only the HPO_* arms split it"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_cachekey.py -> distinct_keys=4, null_equal=1, capture_reads=0",
+    "... --perturb -> distinct_keys=1"
+   ],
+   "proposed_fix_scope": "tests/env_drift.py: replace the blanket 'HPO_' prefix with the HPO_* names a capture actually reads (none today), or exclude the gate-lock and plan-view names explicitly; pin with a check that setting HPO_GATE_LOCK_LABEL leaves cache_key unchanged.",
+   "files": [
+    "tests/env_drift.py",
+    "tests/run.sh"
+   ],
+   "stop_rule_class": "bug",
+   "provisional": false
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Pre-screen kill rule is stable on the unmutated tree: tests/entities.py reports the same failed count (9) on two unmutated runs, so a count rise is a real kill.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_prescreen.py --run 0 --only tests/entities.py",
+   "value": "baseline failed=9, null failed=9, verdict LIVES"
+  },
+  {
+   "claim": "Harness gap met and fixed in place: comparing entities.py FAIL-line TEXT (not the count) produced a false kill of M01 ('a8:register_once ... extra=[...__dup]'), because entities' negative-control rails print run-varying detail. tests/mutation_table.py compares counts only and is not affected.",
+   "command": "s1_prescreen.py v1 (superseded; record kept at /home/claude/audit-r8/tmp/D3-s1/prescreen_v1_invalid.jsonl)",
+   "value": "M01 false KILL under text rule; LIVES under count rule"
+  },
+  {
+   "claim": "Kills found by the fast closure (stage 1): 4 of 8 evaluated mutants (M03, M04, M08 by features.py; M07 by manual_plan.py); surviving 4 (M01, M02, M05, M06) of which 2 look equivalent by construction (M01, M05).",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_prescreen.py --no-envdrift --run 1,2,3,4,5,6,7,8",
+   "value": "4 killed / 8 evaluated; survivors M01 M02 M05 M06"
+  },
+  {
+   "claim": "The nightly mutation lane (--scope full, ref HEAD^1) does not suffer the D3-s1-01 false kill at this baseline.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_claimkill.py",
+   "value": "0 of 17 refused at HEAD^1"
+  },
+  {
+   "claim": "Lead for D0/D9, not a D3 finding: tests/optimality.py is red at baseline on this box (1 of 81), check 'the production stop rule (ftol) buys a materially better plan' -- ftol 1e-6 59.44 vs loosened 1e-3 59.43 (-0.00% gap, bound 0.1%). closures.json records rc=0 on the recording box. A baseline-red script can only kill by a count rise, so it masks mutants on this box.",
+   "command": "PYTHONPATH=tests/hastub python3 tests/optimality.py",
+   "value": "rc=1, 1 of 81 FAILED (provisional environment; load1 ~9-23)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D3/s1_prescreen.py",
+  "tools/audit/round8/D3/s1_envdrift.py",
+  "tools/audit/round8/D3/s1_claimkill.py",
+  "tools/audit/round8/D3/s1_cachekey.py"
+ ],
+ "prescreened": [
+  {
+   "id": "M01",
+   "site": "coordinator.py:3447 GUARD_OFF `if capacity <= 1e-6:` (_max_pump_rise)",
+   "stage1": "LIVES (13 closure scripts)",
+   "envdrift": "not judgeable: INHERITED CLAIMS pre-capture refusal (D3-s1-01)",
+   "verifier": "Likely equivalent under validated input: buffer volume >=10 L (config_flow.py:1620), DHW volume >=50 L (config_flow.py:1596), service _positive(2000). Should-fail: none reachable; triage candidate 'equivalent'."
+  },
+  {
+   "id": "M02",
+   "site": "coordinator.py:3758 GUARD_OFF `if modelled_cop <= 0.1:` (_learn_measured_cop)",
+   "stage1": "LIVES (13)",
+   "envdrift": "not judgeable (D3-s1-01)",
+   "verifier": "Reachable only if the reference COP curve returns <=0.1; then target_scale divides by a near-zero modelled COP path. A features.py COP-learning check fed a degenerate curve (compute_cop -> 0.05) should refuse the sample; none does."
+  },
+  {
+   "id": "M03",
+   "site": "coordinator.py:4347 GUARD_OFF residual cap (lower-floor loss learning)",
+   "stage1": "KILLED by tests/features.py 'an implausible residual is rejected, not absorbed'"
+  },
+  {
+   "id": "M04",
+   "site": "coordinator.py:8721 BOOLOP worst-of-day health",
+   "stage1": "KILLED by tests/features.py 'one unhealthy drift day raises the alarm but leaves the learners alone'"
+  },
+  {
+   "id": "M05",
+   "site": "optimizer.py:290 GUARD_OFF `if _threadpool_limits is None:`",
+   "stage1": "LIVES (16)",
+   "envdrift": "not judgeable (D3-s1-01)",
+   "verifier": "Equivalent in every supported install: manifest requires threadpoolctl>=3.5.0, so the None branch is unreachable. Triage 'equivalent'."
+  },
+  {
+   "id": "M06",
+   "site": "optimizer.py:3561 CLAMP_DROP `new_cap = max(0.0, allowed) * 0.999` (_tighten_buffer_caps)",
+   "stage1": "LIVES (16, incl. validate, optimality, features)",
+   "envdrift": "not judgeable (D3-s1-01): rc=1 in 0.1 s, INHERITED CLAIMS",
+   "verifier": "allowed = schedule - refused/cop is >=0 in exact arithmetic; a fully refused step can give a float-noise negative and an inverted (0, <0) bound for L-BFGS-B. tests/edge.py (skipped by the brief in pre-screen) or a features.py 'fully refused buffer step' check should fail; top candidate for the quiet-window full gate."
+  },
+  {
+   "id": "M07",
+   "site": "optimizer.py:3686 GUARD_OFF dhw release",
+   "stage1": "KILLED by tests/manual_plan.py"
+  },
+  {
+   "id": "M08",
+   "site": "optimizer.py:4574 GUARD_OFF p90 draw quantile",
+   "stage1": "KILLED by tests/features.py"
+  },
+  {
+   "id": "M09",
+   "site": "thermal_model.py:589 BOOLOP buffer-UA cache",
+   "stage1": "NOT RUN (time)",
+   "envdrift": "not run"
+  },
+  {
+   "id": "M10",
+   "site": "thermal_model.py:1677 GUARD_OFF internal-gains profile",
+   "stage1": "NOT RUN (time)",
+   "envdrift": "not run"
+  },
+  {
+   "id": "M11",
+   "site": "thermal_model.py:2154 CLAMP_DROP t_mix=min(supply,flow_set)",
+   "stage1": "NOT RUN (time)",
+   "envdrift": "not run"
+  },
+  {
+   "id": "M12",
+   "site": "thermal_model.py:2635 BOOLOP humidity NaN fallback",
+   "stage1": "NOT RUN (time)",
+   "envdrift": "not run"
+  },
+  {
+   "id": "M13",
+   "site": "sysid.py:152 GUARD_OFF ua/capacity<=1e-9",
+   "stage1": "NOT RUN (time)",
+   "envdrift": "not run"
+  },
+  {
+   "id": "M14",
+   "site": "sysid.py:633 GUARD_OFF len(dts)<5",
+   "stage1": "NOT RUN (time)",
+   "envdrift": "not run"
+  },
+  {
+   "id": "M15",
+   "site": "sysid.py:923 GUARD_OFF if self.active",
+   "stage1": "NOT RUN (time)",
+   "envdrift": "not run"
+  },
+  {
+   "id": "M16",
+   "site": "sysid.py:1372 CLAMP_DROP prior_sd max(...,0.1)",
+   "stage1": "NOT RUN (time)",
+   "envdrift": "not run"
+  }
+ ],
+ "pool": {
+  "seed": 20260923,
+  "per_module": 4,
+  "kind_weights": {
+   "GUARD_OFF": 3.0,
+   "CLAMP_DROP": 3.0,
+   "BOOLOP": 2.0,
+   "RAISE_DEL": 2.0,
+   "RETURN_DEL": 1.5,
+   "CONST": 2.0
+  },
+  "class_weights": {
+   "log": 0.1,
+   "money_comfort": 3.0,
+   "state_model": 2.0,
+   "other": 1.0
+  },
+  "source": "tests/mutation_table.py:candidates, sites without a disposition in tests/mutation_budgets.json",
+  "size": 16
+ },
+ "unfinished": "M09-M16 (thermal_model.py, sysid.py) were not pre-screened: at load1 11-23 a surviving mutant cost ~8-12 min of closure scripts, and the run was stopped at ~2h. Command: PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_prescreen.py --no-envdrift --run 9,10,11,12,13,14,15,16. The env_drift arm could not judge any survivor because of D3-s1-01; a quiet-window re-run needs the claim list rewritten for each mutant's diff first. Instrument notes for the orchestrator: (a) finding ids D3-s1-NN do not match tools/audit/finding.schema.json's id pattern ^D[0-9]+-[0-9]{2}$, so report-s1.json fails that one keyword; (b) the shared drift cache was warmed before six dev-tool packages (mypy, mypy_extensions, coverage, pathspec, librt, ast_serialize) appeared in the interpreter, so every seat's honest env_drift run now misses it; (c) an early s1 run with a wrapper that filtered those six names from the key (reverted; the harness no longer touches the key) wrote a baseline entry 236e90655c4c...json into ~/.cache/heatpump_optimizer/drift-baseline/ under a key no unpatched run can compute -- harmless but stray, the orchestrator may delete it; (d) two brief env_drift probes (60 s and 20 s, both killed by timeout, worktrees removed) ran outside the flock."
+}
