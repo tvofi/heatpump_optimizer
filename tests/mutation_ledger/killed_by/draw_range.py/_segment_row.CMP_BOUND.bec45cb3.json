@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_segment_row CMP_BOUND bec45cb3",
+  "killed_by": "tests/features.py",
+  "old": "    if len(steady) < SEGMENT_STEADY_MIN:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if len(steady) <= SEGMENT_STEADY_MIN:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

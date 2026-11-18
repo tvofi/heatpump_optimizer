@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_stored_map GUARD_OFF 76b546cb",
+  "killed_by": "tests/features.py",
+  "old": "    if len({len(c) for c in split}) != 1:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
