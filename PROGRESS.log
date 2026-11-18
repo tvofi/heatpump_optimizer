@@ -107,3 +107,4 @@
 1795022045 CKPT D3-s1 160 file(s)
 1795022052 HB T2 gate done: c2:8e82d7a0b3617003
 1795022138 HB T2 done: 5/6 KILLED by full gate (features.py); SURVIVED c2:d931ab195b940b0c tariff.py:744 M31. M26 gate re-run on clean tree (first run was on the stripped tree, superseded). T3 full net started: pre 16 queued
+1795022274 HB alive
