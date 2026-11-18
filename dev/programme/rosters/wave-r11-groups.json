@@ -4520,7 +4520,7 @@
     "Loop-study card L8 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L8. Root-cause analysis of machinery friction by family at round end; per defect only for the product and for outages.**\n- **Change:** a product defect, a release defect or an outage keeps its own RCA seat at once. Repeated machinery friction is counted during the round (family and occurrences, by L1) and analysed once per family at round end, feeding L5.\n- **Evidence:** 67 of 76 analyses were about machinery and 42 were triggered by recurring friction. Each produced 2.9 follow-up items. The friction family alone has at least seven analyses.\n- **Effect on k:** removes the largest generator of follow-up items and gives the analysis the whole family at once.\n- **Cost:** negative; fewer seats.\n- **Risk:** a machinery cause forgotten by round end. Mitigation: the count is mechanical and the family list is the triage input.\n- **Replaces:** per-event RCA seats for machinery friction. **Touches:** the owner's \"RCA dispatch immediately\" ruling and the third-instance rule, for machinery only. This card reverses part of a standing ruling."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-loop-policy",
     "commit": null,
     "last_step": null,
