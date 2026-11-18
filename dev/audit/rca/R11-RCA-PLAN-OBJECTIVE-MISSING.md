@@ -389,3 +389,97 @@ dispatch. It checks the P3 contract files plus main's `objective-check`.
    the next dispatch.
 3. Move the orchestrator's checkout to `origin/main`; it was moved at 14:19Z.
    Regenerate the `audit-plan` overlay from main before any further P3 launch.
+
+## 10. Did round 10 feed itself on fixes it had not adopted? Measured: no
+
+**The question.** Did round 10 keep producing instrument changes because the
+orchestrator ran its tools from trees that lacked fixes already merged, so the
+same defects came back and asked for more fixes?
+
+**How it was measured** (`base-fresh/adoption_lag.py`; rows in
+`adoption.tsv`, summary in `adoption.sum`):
+- **The fixes.** Every round-10 PR merged by a first-parent merge whose own
+  diff touches `tools/audit/seat`, `tools/pr`, `tools/ci` or
+  `.claude/workflows`. There are **362** of them.
+- **Orchestrator adoption.** Each orchestrator instrument call in the four
+  surviving transcripts (11-04, 11-07 to 11-10, 11-11 to 11-14, 11-14 to
+  11-15) is resolved to the commit of the tree it ran in. That commit comes
+  from the tree's name (`tools-wt-<sha>`, `beat-wt-<sha>`, `tick-wt-<sha>`) or
+  from the session checkout's branch tip.
+  - 1,321 calls resolve this way.
+  - 2,782 run in trees that record no commit, and are left out.
+  - A fix's lag runs from its merge to the first call made in a tree that
+    contains it. It is cut at the session's end, because the next session
+    starts on a newer base.
+  - Only the 129 fixes merged inside an observed session are scored; the
+    other 233 have no observed consumer.
+- **Tick-loop adoption.** From the `code=<sha7>` field of its `TICK-PASS`
+  lines.
+- **A recurrence.** A later PR of the same family: the same branch name with
+  part and retry suffixes removed, timed from its oldest own commit, which is
+  when the seat began. Each candidate's PR body was then read for its stated
+  trigger.
+
+**Adoption lag.**
+- **The orchestrator.** 110 of the 129 fixes reached the trees the
+  orchestrator executed from 1 h or more after their merge: median 12.6 h,
+  maximum 47.6 h. 19 arrived in under 1 h. Summed over fixes, there are
+  12,866 (call, fix) pairs in which a call ran in a tree lacking a fix that
+  was already merged.
+- **The tick loop.** Over 188 fixes after 11-04: median 1.7 h, 90th
+  percentile 17.4 h, 76 under 1 h. The loop restarts only past 25 commits on
+  its own paths, so a lag on a fix it never runs is no exposure.
+
+**Follow-ups started inside the lag window.** There are 12, each a later part
+of the same group:
+
+| fix merged | follow-up begun inside its lag window |
+|---|---|
+| #3252 relay-sweep | #3340 |
+| #3293 handoff-path-p2 | #3317 |
+| #3464 standing-contracts-p2 | #3492, #3494 |
+| #3452 outside-disinfection-setpoint | #3497 |
+| #3470 train-residue-p2 | #3498 |
+| #3448 review-dispatch-residue-p1 | #3533, #3539, #3541, #3544 |
+| #3507 closeout-prep | #3553 |
+| #3499 gate-defer-barrier | #3573 |
+
+Every one of the 12 bodies names its trigger as planned work, not as a recurring
+defect: "part 2 (carries 5, 7, 8, 9, 10; carries 0-4 are part 1, merged as #3499)",
+"part 3 of 6", "Part 4 of 5", and "the round-down ruling" for #3497. None
+reports that a defect the merged fix had already repaired came back.
+
+**The self-feeding loop.**
+- **Count.** 0 of 362 round-10 instrument PRs (0 of the 129 observable) had a
+  defect already fixed on main, but not yet adopted, as their trigger.
+- **Hours.** 0 measured. The 12 candidates' 190.6 h of seat time (oldest own
+  commit to merge) is planned part work, which would have been done whatever
+  the lag.
+
+**Null control.** Follow-ups per fix in the 12.6 h after the merge (the slow
+group's median lag):
+
+| group | follow-ups per fix |
+|---|---|
+| fixes adopted in under 1 h | 3 / 19 = 0.158 |
+| fixes adopted after 1 h or more | 9 / 110 = 0.082 |
+
+Slow adoption does not raise follow-ups; if anything the prompt group has more,
+because a group's parts are dispatched together. **The loop hypothesis fails.**
+
+Two notes on the method:
+- **The after-adoption window was dropped.** A comparison over an equal window
+  after adoption reads 0 follow-ups, but that window mostly falls past the
+  observed sessions, so it is not used.
+- **What the data cannot show.** Round 10's volume of instrument PRs is
+  explained by carries and parts planned before their predecessors merged. It
+  is not explained by recurrences of defects that had been fixed but not
+  adopted. Recurrences that never produced a PR (a seat that worked around a
+  stale tool by hand) are invisible to this method. Before 11-04 the
+  orchestrator's trees are unrecorded except for round 10's `orch-wt`, which
+  a loop kept on main every 600 s from 10-28 to 11-04.
+
+**What it changes.** The cost test in section 7 stands without a loop term.
+Adoption lag is real (median 12.6 h for the orchestrator), and section 8's
+self-repair rung removes it. It is not shown to have generated round 10's
+instrument work.
