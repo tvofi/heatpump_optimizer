@@ -42829,4 +42829,27 @@ R.check(
 )
 
 
+# `policy_budgets.json` keys a moved file's caps at its OLD path, the spelling
+# `canon` gives every listed file, so grepping the budget file for where the
+# file now lives finds no cap (R11-PRE-MACHINERY-LIMITER carry 5). The reader's
+# instrument is `--budgets`: each row prints the live path, and a moved file's
+# row names its key. Arms: a moved file (the audit README) prints at its live
+# path with its key; an unmoved one (tests/README.md) prints with no key, the
+# null control a printer naming a key on every row would fail.
+_BUDGET_ROWS = subprocess.run(
+    ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--budgets"],
+    capture_output=True, text=True).stdout.splitlines()
+_BR = lambda f: [ln for ln in _BUDGET_ROWS if ln.split()[:1] == [f]]  # noqa: E731
+R.check(
+    "`policy_lint.mjs --budgets` prints a moved policy file at its live path, "
+    "naming the old-path key its caps sit under; an unmoved file names no key",
+    len(_BR("dev/audit/README.md")) == 1
+    and _BR("dev/audit/README.md")[0].endswith("key tools/audit/README.md")
+    and _BR("tools/audit/README.md") == []  # layout:old=tools/audit/README.md
+    and len(_BR("tests/README.md")) == 1
+    and " key " not in _BR("tests/README.md")[0],
+    f"rows: {_BR('dev/audit/README.md') + _BR('tools/audit/README.md') + _BR('tests/README.md')}",
+)
+
+
 sys.exit(R.close("ENTITY CHECKS"))
