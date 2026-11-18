@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop._stored_measurement BOOLOP 0cacf25d",
+  "killed_by": "tests/features.py",
+  "old": "        if not np.isfinite(cop) or cop < 0.1 or (dhw and temp is None):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if not np.isfinite(cop) or cop < 0.1 or (dhw or temp is None):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}
