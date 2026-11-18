@@ -1,2 +1,0 @@
-{"script": "tests/env_drift.py", "rc": 0, "checks": 39, "solves": 50, "solves_parent_traced": 0, "capture_solves": 50, "capture_multi_starts": 60, "capture_procs": 1, "multi_starts": 60, "procs_recorded": 1, "cpu_s": 84.8, "wall_s": 88.0, "checks_per_solve": 0.78}
-{"script": "tests/stress.py", "rc": 0, "checks": 116, "solves": 131, "multi_starts": 139, "procs_recorded": 10, "cpu_s": 248.3, "wall_s": 240.1, "checks_per_solve": 0.885}
