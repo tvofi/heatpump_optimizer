@@ -2,3 +2,4 @@
 1795004767 HB alive
 1795004864 CKPT BLOCKED.md pushed: frugal inline-read guard vs no-subagent brief snapshot 98690a430f6d
 1795004869 DONE blocked: frugal inline-read guard refuses reads; brief forbids subagents and FRUGAL_ALLOW_INLINE; Question in BLOCKED.md on handoff-wip/r11-seam-inputs-guards
+1795006394 HB alive
