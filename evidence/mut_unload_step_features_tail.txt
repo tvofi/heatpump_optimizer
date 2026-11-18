@@ -1,0 +1,3 @@
+  ok   a period after an outage longer than the ring fills only the ring's 14 days with null rows, not the whole outage
+
+ALL 5940 FEATURE CHECKS PASSED

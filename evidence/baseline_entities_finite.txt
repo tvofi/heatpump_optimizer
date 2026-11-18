@@ -1,0 +1,4 @@
+entities rc=0 613s ALL 2731 ENTITY CHECKS PASSED
+finite_boundary rc=0 103s ALL 115 FINITE BOUNDARY CHECKS PASSED
+
+[exited with code 0]
