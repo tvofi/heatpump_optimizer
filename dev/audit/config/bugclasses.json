@@ -332,7 +332,15 @@
       "R11 D2-s3-06",
       "R11 D7-s3-04",
       "R11 D8-s1-01",
-      "R11 D8-s1-03"
+      "R11 D8-s1-03",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_THERMAL_PARAM_FIELDS.upper_floor_thermal_mass",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_THERMAL_PARAM_FIELDS.lower_floor_thermal_mass",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_THERMAL_PARAM_FIELDS.inter_zone_heat_transfer",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_apply_result_payload_(schedule_upper_temp/lower_temp)",
+      "R11 sw:custom_components/heatpump_optimizer/boost.py::_window_open",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._async_drive_pumps_(VVC_windows)",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_learning.py::DhwProfileLearner.async_fold_draw_stats_(draw_label)",
+      "R11 sw:custom_components/heatpump_optimizer/replay_doc.py::_number"
     ],
     "per_round": {
       "R1": 9,
@@ -345,9 +353,9 @@
       "R8": 7,
       "R9": 27,
       "R10": 34,
-      "R11": 23
+      "R11": 31
     },
-    "total": 123,
+    "total": 131,
     "max_per_round": 34,
     "detector": "PYTHONPATH=tests/hastub python3 tests/entities.py -- section 'P2: one fact, one owner': a registry keyed per fact on an AST shape (a decision-context read of a proxy key the canonical predicate's own body reads, a node pattern, a literal service domain, a bare call of a fenced cycle step on the cycle path, a literal running threshold on a power), its owner functions and reasoned dispositions; any other hit fails, as do OWNER-MISSING, DEAD-RULE, STALE-DISPOSITION and CENSUS-MISSING, with a planted sibling per fact",
     "detector_idea": "AST: callers of each named gate predicate against the structurally sibling functions that should share it",
