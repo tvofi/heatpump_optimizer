@@ -38,18 +38,13 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | 10 post-merge beat and state docs | a merge | row, handover and state docs current | `tools/audit/seat/postmerge.py`, `tools/audit/seat/beatd.py`, `tools/audit/seat/state_docs.py` | `dev/governance/rules/delivery-status-tracking.md` | `dev/programme/delivery/`, `dev/programme/HANDOVER.md`, a #201 comment |
 | 11 stamps | merges since the last tag | the tag pushed | `tools/release/stamp.py`, `.claude/workflows/web-stamp.js` | `orchestrator.md` section 13 | the tag and release notes |
 | 12 projections and extension | a wave edge | the plan re-projected; a new group appended | `tools/plan/replan.py`, `tools/audit/seat/plan_page.py`, `tools/audit/seat/flow_metrics.py` | `orchestrator.md` section 2b | the projection, a roster group |
-| 12b instrument prototype and proposal triage | about 24 h before the round's closeout date | the reviewed instrument plan, its groups created in the next round's roster | `tools/audit/seat/roster_edit.py`, `tools/audit/archscore/` | `proposal-triage.md`, `architect-planner.md`, `plan-review.md` | the round-end batch in `dev/programme/triage/`, the instrument plan, the next round's roster groups |
+| 12b instrument prototype and proposal triage | about 24 h before closeout | the plan's groups in the next round's roster | `tools/audit/seat/roster_edit.py` | `proposal-triage.md` | the batch's `## Plan` |
 | 13 closure | every phase drained | the criteria below hold | `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201; the round's objective record |
 
-**Instrument prototype and proposal triage** (phase 12b; tvofi, 2026-11-18)
-opens about 24 h before the round's closeout date and closes before phase 13.
-Its inputs are every instrument proposal in `$HPO_STATE_DIR/r<N>/` and every
-overlay prototype under `$HPO_STATE_DIR/r<N>/proto/` the round used. One Fable
-seat (opus when Fable is unavailable) consolidates them and plans every
-surviving instrument change for the next round's start; a plan reviewer
-reviews that plan, and its approval creates the next round's instrument-fix
-groups with `roster_edit.py`. The phase exits on that reviewed plan with its
-groups in the next round's roster; the steps are `proposal-triage.md`'s.
+**Phase 12b**: one Fable seat (else opus) consolidates instrument proposals and
+`proto/` overlays and plans each ACCEPT as the batch's `## Plan`, shaped as
+`architect-planner.md`'s; on another seat's `Plan review: approve <sha>`
+(`plan-review.md`) the orchestrator creates its groups.
 
 Lessons (triage batch 141, P545): stack a later part only under the stack
 study's conditions, at the parent's merge verdict, never its handoff; log a cloud fire by the
@@ -173,8 +168,7 @@ Before phase 1, the pickup; each later step is its owner's rule.
    `finding.schema.json`'s `coverage`, `audit-find.js`'s `denominatorGaps`.
 4. Proposals: the prior round's proposals file and prototypes, in
    `$HPO_STATE_DIR/r<N-1>/` (`orchestrator.md`, the instrument freeze), ruled by
-   its round-end batch in `dev/programme/triage/`; ACCEPTs are built before finders,
-   instrument ones as the groups phase 12b's reviewed plan created.
+   its round-end batch in `dev/programme/triage/`; ACCEPTs are built before finders.
 5. Scope: an owner-filed or outside-filed item folds into the ongoing round
    unless its filer explicitly defers it; silence is not one. Record who, when
    and their words in the group's note (`roster_edit.py set-resume --field note`).
