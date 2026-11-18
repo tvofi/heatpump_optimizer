@@ -1,0 +1,82 @@
+[
+ {
+  "script": "tests/env_drift.py --all HEAD^1",
+  "rc": 0,
+  "solves": 50,
+  "distinct_inputs": 50,
+  "unhashable": 0,
+  "hooked_processes": 3,
+  "asserts": 39,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": 0.78,
+  "wall_s": 174.0,
+  "cpu_s": 99.6,
+  "tail": [
+   "NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes"
+  ]
+ },
+ {
+  "script": "tests/features.py",
+  "rc": 0,
+  "solves": 575,
+  "distinct_inputs": 351,
+  "unhashable": 100,
+  "hooked_processes": 31,
+  "asserts": 5780,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": 10.052,
+  "wall_s": 925.6,
+  "cpu_s": 683.3,
+  "tail": [
+   "ALL 5780 FEATURE CHECKS PASSED"
+  ]
+ },
+ {
+  "script": "tests/entities.py",
+  "rc": 1,
+  "solves": 33,
+  "distinct_inputs": 33,
+  "unhashable": 0,
+  "hooked_processes": 307,
+  "asserts": 2760,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": 83.636,
+  "wall_s": 598.8,
+  "cpu_s": 481.9,
+  "tail": [
+   "5 of 2723 ENTITY CHECKS FAILED"
+  ]
+ },
+ {
+  "script": "tests/arch_score.py",
+  "rc": 0,
+  "solves": 0,
+  "distinct_inputs": 0,
+  "unhashable": 0,
+  "hooked_processes": 133,
+  "asserts": 280,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": null,
+  "wall_s": 3460.8,
+  "cpu_s": 3321.7,
+  "tail": [
+   "ALL 280 ARCHITECTURE SCORE CHECKS PASSED"
+  ]
+ },
+ {
+  "script": "tests/harness_headers.py",
+  "rc": 1,
+  "solves": 5,
+  "distinct_inputs": 4,
+  "unhashable": 0,
+  "hooked_processes": 17,
+  "asserts": 112,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": 22.4,
+  "wall_s": 221.9,
+  "cpu_s": 140.9,
+  "tail": [
+   "3 of 115 HARNESS HEADER CHECKS FAILED"
+  ]
+ }
+]

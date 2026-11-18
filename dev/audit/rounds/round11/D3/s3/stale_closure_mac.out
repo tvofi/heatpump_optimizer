@@ -1,0 +1,15 @@
+closure: updated 4 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/d3s3-stale-wzjnamx3/closures.json
+  tests/card.mjs              117 files
+  tests/card_drift.mjs        118 files
+  tests/debug_collect.py      114 files
+  tests/plan_view.py          106 files
+  merge rc=0
+RESULT kept[tests/debug_collect.py]=2 files (cells; select runs it: 2; recorded 1.5 s each) ['repairs.py', 'silent_mode.py']; all-package stale: ['repairs.py', 'silent_mode.py']
+RESULT kept[tests/plan_view.py]=2 files (cells; select runs it: 2; recorded 1.8 s each) ['repairs.py', 'silent_mode.py']; all-package stale: ['repairs.py', 'silent_mode.py']
+RESULT scripts_recorded=2 count
+RESULT kept_pairs=4 count
+RESULT forced_seconds=7 s (sum over kept pairs of the script's recorded seconds: one body edit to each kept file)
+RESULT perturbed=False
+RESULT thread_factor=1.000
+RESULT load1=21.06
+RESULT swapins=-1

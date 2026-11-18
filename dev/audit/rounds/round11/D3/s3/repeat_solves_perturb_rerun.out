@@ -1,0 +1,18 @@
+RESULT tests/manual_plan.py:calls=62 count (rc=0)
+RESULT tests/manual_plan.py:hashed=62 count
+RESULT tests/manual_plan.py:repeats=38 count
+RESULT tests/manual_plan.py:repeat_cpu=6.57 s (provisional)
+RESULT tests/manual_plan.py:solve_cpu=11.01 s (provisional)
+RESULT tests/manual_plan.py:wall=28.5 s (provisional)
+RESULT tests/manual_plan.py:cpu=12.7 s (provisional)
+  repeat 38x at manual_plan.py:174:_solve (first solved at manual_plan.py:174:_solve) cpu=6.57 s
+RESULT tests/open_meteo.py:calls=0 count (rc=0)
+RESULT tests/open_meteo.py:hashed=0 count
+RESULT tests/open_meteo.py:repeats=0 count
+RESULT tests/open_meteo.py:repeat_cpu=0 s (provisional)
+RESULT tests/open_meteo.py:solve_cpu=0.0 s (provisional)
+RESULT tests/open_meteo.py:wall=0.5 s (provisional)
+RESULT tests/open_meteo.py:cpu=0.3 s (provisional)
+RESULT thread_factor=1.001
+RESULT load1=32.43
+RESULT swapins=-1

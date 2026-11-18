@@ -1,0 +1,13 @@
+  tests/doc_claims.py: traced run rc=1 failed=1: 
+RESULT tests/doc_claims.py:rc=1 count
+RESULT tests/doc_claims.py:lines_hit=15006 count
+RESULT tests/doc_claims.py:problems=['the traced run was not green (rc=1)', 'starts a non-Python process: git add -A (+11)']
+RESULT tests/doc_claims.py:wall=14 s (provisional)
+  tests/entities.py: traced run rc=1 failed=2: 
+RESULT tests/entities.py:rc=1 count
+RESULT tests/entities.py:lines_hit=24398 count
+RESULT tests/entities.py:problems=['the traced run was not green (rc=1)', 'starts a non-Python process: /root/d3s3-tmp/tmp2cesk1x4/py-spy 3203 (+976)', 'starts Python without the tracer: /root/venv-ci/bin/python3 -I -c import sys; sys.path.insert(0, sys.argv[1]); import stamp; print(stamp.read_rule().READ_TRIES) /home/user/audit-r11-D3-s3/tools/release']
+RESULT tests/entities.py:wall=632 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=9.01
+RESULT swapins=0

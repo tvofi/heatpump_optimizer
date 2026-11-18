@@ -1,0 +1,114 @@
+[
+ {
+  "script": "tests/golden.py",
+  "rc": 0,
+  "solves": 100,
+  "hooked_processes": 5,
+  "asserts": 39,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": 0.39,
+  "wall_s": 339.2,
+  "cpu_s": 238.0,
+  "tail": [
+   "NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes"
+  ]
+ },
+ {
+  "script": "tests/doc_claims.py",
+  "rc": 1,
+  "solves": 2,
+  "hooked_processes": 2,
+  "asserts": 409,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": 204.5,
+  "wall_s": 14.4,
+  "cpu_s": 12.6,
+  "tail": [
+   "1 of 410 checks FAILED"
+  ]
+ },
+ {
+  "script": "tests/typing_ruler.py",
+  "rc": 0,
+  "solves": 0,
+  "hooked_processes": 3,
+  "asserts": 12,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": null,
+  "wall_s": 30.1,
+  "cpu_s": 24.0,
+  "tail": [
+   "ALL 12 typing-ruler source checks PASSED"
+  ]
+ },
+ {
+  "script": "tests/dst_checks.py",
+  "rc": 1,
+  "solves": 116,
+  "hooked_processes": 2,
+  "asserts": 129,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": 1.112,
+  "wall_s": 66.8,
+  "cpu_s": 54.8,
+  "tail": [
+   "8 of 137 DST / QUARTER-GRID CHECKS FAILED"
+  ]
+ },
+ {
+  "script": "tests/plan_view.py",
+  "rc": 0,
+  "solves": 1,
+  "hooked_processes": 1,
+  "asserts": 1,
+  "asserts_source": "OK-suffix-lines",
+  "asserts_per_solve": 1.0,
+  "wall_s": 1.0,
+  "cpu_s": 0.9,
+  "tail": [
+   "plan reason codes, price provenance and slot energy OK"
+  ]
+ },
+ {
+  "script": "tests/card.mjs",
+  "rc": 0,
+  "solves": 0,
+  "hooked_processes": 0,
+  "asserts": 1449,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": null,
+  "wall_s": 153.1,
+  "cpu_s": 138.1,
+  "tail": [
+   "ALL CARD CHECKS PASSED"
+  ]
+ },
+ {
+  "script": "tests/card_drift.mjs",
+  "rc": 0,
+  "solves": 0,
+  "hooked_processes": 0,
+  "asserts": 0,
+  "asserts_source": "OK-suffix-lines",
+  "asserts_per_solve": null,
+  "wall_s": 10.2,
+  "cpu_s": 9.0,
+  "tail": [
+   "card_drift: identical in all 45 states"
+  ]
+ },
+ {
+  "script": "tests/boost_drift_replay.py",
+  "rc": 0,
+  "solves": 789,
+  "hooked_processes": 1,
+  "asserts": 46,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": 0.058,
+  "wall_s": 351.8,
+  "cpu_s": 226.4,
+  "tail": [
+   "ALL 46 BOOST DRIFT CHECKS PASSED"
+  ]
+ }
+]

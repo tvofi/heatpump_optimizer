@@ -1,0 +1,12 @@
+{
+ "away.py:177 GUARD_OFF": {
+  "production_line": "custom_components/heatpump_optimizer/away.py:177 (interpret_presence: `if raw is None: return None`)",
+  "consequence": "With the guard off, raw=None becomes the string 'none'. For a person or device_tracker presence entity this falls through to the named-zone branch and returns True, i.e. away. hass.states.get() returns None for a missing presence entity, for example one that is renamed, deleted or not yet restored at startup. resolve_away (away.py:550) then deep-setbacks an occupied house to away_temperature and away_dhw_min_temperature.",
+  "should_have_failed": "tests/features.py's interpret_presence block (lines 4531-4572) pins 'not_home', 'home', 'work', 'on', 'unavailable' and attribute cases, but never raw=None. The missing check is `away_mode.interpret_presence(None, 'person.alice') is None` beside line 4548's 'unavailable' check."
+ },
+ "boost.py:595 CMP_BOUND": {
+  "production_line": "custom_components/heatpump_optimizer/boost.py:595 (restore: `dt_util.as_utc(parsed) > dt_util.as_utc(now)` keeps a hold only if its until is in the future)",
+  "consequence": "`>` becomes `>=`: a stored hold whose until equals the restore instant to the microsecond is restored as held and expires at once. The only observable difference is at exact equality, so this is a near-equivalent boundary.",
+  "should_have_failed": "A boost restore check in tests/features.py that stores until == the frozen now and asserts the channel is not held. No such equality case exists. Candidate for an `equivalent` disposition rather than a test."
+ }
+}

@@ -1,0 +1,46 @@
+{
+ "id": "D3-s3-03",
+ "scope": "D3-s3",
+ "step": "D3.M5",
+ "title": "features.py re-solves identical inputs: 60 main-process solves repeat one the same process already ran (exact, 3 runs)",
+ "severity": "low",
+ "claim": "In a green run of tests/features.py, 60 HeatPumpOptimizer.optimize calls made in the script's own process receive input that pickles byte-identically to a call that same process already solved. The pickle covers the optimizer's __dict__ and the call arguments. It also covers the identity of every function and class bound in every loaded heatpump_optimizer module and in the class dict, so a mock.patch or class swap between two calls makes them distinct. The 60 are exact across three runs on two machines (box B3 Linux: 113 total minus 53 worker-process repeats; orchestrator M1 macOS: 60 of 266 hashed with the atexit hook, and 148 total minus 88 worker repeats with the per-solve snapshot). The largest site is _r9egb9_transport, with 28 repeats from one call site (17-31 s CPU, provisional), followed by _lg_band (10, a helper called with identical arguments) and _r9f13_inline (8). On top of these, the coordinator's persistent process_worker child repeats at least 53 solves (88 when every worker's record survives), at about 72 s CPU. That count is a lower bound: a worker killed at shutdown before atexit lost its record under the original hook, and a worker restart resets its memory. Under the same key, tests/optimality.py has 0 repeats of 23 solves, and its patched re-solves are not counted. dst_checks.py has 0 of 116.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/repeat_solves.py tests/features.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s3/repeat_solves.py",
+  "value": 60,
+  "unit": "main-process repeated identical solves (sites with a tests/ frame); worker-process repeats >=53 lower bound (88 in repeat_solves_rerun2.out); repeat_cpu 52-123 s provisional",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B3 (4 vCPU linux) and orchestrator machine (Apple M1, 8 cores, macOS); outputs repeat_solves_b.out, repeat_solves_rerun_atexit.out, repeat_solves_rerun2.out",
+  "cpu_or_wall": "count",
+  "contention_note": "fan-out: another D3 seat and verifier seats on the same machine; macOS re-runs at load1 80-226 with swap nearly full. Counts are contention-immune; every CPU/wall number is provisional",
+  "tolerance": "exact (main-process count); worker count is a lower bound",
+  "load1": 226.13,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize (wrapped at module exec by a sitecustomize meta-path loader)",
+ "perturbation": {
+  "change": "repeat_solves.py --perturb-double: the wrapper solves each hashable call twice, restoring the pre-call __dict__ in between; repeats must rise by the hashed-call count",
+  "expected_direction": "up",
+  "observed_value": "tests/manual_plan.py repeats 7 -> 38 (= 7 + 31 hashed calls), reproduced on macOS (repeat_solves_perturb_rerun.out)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/repeat_solves.py --perturb-double tests/manual_plan.py tests/open_meteo.py",
+  "value": 0,
+  "note": "open_meteo.py (no solve) reads 0 repeats in both arms; optimality.py's 4 patched re-solves read 0 under the identity key, so a deliberate mutation-proof re-solve is not counted"
+ },
+ "metric_definition": "Count of optimize() calls in the script's own process (a tests/ frame on the stack) whose pickled (self.__dict__, args, kwargs, identities of heatpump_optimizer module callables and class attrs) equals an earlier call's in that process",
+ "phenomenon_property": "A gate script solves a given optimizer input at most once per process. A check that needs the same plan again reuses the result, and a re-solve exists only where something in the input or the code differs.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/repeat_solves.py $(python3 dev/audit/rounds/round11/D3/s3/enumerate_m5.py | cut -f1 | grep '\\.py$') lists every repeating call site per script",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "tests/features.py"
+ ],
+ "proposed_fix_scope": "tests/features.py: memoise the solve in the helpers that repeat it, keyed on their arguments: _lg_band, and the _r9egb9 and _r9f13 transports' probe and null arms, which share a scenario. Do not memoise deliberate re-solves, such as determinism checks or patched-code arms. repeat_solves.py should read 0 repeats at the named sites afterwards.",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s3/repeat_solves.py tests/features.py",
+  "subtract the 'repeat Nx at ?' line (worker-process solves) from RESULT repeats: 60",
+  "read 'repeat 28x at features.py:71641:_r9egb9_transport' and 'repeat 10x at features.py:40889:_lg_band'"
+ ]
+}

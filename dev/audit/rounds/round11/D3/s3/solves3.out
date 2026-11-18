@@ -1,0 +1,51 @@
+RESULT tests/boost_drift_replay.py:solves=789 count
+RESULT tests/boost_drift_replay.py:asserts=46 count (ALL-N, rc=0)
+RESULT tests/boost_drift_replay.py:asserts_per_solve=0.058 ratio
+RESULT tests/boost_drift_replay.py:distinct_inputs=786 count (unhashable=0, summed per process)
+RESULT tests/boost_drift_replay.py:wall=258.5 s (provisional)
+RESULT tests/boost_drift_replay.py:cpu=173.0 s (provisional)
+RESULT tests/golden.py:solves=50 count
+RESULT tests/golden.py:asserts=39 count (ok-lines, rc=0)
+RESULT tests/golden.py:asserts_per_solve=0.78 ratio
+RESULT tests/golden.py:distinct_inputs=50 count (unhashable=0, summed per process)
+RESULT tests/golden.py:wall=174.8 s (provisional)
+RESULT tests/golden.py:cpu=105.3 s (provisional)
+RESULT tests/optimality.py:solves=23 count
+RESULT tests/optimality.py:asserts=84 count (ALL-N, rc=0)
+RESULT tests/optimality.py:asserts_per_solve=3.652 ratio
+RESULT tests/optimality.py:distinct_inputs=19 count (unhashable=0, summed per process)
+RESULT tests/optimality.py:wall=170.4 s (provisional)
+RESULT tests/optimality.py:cpu=124.4 s (provisional)
+RESULT tests/validate.py:solves=22 count
+RESULT tests/validate.py:asserts=0 count (OK-suffix-lines, rc=0)
+RESULT tests/validate.py:asserts_per_solve=0.0 ratio
+RESULT tests/validate.py:distinct_inputs=22 count (unhashable=0, summed per process)
+RESULT tests/validate.py:wall=32.4 s (provisional)
+RESULT tests/validate.py:cpu=24.0 s (provisional)
+RESULT tests/edge.py:solves=21 count
+RESULT tests/edge.py:asserts=20 count (ok-lines, rc=0)
+RESULT tests/edge.py:asserts_per_solve=0.952 ratio
+RESULT tests/edge.py:distinct_inputs=21 count (unhashable=0, summed per process)
+RESULT tests/edge.py:wall=30.8 s (provisional)
+RESULT tests/edge.py:cpu=24.2 s (provisional)
+RESULT tests/backtest.py:solves=11 count
+RESULT tests/backtest.py:asserts=25 count (ALL-N, rc=0)
+RESULT tests/backtest.py:asserts_per_solve=2.273 ratio
+RESULT tests/backtest.py:distinct_inputs=11 count (unhashable=0, summed per process)
+RESULT tests/backtest.py:wall=79.0 s (provisional)
+RESULT tests/backtest.py:cpu=66.0 s (provisional)
+RESULT tests/block_duty.py:solves=6 count
+RESULT tests/block_duty.py:asserts=153 count (ALL-N, rc=0)
+RESULT tests/block_duty.py:asserts_per_solve=25.5 ratio
+RESULT tests/block_duty.py:distinct_inputs=6 count (unhashable=0, summed per process)
+RESULT tests/block_duty.py:wall=9.1 s (provisional)
+RESULT tests/block_duty.py:cpu=7.5 s (provisional)
+RESULT tests/manual_plan.py:solves=31 count
+RESULT tests/manual_plan.py:asserts=132 count (ALL-N, rc=0)
+RESULT tests/manual_plan.py:asserts_per_solve=4.258 ratio
+RESULT tests/manual_plan.py:distinct_inputs=23 count (unhashable=0, summed per process)
+RESULT tests/manual_plan.py:wall=7.0 s (provisional)
+RESULT tests/manual_plan.py:cpu=5.1 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=8.09
+RESULT swapins=0

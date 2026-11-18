@@ -1,0 +1,117 @@
+[
+ {
+  "script": "tests/features.py",
+  "rc": 0,
+  "calls": 482,
+  "hashed": 382,
+  "repeats": 60,
+  "repeat_cpu_s": 52.2,
+  "solve_cpu_s": 512.17,
+  "wall_s": 1978.7,
+  "cpu_s": 1095.8,
+  "sites": [
+   {
+    "site": "features.py:71641:_r9egb9_transport",
+    "first": "features.py:71641:_r9egb9_transport",
+    "n": 28,
+    "cpu_s": 30.54
+   },
+   {
+    "site": "features.py:40889:_lg_band",
+    "first": "features.py:40889:_lg_band",
+    "n": 10,
+    "cpu_s": 1.41
+   },
+   {
+    "site": "features.py:1117:_r9f13_inline",
+    "first": "features.py:1117:_r9f13_inline",
+    "n": 8,
+    "cpu_s": 2.66
+   },
+   {
+    "site": "features.py:11862:_ct_solve",
+    "first": "features.py:11862:_ct_solve",
+    "n": 2,
+    "cpu_s": 5.2
+   },
+   {
+    "site": "features.py:36808:_mb_run",
+    "first": "features.py:36808:_mb_run",
+    "n": 2,
+    "cpu_s": 0.21
+   },
+   {
+    "site": "features.py:68920:_f21_storage_solve",
+    "first": "features.py:68920:_f21_storage_solve",
+    "n": 2,
+    "cpu_s": 7.22
+   },
+   {
+    "site": "features.py:5922:_weekly_solve",
+    "first": "features.py:5922:_weekly_solve",
+    "n": 1,
+    "cpu_s": 0.13
+   },
+   {
+    "site": "features.py:21411:_m_solve",
+    "first": "features.py:19931:_q_solve",
+    "n": 1,
+    "cpu_s": 1.13
+   },
+   {
+    "site": "features.py:22986:<module>",
+    "first": "features.py:19230:_cap_solve",
+    "n": 1,
+    "cpu_s": 0.17
+   },
+   {
+    "site": "features.py:40311:_lg_plan",
+    "first": "features.py:40311:_lg_plan",
+    "n": 1,
+    "cpu_s": 0.17
+   },
+   {
+    "site": "features.py:40311:_lg_plan",
+    "first": "features.py:19230:_cap_solve",
+    "n": 1,
+    "cpu_s": 0.18
+   },
+   {
+    "site": "features.py:41159:_lg_e2e",
+    "first": "features.py:41159:_lg_e2e",
+    "n": 1,
+    "cpu_s": 0.17
+   },
+   {
+    "site": "features.py:74264:_mpf_totals",
+    "first": "features.py:74264:_mpf_totals",
+    "n": 1,
+    "cpu_s": 1.27
+   },
+   {
+    "site": "features.py:90865:_vt_dhw_kwh",
+    "first": "features.py:90865:_vt_dhw_kwh",
+    "n": 1,
+    "cpu_s": 1.75
+   }
+  ],
+  "tail": [
+   "ALL 5780 FEATURE CHECKS PASSED"
+  ]
+ },
+ {
+  "script": "tests/dst_checks.py",
+  "rc": 1,
+  "calls": 116,
+  "hashed": 116,
+  "repeats": 0,
+  "repeat_cpu_s": 0,
+  "solve_cpu_s": 37.92,
+  "wall_s": 146.3,
+  "cpu_s": 76.7,
+  "sites": [],
+  "tail": [
+   "8 of 137 DST / QUARTER-GRID CHECKS FAILED"
+  ]
+ }
+]

@@ -1,0 +1,2 @@
+RESULT wasted_pairs=283 count
+RESULT wasted_imported_pairs=255 count (the run imports F, executing its module-level lines, and no function body line)

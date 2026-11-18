@@ -1,0 +1,125 @@
+RESULT tests/frontend.py:solves=0 count
+RESULT tests/frontend.py:asserts=18 count (ok-lines, rc=0)
+RESULT tests/frontend.py:asserts_per_solve=None ratio
+RESULT tests/frontend.py:wall=0.2 s (provisional)
+RESULT tests/frontend.py:cpu=0.1 s (provisional)
+RESULT tests/md_tables.mjs:solves=0 count
+RESULT tests/md_tables.mjs:asserts=0 count (OK-suffix-lines, rc=0)
+RESULT tests/md_tables.mjs:asserts_per_solve=None ratio
+RESULT tests/md_tables.mjs:wall=0.3 s (provisional)
+RESULT tests/md_tables.mjs:cpu=0.2 s (provisional)
+RESULT tests/open_meteo.py:solves=0 count
+RESULT tests/open_meteo.py:asserts=77 count (ok-lines, rc=0)
+RESULT tests/open_meteo.py:asserts_per_solve=None ratio
+RESULT tests/open_meteo.py:wall=0.3 s (provisional)
+RESULT tests/open_meteo.py:cpu=0.2 s (provisional)
+RESULT tests/ha_contract.py:solves=0 count
+RESULT tests/ha_contract.py:asserts=4 count (ALL-N, rc=0)
+RESULT tests/ha_contract.py:asserts_per_solve=None ratio
+RESULT tests/ha_contract.py:wall=0.2 s (provisional)
+RESULT tests/ha_contract.py:cpu=0.2 s (provisional)
+RESULT tests/golden.py:solves=0 count
+RESULT tests/golden.py:asserts=39 count (ok-lines, rc=0)
+RESULT tests/golden.py:asserts_per_solve=None ratio
+RESULT tests/golden.py:wall=297.4 s (provisional)
+RESULT tests/golden.py:cpu=202.2 s (provisional)
+RESULT tests/solar_alignment.py:solves=0 count
+RESULT tests/solar_alignment.py:asserts=14 count (ok-lines, rc=0)
+RESULT tests/solar_alignment.py:asserts_per_solve=None ratio
+RESULT tests/solar_alignment.py:wall=0.7 s (provisional)
+RESULT tests/solar_alignment.py:cpu=0.7 s (provisional)
+RESULT tests/wood_advisor.py:solves=0 count
+RESULT tests/wood_advisor.py:asserts=25 count (ALL-N, rc=0)
+RESULT tests/wood_advisor.py:asserts_per_solve=None ratio
+RESULT tests/wood_advisor.py:wall=0.6 s (provisional)
+RESULT tests/wood_advisor.py:cpu=0.6 s (provisional)
+RESULT tests/debug_collect.py:solves=0 count
+RESULT tests/debug_collect.py:asserts=163 count (ALL-N, rc=0)
+RESULT tests/debug_collect.py:asserts_per_solve=None ratio
+RESULT tests/debug_collect.py:wall=1.2 s (provisional)
+RESULT tests/debug_collect.py:cpu=0.9 s (provisional)
+RESULT tests/plan_view.py:solves=1 count
+RESULT tests/plan_view.py:asserts=1 count (OK-suffix-lines, rc=0)
+RESULT tests/plan_view.py:asserts_per_solve=1.0 ratio
+RESULT tests/plan_view.py:wall=1.0 s (provisional)
+RESULT tests/plan_view.py:cpu=0.8 s (provisional)
+RESULT tests/deployment_shape.py:solves=0 count
+RESULT tests/deployment_shape.py:asserts=26 count (ok-lines, rc=0)
+RESULT tests/deployment_shape.py:asserts_per_solve=None ratio
+RESULT tests/deployment_shape.py:wall=2.5 s (provisional)
+RESULT tests/deployment_shape.py:cpu=2.3 s (provisional)
+RESULT tests/manual_plan.py:solves=31 count
+RESULT tests/manual_plan.py:asserts=132 count (ALL-N, rc=0)
+RESULT tests/manual_plan.py:asserts_per_solve=4.258 ratio
+RESULT tests/manual_plan.py:wall=7.5 s (provisional)
+RESULT tests/manual_plan.py:cpu=5.0 s (provisional)
+RESULT tests/guard_pins.py:solves=0 count
+RESULT tests/guard_pins.py:asserts=91 count (ALL-N, rc=0)
+RESULT tests/guard_pins.py:asserts_per_solve=None ratio
+RESULT tests/guard_pins.py:wall=4.1 s (provisional)
+RESULT tests/guard_pins.py:cpu=4.1 s (provisional)
+RESULT tests/block_duty.py:solves=6 count
+RESULT tests/block_duty.py:asserts=153 count (ALL-N, rc=0)
+RESULT tests/block_duty.py:asserts_per_solve=25.5 ratio
+RESULT tests/block_duty.py:wall=10.1 s (provisional)
+RESULT tests/block_duty.py:cpu=7.6 s (provisional)
+RESULT tests/doc_claims.py:solves=2 count
+RESULT tests/doc_claims.py:asserts=409 count (ok-lines, rc=1)
+RESULT tests/doc_claims.py:asserts_per_solve=204.5 ratio
+RESULT tests/doc_claims.py:wall=11.0 s (provisional)
+RESULT tests/doc_claims.py:cpu=10.2 s (provisional)
+RESULT tests/layout.py:solves=0 count
+RESULT tests/layout.py:asserts=54 count (ok-lines, rc=0)
+RESULT tests/layout.py:asserts_per_solve=None ratio
+RESULT tests/layout.py:wall=11.8 s (provisional)
+RESULT tests/layout.py:cpu=5.3 s (provisional)
+RESULT tests/typing_ruler.py:solves=0 count
+RESULT tests/typing_ruler.py:asserts=12 count (ALL-N, rc=0)
+RESULT tests/typing_ruler.py:asserts_per_solve=None ratio
+RESULT tests/typing_ruler.py:wall=27.6 s (provisional)
+RESULT tests/typing_ruler.py:cpu=21.7 s (provisional)
+RESULT tests/structure.py:solves=0 count
+RESULT tests/structure.py:asserts=23 count (ok-lines, rc=0)
+RESULT tests/structure.py:asserts_per_solve=None ratio
+RESULT tests/structure.py:wall=21.1 s (provisional)
+RESULT tests/structure.py:cpu=19.8 s (provisional)
+RESULT tests/edge.py:solves=21 count
+RESULT tests/edge.py:asserts=20 count (ok-lines, rc=0)
+RESULT tests/edge.py:asserts_per_solve=0.952 ratio
+RESULT tests/edge.py:wall=30.6 s (provisional)
+RESULT tests/edge.py:cpu=21.7 s (provisional)
+RESULT tests/validate.py:solves=22 count
+RESULT tests/validate.py:asserts=0 count (OK-suffix-lines, rc=0)
+RESULT tests/validate.py:asserts_per_solve=0.0 ratio
+RESULT tests/validate.py:wall=29.4 s (provisional)
+RESULT tests/validate.py:cpu=20.2 s (provisional)
+RESULT tests/arch_score_head.py:solves=0 count
+RESULT tests/arch_score_head.py:asserts=18 count (ALL-N, rc=0)
+RESULT tests/arch_score_head.py:asserts_per_solve=None ratio
+RESULT tests/arch_score_head.py:wall=48.3 s (provisional)
+RESULT tests/arch_score_head.py:cpu=46.6 s (provisional)
+RESULT tests/config_flow_steps.py:solves=1 count
+RESULT tests/config_flow_steps.py:asserts=586 count (ALL-N, rc=0)
+RESULT tests/config_flow_steps.py:asserts_per_solve=586.0 ratio
+RESULT tests/config_flow_steps.py:wall=20.0 s (provisional)
+RESULT tests/config_flow_steps.py:cpu=19.4 s (provisional)
+RESULT tests/backtest.py:solves=11 count
+RESULT tests/backtest.py:asserts=25 count (ALL-N, rc=0)
+RESULT tests/backtest.py:asserts_per_solve=2.273 ratio
+RESULT tests/backtest.py:wall=73.4 s (provisional)
+RESULT tests/backtest.py:cpu=61.8 s (provisional)
+RESULT tests/dst_checks.py:solves=116 count
+RESULT tests/dst_checks.py:asserts=129 count (ok-lines, rc=1)
+RESULT tests/dst_checks.py:asserts_per_solve=1.112 ratio
+RESULT tests/dst_checks.py:wall=56.6 s (provisional)
+RESULT tests/dst_checks.py:cpu=47.0 s (provisional)
+RESULT tests/finite_boundary.py:solves=0 count
+RESULT tests/finite_boundary.py:asserts=114 count (ALL-N, rc=0)
+RESULT tests/finite_boundary.py:asserts_per_solve=None ratio
+RESULT tests/finite_boundary.py:wall=103.3 s (provisional)
+RESULT tests/finite_boundary.py:cpu=92.1 s (provisional)
+RESULT tests/optimality.py:solves=23 count
+RESULT tests/optimality.py:asserts=84 count (ALL-N, rc=0)
+RESULT tests/optimality.py:asserts_per_solve=3.652 ratio
+RESULT tests/optimality.py:wall=169.8 s (provisional)
+RESULT tests/optimality.py:cpu=109.5 s (provisional)

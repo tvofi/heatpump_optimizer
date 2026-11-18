@@ -1,0 +1,54 @@
+{
+ "id": "D3-s3-02",
+ "scope": "D3-s3",
+ "step": "D3.M5",
+ "title": "Scoped gate selects by file: 265 of 1423 selected runs import the edited module but run none of its function bodies",
+ "severity": "low",
+ "claim": "For a diff confined to function bodies of one production file in this seat's cells, tests/closure.py:select runs every script whose closure lists the file. In 265 of the 1423 (file, script) selections over the 65 cell files, the script's traced green run (the mutation lane's own tracer) imports the file but executes no line inside any of its function bodies and never reads it as text. The selected run therefore cannot observe the edit. The worst cases are boost_drift_replay.py (341 s recorded), forced by body edits to 19 cell files it only imports; optimality.py (142.5 s) by 6; backtest, edge and validate by 7 each; and env_drift.py, by the any-integration-change belt, for 19 files its --all capture only imports. Summed recorded seconds over these pairs: 7520 s, or about 116 s per one-file body edit, before counting env_drift's stub-recorded --all run. tests/mutation_table.py already skips such pairs (never_reaches) from the same traces. closure.select does not use them.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/overapprox.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s3/overapprox.py",
+  "value": 265,
+  "unit": "(cell file, selected script) pairs: imported, no body line executed; of 1423 selected",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B3 (4 vCPU linux)",
+  "cpu_or_wall": "count",
+  "contention_note": "fan-out, load1 ~11-13. Counts come from traces and are contention-immune. Seconds are committed recorded.seconds; env_drift/golden are costed at the measured 313 s pre-screen baseline wall, which is provisional (true)",
+  "tolerance": "exact (counts); seconds provisional for env_drift/golden only",
+  "load1": 11.43,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/closure.py:select, against production module code objects' LINE events (tests/mutation_table.py:REACH_HOOK traces of each script's green run)",
+ "perturbation": {
+  "change": "overapprox.py --perturb-drop 10: remove the first 10 wasted pairs (no env_drift, no PRODUCERS producer) from a private closures.json patched into closure.CLOSURES",
+  "expected_direction": "down",
+  "observed_value": "wasted_imported_pairs 265 -> 255 (overapprox_perturb.out)"
+ },
+ "metric_definition": "Pairs (cell file F, S in closure.select([F]).run) whose traced green run executes a line of F but none inside a function body of F and never reads F as text",
+ "phenomenon_property": "A script the scoped gate runs for a change can execute the changed lines. For a body-only diff, the selected script's measured reach covers at least one changed function body.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/overapprox.py --json OUT lists every (file, script, seconds) wasted pair over the seat's production files (the files come from tools/audit/check_scopes.py through enumerate.py:cells). Widening it to the whole package means replacing that filter once reach rows exist for every script.",
+ "leave_one_out": {
+  "cells": 65,
+  "min": 0,
+  "max": 907,
+  "drop_most_favourable": 249
+ },
+ "stop_rule_class": "hygiene",
+ "class_guess": "I2",
+ "files": [
+  "tests/closure.py",
+  "tests/closures.json",
+  "tests/mutation_table.py"
+ ],
+ "proposed_fix_scope": "tests/closure.py:select: for a diff whose hunks all fall inside function bodies, skip a selected script whose recorded line reach (record it with the closure, as mutation_table.traced_baseline already does) executes none of the changed functions. Keep the file-level rule for module-level hunks, for scripts that read the file as text, and for any script without a clean reach row. The forced FULL run on main stays the backstop.",
+ "reproduction_steps": [
+  "python3 tests/closure.py select --files custom_components/heatpump_optimizer/plan_step.py prints 27 RUN scripts",
+  "dev/audit/rounds/round11/D3/s3/reach/tests_optimality.py.json: hits for plan_step.py are 7 lines, all module-level (import); none inside a def",
+  "overapprox.py prints plan_step.py: 907 s over 10 of 27 selected"
+ ],
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/overapprox.py --null-any-line",
+  "value": 28,
+  "note": "file-level arm (wasted only if no line of F runs at all): 28 = D3-s3-01's 21 stale entries + 7 env_drift belt pairs, so the 265 body-level excess is not file-level closure error"
+ }
+}

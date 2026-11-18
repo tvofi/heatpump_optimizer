@@ -1,0 +1,29 @@
+RESULT tests/features.py:calls=482 count (rc=0)
+RESULT tests/features.py:hashed=382 count
+RESULT tests/features.py:repeats=60 count
+RESULT tests/features.py:repeat_cpu=52.2 s (provisional)
+RESULT tests/features.py:solve_cpu=512.17 s (provisional)
+RESULT tests/features.py:wall=1978.7 s (provisional)
+RESULT tests/features.py:cpu=1095.8 s (provisional)
+  repeat 28x at features.py:71641:_r9egb9_transport (first solved at features.py:71641:_r9egb9_transport) cpu=30.54 s
+  repeat 10x at features.py:40889:_lg_band (first solved at features.py:40889:_lg_band) cpu=1.41 s
+  repeat 8x at features.py:1117:_r9f13_inline (first solved at features.py:1117:_r9f13_inline) cpu=2.66 s
+  repeat 2x at features.py:11862:_ct_solve (first solved at features.py:11862:_ct_solve) cpu=5.2 s
+  repeat 2x at features.py:36808:_mb_run (first solved at features.py:36808:_mb_run) cpu=0.21 s
+  repeat 2x at features.py:68920:_f21_storage_solve (first solved at features.py:68920:_f21_storage_solve) cpu=7.22 s
+  repeat 1x at features.py:5922:_weekly_solve (first solved at features.py:5922:_weekly_solve) cpu=0.13 s
+  repeat 1x at features.py:21411:_m_solve (first solved at features.py:19931:_q_solve) cpu=1.13 s
+  repeat 1x at features.py:22986:<module> (first solved at features.py:19230:_cap_solve) cpu=0.17 s
+  repeat 1x at features.py:40311:_lg_plan (first solved at features.py:40311:_lg_plan) cpu=0.17 s
+  repeat 1x at features.py:40311:_lg_plan (first solved at features.py:19230:_cap_solve) cpu=0.18 s
+  repeat 1x at features.py:41159:_lg_e2e (first solved at features.py:41159:_lg_e2e) cpu=0.17 s
+RESULT tests/dst_checks.py:calls=116 count (rc=1)
+RESULT tests/dst_checks.py:hashed=116 count
+RESULT tests/dst_checks.py:repeats=0 count
+RESULT tests/dst_checks.py:repeat_cpu=0 s (provisional)
+RESULT tests/dst_checks.py:solve_cpu=37.92 s (provisional)
+RESULT tests/dst_checks.py:wall=146.3 s (provisional)
+RESULT tests/dst_checks.py:cpu=76.7 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=80.73
+RESULT swapins=-1

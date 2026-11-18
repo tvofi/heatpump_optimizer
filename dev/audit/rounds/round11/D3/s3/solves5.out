@@ -1,0 +1,33 @@
+RESULT tests/env_drift.py --all HEAD^1:solves=50 count
+RESULT tests/env_drift.py --all HEAD^1:asserts=39 count (ok-lines, rc=0)
+RESULT tests/env_drift.py --all HEAD^1:asserts_per_solve=0.78 ratio
+RESULT tests/env_drift.py --all HEAD^1:distinct_inputs=50 count (unhashable=0, summed per process)
+RESULT tests/env_drift.py --all HEAD^1:wall=174.0 s (provisional)
+RESULT tests/env_drift.py --all HEAD^1:cpu=99.6 s (provisional)
+RESULT tests/features.py:solves=575 count
+RESULT tests/features.py:asserts=5780 count (ALL-N, rc=0)
+RESULT tests/features.py:asserts_per_solve=10.052 ratio
+RESULT tests/features.py:distinct_inputs=351 count (unhashable=100, summed per process)
+RESULT tests/features.py:wall=925.6 s (provisional)
+RESULT tests/features.py:cpu=683.3 s (provisional)
+RESULT tests/entities.py:solves=33 count
+RESULT tests/entities.py:asserts=2760 count (ok-lines, rc=1)
+RESULT tests/entities.py:asserts_per_solve=83.636 ratio
+RESULT tests/entities.py:distinct_inputs=33 count (unhashable=0, summed per process)
+RESULT tests/entities.py:wall=598.8 s (provisional)
+RESULT tests/entities.py:cpu=481.9 s (provisional)
+RESULT tests/arch_score.py:solves=0 count
+RESULT tests/arch_score.py:asserts=280 count (ALL-N, rc=0)
+RESULT tests/arch_score.py:asserts_per_solve=None ratio
+RESULT tests/arch_score.py:distinct_inputs=0 count (unhashable=0, summed per process)
+RESULT tests/arch_score.py:wall=3460.8 s (provisional)
+RESULT tests/arch_score.py:cpu=3321.7 s (provisional)
+RESULT tests/harness_headers.py:solves=5 count
+RESULT tests/harness_headers.py:asserts=112 count (ok-lines, rc=1)
+RESULT tests/harness_headers.py:asserts_per_solve=22.4 ratio
+RESULT tests/harness_headers.py:distinct_inputs=4 count (unhashable=0, summed per process)
+RESULT tests/harness_headers.py:wall=221.9 s (provisional)
+RESULT tests/harness_headers.py:cpu=140.9 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=13.56
+RESULT swapins=0

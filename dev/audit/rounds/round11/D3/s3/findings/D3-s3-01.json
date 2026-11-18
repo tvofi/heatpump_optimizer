@@ -1,0 +1,48 @@
+{
+ "id": "D3-s3-01",
+ "scope": "D3-s3",
+ "step": "D3.M5",
+ "title": "Closure merge never sheds a file a script stopped touching: 21 stale pairs force 1209 s of runs that cannot see the edit",
+ "severity": "low",
+ "claim": "tests/closure.py:_keep_committed_files keeps every committed closure entry a fresh recording omits, as long as the file still exists. On this tree, fresh `closure.py record` runs of 11 gate scripts omit, for files in this seat's cells, freq_control.py and log_latch.py (optimality, edge, validate, backtest) and repairs.py and silent_mode.py (boost_drift_replay, debug_collect, guard_pins, manual_plan, plan_view, solar_alignment, wood_advisor). merge --partial folds those records in and keeps all 21 pairs, and closure.select([F]) then puts the script in RUN for an edit to F, even though the script neither imports nor opens F. The lane tracer agrees: none of these runs executes a single line of those files, imports included. One edit to each of the four files forces 1209 s of recorded script time that cannot observe it. Outside the cells, inputs.py is stale in four of the solver scripts' entries in the same way.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/stale_closure.py --rec-dir dev/audit/rounds/round11/D3/s3/rec tests/optimality.py tests/edge.py tests/validate.py tests/backtest.py tests/debug_collect.py tests/wood_advisor.py tests/plan_view.py tests/solar_alignment.py tests/manual_plan.py tests/guard_pins.py tests/boost_drift_replay.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s3/stale_closure.py",
+  "value": 21,
+  "unit": "kept (script, cell-file) pairs; forced_seconds=1209 s recorded",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B3 (4 vCPU linux, strace recorder path)",
+  "cpu_or_wall": "count",
+  "contention_note": "fan-out: other seats' solves kept load1 near 12; the count is contention-immune (what the recordings opened), and seconds are the committed recorded values, not measured",
+  "tolerance": "exact",
+  "load1": 11.96,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/closure.py:_keep_committed_files (via tests/closure.py:merge partial=True, read back through tests/closure.py:select)",
+ "perturbation": {
+  "change": "stale_closure.py --perturb-shrink: patch tests/closure.py:_keep_committed_files in memory to return the fresh recording's set (phantom handling unchanged)",
+  "expected_direction": "to_zero",
+  "observed_value": "kept_pairs 21 -> 0, forced_seconds 1209 -> 0 (stale_closure_perturb.out)"
+ },
+ "metric_definition": "kept_pairs = (S, cell file F) with F in S's merged entry, absent from S's fresh green recording, and S in closure.select([F]).run; forced_seconds = sum of S's recorded seconds over them",
+ "phenomenon_property": "Every file a committed closure lists is one that a fresh, green recording of the same script on the same tree touches. A closure may only gain a file through a recording, and it must also be able to lose one through a recording.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/stale_closure.py $(python3 -c \"import json;print(' '.join(json.load(open('tests/closures.json'))['recorded']))\") lists every script's kept pairs (drop the cells filter to cover the whole package)",
+ "stop_rule_class": "bug",
+ "class_guess": "I2",
+ "files": [
+  "tests/closure.py",
+  "tests/closures.json"
+ ],
+ "proposed_fix_scope": "tests/closure.py: let merge drop a committed file that a full, green strace-path recording of the same script does not touch. Keep the #527 never-shrink guard for node-fs-trace and partial or failed recordings. Then re-record the 11 scripts above (CI's closures job), so their entries lose freq_control.py, log_latch.py, repairs.py, silent_mode.py and inputs.py.",
+ "reproduction_steps": [
+  "Take a fresh recording on this tree: PYTHONPATH=tests/hastub python3 tests/closure.py record tests/optimality.py --out-dir D (the committed recordings are in dev/audit/rounds/round11/D3/s3/rec/)",
+  "Compare: committed tests/closures.json lists freq_control.py, inputs.py and log_latch.py for tests/optimality.py, and D/optimality.py.json does not",
+  "python3 tests/closure.py merge --in-dir D --partial --out <copy of closures.json> prints 'tests/optimality.py would drop 3 file(s) the committed closure listed; keeping them.'",
+  "python3 tests/closure.py select --files custom_components/heatpump_optimizer/freq_control.py: RUN includes tests/optimality.py (142.5 s recorded)"
+ ],
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/stale_closure.py --rec-dir dev/audit/rounds/round11/D3/s3/rec tests/optimality.py tests/edge.py tests/validate.py tests/backtest.py tests/debug_collect.py tests/wood_advisor.py tests/plan_view.py tests/solar_alignment.py tests/manual_plan.py tests/guard_pins.py tests/boost_drift_replay.py",
+  "value": 0,
+  "note": "a script whose fresh record equals its committed entry contributes 0 kept pairs in both arms"
+ }
+}

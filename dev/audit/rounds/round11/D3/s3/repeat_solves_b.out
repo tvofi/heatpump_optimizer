@@ -1,0 +1,29 @@
+RESULT tests/features.py:calls=725 count (rc=0)
+RESULT tests/features.py:hashed=625 count
+RESULT tests/features.py:repeats=113 count
+RESULT tests/features.py:repeat_cpu=58.14 s (provisional)
+RESULT tests/features.py:solve_cpu=474.84 s (provisional)
+RESULT tests/features.py:wall=767.8 s (provisional)
+RESULT tests/features.py:cpu=708.9 s (provisional)
+  repeat 53x at ? (first solved at ?) cpu=25.78 s
+  repeat 28x at features.py:71641:_r9egb9_transport (first solved at features.py:71641:_r9egb9_transport) cpu=16.65 s
+  repeat 10x at features.py:40889:_lg_band (first solved at features.py:40889:_lg_band) cpu=0.94 s
+  repeat 8x at features.py:1117:_r9f13_inline (first solved at features.py:1117:_r9f13_inline) cpu=2.54 s
+  repeat 2x at features.py:11862:_ct_solve (first solved at features.py:11862:_ct_solve) cpu=3.88 s
+  repeat 2x at features.py:36808:_mb_run (first solved at features.py:36808:_mb_run) cpu=0.16 s
+  repeat 2x at features.py:68920:_f21_storage_solve (first solved at features.py:68920:_f21_storage_solve) cpu=4.59 s
+  repeat 1x at features.py:5922:_weekly_solve (first solved at features.py:5922:_weekly_solve) cpu=0.11 s
+  repeat 1x at features.py:21411:_m_solve (first solved at features.py:19931:_q_solve) cpu=0.8 s
+  repeat 1x at features.py:22986:<module> (first solved at features.py:19230:_cap_solve) cpu=0.12 s
+  repeat 1x at features.py:40311:_lg_plan (first solved at features.py:40311:_lg_plan) cpu=0.13 s
+  repeat 1x at features.py:40311:_lg_plan (first solved at features.py:19230:_cap_solve) cpu=0.12 s
+RESULT tests/dst_checks.py:calls=116 count (rc=1)
+RESULT tests/dst_checks.py:hashed=116 count
+RESULT tests/dst_checks.py:repeats=0 count
+RESULT tests/dst_checks.py:repeat_cpu=0 s (provisional)
+RESULT tests/dst_checks.py:solve_cpu=24.88 s (provisional)
+RESULT tests/dst_checks.py:wall=50.4 s (provisional)
+RESULT tests/dst_checks.py:cpu=46.4 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=2.36
+RESULT swapins=0

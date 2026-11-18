@@ -1,0 +1,810 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D3/s3/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s3/enumerate.py --weights",
+   "universe": 663,
+   "examined": 663,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "enumerate.py prints the 663 unpinned inventory sites in the seat's 66 production cells. --weights gives each one its consequence weight: 5 for RAISE/GUARD/CMP/CLAMP sites on a hot pattern, down to 1. reach_census.py --lenient reads, for all 663, which traced driver executes the line or reads the file. reach_dead=0: every site is executed by at least one traced driver or read as text by one. 154 sites are executed by exactly one driver, and features.py is the sole executor of 120 of them. select_pool.py ranks the whole universe by weight and then by survivor sweep cost, at most one site per file, and its first 38 lines are the M2 pool (selection_local.txt). C8: the 30-40 target for this round is met by the 38-site pool, not by a sample."
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s3/enumerate.py",
+   "universe": 663,
+   "examined": 0,
+   "not_reached": [
+    "away.py:177 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "boost.py:595 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "comfort_band.py:141 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "comfort_learning.py:143 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "config_flow.py:1049 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "curve_learning.py:94 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "device_prefill.py:250 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "dhw_draws.py:150 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "dhw_learning.py:267 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "dhw_schedule.py:410 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "diagnosis.py:105 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "external_heat.py:228 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "freq_control.py:150 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "legionella.py:256 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "mixing_valve.py:175 CLAMP_DROP (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "modbus_prefill.py:174 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "narrative.py:139 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "power_guard.py:84 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "presets.py:225 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "pump_arbiter.py:1455 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "pump_schedule.py:51 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "pv.py:70 CLAMP_DROP (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "quick_setup.py:140 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "repairs.py:36 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "wood_fuel.py:347 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "frontend.py:91 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "open_meteo.py:174 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "plan_slots.py:69 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "battery.py:316 CLAMP_DROP (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "manual_plan.py:147 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "wear.py:241 CMP_BOUND (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "pump_signals.py:549 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "disinfection.py:126 RETURN_DEL (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "drift.py:324 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "name_match.py:144 RETURN_DEL (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "prefill_offer.py:101 GUARD_OFF (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "pump_mode.py:271 RETURN_DEL (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "silent_mode.py:116 CLAMP_DROP (pool; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB)",
+    "away.py (35 site(s))",
+    "battery.py (13 site(s))",
+    "boost.py (4 site(s))",
+    "comfort_band.py (15 site(s))",
+    "comfort_learning.py (19 site(s))",
+    "config_flow.py (83 site(s))",
+    "curve_learning.py (12 site(s))",
+    "device_prefill.py (5 site(s))",
+    "dhw_draws.py (13 site(s))",
+    "dhw_learning.py (40 site(s))",
+    "dhw_schedule.py (57 site(s))",
+    "diagnosis.py (10 site(s))",
+    "disinfection.py (10 site(s))",
+    "drift.py (10 site(s))",
+    "external_heat.py (42 site(s))",
+    "freq_control.py (34 site(s))",
+    "frontend.py (8 site(s))",
+    "legionella.py (15 site(s))",
+    "manual_plan.py (18 site(s))",
+    "mixing_valve.py (5 site(s))",
+    "modbus_prefill.py (12 site(s))",
+    "name_match.py (13 site(s))",
+    "narrative.py (2 site(s))",
+    "open_meteo.py (37 site(s))",
+    "plan_slots.py (2 site(s))",
+    "power_guard.py (15 site(s))",
+    "prefill_offer.py (4 site(s))",
+    "presets.py (18 site(s))",
+    "pump_arbiter.py (8 site(s))",
+    "pump_mode.py (4 site(s))",
+    "pump_schedule.py (9 site(s))",
+    "pump_signals.py (8 site(s))",
+    "pv.py (7 site(s))",
+    "quick_setup.py (4 site(s))",
+    "repairs.py (2 site(s))",
+    "silent_mode.py (5 site(s))",
+    "wear.py (4 site(s))",
+    "wood_fuel.py (61 site(s))"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "prescreen.py drives tests/mutation_table.py's own lane over each pooled site: worker clones, null control, killed(), reach_skip. Each site runs against its measured closure minus stress/edge/backtest, plus env_drift.py --all HEAD^1 (= the baseline). The run is from a scratch clone with one local, never-pushed marker commit. Records are prescreen_local.out, prescreen_local.json, and prescreen_local.progress.jsonl (per pair, crash-safe); prescreen_table.py tabulates them. --reach-rows stands in box B3's traced reach rows (same SHA) and runs the baselines untraced here. Tolerated baseline reds at this machine, each one a check that reads no production file: doc_claims (the finder-wall backlog link); entities (5 machinery checks: closure re-derive, PR template, the #1471 window reader x2 because the clone's origin is a local path, and a late-descendant wait); optimality (one claim-closed row, BLAS build). A kill needs more FAILs than these. C2 and C6: dev/audit/rounds/round10/D3/ was stripped from this export by prepare_baseline.sh --strip (the finder wall), so round 10's M25-M36 and its four survivors cannot be re-run here. This round re-pooled from its own universe instead. RESUME: Per-pair verdicts lost: prescreen_local.json/.progress.jsonl and prescreen_cheap.* were in the scratch clone under /private/tmp, cleared by the machine reboot at ~17:40Z. Attempt 3 (null control survived every driver, mutants from ~13:59Z) and the cheap-subset screen (from 16:24Z) produced verdicts that cannot be reported. The only verdict in the progress log, away.py:177 'killed' by entities.py at 16:58:57Z, fell in the ENOSPC window (~16:57Z) and is suspect, so it is not counted. examined=0 is the honest count."
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "python3 dev/audit/rounds/round11/D3/s3/prescreen_table.py --survivors (records lost; m4_answers.json names the two survivor candidates recorded before the crash)",
+   "universe": 2,
+   "examined": 0,
+   "not_reached": [
+    "away.py:177 GUARD_OFF",
+    "boost.py:595 CMP_BOUND"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "The candidates are prescreen_table.py --survivors, each with its closure, the scripts that ran, and the fact that none killed it. The full GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six survivors belongs to the quiet window (D3.md step 3), never the fan-out, so none of them is a finding yet. C3 and C5 name round 10's survivors and round 10's REPORT.md, which are not in this export (finder wall). They go to the orchestrator's quiet window and record. RESUME: survivor status of away.py:177 GUARD_OFF, boost.py:595 CMP_BOUND is unconfirmed (records lost); away.py:177's entities.py kill is suspect (ENOSPC window). The M4 answers are kept as provisional."
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "python3 dev/audit/rounds/round11/D3/s3/prescreen_table.py --survivors (records lost; m4_answers.json names the two survivor candidates recorded before the crash)",
+   "universe": 2,
+   "examined": 2,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "m4.json: for each survivor, the production line, its file, and the check that should have failed. RESUME: survivor status of away.py:177 GUARD_OFF, boost.py:595 CMP_BOUND is unconfirmed (records lost); away.py:177's entities.py kill is suspect (ENOSPC window). The M4 answers are kept as provisional."
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "python3 dev/audit/rounds/round11/D3/s3/enumerate_m5.py",
+   "universe": 34,
+   "examined": 33,
+   "not_reached": [
+    "tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "m5_table.py (from solves*.out) gives S, A, A/S, and provisional wall/CPU against closures.json seconds for 33 of the 34 scripts. stress.py is quiet-window only. overapprox.py and stale_closure.py cover closure over-approximation (D3-s3-01, -02). repeat_solves.py covers repeat solves (D3-s3-03). C1: this round's M5 has an enumerator (enumerate_m5.py, 34 scripts) and a measured row per script. C4: assertions per solve are measured for 33 of 34, and closure over-approximation is D3-s3-02. C7: the quiet-box gate table is not taken. Wall/CPU are provisional (load1 40-226 here, 2-13 on B3); over-approximation of the 341 s boost_drift_replay closure is measured in D3-s3-02. C9: the kill-overlap matrix needs --overlap (every closure script on every mutant). At about 45 min per features.py run on this box, it was not taken."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D3.M2",
+   "what": "Re-run the 38-site pool pre-screen (selection_local.txt) on a quiet box. Per-pair verdicts lost: prescreen_local.json/.progress.jsonl and prescreen_cheap.* were in the scratch clone under /private/tmp, cleared by the machine reboot at ~17:40Z. Attempt 3 (null control survived every driver, mutants from ~13:59Z) and the cheap-subset screen (from 16:24Z) produced verdicts that cannot be reported. The only verdict in the progress log, away.py:177 'killed' by entities.py at 16:58:57Z, fell in the ENOSPC window (~16:57Z) and is suspect, so it is not counted. examined=0 is the honest count. Keep the records inside the worktree, not under /private/tmp."
+  },
+  {
+   "step": "D3.M2",
+   "what": "Pre-screened only the 38-site weighted pool (selection_local.txt), and only the part of it the window allowed (prescreen_table.py: KILLED/LIVES vs OPEN/NOT-RUN). The remaining sites of the 663 universe are listed by file in coverage.not_reached. Each survivor sweep costs about 45 min of features.py plus 20 min of entities.py at load1 40-226 on the shared 8 GB M1. Re-run with: prescreen.py --sites <next lines of select_pool.py --n 663 --per-file 99> --reach-rows --reuse-baselines --progress P."
+  },
+  {
+   "step": "D3.M3",
+   "what": "The full GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six survivors is owed to the quiet window. Round 10's C3/C5 items (its survivors M08, M01, M03, M22, M21, M19 and its REPORT.md) are not in this export."
+  },
+  {
+   "step": "D3.M5",
+   "what": "Quiet-box per-script CPU table (C7), kill-overlap matrix via prescreen.py --overlap (C9), and stress.py's S/A row (stress.py runs only in the quiet window)."
+  },
+  {
+   "step": "D3.M3/M4",
+   "what": "Confirm survival of away.py:177 GUARD_OFF and boost.py:595 CMP_BOUND against the full closure (features.py, entities.py), then run the quiet-window full gate."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D3-s3-01",
+   "scope": "D3-s3",
+   "step": "D3.M5",
+   "title": "Closure merge never sheds a file a script stopped touching: 21 stale pairs force 1209 s of runs that cannot see the edit",
+   "severity": "low",
+   "claim": "tests/closure.py:_keep_committed_files keeps every committed closure entry a fresh recording omits, as long as the file still exists. On this tree, fresh `closure.py record` runs of 11 gate scripts omit, for files in this seat's cells, freq_control.py and log_latch.py (optimality, edge, validate, backtest) and repairs.py and silent_mode.py (boost_drift_replay, debug_collect, guard_pins, manual_plan, plan_view, solar_alignment, wood_advisor). merge --partial folds those records in and keeps all 21 pairs, and closure.select([F]) then puts the script in RUN for an edit to F, even though the script neither imports nor opens F. The lane tracer agrees: none of these runs executes a single line of those files, imports included. One edit to each of the four files forces 1209 s of recorded script time that cannot observe it. Outside the cells, inputs.py is stale in four of the solver scripts' entries in the same way.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/stale_closure.py --rec-dir dev/audit/rounds/round11/D3/s3/rec tests/optimality.py tests/edge.py tests/validate.py tests/backtest.py tests/debug_collect.py tests/wood_advisor.py tests/plan_view.py tests/solar_alignment.py tests/manual_plan.py tests/guard_pins.py tests/boost_drift_replay.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s3/stale_closure.py",
+    "value": 21,
+    "unit": "kept (script, cell-file) pairs; forced_seconds=1209 s recorded",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B3 (4 vCPU linux, strace recorder path)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other seats' solves kept load1 near 12; the count is contention-immune (what the recordings opened), and seconds are the committed recorded values, not measured",
+    "tolerance": "exact",
+    "load1": 11.96,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/closure.py:_keep_committed_files (via tests/closure.py:merge partial=True, read back through tests/closure.py:select)",
+   "perturbation": {
+    "change": "stale_closure.py --perturb-shrink: patch tests/closure.py:_keep_committed_files in memory to return the fresh recording's set (phantom handling unchanged)",
+    "expected_direction": "to_zero",
+    "observed_value": "kept_pairs 21 -> 0, forced_seconds 1209 -> 0 (stale_closure_perturb.out)"
+   },
+   "metric_definition": "kept_pairs = (S, cell file F) with F in S's merged entry, absent from S's fresh green recording, and S in closure.select([F]).run; forced_seconds = sum of S's recorded seconds over them",
+   "phenomenon_property": "Every file a committed closure lists is one that a fresh, green recording of the same script on the same tree touches. A closure may only gain a file through a recording, and it must also be able to lose one through a recording.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/stale_closure.py $(python3 -c \"import json;print(' '.join(json.load(open('tests/closures.json'))['recorded']))\") lists every script's kept pairs (drop the cells filter to cover the whole package)",
+   "stop_rule_class": "bug",
+   "class_guess": "I2",
+   "files": [
+    "tests/closure.py",
+    "tests/closures.json"
+   ],
+   "proposed_fix_scope": "tests/closure.py: let merge drop a committed file that a full, green strace-path recording of the same script does not touch. Keep the #527 never-shrink guard for node-fs-trace and partial or failed recordings. Then re-record the 11 scripts above (CI's closures job), so their entries lose freq_control.py, log_latch.py, repairs.py, silent_mode.py and inputs.py.",
+   "reproduction_steps": [
+    "Take a fresh recording on this tree: PYTHONPATH=tests/hastub python3 tests/closure.py record tests/optimality.py --out-dir D (the committed recordings are in dev/audit/rounds/round11/D3/s3/rec/)",
+    "Compare: committed tests/closures.json lists freq_control.py, inputs.py and log_latch.py for tests/optimality.py, and D/optimality.py.json does not",
+    "python3 tests/closure.py merge --in-dir D --partial --out <copy of closures.json> prints 'tests/optimality.py would drop 3 file(s) the committed closure listed; keeping them.'",
+    "python3 tests/closure.py select --files custom_components/heatpump_optimizer/freq_control.py: RUN includes tests/optimality.py (142.5 s recorded)"
+   ],
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/stale_closure.py --rec-dir dev/audit/rounds/round11/D3/s3/rec tests/optimality.py tests/edge.py tests/validate.py tests/backtest.py tests/debug_collect.py tests/wood_advisor.py tests/plan_view.py tests/solar_alignment.py tests/manual_plan.py tests/guard_pins.py tests/boost_drift_replay.py",
+    "value": 0,
+    "note": "a script whose fresh record equals its committed entry contributes 0 kept pairs in both arms"
+   },
+   "contention_note": "Another D3 seat and verifier seats ran on this machine; wall/CPU numbers are provisional. Harness outputs predate the 17:40Z reboot and are kept because their files exist."
+  },
+  {
+   "id": "D3-s3-02",
+   "scope": "D3-s3",
+   "step": "D3.M5",
+   "title": "Scoped gate selects by file: 265 of 1423 selected runs import the edited module but run none of its function bodies",
+   "severity": "low",
+   "claim": "For a diff confined to function bodies of one production file in this seat's cells, tests/closure.py:select runs every script whose closure lists the file. In 265 of the 1423 (file, script) selections over the 65 cell files, the script's traced green run (the mutation lane's own tracer) imports the file but executes no line inside any of its function bodies and never reads it as text. The selected run therefore cannot observe the edit. The worst cases are boost_drift_replay.py (341 s recorded), forced by body edits to 19 cell files it only imports; optimality.py (142.5 s) by 6; backtest, edge and validate by 7 each; and env_drift.py, by the any-integration-change belt, for 19 files its --all capture only imports. Summed recorded seconds over these pairs: 7520 s, or about 116 s per one-file body edit, before counting env_drift's stub-recorded --all run. tests/mutation_table.py already skips such pairs (never_reaches) from the same traces. closure.select does not use them.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/overapprox.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s3/overapprox.py",
+    "value": 265,
+    "unit": "(cell file, selected script) pairs: imported, no body line executed; of 1423 selected",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B3 (4 vCPU linux)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, load1 ~11-13. Counts come from traces and are contention-immune. Seconds are committed recorded.seconds; env_drift/golden are costed at the measured 313 s pre-screen baseline wall, which is provisional (true)",
+    "tolerance": "exact (counts); seconds provisional for env_drift/golden only",
+    "load1": 11.43,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/closure.py:select, against production module code objects' LINE events (tests/mutation_table.py:REACH_HOOK traces of each script's green run)",
+   "perturbation": {
+    "change": "overapprox.py --perturb-drop 10: remove the first 10 wasted pairs (no env_drift, no PRODUCERS producer) from a private closures.json patched into closure.CLOSURES",
+    "expected_direction": "down",
+    "observed_value": "wasted_imported_pairs 265 -> 255 (overapprox_perturb.out)"
+   },
+   "metric_definition": "Pairs (cell file F, S in closure.select([F]).run) whose traced green run executes a line of F but none inside a function body of F and never reads F as text",
+   "phenomenon_property": "A script the scoped gate runs for a change can execute the changed lines. For a body-only diff, the selected script's measured reach covers at least one changed function body.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/overapprox.py --json OUT lists every (file, script, seconds) wasted pair over the seat's production files (the files come from tools/audit/check_scopes.py through enumerate.py:cells). Widening it to the whole package means replacing that filter once reach rows exist for every script.",
+   "leave_one_out": {
+    "cells": 65,
+    "min": 0,
+    "max": 907,
+    "drop_most_favourable": 249
+   },
+   "stop_rule_class": "hygiene",
+   "class_guess": "I2",
+   "files": [
+    "tests/closure.py",
+    "tests/closures.json",
+    "tests/mutation_table.py"
+   ],
+   "proposed_fix_scope": "tests/closure.py:select: for a diff whose hunks all fall inside function bodies, skip a selected script whose recorded line reach (record it with the closure, as mutation_table.traced_baseline already does) executes none of the changed functions. Keep the file-level rule for module-level hunks, for scripts that read the file as text, and for any script without a clean reach row. The forced FULL run on main stays the backstop.",
+   "reproduction_steps": [
+    "python3 tests/closure.py select --files custom_components/heatpump_optimizer/plan_step.py prints 27 RUN scripts",
+    "dev/audit/rounds/round11/D3/s3/reach/tests_optimality.py.json: hits for plan_step.py are 7 lines, all module-level (import); none inside a def",
+    "overapprox.py prints plan_step.py: 907 s over 10 of 27 selected"
+   ],
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/overapprox.py --null-any-line",
+    "value": 28,
+    "note": "file-level arm (wasted only if no line of F runs at all): 28 = D3-s3-01's 21 stale entries + 7 env_drift belt pairs, so the 265 body-level excess is not file-level closure error"
+   },
+   "contention_note": "Another D3 seat and verifier seats ran on this machine; wall/CPU numbers are provisional. Harness outputs predate the 17:40Z reboot and are kept because their files exist."
+  },
+  {
+   "id": "D3-s3-03",
+   "scope": "D3-s3",
+   "step": "D3.M5",
+   "title": "features.py re-solves identical inputs: 60 main-process solves repeat one the same process already ran (exact, 3 runs)",
+   "severity": "low",
+   "claim": "In a green run of tests/features.py, 60 HeatPumpOptimizer.optimize calls made in the script's own process receive input that pickles byte-identically to a call that same process already solved. The pickle covers the optimizer's __dict__ and the call arguments. It also covers the identity of every function and class bound in every loaded heatpump_optimizer module and in the class dict, so a mock.patch or class swap between two calls makes them distinct. The 60 are exact across three runs on two machines (box B3 Linux: 113 total minus 53 worker-process repeats; orchestrator M1 macOS: 60 of 266 hashed with the atexit hook, and 148 total minus 88 worker repeats with the per-solve snapshot). The largest site is _r9egb9_transport, with 28 repeats from one call site (17-31 s CPU, provisional), followed by _lg_band (10, a helper called with identical arguments) and _r9f13_inline (8). On top of these, the coordinator's persistent process_worker child repeats at least 53 solves (88 when every worker's record survives), at about 72 s CPU. That count is a lower bound: a worker killed at shutdown before atexit lost its record under the original hook, and a worker restart resets its memory. Under the same key, tests/optimality.py has 0 repeats of 23 solves, and its patched re-solves are not counted. dst_checks.py has 0 of 116.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/repeat_solves.py tests/features.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s3/repeat_solves.py",
+    "value": 60,
+    "unit": "main-process repeated identical solves (sites with a tests/ frame); worker-process repeats >=53 lower bound (88 in repeat_solves_rerun2.out); repeat_cpu 52-123 s provisional",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B3 (4 vCPU linux) and orchestrator machine (Apple M1, 8 cores, macOS); outputs repeat_solves_b.out, repeat_solves_rerun_atexit.out, repeat_solves_rerun2.out",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: another D3 seat and verifier seats on the same machine; macOS re-runs at load1 80-226 with swap nearly full. Counts are contention-immune; every CPU/wall number is provisional",
+    "tolerance": "exact (main-process count); worker count is a lower bound",
+    "load1": 226.13,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize (wrapped at module exec by a sitecustomize meta-path loader)",
+   "perturbation": {
+    "change": "repeat_solves.py --perturb-double: the wrapper solves each hashable call twice, restoring the pre-call __dict__ in between; repeats must rise by the hashed-call count",
+    "expected_direction": "up",
+    "observed_value": "tests/manual_plan.py repeats 7 -> 38 (= 7 + 31 hashed calls), reproduced on macOS (repeat_solves_perturb_rerun.out)"
+   },
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/repeat_solves.py --perturb-double tests/manual_plan.py tests/open_meteo.py",
+    "value": 0,
+    "note": "open_meteo.py (no solve) reads 0 repeats in both arms; optimality.py's 4 patched re-solves read 0 under the identity key, so a deliberate mutation-proof re-solve is not counted"
+   },
+   "metric_definition": "Count of optimize() calls in the script's own process (a tests/ frame on the stack) whose pickled (self.__dict__, args, kwargs, identities of heatpump_optimizer module callables and class attrs) equals an earlier call's in that process",
+   "phenomenon_property": "A gate script solves a given optimizer input at most once per process. A check that needs the same plan again reuses the result, and a re-solve exists only where something in the input or the code differs.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/repeat_solves.py $(python3 dev/audit/rounds/round11/D3/s3/enumerate_m5.py | cut -f1 | grep '\\.py$') lists every repeating call site per script",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "tests/features.py"
+   ],
+   "proposed_fix_scope": "tests/features.py: memoise the solve in the helpers that repeat it, keyed on their arguments: _lg_band, and the _r9egb9 and _r9f13 transports' probe and null arms, which share a scenario. Do not memoise deliberate re-solves, such as determinism checks or patched-code arms. repeat_solves.py should read 0 repeats at the named sites afterwards.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s3/repeat_solves.py tests/features.py",
+    "subtract the 'repeat Nx at ?' line (worker-process solves) from RESULT repeats: 60",
+    "read 'repeat 28x at features.py:71641:_r9egb9_transport' and 'repeat 10x at features.py:40889:_lg_band'"
+   ],
+   "contention_note": "Another D3 seat and verifier seats ran on this machine; wall/CPU numbers are provisional. Harness outputs predate the 17:40Z reboot and are kept because their files exist."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No unpinned site in the cells is reach-dead. Every one of the 663 is executed by at least one traced gate driver or read as text by one, so no mutant is invisible to the fast suite by construction.",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s3/reach_census.py --lenient",
+   "value": "reach_dead=0 of 663 (executed_by_0=4, all read as text by features.py/entities.py)"
+  },
+  {
+   "claim": "closures.json's recorded seconds for env_drift.py (1.0 s) and golden.py (1.2 s) understate their real runs by about 150x, but this is disclosed. tests/closure.py's #934 pin keeps the stub-seconds disclosure in the file's _comment, and mutation_table compensates.",
+   "command": "python3 dev/audit/rounds/round11/D3/s3/m5_table.py",
+   "value": "env_drift wall 174 s vs recorded 1.0 s; golden 175 s vs 1.2 s (provisional)"
+  },
+  {
+   "claim": "arch_score.py's recorded 306 s is its --smoke closure recording by design: the docstring says it is recorded with --smoke, and the full run belongs to CI's arch-instrument job, not the scoped gate (run.sh RUN_PART skip).",
+   "command": "python3 dev/audit/rounds/round11/D3/s3/m5_table.py",
+   "value": "full run cpu 3322 s vs recorded 306 s (provisional, B3)"
+  },
+  {
+   "claim": "boost_drift_replay.py solves far more than it asserts (789 solves, 46 checks, A/S 0.058), yet the solves are distinct replay steps, not repeats. 786 of 789 inputs are distinct, so no saving exists without changing what the replay covers.",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s3/solves.py --distinct tests/boost_drift_replay.py",
+   "value": "S=789 A=46 distinct=786"
+  },
+  {
+   "claim": "tests/optimality.py and tests/dst_checks.py repeat no solve under the identity key. optimality's 4 deliberate patched re-solves are not counted.",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s3/repeat_solves.py tests/optimality.py tests/dst_checks.py",
+   "value": "repeats 0/23 and 0/116"
+  },
+  {
+   "claim": "validate.py reports A=0 because it prints ISSUES: bullets rather than ok-lines, which solves.py's assert counter does not read. This is a gap in the harness, not in the suite.",
+   "command": "python3 dev/audit/rounds/round11/D3/s3/m5_table.py",
+   "value": "validate.py S=22 A=0 (counter form)"
+  },
+  {
+   "claim": "D3-s3-01's stale pairs are not an artefact of B3's Linux strace recorder. Fresh macOS recordings of debug_collect.py and plan_view.py give the same file sets and the same 4 kept pairs.",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s3/stale_closure.py --rec-dir dev/audit/rounds/round11/D3/s3/rec_mac tests/debug_collect.py tests/plan_view.py",
+   "value": "kept_pairs=4 (repairs.py, silent_mode.py x2 scripts)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s3/build_report.py",
+  "dev/audit/rounds/round11/D3/s3/build_report_local.py",
+  "dev/audit/rounds/round11/D3/s3/drift_reach.py",
+  "dev/audit/rounds/round11/D3/s3/enumerate.py",
+  "dev/audit/rounds/round11/D3/s3/enumerate_m5.py",
+  "dev/audit/rounds/round11/D3/s3/m5_table.py",
+  "dev/audit/rounds/round11/D3/s3/overapprox.py",
+  "dev/audit/rounds/round11/D3/s3/prescreen.py",
+  "dev/audit/rounds/round11/D3/s3/prescreen_table.py",
+  "dev/audit/rounds/round11/D3/s3/reach_census.py",
+  "dev/audit/rounds/round11/D3/s3/repeat_solves.py",
+  "dev/audit/rounds/round11/D3/s3/select_pool.py",
+  "dev/audit/rounds/round11/D3/s3/solves.py",
+  "dev/audit/rounds/round11/D3/s3/stale_closure.py",
+  "dev/audit/rounds/round11/D3/s3/survivors.py",
+  "dev/audit/rounds/round11/D3/s3/trace_extra.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D1-s1",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_ensure_worker / worker shutdown",
+   "what": "On a loaded box the persistent process_worker child is killed at the parent's shutdown before its atexit runs (repeat_solves.py's original hook lost every worker record on macOS at load1 80). The shutdown path's kill-before-graceful timing under load may deserve a D1 look; it is not measured here."
+  }
+ ],
+ "prescreened": [
+  {
+   "site": "away.py:177 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "boost.py:595 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "comfort_band.py:141 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "comfort_learning.py:143 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "config_flow.py:1049 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "curve_learning.py:94 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "device_prefill.py:250 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "dhw_draws.py:150 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "dhw_learning.py:267 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "dhw_schedule.py:410 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "diagnosis.py:105 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "external_heat.py:228 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "freq_control.py:150 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "legionella.py:256 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "mixing_valve.py:175 CLAMP_DROP",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "modbus_prefill.py:174 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "narrative.py:139 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "power_guard.py:84 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "presets.py:225 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "pump_arbiter.py:1455 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "pump_schedule.py:51 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "pv.py:70 CLAMP_DROP",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "quick_setup.py:140 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "repairs.py:36 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "wood_fuel.py:347 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "frontend.py:91 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "open_meteo.py:174 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "plan_slots.py:69 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "battery.py:316 CLAMP_DROP",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "manual_plan.py:147 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "wear.py:241 CMP_BOUND",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "pump_signals.py:549 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "disinfection.py:126 RETURN_DEL",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "drift.py:324 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "name_match.py:144 RETURN_DEL",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "prefill_offer.py:101 GUARD_OFF",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "pump_mode.py:271 RETURN_DEL",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  },
+  {
+   "site": "silent_mode.py:116 CLAMP_DROP",
+   "state": "NOT-RUN",
+   "verdict": null,
+   "killers": [],
+   "ran": [],
+   "reach_skipped": [],
+   "timed_out": [],
+   "drivers": []
+  }
+ ],
+ "m4_answers": {
+  "away.py:177 GUARD_OFF": {
+   "production_line": "custom_components/heatpump_optimizer/away.py:177 (interpret_presence: `if raw is None: return None`)",
+   "consequence": "With the guard off, raw=None becomes the string 'none'. For a person or device_tracker presence entity this falls through to the named-zone branch and returns True, i.e. away. hass.states.get() returns None for a missing presence entity, for example one that is renamed, deleted or not yet restored at startup. resolve_away (away.py:550) then deep-setbacks an occupied house to away_temperature and away_dhw_min_temperature.",
+   "should_have_failed": "tests/features.py's interpret_presence block (lines 4531-4572) pins 'not_home', 'home', 'work', 'on', 'unavailable' and attribute cases, but never raw=None. The missing check is `away_mode.interpret_presence(None, 'person.alice') is None` beside line 4548's 'unavailable' check.",
+   "status": "provisional: pre-screen record lost; kill at 16:58:57Z suspect"
+  },
+  "boost.py:595 CMP_BOUND": {
+   "production_line": "custom_components/heatpump_optimizer/boost.py:595 (restore: `dt_util.as_utc(parsed) > dt_util.as_utc(now)` keeps a hold only if its until is in the future)",
+   "consequence": "`>` becomes `>=`: a stored hold whose until equals the restore instant to the microsecond is restored as held and expires at once. The only observable difference is at exact equality, so this is a near-equivalent boundary.",
+   "should_have_failed": "A boost restore check in tests/features.py that stores until == the frozen now and asserts the channel is not held. No such equality case exists. Candidate for an `equivalent` disposition rather than a test.",
+   "status": "provisional: pre-screen record lost"
+  }
+ },
+ "report_md": "# D3-s3 REPORT (round 11, box B3, local re-run)\n\nFindings: 3\n- D3-s3-01 (low): Closure merge never sheds a file a script stopped touching: 21 stale pairs force 1209 s of runs that cannot see the edit\n- D3-s3-02 (low): Scoped gate selects by file: 265 of 1423 selected runs import the edited module but run none of its function bodies\n- D3-s3-03 (low): features.py re-solves identical inputs: 60 main-process solves repeat one the same process already ran (exact, 3 runs)\n\nD3-s3-03 is keyed to the 60 main-process repeats. Box B3's total of 113 (60 main + 53 worker repeats) is a stated difference, not the key.\n\n## Crash\nPer-pair verdicts lost: prescreen_local.json/.progress.jsonl and prescreen_cheap.* were in the scratch clone under /private/tmp, cleared by the machine reboot at ~17:40Z. Attempt 3 (null control survived every driver, mutants from ~13:59Z) and the cheap-subset screen (from 16:24Z) produced verdicts that cannot be reported. The only verdict in the progress log, away.py:177 'killed' by entities.py at 16:58:57Z, fell in the ENOSPC window (~16:57Z) and is suspect, so it is not counted. examined=0 is the honest count.\n\n## Unfinished\n- D3.M2: Re-run the 38-site pool pre-screen (selection_local.txt) on a quiet box. Per-pair verdicts lost: prescreen_local.json/.progress.jsonl and prescreen_cheap.* were in the scratch clone under /private/tmp, cleared by the machine reboot at ~17:40Z. Attempt 3 (null control survived every driver, mutants from ~13:59Z) and the cheap-subset screen (from 16:24Z) produced verdicts that cannot be reported. The only verdict in the progress log, away.py:177 'killed' by entities.py at 16:58:57Z, fell in the ENOSPC window (~16:57Z) and is suspect, so it is not counted. examined=0 is the honest count. Keep the records inside the worktree, not under /private/tmp.\n- D3.M2: Pre-screened only the 38-site weighted pool (selection_local.txt), and only the part of it the window allowed (prescreen_table.py: KILLED/LIVES vs OPEN/NOT-RUN). The remaining sites of the 663 universe are listed by file in coverage.not_reached. Each survivor sweep costs about 45 min of features.py plus 20 min of entities.py at load1 40-226 on the shared 8 GB M1. Re-run with: prescreen.py --sites <next lines of select_pool.py --n 663 --per-file 99> --reach-rows --reuse-baselines --progress P.\n- D3.M3: The full GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six survivors is owed to the quiet window. Round 10's C3/C5 items (its survivors M08, M01, M03, M22, M21, M19 and its REPORT.md) are not in this export.\n- D3.M5: Quiet-box per-script CPU table (C7), kill-overlap matrix via prescreen.py --overlap (C9), and stress.py's S/A row (stress.py runs only in the quiet window).\n- D3.M3/M4: Confirm survival of away.py:177 GUARD_OFF and boost.py:595 CMP_BOUND against the full closure (features.py, entities.py), then run the quiet-window full gate.\n\n## Not reached (M2 pool)\nAll 38 pool sites; load1 46.2 / load5 153.4 at 17:50Z (9 min after reboot), 8 cores: CPU share per runnable ~0.17 core; during the run load1 40-226, swap 3.6/4 GB.\n\n- away.py:177 GUARD_OFF\n- boost.py:595 CMP_BOUND\n- comfort_band.py:141 CMP_BOUND\n- comfort_learning.py:143 CMP_BOUND\n- config_flow.py:1049 CMP_BOUND\n- curve_learning.py:94 CMP_BOUND\n- device_prefill.py:250 GUARD_OFF\n- dhw_draws.py:150 CMP_BOUND\n- dhw_learning.py:267 GUARD_OFF\n- dhw_schedule.py:410 CMP_BOUND\n- diagnosis.py:105 GUARD_OFF\n- external_heat.py:228 GUARD_OFF\n- freq_control.py:150 CMP_BOUND\n- legionella.py:256 GUARD_OFF\n- mixing_valve.py:175 CLAMP_DROP\n- modbus_prefill.py:174 GUARD_OFF\n- narrative.py:139 CMP_BOUND\n- power_guard.py:84 GUARD_OFF\n- presets.py:225 GUARD_OFF\n- pump_arbiter.py:1455 CMP_BOUND\n- pump_schedule.py:51 CMP_BOUND\n- pv.py:70 CLAMP_DROP\n- quick_setup.py:140 GUARD_OFF\n- repairs.py:36 GUARD_OFF\n- wood_fuel.py:347 CMP_BOUND\n- frontend.py:91 GUARD_OFF\n- open_meteo.py:174 CMP_BOUND\n- plan_slots.py:69 CMP_BOUND\n- battery.py:316 CLAMP_DROP\n- manual_plan.py:147 GUARD_OFF\n- wear.py:241 CMP_BOUND\n- pump_signals.py:549 GUARD_OFF\n- disinfection.py:126 RETURN_DEL\n- drift.py:324 GUARD_OFF\n- name_match.py:144 RETURN_DEL\n- prefill_offer.py:101 GUARD_OFF\n- pump_mode.py:271 RETURN_DEL\n- silent_mode.py:116 CLAMP_DROP\n"
+}

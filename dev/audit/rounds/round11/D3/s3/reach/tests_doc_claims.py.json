@@ -1,0 +1,7 @@
+{
+"script": "tests/doc_claims.py",
+"rc": 1,
+"failed": 1,
+"seconds": 32.2,
+"reach": null
+}

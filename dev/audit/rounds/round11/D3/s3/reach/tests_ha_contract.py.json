@@ -1,0 +1,15 @@
+{
+"script": "tests/ha_contract.py",
+"rc": 0,
+"failed": 0,
+"seconds": 0.4,
+"reach": {
+"hits": {},
+"reads": [],
+"problems": [],
+"processes": {
+"started": 1,
+"recorded": 1
+}
+}
+}
