@@ -26,3 +26,4 @@
 2026-11-18T15:29:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first GUARD_OFF 4d962260#2 L2236 by=- ran=16 wall=1397.0s
 2026-11-18T15:31:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._effective_dhw_windows CMP_BOUND d8dd626d L548 by=- ran=12 wall=1294.1s
 2026-11-18T15:33:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_plausible_forecast_rows CMP_BOUND 9a9af603 L3013 by=- ran=13 wall=1387.1s
+2026-11-18T15:38:12Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostWindow._elapsed GUARD_OFF 34121f43 L729 by=tests/features.py ran=13 wall=1559.8s
