@@ -33,61 +33,21 @@
 1794992631 HB alive
 1794993236 HB alive
 1794993841 HB alive
-1794994445 HB alive
-1794994708 CKPT D3-s1 135 file(s)
-1794994713 HB T2 gate done: null
-1794995055 HB alive
-1794995660 HB alive
-1794996265 HB alive
-1794996870 HB alive
-1794997475 HB alive
-1794998080 HB alive
-1794998117 CKPT D3-s1 137 file(s)
-1794998121 HB T2 gate done: pre:fb16c7b0cbbfc63d
-1794998685 HB alive
-1794999289 HB alive
-1794999896 HB alive
-1795000501 HB alive
-1795001106 HB alive
-1795001501 CKPT D3-s1 139 file(s)
-1795001506 HB T2 gate done: pre:4b3795aece73ba73
-1795001711 HB alive
-1795002316 HB alive
-1795002920 HB alive
-1795003525 HB alive
-1795004131 HB alive
-1795004735 HB alive
-1795004974 CKPT D3-s1 141 file(s)
-1795004979 HB T2 gate done: pre:bdcf7589b0a0a6df
-1795005340 HB alive
-1795005945 HB alive
-1795006550 HB alive
-1795007155 HB alive
-1795007760 HB alive
-1795008324 CKPT D3-s1 143 file(s)
-1795008328 HB T2 gate done: c2:0e172028a23d9372
-1795008366 HB alive
-1795008970 HB alive
-1795009575 HB alive
-1795010180 HB alive
-1795010785 HB alive
-1795011390 HB alive
-1795011738 CKPT D3-s1 145 file(s)
-1795011743 HB T2 gate done: c2:d931ab195b940b0c
-1795011998 HB alive
-1795012602 HB alive
-1795013207 HB alive
-1795013812 HB alive
-1795014417 HB alive
-1795014741 CKPT D3-s1 147 file(s)
-1795014746 HB T2 gate done: c2:8e82d7a0b3617003
-1795014885 CKPT D3-s1 150 file(s)
-1795014890 HB T2 done: 5 of 6 KILLED (features.py), tariff.py:744 M31 SURVIVED -> finding D3-s1-02 (low). T3 complete net running.
-1795015023 HB alive
-1795015628 HB alive
-1795016233 HB alive
-1795016839 HB alive
-1795017444 HB alive
-1795018049 HB alive
-1795018655 HB alive
-1795019261 HB alive
+1794994000 RESUMED from 7dcf29116c37
+1794994000 INIT box D3-top6
+1794994071 HB LOCAL re-run of D3-top6 on the orchestrator machine (cloud refused twice by frugal guard). BLOCKED.md removed. R1 machine: nproc=8, 8192 MB RAM, Apple M1 macOS, free 12Gi on HOME, load1 2.18. T1 kept from the cloud fire (M22 SURVIVED). R1 baselines re-take starting.
+1794994076 CKPT D3-s1 136 file(s)
+1794995679 HB R1 local: baselines re-taken; controls RESULT null_verdict=LIVES RESULT null_drivers_run=16 RESULT load1=2.86 RESULT thread_factor=1.00  posctl 2/2 KILLED
+1794995686 CKPT D3-s1 145 file(s)
+1794999959 HB gate done: null RESULT gate_rc=1 code 
+1794999967 CKPT D3-s1 147 file(s)
+1795000401 HB T2: null full gate at node default heap: card.mjs OOM (also standalone); re-running null + 6 gates with node --max-old-space-size=5120 (card.mjs passes standalone with it). Null-red at baseline locally (env): closure.py selftest 2, entities.py 2, optimality.py 1; kill = more failed checks than null.
+1795006813 HB gate done: null RESULT gate_rc=1 code 
+1795006821 CKPT D3-s1 154 file(s)
+1795010795 HB gate done: pre:fb16c7b0cbbfc63d RESULT gate_rc=1 code VERDICT fb16c7b0cbbfc63d KILLED python3 tests/features.py 
+1795010803 CKPT D3-s1 156 file(s)
+1795015851 HB gate done: pre:4b3795aece73ba73 RESULT gate_rc=1 code VERDICT 4b3795aece73ba73 KILLED python3 tests/features.py,python3 tests/structure.py 
+1795015858 CKPT D3-s1 158 file(s)
+1795018395 HB LOCAL seat not blocked: T2 running (null re-run with lease label; fb16 KILLED, 4b37 KILLED by features.py). BLOCKED.md deleted. NOTE: a stale cloud box loop (HB alive pairs every 10 min) keeps re-pushing its old tree incl. BLOCKED.md over this ref.
+1795018402 CKPT D3-s1 162 file(s)
+1795019548 HB gate done: null RESULT gate_rc=1 code 
