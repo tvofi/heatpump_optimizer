@@ -88,6 +88,9 @@ class ConfigEntry(Generic[_DataT]):
         self.options = options or {}
         self.entry_id = entry_id
         self.version = 1
+        # Upstream's ConfigEntry default: an entry created before a flow set
+        # MINOR_VERSION carries 1.
+        self.minor_version = 1
         self.domain = domain
         self.unique_id = unique_id
         self.title = title
@@ -113,6 +116,10 @@ class ConfigFlow:
     # The real FlowHandler's class attributes, as of 2024.6.0: the manager
     # stamps per-instance values over these.
     context: dict[str, Any] = MappingProxyType({})
+    # FlowHandler's version pair: the manager stamps both on the entry it
+    # creates; a flow overriding neither creates 1.1.
+    VERSION = 1
+    MINOR_VERSION = 1
 
     def __init_subclass__(cls, domain=None, **kwargs):
         super().__init_subclass__(**kwargs)

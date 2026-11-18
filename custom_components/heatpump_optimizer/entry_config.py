@@ -345,6 +345,20 @@ FACTORY_KEPT: Mapping[str, str] = MappingProxyType({
 
 Settings = tuple[Mapping[str, Any], Mapping[str, Any]]
 
+#: The keys ``entry.data`` stores: the first-screen answers no options page
+#: edits. Every other key is stored in ``entry.options``, so a key has one
+#: place and every writer agrees with the reader, ``{**data, **options}``
+#: (R11-SEAM-config). ``tests/config_flow_steps.py`` derives the set from the
+#: first screen and the options registry and fails when it moves.
+DATA_ONLY: frozenset[str] = frozenset({"name"})
+
+
+def placed(effective: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """``effective`` -- an entry's ``{**data, **options}`` -- as the (data, options)
+    pair storing each key in its one place: ``DATA_ONLY`` in data, the rest in options."""
+    return ({k: v for k, v in effective.items() if k in DATA_ONLY},
+            {k: v for k, v in effective.items() if k not in DATA_ONLY})
+
 
 def settings_of(data: Mapping[str, Any], options: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """The (data, options) keys a factory reset drops: what its undo point keeps."""
@@ -394,7 +408,10 @@ def undone_settings(
         return None
     unpinned = [{k: v for k, v in side.items() if k not in FACTORY_PINNED} for side in (data, options)]
     wiring = ({**unpinned[0], **pinned[0]}, {**unpinned[1], **pinned[1]})
-    return with_settings(wiring, (settings[0], settings[1]))
+    # A record written before the placement migration holds settings in data:
+    # placing the restored pair stores each where the entry now keeps it.
+    data_side, options_side = with_settings(wiring, (settings[0], settings[1]))
+    return placed({**data_side, **options_side})
 
 
 def factory_settings(
@@ -409,4 +426,5 @@ def factory_settings(
     those would make it single-zone; the DHW and wood flags likewise.
     """
     pinned = dict(zip(FACTORY_PINNED, (const.TWO_ZONE_MODE_ON if two_zone else const.TWO_ZONE_MODE_OFF, dhw, wood)))
-    return with_settings((data, {**options, **pinned}), ({}, {}))
+    data_side, options_side = with_settings((data, {**options, **pinned}), ({}, {}))
+    return placed({**data_side, **options_side})

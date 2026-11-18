@@ -1111,9 +1111,9 @@ class ThermalParameters:
         # Two-zone and DHW are inferred from whether their settings are present
         # at all, rather than from a flag, so an entry written before either
         # existed keeps working. The mode key (v4.0.0) is an explicit override
-        # on top: presence alone can never turn the model *off*, because the
-        # initial flow writes the zone keys into entry.data where the options
-        # flow cannot erase them. "auto" — the default, so every entry without
+        # on top: presence alone can never turn the model *off*, because an
+        # options page saves a value and never removes a zone key. "auto" —
+        # the default, so every entry without
         # the key — is the presence rule unchanged; an unknown value is
         # treated as "auto" rather than silently disabling a running model.
         two_zone_mode = str(

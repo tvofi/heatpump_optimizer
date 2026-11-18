@@ -29,10 +29,11 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DOMAIN,
 )
-from .entry_config import EntryConfig
+from .entry_config import EntryConfig, placed
 
 # Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
 # ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
@@ -203,7 +204,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
     """Migrate a config entry created by an older version of the integration.
 
     Every option the integration reads is looked up with a default, so older
-    entries only need their version stamped forward. Without this handler Home
+    entries need their keys placed (7.2) and their version stamped forward. Without this handler Home
     Assistant refuses to load entries created before the current
     ``ConfigFlow.VERSION`` and the integration appears broken after an upgrade.
     """
@@ -217,13 +218,26 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
         )
         return False
 
-    if entry.version < CONFIG_ENTRY_VERSION:
+    minor = getattr(entry, "minor_version", 1)
+    if entry.version < CONFIG_ENTRY_VERSION or minor < CONFIG_ENTRY_MINOR_VERSION:
         _LOGGER.info(
-            "Migrating Heat Pump Optimizer config entry from version %s to %s",
+            "Migrating Heat Pump Optimizer config entry from version %s.%s to %s.%s",
             entry.version,
+            minor,
             CONFIG_ENTRY_VERSION,
+            CONFIG_ENTRY_MINOR_VERSION,
         )
-        hass.config_entries.async_update_entry(entry, version=CONFIG_ENTRY_VERSION)
+        # 7.2 stores each key in its one place. Placing only moves keys, and
+        # on a key in both sides keeps the options value, the one in force,
+        # so the effective mapping every reader takes is unchanged.
+        data, options = placed({**entry.data, **entry.options})
+        hass.config_entries.async_update_entry(
+            entry,
+            data=data,
+            options=options,
+            version=CONFIG_ENTRY_VERSION,
+            minor_version=CONFIG_ENTRY_MINOR_VERSION,
+        )
 
     return True
 

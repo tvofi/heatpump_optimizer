@@ -342,6 +342,7 @@
           "dhw_legionella_temperature": "Legionellatemperatur",
           "dhw_legionella_interval_days": "Intervall för legionellaskydd",
           "silent_mode_windows": "Pumpens eget nattläge-schema",
+          "silent_mode_power_fraction": "Effekt som behålls i tyst läge",
           "heat_pump_max_power": "Värmepump max effekt (kW)",
           "space_setpoint_unit": "Vad den börvärdesentiteten förväntar sig",
           "mixing_valve_write_target_kind": "Vad styrenheten förväntar sig",
@@ -350,8 +351,7 @@
           "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
           "heat_pump_supply_temp_entity": "Framledningstemperatur",
           "heat_pump_return_temp_entity": "Returtemperatur",
-          "heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)",
-          "after_save": "Efter sparande"
+          "heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)"
         },
         "data_description": {
           "prefill_device": "Pumpens egen enhet. Dess entiteter mappas till inställningar av integrationens publicerade definitioner, eller av deras namn där inget publiceras - inte från en avläsning av din enhet - så kontrollera förslagen innan du behåller dem. Lämna tomt för att fortsätta installationen utan förifyllningen.",
@@ -361,6 +361,7 @@
           "dhw_legionella_temperature": "Läst ur pumpens register för legionellabörvärde (0195H), gånger 0,1.",
           "dhw_legionella_interval_days": "Sju dagar delat med antalet dagar som är valda i pumpens legionellaschema (02CAH), avrundat nedåt.",
           "silent_mode_windows": "Läst ur pumpens register för nattlägets start och slut (0206H, 0207H), vardera timme gånger 256 plus minut.",
+          "silent_mode_power_fraction": "Hur stor andel av värmepumpens maximala eleffekt den fortfarande går med inom schemat för tyst läge. 1,0 begränsar ingenting. Reglaget stannar vid samma golv som den uppmätta kapacitetsgränsen, så detta kan trimma planen men aldrig lämna huset utan värme.",
           "heat_pump_max_power": "Pumpens register för enhetens kapacitet, i kW värme, delat med den nominella COP som gäller.",
           "space_setpoint_unit": "Föreslås som framledning när pumpens register för styrläge (100DH) står på vattentemperaturstyrning.",
           "mixing_valve_write_target_kind": "Föreslås som framledning vid vattentemperaturstyrning, bara där tvåzonsmodellen som sidan för värmesystemet kräver för det är konfigurerad.",
@@ -369,8 +370,7 @@
           "dhw_temp_entity": "Värmepumpens givare för varmvattenberedarens temperatur, föreslås bara medan fältet är tomt.",
           "heat_pump_supply_temp_entity": "Värmepumpens givare för utgående vattentemperatur (T1), föreslås bara medan fältet är tomt.",
           "heat_pump_return_temp_entity": "Värmepumpens givare för ingående vattentemperatur (Tw-in), föreslås bara medan fältet är tomt.",
-          "heat_pump_capacity_limited_entity": "Värmepumpens givare för aktivt nattläge (frekvensbegränsning), föreslås bara medan fältet är tomt.",
-          "after_save": "Installationen fortsätter till nästa sida oavsett vad du väljer; inget sparas förrän installationen är klar."
+          "heat_pump_capacity_limited_entity": "Värmepumpens givare för aktivt nattläge (frekvensbegränsning), föreslås bara medan fältet är tomt."
         }
       }
     },
@@ -380,6 +380,7 @@
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "En varmvattenperiod är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så en kortare period kan hamna mellan två steg och aldrig få någon verkan.",
       "silent_mode_window_too_short": "Ett tidsfönster för tyst läge är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så ett kortare fönster kan hamna mellan två steg och aldrig få effekt.",
+      "silent_mode_fraction_uncapped": "Ett behållet schema för tyst läge behöver en effekt i tyst läge under 1.0: vid 1.0 begränsar schemat ingenting. Sänk den, eller töm schemat.",
       "dhw_min_too_close": "Ett varmvattenminimum så nära börvärdet lämnar tanken utan arbetsband; håll det minst 5 °C under börvärdet.",
       "min_above_target": "Lägsta temperaturen ligger över måltemperaturen.",
       "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
@@ -1544,6 +1545,7 @@
           "dhw_legionella_temperature": "Legionellatemperatur",
           "dhw_legionella_interval_days": "Intervall för legionellaskydd",
           "silent_mode_windows": "Pumpens eget nattläge-schema",
+          "silent_mode_power_fraction": "Effekt som behålls i tyst läge",
           "heat_pump_max_power": "Värmepump max effekt (kW)",
           "space_setpoint_unit": "Vad den börvärdesentiteten förväntar sig",
           "mixing_valve_write_target_kind": "Vad styrenheten förväntar sig",
@@ -1565,6 +1567,7 @@
           "dhw_legionella_temperature": "Läst ur pumpens register för legionellabörvärde (0195H), gånger 0,1.",
           "dhw_legionella_interval_days": "Sju dagar delat med antalet dagar som är valda i pumpens legionellaschema (02CAH), avrundat nedåt.",
           "silent_mode_windows": "Läst ur pumpens register för nattlägets start och slut (0206H, 0207H), vardera timme gånger 256 plus minut.",
+          "silent_mode_power_fraction": "Hur stor andel av värmepumpens maximala eleffekt den fortfarande går med inom schemat för tyst läge. 1,0 begränsar ingenting. Reglaget stannar vid samma golv som den uppmätta kapacitetsgränsen, så detta kan trimma planen men aldrig lämna huset utan värme.",
           "heat_pump_max_power": "Pumpens register för enhetens kapacitet, i kW värme, delat med den nominella COP som gäller.",
           "space_setpoint_unit": "Föreslås som framledning när pumpens register för styrläge (100DH) står på vattentemperaturstyrning.",
           "mixing_valve_write_target_kind": "Föreslås som framledning vid vattentemperaturstyrning, bara där tvåzonsmodellen som sidan för värmesystemet kräver för det är konfigurerad.",
@@ -1598,6 +1601,7 @@
       "dhw_window_too_short": "En varmvattenperiod är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så en kortare period kan hamna mellan två steg och aldrig få någon verkan.",
       "freq_control_needs_number": "Styrning skriver frekvensen via en number-entitet. Välj en, eller behåll läget observera: en frekvenssensor ensam kan bara observeras.",
       "silent_mode_window_too_short": "Ett tidsfönster för tyst läge är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så ett kortare fönster kan hamna mellan två steg och aldrig få effekt.",
+      "silent_mode_fraction_uncapped": "Ett behållet schema för tyst läge behöver en effekt i tyst läge under 1.0: vid 1.0 begränsar schemat ingenting. Sänk den, eller töm schemat.",
       "disinfection_control_needs_entity": "Styra slår på och av pumpens desinfektionsbrytare, så det kräver en sådan. Välj brytaren ovan, eller ställ tillbaka läget på observera.",
       "dhw_min_too_close": "Ett varmvattenminimum så nära börvärdet lämnar tanken utan arbetsband; håll det minst 5 °C under börvärdet.",
       "invalid_grid_fee_rules": "Avgiftsreglerna kunde inte läsas. En regel per rad, som \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\".",

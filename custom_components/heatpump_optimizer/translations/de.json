@@ -342,6 +342,7 @@
           "dhw_legionella_temperature": "Temperatur der Legionellenschaltung",
           "dhw_legionella_interval_days": "Intervall der Legionellenschaltung",
           "silent_mode_windows": "Eigener Nachtmodus-Zeitplan der Pumpe",
+          "silent_mode_power_fraction": "Im Flüstermodus beibehaltene Leistung",
           "heat_pump_max_power": "Maximale Leistung der Wärmepumpe (kW)",
           "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
           "mixing_valve_write_target_kind": "Was die Steuerentität erwartet",
@@ -350,8 +351,7 @@
           "dhw_temp_entity": "Temperatursensor Warmwasserspeicher",
           "heat_pump_supply_temp_entity": "Vorlauftemperatur",
           "heat_pump_return_temp_entity": "Rücklauftemperatur",
-          "heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)",
-          "after_save": "Nach dem Speichern"
+          "heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)"
         },
         "data_description": {
           "prefill_device": "Das eigene Gerät der Pumpe. Seine Entitäten werden anhand der veröffentlichten Definitionen dieser Integration oder, wo nichts veröffentlicht ist, anhand ihrer Namen den Einstellungen zugeordnet – nicht aus einer Auslesung deines Geräts –, prüfe die Vorschläge daher, bevor du sie übernimmst. Lass es leer, um die Einrichtung ohne Vorausfüllung fortzusetzen.",
@@ -361,6 +361,7 @@
           "dhw_legionella_temperature": "Gelesen aus dem Register für den Legionellen-Sollwert der Pumpe (0195H), mal 0,1.",
           "dhw_legionella_interval_days": "Sieben Tage geteilt durch die Anzahl der im Legionellen-Zeitplan der Pumpe (02CAH) gesetzten Tage, abgerundet.",
           "silent_mode_windows": "Gelesen aus den Start- und Ende-Registern des Nachtmodus der Pumpe (0206H, 0207H), jeweils Stunde mal 256 plus Minute.",
+          "silent_mode_power_fraction": "Der Anteil der maximalen elektrischen Leistung der Wärmepumpe, mit dem sie im Flüstermodus-Zeitplan noch läuft. 1.0 begrenzt nichts. Der Regler endet an derselben Untergrenze wie die gemessene Leistungsgrenze, sodass dies den Plan zwar beschneiden, das Haus aber nie ohne Wärme lassen kann.",
           "heat_pump_max_power": "Das Register für die Gerätekapazität der Pumpe, in kW Wärme, geteilt durch den geltenden Nenn-COP.",
           "space_setpoint_unit": "Wird als Vorlauf vorgeschlagen, wenn das Register für den Regelmodus der Pumpe (100DH) auf Wassertemperaturregelung steht.",
           "mixing_valve_write_target_kind": "Wird bei Wassertemperaturregelung als Vorlauf vorgeschlagen, nur wenn das dafür erforderliche Zwei-Zonen-Modell der Gebäudeseite konfiguriert ist.",
@@ -369,8 +370,7 @@
           "dhw_temp_entity": "Der Temperatursensor des Warmwasserspeichers der Wärmepumpe, wird nur vorgeschlagen, solange dieser Platz leer ist.",
           "heat_pump_supply_temp_entity": "Der Sensor für die Austrittswassertemperatur (T1) der Wärmepumpe, wird nur vorgeschlagen, solange dieser Platz leer ist.",
           "heat_pump_return_temp_entity": "Der Sensor für die Eintrittswassertemperatur (Tw-in) der Wärmepumpe, wird nur vorgeschlagen, solange dieser Platz leer ist.",
-          "heat_pump_capacity_limited_entity": "Der Sensor der Wärmepumpe für aktiven Nachtmodus (Frequenzreduzierung), wird nur vorgeschlagen, solange dieser Platz leer ist.",
-          "after_save": "Die Einrichtung geht unabhängig von deiner Wahl auf der nächsten Seite weiter; gespeichert wird erst, wenn die Einrichtung abgeschlossen ist."
+          "heat_pump_capacity_limited_entity": "Der Sensor der Wärmepumpe für aktiven Nachtmodus (Frequenzreduzierung), wird nur vorgeschlagen, solange dieser Platz leer ist."
         }
       }
     },
@@ -382,6 +382,7 @@
       "invalid_dhw_windows": "Diese Zeitfenster konnten nicht gelesen werden. Verwende 24-Stunden-Zeiten, durch Kommas getrennt, zum Beispiel \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "Ein Warmwasser-Zeitfenster ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
       "silent_mode_window_too_short": "Ein Flüstermodus-Zeitfenster ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
+      "silent_mode_fraction_uncapped": "Ein übernommener Flüstermodus-Zeitplan braucht eine im Flüstermodus beibehaltene Leistung unter 1.0: bei 1.0 begrenzt der Zeitplan nichts. Senken Sie sie oder leeren Sie den Zeitplan.",
       "dhw_min_too_close": "Ein Warmwasser-Minimum so nahe am Sollwert lässt dem Speicher kein Arbeitsband; halte mindestens 5 °C Abstand unter dem Sollwert.",
       "min_above_target": "Die Mindesttemperatur liegt über der Zieltemperatur.",
       "max_below_target": "Die Höchsttemperatur liegt unter der Zieltemperatur.",
@@ -1544,6 +1545,7 @@
           "dhw_legionella_temperature": "Temperatur der Legionellenschaltung",
           "dhw_legionella_interval_days": "Intervall der Legionellenschaltung",
           "silent_mode_windows": "Eigener Nachtmodus-Zeitplan der Pumpe",
+          "silent_mode_power_fraction": "Im Flüstermodus beibehaltene Leistung",
           "heat_pump_max_power": "Maximale Leistung der Wärmepumpe (kW)",
           "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
           "mixing_valve_write_target_kind": "Was die Steuerentität erwartet",
@@ -1565,6 +1567,7 @@
           "dhw_legionella_temperature": "Gelesen aus dem Register für den Legionellen-Sollwert des Warmwassers der Pumpe (0195H), mal 0,1.",
           "dhw_legionella_interval_days": "Sieben Tage geteilt durch die Anzahl der im Legionellen-Zeitplan der Pumpe gesetzten Tage (02CAH), abgerundet.",
           "silent_mode_windows": "Gelesen aus den Start- und Ende-Registern des Nachtmodus der Pumpe (0206H, 0207H), jeweils Stunde mal 256 plus Minute.",
+          "silent_mode_power_fraction": "Der Anteil der maximalen elektrischen Leistung der Wärmepumpe, mit dem sie im Flüstermodus-Zeitplan noch läuft. 1.0 begrenzt nichts. Der Regler endet an derselben Untergrenze wie die gemessene Leistungsgrenze, sodass dies den Plan zwar beschneiden, das Haus aber nie ohne Wärme lassen kann.",
           "heat_pump_max_power": "Das Register für die Nennleistung der Pumpe, in kW Wärme, geteilt durch die geltende nominale Leistungszahl (COP).",
           "space_setpoint_unit": "Wird als Vorlauf vorgeschlagen, wenn das Register für den Regelmodus der Pumpe (100DH) auf Wassertemperaturregelung steht.",
           "mixing_valve_write_target_kind": "Wird bei Wassertemperaturregelung als Vorlauf vorgeschlagen, nur wenn das dafür erforderliche Zwei-Zonen-Modell der Gebäudeseite konfiguriert ist.",
@@ -1600,6 +1603,7 @@
       "dhw_window_too_short": "Ein Warmwasser-Zeitfenster ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
       "freq_control_needs_number": "Steuern schreibt die Frequenz über eine Number-Entität. Wähle eine aus oder belasse den Modus auf Beobachten: Ein Frequenzsensor allein kann nur beobachtet werden.",
       "silent_mode_window_too_short": "Ein Flüstermodus-Zeitfenster ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
+      "silent_mode_fraction_uncapped": "Ein übernommener Flüstermodus-Zeitplan braucht eine im Flüstermodus beibehaltene Leistung unter 1.0: bei 1.0 begrenzt der Zeitplan nichts. Senken Sie sie oder leeren Sie den Zeitplan.",
       "disinfection_control_needs_entity": "Steuern schaltet den Desinfektionsschalter der Pumpe ein und aus und braucht daher einen. Wähle oben den Schalter oder setze den Modus zurück auf Beobachten.",
       "dhw_min_too_close": "Ein Warmwasser-Minimum so nahe am Sollwert lässt dem Speicher kein Arbeitsband; halte mindestens 5 °C Abstand unter dem Sollwert.",
       "invalid_grid_fee_rules": "Diese Entgeltregeln konnten nicht gelesen werden. Eine Regel pro Zeile, etwa „Nov-Mar Mon-Fri 06:00-22:00 = 0.25“.",
