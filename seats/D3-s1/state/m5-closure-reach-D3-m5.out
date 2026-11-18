@@ -1,0 +1,40 @@
+script	rc	wall_s	recorded_s	ratio	reach_ok	cell_lines_hit
+tests/arch_score_head.py	0	50.3	31.8	1.58	True	0
+tests/backtest.py	0	52.1	61.6	0.85	True	3405
+tests/block_duty.py	0	7.0	8.3	0.84	True	5975
+tests/boost_drift_replay.py	0	187.1	341.1	0.55	True	5851
+tests/config_flow_steps.py	0	19.4	32.5	0.60	True	7535
+tests/debug_collect.py	0	1.6	1.5	1.07	True	2241
+tests/deployment_shape.py	0	2.7	3.3	0.82	False	0
+tests/doc_claims.py	0	10.2	11.4	0.89	False	0
+tests/edge.py	0	19.6	21.5	0.91	True	4635
+tests/entities.py	0	518.4	867.9	0.60	False	0
+tests/env_drift.py	0	177.3	1.0	177.30	False	0
+tests/features.py	0	715.9	473.9	1.51	False	0
+tests/finite_boundary.py	0	95.9	90.4	1.06	True	5011
+tests/guard_pins.py	0	4.2	8.2	0.51	True	2582
+tests/harness_headers.py	0	130.4	327.6	0.40	False	0
+tests/manual_plan.py	0	6.5	6.5	1.00	True	7125
+tests/optimality.py	0	102.2	142.5	0.72	True	4349
+tests/plan_view.py	0	1.1	1.8	0.61	True	5144
+tests/solar_alignment.py	0	1.1	1.2	0.92	True	3407
+tests/stress.py	0	192.5	463.0	0.42	False	0
+tests/structure.py	0	18.5	21.1	0.88	False	0
+tests/typing_ruler.py	0	24.1	20.8	1.16	False	0
+tests/validate.py	0	17.1	21.5	0.80	True	4582
+tests/wood_advisor.py	0	1.3	1.4	0.93	True	2250
+
+REACH-REFUSED tests/deployment_shape.py: starts a non-Python process: git -C /tmp/d3s1-workers/w3 ls-files -z -- custom_components/heatpump_optimizer
+REACH-REFUSED tests/doc_claims.py: starts a non-Python process: git add -A (+11)
+REACH-REFUSED tests/entities.py: starts a non-Python process: /tmp/tmp1mwwla5i/py-spy 5128 (+963)
+REACH-REFUSED tests/env_drift.py: starts a non-Python process: git diff --no-renames --name-only HEAD (+14)
+REACH-REFUSED tests/features.py: starts a non-Python process: git merge-base HEAD origin/main (+1)
+REACH-REFUSED tests/harness_headers.py: starts a non-Python process: git status --porcelain -- dev/audit/rounds/round4/D6
+REACH-REFUSED tests/stress.py: starts a non-Python process: git rev-parse --verify --quiet HEAD^1^{commit} (+9)
+REACH-REFUSED tests/structure.py: starts a non-Python process: git merge-base --is-ancestor a39627da59acbfdcd576e87349167603e9dec734 origin/main (+1)
+REACH-REFUSED tests/typing_ruler.py: starts a non-Python process: /tmp/tmpe66av7uv/green-interpreter /tmp/d3s1-workers/w3/tests/typing_ruler.py --mypy (+1)
+RESULT closure_pairs=252
+RESULT over_approx_pairs=0
+RESULT scripts_reach_refused=9
+RESULT load1=0.58
+RESULT thread_factor=1.00
