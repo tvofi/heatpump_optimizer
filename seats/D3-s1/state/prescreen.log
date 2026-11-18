@@ -520,3 +520,4 @@
 2026-11-18T22:17:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.apply_dhw_coil CMP_BOUND 1fb67ec6 L5012 by=- ran=12 wall=1221.7s
 2026-11-18T22:18:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:mold_safe_room_floor CLAMP_DROP 0a63a064 L2852 by=- ran=12 wall=1313.5s
 2026-11-18T22:34:17Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison CMP_BOUND 5e7784ff L10441 by=tests/features.py ran=13 wall=1221.0s
+2026-11-18T22:39:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:<module> CONST 0f3977a9 L84 by=- ran=19 wall=1414.1s
