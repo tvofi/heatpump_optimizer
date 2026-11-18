@@ -3951,7 +3951,7 @@
     "The dispatch seats' the relay's check script prototype (dispatch-s15-* STATE-HANDOFF files under $HPO_STATE_DIR/s14/seat/), and the detached watch-mode relay this group retires, routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P792 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nthe relay's check script: track and self-test its behaviour here, never its hard-coded session paths; the detached watch-mode relay is retired by this group (the batch's entries P792 and P794)."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-relay-p12",
     "commit": null,
     "last_step": null,
