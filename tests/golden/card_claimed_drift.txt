@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 10.0.3
+# claims-for: 10.1.0
 #
-# v10.0.3: Self-test hotfix and round-11 preparation. The stamp empties the list; the
+# v10.1.0: learned pump minimum, clamped start price, self-setting pump test, valve reference, generic heat-curve text. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -812,6 +812,3 @@
 # R11-OWNER-GENERIC-CONTROL-TEXT carry (#3643): dearer becomes pricier in stats.dearer
 # (the what-if delta hint) and in why.sub_dearer (the hover's Because line), the short
 # form because "more expensive" wraps both at 375 px. Text nodes only.
-draft_dirty_menu_open  # what-if delta hint: "pricier than the saved plan"
-draft_mid_drag  # what-if delta hint: "pricier than the saved plan"
-tooltip_hover  # the hovered idle step's Because line: "this hour is pricier than the hours the plan uses"
