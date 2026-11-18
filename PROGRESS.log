@@ -13,3 +13,4 @@
 1795012152 HB alive
 1795012152 CKPT mutation_table --scope changed PASSED with equivalent mark snapshot e948a6715967
 1795012387 DONE returned: #3724 head 9049a4a8, currency.py:21 GUARD_OFF recorded equivalent; mutation_table scoped PASSED; prepr rc=0
+1795012442 DONE returned: #3724 head 9049a4a8, currency.py:21 GUARD_OFF recorded equivalent; scoped mutation_table PASSED; prepr rc=0; handoff-wip delete refused by remote (hung up x5)
