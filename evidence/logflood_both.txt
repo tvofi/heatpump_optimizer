@@ -1,0 +1,22 @@
+== base logflood
+RESULT barrier_sites_baseline=71 sites
+RESULT counted_warning=1
+RESULT counted_exception=0
+RESULT counted_critical=0
+RESULT counted_log_level=0
+RESULT counted_alias=0
+RESULT live_blind_sites=1 sites
+RESULT thread_factor=1.000
+RESULT load1=0.54
+RESULT swapins=0
+== head logflood
+RESULT barrier_sites_baseline=72 sites
+RESULT counted_warning=1
+RESULT counted_exception=1
+RESULT counted_critical=1
+RESULT counted_log_level=1
+RESULT counted_alias=0
+RESULT live_blind_sites=1 sites
+RESULT thread_factor=1.000
+RESULT load1=0.61
+RESULT swapins=0
