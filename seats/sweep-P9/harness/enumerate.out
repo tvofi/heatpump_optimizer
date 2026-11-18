@@ -1,0 +1,70 @@
+SEAM TYPE card:5158 [.header] | font-size: 1.15em; font-weight: 500; padding: 2px 4px 8px 4px;
+SEAM STACK card:5240 [.tile-v] | display: block; margin-top: 2px; font-size: var(--hpo-text-lg, 18px);
+SEAM STACK card:5300 [.hl-value] | display: block; margin-top: 2px; font-size: var(--hpo-text-md, 15px);
+SEAM TARGET card:5331 [.hl-fold-head] | width: 100%; min-height: 32px; margin: 0; box-sizing: border-box;
+SEAM TYPE card:5386 [.sb-head] | display: flex; align-items: center; gap: 8px; font-size: 0.82em;
+SEAM CLIP card:5392 [.sb-bar] | overflow: hidden; display: inline-block;
+SEAM TYPE card:5415 [.chip, .layout-bar button] | font-size: 0.82em; user-select: none; background: transparent;
+SEAM TYPE card:5516 [.tooltip] | border-radius: 6px; padding: 6px 8px; font-size: 0.78em;
+SEAM TYPE card:5535 [.tooltip .tt-shared] | font-size: 0.85em;
+SEAM CLIP card:5608 [width: min(96vw, calc(78vh * $] | overflow: hidden;
+SEAM TYPE card:5629 [.dlg-head] | font-size: 1.25em; font-weight: 500; padding: 0 2px 10px 2px;
+SEAM TYPE card:5648 [dialog.expanded .legend] | font-size: 1em; gap: 0.5em; padding: 0 2px 0.75em 2px;
+SEAM TYPE card:5651 [dialog.expanded .dlg-head] | font-size: 1.4em; padding: 0 2px 0.55em 2px; gap: 0.45em;
+SEAM TYPE card:5654 [dialog.expanded .chip] | font-size: 1em; padding: 0.32em 0.85em; border-radius: 1.3em;
+SEAM TYPE card:5660 [dialog.expanded .layout-bar button] | dialog.expanded .layout-bar button { font-size: 1em; border-radius: 1.3em; }
+SEAM TYPE card:5663 [dialog.expanded .tooltip] | font-size: 0.92em; padding: 0.5em 0.7em; border-radius: 0.4em;
+SEAM TYPE card:5666 [dialog.expanded .whatif] | dialog.expanded .whatif { font-size: 1em; }
+SEAM TYPE card:5679 [.dlg-tab] | font: inherit; font-size: 0.85em;
+SEAM TYPE card:5756 [.setup-title] | font-size: 13px; font-weight: 600;
+SEAM TYPE card:5760 [.setup-slot] | font-size: 12px; fill: var(--hpo-text, #212121);
+SEAM TYPE card:5774 [.setup-slot.lead] | .setup-slot.lead { font-size: 11px; }
+SEAM TYPE card:5792 [.setup-chip-label] | font-size: 11px; font-weight: 600; fill: var(--hpo-accent, #026aa8);
+SEAM TYPE card:5797 [.setup-chip-page] | font-size: 11px; fill: var(--hpo-text-2, #727272);
+SEAM TYPE card:5853 [.layout-verdict] | flex: 1 1 100%; font-size: 0.85em;
+SEAM TARGET card:5859 [.setup-svg.editing .setup-pipe] | .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
+SEAM COLOUR card:5876 [.setup-pipe.invalid] | stroke: var(--error-color, #db4437); opacity: 0.95;
+SEAM COLOUR card:5935 [border-color: $] | border-color: ${ERROR_READABLE} !important;
+SEAM COLOUR card:5936 [background: $] | background: ${ERROR_READABLE};
+SEAM TYPE card:5941 [.sp-note] | font-size: 0.8em; padding-top: 0.4em;
+SEAM TYPE card:5978 [.whatif .delta] | font-size: 1.25em; font-weight: 600;
+SEAM TYPE card:6044 [.health-h] | .health-h { margin: 12px 0 4px 0; font-size: 1em; font-weight: 600; }
+SEAM TYPE card:6125 [.whatif] | font-size: 0.95rem; color: var(--hpo-text, #212121);
+SEAM TYPE card:6151 [.whatif .wi-group-title] | font-weight: 600; font-size: 0.9em;
+SEAM TYPE card:6160 [.whatif .wi-viewlimit] | font-size: 12px;
+SEAM TYPE card:6165 [.whatif .wi-viewreset] | font-size: 12px;
+SEAM TYPE card:6194 [.whatif .wi-quiet-unenforced] | .whatif .wi-quiet-unenforced { font-size: 0.8em; }
+SEAM TYPE card:6195 [.whatif .wi-quiet-frac-note] | .whatif .wi-quiet-frac-note { font-size: 0.85em; }
+SEAM TYPE card:6197 [.whatif .wi-quiet-remove] | border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
+SEAM TYPE card:6199 [.whatif .wi-add-quiet] | .whatif .wi-add-quiet { align-self: flex-start; font-size: 0.9em; }
+SEAM TYPE card:6201 [.whatif .wi-win-days] | font: inherit; font-size: 0.9em; max-width: 8.5em;
+SEAM TYPE card:6214 [.whatif .wi-remove] | border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
+SEAM TYPE card:6218 [.whatif .wi-add] | .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
+SEAM COLOUR card:6231 [border-color: $] | border-color: ${ERROR_READABLE};
+SEAM COLOUR card:6232 [background: $] | background: ${ERROR_READABLE};
+SEAM TYPE card:6261 [.whatif .wi-result .wi-detail] | font-size: 0.88em; margin-top: 2px;
+SEAM TYPE card:6271 [dialog.expanded .legend] | dialog.expanded .legend { font-size: 1rem; }
+SEAM TYPE card:6274 [dialog.expanded .layout-bar button] | dialog.expanded .layout-bar button { font-size: 1rem; }
+SEAM TYPE card:6279 [dialog.expanded .tooltip] | dialog.expanded .tooltip { font-size: 0.78em; }
+SEAM TYPE card:6889 [return `<div class="wood-alert" role="status" style="margin:] | return `<div class="wood-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px solid 
+SEAM COLOUR card:6889 [return `<div class="wood-alert" role="status" style="margin:] | return `<div class="wood-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px solid 
+SEAM TYPE card:7486 [noteHtml()] | "background-color,rgba(0,0,0,.06));font-size:.9em";
+SEAM TYPE card:8312 [`<text class="now-label" x="$] | `<text class="now-label" x="${nx + 3}" y="${top + labelRow}" font-size="${font}" fill="var(--hpo-ink, #212121)
+SEAM TYPE card:8328 [`<text class="now-temp" x="$] | `<text class="now-temp" x="${plotL + 6}" y="${panelOf("temp").top + labelRow}" font-size="${font}" fill="var(-
+SEAM TYPE card:8381 [`<text class="estimated-label" x="$] | `<text class="estimated-label" x="${ex + 4}" y="${top + labelRow * 2}" font-size="${font}" fill="var(--hpo-ink
+SEAM TYPE card:8637 [`<text x="$] | `<text x="${lab.lx}" y="${plotB + size + 4}" font-size="${size}" text-anchor="${lab.anchor}" fill="var(--secon
+SEAM TYPE card:8695 [`<text x="$] | `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-co
+SEAM TYPE card:8725 [`<text x="$] | `<text x="${ux}" y="${uy}" font-size="${size}" text-anchor="${ta}" fill="var(--secondary-text-color,#888)">${e
+SEAM TYPE card:10789 [.receipt-total] | .receipt-total { font-size: 2em; font-weight: 600; font-variant-numeric: tabular-nums; }
+SEAM TYPE card:10790 [.receipt-h] | .receipt-h { margin: 0 0 6px; font-size: 1em; font-weight: 600; }
+SEAM CLIP card:10796 [.receipt-bar .rb-track] | height: 10px; border-radius: 5px; overflow: hidden;
+SEAM TYPE card:10882 [`<line x1="$] | `<line x1="${LEFT}" x2="${W - RIGHT}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--hpo-divide
+SEAM TYPE card:10885 [return `<text x="$] | return `<text x="${LEFT}" y="${y0 - 8}" font-size="12" font-weight="600" fill="var(--hpo-text, #212121)">${esc
+SEAM TYPE card:10912 [`<text x="$] | `<text x="${(40 + (552 * h) / 24).toFixed(1)}" y="324" font-size="11" text-anchor="${h === 0 ? "start" : h ===
+SEAM TYPE card:11780 [`<text class="lane-label" x="$] | `<text class="lane-label" x="${laneX + 4}" y="${baseline}" font-size="${font}"` +
+SEAM TYPE card:11937 [`<text class="lane-more" x="$] | }" font-size="${font}" text-anchor="end" fill="var(--primary-text-color,#212121)">»</text>`
+SEAM TYPE card:15824 [? `<div class="space-blocked-alert" role="status" style="mar] | ? `<div class="space-blocked-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px so
+SEAM COLOUR card:15824 [? `<div class="space-blocked-alert" role="status" style="mar] | ? `<div class="space-blocked-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px so
+SEAM TYPE card:15904 [? `<div class="savings-wood-note" style="margin-top:.6em;fon] | ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${e
+SEAM TYPE card:15908 [? `<div class="savings-floor-note" style="margin-top:.6em;fo] | ? `<div class="savings-floor-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${
+RESULT seams=69 TARGET=2 TYPE=55 COLOUR=7 CLIP=3 STACK=2
