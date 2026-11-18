@@ -28,3 +28,4 @@
 1794991405 HB T2 gate done: pre:fb16c7b0cbbfc63d
 1794991410 CKPT D3-s1 134 file(s)
 1794991422 HB alive
+1794991433 HB correction: the 'T2 gate done: pre:fb16...' line came from a stray driver that refused (HEAD not baseline) and was killed; no mutant gate has run yet. T1: M22 re-drive SURVIVED (12 drivers, 293 s). T2 null-control full gate running.
