@@ -5,3 +5,4 @@
 1795004953 DONE blocked: frugal inline-read hook refuses reads; brief forbids subagents; Question in BLOCKED.md on handoff-wip/r11-seam-kernel-step
 1795006382 HB alive
 1795006386 INBOX acked through 1
+1795006411 CKPT resumed from handoff-wip 04e19dae; discovery delegated per inbox ruling snapshot 960315fb8fba
