@@ -1,0 +1,3 @@
+2026-11-18T08:19:02Z D3-m5: R0 restored from c0adbc19; R1 baselines re-taken here (21/21 green), trace-capture ok, null LIVES/16, posctl 2/2 KILLED
+2026-11-18T09:07:31Z D3-m5: M5(a) gate table done (state/gate_table.jsonl)
+2026-11-18T13:59:18Z D3-m5: M5(b) matrix 25/38 driven
