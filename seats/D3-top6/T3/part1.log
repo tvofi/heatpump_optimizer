@@ -1,4 +1,4 @@
-# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=1.05 at 2026-11-18T19:06:59Z
+# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=0.00 at 2026-11-18T19:22:04Z
 ## run.log (driver steps + controls)
 === 2026-11-18T18:51:31Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.18 :: STEP baseline
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
