@@ -705,8 +705,11 @@ def stage() -> int:
 
 KERNELS = ("SkylakeX", "Haswell", "Sandybridge", "Nehalem")
 _BLOCK = 'R.section("R11-OUTSIDE-HONEST-STARTS-RUNS: the start count and committed runs")'
-# The block that follows this group's in tests/features.py; the block runs up to it.
-_NEXT = "# --- R10-START-COUNTER-EDGES: the start counter fed from running-signal edges ---"
+# Stands for the header of whichever block follows this group's in tests/features.py on the tree
+# read (`_next_header`); the block runs up to it. A header named here went stale when #3616's
+# block landed between the two: the run then crossed into it and raised on a name it never built.
+_NEXT = "<the next block's header>"
+_HEADER = "\n# --- "
 _BLOCKS = (
     ("duty-switch block", ("from types import SimpleNamespace as _DspNS", _BLOCK)),
     ("starts-and-runs block", (_BLOCK, _NEXT)),
@@ -741,6 +744,12 @@ R.check = _kp_probe
 '''
 
 
+def _next_header(present: str) -> str:
+    """The first `# --- ` header line after `_BLOCK` in the features source, "" when none follows."""
+    start = present.find(_HEADER, present.find(_BLOCK)) if _BLOCK in present else -1
+    return "" if start < 0 else present[start + 1:].split("\n", 1)[0]
+
+
 def _kernel_blocks(kernel: str) -> list[tuple[str, int, list[str]]]:
     env = dict(os.environ, PYTHONPATH="tests/hastub", OPENBLAS_CORETYPE=kernel, R11_HSR_KERNEL_PROBE=_KERNEL_PROBE,
                OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
@@ -748,7 +757,8 @@ def _kernel_blocks(kernel: str) -> list[tuple[str, int, list[str]]]:
     with open("tests/features.py", encoding="utf-8") as fh:
         present = fh.read()
     for label, markers in _BLOCKS:
-        markers = tuple(m for m in markers if m in present)  # a tree before the next block holds no _NEXT
+        markers = tuple(_next_header(present) if m is _NEXT else m for m in markers)
+        markers = tuple(m for m in markers if m and m in present)  # no block after this group's: it runs to the end
         run = subprocess.run(
             [sys.executable, "tools/audit/seat/features_block.py",
              "--prelude", 'import os as _kp_os; exec(_kp_os.environ["R11_HSR_KERNEL_PROBE"])', *markers],

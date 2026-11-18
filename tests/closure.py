@@ -598,6 +598,11 @@ INERT_EXCEPT = (
     # R10-CI-PRIORITY-PAUSE: that self-test reads the tier setting (owed-line ranks);
     # dev/audit/ is INERT by prefix, so the file moves to the recorded closure.
     "dev/audit/config/ci_priority.json",
+    # R11-PRE-SECURITY-PRIVACY: tests/entities.py runs check-wave-script.mjs,
+    # which reads each dimension's owner_only flag here; CI's closures job said
+    # INERT READS UNDER-APPROXIMATED, and inert_reads alone leaves it UNDER-SCOPED.
+    # It moves to the recorded closure, so a scopes edit selects tests/entities.py.
+    "dev/audit/config/scopes.json",
     # ... and that file's own readers: tests/entities.py loads the two new
     # R10-CI-PRIORITY-PAUSE modules (ci_priority.py, ci_pause.py) and runs
     # their self-tests, so the tools/audit/seat/ INERT prefix must not hide them.
