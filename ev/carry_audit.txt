@@ -1,0 +1,5 @@
+NOTE stale tree: d112c64e4cfc5611f4225c8c5c09e60ef2320fad lacks origin/main 76bbf637442f586fd9d91dd565b496445db282f0; roster read at origin/main
+NOTE review 0 item a969e98b: R11-OUTSIDE-HONEST-METERED-FLOOR: R11-OUTSIDE-HONEST-METERED-FLOOR resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 778fefb3: dismissed:disclosed in the body; an outside finding whose rows are a range, approved design's own harness stands in
+NOTE review 0 item c834b1c2: dismissed:equivalent mutant behind the store boundary's _sanitize
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)

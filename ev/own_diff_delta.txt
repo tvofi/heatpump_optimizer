@@ -1,0 +1,107 @@
+2c2
+< index 9f256d6271..2d0712508d 100644
+---
+> index 091f5b0552..edf38cf9d3 100644
+5c5
+< @@ -354,6 +354,7 @@ from .thermal_model import (
+---
+> @@ -355,6 +355,7 @@ from .thermal_model import (
+13c13
+< @@ -2430,14 +2431,18 @@ def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float
+---
+> @@ -2431,14 +2432,18 @@ def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float
+315c315
+< index a575f34e1c..8ff76fb97d 100644
+---
+> index 7cb91243e3..105830d542 100644
+329c329
+< index e2378e040c..2e50c0c62c 100644
+---
+> index e7e8bba3d9..56b0839c1d 100644
+332c332
+< @@ -2089,20 +2089,40 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
+---
+> @@ -2141,20 +2141,40 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
+427c427
+< index a0f688cfbe..abdfd22dcd 100644
+---
+> index 3eeedb705a..b0268855f8 100644
+430c430
+< @@ -2175,6 +2175,23 @@
+---
+> @@ -2197,6 +2197,23 @@
+455c455
+< index 691dd9d300..aed6a3a31d 100644
+---
+> index f2f737d479..9ec8c13c95 100644
+458c458
+< @@ -2175,6 +2175,23 @@
+---
+> @@ -2197,6 +2197,23 @@
+483c483
+< index a0f688cfbe..abdfd22dcd 100644
+---
+> index 3eeedb705a..b0268855f8 100644
+486c486
+< @@ -2175,6 +2175,23 @@
+---
+> @@ -2197,6 +2197,23 @@
+511c511
+< index 47b1ff7bce..ac62eb05cd 100644
+---
+> index 1e849c6cbc..cb5e065045 100644
+514c514
+< @@ -2175,6 +2175,23 @@
+---
+> @@ -2197,6 +2197,23 @@
+539c539
+< index e9966d5b8e..b38bcc058b 100644
+---
+> index 0c91347c82..3564a21167 100644
+542c542
+< @@ -13062,7 +13062,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
+---
+> @@ -13225,7 +13225,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
+553c553
+< index 14d9768ac3..0f945e312e 100644
+---
+> index 380b55e45f..899fb0ce92 100644
+556c556
+< @@ -87945,12 +87945,17 @@ R.check(
+---
+> @@ -88034,12 +88034,17 @@ R.check(
+576c576
+< @@ -94373,4 +94378,415 @@ R.check(
+---
+> @@ -94618,6 +94623,418 @@ R.check(
+991c991,994
+<  sys.exit(R.close("FEATURE CHECKS"))
+---
+> +
+>  R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
+>  
+>  # Phase 1 of room-level support (design/R11-OUTSIDE-ROOMS-P2): a list of room
+1013c1016
+< index 0c54d4baee..ab186d06c7 100644
+---
+> index 85eaf6f5cf..82240a3542 100644
+1016,1019c1019,1022
+< @@ -69,6 +69,11 @@
+<  #
+<  cycling_cost  # space steps under the floor 5 -> 0, starts 5 -> 4, energy 44.96 -> 40.97 kWh, predicted_cost 34.48 -> 32.07, lowest room 17.20 -> 17.16
+<  everything_on  # space steps under the floor 12 -> 0, starts 4 -> 5, energy 67.18 -> 68.83 kWh, predicted_cost 60.27 -> 61.48, lowest room 17.78 -> 17.88
+---
+> @@ -70,6 +70,11 @@
+>  # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+>  # (option (a)): the move's margin is inside the noise band (objective rel
+>  # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+1025,1028c1028,1031
+<  # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+<  # (option (a)): the move's margin is inside the noise band (objective rel
+<  # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+< @@ -790,3 +795,12 @@ everything_on  # space steps under the floor 12 -> 0, starts 4 -> 5, energy 67.1
+---
+>  # BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
+>  # price_known/baseline_cost) still fail. Remove when drift lanes are pinned
+>  # or the polish improvement scale leaves 5e-5-2e-2.
+> @@ -786,3 +791,12 @@
