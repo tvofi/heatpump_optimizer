@@ -549,3 +549,4 @@
 2026-11-18T22:38:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:_parse_rule GUARD_OFF 38ab97ce L187 by=- ran=12 wall=1241.1s
 2026-11-18T22:45:07Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery GUARD_OFF 63e4e0a8 L2594 by=tests/features.py ran=13 wall=1235.6s
 2026-11-18T22:46:43Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor CLAMP_DROP bc68892f L9023 by=tests/entities.py,tests/features.py ran=13 wall=899.6s
+2026-11-18T22:48:07Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._accumulate_energy CMP_BOUND 8a2d264d L10331 by=tests/entities.py,tests/features.py ran=14 wall=1069.3s
