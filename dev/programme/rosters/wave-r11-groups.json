@@ -709,7 +709,7 @@
     "branch": "handoff/r11-intake-r10-residue",
     "commit": null,
     "last_step": null,
-    "next_step": "R11 architect P3 for the carries in G (0-based at roster 572d7d4c86): 29, 110, 118 as architect input; 71 as D13 finder input (issue 3369); 128 and 133 deferred by the round-10 round-end triage; no dispatch on this group, close it when carry-empty",
+    "next_step": "p1/7 fired 06:35Z (carries 0,19,27,29,30) on approved design af8f7048; parts 2-7 at each previous handoff",
     "note": "finder-critical for carries 174-177 (round-10 numbering; already moved to R11-PRE-BRIEFS-TEXT, R11-PRE-ROUND-METRICS and R11-PRE-BRIEFS-CENSUS at roster 8b730d82ba, so no open carry here gates the finders); fix-gating for the rest (0018:192,434,436); created 2026-11-13 by the s14 orchestrator to receive R10-CI-PRIORITY-PAUSE roster carries 10 and 11; overlap admitted (R10-NUDGE-RETIRE): holding group for round-10 residuals with no live owner; round-11 architect re-homes each carry | set-size S -> L (cite handoff/audit-r10-roster@8b730d82ba8bf58cd5664863c6f74d59cb9fb413)",
     "pr": null
    }
