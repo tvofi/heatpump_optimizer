@@ -102,6 +102,16 @@ divergence"). Re-read on change after every compaction
   carries from the previous round."
 - 2026-11-13: "outside and owner filed findings and requests should always fold
   into the ongoing round if not explicitly deferred by the owner or outsider".
+- 2026-11-18, on round-11 plan revision 4 (`plan/r11` at 50a932de3b, approved
+  by plan review at `plan-verdict/r11` 4494289c0e): "go with all three points".
+  The three points, as recorded: (1) revision 4 is applied to the round-11
+  roster, every row of `CHANGES-R3.md` and `CHANGES-R4.md`; (2) carry 182 of
+  R11-INTAKE-R10-RESIDUE (the heat-ask dither and closed-loop planner harness,
+  from R11-OUTSIDE-SELF-SETTING-PUMP) stays in round 11, re-homed to
+  R11-SEAM-learners, the live group owning `accuracy.py`; (3) R11-READS-RESIDUE
+  is an owner exception to the instrument freeze (card P11), and decision 0018,
+  `dev/audit/config/objective.json` and the round-10 baseline name it as the
+  builder in place of R11-INTAKE-R10-RESIDUE.
 
 ## The instrument freeze, proposals and root cause
 
