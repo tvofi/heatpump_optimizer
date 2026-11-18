@@ -5034,7 +5034,10 @@
     "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/round_metrics.py",
-    "tools/audit/seat/scorecard.py"
+    "tools/audit/seat/scorecard.py",
+    "tools/ci/gate.py",
+    "tools/ci/ghapi.py",
+    "tools/ci/prelude.py"
    ],
    "probes": [
     ".",
@@ -5043,11 +5046,13 @@
     "tests",
     "tools",
     "tools/audit",
-    "tools/audit/seat"
+    "tools/audit/seat",
+    "tools/ci"
    ],
    "dirs": [
     "tests",
-    "tools/audit/seat"
+    "tools/audit/seat",
+    "tools/ci"
    ],
    "index": false,
    "objects": false,
