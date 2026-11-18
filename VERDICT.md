@@ -1,36 +1,24 @@
-Fix review: blocked 9894911a81cdceb51eecec093a2527f93576d34e red-check: pr-contract red at this head on the body's stale scope-line figure block (body-only; code review complete, no code finding)
+Fix review: blocked 454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7 red-check: pr-contract red at this head on code-scanning alerts 57 and 58 missing from the body's Red checks (body-only; code delta clean, no code finding)
 
-bus-nonce: 726c78d84bb93219cfb28be599619661
+bus-nonce: 7d5b5cf9f0c4e3ad3cc5653d4c266866
 
 ## Block
 
-`merge_train.py classify 9894911a81 --pr 3662` exits 1: `RED 9894911a81cdceb51eecec093a2527f93576d34e pending: none red: gate`. `gate` fails only on `FAIL pr-contract / pr-contract: failure (run 44147689564)`. The only error in that run is `[figure-block] line 171: block scope-line names head=f52f265d5b8b mb=30991a6b0d4c, this run is head=9894911a81cd mb=5e2ef89b4e73; re-render with figure_block.py refresh <body>`. This is paperwork (C5), and on its own it would be a Note under `merge`. A red head takes no `merge`, though (C8), so the verdict stays blocked until the body is refreshed. Refreshing the body with `figure_block.py refresh` re-runs pr-contract. The code, the tests and the harness below carry no finding, so a re-dispatch at an unchanged diff needs only the live checks re-read.
+`merge_train.py classify 454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7 --pr 3662` exits 1 at 02:15:41 UTC: `RED 454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7 pending: none red: gate` (ev/classify-poll.log). Both `gate` jobs fail only on `FAIL pr-contract / pr-contract`: job 134520105095 in run 44219013946, and job 134519357204 in run 44219577902. The `pr-contract` job 134518677096 in run 44219577902 has two errors, both from `[pr-body]`: check `code-scanning alert 57 (py/overly-permissive-file)` is red and `## Red checks` does not name it; the same holds for alert 58 (ev/pr-contract-run-44219577902.txt). This round's body repair fixed the previous block: `figure_block verify` reports 1 block, 0 refused, and carry_audit reports 10 routed, 0 unrouted. The two alerts are a new red, introduced after the previous round. This is paperwork (C5), which would be a Note under `merge`, but a red head takes no `merge` (C8). The repair is body-only: add both alerts to `## Red checks` with their answer, and pr-contract re-runs on the edit.
 
 ## Red checks
 
-- `pr-contract / pr-contract` and `gate` are both in the owed-reds set. The cause is a body figure block left stale by the main merge 4e722000ab. The cheaper detector is `figure_block.py verify` on the body, run before the push that merged main. It takes seconds and is in the seat's prepr path. Classified root-cause-detectable. `tests / replay` (1 of 198 replay checks FAILED) and `tests / nightly-status` are red but not in `owed-reds`, so they are neither answered nor a block.
+- `pr-contract / pr-contract` and `gate` are in the `merge_train.py owed-reds` set. Cause: code-scanning alerts 57 and 58 (`py/overly-permissive-file`), which `codescan_wait.py --pr 3662 --base main` returns, are not answered in the body. The branch's three-dot diff from 1da13aafb7 adds no `chmod` or `0o7xx`/`0o666`/`0o777` line. The Python files the branch touches are accuracy.py, coordinator.py, store.py, two cop harnesses and tests/features.py (ev/alert-attribution.txt). So the alerts' code is most likely not this PR's own. That is a fact for the author's answer, not a figure I re-derived: I did not read the alerts' locations, because this seat has no code-scanning API read. The cheaper detector is the body's `## Red checks` check against `codescan_wait.py`, which `prepr.sh` runs before a body push. Classified root-cause-detectable.
+- `tests / nightly-status` and `tests / replay` are red (run 44194991877) but not in `owed-reds`. They are neither answered nor a block.
 
 ## Evidence
 
-- Round: this is the third review of this PR. Round 1 at 1134fe3655 blocked it with class-open (probe/rev-3662-e230047b). Round 2 is probe/rev-3662-f2fe353e. The packet's scope reads `delta` over 1134fe3655. `review_carry.py 1134fe3655 9894911a81` prints FRESH-REVIEW: 37 branch-only commits, among them the dither-probe redesign d171c345d and the row-to-row judgement 0c822e649/511e53a8e. The delta is a production change in `custom_components/heatpump_optimizer/accuracy.py` (ScaleDither, ScaleProbe) and in `coordinator._fold_measured_cop`.
-- Previous finding resolved. RESULT from the round-1 harness `ev/attack_drift_rows.py` (copied to ev/rows.py, 672 intervals, seed 1):
-  - At 1134fe3655 it reproduces the block: ±15% p64, ±15% p80, ±30% p96 and the mix at π each give `follows` with the scale at 0.500.
-  - At 9894911a81 every row gives `does_not_follow` at scale 1.000. That is identical to the null control, which reads swing0 → 1.000, does_not_follow (ev/B_head.txt, ev/B_prev.txt).
-- Perturbation: with the dither removed (`step()` returns `base`), every row reads `pending` at 1.000 (ev/C_swing_under_dither_noop.txt). The harness moves under its own perturbation, and without the dither the probe cannot latch a false `follows`.
-- Mutation proof. I made 7 hand mutants of accuracy.py and ran them one at a time through the features block driver (ev/drive.sh, ev/mut.py). All 7 were KILLED (ev/C_summary.txt):
-  - dither_noop: 25 checks failed
-  - coin_always_plus: 3
-  - no_pair_differencing_levels: 17
-  - follows_inverted: 18
-  - no_bound: 2
-  - drop_clamp_reseed: 3
-  - follows_no_owed: 3
-
-  The unmutated block prints `ALL 116 FEATURES BLOCK PASSED`.
-- Full suite: `PYTHONPATH=tests/hastub python3 tests/features.py` at the head prints `ALL 5875 FEATURE CHECKS PASSED`, rc 0 (ev/D_features_head.txt).
-- The commits since 1134fe3655 that are not merges are four `ci: pin killed mutants` commits, and they add only `tests/mutation_ledger/killed_by/*.json`. The `--remerge-diff` output of every first-parent merge is empty. The merge driver resolved `tests/structure_budgets.json` and `tests/closures.json` (LEDGER-MERGE: resolved).
-- `git merge-tree --write-tree origin/main 9894911a81` exits 0 (ev/merge-tree.txt). There is no conflict, and the driver printed `LEDGER-MERGE: resolved tests/closures.json`.
-- The three-dot diff from 5e2ef89b4e to 9894911a81 leaves VERSION, the manifest version and RELEASE_NOTES.md untouched.
+- Round: this is the fourth review of this PR, a delta over 9894911a81, whose verdict was `blocked red-check`. From the fourth round on, `fixer.md` owes a re-cut. All three earlier blocks after round 1 were body or CI paperwork, not code.
+- Delta: `git log --first-parent 9894911a81..454d4fc425` is one commit, 454d4fc425 `ci: merge main` (parents 9894911a81, 1da13aafb7). Its `git show --remerge-diff` is empty. The driver resolved `tests/structure_budgets.json` (class_excess_loc 17385 + both deltas = 17382) and `tests/closures.json` (merged as a set) (ev/remerge-diff.txt). `review_carry.py 9894911a81 454d4fc425` prints `CARRY`: 0 of 1 branch-only commits are non-merge (ev/review_carry.txt). The earlier verdict was a block, though, so nothing carries, and this delta review stands in its place.
+- Production delta: everything in `git diff 9894911a81 454d4fc425 -- custom_components` comes from main's side. Files: const.py, ledger.py, mixing_valve.py, narrative.py, optimizer.py, strings.json, thermal_model.py, translations, the card (ev/prod-delta-stat.txt). None of it touches accuracy.py (ScaleDither, ScaleProbe) or `coordinator._fold_measured_cop`, which the earlier rounds reviewed. The merge resolution is empty, so there is no non-obvious risk to widen to. Not widened.
+- Previous finding resolved. `figure_block verify` reports `1 block(s), 0 refused` at this head in CI, and the body's scope-line block names mb=1da13aafb7 head=454d4fc425. The code findings of round 3 stand (none). Its mutation proof and harness results (probe/rev-3662-* at 9894911a81) carry over unchanged, because the branch's own diff is unchanged.
+- `git merge-tree --write-tree origin/main 454d4fc425` exits 0 against origin/main 99a4010e47 and prints `LEDGER-MERGE: resolved tests/closures.json`. No conflict (ev/merge-tree.txt).
+- Three-dot `1da13aafb7...454d4fc425` leaves VERSION, the manifest version and RELEASE_NOTES.md untouched. CI's prepr `--version-edit` agrees.
 - `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- The head re-read at the verdict is 9894911a81, which equals the PR branch tip (ev/HEAD.txt).
-- Not re-derived: I ran rows.py with seed 1 only and did not re-run round 1's seed 1–5 sweep. The mutants ran on the features block only; the full script was not re-run per mutant. At the head the null control folds 0 of 672 intervals, against 48 at 1134fe3655. Over this window the probe stays at 1.000 without folding. The features block's follower rows still fail under follows_inverted, so true-follower detection is pinned by tests.
+- Head re-read at the verdict: `refs/pull/3662/head` is 454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7 (ev/HEAD.txt).
+- Not re-derived: the source location of alerts 57 and 58, because there is no code-scanning read from this seat. I ran no mutants this round, because the delta has no branch code.
