@@ -1,0 +1,16 @@
+== GATED_ARMS drops selftest-scope: ci_predict self-test: 1 failed
+  FAIL gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
+== ARMS drops selftest-scope: ci_predict self-test: 2 failed
+  FAIL selftest-scope: --only selftest-scope is an arm predict accepts (an unknown name is refused)
+  FAIL gated arms: --only selftest-scope runs that arm alone
+== rc!=1 check loosened: ci_predict self-test: 1 failed
+  FAIL selftest-scope: an indented line under an rc that is neither 0, 1 nor 3 is no refusal: the run is unreadable
+== run_arms record->True: ci_predict self-test: 1 failed
+  FAIL gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
+== arm_runs default True: ci_predict self-test: 1 failed
+  FAIL gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
+== arm_runs only ignored: 
+== predict passes record=True: ci_predict self-test: 0 failed
+== GATED_ARMS drops graders: ci_predict self-test: 0 failed
+
+[exited with code 0]
