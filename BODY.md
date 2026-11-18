@@ -31,6 +31,8 @@ The note's items for the fixer: p3a1 (cites re-anchored at this base), p3a2 (one
 
 ## Head
 
+`e95018f9ce2d66049c4ea70c996e925040be8369` merges the bot's `ci: pin killed mutants` `0703282a31` (three `killed_by` rows, no other file) into the authored code head `885f82e12b8b1bbadb575ada7f643cfec4efdb54`.
+
 `885f82e12b8b1bbadb575ada7f643cfec4efdb54`
 
 prepr: passed rc=0 at 885f82e12b8b1bbadb575ada7f643cfec4efdb54
@@ -51,7 +53,7 @@ Result: 23 mutants, 23 `KILLED`, 0 `SURVIVED`. Among them are the 13 the review 
 
 The failing tests come first: the coordinator check failed at `478e2ab92c`'s production code with `seen=[(5.0, 28.0, 1.0, 2.5, 0.0), (-3.0, 28.0, 2.0, 2.5, 1.5), (-4.0, ...), (-5.0, ...)]` before the one-line fix. The block's null control is its baseline at this head, `ALL 47 FEATURES BLOCK PASSED`, rc 0.
 
-The 4 sites `python3 tools/pr/ci_predict.py --base origin/main` lists as `ADDED UNPINNED` at this head were each applied in a detached worktree at this head and run against the same block command: `room_history.py:182 CMP_BOUND` was killed by `three 10-minute cycles make one 30-minute row ...`, `:276 CLAMP_DROP` by `an exact fit ... keeps finite t-statistics`, `:302 RETURN_DEL` by a `TypeError` in the report and `:334 CMP_BOUND` by `a calling gain exactly MIN_T standard errors clear of zero ...`.
+The 4 sites `python3 tools/pr/ci_predict.py --base origin/main` listed as `ADDED UNPINNED` at the code head were each applied in a detached worktree at this head and run against the same block command: `room_history.py:182 CMP_BOUND` was killed by `three 10-minute cycles make one 30-minute row ...`, `:276 CLAMP_DROP` by `an exact fit ... keeps finite t-statistics`, `:302 RETURN_DEL` by a `TypeError` in the report and `:334 CMP_BOUND` by `a calling gain exactly MIN_T standard errors clear of zero ...`.
 
 ## Null control
 
@@ -62,14 +64,14 @@ The 4 sites `python3 tools/pr/ci_predict.py --base origin/main` lists as `ADDED 
 ## Figures
 
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`.
-<!-- figure-block: scope-line mb=7c2f4c30cab5610cf8f5b040c326836ab544d27d head=885f82e12b8b1bbadb575ada7f643cfec4efdb54 -->
+<!-- figure-block: scope-line mb=7c2f4c30cab5610cf8f5b040c326836ab544d27d head=e95018f9ce2d66049c4ea70c996e925040be8369 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
 <!-- /figure-block -->
 - Scope of this round's delta: `python3 tests/closure.py select --diff 478e2ab92c36b309c73e8cc29903671434f73375 --workdir "$D"` prints `MODE: SCOPED -- 22 script(s) run, 11 scoped out` (the coordinator is in most closures). These were run here, with `PYTHONPATH=tests/hastub`, at this head: `tests/features.py` `ALL 5947 FEATURE CHECKS PASSED`, rc 0; `tests/entities.py` `ALL 2731 ENTITY CHECKS PASSED`, rc 0; `tests/guard_pins.py` `ALL 91 GUARD PIN CHECKS PASSED`; `tests/typing_ruler.py` `ALL 12 typing-ruler source checks PASSED`; `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`. CI runs the other 17: the changed argument feeds only `room_record.House`, which none of them reads.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` at this head.
-- `python3 tools/pr/ci_predict.py --base origin/main` at this head: `no closures, fast, governance or instrument red predicted against 7c2f4c30cab5`, and 4 added unpinned sites (under `## Mutation proof` and `## Unpinned sites`).
+- `python3 tools/pr/ci_predict.py --base origin/main` at this head: `no closures, fast, governance or instrument red predicted against 7c2f4c30cab5`, and 4 added unpinned sites at the code head; at the merge head 1, `room_history.py:276 CLAMP_DROP`, after the bot pinned three (under `## Mutation proof` and `## Unpinned sites`).
 - Finder's harness: none. #3616 is an outside report and the design note names none.
 
 ## Architecture score
@@ -80,7 +82,7 @@ MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 
 ## Unpinned sites
 
-The 94 sites `python3 tools/pr/ci_predict.py --base origin/main` listed as `ADDED UNPINNED` at the original handoff, and the original handoff's `SURVIVED` lines, with their dispositions as before. At this head the predictor lists 4 (`room_history.py` 182 CMP_BOUND, 276 CLAMP_DROP, 302 RETURN_DEL and 334 CMP_BOUND); each is killed by the block (`## Mutation proof`) and left for mutation-autofix's pin run.
+The 94 sites `python3 tools/pr/ci_predict.py --base origin/main` listed as `ADDED UNPINNED` at the original handoff, and the original handoff's `SURVIVED` lines, with their dispositions as before. At the code head the predictor listed 4 (`room_history.py` 182 CMP_BOUND, 276 CLAMP_DROP, 302 RETURN_DEL and 334 CMP_BOUND), each killed by the block (`## Mutation proof`). The bot's `0703282a31` pinned three of them, and at the merge head only 276 CLAMP_DROP remains, killed by `an exact fit ... keeps finite t-statistics` and left for mutation-autofix's pin run.
 
 - custom_components/heatpump_optimizer/diagnostics.py:360 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/room_history.py:29 CONST: pinned by mutation-autofix (its lane mutates `custom_components/`)
@@ -202,7 +204,7 @@ The 94 sites `python3 tools/pr/ci_predict.py --base origin/main` listed as `ADDE
 
 ## Red checks
 
-- `tests / mutation` (at 1fe21304 and 9597676033): `MUTATION TABLE REFUSED` on the diff's added unpinned sites. The bot's and the orchestrator's pin commits (`8518497c1a`, `3f9fa5f4f6`) pinned all but 4, and those 4 are killed by the block (`## Mutation proof`), left for mutation-autofix. The cheaper detector is `tools/pr/ci_predict.py` (`prepr.sh` step 6d), which predicts which sites are unpinned, not which survive; the review's hand mutants are not the ratchet's operators, and no instrument in the tree generates them.
+- `tests / mutation` (at 1fe21304 and 9597676033): `MUTATION TABLE REFUSED` on the diff's added unpinned sites. The bot's and the orchestrator's pin commits (`8518497c1a`, `3f9fa5f4f6`) pinned all but one (`room_history.py:276 CLAMP_DROP` at the merge head), which the block kills (`## Mutation proof`), left for mutation-autofix. The cheaper detector is `tools/pr/ci_predict.py` (`prepr.sh` step 6d), which predicts which sites are unpinned, not which survive; the review's hand mutants are not the ratchet's operators, and no instrument in the tree generates them.
 - `governance / wave-script` (at 9597676033): answered in the previous round's body (the DIRTY state's red, repaired by that round's main merge); inherited at `478e2ab92c`, where `python3 tools/audit/seat/merge_train.py classify 478e2ab92c36b309c73e8cc29903671434f73375 --pr 3711` reads `WAIT ... pending: gate red: none`. Cheaper detector: none that runs before main moves; the merge was the repair.
 - `pr-contract / pr-contract` (at 9597676033): answered in the previous round's body (a bot push moved the head under the body); this body's figure block is refreshed at its own head.
 - `gate` (at 1fe21304 and 9597676033): the aggregate of the runs above; no cause of its own.
