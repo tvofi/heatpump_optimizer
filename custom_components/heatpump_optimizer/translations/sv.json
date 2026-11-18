@@ -2197,6 +2197,23 @@
               "not_below_configured": "Inställd: den uppmätta maxeffekten stämmer med den",
               "measured_below_configured": "Uppmätt: pumpen drar tydligt mindre än sin inställda maxeffekt"
             }
+          },
+          "pump_min_power_source": {
+            "name": "Mineffekt som planen använde",
+            "state": {
+              "configured": "Inställd mineffekt",
+              "metered": "Uppmätt av mätaren vid mineffekten"
+            }
+          },
+          "pump_min_power_reason": {
+            "name": "Varför planen använde den mineffekten",
+            "state": {
+              "plan_writes_power": "Inställd: planen skriver effekten själv, så mätaren visar bara den",
+              "awaiting": "Inställd: ännu för få uppmätta körningar vid mineffekten",
+              "unexceeded": "Inställd: den uppmätta mineffekten ligger inte tydligt över den",
+              "cycled": "Inställd: planen kör pumpen intermittent under sin mineffekt, så en uppmätt mineffekt skulle inte ändra den",
+              "measured": "Uppmätt: den gående pumpen drar tydligt mer än sin inställda mineffekt"
+            }
           }
         }
       },

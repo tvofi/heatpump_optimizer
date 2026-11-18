@@ -285,6 +285,10 @@ _RESTATED = "ledger.restate_total re-derives them from the receipt's own lines o
 _DHW_INTENSITY = Domain("real", 0.0, 3.5, whole=_PROFILE)
 
 _DRAW_KEY = "the configuration keys the record: unreadable, the samples and the latch are dropped with it"
+#: ``DrawRange.from_dict`` keeps a record and drops an unreadable row: one
+#: sample (drawn, asked) or one ceiling reading (drawn, when) is read whole,
+#: and a command is its (written, ceiling) pair or none.
+_DRAW_ROW = "an unreadable cell drops its row's sample, or its command pair, never the record"
 #: A metered running draw: one at or below standby is not a running one, and is dropped.
 _RUNNING_KW = Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf))
 
@@ -309,20 +313,25 @@ _ACCURACY: dict[str, Domain | str] = {
     "promises/~": _DAY, "promises/*/start": _AT, "promises/*/step_minutes": Domain("real", _POS),
     "promises/*/room/#": _R, "promises/*/cost/#": _R,
     # The metered running draw beside the space level asked (draw_range).
-    "draw/samples/#/0": _RUNNING_KW,
-    "draw/samples/#/1": _Z,
+    "draw/samples/#/0": _RUNNING_KW._replace(whole=_DRAW_ROW),
+    "draw/samples/#/1": _Z._replace(whole=_DRAW_ROW),
     # R10-SETPOINT-BOOST: the flow set-point held and its ceiling, null where
     # nothing commanded the draw; and the readings taken at the gate.
-    "draw/samples/#/2": _N,
-    "draw/samples/#/3": _N,
+    "draw/samples/#/2": _N._replace(whole=_DRAW_ROW),
+    "draw/samples/#/3": _N._replace(whole=_DRAW_ROW),
     "draw/idle/#": _Z,
     # R10-CEILING-PROBE: the experiment's ceiling-commanded draws, each beside
     # its interval's start in epoch seconds, and the overdraws since.
-    "draw/ceiling/#/0": _RUNNING_KW,
-    "draw/ceiling/#/1": _R,
+    "draw/ceiling/#/0": _RUNNING_KW._replace(whole=_DRAW_ROW),
+    "draw/ceiling/#/1": _R._replace(whole=_DRAW_ROW),
     "draw/overdraws": _COUNT,
     "draw/engaged": Domain("flag", whole=_DRAW_KEY),
     "draw/config/#": Domain("real", whole=_DRAW_KEY),
+    # R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor (absent while
+    # unset) and the samples appended since it last moved; a bad cell reads
+    # unset or 0 (_stored_floor) and costs only itself, never the record.
+    "draw/floor_kw": Domain("real", _POS),
+    "draw/floor_since": _COUNT,
 }
 
 DOMAINS: dict[str, dict[str, Domain | str]] = {

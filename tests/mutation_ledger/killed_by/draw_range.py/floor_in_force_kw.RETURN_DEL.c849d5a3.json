@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:floor_in_force_kw RETURN_DEL c849d5a3",
+  "killed_by": "tests/features.py",
+  "old": "    return cfg_min if draw.floor_kw is None else draw.floor_kw",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
