@@ -720,7 +720,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "round 12 architect triage of the carries INTAKE-TRIAGE.json leaves here; the dispatch at handoff-wip/r11-intake-r10-residue a12c4c2ccc is answered (a) and closed",
-    "note": "finder-critical for carries 174-177 (round-10 numbering; already moved to R11-PRE-BRIEFS-TEXT, R11-PRE-ROUND-METRICS and R11-PRE-BRIEFS-CENSUS at roster 8b730d82ba, so no open carry here gates the finders); fix-gating for the rest (0018:192,434,436); created 2026-11-13 by the s14 orchestrator to receive R10-CI-PRIORITY-PAUSE roster carries 10 and 11; overlap admitted (R10-NUDGE-RETIRE): holding group for round-10 residuals with no live owner; round-11 architect re-homes each carry | set-size S -> L (cite handoff/audit-r10-roster@8b730d82ba8bf58cd5664863c6f74d59cb9fb413)",
+    "note": "plan revision 4 (plan/r11 50a932de3b): triaged in INTAKE-TRIAGE.md; deferred to round 12, holding no in-round work. Its pending carries ruled into a deferred R11-CARRY-* group stay here, since a deferred group takes no carry: INTAKE-TRIAGE.json names each destination. Carries 184-186 (DX0 owner acts) arrived after the triage pin and are not ruled by it. Carry 182 and its merged carry 181 stay in round 11 on R11-SEAM-learners (tvofi 2026-11-18)",
     "pr": null
    }
   },
