@@ -4578,7 +4578,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch the fixer; re-measure every carry first",
-    "note": "created by the round-11 carry map from R11-PRE-TOOLCHAIN-PIN carries 4,5,6,8",
+    "note": "deferred to the round-11 end-of-round triage with the proposals (owner ruling 2026-11-17); survivors are built in R12; local overlays meanwhile",
     "pr": null
    },
    "source": "programme"
