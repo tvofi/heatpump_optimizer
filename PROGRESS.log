@@ -24,3 +24,4 @@
 1795012612 DONE returned: handoff/r11-seam-inputs-guards fe297f1b14, body f8847ffd12; handoff-wip delete refused (HTTP 403)
 1795017730 HB alive
 1795017890 CKPT lead parse + pins written; entities run in progress snapshot d7fc1ecbb84e
+1795018053 CKPT step pushed to handoff-wip at fed8f6838c; mutants running snapshot 65ced6751f16
