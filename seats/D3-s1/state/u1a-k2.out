@@ -39,3 +39,4 @@
 2026-11-18T19:46:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met CMP_BOUND ade5352a L1546 by=- ran=12 wall=1780.5s
 2026-11-18T19:50:31Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements GUARD_OFF d5301036#2 L1368 by=tests/features.py ran=16 wall=1796.6s
 2026-11-18T20:06:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step GUARD_OFF aec1053b L1752 by=- ran=12 wall=1741.9s
+2026-11-18T20:07:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion CMP_BOUND 7e3f92fd L129 by=- ran=12 wall=1740.1s
