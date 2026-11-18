@@ -1,0 +1,3 @@
+2026-11-18T13:49:17Z COMPLETE queued=242 from=pre
+2026-11-18T13:54:49Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_mixed_water GUARD_OFF 5e696d34 L4391 by=tests/entities.py,tests/features.py ran=13 wall=331.5s
+2026-11-18T13:55:02Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF 582cce74 L783 by=tests/entities.py,tests/features.py ran=13 wall=344.3s
