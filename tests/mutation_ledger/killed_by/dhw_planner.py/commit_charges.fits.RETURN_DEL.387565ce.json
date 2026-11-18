@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:commit_charges.fits RETURN_DEL 387565ce",
+  "killed_by": "tests/features.py",
+  "old": "        return charge_refusal(candidate, start_below, temps_of, held) or candidate",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=18."
+}
