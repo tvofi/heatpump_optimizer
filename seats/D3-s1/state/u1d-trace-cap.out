@@ -1,0 +1,3 @@
+2026-11-18T08:32:39Z TRACE-CAPTURE rc=0 wall=95.0s problems=[] procs={'started': 2, 'recorded': 2}
+RESULT load1=0.94
+RESULT thread_factor=1.00
