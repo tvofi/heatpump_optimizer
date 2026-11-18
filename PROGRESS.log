@@ -6,50 +6,56 @@
 1794988545 SEAT D3-s1 running
 1794988627 HB D3-s1 started (subagent frugal:builder, model opus; general-purpose refused by the frugal guard)
 1794989075 HB alive
-1794989679 HB alive
-1794989695 HB cannot: CMD 1 (run the seat inline) -- D3-s1 is already running since ~07:58 UTC as an Agent subagent (frugal:builder, model opus; the frugal guard allowed it, FRUGAL_ALLOW_EXPENSIVE not set); the brief says a running subagent is never killed and a second inline run would drive the same keys in the same report dir. CMD 1 is not a protocol command (box_comms refused it as unknown) and changes brief step 3, so it is recorded as pending owner confirmation. To change course send STOP (the seat finishes, checkpoints) and a NOTE.
-1794989773 CKPT D3-s1 133 file(s)
-1794990285 HB alive
-1794990891 HB alive
-1794991098 CKPT D3-s1 160 file(s)
-1794991496 HB alive
-1794992102 HB alive
-1794992336 CKPT D3-s1 186 file(s)
-1794992707 HB alive
-1794993312 HB alive
-1794993690 CKPT D3-s1 210 file(s)
-1794993918 HB alive
-1794994523 HB alive
-1794995128 HB alive
-1794995245 CKPT D3-s1 236 file(s)
-1794995733 HB alive
-1794996340 HB alive
-1794996439 CKPT D3-s1 260 file(s)
-1794996945 HB alive
-1794997556 HB alive
-1794997977 CKPT D3-s1 285 file(s)
-1794998162 HB alive
-1794998766 HB alive
-1794999315 CKPT D3-s1 310 file(s)
-1794999372 HB alive
-1794999977 HB alive
-1795000552 CKPT D3-s1 336 file(s)
-1795000582 HB alive
-1795001187 HB alive
-1795001787 CKPT D3-s1 360 file(s)
-1795001793 HB alive
-1795002398 HB alive
-1795003003 HB alive
-1795003323 CKPT D3-s1 385 file(s)
-1795003608 HB alive
-1795004214 HB alive
-1795004821 HB alive
-1795004937 CKPT D3-s1 410 file(s)
-1795005426 HB alive
-1795006031 HB alive
-1795006312 CKPT D3-s1 435 file(s)
-1795006638 HB alive
-1795006820 CKPT D3-s1 444 file(s)
-1795007243 HB alive
-1795007849 HB alive
-1795008460 HB alive
+1794989480 RESUMED from 7830bb637572
+1794989480 INIT box D3-u1d
+1794989496 HB alive
+1794989527 HB drift warm skipped: HEAD is the baseline
+1794989561 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
+1794989568 HB prepared
+1794989584 SEAT D3-s1 running
+1794989695 CKPT D3-s1 125 file(s)
+1794990102 HB alive
+1794990707 HB alive
+1794991124 CKPT D3-s1 135 file(s)
+1794991312 HB alive
+1794991471 CKPT D3-s1 141 file(s)
+1794991917 HB alive
+1794992522 HB alive
+1794992972 CKPT D3-s1 166 file(s)
+1794993128 HB alive
+1794993733 HB alive
+1794994249 CKPT D3-s1 191 file(s)
+1794994338 HB alive
+1794994943 HB alive
+1794995548 HB alive
+1794995814 CKPT D3-s1 217 file(s)
+1794996155 HB alive
+1794996760 HB alive
+1794997366 HB alive
+1794997462 CKPT D3-s1 243 file(s)
+1794997972 HB alive
+1794998577 HB alive
+1794998944 CKPT D3-s1 268 file(s)
+1794999183 HB alive
+1794999795 HB alive
+1795000401 HB alive
+1795000492 CKPT D3-s1 294 file(s)
+1795001007 HB alive
+1795001612 HB alive
+1795002000 CKPT D3-s1 320 file(s)
+1795002218 HB alive
+1795002823 HB alive
+1795003322 CKPT D3-s1 345 file(s)
+1795003428 HB alive
+1795004033 HB alive
+1795004638 HB alive
+1795004976 CKPT D3-s1 371 file(s)
+1795005244 HB alive
+1795005849 HB alive
+1795006454 HB alive
+1795006645 CKPT D3-s1 396 file(s)
+1795007060 HB alive
+1795007666 HB alive
+1795008182 CKPT D3-s1 422 file(s)
+1795008272 HB alive
+1795008877 HB alive
