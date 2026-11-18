@@ -1,0 +1,129 @@
+SEAM F01_unbounded_reap custom_components/heatpump_optimizer/coordinator.py:1919 _shutdown_process_pool -- wait() with no timeout
+ok   F01_unbounded_reap custom_components/heatpump_optimizer/coordinator.py:1925 _shutdown_process_pool -- wait(timeout=...)
+SEAM F01_unbounded_reap custom_components/heatpump_optimizer/coordinator.py:2107 _run_in_process -- wait() with no timeout
+ok   F01_unbounded_reap custom_components/heatpump_optimizer/coordinator.py:2090 _run_in_process -- wait(timeout=...)
+ok   F02_reader_settings custom_components/heatpump_optimizer/coordinator.py:5204 HeatPumpOptimizerCoordinator._update_external_heat_detection -- entry enabled=/scale=
+ok   F02_reader_settings custom_components/heatpump_optimizer/coordinator.py:6641 HeatPumpOptimizerCoordinator._update_current_state -- entry enabled=/scale=
+SEAM F02_reader_settings custom_components/heatpump_optimizer/coordinator.py:9178 HeatPumpOptimizerCoordinator._indoor_humidity_value -- defaults (kwargs [])
+ok   F02_reader_settings custom_components/heatpump_optimizer/pump_arbiter.py:759 _reader -- entry enabled=/scale=
+SEAM F03_data_shadow custom_components/heatpump_optimizer/config_flow.py:2875 HeatPumpOptimizerConfigFlow._async_save_reconfigure -- data= only; options keep any shadowing key
+SEAM F03_data_shadow custom_components/heatpump_optimizer/config_flow.py:3299 HeatPumpOptimizerConfigFlow.async_step_reauth_confirm -- data= only; options keep any shadowing key
+ok   F03_data_shadow custom_components/heatpump_optimizer/coordinator.py:1498 _async_rewrite_entry -- data= and options= in one write
+SEAM F04_zone_fact custom_components/heatpump_optimizer/config_flow.py:1865 _OPTION_FIELDS.CONF_HOUSE_THERMAL_MASS -- single-zone field offered in every zone mode
+ok   F04_zone_fact custom_components/heatpump_optimizer/config_flow.py:1866 _OPTION_FIELDS.CONF_HOUSE_HEAT_LOSS_COEFFICIENT -- when= gates it on the zone mode
+ok   F04_zone_fact custom_components/heatpump_optimizer/config_flow.py:3130 HeatPumpOptimizerConfigFlow.async_step_zones -- a form answer from the stored override, not a topology verdict: `mode == TWO_ZONE_MODE_ON`
+SEAM F04_zone_fact custom_components/heatpump_optimizer/coordinator.py:2616 _sim_coldest -- zone columns from trajectory presence
+SEAM F04_zone_fact custom_components/heatpump_optimizer/coordinator.py:2725 _THERMAL_PARAM_FIELDS.house_heat_loss_coefficient -- service sets a field one zone mode never reads, no mode check
+SEAM F04_zone_fact custom_components/heatpump_optimizer/coordinator.py:2726 _THERMAL_PARAM_FIELDS.house_thermal_mass -- service sets a field one zone mode never reads, no mode check
+SEAM F04_zone_fact custom_components/heatpump_optimizer/coordinator.py:2730 _THERMAL_PARAM_FIELDS.upper_floor_thermal_mass -- service sets a field one zone mode never reads, no mode check
+SEAM F04_zone_fact custom_components/heatpump_optimizer/coordinator.py:2731 _THERMAL_PARAM_FIELDS.lower_floor_thermal_mass -- service sets a field one zone mode never reads, no mode check
+SEAM F04_zone_fact custom_components/heatpump_optimizer/coordinator.py:2732 _THERMAL_PARAM_FIELDS.inter_zone_heat_transfer -- service sets a field one zone mode never reads, no mode check
+SEAM F04_zone_fact custom_components/heatpump_optimizer/coordinator.py:3107 _apply_result_payload -- zone columns from trajectory presence
+SEAM F04_zone_fact custom_components/heatpump_optimizer/coordinator.py:4821 HeatPumpOptimizerCoordinator._build_plan_views -- zone columns from trajectory presence
+ok   F04_zone_fact custom_components/heatpump_optimizer/quick_setup.py:137 stored_answers -- a form answer from the stored override, not a topology verdict: `mode in (TWO_ZONE_MODE_ON, TWO_ZONE_MODE_OFF)`
+ok   F04_zone_fact custom_components/heatpump_optimizer/quick_setup.py:138 stored_answers -- a form answer from the stored override, not a topology verdict: `mode == TWO_ZONE_MODE_ON`
+ok   F04_zone_fact custom_components/heatpump_optimizer/thermal_model.py:1122 ThermalParameters.from_config.two_zone_mode -- owner: True only on an explicit on; auto reaches the presence rule
+ok   F05_modulation custom_components/heatpump_optimizer/thermal_model.py:1473 declared_modulation.on_off -- owner: on_off -> False (not modulating)
+SEAM F06_setpoint_range custom_components/heatpump_optimizer/coordinator.py:744 _valve_write_problem -- value written as handed in; no entity range in the writer
+SEAM F06_setpoint_range custom_components/heatpump_optimizer/heat_curve.py:397 _send -- value written as handed in; no entity range in the writer
+SEAM F06_setpoint_range custom_components/heatpump_optimizer/pump_arbiter.py:1608 _write -- value written as handed in; no entity range in the writer
+SEAM F06_setpoint_range custom_components/heatpump_optimizer/repairs.py:51 DhwSetpointRepairFlow.async_step_confirm -- value written as handed in; no entity range in the writer
+SEAM F06_setpoint_range custom_components/heatpump_optimizer/setpoint_check.py:169 _dhw -- hi_c=params.dhw_hard_max_temp: a config cap, not the entity's
+SEAM F07_domain_refuse custom_components/heatpump_optimizer/coordinator.py:3049 _stored_fuse_advisor -- refusal drops the whole row/record
+ok   F07_domain_refuse custom_components/heatpump_optimizer/coordinator.py:8329 HeatPumpOptimizerCoordinator._async_load_ledger -- refusal skips one field
+ok   F07_domain_refuse custom_components/heatpump_optimizer/coordinator.py:8336 HeatPumpOptimizerCoordinator._async_load_ledger -- refusal skips one field
+ok   F07_domain_refuse custom_components/heatpump_optimizer/coordinator.py:8338 HeatPumpOptimizerCoordinator._async_load_ledger -- refusal skips one field
+SEAM F07_domain_refuse custom_components/heatpump_optimizer/coordinator.py:8316 HeatPumpOptimizerCoordinator._async_load_ledger -- refusal drops the whole row/record
+SEAM F07_domain_refuse custom_components/heatpump_optimizer/debugger.py:166 _repair -- refusal drops the whole row/record
+ok   F07_domain_refuse custom_components/heatpump_optimizer/driving_grade.py:120 restore -- refusal skips one field
+ok   F07_domain_refuse custom_components/heatpump_optimizer/snapshots.py:274 SnapshotRing.from_dict -- refusal skips one field
+SEAM F08_seeded_zero custom_components/heatpump_optimizer/coordinator.py:9335 HeatPumpOptimizerCoordinator._fold_capacity_envelope -- count can stay 0 when stored
+ok   F08_seeded_zero custom_components/heatpump_optimizer/freq_control.py:162 FrequencyMap.observe -- count +1 in place before any save
+ok   F09_boost_branch custom_components/heatpump_optimizer/boost.py:101 settle_tail:101 -- after the function's boost exit
+ok   F09_boost_branch custom_components/heatpump_optimizer/boost.py:98 settle_tail:98 -- after the function's boost exit
+ok   F09_boost_branch custom_components/heatpump_optimizer/boost.py:100 settle_tail:100 -- after the function's boost exit
+SEAM F09_boost_branch custom_components/heatpump_optimizer/pump_arbiter.py:649 _space_target:649 -- returns `_bounded(inp, "space_setpoint", room)` blind to the boost
+ok   F09_boost_branch custom_components/heatpump_optimizer/pump_arbiter.py:631 _space_target:631 -- branch reads the boost
+SEAM F09_boost_branch custom_components/heatpump_optimizer/pump_arbiter.py:648 _space_target:648 -- returns `None` blind to the boost
+ok   F09_boost_branch custom_components/heatpump_optimizer/pump_arbiter.py:673 _level_kw:673 -- after the function's boost exit
+SEAM F09_boost_branch custom_components/heatpump_optimizer/pump_arbiter.py:670 _level_kw:670 -- returns `kw` blind to the boost
+ok   F09_boost_branch custom_components/heatpump_optimizer/pump_arbiter.py:672 _level_kw:672 -- after the function's boost exit
+SEAM F09_boost_branch custom_components/heatpump_optimizer/pump_arbiter.py:974 _flow_target:974 -- returns `_bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.conf` blind to the boost
+ok   F09_boost_branch custom_components/heatpump_optimizer/pump_arbiter.py:954 _flow_target:954 -- branch reads the boost
+SEAM F09_boost_branch custom_components/heatpump_optimizer/pump_arbiter.py:963 _flow_target:963 -- returns `_gate_c(inp)` blind to the boost
+SEAM F10_record_trust custom_components/heatpump_optimizer/pump_arbiter.py:1120 _note_sent:1120 -- decides from the record against its own value (recorded[0], out)
+ok   F10_record_trust custom_components/heatpump_optimizer/pump_arbiter.py:1349 dhw_gated:1349 -- compares the record against a live reading
+ok   F10_record_trust custom_components/heatpump_optimizer/pump_arbiter.py:1536 _edited:1536 -- compares the record against a live reading
+ok   F10_record_trust custom_components/heatpump_optimizer/pump_arbiter.py:1537 _edited:1537 -- compares the record against a live reading
+SEAM F10_record_trust custom_components/heatpump_optimizer/pump_arbiter.py:1599 _write:1599 -- decides from the record against its own value (recorded[0], value)
+ok   F10_record_trust custom_components/heatpump_optimizer/pump_arbiter.py:1725 _arm_space:1725 -- compares the record against a live reading
+SEAM F11_computed_eval custom_components/heatpump_optimizer/config_flow.py:2448 _omit_unstored_computed -- evaluated over `current` while judging the submit
+SEAM F12_wood_valve custom_components/heatpump_optimizer/quick_setup.py:202 derive -- stores the wood furnace and its probes, no throttling valve
+ok   F13_run_publish custom_components/heatpump_optimizer/button.py:109 ForceOptimizationButton.async_press -- refresh requested after the run
+ok   F13_run_publish custom_components/heatpump_optimizer/coordinator.py:6084 HeatPumpOptimizerCoordinator._async_update_data -- inside the refresh cycle
+ok   F13_run_publish custom_components/heatpump_optimizer/coordinator.py:6524 HeatPumpOptimizerCoordinator.async_run_optimization -- inside the refresh cycle
+SEAM F13_run_publish custom_components/heatpump_optimizer/services.py:604 handle_run_optimization -- solves without the refresh that fetches inputs and publishes
+SEAM F14_flat_windows custom_components/heatpump_optimizer/boost.py:738 _window_open -- time test over the flat union (`get("dhw_windows")`)
+SEAM F14_flat_windows custom_components/heatpump_optimizer/coordinator.py:4309 HeatPumpOptimizerCoordinator._dhw_plan_fields -- time test over the flat union (`.dhw_demand_windows`)
+SEAM F14_flat_windows custom_components/heatpump_optimizer/coordinator.py:4489 HeatPumpOptimizerCoordinator._async_drive_pumps -- time test over the flat union (`.dhw_windows`)
+SEAM F14_flat_windows custom_components/heatpump_optimizer/coordinator.py:6040 HeatPumpOptimizerCoordinator._dhw_in_demand_window -- time test over the flat union (`_dhw_effective_windows(`)
+SEAM F14_flat_windows custom_components/heatpump_optimizer/dhw_learning.py:480 DhwProfileLearner.async_fold_draw_stats -- time test over the flat union (`.dhw_demand_windows`)
+ok   F15_twin_formula custom_components/heatpump_optimizer/thermal_model.py:3358 ThermalModel.flow_lift_factor~_batch_cop -- same shape: scalar carnot_flow / carnot_ref vs batch carnot_flow / carnot_ref
+ok   F15_twin_formula custom_components/heatpump_optimizer/mixing_valve.py:133 emitter_delivery~simulate_trajectory_batch -- same shape: scalar floored=True vs batch floored=True
+ok   F15_twin_formula custom_components/heatpump_optimizer/tariff.py:916 _exact_topk_sum~_plateau_aware_topk_sum_batch -- same shape: scalar largest-k=True vs batch largest-k=True
+ok   F16_small_rules custom_components/heatpump_optimizer/accuracy.py:608 _stored_promise:naive->none (refused or kept naive) -- naive instant read as none (refused or kept naive)
+ok   F16_small_rules custom_components/heatpump_optimizer/accuracy.py:463 AccuracyTracker.from_dict:naive->none (refused or kept naive) -- naive instant read as none (refused or kept naive)
+ok   F16_small_rules custom_components/heatpump_optimizer/const.py:1476 finite_float -- the owner
+ok   F16_small_rules custom_components/heatpump_optimizer/const.py:1478 finite_float -- the owner
+ok   F16_small_rules custom_components/heatpump_optimizer/const.py:1480 finite_float -- the owner
+ok   F16_small_rules custom_components/heatpump_optimizer/const.py:1481 finite_float -- the owner
+SEAM F16_small_rules custom_components/heatpump_optimizer/coordinator.py:496 _refuses_non_finite -- answers `finite number?` without finite_float's NaN/inf/bool refusal
+ok   F16_small_rules custom_components/heatpump_optimizer/coordinator.py:570 _comparable_ts:naive->UTC -- naive instant read as UTC
+ok   F16_small_rules custom_components/heatpump_optimizer/coordinator.py:881 _outage_reading:naive->the caller's reference zone -- naive instant read as the caller's reference zone
+ok   F16_small_rules custom_components/heatpump_optimizer/coordinator.py:9278 HeatPumpOptimizerCoordinator._immersion_dhw_margin:naive->the caller's reference zone -- naive instant read as the caller's reference zone
+ok   F16_small_rules custom_components/heatpump_optimizer/defrost.py:720 DefrostWindow._elapsed:naive->none (refused or kept naive) -- naive instant read as none (refused or kept naive)
+ok   F16_small_rules custom_components/heatpump_optimizer/drift.py:39 _as_utc:naive->UTC -- naive instant read as UTC
+ok   F16_small_rules custom_components/heatpump_optimizer/drift.py:57 utc_shift:naive->none (refused or kept naive) -- naive instant read as none (refused or kept naive)
+ok   F16_small_rules custom_components/heatpump_optimizer/drift.py:343 _finite_floats -- refuses NaN, inf and bool as finite_float does
+ok   F16_small_rules custom_components/heatpump_optimizer/duty_switch.py:262 _stored_number -- refuses NaN, inf and bool as finite_float does
+SEAM F16_small_rules custom_components/heatpump_optimizer/entity.py:125 payload_number -- answers `finite number?` without finite_float's NaN/inf/bool refusal
+SEAM F16_small_rules custom_components/heatpump_optimizer/entity.py:147 _finite -- answers `finite number?` without finite_float's NaN/inf/bool refusal
+ok   F16_small_rules custom_components/heatpump_optimizer/inputs.py:243 state_age:naive->none (refused or kept naive) -- naive instant read as none (refused or kept naive)
+ok   F16_small_rules custom_components/heatpump_optimizer/manual_plan.py:72 _coerce_awareness:naive->the caller's reference zone -- naive instant read as the caller's reference zone
+ok   F16_small_rules custom_components/heatpump_optimizer/modbus_prefill.py:180 _number -- refuses NaN, inf and bool as finite_float does
+SEAM F16_small_rules custom_components/heatpump_optimizer/open_meteo.py:77 _ensure_utc:naive->host-local (astimezone) -- a naive instant read as the host's zone by astimezone(), drift._as_utc reads UTC
+ok   F16_small_rules custom_components/heatpump_optimizer/open_meteo.py:186 _parse_block:naive->UTC -- naive instant read as UTC
+SEAM F16_small_rules custom_components/heatpump_optimizer/replay_doc.py:180 numeric -- answers `finite number?` without finite_float's NaN/inf/bool refusal
+SEAM F16_small_rules custom_components/heatpump_optimizer/replay_doc.py:260 _number -- answers `finite number?` without finite_float's NaN/inf/bool refusal
+SEAM F16_small_rules custom_components/heatpump_optimizer/sensor.py:84 _as_float -- answers `finite number?` without finite_float's NaN/inf/bool refusal
+SEAM F16_small_rules custom_components/heatpump_optimizer/sensor.py:3000 _gap_probe_terms:water=4.187 -- a water heat-capacity literal beside const.py's
+ok   F16_small_rules custom_components/heatpump_optimizer/store.py:128 _bound_instants:naive->UTC -- naive instant read as UTC
+ok   F16_small_rules custom_components/heatpump_optimizer/store.py:221 _number -- refuses NaN, inf and bool as finite_float does
+ok   F16_small_rules custom_components/heatpump_optimizer/wood_fuel.py:283 _as_dt:naive->the caller's reference zone -- naive instant read as the caller's reference zone
+ok   F17_gap_feature custom_components/heatpump_optimizer/topology.py:923 rank_sensor_gaps.CONF_HOUSE_POWER_ENTITY -- no optional feature behind it
+ok   F17_gap_feature custom_components/heatpump_optimizer/topology.py:931 rank_sensor_gaps.CONF_OUTDOOR_TEMP_ENTITY -- no optional feature behind it
+SEAM F17_gap_feature custom_components/heatpump_optimizer/topology.py:943 rank_sensor_gaps.CONF_DHW_TEMP_ENTITY -- priced without dhw_enabled
+SEAM F18_waiting_key custom_components/heatpump_optimizer/sensor.py:532 MonthlySavingsSensor._waiting_for -- keys on a value native_value does not read
+ok   F18_waiting_key custom_components/heatpump_optimizer/sensor.py:1999 PredictionAccuracySensor._waiting_for -- keys on what native_value reads (['accuracy', 'temperature_mae'])
+ok   F18_waiting_key custom_components/heatpump_optimizer/sensor.py:2045 PredictedIndoorTempSensor._waiting_for -- keys on what native_value reads (same accessor)
+SEAM F18_waiting_key custom_components/heatpump_optimizer/sensor.py:3085 WoodBurnAdvisorSensor._waiting_for -- keys on a value native_value does not read
+RESULT F01_unbounded_reap=2
+RESULT F02_reader_settings=1
+RESULT F03_data_shadow=2
+RESULT F04_zone_fact=9
+RESULT F05_modulation=0
+RESULT F06_setpoint_range=5
+RESULT F07_domain_refuse=3
+RESULT F08_seeded_zero=1
+RESULT F09_boost_branch=5
+RESULT F10_record_trust=2
+RESULT F11_computed_eval=1
+RESULT F12_wood_valve=1
+RESULT F13_run_publish=1
+RESULT F14_flat_windows=5
+RESULT F15_twin_formula=0
+RESULT F16_small_rules=8
+RESULT F17_gap_feature=1
+RESULT F18_waiting_key=2
+RESULT sites_total=109
+RESULT seams_total=49

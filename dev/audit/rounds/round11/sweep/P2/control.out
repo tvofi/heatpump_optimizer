@@ -1,0 +1,31 @@
+CONTROL D1-s3-04 F01_unbounded_reap coordinator.py:_run_in_process found line 2107
+CONTROL D1-s2-52 F02_reader_settings coordinator.py:_indoor_humidity_value found line 9178
+CONTROL D10-s2-01 F03_data_shadow config_flow.py:_async_save_reconfigure found line 2875
+CONTROL D12-s2-01 F04_zone_fact thermal_model.py:from_config.two_zone_mode found (re-planted) line 1122
+CONTROL D12-s1-01 F04_zone_fact coordinator.py:_build_plan_views found line 4821
+CONTROL D17-s1-03 F04_zone_fact config_flow.py:CONF_HOUSE_THERMAL_MASS found line 1865
+CONTROL D17-s3-02 F04_zone_fact coordinator.py:_THERMAL_PARAM_FIELDS.house_heat_loss_coefficient found line 2725
+CONTROL D17-s3-02 F04_zone_fact coordinator.py:_THERMAL_PARAM_FIELDS.house_thermal_mass found line 2726
+CONTROL D12-s3-01 F05_modulation thermal_model.py:declared_modulation.on_off found (re-planted) line 1473
+CONTROL D12-s3-02 F06_setpoint_range setpoint_check.py:_dhw found line 169
+CONTROL D12-s3-02 F06_setpoint_range repairs.py:* found line 51
+CONTROL D15-s1-04 F07_domain_refuse debugger.py:_repair found line 166
+CONTROL D15-s1-05 F08_seeded_zero coordinator.py:_fold_capacity_envelope found line 9335
+CONTROL D16-s1-03 F09_boost_branch pump_arbiter.py:_space_target found line 649
+CONTROL D16-s2-03 F10_record_trust pump_arbiter.py:_write found line 1599
+CONTROL D17-s1-02 F11_computed_eval config_flow.py:_omit_unstored_computed found line 2448
+CONTROL D17-s2-03 F12_wood_valve quick_setup.py:* found line 202
+CONTROL D17-s3-01 F13_run_publish services.py:handle_run_optimization found line 604
+CONTROL D17-s3-51 F14_flat_windows coordinator.py:_dhw_in_demand_window found line 6040
+CONTROL D2-s1-01 F15_twin_formula thermal_model.py:flow_lift_factor found (re-planted) line 3358
+CONTROL D2-s1-02 F15_twin_formula mixing_valve.py:emitter_delivery found (re-planted) line 133
+CONTROL D2-s3-06 F15_twin_formula tariff.py:_exact_topk_sum found (re-planted) line 916
+CONTROL D7-s3-04 F16_small_rules sensor.py:_gap_probe_terms:water found line 3000
+CONTROL D7-s3-04 F16_small_rules open_meteo.py:_ensure_utc found line 77
+CONTROL D7-s3-04 F16_small_rules entity.py:payload_number found line 125
+CONTROL D7-s3-04 F16_small_rules sensor.py:_as_float found line 84
+CONTROL D7-s3-04 F16_small_rules replay_doc.py:numeric found line 180
+CONTROL D8-s1-01 F17_gap_feature topology.py:CONF_DHW_TEMP_ENTITY found line 943
+CONTROL D8-s1-03 F18_waiting_key sensor.py:MonthlySavingsSensor found line 532
+RESULT control_sites=29
+RESULT missed_sites=0

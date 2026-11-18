@@ -1,0 +1,21 @@
+PERTURB F01_unbounded_reap 2->3 +1
+PERTURB F02_reader_settings 1->2 +1
+PERTURB F03_data_shadow 2->3 +1
+PERTURB F04_zone_fact 9->10 +1
+PERTURB F05_modulation 0->1 +1
+PERTURB F06_setpoint_range 5->6 +1
+PERTURB F07_domain_refuse 3->4 +1
+PERTURB F08_seeded_zero 1->2 +1
+PERTURB F09_boost_branch 5->6 +1
+PERTURB F10_record_trust 2->3 +1
+PERTURB F11_computed_eval 1->2 +1
+PERTURB F12_wood_valve 1->2 +1
+PERTURB F13_run_publish 1->2 +1
+PERTURB F14_flat_windows 5->6 +1
+PERTURB F15_twin_formula 0->1 +1
+PERTURB F16_small_rules 8->9 +1
+PERTURB F17_gap_feature 1->2 +1
+PERTURB F18_waiting_key 2->3 +1
+RESULT perturb_families=18
+RESULT perturb_not_plus_one=0
+rc=0

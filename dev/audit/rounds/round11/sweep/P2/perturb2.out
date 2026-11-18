@@ -1,0 +1,21 @@
+PERTURB F13_run_publish 1->2 +1
+PERTURB F14_flat_windows 5->6 +1
+PERTURB F15_twin_formula 0->1 +1
+PERTURB F16_small_rules 8->9 +1
+Traceback (most recent call last):
+  File "/home/user/audit-r11-sweep-P2/dev/audit/rounds/round11/D14/sweep-P2/enumerate_p2.py", line 873, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/home/user/audit-r11-sweep-P2/dev/audit/rounds/round11/D14/sweep-P2/enumerate_p2.py", line 857, in main
+    return 1 if perturb(root, only) else 0
+                ~~~~~~~^^^^^^^^^^^^
+  File "/home/user/audit-r11-sweep-P2/dev/audit/rounds/round11/D14/sweep-P2/enumerate_p2.py", line 796, in perturb
+    _apply_perturb(tmp, fam, spec)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/user/audit-r11-sweep-P2/dev/audit/rounds/round11/D14/sweep-P2/enumerate_p2.py", line 838, in _apply_perturb
+    _edit(tmp, "topology.py", "CONF_HOUSE_POWER_ENTITY,", "CONF_DHW_TEMP_ENTITY,")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/audit-r11-sweep-P2/dev/audit/rounds/round11/D14/sweep-P2/enumerate_p2.py", line 676, in _edit
+    assert s.count(old) == 1, f"{file}: {old!r} found {s.count(old)} times"
+           ^^^^^^^^^^^^^^^^^
+AssertionError: topology.py: 'CONF_HOUSE_POWER_ENTITY,' found 3 times

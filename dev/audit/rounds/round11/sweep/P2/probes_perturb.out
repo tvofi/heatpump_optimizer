@@ -1,0 +1,12 @@
+pass boost._window_open -- Saturday 07:00: seam open=False, weekday's window open=False
+pass coordinator._async_drive_pumps (VVC) -- Saturday 07:00: circulation pump run=False, on the weekday's windows run=False
+pass DhwProfileLearner.async_fold_draw_stats (draw label) -- Saturday 07:00 draw labelled '', the weekday's window says ''
+pass replay_doc._number -- 0 of 3 non-finite probes kept where finite_float refuses
+pass coordinator._apply_result_payload (schedule upper/lower) -- single-zone (two_zone_enabled=False): 0 of 96 schedule rows publish a zone temperature
+pass coordinator._sim_coldest (single-zone) -- min over zone+room trajectories 19.51 vs the single-zone room trajectory's 19.51
+pass coordinator._THERMAL_PARAM_FIELDS.upper_floor_thermal_mass (single-zone) -- asked house_thermal_mass=40.0: accepted=True; plan delta 45.771 kW-steps, after restart 45.771 (two_zone after restart=False)
+pass coordinator._THERMAL_PARAM_FIELDS.lower_floor_thermal_mass (single-zone) -- asked house_thermal_mass=40.0: accepted=True; plan delta 45.771 kW-steps, after restart 45.771 (two_zone after restart=False)
+pass coordinator._THERMAL_PARAM_FIELDS.inter_zone_heat_transfer (single-zone) -- asked house_thermal_mass=40.0: accepted=True; plan delta 45.771 kW-steps, after restart 45.771 (two_zone after restart=False)
+pass config_flow.async_step_reauth_confirm -- Entities page saved token 'token-old'; reauth -> abort/reauth_successful; effective token 'token-new'
+RESULT probes=10
+RESULT probes_failed=0 of 10 (--perturb)
