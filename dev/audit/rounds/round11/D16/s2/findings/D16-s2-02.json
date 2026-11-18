@@ -1,0 +1,48 @@
+{
+ "id": "D16-s2-02",
+ "scope": "D16-s2",
+ "step": "D16.M3",
+ "title": "Disinfection switch is commanded from the previous solve's action, one interval late",
+ "severity": "high",
+ "claim": "The pump's disinfection switch turns on one cycle after the steps the plan books the anti-legionella cycle on: for a 06:30-07:00 window it is on 0 of 30 minutes inside the window and 30 minutes after it, and the space-only steps of the window stay in Heating mode (0 of 30 minutes Heating + DHW).",
+ "mechanism": "`LegionellaGuard.async_track_cycle` (reached from `_update_current_state` -> `async_observe`, the first thing `_async_update_data` does) reads `self._action()`, the action the previous solve cut; the solve that adopts this step's legionella action runs after it, so the switch and the arbiter's `inp.disinfecting` (DisinfectionSwitch.memo) follow one interval behind, and the switch is not re-driven between cycles.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/disinfect.py",
+  "harness_path": "dev/audit/rounds/round11/D16/s2/disinfect.py",
+  "value": 0,
+  "unit": "minutes the switch reads on inside a 30-min booked window (30 on outside it)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats on the box; counts only",
+  "tolerance": "exact",
+  "load1": 1.35,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.legionella:LegionellaGuard.async_track_cycle (driven through heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._update_current_state); heatpump_optimizer.disinfection:DisinfectionSwitch.turn_on",
+ "perturbation": {
+  "change": "run LegionellaGuard.async_track_cycle again right after the solve adopts its action (--perturb track-after-adopt)",
+  "expected_direction": "up",
+  "observed_value": "on_in_window 29 of 30, on_outside 1, mode Heating + DHW 29 of 30"
+ },
+ "metric_definition": "minutes the disinfection switch entity reads on inside the steps whose plan dhw_reasons[k] is legionella (plain index), and outside them",
+ "phenomenon_property": "An actuator driven from the action is driven from the action of the step it lands in: no write path reads an action older than the current solve's.",
+ "seam_rule": "grep -nE 'self\\._action\\(\\)|_action=|async_observe|async_track_cycle' custom_components/heatpump_optimizer/legionella.py custom_components/heatpump_optimizer/coordinator.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/disinfect.py",
+  "value": 0,
+  "note": "no step booked legionella: null_on_minutes=0; a 90-min window shows the same 30-min shift (59 of 90 in window, 31 after)"
+ },
+ "reproduction_steps": [
+  "disinfect.py: switch writes turn_on at minute 61, turn_off at 91 for a window 30-60",
+  "the tank set-point does reach 60 C from minute 31 (the arbiter reads the new action), so the set-point and the switch disagree for the whole window"
+ ],
+ "proposed_fix_scope": "legionella/coordinator: drive the disinfection switch from the adopted action (after the solve's adoption, and on the step tick), not from the input read that precedes the solve.",
+ "files": [
+  "custom_components/heatpump_optimizer/legionella.py",
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/disinfection.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

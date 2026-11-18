@@ -1,0 +1,53 @@
+{
+ "id": "D16-s2-04",
+ "scope": "D16-s2",
+ "step": "D16.M4",
+ "title": "Floor-level space steps short-cycle where the floor lift exceeds min lift plus stop hysteresis",
+ "severity": "medium",
+ "claim": "Under a pump with an integrating speed loop and a 2 K stop hysteresis, a step booked at the modulation floor (min-cold-tank, 1.0 kW) runs 30 starts in 2.5 h at 0.60 kW on a plant lifting 8 K/kW (38 starts, 0.50 kW at 10 K/kW) against the plan's one run at 1.0 kW; the power-feedback loop never corrects it.",
+ "mechanism": "The floor writes inlet + flow_min_lift_k (5 K); a pump whose water at its floor sits higher than that plus its stop hysteresis stops and restarts. `_feedback` resets its run on every stop and folds only running samples, so its windowed error is 0 (running at the floor = the booked floor) and `_nudged` stays in the deadband; the duty-cycle shortfall is never seen.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+  "harness_path": "dev/audit/rounds/round11/D16/s2/effect.py",
+  "value": 30,
+  "unit": "compressor starts over 2.5 h of floor steps (plan: 1), k_lift 8",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+  "cpu_or_wall": "count",
+  "contention_note": "counts only",
+  "tolerance": "exact",
+  "load1": 1.44,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_flow_target and _feedback (via pump_arbiter.apply on the one-minute tick)",
+ "perturbation": {
+  "change": "config flow_min_lift_k = 8 (--cfg flow_min_lift_k=8)",
+  "expected_direction": "down",
+  "observed_value": "1 start at k_lift 8 (1.0 kW), 4 at 10 (0.98 kW)"
+ },
+ "metric_definition": "pump-model compressor starts and mean draw over steps 3..10 of a floor-level stretch, against the plan's one run at power_schedule[k]",
+ "phenomenon_property": "A step the plan books at the modulation floor is realized as one continuous run at the floor on any plant the loop can hold there: the set-point loop sees a duty-cycle shortfall, not only running samples.",
+ "seam_rule": "grep -nE 'def (_feedback|_nudged|_flow_target)|modulation_floor_flow_c|start_flow_min_lift_k' custom_components/heatpump_optimizer/pump_arbiter.py custom_components/heatpump_optimizer/thermal_model.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+  "value": 1,
+  "note": "k_lift 2.0-6.5: 1 start at 1.0 kW each (the null plant k 5: power_error 0)"
+ },
+ "leave_one_out": {
+  "cells": 6,
+  "min": 0.0,
+  "max": 0.5,
+  "drop_most_favourable": 0.0797
+ },
+ "reproduction_steps": [
+  "effect.py: RESULT min-cold-tank_k8.0_starts=30 measured_kw=0.602; k10.0_starts=38 measured_kw=0.5; k2.0-6.5 starts=1",
+  "--cfg flow_min_lift_k=8: k8.0 starts=1"
+ ],
+ "proposed_fix_scope": "pump_arbiter feedback: count a stopped minute inside a booked heating step as a zero sample (or keep the run across a short stop) so the loop lifts the floor target; or learn the floor lift from the supply-temperature reading.",
+ "files": [
+  "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}
