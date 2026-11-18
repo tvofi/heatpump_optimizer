@@ -39,6 +39,16 @@ function briefListing() {
 const here = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(here, '..', '..')
 const STAY = path.join(ROOT, '.claude', 'workflows')
+// A dimension id: D<n>, or DX0, the owner-only dimension the owner ruled
+// outside D0..Dn. Every id pattern below is built from this one, so a pattern
+// that admits D<n> and refuses DX0 cannot be written here by omission.
+const DIM_ID = String.raw`D(?:\d+|X0)`
+const isBriefFile = (f) => new RegExp(`^${DIM_ID}\\.md$`).test(f)
+const quotedDims = (text) => [...(text ?? '').matchAll(new RegExp(`'(${DIM_ID}|[A-Z]\\d+)'`, 'g'))].map((m) => m[1])
+const isFinderLabel = (l) => new RegExp(`^${DIM_ID}-s\\d+$`).test(l)
+const isLensLabel = (l) => new RegExp(`^${DIM_ID}-\\d+/v\\d$`).test(l)
+// A verifier's label, <dim>[#<k>]/<tail>; group 1 is the dimension.
+const verifierLabelRe = (tail) => new RegExp(`^(${DIM_ID})(?:#\\d+)?/(?:${tail})$`)
 const src = fs.readFileSync(path.join(STAY, 'web-fix-wave.js'), 'utf8')
 // Drop the `export const meta = {...}` literal: it is ESM syntax, and the rest
 // of the file is an async function body by construction.
@@ -743,6 +753,30 @@ await block('group 14 -- the two readers of a blocked verdict deliver one class'
     J(rows))
 })
 
+console.log('-- The dimension id: every pattern here admits DX0 beside D<n>')
+// The owner ruled the owner-only dimension DX0, outside D0..Dn, and every id
+// pattern carries it. Each reader of an id in this grader is driven over one
+// spelling corpus, so a reader that stops admitting DX0, or starts admitting a
+// near-miss, is refused here rather than by a data change it would misgrade.
+await block('the dimension id', async () => {
+  const yes = ['D0', 'D9', 'D17', 'DX0']
+  const no = ['D', 'DX', 'DX1', 'DX00', 'dX0', 'Dx0', 'D1X0', 'DD1', 'D-1', 'D1a', 'DX0a']
+  const rows = []
+  const readers = {
+    brief: (d) => isBriefFile(`${d}.md`),
+    quoted: (d) => J(quotedDims(`const DIMS = ['${d}']`)) === J([d]),
+    finder: (d) => isFinderLabel(`${d}-s1`),
+    lens: (d) => isLensLabel(`${d}-1/v2`),
+    verify: (d) => verifierLabelRe('verify').test(`${d}#2/verify`) && verifierLabelRe('v([123])|verify').exec(`${d}/v3`)?.[1] === d,
+  }
+  for (const [name, f] of Object.entries(readers)) {
+    for (const d of yes) if (!f(d)) rows.push(`${name} refuses ${d}`)
+    for (const d of no) if (f(d)) rows.push(`${name} admits ${d}`)
+  }
+  t(`each id reader admits ${yes.join(', ')} and refuses ${no.length} near-misses (${Object.keys(readers).length} readers)`, rows.length === 0, rows.join('; '))
+  t('a bare dimension or a padded one is no brief, seat or label (null control)', !isBriefFile('DX0.md ') && !isBriefFile('xDX0.md') && !isFinderLabel('DX0') && !isFinderLabel(' DX0-s1') && !verifierLabelRe('verify').test('DX0/verify '), 'a padded spelling passed')
+})
+
 console.log('-- The rotation: the coverage ledger every brief must agree with')
 // The round-8 convergence programme's rotation (design A). A brief's numbered
 // method steps are its step ids, D<k>.M<n>; dev/audit/config/rotation.json carries
@@ -751,7 +785,7 @@ console.log('-- The rotation: the coverage ledger every brief must agree with')
 // step records a round that never covers it, silently -- R7-INSTR-01's shape
 // one level down -- so the ledger is held to the briefs here.
 await block('the rotation', async () => {
-  const briefSteps = Object.fromEntries(briefListing().filter(([f]) => /^D\d+\.md$/.test(f)).map(([f, p]) => [
+  const briefSteps = Object.fromEntries(briefListing().filter(([f]) => isBriefFile(f)).map(([f, p]) => [
     f.slice(0, -3), [...fs.readFileSync(p, 'utf8').matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))]))
   const ledger = JSON.parse(fs.readFileSync(at('dev/audit/config/rotation.json'), 'utf8'))
   // One predicate, the tree and the synthetic ledgers below both through it.
@@ -804,16 +838,16 @@ await block('the finder report schema', async () => {
     (S.required ?? []).includes('leads') && J([...(S.properties?.leads?.items?.required ?? [])].sort()) === J(['file', 'owner_seat', 'symbol', 'what']), J(S.properties?.leads))
   const re = (k) => new RegExp(F.properties?.[k]?.pattern ?? '$^')
   const idRe = re('id'), scopeRe = re('scope')
-  // D18 is admitted exactly when its brief exists (decision 0013: this file
+  // DX0 is admitted exactly when its brief exists (decision 0013: this file
   // grades a pull request from the base, so the brief and the patterns land
-  // together and the grader that precedes them refuses either alone). D99 has
-  // no brief at any head and stays the unconditional null control.
-  const D18_BRIEF = briefListing().some(([f]) => f === 'D18.md')
+  // together and the grader that precedes them refuses either alone). D18 and
+  // D99 have no brief at any head and stay the unconditional null controls.
+  const DX0_BRIEF = briefListing().some(([f]) => f === 'DX0.md')
   const ownerRe = new RegExp(S.properties?.leads?.items?.properties?.owner_seat?.pattern ?? '$^')
-  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && scopeRe.test('D18-s1') === D18_BRIEF && !scopeRe.test('D99-s1') && scopeRe.test('D16-s1') && scopeRe.test('D17-s1'), String(scopeRe))
+  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && scopeRe.test('DX0-s1') === DX0_BRIEF && !scopeRe.test('D18-s1') && !scopeRe.test('D99-s1') && scopeRe.test('D16-s1') && scopeRe.test('D17-s1'), String(scopeRe))
   t('a finding numbered under its seat is an id the schema admits (D13-s1-01, D1-s3-51)', idRe.test('D13-s1-01') && idRe.test('D1-s3-51'), String(idRe))
   t("a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control)",
-    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && ownerRe.test('D18-s1') === D18_BRIEF && !ownerRe.test('D99-s1') && ownerRe.test('D16-s1') && ownerRe.test('D17-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
+    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && ownerRe.test('DX0-s1') === DX0_BRIEF && !ownerRe.test('D18-s1') && !ownerRe.test('D99-s1') && ownerRe.test('D16-s1') && ownerRe.test('D17-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
   // A design choice, said so: the guess is refused unless it is a class the
   // ledger HAS, so a class the judge adds is added to bugclasses.json and to
   // this enum in one pull request -- this check fails until both carry it.
@@ -834,7 +868,7 @@ console.log('-- The scopes: every seat a finder is dispatched to, held to the br
 await block('the scopes', async () => {
   const scopes = JSON.parse(fs.readFileSync(at('dev/audit/config/scopes.json'), 'utf8'))
   const ledger = JSON.parse(fs.readFileSync(at('dev/audit/config/rotation.json'), 'utf8'))
-  const briefs = briefListing().filter(([f]) => /^D\d+\.md$/.test(f)).map(([f]) => f.slice(0, -3))
+  const briefs = briefListing().filter(([f]) => isBriefFile(f)).map(([f]) => f.slice(0, -3))
   const scopeGaps = (sc, led, bs) => {
     const gaps = []
     if (!bs.length) gaps.push('no dimension brief found (an empty extraction is a gap)')
@@ -876,7 +910,7 @@ await block('the scoped round driver', async () => {
   const rd = fs.readFileSync(path.join(STAY, 'audit-find.js'), 'utf8')
   const scopes = JSON.parse(fs.readFileSync(at('dev/audit/config/scopes.json'), 'utf8'))
   const ledger = JSON.parse(fs.readFileSync(at('dev/audit/config/rotation.json'), 'utf8'))
-  const dimsIn = (text) => [...text.matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
+  const dimsIn = quotedDims
   const grab = (re) => { const m = re.exec(rd); return m ? dimsIn(m[1]) : [] }
   const shell = fs.readFileSync(at('tools/audit/prepare_baseline.sh'), 'utf8')
   const L = {
@@ -884,7 +918,7 @@ await block('the scoped round driver', async () => {
     isolated: grab(/const ISOLATED = new Set\(\[([^\]]*)\]/),
     api: grab(/const API_DIMS = new Set\(\[([^\]]*)\]/),
     baseline: ((/^ISOLATED_DIMS="([^"]*)"/m.exec(shell) ?? [, ''])[1]).split(/\s+/).filter(Boolean),
-    briefs: briefListing().filter(([f]) => /^D\d+\.md$/.test(f)).map(([f]) => f.slice(0, -3)).sort(),
+    briefs: briefListing().filter(([f]) => isBriefFile(f)).map(([f]) => f.slice(0, -3)).sort(),
   }
   // R7-INSTR-01 (#1477): every brief is in DIMS, and the worktree lists agree
   // with prepare_baseline.sh, whose own comment says a seat editing one edits both.
@@ -1049,7 +1083,7 @@ await block('the scoped round driver', async () => {
     try { out = await fn(agent, (m) => logs.push(m), () => {}, (items, f) => Promise.all(items.map((x) => f(x))), args) } catch (e) { error = e.message }
     return { out, error, logs, calls, labels: calls.map((c) => c.label) }
   }
-  const isFinder = (l) => /^D\d+-s\d+$/.test(l)
+  const isFinder = isFinderLabel
   const base = { round: 9, baseline: 'b', repo: '/r', rotation: ledger, scopes }
   const r9 = await drive(base)
   const finders = r9.labels.filter(isFinder)
@@ -1325,7 +1359,7 @@ await block('the owner-only dimensions', async () => {
   const scopes = JSON.parse(fs.readFileSync(at('dev/audit/config/scopes.json'), 'utf8'))
   const ledger = JSON.parse(fs.readFileSync(at('dev/audit/config/rotation.json'), 'utf8'))
   const bodyOf = (src) => { const i0 = src.indexOf('export const meta'); return src.slice(0, i0) + src.slice(src.indexOf('\n}\n', i0) + 3) }
-  const quoted = (text) => [...(text ?? '').matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
+  const quoted = quotedDims
   const blk = rd.match(/\/\/ DISPATCH:BEGIN[\s\S]*?\/\/ DISPATCH:END/)
   const vblk = vs.match(/\/\/ OWNER-ONLY:BEGIN[\s\S]*?\/\/ OWNER-ONLY:END/)
   t('the owner-only rules are delimited in both drivers', !!blk && !!vblk, `find ${!!blk} verify ${!!vblk}`)
@@ -1334,7 +1368,7 @@ await block('the owner-only dimensions', async () => {
   const V = new Function(`${vblk[0]}\nreturn { OWNER_ONLY, ownerOnlyRecord, ownerOnlyRefusal, OWNER_ONLY_REPLY, ownerOnlyStatus }`)()
 
   // 1. The declaration and its readers, on the committed tree.
-  const briefSet = briefListing().filter(([f, full]) => /^D\d+\.md$/.test(f) && /^## Owner-only\s*$/m.test(fs.readFileSync(full, 'utf8'))).map(([f]) => f.slice(0, -3)).sort()
+  const briefSet = briefListing().filter(([f, full]) => isBriefFile(f) && /^## Owner-only\s*$/m.test(fs.readFileSync(full, 'utf8'))).map(([f]) => f.slice(0, -3)).sort()
   const verifyLit = /^const OWNER_ONLY = new Set\(\[([^\]]*)\]\)$/m.exec(vs)
   const dims = quoted((/const DIMS = \[([^\]]*)\]/.exec(rd) ?? [])[1])
   const setGaps = ({ declared, briefs, verify, dimList, boxes }) => {
@@ -1375,12 +1409,17 @@ await block('the owner-only dimensions', async () => {
     [{ dimension: FX }, { scope: `${FX}-s1` }, { id: `${FX}-s1-01` }, { dimension: 'D1', id: `${FX}-s1-01` }].every((f) => V.ownerOnlyRecord(f, new Set([FX]))) && ![{ dimension: 'D9', scope: 'D9-s1', id: 'D9-s1-01' }, {}, null, { dimension: 'D990' }].some((f) => V.ownerOnlyRecord(f, new Set([FX]))), 'passed')
 
   // 3. audit-find.js, driven over the fixture dimension.
-  const withDim = (src) => { const m = /const DIMS = \[([^\]]*)\]/.exec(src); return m ? src.replace(m[0], `const DIMS = [${m[1]}, '${FX}']`) : null }
+  // The fixture arms read the fixture dimension alone: the real owner-only
+  // members leave the copy's DIMS and scopes first, so a real one never joins a
+  // private run's labels or turns 'no owner-only dimension' into a dispatch.
+  const realOwn = D.ownerOnlyOf(scopes)
+  const pubScopes = Object.fromEntries(Object.entries(scopes).filter(([k]) => !realOwn.includes(k)))
+  const withDim = (src) => { const m = /const DIMS = \[([^\]]*)\]/.exec(src); return m ? src.replace(m[0], `const DIMS = [${[...quotedDims(m[1]).filter((d) => !realOwn.includes(d)), FX].map((d) => `'${d}'`).join(', ')}]`) : null }
   const withBox = (src) => { const k = src.indexOf('}\nconst CHROMIUM'); return src && k > 0 ? `${src.slice(0, k)}  B99: { heavy: [], light: ['${FX}-s1'] },\n${src.slice(k)}` : null }
   const srcDim = withDim(bodyOf(rd)), srcBox = withBox(srcDim)
   t('the fixture is planted: DIMS gains the fixture dimension, and one copy gains a box row for its seat', !!srcDim && !!srcBox && srcDim.includes(`'${FX}']`) && srcBox.includes(`'${FX}-s1'`), 'the DIMS or BOXES literal was not found')
   if (!srcDim || !srcBox) return
-  const fxScopes = (flag) => ({ ...scopes, [FX]: { mode: 'cells', universe: [], steps: ['M1', 'M2'], seats: { s1: [{ steps: ['M1', 'M2'] }] }, ...(flag === undefined ? {} : { owner_only: flag }) } })
+  const fxScopes = (flag) => ({ ...pubScopes, [FX]: { mode: 'cells', universe: [], steps: ['M1', 'M2'], seats: { s1: [{ steps: ['M1', 'M2'] }] }, ...(flag === undefined ? {} : { owner_only: flag }) } })
   const fxLedger = { ...ledger, [FX]: { steps: ['M1', 'M2'], rounds: {} } }
   const seatIds = (sc) => Object.entries(sc).filter(([k]) => !k.startsWith('_')).flatMap(([d, x]) => Object.keys(x.seats).map((k) => `${d}-${k}`))
   const driveFind = async (src, args, { ownerPrep = { probe_rc: 0, scopes_ok: true, scopes_rc: 0, corpus_ok: true, exported: true }, seat } = {}) => {
@@ -1544,7 +1583,7 @@ await block('the verification pass', async () => {
   const vbody = vsrc.slice(0, vi) + vsrc.slice(vsrc.indexOf('\n}\n', vi) + 3)
   const F = (id, dimension) => ({ id, dimension, severity: 'low', title: id, claim: id, report_path: 'r', harness_paths: [], attached_refutation: null })
   const findings = [...Array.from({ length: 9 }, (_, k) => F(`D1-${k}`, 'D1')), F('D3-01', 'D3')]
-  const isVerifier = (label) => label.endsWith('/verify') || /^D\d+-\d+\/v\d$/.test(label)
+  const isVerifier = (label) => label.endsWith('/verify') || isLensLabel(label)
   // Drives the real body. `nullDims` names dimensions whose verifier returns
   // null on every call; every other verifier refutes everything it is shown.
   const drive = async ({ from, nullDims = [] } = {}) => {
@@ -1676,7 +1715,7 @@ if (PANEL_DRIVER) await block('the panel verification pass', async () => {
   // Round 9: one lens's vote per position. Round 10: the one verifier's vote and value.
   const PLAN = { 'D1-s1-01': ['refute', 'refute', 'verify'], 'D1-s1-02': ['refute', 'verify', 'verify'] }
   const PLAN1 = { 'D1-s1-01': ['refute', '1'], 'D1-s1-02': ['refute', ''] }
-  const isVerifier = (label) => (ONE ? /^D\d+(?:#\d+)?\/verify$/ : /^D\d+(?:#\d+)?\/v[123]$/).test(label)
+  const isVerifier = (label) => verifierLabelRe(ONE ? 'verify' : 'v[123]').test(label)
   const drive = async (args, { nullLabel, flagged, foldRc, readText } = {}) => {
     const calls = []
     let judged = []
@@ -1684,7 +1723,7 @@ if (PANEL_DRIVER) await block('the panel verification pass', async () => {
       const label = o?.label ?? '?'
       calls.push({ label, prompt })
       if (label === 'read') return { findings: readText ? readText(J([...d1, ...d2])) : [...d1, ...d2] }
-      const m = /^(D\d+)(?:#\d+)?\/(?:v([123])|verify)$/.exec(label)
+      const m = verifierLabelRe('v([123])|verify').exec(label)
       if (m && isVerifier(label)) {
         if (label === nullLabel) return null
         const ids = [...d1, ...d2].filter((f) => prompt.includes(`"${f.id}"`)).map((f) => f.id)
