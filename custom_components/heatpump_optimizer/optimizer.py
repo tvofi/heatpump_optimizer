@@ -2146,9 +2146,9 @@ def _space_only_starts(
     ``_multi_start_minimize`` for why one guess is not enough.
 
     The seeds scale with the share of the reference the wood tank covers,
-    so a tank covering it whole collapses them onto zero (D0-s2-01): one
-    start then keeps the reference's own energy, and the all-off start
-    brackets the set from below (D0-s3-02).
+    so a tank covering it whole collapses them onto zero (D0-s2-01): the
+    price-ranked seeds are then also drawn at the reference's own energy,
+    and the all-off start brackets the set from below (D0-s3-02).
     """
     reference_kwh = float(np.sum(reference_power) * dt)
     covered = _wood_covered_share(model, state, reference_kwh, target)
@@ -2164,7 +2164,10 @@ def _space_only_starts(
         *(_price_ranked_start(prices, energy * f, p_max, dt) for f in fractions),
     ]
     if covered > 0.0:
-        starts.append(_price_ranked_start(prices, reference_kwh, p_max, dt))
+        starts.extend(
+            _price_ranked_start(prices, reference_kwh * f, p_max, dt)
+            for f in (1.0, *fractions)
+        )
     starts.append(_lower_bound_start(bounds))
     return starts
 
