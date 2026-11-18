@@ -2194,14 +2194,16 @@
     "aliases": [
       "new: return inside finally"
     ],
-    "rca": [],
+    "rca": [
+      "R11-N-finally-return"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-step-grid": {
@@ -2235,15 +2237,18 @@
     "aliases": [
       "new: selector minimum off its own step grid"
     ],
-    "rca": [],
+    "rca": [
+      "R11-N-step-grid"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
-    }
+      "class_rca_on_record": true
+    },
+    "barrier_refusal": "tests/config_flow_steps.py r9_f5_text_and_menu_findings names the class (#1679, D4-s2-05) and pins one box-mode NumberSelector's step; it reads neither services.yaml, _widen_to_fit, the card inputs nor written values, so it is a site pin, not the class barrier (dev/audit/rca/R11-N-step-grid.md)"
   },
   "N-reap-lock": {
     "kind": "production",
@@ -5337,6 +5342,472 @@
       "doc": [
         "dev/audit/rca/R10-RCA-PREPR-DARWIN-SELFTEST.md"
       ]
+    },
+    "R11-N-finally-return": {
+      "class": "N-finally-return",
+      "level": "class",
+      "subject": "N-finally-return class: a return inside finally swallows an in-flight exception, cancellation included (3 instances: R9 1, R11 2)",
+      "trigger": "class: cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) R9's fix protocol fixed the nightly_ha site and, at one instance, no trigger asked for a class search; nothing between rounds looks for the shape",
+      "countermeasure": "proposed barrier: compile tracked .py outside dev/archive with -W error::SyntaxWarning (PEP 765), or the AST walk (about 1 s; 16 s/release against 317 s/release)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-finally-return.md",
+      "doc": [
+        "dev/audit/rca/R11-N-finally-return.md"
+      ]
+    },
+    "R11-N-step-grid": {
+      "class": "N-step-grid",
+      "level": "class",
+      "subject": "N-step-grid class: a number selector's minimum or default is not on its own step grid, so native validity flags legal values and a spinner click lands off-grid (7 instances: R9 1, R11 6)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) R9's fix was scoped to config_flow._number; services.yaml, _widen_to_fit and the card were outside its unit; the write side had no brief before D16 (2026-11-15)",
+      "countermeasure": "proposed barrier: a static tests/ arm over config_flow and services.yaml selectors on the step grid, and one quantise-on-step write helper; card inputs stay an audit probe",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-step-grid.md",
+      "doc": [
+        "dev/audit/rca/R11-N-step-grid.md"
+      ]
+    },
+    "R11-N-leaf-imports-solver": {
+      "class": "N-leaf-imports-solver",
+      "level": "class",
+      "subject": "N-leaf-imports-solver class: a leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve (9 instances: R10 2, R11 7)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) R10 moved its two edges; closures.json and archscore both measure the edges and neither refuses one",
+      "countermeasure": "proposed barrier: a tests/ arm holding a declared leaf list's static import closures free of optimizer and scipy (est. 0.5 s; 8 s/release against 1058 s/release)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-leaf-imports-solver.md",
+      "doc": [
+        "dev/audit/rca/R11-N-leaf-imports-solver.md"
+      ]
+    },
+    "R11-N-uncleared-issue": {
+      "class": "N-uncleared-issue",
+      "level": "class",
+      "subject": "N-uncleared-issue class: a repair issue or alert raised on a failure is never cleared by the recovery path, so it outlives the condition it reports (4 instances: R11 4)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D1.md:52-53 asks a handler to recover; R10 D1 s3 ran it on the handler and coordinator state, never on a raised repair issue across a restart",
+      "countermeasure": "proposed barrier: a static tests/ arm pairing each async_create_issue id with a delete, with a reasoned user-cleared list (est. 0.5 s; catches the never-deleted half)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-uncleared-issue.md",
+      "doc": [
+        "dev/audit/rca/R11-N-uncleared-issue.md"
+      ]
+    },
+    "R11-N-dropped-refresh": {
+      "class": "N-dropped-refresh",
+      "level": "class",
+      "subject": "N-dropped-refresh class: a refresh request that lands while a solve is in flight is coalesced into that solve, which read its inputs before the request, so the request is lost until the next interval (12 instances: R11 12)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) #1754 fixed the direct refresh path it reproduced; the library's debounced request path, used by every other caller, was outside its unit",
+      "countermeasure": "proposed barrier: override async_request_refresh to set the re-run flag during a solve (one owner for 12 callers), with a tests/ arm on m4_race's debounced rows",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-dropped-refresh.md",
+      "doc": [
+        "dev/audit/rca/R11-N-dropped-refresh.md"
+      ]
+    },
+    "R11-N-unordered-tiebreak": {
+      "class": "N-unordered-tiebreak",
+      "level": "class",
+      "subject": "N-unordered-tiebreak class: a tie between equal candidates is broken by set or hash iteration order, so the published result depends on PYTHONHASHSEED and changes across restarts (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) no brief or test runs a published choice under more than one hash seed",
+      "countermeasure": "refused: a max(set(...), key=) matcher catches one idiom with one seam in the tree (q ~0.1); the fix's two-seed regression test is the guard",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-unordered-tiebreak.md",
+      "doc": [
+        "dev/audit/rca/R11-N-unordered-tiebreak.md"
+      ]
+    },
+    "R11-N-swallowed-failure": {
+      "class": "N-swallowed-failure",
+      "level": "class",
+      "subject": "N-swallowed-failure class: a failing operation is caught and recorded below WARNING or not at all, so a persistent failure is invisible to the user and the logs (25 instances: R11 25)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D1 step 5 was run; round 10's instrument counted records that repeat, and a handler that logs nothing passes it",
+      "countermeasure": "proposed barrier: a static tests/ arm over d1-excepts refusing a silent or sub-WARNING swallow not routed through log_held, outside a reasoned list (est. 0.5 s; 8 s/release against 2645 s/release)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-swallowed-failure.md",
+      "doc": [
+        "dev/audit/rca/R11-N-swallowed-failure.md"
+      ]
+    },
+    "R11-N-entry-data-placement": {
+      "class": "N-entry-data-placement",
+      "level": "class",
+      "subject": "N-entry-data-placement class: a setting the options flow edits is stored in ConfigEntry.data (or a flow-control value is persisted there), so options and data hold two copies of one setting (4 instances: R11 4)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) no brief step or test asks which container a stored key lands in; D17 first ran this round",
+      "countermeasure": "proposed barrier: a tests/ arm walking the setup flow and refusing an options key in entry.data or a flow-control key stored at all",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-entry-data-placement.md",
+      "doc": [
+        "dev/audit/rca/R11-N-entry-data-placement.md"
+      ]
+    },
+    "R11-N-entity-metadata": {
+      "class": "N-entity-metadata",
+      "level": "class",
+      "subject": "N-entity-metadata class: an entity declares a device_class, state_class or unit that does not describe its value, so Home Assistant converts, aggregates or offers it wrongly (2 instances: R11 2)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) tests/entities.py's TOTAL_INCREASING check reads declared attributes; the accumulators inherit theirs",
+      "countermeasure": "proposed barrier: tests/entities.py resolves effective (inherited) metadata and checks it against Home Assistant's device-class tables",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-entity-metadata.md",
+      "doc": [
+        "dev/audit/rca/R11-N-entity-metadata.md"
+      ]
+    },
+    "R11-N-mode-coupled-write": {
+      "class": "N-mode-coupled-write",
+      "level": "class",
+      "subject": "N-mode-coupled-write class: a write meant for one heat target also drives the other because the plant has no mode separating them, and the gate that should hold it back is floored below the case (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) actuator writes against the plan had no brief before D16 (2026-11-15); no rig modelled a pump with no heating-only mode",
+      "countermeasure": "refused: one seam, one plant topology, no generic detector (q 0); the fix's dhw_gate regression test is the guard, D16 cells stay the audit instrument",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-mode-coupled-write.md",
+      "doc": [
+        "dev/audit/rca/R11-N-mode-coupled-write.md"
+      ]
+    },
+    "R11-N-unreleased-hold": {
+      "class": "N-unreleased-hold",
+      "level": "class",
+      "subject": "N-unreleased-hold class: an actuator the optimizer took over has no release or restore owner on some exit (stale plan, Off, unload, remove, failed restore), so the device keeps the optimizer's last write (5 instances: R11 5)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) before D16 (2026-11-15) no brief graded what a written entity holds on each exit; off_restore registration is opt-in per site",
+      "countermeasure": "proposed barrier: one write path that arms off_restore before every actuator write, plus a tests/ arm over the write-site x exit matrix (m6_restore)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-unreleased-hold.md",
+      "doc": [
+        "dev/audit/rca/R11-N-unreleased-hold.md"
+      ]
+    },
+    "R11-N-stale-step-actuation": {
+      "class": "N-stale-step-actuation",
+      "level": "class",
+      "subject": "N-stale-step-actuation class: an actuator is commanded from the previous solve or step, so it holds or switches one interval late against the plan it serves (4 instances: R11 4)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) no brief graded write timing against plan steps before D16 (2026-11-15); the step tick serves only some channels",
+      "countermeasure": "proposed barrier: one step-boundary write path for every step-dependent channel, with a tests/ arm on timing.py's stale share",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-stale-step-actuation.md",
+      "doc": [
+        "dev/audit/rca/R11-N-stale-step-actuation.md"
+      ]
+    },
+    "R11-N-partial-window-extrapolation": {
+      "class": "N-partial-window-extrapolation",
+      "level": "class",
+      "subject": "N-partial-window-extrapolation class: a window or period figure is projected linearly from its elapsed part with no minimum-coverage rule, so early projections swing by orders of magnitude (3 instances: R11 3)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) no brief step drives a projection at low coverage; D17 first ran this round and D8 found the monthly swing this round",
+      "countermeasure": "refused: the two formulas share no idiom a static arm could see (q 0); each fix's own test is the guard; a coverage-floored projection helper is offered to the fix PR",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-partial-window-extrapolation.md",
+      "doc": [
+        "dev/audit/rca/R11-N-partial-window-extrapolation.md"
+      ]
+    },
+    "R11-N-dead-input": {
+      "class": "N-dead-input",
+      "level": "class",
+      "subject": "N-dead-input class: a configured input or option is accepted, stored and shown, but no consumer reads it into the plan, so changing it changes nothing (2 instances: R11 2)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) no brief perturbed an option and asked whether the plan moved before D17 (2026-11-15)",
+      "countermeasure": "refused: a static reader check catches neither instance (q 0); a per-option sensitivity gate costs a solve per option per PR; each fix's perturbation test is the guard",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-dead-input.md",
+      "doc": [
+        "dev/audit/rca/R11-N-dead-input.md"
+      ]
+    },
+    "R11-N-table-value": {
+      "class": "N-table-value",
+      "level": "class",
+      "subject": "N-table-value class: a constant in a production data table (preset, coefficient, rule) is wrong, so every install that selects it computes from a false number (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) a table's literal values are outside every brief step and every test",
+      "countermeasure": "refused: an oracle exists only where an ordering or source is known (37 tables, 0 further wrong values); the fix pins the era ordering",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-table-value.md",
+      "doc": [
+        "dev/audit/rca/R11-N-table-value.md"
+      ]
+    },
+    "R11-N-wrong-law": {
+      "class": "N-wrong-law",
+      "level": "class",
+      "subject": "N-wrong-law class: a physical law is coded with the wrong operator or sign (a derate added instead of subtracted, then clamped), so the effect it models never acts on any input (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(c) D2.md:30-31 asks a derate in [0, 1], bounded and continuous; R10 D2 s2 ran it, and a derate clamped at 1.0 passes",
+      "countermeasure": "refused: 0 further seams and no syntactic shape (q 0); the fix pins the documented law at grid points; m2_cop_laws stays a D2 instrument",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-wrong-law.md",
+      "doc": [
+        "dev/audit/rca/R11-N-wrong-law.md"
+      ]
+    },
+    "R11-N-objective-as-money": {
+      "class": "N-objective-as-money",
+      "level": "class",
+      "subject": "N-objective-as-money class: a solve-only adjustment (a risk premium or penalty weight) is carried into a figure published or booked as currency, so cost, baseline and savings include a number no meter bills (4 instances: R11 4)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D2.md:35 states predicted_cost == sum(price*power*dt), and R10 checked it on golden fixtures at the default lambda 0, where both series coincide",
+      "countermeasure": "proposed barrier: an invariant tests/ arm with lambda > 0 requiring each published cost to equal raw price x power x dt",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-objective-as-money.md",
+      "doc": [
+        "dev/audit/rca/R11-N-objective-as-money.md"
+      ]
+    },
+    "R11-N-missing-unit-scale": {
+      "class": "N-missing-unit-scale",
+      "level": "class",
+      "subject": "N-missing-unit-scale class: a declared unit (a minor currency unit, a prefixed energy unit) is recognised but its scale factor is never applied, so the value reaches the plan off by that factor (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) tests/features.py's _P8_FACTORS check reads the declared factors and never drives normalize_price_per_kwh with a minor unit",
+      "countermeasure": "proposed barrier: _P8_FACTORS drives normalize_price_per_kwh for every PRICE_MINOR_UNITS unit (est. 0.1 s inside an existing script)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-missing-unit-scale.md",
+      "doc": [
+        "dev/audit/rca/R11-N-missing-unit-scale.md"
+      ]
+    },
+    "R11-N-partial-payload-parse": {
+      "class": "N-partial-payload-parse",
+      "level": "class",
+      "subject": "N-partial-payload-parse class: a parser reads one part of an external payload and silently drops a sibling part the producer delivers, so the horizon or set it builds is short (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(c) D1.md:56-58 and D2.md:42-43 cover the parser and ran in R10; no round-10 input carried the tomorrow part",
+      "countermeasure": "refused: 0 further seams, the shape is per producer (q 0); the fix's two-period fixture is the guard",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-partial-payload-parse.md",
+      "doc": [
+        "dev/audit/rca/R11-N-partial-payload-parse.md"
+      ]
+    },
+    "R11-N-inverted-aggregate": {
+      "class": "N-inverted-aggregate",
+      "level": "class",
+      "subject": "N-inverted-aggregate class: an aggregate takes the wrong order statistic (the minimum for a peak, the k smallest for the k largest), so the billed or tracked figure is understated (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(c) D2.md:43-44 checks the peak is charged once, not which window is the peak; R10 D2 s3 ran it",
+      "countermeasure": "refused: one seam, no syntactic shape (q 0); the fix's two-window test is the guard; a fixer.md test-first sentence is proposed to the owner",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-inverted-aggregate.md",
+      "doc": [
+        "dev/audit/rca/R11-N-inverted-aggregate.md"
+      ]
+    },
+    "R11-N-untranslated-splice": {
+      "class": "N-untranslated-splice",
+      "level": "class",
+      "subject": "N-untranslated-splice class: a localized message interpolates text the integration does not translate (an upstream exception string), so sv/de users read an English fragment inside their language (9 instances: R11 9)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) D10's exception-translations rule grades the key, not the placeholder; D4 first drove the error states this round",
+      "countermeasure": "proposed barrier: a static tests/ arm refusing str(exception) as a translation placeholder, plus one card error helper through hass.localize",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-untranslated-splice.md",
+      "doc": [
+        "dev/audit/rca/R11-N-untranslated-splice.md"
+      ]
+    },
+    "R11-N-copy-style": {
+      "class": "N-copy-style",
+      "level": "class",
+      "subject": "N-copy-style class: user-facing copy breaks the style rule its sibling strings keep (title case, quote style, degree sign), so one surface reads inconsistently (6 instances: R11 6)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) the style rules are unwritten; D4-criteria grades legibility, not house style, and no test reads case, quotes or the degree sign",
+      "countermeasure": "proposed barrier: a text lint over strings, translations and card STRINGS, after the owner writes the house style into D4-criteria",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-copy-style.md",
+      "doc": [
+        "dev/audit/rca/R11-N-copy-style.md"
+      ]
+    },
+    "R11-N-comment-style": {
+      "class": "N-comment-style",
+      "level": "class",
+      "subject": "N-comment-style class: comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact (101 instances: R11 101)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) C5 is a finder criterion only; no lint, hook or pre-PR check reads sentence length",
+      "countermeasure": "proposed barrier: a one-sided ratchet on over-40-word D5 sentences, measured by text_ledger.py after N-instrument-locator's fix; a new budget key needs the owner (0013)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-comment-style.md",
+      "doc": [
+        "dev/audit/rca/R11-N-comment-style.md"
+      ]
+    },
+    "R11-N-orphan-doc": {
+      "class": "N-orphan-doc",
+      "level": "class",
+      "subject": "N-orphan-doc class: a reader document is linked from no other document in the reader set, so no navigation path reaches it (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) D5.md:25 finds orphans at audit time only; the file landed after R10 and no pre-merge check asks for an inbound link",
+      "countermeasure": "proposed barrier: a tests/ arm requiring an inbound link to every docs/*.md (est. 0.1 s)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-orphan-doc.md",
+      "doc": [
+        "dev/audit/rca/R11-N-orphan-doc.md"
+      ]
+    },
+    "R11-N-instrument-locator": {
+      "class": "N-instrument-locator",
+      "level": "class",
+      "subject": "N-instrument-locator class: an audit instrument reports the wrong location (line number or file) for the units it counts, so every seat that cites its output cites the wrong site (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) no step or check compares an instrument's reported location with the text there before D5 seats cite it",
+      "countermeasure": "refused: locator correctness is per instrument and lexical state (q ~0.1); the fix's self-test arm closes it; an INSTRUMENTS.md sentence is proposed to the owner",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-instrument-locator.md",
+      "doc": [
+        "dev/audit/rca/R11-N-instrument-locator.md"
+      ]
+    },
+    "R11-N-duplicated-rule": {
+      "class": "N-duplicated-rule",
+      "level": "class",
+      "subject": "N-duplicated-rule class: one rule is written as several agreeing copies where a single-owner prototype is admissible, so a later fix to one copy silently forks the rule (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(c) archscore reads duplication_copies and saw all 18 copies; it is a score, not a gate",
+      "countermeasure": "refused: detection exists in archscore; gating it is a budget key for the owner; the eight one-owner edits go to the P3 move plan",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-duplicated-rule.md",
+      "doc": [
+        "dev/audit/rca/R11-N-duplicated-rule.md"
+      ]
+    },
+    "R11-N-unbounded-retention": {
+      "class": "N-unbounded-retention",
+      "level": "class",
+      "subject": "N-unbounded-retention class: a buffer or cache that serves a fixed time window never evicts rows older than the window, so retained memory grows linearly with uptime (3 instances: R11 3)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D9.md:12 asks for untrimmed collections and R10 D9 s2 measured retained bytes, without the daily pan that absorbs chunks",
+      "countermeasure": "proposed barrier: an eviction at each window cache's own constant, plus the card retained-rows slope arm in the card lane (2.1 s measured; 34 s/release against 159 s/release benefit)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-unbounded-retention.md",
+      "doc": [
+        "dev/audit/rca/R11-N-unbounded-retention.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5715,14 +6186,16 @@
     "mechanism_difference": "I2 is a measured closure that diverges from the real dependency graph; here the graph itself is wrong (a production import edge into the solver), and the closure measures it faithfully",
     "minted": "R10",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-leaf-imports-solver"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-order-coupling": {
@@ -6256,14 +6729,16 @@
     "mechanism_difference": "the stale object is a raised alert the success path never deletes, not a published value read past its age",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-uncleared-issue"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-dropped-refresh": {
@@ -6298,14 +6773,16 @@
     "mechanism_difference": "nothing is overwritten: the request itself is swallowed by the debouncer instead of re-running",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-dropped-refresh"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-unordered-tiebreak": {
@@ -6329,14 +6806,16 @@
     "mechanism_difference": "one definition, not two: the nondeterminism is iteration order inside a single rule",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-unordered-tiebreak"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-swallowed-failure": {
@@ -6384,14 +6863,16 @@
     "mechanism_difference": "the failure path returns nothing success-shaped; it simply records nothing visible",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-swallowed-failure"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-entry-data-placement": {
@@ -6418,14 +6899,16 @@
     "mechanism_difference": "no divergent guard: one value is persisted into the wrong container, so a later options save shadows or strands it",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-entry-data-placement"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-entity-metadata": {
@@ -6450,14 +6933,16 @@
     "mechanism_difference": "the defect is in the metadata Home Assistant reads off one entity, not a precedence between surfaces",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-entity-metadata"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-mode-coupled-write": {
@@ -6481,14 +6966,16 @@
     "mechanism_difference": "not two predicates for one fact: one actuator serves two targets and the second target has no gate at all",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-mode-coupled-write"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-unreleased-hold": {
@@ -6516,14 +7003,16 @@
     "mechanism_difference": "the stale thing is a physical actuator state left held, not a published value read past its age",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-unreleased-hold"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-stale-step-actuation": {
@@ -6550,14 +7039,16 @@
     "mechanism_difference": "the value is fresh but applied to the wrong step: a timing offset between plan and write, not an age bound",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-stale-step-actuation"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-partial-window-extrapolation": {
@@ -6583,14 +7074,16 @@
     "mechanism_difference": "no reset ordering is involved: the projection itself is unguarded against a tiny elapsed sample",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-partial-window-extrapolation"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-dead-input": {
@@ -6615,14 +7108,16 @@
     "mechanism_difference": "the reverse of P6: the producer writes the key and no consumer reads it",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-dead-input"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-table-value": {
@@ -6646,14 +7141,16 @@
     "mechanism_difference": "the false value is production data the code computes with, not prose describing it",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-table-value"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-wrong-law": {
@@ -6677,14 +7174,16 @@
     "mechanism_difference": "no second copy disagrees: the single implementation contradicts the law it documents",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-wrong-law"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-objective-as-money": {
@@ -6711,14 +7210,16 @@
     "mechanism_difference": "no divergent unit precedence: an objective term crosses into the money surface",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-objective-as-money"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-missing-unit-scale": {
@@ -6742,14 +7243,16 @@
     "mechanism_difference": "one surface and one resolution: the conversion is missing, not resolved differently elsewhere",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-missing-unit-scale"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-partial-payload-parse": {
@@ -6773,14 +7276,16 @@
     "mechanism_difference": "the key exists and the producer writes it; the reader never looks for it",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-partial-payload-parse"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-inverted-aggregate": {
@@ -6804,14 +7309,16 @@
     "mechanism_difference": "no sibling disagreement is needed: the single rule selects the wrong end of the distribution",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-inverted-aggregate"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-event-misattribution": {
@@ -6874,14 +7381,16 @@
     "mechanism_difference": "not two definitions disagreeing: one surface splices a foreign-language runtime string into a translated template",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-untranslated-splice"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-copy-style": {
@@ -6910,14 +7419,16 @@
     "mechanism_difference": "text style, not layout, colour token or hit target",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-copy-style"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-comment-style": {
@@ -7041,14 +7552,16 @@
     "mechanism_difference": "the text is not false or stale, only over-long",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-comment-style"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-orphan-doc": {
@@ -7072,14 +7585,16 @@
     "mechanism_difference": "the text need not be false or stale: it is unreachable",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-orphan-doc"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-instrument-locator": {
@@ -7103,14 +7618,16 @@
     "mechanism_difference": "the count is right and only the locator is wrong; no second definition disagrees",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-instrument-locator"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-duplicated-rule": {
@@ -7134,14 +7651,16 @@
     "mechanism_difference": "the copies agree today: the defect is the unowned duplication, not a divergence already present",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-duplicated-rule"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-unbudgeted-background": {
@@ -7199,14 +7718,16 @@
     "mechanism_difference": "nothing stale is published; the cost is memory growth on a long-lived client",
     "minted": "R11",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-unbounded-retention"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   }
 }
