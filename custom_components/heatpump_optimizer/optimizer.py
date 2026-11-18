@@ -5398,8 +5398,7 @@ class HeatPumpOptimizer:
     ]:
         """Both solve paths' trajectory, objective, batch twin and price (#1743).
 
-        The price is the bill's: a closure on ``h.money_prices``, so the risk
-        premium the objective weighs is never booked as money (D2-s3-01).
+        The price is the bill's, on ``h.money_prices`` (D2-s3-01).
         The DHW path passes its fixed plan as ``dhw_plan_power``; with
         ``None`` the arithmetic is the space-only path's, operand for operand.
         """
@@ -5639,9 +5638,10 @@ class HeatPumpOptimizer:
                 descent, starts, bounds, maxiter=200,
                 batch_objective=descent_batch, move_starts=move_starts,
             )
+            # The start-blind descent can out-rank the off plan (D0-s3-02).
             optimal_power = _commit_runs(
                 self, h, (bounds, objective, objective_batch, None),
-                [np.asarray(result.x, dtype=float)], None, 200,
+                [np.asarray(result.x, dtype=float), _lower_bound_start(bounds)], None, 200,
             )[0]
             status = _solver_status(result, descent, initial_power)
         except Exception as e:

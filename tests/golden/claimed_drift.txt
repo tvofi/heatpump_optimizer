@@ -66,6 +66,8 @@
 #
 # v10.1.0: learned pump minimum, clamped start price, self-setting pump test, valve reference, generic heat-curve text. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
+price_risk  # R11-SEAM-solver D2-s3-01: the lambda*sigma premium leaves every money figure and the published prices (CHEAPER baseline_cost, predicted_cost, deferred_energy_cost, dhw_heating_cost, predicted_savings; prices drop the premium on guessed steps); every plan key byte-identical
+start_below_band  # R11-SEAM-solver D0-s3-02: the all-off start reaches a LOWER objective_value on all four OpenBLAS kernel classes (cloud-setup.sh --kernels); one more compressor start, plan keys move with it
 #
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel

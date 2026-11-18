@@ -96975,10 +96975,22 @@ def _sv_ms_spy(objective, starts, bounds, *a, **kw):
     return _sv_ms_real(objective, starts, bounds, *a, **kw)
 
 
+_sv_commits = []
+_sv_commit_real = _sv_optmod._commit_runs
+
+
+def _sv_commit_spy(opt, h, scope, relaxed, *a, **kw):
+    _sv_commits.append(([np.array(r, dtype=float) for r in relaxed],
+                        np.array([b[0] for b in scope[0]], dtype=float)))
+    return _sv_commit_real(opt, h, scope, relaxed, *a, **kw)
+
+
 def _sv_starts(dhw, share=None):
     sc = _mk_golden(hours=24, dhw=dhw)
     _sv_calls.clear()
-    patches = [_sv_mock.patch.object(_sv_optmod, "_multi_start_minimize", _sv_ms_spy)]
+    _sv_commits.clear()
+    patches = [_sv_mock.patch.object(_sv_optmod, "_multi_start_minimize", _sv_ms_spy),
+               _sv_mock.patch.object(_sv_optmod, "_commit_runs", _sv_commit_spy)]
     if share is not None:
         patches.append(_sv_mock.patch.object(
             _sv_optmod, "_wood_covered_share", lambda *a, **k: share))
@@ -96993,7 +97005,9 @@ def _sv_starts(dhw, share=None):
     return list(_sv_calls)
 
 
-_sv_space, _sv_dhw = _sv_starts(False), _sv_starts(True)
+_sv_space = _sv_starts(False)
+_sv_space_commits = list(_sv_commits)
+_sv_dhw = _sv_starts(True)
 R.check(
     "the first multi-start of each solve path starts one run at the lower "
     "bound, the all-off plan (D0-s3-02)",
@@ -97001,6 +97015,13 @@ R.check(
     and all(any(np.array_equal(s, lb) for s in starts)
             for starts, lb in (_sv_space[0], _sv_dhw[0])),
     f"{len(_sv_space)} space-only and {len(_sv_dhw)} DHW multi-starts",
+)
+R.check(
+    "the space-only solve commits the all-off plan beside the descent's run, "
+    "so the true objective, not the start-blind descent, ranks it (D0-s3-02)",
+    len(_sv_space_commits) == 1
+    and any(np.array_equal(r, _sv_space_commits[0][1]) for r in _sv_space_commits[0][0]),
+    f"{len(_sv_space_commits)} commit stages",
 )
 _sv_covered = _sv_starts(False, share=1.0)
 _sv_live = {s.tobytes() for s in (_sv_covered[0][0] if _sv_covered else [])
