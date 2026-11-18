@@ -1,0 +1,7 @@
+  ok   and it stays stable when nothing about the ruleset moved (null control)
+STRUCTURE RATCHET PASSED
+38bf516bdd:tools/ci/gate.py:303:MACHINERY_JOBS = ("tests / arch-instrument", "tests / briefs", "tests / closures", "governance / policy-docs",
+38bf516bdd:tools/ci/gate.py:308:def status(jobs: dict, cls: str) -> tuple[str, str]:
+loop-ledger
+tools/audit/seat/instruments/loop_ledger.py.md
+tools/audit/seat/loop_ledger.py

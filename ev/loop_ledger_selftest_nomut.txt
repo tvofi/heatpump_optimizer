@@ -1,0 +1,62 @@
+ok    NULL: an empty input directory prints unread and no value
+ok    a fully recorded roster reads every line
+ok    NULL: one escape without owned_by turns read 0 unread naming it, never a partial value
+ok    ... and refix, which needs the whole ledger, is unread too, the other reads unchanged (owned_by)
+ok    NULL: one escape without caused_by turns read 1 unread naming it, never a partial value
+ok    ... and refix, which needs the whole ledger, is unread too, the other reads unchanged (caused_by)
+ok    NULL: one escape without family turns read 3 unread naming it, never a partial value
+ok    ... and refix, which needs the whole ledger, is unread too, the other reads unchanged (family)
+ok    a value outside the vocabulary is unrecorded
+ok    a countermeasure whose family is no bug class reads loop unread, never the word
+ok    a non-escape hotfix owes found_by: refix reads unread, escapes stay read
+ok    owned_split splits by dimension, and is unread with an unrecorded escape
+ok    k counts a countermeasure's children in every period, not only its own
+ok    refix counts only a follows naming a roster group
+ok    a group with no entry time falls in the week unentered
+ok    a group carried into a later roster is counted once in its week
+ok    an unrecorded list names its first five groups, and an ellipsis only past five
+ok    owed: a plain group owes nothing; a machinery hotfix owes no owned_by
+ok    generation: a cycle and a missing parent are None
+ok    history: each group's week is its first roster entry, carried into a later roster or not
+ok    --dir has no history: its weeks are unread
+ok    reds: a red and a later green run at one head_sha reads external
+ok    reds: a green run before the red at its head_sha clears nothing: uncleared, never external
+ok    reds: a gate red at attempt 1 and green at attempt 2 of one run reads external, on the attempt's own row
+ok    reds: the same run with no job listing reads unread, the count unread with it, and is never dropped
+ok    reds: a green attempt before the red one clears nothing
+ok    reds: a gate that did not conclude failure is no red
+ok    reds: a failed first attempt with no job listing reads unread
+ok    reds: a main red with no later green and no red spell read reads uncleared, never unread
+ok    reds: a run on the branch main that is no push is a head row and opens no red spell
+ok    reds: a listing cached at an older attempt is no listing
+ok    reds: a red cleared by a later commit of its own pull request reads #<that pull request>
+ok    reds: another pull request's green clears nothing
+ok    reds: the pull request's green before the red clears nothing
+ok    reds: a red inherited from main reads the pull request merged at main's first red push run after its last green, on the head row and on both main rows
+ok    reds: found_by ci-main on a main row and on no head row; ci-main is a found_by word
+ok    reds: a head red after main went green again is not main's
+ok    reds: a main red spell already open at the first main run read has no opener: unread on the main row and on a head row after it, never the first pull request merged in the window
+ok    reds: the edge spell ends at the first green main run read, and the next red after it opens a spell
+ok    reds: a merge subject naming no pull request reads unread: the row stays and the count is whole
+ok    reds: a derived word the cause test refuses reads unread, never the word
+ok    is_cause: a pull request, external, original or another roster group; never the group itself or a bare word
+ok    reds: main's red spell outranks a green run at the same head_sha
+ok    reds: every red attempt of a run is a row
+ok    reds: two runs sharing only a head_branch are not one pull request: the earlier red reads unread
+ok    reds: a reused head_branch never lends a later pull request's number to an earlier red
+ok    reds: a red naming no pull request takes the one a run at its head_sha names
+ok    NULL reds: a green-only directory reads 0 and no row; a first-attempt success needs no listing
+ok    NULL reds: no --runs directory reads unread, and so does a directory with no ci_runs.json
+ok    reds: a gate job listed with no attempt is the run's first
+ok    reds: a failed job that is not `gate`, at an attempt whose gate did not fail, is no red
+ok    reds: a failed prelude is a required failure, never a machinery job
+ok    reds: a job that did not fail at the red attempt is on neither list of its row
+ok    reds: a main run red at an earlier attempt and unconcluded at its latest joins no red spell: uncleared, never the spell's pull request
+ok    reds: a red attempt's failed jobs split as gate.machinery_line splits them, per attempt; a head row's column unread, naming gate.status and the class it lacks
+ok    reds: a push run's row prints gate.status's pair over the red attempt's own jobs
+ok    NULL reds: the same listing on a pull-request run reads the column unread, never a verdict of the push class
+ok    reds: a member with no conclusion, or not listed at the attempt, reads unread in its verdict, never red or green
+ok    reds: git_subject reads a commit's subject line, and None for no sha and for one the repository lacks
+ok    reds: --runs prints the read after the roster reads; without it the read is unread
+loop_ledger self-test: 0 failed
+rc=0
