@@ -49,3 +49,4 @@
 1795015851 HB gate done: pre:4b3795aece73ba73 RESULT gate_rc=1 code VERDICT 4b3795aece73ba73 KILLED python3 tests/features.py,python3 tests/structure.py 
 1795015858 CKPT D3-s1 158 file(s)
 1795018395 HB LOCAL seat not blocked: T2 running (null re-run with lease label; fb16 KILLED, 4b37 KILLED by features.py). BLOCKED.md deleted. NOTE: a stale cloud box loop (HB alive pairs every 10 min) keeps re-pushing its old tree incl. BLOCKED.md over this ref.
+1795018402 CKPT D3-s1 162 file(s)

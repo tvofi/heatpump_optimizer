@@ -68,7 +68,10 @@ def gate(key, mutant, msg):
     l0 = load1()
     t0 = time.time()
     c0 = os.times()
-    env = dict(os.environ, GATE_SCOPE="full", GOLDEN_MODE="drift", GOLDEN_REF=BASE, GATE_JOBS="1")
+    env = dict(os.environ, GATE_SCOPE="full", GOLDEN_MODE="drift", GOLDEN_REF=BASE, GATE_JOBS="1",
+               # run.sh's lease scripts (stress.py, harness_headers.py) must run under OUR lease,
+               # or they wait past their bound and are skipped ("left to CI, named unrun").
+               HPO_GATE_LOCK_LABEL=LABEL)
     # Local macOS run: node 20.10's default ~2 GB heap OOMs tests/card.mjs inside the gate
     # (null control, 2026-11-18); a raised heap limit is environment only, no code changes.
     if os.environ.get("D3S1_NODE_HEAP"):
