@@ -14,7 +14,6 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r11-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-NUDGE-RETIRE (stage carries-open): no branch pushed yet, so nothing to fetch
-- R11-OUTSIDE-HONEST-STARTS-RUNS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R11-PRE-SHARED-FILES (stage in-progress, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `fix/r11-pre-handoff-bookkeeping-p2`): `git fetch origin fix/r11-pre-handoff-bookkeeping-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DRAW-MAP-EVIDENCE (stage carries-open, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -27,7 +26,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-VALVE-REFERENCE (stage carries-open, branch `fix/r11-valve-reference`): `git fetch origin fix/r11-valve-reference && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-OBJECTIVE (stage carries-open, branch `fix/r11-arch-objective`): `git fetch origin fix/r11-arch-objective && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-NUDGE-RETIRE, R11-ARCH-OBJECTIVE, R11-CARRY-DRAWMAP, R11-CARRY-ROOM-LIFT, R11-CLOSEOUT-CLEANUP, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-ROOMS-P3, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-VALVE-REFERENCE
+Ready next (after-edges satisfied; nothing open constrains them): R10-NUDGE-RETIRE, R11-ARCH-OBJECTIVE, R11-CARRY-DRAWMAP, R11-CARRY-ROOM-LIFT, R11-CLOSEOUT-CLEANUP, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-ROOMS-P3, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-VALVE-REFERENCE
 
 ## Resume steps
 
