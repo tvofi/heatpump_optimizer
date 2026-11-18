@@ -96144,6 +96144,61 @@ R.check(
 )
 
 
+# The charge bound, met exactly: on 5-minute steps a floor-level charge
+# from 50 degC that ends exactly on step 0's ceiling less the margin, plus
+# the tolerance, is inside it, and the fill to the ceiling sits more than
+# the tolerance under the floor there, so it is no stand-in; one float
+# lower a ceiling leaves that charge outside, and the start moves off step 0.
+def _hdr_u_plans():
+    rig = _hdr_rig(dt=1.0 / 12.0, draws=np.full(_HDR_N, 0.5), prices=np.where(np.arange(_HDR_N) < 1, 0.2, 3.0))
+    floors = np.where(np.arange(_HDR_N) >= 4, 50.0, 45.0)
+
+    def program(first):
+        ceilings = np.full(_HDR_N, 60.0)
+        ceilings[0] = first
+        return _hdr_dp._StoreProgram(
+            rig.planner, rig.ctx, _hdr_l_plan, rig.tank, (floors, ceilings), None, np.zeros(_HDR_N))
+
+    lands = float(rig.ctx.coast(rig.tank[1], 0, np.array([50.0]))[0]) + float(
+        program(60.0)._rise(0, np.array([50.0]), rig.floor)[0])
+    edge = lands + _hdr_dp._STORE_MARGIN_K - 1e-9
+    for _ in range(64):
+        bound = edge - _hdr_dp._STORE_MARGIN_K + 1e-9
+        if bound == lands:
+            break
+        edge = np.nextafter(edge, np.inf if bound < lands else -np.inf)
+    on = program(edge)
+    fill = float(on._to_ceiling(0, np.array([50.0]))[0][0])
+    return (bound == lands, fill < rig.floor - 1e-9, on.plan(np.ones(_HDR_N, dtype=bool)),
+            program(np.nextafter(edge, -np.inf)).plan(np.ones(_HDR_N, dtype=bool)))
+
+
+_hdr_u_met, _hdr_u_under, _hdr_u_on, _hdr_u_off = _hdr_u_plans()
+R.check(
+    "the store program keeps a charge that ends exactly on its charge bound (the ceiling less the margin, "
+    "plus the tolerance) in its cell: on 5-minute steps a floor-level charge onto step 0's bound starts "
+    "the plan at step 0, where the fill to the ceiling sits under the floor; a ceiling one float lower "
+    "moves the start off step 0",
+    _hdr_u_met and _hdr_u_under and _hdr_u_on is not None and _hdr_u_on[0] == 1.0
+    and _hdr_u_off is not None and _hdr_u_off[0] == 0.0,
+    f"{None if _hdr_u_on is None else np.flatnonzero(_hdr_u_on).tolist()} "
+    f"{None if _hdr_u_off is None else np.flatnonzero(_hdr_u_off).tolist()}",
+)
+# The program's ceiling is the higher of the maximum and the uncommitted
+# plan's own walk: a plan that charges steps 0-2 at the run power over a
+# 55 degC maximum, in the cheap early hours, ships those steps; a program
+# held at the maximum alone cannot carry that walk, and moves the charge.
+_hdr_v_rig = _hdr_rig(prices=np.where(np.arange(_HDR_N) < 8, 0.5, 2.0), draws=np.full(_HDR_N, 0.3))
+_hdr_v_plan = np.where(np.arange(_HDR_N) < 3, 4.8, 0.0)
+_hdr_v_max = _hdr_commit(_hdr_v_rig, _hdr_v_plan, 45.0)
+R.check(
+    "the store program's ceiling is the higher of the maximum and the uncommitted plan's own walk: a plan "
+    "charging steps 0-2 at the run power past a 55 degC maximum ships exactly that plan",
+    float(np.max(_hdr_v_rig.temps(_hdr_v_plan))) > 55.0 and np.array_equal(_hdr_v_max, _hdr_v_plan),
+    f"walk max {float(np.max(_hdr_v_rig.temps(_hdr_v_plan))):.2f}; ships {np.flatnonzero(_hdr_v_max).tolist()}",
+)
+
+
 R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
 
 # Phase 1 of room-level support (design/R11-OUTSIDE-ROOMS-P2): a list of room
