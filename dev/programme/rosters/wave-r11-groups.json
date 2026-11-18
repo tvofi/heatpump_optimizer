@@ -4215,7 +4215,7 @@
     "Moved from R10-TICK-RESIDUE-P3 carry 31 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). A HANDOVER sentence for the next record pull request (P752). Design input for the orchestrator_tick.py redesign decision this group's design owns (L5), not a build item. Text verbatim:\n\nMoved from R10-STANDING-CONTRACTS-P2 carry 28 (0-based), body item e8e05480 of #3464 (verdict item 27, item scp2-handover-seats): not satisfied at the #3464 merge 47788534da, which left dev/programme/HANDOVER.md untouched (git diff --stat 47788534da^1 47788534da -- dev/programme/HANDOVER.md is empty). At 47788534da the Standing seats bullet (HANDOVER.md line 82) still lists standing-roster.md as a live seat, though #3464 marks that contract retired into the roster-drain beat job, and it does not cite the new shared contract dev/governance/roles/standing.md. Update the bullet to the seat set #3464 landed, and update the handover's updated-for line, in the record PR that carries it."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-beat-record",
     "commit": null,
     "last_step": null,
