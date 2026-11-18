@@ -1,1 +1,1 @@
-2026-11-18T12:04:36Z HANDOFF design R11-SEAM-cycle-solve: design/R11-SEAM-cycle-solve at 9fe9f13b63f8e17f7fd7bee37befe9e90d004ebf (design.md, 187 lines). Base origin/main bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f, plan/r11 819aa2e354. Next: design review (design-review.md). Token count: not reported by this harness. Inbox empty at handoff.
+2026-11-18T12:30:00Z WIP design R11-SEAM-cycle-solve: revising design.md from 9fe9f13b63 against design-verdict 4f955bdd67 (point 1: debugger.py:325 _solver_smoke into E; ruling 1: H stays a fix). Base origin/main bc658f9ded unchanged.
