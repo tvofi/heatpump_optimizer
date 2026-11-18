@@ -1,0 +1,22 @@
+reviewed delta: git diff c200ad65 9371c9e6a3a76f37fe522501881285df1df89099 (merge of origin/main 5825e134)
+prior verdict on verdict/3608 (fb7317a2): merge c200ad65, no open findings
+review_carry.py c200ad65 -> 9371c9e6a3a76f37fe522501881285df1df89099: FRESH-REVIEW (not the automatic merge of its parents)
+merge-tree origin/main 9371c9e6a3a76f37fe522501881285df1df89099: rc 0
+
+== 3451.md at head
+- [#3451](https://github.com/tvofi/heatpump_optimizer/pull/3451) — **merged `a39627d`**, R10-PROCESS-SLIM (part 2): r10 process slim p2.
+- [#3451](https://github.com/tvofi/heatpump_optimizer/pull/3451) — **merged `a39627d`**, R10-PROCESS-SLIM (part 2): r10 process slim p2 (R10-PROCESS-SLIM).
+== 3451.md at origin/main
+- [#3451](https://github.com/tvofi/heatpump_optimizer/pull/3451) — **merged `a39627d`**, R10-PROCESS-SLIM (part 2): r10 process slim p2 (R10-PROCESS-SLIM).
+== 3521.md at head
+- [#3521](https://github.com/tvofi/heatpump_optimizer/pull/3521) — **merged `dc46b12`**, R10-OUTSIDE-CONTRIBUTOR-CYCLE (part 2): r10 outside contributor cycle p2.
+- [#3521](https://github.com/tvofi/heatpump_optimizer/pull/3521) — **merged `dc46b12`**, R10-OUTSIDE-CONTRIBUTOR-CYCLE (part 2): r10 outside contributor cycle p2 (R10-OUTSIDE-CONTRIBUTOR-CYCLE).
+== 3521.md at origin/main
+- [#3521](https://github.com/tvofi/heatpump_optimizer/pull/3521) — **merged `dc46b12`**, R10-OUTSIDE-CONTRIBUTOR-CYCLE (part 2): r10 outside contributor cycle p2 (R10-OUTSIDE-CONTRIBUTOR-CYCLE).
+== 3593.md at head
+- [#3593](https://github.com/tvofi/heatpump_optimizer/pull/3593) — **merged `b046b22`**, R10-COP-LEARNER-DRAW-FLOOR: r10 cop learner draw floor.
+- [#3593](https://github.com/tvofi/heatpump_optimizer/pull/3593) — **merged `b046b22`**, R10-COP-LEARNER-DRAW-FLOOR: r10 cop learner draw floor (R10-COP-LEARNER-DRAW-FLOOR).
+== 3593.md at origin/main
+- [#3593](https://github.com/tvofi/heatpump_optimizer/pull/3593) — **merged `b046b22`**, R10-COP-LEARNER-DRAW-FLOOR: r10 cop learner draw floor (R10-COP-LEARNER-DRAW-FLOOR).
+
+own diff (merge-base..head) vs (merge-base..c200ad65): 3606.md, 3607.md now equal main (fine); 3451/3521/3593 now add a duplicate line instead of rewriting the open row; all other files unchanged; no custom_components delta in the PR's own diff.

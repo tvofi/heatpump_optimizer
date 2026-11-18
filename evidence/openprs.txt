@@ -1,7 +1,0 @@
-3608 record: land the round-10 roster, merged delivery rows, the 
-3602 R11-OUTSIDE-HONEST-STARTS-RUNS: r11 outside honest starts ru
-3598 R10-START-COUNTER-EDGES: r10 start counter edges
-3566 R10-NUDGE-RETIRE: r10 nudge retire
-3551 R10-SELFTEST-SCOPE-UNION-GUARD: r10 selftest scope union gua
-3529 Honest starts and runs: price a start as one start, ship run
-3420 design duty-switch-restart-learning: hot water → space stops

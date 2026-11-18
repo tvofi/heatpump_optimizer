@@ -1,1 +1,0 @@
-- [#3590](https://github.com/tvofi/heatpump_optimizer/pull/3590) — **merged `ee9e233`**, R10-HOTFIX-CI-RATCHET-SKIPPED-RUN: exclude a push run cancelled before any tests job existed.
