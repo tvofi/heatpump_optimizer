@@ -60,20 +60,20 @@ if [ "${1:-}" = "--self-test" ]; then
   done
   # PC-1113-17: a refused body that names this host (ref_privacy body-lines) keeps nothing on origin, and says so locally.
   # The host is a fixture account, not a public one; the null control is the same body under another non-public host.
-  hostrun() { ( export HOME="/home/$1" USER="$1" LOGNAME="$1"; run "$2" ); }
-  printf '%s\n\nsee /home/hpofixa/notes\n' "$BODYTXT" > "$W/body.md"
+  hostrun() { ( export HOME="/srv/$1" USER="$1" LOGNAME="$1"; run "$2" ); }
+  printf '%s\n\nsee /srv/hpofixa/notes\n' "$BODYTXT" > "$W/body.md"
   drop; : > "$W/flags/lint"; hostrun hpofixa t; rc=$?
   st "$rc$(grep -c '^body_push: REFUSED BODY-LINT$' "$W/out")" 11 "PRIVACY: a lint-refused body naming this host still refuses, exit 1"
   st "$(keepsha)" none "... and nothing is kept on origin"
   st "$(grep -c "^body_push: the refused body fails ref_privacy body-lines (above); nothing is kept on origin, it stays at $W/body.md\$" "$W/out")" 1 "... and the output says so and names the local body"
   st "$(grep -c 'refused body kept at' "$W/out")" 0 "... and prints no keep line"
   drop; : > "$W/flags/pred"; hostrun hpofixa t; rc=$?; st "$rc$(keepsha)" 1none "PRIVACY: the predictor arm keeps nothing either"
-  printf '%s\n' "$BODYTXT" > "$W/body.md"; printf 'see /home/hpofixa/notes\n' > "$W/note.md"
+  printf '%s\n' "$BODYTXT" > "$W/body.md"; printf 'see /srv/hpofixa/notes\n' > "$W/note.md"
   drop; : > "$W/flags/lint"
-  ( export HOME=/home/hpofixa USER=hpofixa LOGNAME=hpofixa; cd "$W/repo" && throwaway_git_env && PATH="$W/bin:$PATH" W="$W" FLAGS="$W/flags" HPO_HANDOFF_PACKER="$W/packer" \
+  ( export HOME=/srv/hpofixa USER=hpofixa LOGNAME=hpofixa; cd "$W/repo" && throwaway_git_env && PATH="$W/bin:$PATH" W="$W" FLAGS="$W/flags" HPO_HANDOFF_PACKER="$W/packer" \
       HPO_HANDOFF_LANDED="$W/landed" bash "$W/t/audit/seat/body_push.sh" t "$W/body.md" "$W/note.md" > "$W/out" 2>&1 ); rc=$?
   st "$rc$(keepsha)" 1none "PRIVACY: a RESUME note naming this host keeps nothing either"
-  printf '%s\n\nsee /home/hpofixa/notes\n' "$BODYTXT" > "$W/body.md"
+  printf '%s\n\nsee /srv/hpofixa/notes\n' "$BODYTXT" > "$W/body.md"
   drop; : > "$W/flags/lint"; hostrun hpofixb t; rc=$?
   st "$rc$(git -C "$W/o.git" show "$(keepsha):BODY.md" 2>/dev/null | grep -c hpofixa)" 11 "  null control: the same body under another host is a non-privacy BODY-LINT refusal, kept on origin"
   drop; : > "$W/flags/lint"; hostrun hpofixa p; rc=$?
