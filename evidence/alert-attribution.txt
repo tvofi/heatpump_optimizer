@@ -1,9 +1,24 @@
-branch three-dot 1da13aafb7...454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7 added lines matching chmod/0o7xx/0o666/0o777:
-0
-branch-touched .py files:
-custom_components/heatpump_optimizer/accuracy.py
-custom_components/heatpump_optimizer/coordinator.py
-custom_components/heatpump_optimizer/store.py
-dev/audit/harnesses/cop_duty_floor.py
-dev/audit/harnesses/cop_scale_probe_sweep.py
-tests/features.py
+mb=1da13aafb7c23cf34fbda51bb27cb95132b4089b origin/main=99a4010e479f04af984c30a4b5cfc2f98d3736ad
+neither postmerge.py nor roster_lib.py in three-dot diff
+no added chmod/octal-mode line
+        for pre in ("#done ", "#refused ", "#held "):
+            text = text[len(pre):] if text.startswith(pre) else text
+        have.add(text)
+    new = [line for line in (f"{op}  # postmerge {sha}" for op in ops) if line not in have]
+    if new:
+        fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+        try:
+            os.write(fd, "".join(line + "\n" for line in new).encode())
+        finally:
+            os.close(fd)
+    return new
+    import fcntl
+    import os
+    import time
+    sleep, clock = sleep or time.sleep, clock or time.monotonic
+    Path(state_dir).mkdir(parents=True, exist_ok=True)
+    fd = os.open(Path(state_dir) / WRITER_LEASE, os.O_RDWR | os.O_CREAT, 0o644)
+    end = clock() + wait_s
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
