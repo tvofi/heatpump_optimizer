@@ -166,7 +166,9 @@ counts it as the starts it is. With a start priced, or on an install that
 cannot duty-cycle, the solve first plans without the start cost, then commits
 that plan to whole runs at or above the minimum power, at the same energy: a
 step lifted to the minimum is paid for by a step left out. Several such plans
-are scored with the start cost included, and the cheapest ships. (Finding and
+are scored with the start cost included, and the cheapest ships. An install
+that cannot duty-cycle and prices no start is planned at a start price of 0.1,
+so that commit does not ship more starts than the plan it replaced. (Finding and
 method: Bankaifan, pull request 3529.)
 
 ### Weather anticipation is emergent, not a bonus

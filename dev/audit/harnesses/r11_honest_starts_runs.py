@@ -1,7 +1,7 @@
 """R11-OUTSIDE-HONEST-STARTS-RUNS: what the committed runs ship, measured on one tree.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|gradient|stress|kernels|identity|stage
+        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|defaults|gradient|stress|kernels|identity|stage
 
 Synthetic throughout; no private data. The finding is outside pull request
 3529 (Bankaifan), which has no finder harness; this one reproduces the pull
@@ -36,6 +36,24 @@ prints that there is nothing to compare and exits 0.
 and clamped or not: steps under the floor, edges, energy and solve seconds
 (``time.process_time``) per cell. The unpriced duty-cycle cell is the null:
 it must never enter the candidate stage where the tree has one.
+
+``defaults``: owner ruling Q2's measurement (R11-OUTSIDE-HONEST-STARTS-RUNS-P3):
+what a default start price would do to an install with ``clamp_planned_levels``
+on and no configured price. The rule measured: the default replaces a
+configured cycling cost of zero on a clamped install and nothing else. For
+each candidate on ``DEFAULT_LADDER`` (zero, then across the options field's
+0 to 10 range), on the ``grid`` mode's clamped unpriced cell and on the two
+fixtures ``fixtures`` reads, each solved clamped at a configured price of
+zero, per solve: off-to-on edges of the combined draw, energy, the
+optimizer's ``predicted_cost`` (the objective carries the start price, so it
+is not comparable across candidates) and the lowest room temperature. Null
+controls, solved with no default and with the ladder's highest: the same
+three installs at their own configured price (clamped), and the same three
+unclamped at price zero; each pair must ship array-equal plans. Exits 1 when
+a null pair differs. On a tree that ships the default
+(``om.CLAMPED_DEFAULT_START_PRICE``) each candidate patches it and the tree's
+own rule applies it, so the nulls test that rule; on a tree without it the
+rule is applied by the harness and the nulls hold by construction.
 
 ``gradient``: what the batched finite-difference gradient simulates
 (``optimizer._batch_fd_gradient``, design note n6). Four goldens that fix
@@ -233,8 +251,29 @@ def descents() -> int:
     return 1 if null_bad else 0
 
 
+GRID_PRICES = 1.3 + 0.9 * np.sin(2 * np.pi * (STEPS - 30) / 96.0)
+
+
+def _grid_solve(cost: float, clamp: bool, p_min: float, loss: float, out_mean: float):
+    params = ThermalParameters()
+    params.mixing_valve_mode, params.buffer_tank_volume = "none", 750.0
+    params.min_electrical_power, params.max_electrical_power = p_min, 5.5
+    params.dhw_enabled, params.house_heat_loss_scale = False, loss
+    opt = om.HeatPumpOptimizer(
+        ThermalModel(params), om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=cost))
+    outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (STEPS - 50) / 96.0)
+    return opt.optimize(inputs=solve_inputs(
+        initial_state=ThermalState(
+            room_temperature=20.5, upper_floor_temperature=20.5,
+            lower_floor_temperature=20.5, slab_temperature=21.0,
+            outdoor_temperature=float(outdoor[0]), buffer_tank_temperature=30.0,
+            dhw_temperature=50.0,
+        ),
+        prices=GRID_PRICES, outdoor_temps=outdoor, start_time=T0,
+    ))
+
+
 def grid() -> int:
-    prices = 1.3 + 0.9 * np.sin(2 * np.pi * (STEPS - 30) / 96.0)
     staged, bad = [], 0
     kept = getattr(om, "_run_plans", None)
     if kept is not None:
@@ -244,24 +283,9 @@ def grid() -> int:
             (0.0, False, 1.1, 0.4, 8.0), (0.25, False, 1.1, 0.4, 8.0), (0.25, False, 0.53, 0.4, 8.0),
             (0.0, True, 1.1, 0.4, 8.0), (0.25, True, 1.1, 0.4, 8.0), (0.25, False, 1.1, 1.0, 2.0),
         ):
-            params = ThermalParameters()
-            params.mixing_valve_mode, params.buffer_tank_volume = "none", 750.0
-            params.min_electrical_power, params.max_electrical_power = p_min, 5.5
-            params.dhw_enabled, params.house_heat_loss_scale = False, loss
-            opt = om.HeatPumpOptimizer(
-                ThermalModel(params), om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=cost))
-            outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (STEPS - 50) / 96.0)
             staged.clear()
             t = time.process_time()
-            result = opt.optimize(inputs=solve_inputs(
-                initial_state=ThermalState(
-                    room_temperature=20.5, upper_floor_temperature=20.5,
-                    lower_floor_temperature=20.5, slab_temperature=21.0,
-                    outdoor_temperature=float(outdoor[0]), buffer_tank_temperature=30.0,
-                    dhw_temperature=50.0,
-                ),
-                prices=prices, outdoor_temps=outdoor, start_time=T0,
-            ))
+            result = _grid_solve(cost, clamp, p_min, loss, out_mean)
             seconds = time.process_time() - t
             plan = np.asarray(result.power_schedule, float)
             print(f"cost {cost} clamp {clamp} p_min {p_min} loss {loss}: steps under the floor"
@@ -273,6 +297,77 @@ def grid() -> int:
         if kept is not None:
             om._run_plans = kept
     print(f"null (unpriced duty-cycle) cells that entered the stage {bad}")
+    return 1 if bad else 0
+
+
+#: Candidate default start prices; the options field (``config_flow``'s wear
+#: group) takes 0 to 10 in steps of 0.05.
+DEFAULT_LADDER = (0.0, 0.05, 0.1, 0.25, 0.5, 1.0, 1.5, 2.5, 5.0, 10.0)
+
+
+def _default_installs():
+    """(label, configured price, solve(clamp, price)) for the grid cell and the two fixtures."""
+    import golden
+
+    def fixture(name):
+        spec = golden.SCENARIOS[name]
+
+        def solve(clamp, price):
+            opt = dict(spec.get("opt_overrides") or {}, clamp_planned_levels=clamp, cycling_cost=price)
+            got = golden.capture(name, dict(spec, opt_overrides=opt))
+            space = np.asarray(got["power_schedule"], float)
+            dhw = np.asarray(got.get("dhw_power_schedule") or np.zeros_like(space), float)
+            return space + dhw, float(got["predicted_cost"]), float(np.min(got["room_temp_trajectory"]))
+        return name, float(spec["opt_overrides"]["cycling_cost"]), solve
+
+    def grid_cell(clamp, price):
+        r = _grid_solve(price, clamp, 1.1, 0.4, 8.0)
+        return (np.asarray(r.power_schedule, float), float(r.predicted_cost),
+                float(np.min(r.room_temp_trajectory)))
+    return [("grid p_min 1.1 loss 0.4", 0.25, grid_cell), fixture("cycling_cost"), fixture("everything_on")]
+
+
+def _effective(clamp: bool, configured: float, default: float) -> float:
+    """The measured rule: the default replaces a configured zero on a clamped install only."""
+    return default if clamp and configured == 0 else configured
+
+
+def _at_default(solve, clamp: bool, configured: float, default: float):
+    """``solve`` with ``default`` as the clamped default start price.
+
+    Where the tree ships the default (``om.CLAMPED_DEFAULT_START_PRICE``),
+    the tree's own rule applies it, patched to the candidate; on a tree
+    without it, the measured rule above is applied here.
+    """
+    if not hasattr(om, "CLAMPED_DEFAULT_START_PRICE"):
+        return solve(clamp, _effective(clamp, configured, default))
+    kept = om.CLAMPED_DEFAULT_START_PRICE
+    om.CLAMPED_DEFAULT_START_PRICE = default
+    try:
+        return solve(clamp, configured)
+    finally:
+        om.CLAMPED_DEFAULT_START_PRICE = kept
+
+
+def defaults() -> int:
+    def line(plan, cost, room):
+        return (f"starts {edges(plan)}, energy_kwh {float(np.sum(plan)) * 0.25:.2f},"
+                f" predicted_cost {cost:.4f}, lowest_room {room:.2f}")
+
+    bad = 0
+    for label, priced, solve in _default_installs():
+        for default in DEFAULT_LADDER:
+            plan, cost, room = _at_default(solve, True, 0.0, default)
+            print(f"{label}, clamped, configured 0, default {default}: {line(plan, cost, room)}")
+        top = DEFAULT_LADDER[-1]
+        for arm, clamp, configured in (("priced clamped", True, priced), ("unpriced unclamped", False, 0.0)):
+            without = _at_default(solve, clamp, configured, 0.0)
+            with_ = _at_default(solve, clamp, configured, top)
+            same = np.array_equal(without[0], with_[0])
+            print(f"{label}, null {arm} (configured {configured}): without default {line(*without)};"
+                  f" default {top}: {line(*with_)}; array-equal {same}")
+            bad += not same
+    print(f"null pairs that differ {bad}")
     return 1 if bad else 0
 
 
@@ -682,6 +777,6 @@ def kernels() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit({"fixtures": fixtures, "c1": c1, "descents": descents, "grid": grid, "gradient": gradient,
+    sys.exit({"fixtures": fixtures, "c1": c1, "descents": descents, "grid": grid, "defaults": defaults, "gradient": gradient,
               "stress": stress_cost, "kernels": kernels,
               "identity": identity, "stage": stage}[sys.argv[1]]())
