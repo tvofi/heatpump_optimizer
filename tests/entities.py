@@ -42399,18 +42399,21 @@ _r10_cov_found = _r10_covering_lookups(_r10_sources)
 _r10_cov_planted = _r10_covering_lookups({
     "planted.py": "from bisect import bisect_right\n"
                   "def current(s, now):\n    return s[bisect_right(s, now) - 1]\n",
-    "pump_arbiter.py": _r10_sources["pump_arbiter.py"]
-    + "\ndef _share(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
+    "coordinator.py": _r10_sources["coordinator.py"]
+    + "\ndef _weather_series(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
 })
 R.check(
     "R10 N-no-expiry barrier: every 'entry covering now' lookup goes through "
-    "_covering_index or is on the reasoned list with its exact count",
+    "plan_step.covering_index or is on the reasoned list with its exact count",
     not _r10_covering_verdict(_r10_cov_found)
-    and sum(_r10_cov_found.values()) >= 6 and len(_r10_sources) >= 70
+    # The reach floor is the two lookups left once round 11 (ADR-001 part 2)
+    # moved the plan's four readers onto plan_step.plan_step_index: the owner's
+    # own and _weather_series's padding; six before.
+    and sum(_r10_cov_found.values()) >= 2 and len(_r10_sources) >= 70
     # null control and perturbation: a planted unbounded lookup, and a second
     # lookup inside an allow-listed function, are each refused
     and ("planted.py", "current") in _r10_covering_verdict(_r10_cov_planted)
-    and ("pump_arbiter.py", "_share") in _r10_covering_verdict(_r10_cov_planted),
+    and ("coordinator.py", "_weather_series") in _r10_covering_verdict(_r10_cov_planted),
     f"mismatch {_r10_covering_verdict(_r10_cov_found)}; read {sum(_r10_cov_found.values())} "
     f"lookups in {len(_r10_sources)} modules",
 )
