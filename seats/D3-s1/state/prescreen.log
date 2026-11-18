@@ -463,3 +463,4 @@
 2026-11-18T17:01:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CMP_BOUND 63e4e0a8 L2594 by=- ran=13 wall=1694.7s
 2026-11-18T17:07:06Z COMPLETE TIMEOUT custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_space_power_caps GUARD_OFF 74342329 L4802 by=- ran=17 wall=3808.5s
 2026-11-18T17:12:27Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_shutdown_process_pool GUARD_OFF ed00ccdd L1914 by=tests/features.py ran=14 wall=1922.2s
+2026-11-18T17:31:00Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF dbfdf84b L2154 by=tests/features.py ran=12 wall=1787.8s
