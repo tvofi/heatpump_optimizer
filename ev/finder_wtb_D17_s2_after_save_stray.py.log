@@ -1,0 +1,6 @@
+after_save=menu: next step=finish_setup entry carries after_save=True ('menu')
+after_save=close: next step=finish_setup entry carries after_save=True ('close')
+RESULT entries_with_after_save=2 entries
+RESULT thread_factor=1.00 (counts only; single-thread pin)
+RESULT load1=7.99
+RESULT swapins=0

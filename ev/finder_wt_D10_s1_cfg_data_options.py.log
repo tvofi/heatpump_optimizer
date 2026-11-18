@@ -1,0 +1,14 @@
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+WALK continue: visited=['finish_setup', 'temperature', 'building', 'thermal', 'zones', 'dhw', 'weather_sensitivity', 'setup_overview']
+WALK continue: data_keys=1 options_keys=44
+WALK continue: settings_in_data=[]
+RESULT continue_settings_in_data=0 count
+RESULT continue_options_flow_editable_in_data=0 count
+WALK finish_now: visited=['finish_setup', 'setup_overview']
+WALK finish_now: data_keys=1 options_keys=3
+WALK finish_now: settings_in_data=[]
+RESULT finish_now_settings_in_data=0 count
+RESULT finish_now_options_flow_editable_in_data=0 count
+RESULT thread_factor=1.000
+RESULT load1=8.39
+RESULT swapins=0

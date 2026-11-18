@@ -1,0 +1,14 @@
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+WALK continue: visited=['finish_setup', 'temperature', 'building', 'thermal', 'zones', 'dhw', 'weather_sensitivity', 'setup_overview']
+WALK continue: data_keys=45 options_keys=0
+WALK continue: settings_in_data=['buffer_tank_volume', 'comfort_temp_day', 'comfort_temp_night', 'comfort_weight', 'day_end_hour', 'day_start_hour', 'dhw_cooling_rate', 'dhw_daily_consumption', 'dhw_idle_min_temperature', 'dhw_legionella_enabled', 'dhw_legionella_interval_days', 'dhw_legionella_temperature', 'dhw_min_temperature', 'dhw_schedule_enabled', 'dhw_setpoint', 'dhw_tank_volume', 'dhw_windows', 'heat_pump_cop_nominal', 'heat_pump_max_power', 'heat_pump_min_power', 'house_heat_loss_coefficient', 'house_thermal_mass', 'inter_zone_heat_transfer', 'lower_floor_heat_loss', 'lower_floor_thermal_mass', 'max_temperature', 'min_temperature', 'optimization_interval', 'price_weight', 'radiator_power_fraction', 'rain_heat_loss_multiplier', 'slab_heat_transfer', 'slab_thermal_mass', 'solar_heat_gain_coefficient', 'solar_orientation_factor', 'target_temperature', 'upper_floor_area_ratio', 'upper_floor_heat_loss', 'upper_floor_thermal_mass', 'wind_sensitivity_factor', 'window_area']
+RESULT continue_settings_in_data=41 count
+RESULT continue_options_flow_editable_in_data=41 count
+WALK finish_now: visited=['finish_setup', 'setup_overview']
+WALK finish_now: data_keys=4 options_keys=0
+WALK finish_now: settings_in_data=[]
+RESULT finish_now_settings_in_data=0 count
+RESULT finish_now_options_flow_editable_in_data=0 count
+RESULT thread_factor=1.000
+RESULT load1=7.99
+RESULT swapins=0

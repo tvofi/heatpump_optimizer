@@ -1,0 +1,18 @@
+   config_pick: step=device_prefill errors={} missing=[]
+RESULT config_pick_missing=0 count
+RESULT config_pick_unrenderable_units=0 count
+   config_preview: step=device_prefill errors={} missing=[]
+RESULT config_preview_missing=0 count
+RESULT config_preview_unrenderable_units=0 count
+   config_refusal: step=device_prefill errors={'base': 'dhw_min_too_close'} missing=['backup_heater_type', 'found']
+RESULT config_refusal_missing=2 count
+RESULT config_refusal_unrenderable_units=1 count
+   options_refusal: step=modbus_prefill errors={'base': 'dhw_min_too_close'} missing=[]
+RESULT options_refusal_missing=0 count
+RESULT options_refusal_unrenderable_units=0 count
+   config_refusal vs preview: changed=[('backup_heater_type', '–', None), ('found', '6', None), ('matched_sources', 'tuya_heat_pump', '–')]
+RESULT config_refusal_changed_vs_preview=3 count
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=7.99
+RESULT swapins=0

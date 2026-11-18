@@ -1,0 +1,19 @@
+SKIP entities_metering.solar_location sources=[] same-page-numeric=[]
+ROW comfort.comfort_temp_day_weekend source=comfort_temp_day stored comfort_temp_day=22.5 submit comfort_temp_day=21.0 keeping shown=22.5 -> effective=22.5 KEPT errors=None stored_options={'comfort_temp_day': 21.0, 'comfort_temp_day_weekend': 22.5, 'holiday_comfort_temp_day': 22.5}
+ROW comfort.comfort_temp_night_weekend source=comfort_temp_night stored comfort_temp_night=20.5 submit comfort_temp_night=19.5 keeping shown=20.5 -> effective=20.5 KEPT errors=None stored_options={'comfort_temp_night': 19.5, 'comfort_temp_night_weekend': 20.5, 'holiday_comfort_temp_night': 20.5}
+ROW comfort.day_start_hour_weekend source=day_start_hour stored day_start_hour=8 submit day_start_hour=7 keeping shown=8 -> effective=8 KEPT errors=None stored_options={'day_start_hour': 7, 'day_start_hour_weekend': 8, 'holiday_day_start_hour': 8}
+ROW comfort.day_end_hour_weekend source=day_end_hour stored day_end_hour=21 submit day_end_hour=22 keeping shown=21 -> effective=21 KEPT errors=None stored_options={'day_end_hour': 22, 'day_end_hour_weekend': 21, 'holiday_day_end_hour': 21}
+ROW comfort.holiday_comfort_temp_day source=comfort_temp_day stored comfort_temp_day=22.5 submit comfort_temp_day=21.0 keeping shown=22.5 -> effective=22.5 KEPT errors=None stored_options={'comfort_temp_day': 21.0, 'comfort_temp_day_weekend': 22.5, 'holiday_comfort_temp_day': 22.5}
+ROW comfort.holiday_comfort_temp_night source=comfort_temp_night stored comfort_temp_night=20.5 submit comfort_temp_night=19.5 keeping shown=20.5 -> effective=20.5 KEPT errors=None stored_options={'comfort_temp_night': 19.5, 'comfort_temp_night_weekend': 20.5, 'holiday_comfort_temp_night': 20.5}
+ROW comfort.holiday_day_start_hour source=day_start_hour stored day_start_hour=8 submit day_start_hour=7 keeping shown=8 -> effective=8 KEPT errors=None stored_options={'day_start_hour': 7, 'day_start_hour_weekend': 8, 'holiday_day_start_hour': 8}
+ROW comfort.holiday_day_end_hour source=day_end_hour stored day_end_hour=21 submit day_end_hour=22 keeping shown=21 -> effective=21 KEPT errors=None stored_options={'day_end_hour': 22, 'day_end_hour_weekend': 21, 'holiday_day_end_hour': 21}
+SKIP hot_water.dhw_windows_by_day sources=['dhw_windows_fri', 'dhw_windows_mon', 'dhw_windows_sat', 'dhw_windows_sun', 'dhw_windows_thu', 'dhw_windows_tue', 'dhw_windows_wed'] same-page-numeric=[]
+SKIP building.wood_furnace_enabled sources=['dhw_wood_coil_enabled', 'external_heat_detection_enabled', 'external_heat_entity', 'wood_tank_bottom_entity', 'wood_tank_top_entity'] same-page-numeric=[]
+SKIP grid.peak_tariff_window_minutes sources=[] same-page-numeric=[]
+RESULT computed_rows=12
+RESULT computed_same_page_numeric=8
+RESULT computed_kept_value_lost=0
+RESULT null_kept_value_lost=0
+RESULT thread_factor=1.0
+RESULT load1=8.39111328125
+RESULT swapins=0

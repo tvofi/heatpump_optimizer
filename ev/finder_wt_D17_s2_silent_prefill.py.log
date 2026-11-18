@@ -1,0 +1,10 @@
+setup pre-fill page offers: ['dhw_setpoint', 'dhw_temp_entity', 'heat_pump_capacity_limited_entity', 'heat_pump_return_temp_entity', 'heat_pump_supply_temp_entity']
+entry kept: silent_mode_windows=None silent_mode_power_fraction=None
+max planned kW in the window: without schedule=5.000 kept schedule=5.000 schedule+fraction 0.6=5.000
+RESULT kept_schedule_cap_delta_kW=0.000 kW
+RESULT with_fraction_cap_delta_kW=0.000 kW
+RESULT offered_fraction_on_setup_page=0 fields
+RESULT wall_s=1.1 s (provisional)
+RESULT thread_factor=1.00 (counts only; single-thread pin)
+RESULT load1=9.62
+RESULT swapins=0

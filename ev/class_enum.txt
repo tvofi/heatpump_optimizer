@@ -1,0 +1,7 @@
+custom_components/heatpump_optimizer/__init__.py:234 async_migrate_entry async_update_entry kw=['data', 'options', 'version', 'minor_version']
+custom_components/heatpump_optimizer/config_flow.py:2942 HeatPumpOptimizerConfigFlow._async_save_reconfigure async_update_entry kw=['data', 'options', 'unique_id', 'title']
+custom_components/heatpump_optimizer/config_flow.py:3002 HeatPumpOptimizerConfigFlow._create_setup_entry async_create_entry kw=['title', 'data', 'options']
+custom_components/heatpump_optimizer/config_flow.py:3371 HeatPumpOptimizerConfigFlow.async_step_reauth_confirm async_update_entry kw=['data', 'options', 'unique_id']
+custom_components/heatpump_optimizer/config_flow.py:3468 HeatPumpOptimizerOptionsFlow._save async_create_entry kw=['title', 'data']
+custom_components/heatpump_optimizer/coordinator.py:1499 _async_rewrite_entry async_update_entry kw=['data', 'options']
+custom_components/heatpump_optimizer/repairs.py:56 DhwSetpointRepairFlow.async_step_confirm async_create_entry kw=['data']

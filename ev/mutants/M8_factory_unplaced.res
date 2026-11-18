@@ -1,0 +1,4 @@
+M8_factory_unplaced: suite=features rc=0 last=RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+      ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+      ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+      ok   a pump command that FAILED is not remembered as done

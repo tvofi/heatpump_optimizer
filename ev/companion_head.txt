@@ -1,0 +1,4 @@
+RESULT fraction_shown_beside_windows=1 count
+RESULT uncapped_schedule_accepted=0 count
+RESULT capped_schedule_refused=0 count
+RESULT no_schedule_refused=0 count

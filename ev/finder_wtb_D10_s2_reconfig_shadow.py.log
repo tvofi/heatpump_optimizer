@@ -1,0 +1,10 @@
+OPTIONS_SAVE type=create_entry errors=None keys=['indoor_temp_entity', 'price_entity', 'price_source', 'tibber_token', 'weather_entity']
+ARM save_options=True result=abort/reconfigure_successful prefill_indoor=sensor.indoor_a shadowed=['indoor_temp_entity', 'weather_entity'] effective_indoor=sensor.indoor_b effective_weather=weather.home
+ARM save_options=False result=abort/reconfigure_successful prefill_indoor=sensor.indoor_a shadowed=[] effective_indoor=sensor.indoor_c effective_weather=weather.other
+RESULT shadowed_options_saved=2 count
+RESULT shadowed_null=0 count
+RESULT reconfigure_reported_success=1 count
+RESULT prefill_shows_running_indoor=0 count
+RESULT thread_factor=1.000
+RESULT load1=7.99
+RESULT swapins=0
