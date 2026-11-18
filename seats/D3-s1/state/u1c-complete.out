@@ -63,3 +63,4 @@
 2026-11-18T22:05:17Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action GUARD_OFF b8bcfb6f L6602 by=tests/features.py ran=12 wall=1637.9s
 2026-11-18T22:06:56Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action GUARD_OFF f6fcebcb L6604 by=- ran=12 wall=1650.5s
 2026-11-18T22:14:04Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action GUARD_OFF c9af7d41 L6606 by=- ran=12 wall=1644.7s
+2026-11-18T22:17:56Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action GUARD_OFF 83c9652a L6648 by=tests/features.py ran=12 wall=1645.5s
