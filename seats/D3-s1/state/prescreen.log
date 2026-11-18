@@ -458,3 +458,4 @@
 2026-11-18T15:55:31Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss GUARD_OFF e3c61124 L5969 by=tests/features.py ran=13 wall=1789.7s
 2026-11-18T16:21:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization GUARD_OFF e2921a12 L6454 by=- ran=13 wall=1782.6s
 2026-11-18T16:23:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_shutdown GUARD_OFF 49b44a5c L6615 by=- ran=13 wall=1800.9s
+2026-11-18T16:26:47Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_set_mode GUARD_OFF afc33415 L6537 by=tests/features.py ran=14 wall=2029.3s
