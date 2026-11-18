@@ -120,19 +120,74 @@ tradeoff point (T) a fix touches. Seams and groups are those of `COMPONENTS.md`.
   - Sensitivity S24: two writers of the block vocabulary and a free-form friction id.
   - Tradeoff T24: a closed vocabulary refuses a genuinely new class until someone extends it.
 
+## Test-suite reach (D3)
+
+- **Scenario.** A fixer breaks the path from a rendered form error to the corrected submit, or doubles the solves in one coordinator cycle; a script of the gate fails.
+  - Sensitivity S26: flow tests stop at the error (51 of 53 rendered errors) and the stress gate runs no coordinator cycle and probes 6 of 54 scenarios for memory.
+  - Tradeoff T26: each added lane costs gate minutes on every scoped run that reaches it.
+
+- **Scenario.** The quantity a ratchet row names grows through another spelling (const read through a module binding, a rule written twice in one function, an import nothing loads, lines beside the class); the row moves.
+  - Sensitivity S27: rows keyed on one spelling of the thing they count.
+  - Tradeoff T27: a repaired row that reads higher is a budget raise, which waits for the owner's confirmation.
+
+## Sensor truth and ordering (D8)
+
+- **Scenario.** A month has one settled interval, or the install has no hot water; a sensor that cannot yet know its value is unavailable or bounded, and its availability and its value come from one predicate.
+  - Sensitivity S28: availability and value decided in two places (the open-month projection, the gap advisor's hot-water test).
+  - Tradeoff T28: a minimum coverage holds back a figure the user expects on the first day of the month.
+
+- **Scenario.** A sensor's state class, device class or name is corrected; statistics accept it, and no entity id changes without a registry migration.
+  - Sensitivity S29: metadata written beside the value and never compared with it.
+  - Tradeoff T29: a corrected class or name on a published entity can break the continuity of its long-term statistics.
+
+## Recurring classes (D14)
+
+- **Scenario.** A class with a barrier from an earlier round returns in another spelling (an unlatched .exception, forecast row 0 read as now, an off-grid selector in services.yaml); the barrier refuses it.
+  - Sensitivity S30: barriers that match one syntactic shape of the class.
+  - Tradeoff T30: a wider barrier refuses sound code until the site joins the reasoned list.
+
+- **Scenario.** A fix for one instance of a class merges; the class's sweep over every seam reads no instance left at the stamp.
+  - Sensitivity S31: a class spans seams, and each seam's group fixes only its own instances.
+  - Tradeoff T31: sweeping every seam per class costs seat hours no single finding asked for.
+
+## Diagnosis from a live bundle (D15)
+
+- **Scenario.** A user's diagnostics bundle is loaded; every document a writer stored is admitted by its loader, and a debug row with an unpriced sample is kept.
+  - Sensitivity S32: store.DOMAINS declares less than the writers write.
+  - Tradeoff T32: a wider schema admits documents an earlier release wrote wrongly (T4).
+
+- **Scenario.** An analyst reads the solver self-test and the learner state from the bundle; a restart that ran no solve is not counted as a solve, and a learner's stored evidence survives the restart that wrote it.
+  - Sensitivity S33: values published before the cycle that produces them has run.
+  - Tradeoff T33: withholding a not-yet-run value leaves the entity unknown for the first cycle after every restart.
+
+## Feature effect as documented (D17)
+
+- **Scenario.** A user calls set_thermal_parameters on a two-zone house, answers quick setup's wood questions, or calls run_optimization; the plan moves as the field's description says, or the call is refused with the reason.
+  - Sensitivity S34: a feature whose effect depends on a plant condition its own surface does not state.
+  - Tradeoff T34: refusing a call that was accepted and inert breaks automations that send it.
+
+- **Scenario.** A user configures an outdoor temperature sensor or restores a learned snapshot; the reading reaches the plan, and the restore picks a snapshot that carried accuracy evidence.
+  - Sensitivity S35: a configured input or a stored record that no later step reads.
+  - Tradeoff T35: a measured outdoor value joined to the forecast moves the first plan step of every install that has the sensor.
+
 ## Tradeoff points that cross seams
 
 - T6 and T8 meet at the learners: the plant-model fixes land first, then the freeze, so a learner is re-measured once.
 - T9, T10 and T11 meet at `pump_arbiter.py`'s held record; `actuation-release` fixes its meaning before `actuation-writes` reads it.
 - T1, T5 and T14 are all paid in solve time on the small host; `tests/stress.py` and the D9 harnesses are the check.
 - T7, T16 and T18 change what an existing install does at upgrade; each owes its step in the release notes.
+- T13 and T27 meet at `tests/structure_budgets.json`: a new row lands at zero headroom and a corrected one needs the owner, so the two are separate groups.
 - T12 and T13 are where the score can read better than the code; the counters stay on and `seam_cut_total` is watched beside each move.
 
 ## Added at step 6 (the moves)
 
-One scenario the refactor group `R11-ARCH-cycle-surface` serves, which the
-briefs' qualities imply under D7 and step 2 did not write.
+Two scenarios the refactor group `R11-ARCH-cycle-surface` serves, which the
+briefs' qualities imply under D7 and D1 and step 2 did not write.
 
 - **Scenario.** The coordinator changes how it stores its mode or another private value; no collaborator module is edited, because each received the value as an argument or read it from a published view.
   - Sensitivity S25: collaborators handed the coordinator itself (`boost.py`, `diagnostics.py`, `pump_arbiter.py`).
   - Tradeoff T25: handing values widens call signatures; past ten parameters it needs a value object.
+
+- **Scenario.** Home Assistant stops or the entry unloads with background tasks pending; each task is cancelled once and the task set is empty, with one writer of the set.
+  - Sensitivity S36: the task set written in place by the shutdown and by every task's done-callback.
+  - Tradeoff T36: dropping the shutdown's clear relies on each done-callback firing on cancel.

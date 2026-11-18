@@ -20,13 +20,19 @@ fixer's failing test, mutation proof and the finder's harness are still owed (fi
                                                                                            ADR-002
   topk    tariff._smooth_topk_sum is one row of _smooth_topk_sum_batch                     ADR-006
 
-The kernel's nine clone arms and its seven layer edges are D7-s1's own prototypes
-(dev/audit/rounds/round11/D7/s1/m7_prototypes.py); this file does not repeat them.
+  fabric  two of the fabric learners' folds (buffer cooling, internal gains) as functions of interval
+          values in a module of the learners seam; the coordinator keeps the baseline advance, the freeze
+          question, the apply, the log and the store write                                 ADR-007
+  ceiling the thirteen fabric methods deleted outright: the bound on ADR-007's fall, not a design
+  imports the fourteen import bindings D7-s1-03 lists, deleted (the kernel's dead-state part)  ADR-009
+  kernel  D7 s1's eight clone arms (nine copies) and two layer arms, from that seat's own edit list
+          (dev/audit/rounds/round11/D7/s1/m7_prototypes.py, GOOD + MORE)                   ADR-001, ADR-002
 
 Run (from the repository root; about 30 s per arm):
-    python3 dev/audit/rounds/round11/PLAN/prototypes.py                    every arm alone, then combined
+    python3 dev/audit/rounds/round11/PLAN/prototypes.py                    the seven alone, then combined
     python3 dev/audit/rounds/round11/PLAN/prototypes.py --only hub,circ    those arms alone
     python3 dev/audit/rounds/round11/PLAN/prototypes.py --only hub,circ --combined
+    python3 dev/audit/rounds/round11/PLAN/prototypes.py --case full,floor  the named cases, each one tree
 
 Read at the fork 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 on 2026-11-18 (darwin arm64):
     hub    dS +5.4429 IMPROVES  hub_solve_writes 1 -> 0
@@ -37,6 +43,19 @@ Read at the fork 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 on 2026-11-18 (darwin 
     clock  dS +0.3479 IMPROVES  layer_violations 13 -> 10
     topk   dS +0.6964 IMPROVES  duplication_copies 18 -> 17
     all seven combined  dS +18.9616 IMPROVES, admissible (shared_inplace_writes 3 -> 0)
+    fabric dS +0.0163 IMPROVES  coord_footprint 2496 -> 2468
+    ceiling coord_footprint 2496 -> 2359 (137 statements; the tree is broken, only the footprint is read)
+    imports dS +0.0000 NULL
+    kernel dS +9.2671 IMPROVES  duplication_copies 18 -> 9, layer_violations 13 -> 6
+  cases (--case), each one tree:
+    full             dS +29.7802  every prototyped move (duplication_copies 18 -> 8, shared_inplace_writes
+                     3 -> 0, hub_solve_writes 1 -> 0, layer_violations 13 -> 2, coordinator_private_reach
+                     2 -> 0, coord_footprint 2496 -> 2462); shape_copies 40 -> 35, no tripwire rising
+    no-tasks         dS +24.3372  ADR-005 part 3 dropped (shared_inplace_writes 3 -> 1)
+    no-topk          dS +28.4231  ADR-006 part 2 dropped (duplication_copies 18 -> 9)
+    floor            dS +22.9801  both conditional parts dropped
+    floor-no-fabric  dS +22.9638  and ADR-007 unrealised (coord_footprint 2496 -> 2490 at the fork, which
+                     main's six statements and any fix's rise then put above 2496: inadmissible)
 Writes only under a tempfile root.
 """
 from __future__ import annotations
@@ -161,16 +180,134 @@ def topk(r: Path) -> None:
         "    return float(_smooth_topk_sum_batch(x[None, :], k, tau)[0])\n\n\n", keep_end=True)
 
 
-ARMS = {"hub": hub, "sysid": sysid, "circ": circ, "reach": reach, "tasks": tasks, "clock": clock, "topk": topk}
+def fabric(r: Path) -> None:
+    """Two of the fabric folds as functions of values: the gate arithmetic leaves the coordinator class,
+    which keeps the baseline advance, the freeze question, the apply, the log and the store write."""
+    (r / PKG / "fabric_learning.py").write_text(
+        '"""The fabric learners\' folds: interval values in, the new parameter out."""\n'
+        "from __future__ import annotations\n\nfrom datetime import datetime\n\nimport numpy as np\n\n"
+        "from .const import (\n    DHW_COOLING_REFERENCE_DELTA,\n    INTERNAL_GAINS_ALPHA,\n"
+        "    INTERNAL_GAINS_MAX_FACTOR,\n    INTERNAL_GAINS_RIDGE,\n)\n\n"
+        "BUFFER_COOLING_ALPHA_DOWN = 0.25\nBUFFER_COOLING_ALPHA_UP = 0.02\n"
+        "BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.15\nBUFFER_COOLING_MAX_SAMPLE_HOURS = 3.0\n"
+        "BUFFER_COOLING_MIN_DELTA = 4.0\nBUFFER_AMBIENT_TEMP = 20.0\n\n\n"
+        "def fold_buffer_cooling(\n    rate: float, previous_temp: float, buffer_temp: float, dt_h: float,\n"
+        "    bounds: tuple[float, float],\n) -> tuple[float, float] | None:\n"
+        "    if dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS or dt_h > BUFFER_COOLING_MAX_SAMPLE_HOURS:\n        return None\n"
+        "    if buffer_temp > previous_temp:\n        return None\n"
+        "    start_delta = previous_temp - BUFFER_AMBIENT_TEMP\n    end_delta = buffer_temp - BUFFER_AMBIENT_TEMP\n"
+        "    if start_delta < BUFFER_COOLING_MIN_DELTA or end_delta < BUFFER_COOLING_MIN_DELTA:\n        return None\n"
+        "    observed = float(-np.log(end_delta / start_delta) / dt_h * DHW_COOLING_REFERENCE_DELTA)\n"
+        "    if not np.isfinite(observed) or observed < bounds[0] or observed > bounds[1]:\n        return None\n"
+        "    alpha = BUFFER_COOLING_ALPHA_DOWN if observed < rate else BUFFER_COOLING_ALPHA_UP\n"
+        "    return observed, (1.0 - alpha) * rate + alpha * observed\n\n\n"
+        "def fold_internal_gains(\n    profile: list[float] | None, g0: float, capacity: float,\n"
+        "    previous_time: datetime | None, residual: float, dt_h: float,\n) -> list[float] | None:\n"
+        "    if previous_time is None or dt_h <= 1e-6 or capacity <= 1e-6:\n        return profile\n"
+        "    y = residual * capacity / dt_h\n"
+        "    if not np.isfinite(y):\n        return profile if profile is not None else [g0] * 24\n"
+        "    out = list(profile) if profile is not None else [g0] * 24\n"
+        "    hour = int(previous_time.hour) % 24\n"
+        "    g = out[hour] + INTERNAL_GAINS_ALPHA * y - INTERNAL_GAINS_RIDGE * (out[hour] - g0)\n"
+        "    out[hour] = float(np.clip(g, 0.0, INTERNAL_GAINS_MAX_FACTOR * max(g0, 0.05)))\n"
+        "    return out\n")
+    cut(r, "coordinator.py", "        if dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS:\n",
+        "        self._buffer_cooling_samples += 1\n",
+        "        fold = fold_buffer_cooling(\n"
+        "            self._buffer_cooling_rate, previous_temp, buffer_temp, dt_h, self._buffer_cooling_bounds()\n"
+        "        )\n"
+        "        if fold is None:\n            return\n"
+        "        observed, rate = fold\n"
+        "        self._apply_buffer_cooling_rate(rate)\n", keep_end=True)
+    cut(r, "coordinator.py", "        if previous_time is None or dt_h <= 1e-6:\n            return\n        capacity = _zone_capacity(",
+        "    def ", 
+        "        self._internal_gains_profile = fold_internal_gains(\n"
+        "            self._internal_gains_profile, float(ctx._thermal_params.internal_gains),\n"
+        "            _zone_capacity(ctx._thermal_params), previous_time, residual, dt_h,\n"
+        "        )\n\n", keep_end=True)
+    for name in ("ALPHA_DOWN", "ALPHA_UP", "MIN_SAMPLE_HOURS", "MAX_SAMPLE_HOURS", "MIN_DELTA"):
+        cut(r, "coordinator.py", f"BUFFER_COOLING_{name} = ", "\n", "", keep_end=False)
+    cut(r, "coordinator.py", "BUFFER_AMBIENT_TEMP = ", "\n", "", keep_end=False)
+    sub(r, "coordinator.py", "from . import boost\n",
+        "from . import boost\nfrom .fabric_learning import fold_buffer_cooling, fold_internal_gains\n")
+
+
+FABRIC_METHODS = (
+    "_buffer_cooling_bounds", "_apply_buffer_cooling_rate", "_apply_house_heat_loss_scale",
+    "_apply_lower_floor_loss_ratio", "_void_heat_loss_learners", "async_reset_heat_loss_learners",
+    "_house_heat_loss_anchor", "_heat_loss_anchors", "_reanchor_house_heat_loss_scale",
+    "_async_learn_buffer_cooling", "_close_fabric_interval", "_async_learn_house_heat_loss", "_fold_internal_gains",
+)
+
+
+def ceiling(r: Path) -> None:
+    """The thirteen fabric methods deleted outright: the most ADR-007 could ever pay, not a design."""
+    import ast
+    path = r / PKG / "coordinator.py"
+    lines = path.read_text().splitlines(keepends=True)
+    spans = [(n.lineno - 1, n.end_lineno) for n in ast.walk(ast.parse("".join(lines)))
+             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name in FABRIC_METHODS]
+    if len(spans) != len(FABRIC_METHODS):
+        raise SystemExit(f"ceiling: {len(spans)} of {len(FABRIC_METHODS)} methods found")
+    for a, b in sorted(spans, reverse=True):
+        del lines[a:b]
+    path.write_text("".join(lines))
+
+
+UNUSED = (
+    ("config_flow.py", "    CONF_AWAY_RETURN_ENTITY,\n"), ("config_flow.py", "    PRICE_SOURCE_TIBBER,\n"),
+    ("coordinator.py", "    SCORE_ALPHA,\n"), ("coordinator.py", "    TIBBER_API_URL,\n"),
+    ("coordinator.py", "    WATER_SPECIFIC_HEAT,\n"), ("modbus_prefill.py", "    CONF_UPPER_FLOOR_THERMAL_MASS,\n"),
+    ("optimizer.py", "    MIN_RUNNING_DRAW_KW,\n"), ("optimizer.py", "    channel_heating_steps,\n"),
+    ("pump_arbiter.py", "    CONF_SPACE_SETPOINT_POWER_FEEDBACK,\n"),
+    ("thermal_model.py", "    BUFFER_COOLING_RATE_MAX,\n"), ("thermal_model.py", "    BUFFER_COOLING_RATE_MIN,\n"),
+    ("thermal_model.py", "    DEFAULT_BUFFER_COOLING_RATE,\n"),
+)
+
+
+def imports(r: Path) -> None:
+    """D7-s1-03's fourteen bindings nothing loads, deleted (the kernel's dead-state part)."""
+    for rel, line in UNUSED:
+        sub(r, rel, line, "")
+    sub(r, "coordinator.py", "from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner\n",
+        "from .dhw_learning import DhwProfileLearner\n")
+    sub(r, "pump_arbiter.py", "InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint,",
+        "InputReader, SetpointGrid, read_setpoint,")
+
+
+def kernel(r: Path) -> None:
+    """D7 s1's eight clone arms (nine copies) and its two layer arms, from that seat's own edit list."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("m7_prototypes", REPO / "dev/audit/rounds/round11/D7/s1/m7_prototypes.py")
+    m7 = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m7)
+    m7.apply(r / PKG, list(m7.GOOD + m7.MORE))
+
+
+ARMS = {"fabric": fabric, "ceiling": ceiling, "imports": imports, "kernel": kernel, "hub": hub, "sysid": sysid, "circ": circ, "reach": reach, "tasks": tasks, "clock": clock, "topk": topk}
+
+
+SEVEN = ("hub", "sysid", "circ", "reach", "tasks", "clock", "topk")
+FLOOR = ("kernel", "hub", "sysid", "circ", "reach", "clock")
+CASES = {
+    "full": ("kernel", "imports") + SEVEN + ("fabric",),          # every prototyped move
+    "no-tasks": ("kernel", "imports", "hub", "sysid", "circ", "reach", "clock", "topk", "fabric"),
+    "no-topk": ("kernel", "imports", "hub", "sysid", "circ", "reach", "tasks", "clock", "fabric"),
+    "floor": FLOOR + ("imports", "fabric"),                         # both conditional parts dropped
+    "floor-no-fabric": FLOOR,                                       # and ADR-007 unrealised
+}
 
 
 def main(argv: list[str]) -> int:
     if os.environ.get("ARCHSCORE_ABLATE"):
         raise SystemExit("ARCHSCORE_ABLATE is set: a gain that appears only without the counters did not happen")
-    names = list(ARMS)
+    names = list(SEVEN)
     if "--only" in argv:
         names = argv[argv.index("--only") + 1].split(",")
-    runs = [names] if "--combined" in argv else [[n] for n in names] + ([names] if "--only" not in argv else [])
+    if "--case" in argv:
+        runs = [list(CASES[c]) for c in argv[argv.index("--case") + 1].split(",")]
+    else:
+        runs = [names] if "--combined" in argv else [[n] for n in names] + ([names] if "--only" not in argv else [])
     with tempfile.TemporaryDirectory(prefix="r11-plan-") as tmp:
         fork = score.tree_of(FORK, Path(tmp) / "fork")
         base = vector.measure(fork)

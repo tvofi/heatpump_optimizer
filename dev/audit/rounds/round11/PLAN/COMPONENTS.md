@@ -74,7 +74,7 @@ Each is a finding of its own and is planned at one owner.
 
 ## Triage
 
-220 findings: 153 keep, 23 merge, 39 defer,
+220 findings: 152 keep, 23 merge, 40 defer,
 5 refuse. Every id appears once here or in a group below.
 
 The draft seamed each finding from the first module its mechanism names. That
@@ -98,9 +98,11 @@ Instrument behaviour falls under the freeze. For comment-only edits to
 instrument files two rulings meet: the freeze (card P11) and the 2026-11-13
 text-scope ruling that this round covers instrument comments. This plan reads
 the freeze as governing the fix and records that reading as **pending owner
-confirmation**; if the owner rules the other way, the thirteen comment-only
-rows and their ten merged rows become one text-only group after
-`R11-SEAM-tests`.
+confirmation**; if the owner rules the other way, the fourteen comment-only
+rows and their ten merged rows become one text-only group with no edge.
+D5-s6-02 (a docstring of `tools/audit/seat/replay_draws.py`) is one of the
+fourteen: the first draft kept it in the tests group, which gave one kind of
+edit two verdicts.
 
 | id | reason |
 |---|---|
@@ -137,6 +139,7 @@ rows and their ten merged rows become one text-only group after
 | D5-s5-06 | comment-only edit to an instrument file, read as inside the freeze (RULINGS.md, card P11); the 2026-11-13 text-scope ruling put instrument comments in this round's verification, so the reading is pending owner confirmation; round-end proposal triage, built at round 12's start |
 | D5-s5-07 | comment-only edit to an instrument file, read as inside the freeze (RULINGS.md, card P11); the 2026-11-13 text-scope ruling put instrument comments in this round's verification, so the reading is pending owner confirmation; round-end proposal triage, built at round 12's start |
 | D5-s6-01 | comment-only edit to an instrument file, read as inside the freeze (RULINGS.md, card P11); the 2026-11-13 text-scope ruling put instrument comments in this round's verification, so the reading is pending owner confirmation; round-end proposal triage, built at round 12's start |
+| D5-s6-02 | comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage |
 | D5-s6-04 | comment-only edit to an instrument file, read as inside the freeze (RULINGS.md, card P11); the 2026-11-13 text-scope ruling put instrument comments in this round's verification, so the reading is pending owner confirmation; round-end proposal triage, built at round 12's start |
 | D5-s6-05 | comment-only edit to an instrument file, read as inside the freeze (RULINGS.md, card P11); the 2026-11-13 text-scope ruling put instrument comments in this round's verification, so the reading is pending owner confirmation; round-end proposal triage, built at round 12's start |
 | D5-s6-06 | comment-only edit to an instrument file, read as inside the freeze (RULINGS.md, card P11); the 2026-11-13 text-scope ruling put instrument comments in this round's verification, so the reading is pending owner confirmation; round-end proposal triage, built at round 12's start |
@@ -162,7 +165,7 @@ rows and their ten merged rows become one text-only group after
 | D5-s7-02 | D5-s9-04 | 11 | criterion C5 over tests/ |
 | D5-s7-03 | D5-s9-04 | 11 | criterion C5 over tests/ |
 | D5-s8-02 | D5-s8-01 | 12 | pre-move path in an instrument; the canonical is deferred under the freeze |
-| D5-s8-03 | D5-s9-01 | 11 | tests/closure.py comment paths: same move, same seam |
+| D5-s8-03 | D5-s9-01 | 11 | tests/closure.py comment paths: same move, same seam (test comments) |
 | D5-s8-06 | D5-s5-07 | 12 | criterion C5 over instrument and harness files; the canonical is deferred under the freeze, and test files among its cells are counted by D5-s9-04's detector |
 | D5-s9-02 | D5-s9-01 | 11 | R9-RO move left prose paths in tests/; one moved_paths sweep over the seam |
 | D5-s9-03 | D5-s9-01 | 11 | R9-RO move left prose paths in tests/; one moved_paths sweep over the seam |
@@ -175,35 +178,41 @@ rows and their ten merged rows become one text-only group after
 ## Groups by owning seam
 
 Edges are prerequisites only. Two groups sharing `coordinator.py`,
-`pump_arbiter.py` or `config_flow.py` is a hot-file order for step 8.
+`pump_arbiter.py` or `config_flow.py` is a hot-file order for step 8. The
+test suite seam is cut in three by who must act: what the suite exercises
+(`tests`), rows and barriers nobody need approve (`ratchets`), and the two
+rows the owner sets (`ratchet-raise`). Paths a test comment cites belong to
+the test comments seam.
 
-| group | seam | size | severity | findings | after | hot files |
+| group | seam | size | severity | findings | after | files |
 |---|---|---|---|---|---|---|
-| `R11-SEAM-kernel` | shared kernel | L | medium | 5 + 0 merged | none | `plan_step.py` `const.py` `drift.py` `accuracy.py` `currency.py` |
-| `R11-SEAM-plant-model` | plant model | L | critical | 11 + 0 merged | none | `thermal_model.py` `mixing_valve.py` `defrost.py` `presets.py` `topology.py` |
-| `R11-SEAM-inputs-guards` | input boundary | M | critical | 7 + 0 merged | none | `inputs.py` `entry_config.py` `pump_signals.py` `open_meteo.py` `heat_curve.py` |
-| `R11-SEAM-inputs-freshness` | input boundary | M | high | 6 + 0 merged | `kernel` | `coordinator.py` `inputs.py` |
-| `R11-SEAM-store` | persisted store | M | medium | 5 + 0 merged | none | `store.py` `snapshots.py` `boost.py` |
-| `R11-SEAM-money` | money | L | high | 9 + 0 merged | none | `price_model.py` `tariff.py` `grid_fee.py` `ledger.py` `power_guard.py` `currency.py` `config_flow.py` |
-| `R11-SEAM-solver` | solver | M | medium | 4 + 0 merged | none | `optimizer.py` `plan_slots.py` |
-| `R11-SEAM-learners` | learners | L | medium | 8 + 0 merged | `plant-model` | `sysid.py` `accuracy.py` `dhw_learning.py` `heat_energy.py` `draw_range.py` `coordinator.py` |
-| `R11-SEAM-actuation-release` | actuation | L | high | 6 + 0 merged | none | `pump_arbiter.py` `off_restore.py` `coordinator.py` `legionella.py` |
-| `R11-SEAM-actuation-writes` | actuation | L | medium | 9 + 0 merged | `kernel`, `actuation-release` | `pump_arbiter.py` `coordinator.py` `freq_control.py` `legionella.py` `setpoint_check.py` |
-| `R11-SEAM-cycle-solve` | cycle | L | medium | 8 + 0 merged | none | `coordinator.py` `services.py` `whatif.py` `process_worker.py` |
-| `R11-SEAM-cycle-reporting` | cycle | M | medium | 7 + 0 merged | none | `coordinator.py` `away.py` |
-| `R11-SEAM-config` | config surface | L | high | 6 + 1 merged | none | `config_flow.py` `device_prefill.py` `__init__.py` |
-| `R11-SEAM-entity-service` | entity and service surface | M | medium | 8 + 0 merged | none | `sensor.py` `button.py` `services.yaml` `debugger.py` |
-| `R11-SEAM-card` | card | L | medium | 9 + 0 merged | none | `www/heatpump-optimizer-card.js` |
-| `R11-SEAM-product-text` | product text | M | high | 7 + 1 merged | `plant-model`, `money`, `actuation-release`, `actuation-writes`, `config`, `entity-service` | `strings.json` `translations/de.json` `translations/sv.json` `translations/en.json` |
-| `R11-SEAM-tests` | test suite | L | low | 13 + 3 merged | `kernel` | `tests/structure.py` `tests/stress.py` `tests/config_flow_steps.py` `tests/entities.py` `tests/features.py` |
-| `R11-SEAM-docs` | reader docs | L | medium | 12 + 1 merged | `plant-model`, `money`, `learners`, `actuation-release`, `actuation-writes`, `config`, `entity-service`, `card`, `product-text` | `README.md` `docs/configuration.md` `docs/how-it-works.md` `docs/setup.md` `docs/CONTRIBUTING.md` `docs/img/` |
-| `R11-SEAM-governance-text` | governance text | M | low | 10 + 3 merged | none | `dev/governance/rules/` `dev/governance/roles/` `dev/governance/dimensions/D15.md` `dev/audit/README.md` `tests/README.md` `dev/programme/` |
-| `R11-SEAM-comments-production` | production comments | XL | low | 2 + 1 merged | `kernel`, `plant-model`, `inputs-guards`, `inputs-freshness`, `store`, `money`, `solver`, `learners`, `actuation-release`, `actuation-writes`, `cycle-solve`, `cycle-reporting`, `config`, `entity-service` | `custom_components/heatpump_optimizer/*.py` |
-| `R11-SEAM-comments-tests` | test comments | XL | low | 1 + 3 merged | `tests` | `tests/*.py` |
+| `R11-SEAM-kernel` | shared kernel | L | medium | 5 + 0 merged | none | 34 |
+| `R11-SEAM-plant-model` | plant model | L | critical | 11 + 0 merged | none | 13 |
+| `R11-SEAM-inputs-guards` | input boundary | M | critical | 7 + 0 merged | none | 9 |
+| `R11-SEAM-inputs-freshness` | input boundary | M | high | 6 + 0 merged | `kernel` | 8 |
+| `R11-SEAM-store` | persisted store | M | medium | 5 + 0 merged | none | 9 |
+| `R11-SEAM-money` | money | L | high | 9 + 0 merged | none | 9 |
+| `R11-SEAM-solver` | solver | M | medium | 4 + 0 merged | none | 2 |
+| `R11-SEAM-learners` | learners | L | medium | 8 + 0 merged | `plant-model` | 8 |
+| `R11-SEAM-actuation-release` | actuation | L | high | 6 + 0 merged | none | 4 |
+| `R11-SEAM-actuation-writes` | actuation | L | medium | 9 + 0 merged | `kernel`, `actuation-release` | 10 |
+| `R11-SEAM-cycle-solve` | cycle | L | medium | 8 + 0 merged | none | 10 |
+| `R11-SEAM-cycle-reporting` | cycle | M | medium | 7 + 0 merged | none | 17 |
+| `R11-SEAM-config` | config surface | L | high | 6 + 1 merged | none | 6 |
+| `R11-SEAM-entity-service` | entity and service surface | M | medium | 8 + 0 merged | none | 9 |
+| `R11-SEAM-card` | card | L | medium | 9 + 0 merged | none | 1 |
+| `R11-SEAM-product-text` | product text | M | high | 7 + 1 merged | `plant-model`, `money`, `actuation-release`, `actuation-writes`, `config`, `entity-service` | 10 |
+| `R11-SEAM-tests` | test suite | L | low | 4 + 0 merged | none | 7 |
+| `R11-SEAM-ratchets` | test suite | M | low | 3 + 0 merged | `kernel` | 4 |
+| `R11-SEAM-ratchet-raise` | test suite | S | low | 2 + 0 merged | `kernel` | 2 |
+| `R11-SEAM-docs` | reader docs | L | medium | 12 + 1 merged | `plant-model`, `money`, `learners`, `actuation-release`, `actuation-writes`, `config`, `entity-service`, `card`, `product-text` | 6 |
+| `R11-SEAM-governance-text` | governance text | M | low | 10 + 3 merged | none | 15 |
+| `R11-SEAM-comments-production` | production comments | XL | low | 2 + 1 merged | none | 2 |
+| `R11-SEAM-comments-tests` | test comments | XL | low | 4 + 6 merged | none | 3 |
 
 ### Architect notes
 
-- **`R11-SEAM-kernel`** — One owner per small rule: plan_step owns "the step covering now" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); the four modules D7-s1-06 marks as needing a design stay out. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2. Findings: D7-s3-03, D7-s3-04, D7-s1-05, D7-s1-06, D7-s3-05.
+- **`R11-SEAM-kernel`** — One owner per small rule: plan_step owns "the step covering now" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); four of the six modules D7-s1-06 marks as needing a design are planned by ADR-002 part 2 (the reader's clock), which leaves setpoint_check and snapshots. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2. Findings: D7-s3-03, D7-s3-04, D7-s1-05, D7-s1-06, D7-s3-05.
 - **`R11-SEAM-plant-model`** — Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers "two zones", "modulating" and "has hot water" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Findings: D2-s1-01, D2-s1-02, D2-s2-02, D2-s1-51, D12-s2-01, D12-s3-01, D12-s1-01, D17-s1-03, D17-s3-02, D17-s2-03, D8-s1-01.
 - **`R11-SEAM-inputs-guards`** — Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timestamp parsers, numeric options. The P1 sweep enumerator is the fitness function. 7 findings (0 merged in), size M; class tags N-missing-unit-scale, P1, P8. Findings: D2-s3-02, D7-s3-01, D1-s3-01, D1-s3-02, D1-s3-03, D1-s2-05, D1-s2-51.
 - **`R11-SEAM-inputs-freshness`** — Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and the measured outdoor value joining the forecast series. The end rule is the kernel's step owner, hence the edge. 6 findings (0 merged in), size M; class tags N-dead-input, N-no-expiry, N-staleness, P2. Findings: D1-s2-03, D1-s2-02, D14-s2-02, D14-s2-01, D17-s2-02, D1-s2-52.
@@ -219,18 +228,47 @@ Edges are prerequisites only. Two groups sharing `coordinator.py`,
 - **`R11-SEAM-entity-service`** — Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2. Findings: D10-s1-02, D10-s2-04, D8-s1-03, D8-s2-02, D8-s3-01, D15-s3-01, D14-s1-01, D17-s3-51.
 - **`R11-SEAM-card`** — Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9. Findings: D4-s1-01, D4-s1-03, D4-s3-01, D4-s3-02, D4-s3-03, D4-s3-04, D4-s3-05, D6-s4-01, D9-s2-01.
 - **`R11-SEAM-product-text`** — User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. Verified against the text ledger. 7 findings (1 merged in), size M; class tags I4, I5, N-copy-style. Findings: D6-s2-01, D6-s6-01, D6-s4-02, D4-s3-06, D4-s3-07, D10-s2-03, D4-s2-51; merged: D4-s2-02 into D10-s2-03.
-- **`R11-SEAM-tests`** — Ratchets that see what they claim (const fan-out through a module binding, same-function clones, unused imports, module size outside the class, .exception floods), flow recovery, stress over a coordinator cycle and every scenario, and resolvable citations. New rows are recorded at their measured value; after the kernel, whose removals set those values. 13 findings (3 merged in), size L; class tags I1, I5, N-log-flood, N-move-stale-path, N-structure-blind. Findings: D10-s1-05, D10-s1-06, D14-s2-03, D7-s1-01, D7-s1-02, D7-s1-03, D7-s1-04, D9-s3-01, D9-s3-02, D5-s6-02, D5-s8-04, D5-s8-05, D5-s9-01; merged: D5-s9-02 into D5-s9-01, D5-s9-03 into D5-s9-01, D5-s8-03 into D5-s9-01.
+- **`R11-SEAM-tests`** — What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5. Findings: D10-s1-05, D10-s1-06, D9-s3-01, D9-s3-02.
+- **`R11-SEAM-ratchets`** — Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value, after the kernel, whose removals set those values. 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind. Findings: D7-s1-02, D7-s1-03, D14-s2-03.
+- **`R11-SEAM-ratchet-raise`** — The two rows whose value the owner sets: const fan-out read through a module binding (the corrected row reads 4 against a budget of 3) and module lines outside the class, whose limit the owner chooses. Cut from the other ratchet rows so the owner's confirmation holds only these two findings. 2 findings (0 merged in), size S; class tags N-structure-blind. Findings: D7-s1-01, D7-s1-04.
 - **`R11-SEAM-docs`** — Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc. Findings: D5-s2-01, D5-s2-02, D5-s2-03, D5-s2-08, D5-s2-09, D5-s2-10, D5-s2-11, D6-s1-02, D6-s7-01, D5-s2-04, D5-s2-05, D5-s2-06; merged: D6-s1-01 into D5-s2-08.
 - **`R11-SEAM-governance-text`** — Policy and programme prose with a false or unresolvable sentence. Policy files merge serially on the owner's approving review; no instrument code changes here. 10 findings (3 merged in), size M; class tags I4, I5, N-move-stale-path. Findings: D6-s5-02, D6-s5-03, D6-s5-01, D6-s5-05, D6-s5-06, D6-s5-07, D6-s5-08, D6-s7-02, D11-s2-04, D15-s1-02; merged: D6-s2-02 into D6-s5-02, D6-s2-03 into D6-s5-02, D6-s5-04 into D6-s5-02.
-- **`R11-SEAM-comments-production`** — Criterion C5 over production comments (921 units in two seats' cells) and one false docstring. Text only; after every production group, since each rewrites the same hot files. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Findings: D5-s4-01, D5-s3-02; merged: D5-s3-03 into D5-s4-01.
-- **`R11-SEAM-comments-tests`** — Criterion C5 over the test suite, with the dead names and false count D5-s7-01 lists. Text only; after the tests group. 1 findings (3 merged in), size XL; class tags N-comment-style. Findings: D5-s9-04; merged: D5-s7-01 into D5-s9-04, D5-s7-02 into D5-s9-04, D5-s7-03 into D5-s9-04.
+- **`R11-SEAM-comments-production`** — Criterion C5 over production comments (921 units in two seats' cells, 155 of them in the card's script) and one false docstring. Text only. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Findings: D5-s4-01, D5-s3-02; merged: D5-s3-03 into D5-s4-01.
+- **`R11-SEAM-comments-tests`** — Text in the test suite: criterion C5 over tests/ with the dead names and false count D5-s7-01 lists, and the paths a test comment cites that do not resolve (one moved_paths sweep). Text only. 4 findings (6 merged in), size XL; class tags I5, N-comment-style, N-move-stale-path. Findings: D5-s9-04, D5-s9-01, D5-s8-04, D5-s8-05; merged: D5-s7-01 into D5-s9-04, D5-s7-02 into D5-s9-04, D5-s7-03 into D5-s9-04, D5-s9-02 into D5-s9-01, D5-s9-03 into D5-s9-01, D5-s8-03 into D5-s9-01.
+
+### Files
+
+A group's files are every file its findings' `files` fields name
+(`../JUDGE-INPUT.json`) and those its ADR adds; `groups.json` carries the
+lists and `projection.py` refuses a file a finding names that its group
+neither lists nor excludes. The first draft listed five files per group by
+hand and missed 113 of them, `coordinator.py` in five groups: `inputs-guards`,
+`store` and `entity-service` edit it and now list it; `tests` and `docs` name
+it without editing it. A file a finding names and its group does not edit is
+excluded with the reason:
+
+| group | file | named, not edited, because |
+|---|---|---|
+| `ratchets` | `coordinator.py` `config_flow.py` `thermal_model.py` `optimizer.py` `pump_arbiter.py` `modbus_prefill.py` | D7-s1-03's bindings are deleted by R11-SEAM-kernel (dead-state part); this group adds the row |
+| `ratchets` | `tools/audit/archscore/counters.py` | the scorer; ADR-009 part 3, round-end proposal triage |
+| `ratchets` | `tools/audit/archscore/planted/redteam` | the scorer's planted cases; ADR-009 part 3, round-end proposal triage |
+| `ratchet-raise` | `entry_config.py` | the module D7-s1-01 measures; the row is re-recorded, the module is not edited (ADR-009 part 2) |
+| `ratchet-raise` | `thermal_model.py` | the module D7-s1-01 measures; not edited |
+| `ratchet-raise` | `coordinator.py` | the module D7-s1-04 measures; not edited |
+| `tests` | `coordinator.py` | D9-s3-02's lane drives coordinator cycles from tests/stress.py; the module is not edited |
+| `docs` | `const.py` | D6-s1-01 and D6-s1-02 state the constant; the docs group edits text (ADR-010), and a changed default is the owner's decision (open point 5) |
+| `docs` | `coordinator.py` | D6-s1-02's learner sentence: the learner is fixed by R11-SEAM-learners; this group re-runs the claim |
+| `docs` | `pump_arbiter.py` | D6-s1-01's echo sentence: the text is aligned to the merged code; a changed window is the owner's decision (open point 5) |
+| `governance-text` | `replay_doc.py` | D15-s1-02 names the module the gate reads; its own scope says no production change |
+| `governance-text` | `tools/replay/debug_ingest.py` | D15-s1-02 names the gate D15.md should cite; an instrument, not edited (freeze) |
 
 ### Prerequisite edges
 
 - kernel before `inputs-freshness` and `actuation-writes`: both read the step
   covering now from the owner D7-s3-03 creates.
-- kernel before `tests`: new ratchet rows are recorded at the value the
-  kernel's removals leave.
+- kernel before `ratchets` and `ratchet-raise`: a row is recorded at the value
+  the kernel's removals leave (ADR-009 part 1). This is the roster's weakest
+  edge; the kernel's dead-state part alone satisfies it.
 - `plant-model` before `learners`: the Carnot, delivery and derate fixes change
   the residual each learner fits, so a learner harness run before them measures
   the wrong plant.
@@ -238,11 +276,15 @@ Edges are prerequisites only. Two groups sharing `coordinator.py`,
   on what the held record means after a release.
 - behaviour groups before `product-text`, and those plus `card` and
   `product-text` before `docs`: text is verified against merged behaviour.
-- every production group before `comments-production`; `tests` before
-  `comments-tests`.
 
-Longest chain by edges: `actuation-release`, `actuation-writes`,
-`product-text`, `docs`: depth 4.
+Not edges: `tests` waits on nothing, and neither comment group carries an
+edge. A comment rewrite depends on no behaviour; its order against the groups
+that edit the same file is a hot-file order (`PLAN.md`), released per file
+(ADR-010 part 2).
+
+Longest chains by edges, depth 4: `kernel` or `actuation-release`, then
+`actuation-writes`, `product-text`, `docs`; and `plant-model`, `learners`,
+`R11-ARCH-fabric-learner` at depth 3 (`PLAN.md` adds that edge).
 
 ### Open at P3's start, not findings
 

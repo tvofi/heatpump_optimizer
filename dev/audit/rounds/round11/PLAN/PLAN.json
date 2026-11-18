@@ -214,6 +214,78 @@
    "scenario": "A reviewer blocks a pull request or a fixer records friction; the class word resolves to one vocabulary and one policy file.",
    "sensitivity": "S24: two writers of the block vocabulary and a free-form friction id.",
    "tradeoff": "T24: a closed vocabulary refuses a genuinely new class until someone extends it."
+  },
+  {
+   "quality": "maintainability (D7)",
+   "scenario": "The coordinator changes how it stores its mode or another private value; no collaborator module is edited, because each received the value as an argument or read it from a published view.",
+   "sensitivity": "S25: collaborators handed the coordinator itself (boost.py, diagnostics.py, pump_arbiter.py).",
+   "tradeoff": "T25: handing values widens call signatures; past ten parameters it needs a value object."
+  },
+  {
+   "quality": "test-suite reach (D3)",
+   "scenario": "A fixer breaks the path from a rendered form error to the corrected submit, or doubles the solves in one coordinator cycle; a script of the gate fails.",
+   "sensitivity": "S26: flow tests stop at the error (51 of 53 rendered errors) and the stress gate runs no coordinator cycle and probes 6 of 54 scenarios for memory.",
+   "tradeoff": "T26: each added lane costs gate minutes on every scoped run that reaches it."
+  },
+  {
+   "quality": "test-suite reach (D3)",
+   "scenario": "The quantity a ratchet row names grows through another spelling (const read through a module binding, a rule written twice in one function, an import nothing loads, lines beside the class); the row moves.",
+   "sensitivity": "S27: rows keyed on one spelling of the thing they count.",
+   "tradeoff": "T27: a repaired row that reads higher is a budget raise, which waits for the owner's confirmation."
+  },
+  {
+   "quality": "sensor truth and ordering (D8)",
+   "scenario": "A month has one settled interval, or the install has no hot water; a sensor that cannot yet know its value is unavailable or bounded, and its availability and its value come from one predicate.",
+   "sensitivity": "S28: availability and value decided in two places (the open-month projection, the gap advisor's hot-water test).",
+   "tradeoff": "T28: a minimum coverage holds back a figure the user expects on the first day of the month."
+  },
+  {
+   "quality": "sensor truth and ordering (D8)",
+   "scenario": "A sensor's state class, device class or name is corrected; statistics accept it, and no entity id changes without a registry migration.",
+   "sensitivity": "S29: metadata written beside the value and never compared with it.",
+   "tradeoff": "T29: a corrected class or name on a published entity can break the continuity of its long-term statistics."
+  },
+  {
+   "quality": "recurring classes (D14)",
+   "scenario": "A class with a barrier from an earlier round returns in another spelling (an unlatched .exception, forecast row 0 read as now, an off-grid selector in services.yaml); the barrier refuses it.",
+   "sensitivity": "S30: barriers that match one syntactic shape of the class.",
+   "tradeoff": "T30: a wider barrier refuses sound code until the site joins the reasoned list."
+  },
+  {
+   "quality": "recurring classes (D14)",
+   "scenario": "A fix for one instance of a class merges; the class's sweep over every seam reads no instance left at the stamp.",
+   "sensitivity": "S31: a class spans seams, and each seam's group fixes only its own instances.",
+   "tradeoff": "T31: sweeping every seam per class costs seat hours no single finding asked for."
+  },
+  {
+   "quality": "diagnosis from a live bundle (D15)",
+   "scenario": "A user's diagnostics bundle is loaded; every document a writer stored is admitted by its loader, and a debug row with an unpriced sample is kept.",
+   "sensitivity": "S32: store.DOMAINS declares less than the writers write.",
+   "tradeoff": "T32: a wider schema admits documents an earlier release wrote wrongly (T4)."
+  },
+  {
+   "quality": "diagnosis from a live bundle (D15)",
+   "scenario": "An analyst reads the solver self-test and the learner state from the bundle; a restart that ran no solve is not counted as a solve, and a learner's stored evidence survives the restart that wrote it.",
+   "sensitivity": "S33: values published before the cycle that produces them has run.",
+   "tradeoff": "T33: withholding a not-yet-run value leaves the entity unknown for the first cycle after every restart."
+  },
+  {
+   "quality": "feature effect as documented (D17)",
+   "scenario": "A user calls set_thermal_parameters on a two-zone house, answers quick setup's wood questions, or calls run_optimization; the plan moves as the field's description says, or the call is refused with the reason.",
+   "sensitivity": "S34: a feature whose effect depends on a plant condition its own surface does not state.",
+   "tradeoff": "T34: refusing a call that was accepted and inert breaks automations that send it."
+  },
+  {
+   "quality": "feature effect as documented (D17)",
+   "scenario": "A user configures an outdoor temperature sensor or restores a learned snapshot; the reading reaches the plan, and the restore picks a snapshot that carried accuracy evidence.",
+   "sensitivity": "S35: a configured input or a stored record that no later step reads.",
+   "tradeoff": "T35: a measured outdoor value joined to the forecast moves the first plan step of every install that has the sensor."
+  },
+  {
+   "quality": "robustness (D1)",
+   "scenario": "Home Assistant stops or the entry unloads with background tasks pending; each task is cancelled once and the task set is empty, with one writer of the set.",
+   "sensitivity": "S36: the task set written in place by the shutdown and by every task's done-callback.",
+   "tradeoff": "T36: dropping the shutdown's clear relies on each done-callback firing on cancel."
   }
  ],
  "triage": [
@@ -663,91 +735,91 @@
    "verdict": "keep",
    "into": "R11-SEAM-tests",
    "round": 11,
-   "reason": "test suite seam"
+   "reason": "test suite seam: what the suite exercises (flow recovery, coverage, stress lanes)"
   },
   {
    "id": "D10-s1-06",
    "verdict": "keep",
    "into": "R11-SEAM-tests",
    "round": 11,
-   "reason": "test suite seam"
+   "reason": "test suite seam: what the suite exercises (flow recovery, coverage, stress lanes)"
   },
   {
    "id": "D14-s2-03",
    "verdict": "keep",
-   "into": "R11-SEAM-tests",
+   "into": "R11-SEAM-ratchets",
    "round": 11,
-   "reason": "test suite seam: the barrier lives in tests/"
+   "reason": "test suite seam, ratchet rows: the barrier lives in tests/entities.py"
   },
   {
    "id": "D5-s6-02",
-   "verdict": "keep",
-   "into": "R11-SEAM-tests",
-   "round": 11,
-   "reason": "test suite seam"
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
   },
   {
    "id": "D5-s8-04",
    "verdict": "keep",
-   "into": "R11-SEAM-tests",
+   "into": "R11-SEAM-comments-tests",
    "round": 11,
-   "reason": "test suite seam"
+   "reason": "test comments seam: a path a comment in tests/ cites does not resolve"
   },
   {
    "id": "D5-s8-05",
    "verdict": "keep",
-   "into": "R11-SEAM-tests",
+   "into": "R11-SEAM-comments-tests",
    "round": 11,
-   "reason": "test suite seam"
+   "reason": "test comments seam: a path a comment in tests/ cites does not resolve"
   },
   {
    "id": "D5-s9-01",
    "verdict": "keep",
-   "into": "R11-SEAM-tests",
+   "into": "R11-SEAM-comments-tests",
    "round": 11,
-   "reason": "test suite seam; canonical for the moved-path citations in tests/"
+   "reason": "test comments seam: a path a comment in tests/ cites does not resolve; canonical for the moved-path citations in tests/"
   },
   {
    "id": "D7-s1-01",
    "verdict": "keep",
-   "into": "R11-SEAM-tests",
+   "into": "R11-SEAM-ratchet-raise",
    "round": 11,
-   "reason": "test suite seam: a blind spot of tests/structure.py"
+   "reason": "test suite seam, owner-gated row: the corrected const row reads 4 against a budget of 3, a raise (ADR-009 part 2)"
   },
   {
    "id": "D7-s1-02",
    "verdict": "keep",
-   "into": "R11-SEAM-tests",
+   "into": "R11-SEAM-ratchets",
    "round": 11,
-   "reason": "test suite seam"
+   "reason": "test suite seam, ratchet rows: the same-function copy gets its own place-keyed row; the score's census is not edited (ADR-009)"
   },
   {
    "id": "D7-s1-03",
    "verdict": "keep",
-   "into": "R11-SEAM-tests",
+   "into": "R11-SEAM-ratchets",
    "round": 11,
-   "reason": "test suite seam"
+   "reason": "test suite seam, ratchet rows: the row is added here at zero; R11-SEAM-kernel deletes the fourteen bindings in its dead-state part (ADR-009 part 1)"
   },
   {
    "id": "D7-s1-04",
    "verdict": "keep",
-   "into": "R11-SEAM-tests",
+   "into": "R11-SEAM-ratchet-raise",
    "round": 11,
-   "reason": "test suite seam"
+   "reason": "test suite seam, owner-gated row: the module-span row's limit is the owner's to choose"
   },
   {
    "id": "D9-s3-01",
    "verdict": "keep",
    "into": "R11-SEAM-tests",
    "round": 11,
-   "reason": "test suite seam"
+   "reason": "test suite seam: what the suite exercises (flow recovery, coverage, stress lanes)"
   },
   {
    "id": "D9-s3-02",
    "verdict": "keep",
    "into": "R11-SEAM-tests",
    "round": 11,
-   "reason": "test suite seam"
+   "reason": "test suite seam: what the suite exercises (flow recovery, coverage, stress lanes)"
   },
   {
    "id": "D5-s8-03",
@@ -1786,10 +1858,30 @@
     "legionella.py",
     "sysid.py",
     "sensor.py",
-    "tariff.py"
+    "tariff.py",
+    "config_flow.py",
+    "modbus_prefill.py",
+    "optimizer.py",
+    "thermal_model.py",
+    "tests/guard_pins.py",
+    "early_cutoff.py",
+    "flow_meter.py",
+    "open_meteo.py",
+    "entity.py",
+    "replay_doc.py",
+    "power_guard.py",
+    "binary_sensor.py",
+    "climate.py",
+    "comfort_learning.py",
+    "external_heat.py",
+    "dhw_planner.py",
+    "curve_learning.py",
+    "pv.py",
+    "dhw_learning.py",
+    "flow_lift.py"
    ],
    "after": [],
-   "architect_note": "One owner per small rule: plan_step owns \"the step covering now\" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); the four modules D7-s1-06 marks as needing a design stay out. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2. Plan: ADR-001 and ADR-002 are this group's approved design. It is first in file order on every file it shares, so the fixer may land it in parts (layering and the reader's clock; the clone owners; dead state). The reader takes its clock from its caller, which leaves inputs.py with no Home Assistant import. Refused shapes: two bodies folded under one function with nothing shared, and a helper handed a detector's list."
+   "architect_note": "One owner per small rule: plan_step owns \"the step covering now\" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); four of the six modules D7-s1-06 marks as needing a design are planned by ADR-002 part 2 (the reader's clock), which leaves setpoint_check and snapshots. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2. Plan: ADR-001 and ADR-002 are this group's approved design. It is first in file order on every file it shares, so the fixer lands it in parts (layering and the reader's clock; the clone owners; dead state). The dead-state part also deletes the fourteen import bindings D7-s1-03 lists, in six modules, so R11-SEAM-ratchets records its row at zero. The reader takes its clock from its caller, which leaves inputs.py with no Home Assistant import. Refused shapes: two bodies folded under one function with nothing shared, and a helper handed a detector's list."
   },
   {
    "group": "R11-SEAM-plant-model",
@@ -1818,10 +1910,15 @@
     "topology.py",
     "coordinator.py",
     "config_flow.py",
-    "sensor.py"
+    "sensor.py",
+    "optimizer.py",
+    "strings.json",
+    "services.py",
+    "services.yaml",
+    "quick_setup.py"
    ],
    "after": [],
-   "architect_note": "Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers \"two zones\", \"modulating\" and \"has hot water\" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Plan: ADR-008 is the approved design of the predicate work; the law fixes are point fixes. The has-hot-water predicate becomes a public function with the gap advisor as a new reader. Golden drift from the Carnot fix is claimed with its direction."
+   "architect_note": "Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers \"two zones\", \"modulating\" and \"has hot water\" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Plan: ADR-008 is the approved design of the predicate work; the law fixes are point fixes. The has-hot-water predicate becomes a public function with the gap advisor as a new reader; the fall in private_cross_module is banked only when the reviewer finds that reader in the PR. Golden drift from the Carnot fix is claimed with its direction."
   },
   {
    "group": "R11-SEAM-inputs-guards",
@@ -1843,10 +1940,14 @@
     "entry_config.py",
     "pump_signals.py",
     "open_meteo.py",
-    "heat_curve.py"
+    "heat_curve.py",
+    "coordinator.py",
+    "__init__.py",
+    "thermal_model.py",
+    "comfort_band.py"
    ],
    "after": [],
-   "architect_note": "Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timestamp parsers, numeric options. The P1 sweep enumerator is the fitness function. 7 findings (0 merged in), size M; class tags N-missing-unit-scale, P1, P8."
+   "architect_note": "Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timestamp parsers, numeric options. The P1 sweep enumerator is the fitness function. 7 findings (0 merged in), size M; class tags N-missing-unit-scale, P1, P8. Plan: D1-s3-02's parser is in coordinator.py, so the group is in that file's order and names coord_footprint at zero; the fix refuses a bool where the parser stands and adds no statement the neutral rule does not allow."
   },
   {
    "group": "R11-SEAM-inputs-freshness",
@@ -1864,7 +1965,13 @@
    "seam": "input boundary",
    "hot_files": [
     "coordinator.py",
-    "inputs.py"
+    "inputs.py",
+    "const.py",
+    "tests/entities.py",
+    "binary_sensor.py",
+    "tests/features.py",
+    "strings.json",
+    "docs/configuration.md"
    ],
    "after": [
     "R11-SEAM-kernel"
@@ -1887,7 +1994,13 @@
    "hot_files": [
     "store.py",
     "snapshots.py",
-    "boost.py"
+    "boost.py",
+    "comfort_learning.py",
+    "dhw_learning.py",
+    "debugger.py",
+    "accuracy.py",
+    "off_restore.py",
+    "coordinator.py"
    ],
    "after": [],
    "architect_note": "store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. 5 findings (0 merged in), size M; class tags N-silent-zero, P1, P2."
@@ -1917,7 +2030,8 @@
     "power_guard.py",
     "currency.py",
     "config_flow.py",
-    "coordinator.py"
+    "coordinator.py",
+    "sensor.py"
    ],
    "after": [],
    "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Plan: ADR-006. The exact top-k takes the largest, as its batch twin does; the smooth scalar becomes one row of its batch only if golden fixtures stay byte-identical and the solve-time harness does not regress, else that part is dropped and recorded."
@@ -1963,7 +2077,9 @@
     "dhw_learning.py",
     "heat_energy.py",
     "draw_range.py",
-    "coordinator.py"
+    "coordinator.py",
+    "dhw_draws.py",
+    "tests/features.py"
    ],
    "after": [
     "R11-SEAM-plant-model"
@@ -2015,7 +2131,12 @@
     "coordinator.py",
     "freq_control.py",
     "legionella.py",
-    "setpoint_check.py"
+    "setpoint_check.py",
+    "tests/harness.py",
+    "heat_curve.py",
+    "disinfection.py",
+    "thermal_model.py",
+    "repairs.py"
    ],
    "after": [
     "R11-SEAM-kernel",
@@ -2043,7 +2164,13 @@
     "coordinator.py",
     "services.py",
     "whatif.py",
-    "process_worker.py"
+    "process_worker.py",
+    "price_tiles.py",
+    "optimizer.py",
+    "button.py",
+    "strings.json",
+    "README.md",
+    "docs/configuration.md"
    ],
    "after": [],
    "architect_note": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Plan: no ADR fixes the shape of the one in-flight guard and budget; designer.md is dispatched before the fixer."
@@ -2067,10 +2194,23 @@
     "coordinator.py",
     "away.py",
     "services.py",
-    "datetime.py"
+    "datetime.py",
+    "boost.py",
+    "dhw_learning.py",
+    "duty_switch.py",
+    "legionella.py",
+    "notifier.py",
+    "off_restore.py",
+    "pump_arbiter.py",
+    "debugger.py",
+    "diagnostics.py",
+    "optimizer.py",
+    "strings.json",
+    "quality_scale.yaml",
+    "manifest.json"
    ],
    "after": [],
-   "architect_note": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Plan: ADR-003 (both writers of the shared optimization config publish a replaced context) and ADR-008 (away owns the return-time parser as a public function, read by the service, the coordinator and the datetime entity)."
+   "architect_note": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Plan: ADR-003 (both writers of the shared optimization config publish a replaced context) and ADR-008 (away owns the return-time parser as a public function, read by the service, the coordinator and the datetime entity). The fall in private_cross_module is banked only when the reviewer finds the service's new call in the PR."
   },
   {
    "group": "R11-SEAM-config",
@@ -2091,7 +2231,10 @@
    "hot_files": [
     "config_flow.py",
     "device_prefill.py",
-    "__init__.py"
+    "__init__.py",
+    "silent_mode.py",
+    "const.py",
+    "translations/en.json"
    ],
    "after": [],
    "architect_note": "One place for a setting: options-flow settings leave entry.data by a versioned migration, so reconfigure, the options save and the reader agree; the weekend value survives a weekday change; the pre-fill pages render their placeholders and store only settings. 6 findings (1 merged in), size L; class tags I4, N-dead-input, N-entry-data-placement, P2. Plan: the entry migration cannot be undone by a downgrade (tradeoff T18); designer.md is dispatched before the fixer, and the release notes owe the step first."
@@ -2116,7 +2259,12 @@
     "sensor.py",
     "button.py",
     "services.yaml",
-    "debugger.py"
+    "debugger.py",
+    "coordinator.py",
+    "sysid.py",
+    "const.py",
+    "entity.py",
+    "config_flow.py"
    ],
    "after": [],
    "architect_note": "Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2."
@@ -2165,7 +2313,13 @@
     "strings.json",
     "translations/de.json",
     "translations/sv.json",
-    "translations/en.json"
+    "translations/en.json",
+    "wood_fuel.py",
+    "const.py",
+    "pump_arbiter.py",
+    "heat_curve.py",
+    "www/heatpump-optimizer-card.js",
+    "blueprints/automation/economy_mode_on_price_peak.yaml"
    ],
    "after": [
     "R11-SEAM-plant-model",
@@ -2182,37 +2336,65 @@
    "findings": [
     "D10-s1-05",
     "D10-s1-06",
-    "D14-s2-03",
-    "D7-s1-01",
-    "D7-s1-02",
-    "D7-s1-03",
-    "D7-s1-04",
     "D9-s3-01",
-    "D9-s3-02",
-    "D5-s6-02",
-    "D5-s8-04",
-    "D5-s8-05",
-    "D5-s9-01"
+    "D9-s3-02"
    ],
-   "merged": {
-    "D5-s9-02": "D5-s9-01",
-    "D5-s9-03": "D5-s9-01",
-    "D5-s8-03": "D5-s9-01"
-   },
+   "merged": {},
    "severity": "low",
    "size": "L",
    "seam": "test suite",
    "hot_files": [
-    "tests/structure.py",
-    "tests/stress.py",
     "tests/config_flow_steps.py",
+    "tests/stress.py",
+    "tests/stress_budgets.json",
+    "tests/coverage_budgets.json",
+    "config_flow.py",
+    "quality_scale.yaml",
+    "tools/coverage/coverage_tree.sh"
+   ],
+   "after": [],
+   "architect_note": "What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5. Plan: no ADR; point additions to the suite. No edge: nothing here waits on the kernel."
+  },
+  {
+   "group": "R11-SEAM-ratchets",
+   "findings": [
+    "D7-s1-02",
+    "D7-s1-03",
+    "D14-s2-03"
+   ],
+   "merged": {},
+   "severity": "low",
+   "size": "M",
+   "seam": "test suite",
+   "hot_files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json",
     "tests/entities.py",
-    "tests/features.py"
+    "sysid.py"
    ],
    "after": [
     "R11-SEAM-kernel"
    ],
-   "architect_note": "Ratchets that see what they claim (const fan-out through a module binding, same-function clones, unused imports, module size outside the class, .exception floods), flow recovery, stress over a coordinator cycle and every scenario, and resolvable citations. New rows are recorded at their measured value; after the kernel, whose removals set those values. 13 findings (3 merged in), size L; class tags I1, I5, N-log-flood, N-move-stale-path, N-structure-blind. Plan: ADR-009. New rows are recorded after the kernel; a repaired row that reads higher is a budget raise needing the owner's confirmation before the push; no function the architecture score reads from tests/structure.py changes, and the score's own clone census is not edited in this round."
+   "architect_note": "Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value, after the kernel, whose removals set those values. 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind. Plan: ADR-009. No function the architecture score reads from tests/structure.py changes; D7-s1-02 gets a row of its own beside duplicate_clones, and the score's clone census is not edited in this round. No budget is raised here."
+  },
+  {
+   "group": "R11-SEAM-ratchet-raise",
+   "findings": [
+    "D7-s1-01",
+    "D7-s1-04"
+   ],
+   "merged": {},
+   "severity": "low",
+   "size": "S",
+   "seam": "test suite",
+   "hot_files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json"
+   ],
+   "after": [
+    "R11-SEAM-kernel"
+   ],
+   "architect_note": "The two rows whose value the owner sets: const fan-out read through a module binding (the corrected row reads 4 against a budget of 3) and module lines outside the class, whose limit the owner chooses. Cut from the other ratchet rows so the owner's confirmation holds only these two findings. 2 findings (0 merged in), size S; class tags N-structure-blind. Plan: ADR-009 part 2. The owner's confirmation is obtained before the branch is pushed; the stamp's holdout compare names the row with --allow structure:const_modules_over_50."
   },
   {
    "group": "R11-SEAM-docs",
@@ -2285,7 +2467,16 @@
     "dev/governance/dimensions/D15.md",
     "dev/audit/README.md",
     "tests/README.md",
-    "dev/programme/"
+    "dev/programme/",
+    "tools/audit/seat/INSTRUMENTS.md",
+    "tools/audit/archscore/ABOUT.md",
+    ".claude/skills/steward/SKILL.md",
+    "dev/governance/dimensions/D4.md",
+    "dev/governance/dimensions/criteria/D4-criteria.md",
+    "dev/governance/dimensions/D5.md",
+    "dev/governance/dimensions/criteria/D5-criteria.md",
+    "dev/governance/dimensions/D11.md",
+    "dev/governance/dimensions/D6.md"
    ],
    "after": [],
    "architect_note": "Policy and programme prose with a false or unresolvable sentence. Policy files merge serially on the owner's approving review; no instrument code changes here. 10 findings (3 merged in), size M; class tags I4, I5, N-move-stale-path. Plan: ADR-010."
@@ -2303,48 +2494,38 @@
    "size": "XL",
    "seam": "production comments",
    "hot_files": [
-    "custom_components/heatpump_optimizer/*.py"
+    "custom_components/heatpump_optimizer/*.py",
+    "www/heatpump-optimizer-card.js"
    ],
-   "after": [
-    "R11-SEAM-kernel",
-    "R11-SEAM-plant-model",
-    "R11-SEAM-inputs-guards",
-    "R11-SEAM-inputs-freshness",
-    "R11-SEAM-store",
-    "R11-SEAM-money",
-    "R11-SEAM-solver",
-    "R11-SEAM-learners",
-    "R11-SEAM-actuation-release",
-    "R11-SEAM-actuation-writes",
-    "R11-SEAM-cycle-solve",
-    "R11-SEAM-cycle-reporting",
-    "R11-SEAM-config",
-    "R11-SEAM-entity-service",
-    "R11-ARCH-cycle-surface",
-    "R11-ARCH-fabric-learner"
-   ],
-   "architect_note": "Criterion C5 over production comments (921 units in two seats' cells) and one false docstring. Text only; after every production group, since each rewrites the same hot files. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Plan: ADR-010; last on every production file, after the two refactor groups as well; may be cut into parts by seam."
+   "after": [],
+   "architect_note": "Criterion C5 over production comments (921 units in two seats' cells, 155 of them in the card's script) and one false docstring. Text only. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Plan: ADR-010. No edge: the order against the behaviour groups is a hot-file order. The fixer cuts it into parts by seam, one PR per part; the part for a file is released when the last group in that file's row of PLAN.md's hot-file order has merged, and files no other group names are released at the first dispatch. The card's script is released after R11-SEAM-card and R11-SEAM-product-text."
   },
   {
    "group": "R11-SEAM-comments-tests",
    "findings": [
-    "D5-s9-04"
+    "D5-s9-04",
+    "D5-s9-01",
+    "D5-s8-04",
+    "D5-s8-05"
    ],
    "merged": {
     "D5-s7-01": "D5-s9-04",
     "D5-s7-02": "D5-s9-04",
-    "D5-s7-03": "D5-s9-04"
+    "D5-s7-03": "D5-s9-04",
+    "D5-s9-02": "D5-s9-01",
+    "D5-s9-03": "D5-s9-01",
+    "D5-s8-03": "D5-s9-01"
    },
    "severity": "low",
    "size": "XL",
    "seam": "test comments",
    "hot_files": [
-    "tests/*.py"
+    "tests/*.py",
+    "tests/run.sh",
+    "tests/card.mjs"
    ],
-   "after": [
-    "R11-SEAM-tests"
-   ],
-   "architect_note": "Criterion C5 over the test suite, with the dead names and false count D5-s7-01 lists. Text only; after the tests group. 1 findings (3 merged in), size XL; class tags N-comment-style. Plan: ADR-010; may be cut into parts."
+   "after": [],
+   "architect_note": "Text in the test suite: criterion C5 over tests/ with the dead names and false count D5-s7-01 lists, and the paths a test comment cites that do not resolve (one moved_paths sweep). Text only. 4 findings (6 merged in), size XL; class tags I5, N-comment-style, N-move-stale-path. Plan: ADR-010. No edge: last on each test file by the hot-file order, cut into parts the same way."
   },
   {
    "group": "R11-ARCH-cycle-surface",
@@ -2359,7 +2540,7 @@
     "coordinator.py"
    ],
    "after": [],
-   "architect_note": "Refactor group with no finding (ADR-005, its approved design). Diagnostics reads the mode from the #1739 view; boost answers whether the global boost mode is live from the state it is already told, with a restart in boost mode as the failing test; the shutdown stops clearing the task set only if the fixer shows the clear redundant, and rebinding the slot instead is refused. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arms reach and tasks. Scenario: a coordinator-private change edits no collaborator (S25)."
+   "architect_note": "Refactor group with no finding (ADR-005, its approved design). Diagnostics reads the mode from the #1739 view; boost answers whether the global boost mode is live from the state it is already told, with a restart in boost mode as the failing test; the shutdown stops clearing the task set only if the fixer shows the clear redundant, and rebinding the slot instead is refused. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arms reach and tasks. Scenario: a coordinator-private change edits no collaborator (S25). 0 findings (0 merged in), size S; class tags ."
   },
   {
    "group": "R11-ARCH-fabric-learner",
@@ -2371,12 +2552,13 @@
    "hot_files": [
     "coordinator.py",
     "tests/structure_budgets.json",
-    "tests/features.py"
+    "tests/features.py",
+    "tests/structure.py"
    ],
    "after": [
     "R11-SEAM-learners"
    ],
-   "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The house heat-loss, buffer cooling and internal-gains folds leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint: last on coordinator.py before the comment group. Evidence: a statement count of the eight methods, a prediction with no prototype. Scenario: growth of coordinator.py is priced and the class shrinks (S13)."
+   "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The buffer cooling, house heat-loss and internal-gains folds and the re-anchor leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint, which is read end to end after every coordinator merge. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arm fabric, reads the footprint 28 statements lower for two of the folds; the designer's note carries the reading of the whole cut. Scenario: growth of coordinator.py is priced and the class shrinks (S13)."
   }
  ],
  "moves": [
@@ -2403,7 +2585,9 @@
   {
    "group": "R11-SEAM-inputs-guards",
    "adr": "ADR-002",
-   "metrics": {},
+   "metrics": {
+    "coord_footprint": 0
+   },
    "dS": 0
   },
   {
@@ -2417,7 +2601,9 @@
   {
    "group": "R11-SEAM-store",
    "adr": "none",
-   "metrics": {},
+   "metrics": {
+    "coord_footprint": 0
+   },
    "dS": 0
   },
   {
@@ -2491,7 +2677,8 @@
    "group": "R11-SEAM-entity-service",
    "adr": "none",
    "metrics": {
-    "literal_clone_copies": 0
+    "literal_clone_copies": 0,
+    "coord_footprint": 0
    },
    "dS": 0
   },
@@ -2511,6 +2698,18 @@
   },
   {
    "group": "R11-SEAM-tests",
+   "adr": "none",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-ratchets",
+   "adr": "ADR-009",
+   "metrics": {},
+   "dS": 0
+  },
+  {
+   "group": "R11-SEAM-ratchet-raise",
    "adr": "ADR-009",
    "metrics": {},
    "dS": 0
@@ -2553,10 +2752,10 @@
    "group": "R11-ARCH-fabric-learner",
    "adr": "ADR-007",
    "metrics": {
-    "coord_footprint": 0.059,
+    "coord_footprint": 0.0163,
     "coordinator_multiassigned_attrs": 0
    },
-   "dS": 0.059
+   "dS": 0.0163
   },
   {
    "group": "R11-SERVICE-SCHEMA",
@@ -2635,10 +2834,10 @@
    "dS": 0
   }
  ],
- "projected_dS": 30.3279,
- "critical_chain": "[\"R11-SEAM-plant-model\", \"R11-SEAM-learners\", \"R11-ARCH-fabric-learner\", \"R11-SEAM-comments-production\"]",
+ "projected_dS": 30.2852,
+ "critical_chain": "[\"R11-SEAM-kernel\", \"R11-SEAM-actuation-writes\", \"R11-SEAM-product-text\", \"R11-SEAM-docs\"]",
  "depth": "4",
- "hours": "167.63",
- "risks": "[{\"risk\": \"Admissibility: coord_footprint reads six statements above the fork on main already (#3678, R11-OUTSIDE-ROOMS-P2), fixes in coordinator.py add statements, and the only large fall (ADR-007, R11-ARCH-fabric-learner) is a prediction behind a design that is still owed.\", \"check\": \"score.py --diff <fork> origin/main after every coordinator merge; the running sum of the merged bodies' coord_footprint lines against ADR-007's fall; if the designer's cut cannot close it the plan returns to the owner with the options (ADR-007 part 4), the target is not declared met.\"}, {\"risk\": \"The spread rule's three scored classes: vector.py gives a class to six metrics and only two classes can improve at this fork (N-shared-config, P2+P3); P6 and N-name-sort read 0 and N-structure-blind's one member is the entity-family barrier's declaration. The third improving group is the unclassed floor metrics (layer_violations, coordinator_private_reach, private_cross_module).\", \"check\": \"Open point for the plan reviewer and the owner: whether the floor metrics count as a class. If not, the condition cannot be met without deleting behaviour (D7 s1's famdel arm reads family_splits 0 to 2, inadmissible), and the plan states that rather than plan the deletion.\"}, {\"risk\": \"Two prototyped moves are conditional: the shutdown's task-set clear (ADR-005 part 3, +5.4429) and the one-row smooth top-k scalar (ADR-006 part 2, +1.3570).\", \"check\": \"The fixer's proof that the clear is redundant; tests/golden byte-identical and the solve-time harness for the scalar. With both dropped and both unprototyped predictions unrealised the reading is +23.0096, still above 22.7.\"}, {\"risk\": \"The floor case has no further margin: one more prototyped move failing (hub, sysid switch, circulation owner, the kernel's clone arms) puts the round short of 22.7.\", \"check\": \"plan_audit.py end-to-end --fork <fork> at each stamp; a prototyped move the ledger reports UNREALISED returns the plan to the architect before the last wave.\"}, {\"risk\": \"A sound fix may lower duplication_copies further (the Carnot expression in R11-SEAM-plant-model) and push the metric's share toward 40 %.\", \"check\": \"The share is read at the stamp; the projection leaves room for two more copies (to 6 reads 38.3 % of the then total, to 5 reads above 40 %). A sound removal is not refused to protect the share; the plan returns for a non-duplication move instead.\"}, {\"risk\": \"The score reading better than the code, clones: a window written twice in one function is not counted (D7-s1-02) and the scorer's repair is deferred to round-end triage.\", \"check\": \"Fix review step 14 runs D7 s1's place-keyed owner (m7_floor_plants.py, m7_prototypes.py --fold-owner) on every PR that lowers duplication_copies.\"}, {\"risk\": \"The score reading better than the code, values not handles: a wrapper, a renamed accessor or a rebind lowers coordinator_private_reach, shared_inplace_writes or private_cross_module with the coupling unchanged.\", \"check\": \"ADR-003, ADR-004, ADR-005 and ADR-008 each name the refused spelling; the reviewer re-runs dev/audit/rounds/round11/PLAN/prototypes.py's arm against the fixer's diff and reads reflective_writes and computed_attr_access.\"}, {\"risk\": \"Sensitivity S6/T6: the Carnot fix moves every learned COP correction and value-bearing golden fixture.\", \"check\": \"Claimed drift with its direction in tests/golden/claimed_drift.txt; R11-SEAM-learners runs after R11-SEAM-plant-model so each learner is re-measured once.\"}, {\"risk\": \"Sensitivity S9/S11: actuation-release and actuation-writes both redefine pump_arbiter's held record, and the open group R11-CARRY-DRAWMAP edits the same file.\", \"check\": \"The D16 enumerator's release and write cells after each of the three merges; R11-CARRY-DRAWMAP lands before the kernel or after actuation-writes, never between.\"}, {\"risk\": \"Seams likely to need redesign: the config-entry migration (T18, irreversible on downgrade), the one solve admission guard (T14) and the fabric-learner extraction; all three are designer-owed and outside the replan projection, so 167.63 h is a lower bound for them.\", \"check\": \"Design review at each handoff SHA; a third revise re-cuts the group (design-review.md); the orchestrator's replan on the merged roster is the round's figure.\"}, {\"risk\": \"R11-SEAM-kernel is first in file order on most hot files; a slow kernel holds most merges and its one PR touches many modules (holdout 5, change coupling).\", \"check\": \"The kernel lands in parts (ADR-001); the orchestrator treats its first part as critical path; plan_audit.py compare reads cochange at the stamp.\"}, {\"risk\": \"D7-s1-01's ratchet repair makes const_modules_over_50 read higher, which is a budget raise in tests/structure_budgets.json.\", \"check\": \"The owner's explicit confirmation before R11-SEAM-tests pushes (ADR-009; budget-raise-gate); the stamp's holdout compare names it with --allow structure:const_modules_over_50.\"}, {\"risk\": \"T7, T16 and T18 change what an existing install does at upgrade (published money, the two-zone default, where a setting is stored).\", \"check\": \"Each PR's release-notes step, first in the notes; R11-SEAM-docs verifies them last.\"}, {\"risk\": \"The deferral of comment-only edits to instrument files is a reading pending owner confirmation since step 3.\", \"check\": \"If the owner rules the other way, one text-only group joins after R11-SEAM-tests; no move changes.\"}]",
- "holdouts": "/Users/timmalmstrom/hpo-orch/r10s6/r11/audit-r11-plan/dev/audit/rounds/round11/PLAN/holdouts/fork.json"
+ "hours": "174.05",
+ "risks": "[{\"risk\": \"Admissibility: coord_footprint. Main reads six above the fork, fourteen groups and three open product groups add statements, and the fall that pays for them (ADR-007) is prototyped at 28 statements behind a design that is still owed. Without it the round is inadmissible whatever dS reads.\", \"check\": \"score.py --diff <fork> origin/main after every coordinator merge; the running R against F; the plan returns to the owner when R passes 20 or the designer's F is below R (ADR-007 part 5).\"}, {\"risk\": \"The spread rule's \\\"three scored classes\\\". vector.py gives a class to six metrics; two classes can improve (N-shared-config, P2+P3). P6 and N-name-sort read 0 at the fork and N-structure-blind's one member is a barrier's declaration. The third improving group is the unclassed floor metrics (layer_violations, coordinator_private_reach, private_cross_module), which weights.json describes as guarding no single register class.\", \"check\": \"Counting the floor metrics as a class changes the contract, so it is pending owner confirmation. If the owner rules they do not count, the condition cannot be met at this fork without deleting behaviour, and the plan says so here rather than plan the deletion.\"}, {\"risk\": \"The 40 % cap binds when the task-set part is dropped. In the no-tasks case duplication_copies supplies 39.5 %, and one further clone removed by a sound fix (the Carnot expression in R11-SEAM-plant-model) reads 43.0 %: dS rises and the spread condition fails. In the floor case there is room for one copy; in the full case for two.\", \"check\": \"The share is read at each stamp from plan_audit.py end-to-end. The plan does not hold a sound removal back to protect a share. If the share passes 40 % the target is reported not met on spread, with the per-metric table, and the owner rules.\"}, {\"risk\": \"Two prototyped moves are conditional (the task set, the one-row scalar).\", \"check\": \"The fixer's proof that the clear is redundant; tests/golden/ byte-identical and the solve-time harness. Dropped parts are recorded; \\\"The cases\\\" states each outcome. R11-ARCH-cycle-surface is thirteenth on coordinator.py in the projection, so the orchestrator asks its fixer for the proof of part 3 at dispatch of the first wave, before the PR's turn.\"}, {\"risk\": \"A further failure puts the round short. The floor case is 0.33 above the target.\", \"check\": \"The orchestrator reads plan_audit.py end-to-end --fork <fork> at each stamp; a prototyped move reported UNREALISED returns the plan to the architect before the last wave.\"}, {\"risk\": \"The two private_cross_module terms are a rename unless the new reader lands.\", \"check\": \"The reviewer finds the reader in the PR's diff (ADR-008); otherwise metric-gamed, not banked. No case above counts them.\"}, {\"risk\": \"The score reading better than the code: clones. An in-function copy is not counted (D7-s1-02), and the scorer's repair is deferred.\", \"check\": \"Fix review step 14 runs m7_floor_plants.py's place-keyed owner on every PR that lowers duplication_copies.\"}, {\"risk\": \"The score reading better than the code: values not handles. A wrapper, an accessor or a rebind lowers coordinator_private_reach or shared_inplace_writes with the coupling unchanged.\", \"check\": \"ADR-003, ADR-004 and ADR-005 each name the refused spelling; the reviewer re-runs the arm with the fixer's diff and reads the tripwires.\"}, {\"risk\": \"Sensitivity S6, T6: the Carnot fix moves every learned correction and golden fixture.\", \"check\": \"Claimed drift with its direction (tests/golden/claimed_drift.txt); learners run after plant-model so each is re-measured once.\"}, {\"risk\": \"Sensitivity S9, S11: the held record. Release and writes both redefine it; R11-CARRY-DRAWMAP edits the same file.\", \"check\": \"The D16 enumerator's release and write cells after each of the three merges.\"}, {\"risk\": \"Seams likely to need redesign: the config migration (T18) and the solve admission (T14). Both are designer-owed and irreversible or user-visible.\", \"check\": \"Design review at the handoff SHA; a third revise re-cuts the group (design-review.md).\"}, {\"risk\": \"The kernel is first in file order on most hot files, 34 files in all. A slow kernel holds most merges.\", \"check\": \"It lands in parts; the orchestrator watches its first part as critical path.\"}, {\"risk\": \"Fourteen groups on coordinator.py at a cap of three. The cap, not an edge, sets the wall: cap 2 costs 70 h more.\", \"check\": \"The orchestrator's replan at each wave edge; a group whose fix lands wholly in its owning module leaves the coordinator order when its fixer says so.\"}, {\"risk\": \"A ratchet repair reads as a budget raise (const_modules_over_50), and D7-s1-04's limit is the owner's to choose.\", \"check\": \"The owner's confirmation before the push (ADR-009); budget-raise-gate. Both are in R11-SEAM-ratchet-raise, so nothing else waits on it.\"}, {\"risk\": \"T7, T16, T18 change what an existing install does at upgrade.\", \"check\": \"Each PR's release-notes step, first in the notes; the docs group verifies them last.\"}, {\"risk\": \"The instrument-comment reading is pending owner confirmation (COMPONENTS.md, \\\"Deferred\\\"): fourteen rows and ten merged into them.\", \"check\": \"If the owner rules the other way, one text-only group joins with no edge; no move changes.\"}, {\"risk\": \"Holdout 5, change coupling. One-owner moves add import edges and the kernel touches many files in one PR.\", \"check\": \"plan_audit.py compare at the stamp; the kernel in parts lowers the co-change of one merge.\"}]",
+ "holdouts": "dev/audit/rounds/round11/PLAN/holdouts/fork.json"
 }

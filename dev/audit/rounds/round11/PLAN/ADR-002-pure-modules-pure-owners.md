@@ -49,7 +49,8 @@ no Home Assistant stub.
 
 ## Move and fitness functions
 
-`layer_violations` 13 to 2: D7 s1's `layer` and `curr` arms read 13 to 6;
+`layer_violations` 13 to 2, read in one tree by `prototypes.py --case full`
+(the kernel arm with the clock arm): D7 s1's `layer` and `curr` arms read 13 to 6;
 `prototypes.py --only clock` reads 13 to 10 alone, removing `disinfection`,
 `price_model` and `quiet_windows`; `sysid`'s two carriers are `accuracy` and
 `quiet_windows`, both cleared by the combination. Acceptance:

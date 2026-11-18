@@ -28,7 +28,11 @@ instant has two zones and "finite number" four domains.
    definition each in the kernel (`const.py`, `drift.py`, `const.finite_float`).
 4. D7-s3-05's dead state is removed only where no production code and no
    stored document reads it; a parameter a caller still computes is removed at
-   the caller too.
+   the caller too. The same part deletes the fourteen import bindings
+   D7-s1-03 lists, in `config_flow.py`, `coordinator.py`, `modbus_prefill.py`,
+   `optimizer.py`, `pump_arbiter.py` and `thermal_model.py`, and moves
+   `tests/guard_pins.py`'s import of `channel_heating_steps` to its owner;
+   `R11-SEAM-ratchets` then records the row at zero (ADR-009 part 1).
 
 ## Alternatives
 
@@ -44,7 +48,10 @@ instant has two zones and "finite number" four domains.
 ## Consequences
 
 - The kernel is first in file order on `pump_arbiter.py`, `price_model.py`,
-  `ledger.py`, `legionella.py`, `sysid.py`, `sensor.py` and `coordinator.py`.
+  `ledger.py`, `legionella.py`, `sysid.py`, `sensor.py`, `coordinator.py`,
+  `config_flow.py` and `thermal_model.py`, and second on `optimizer.py`
+  (`PLAN.md`, "Hot-file order"). Its dead-state part is the small PR that
+  frees those files first.
 - A shared helper adds an import edge (tradeoff T12): `layer_violations`,
   `import_cycle_modules` and `private_cross_module` are acceptance checks.
 - The six classes left (the solver's and the plant model's scalar and batch
@@ -62,4 +69,6 @@ combined prototype, every reverted arm NULL). Acceptance: `shape_copies` and
 `duplication_copies` in `tests/structure.py` do not rise;
 `shared_inplace_writes` flat (the `note_helper` control); `m8_agree.py` reads
 no disagreeing probe; D7 s1's `--suite` comparison loses no check line;
-mutation kill rate on the touched modules not below the fork's.
+mutation kill rate on the touched modules not below the fork's. The import
+deletions read NULL (`prototypes.py --only imports`); `m1_ratchet_census.py`
+reads `unused_package_imports` 0 after the part merges.

@@ -16,23 +16,43 @@
    "seam": "shared kernel",
    "size": "L",
    "files": [
-    "plan_step.py",
-    "const.py",
-    "drift.py",
-    "accuracy.py",
-    "currency.py",
-    "inputs.py",
-    "coordinator.py",
-    "pump_arbiter.py",
-    "price_model.py",
-    "ledger.py",
-    "legionella.py",
-    "sysid.py",
-    "sensor.py",
-    "tariff.py"
+    "custom_components/heatpump_optimizer/plan_step.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/drift.py",
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "custom_components/heatpump_optimizer/currency.py",
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/ledger.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/modbus_prefill.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "tests/guard_pins.py",
+    "custom_components/heatpump_optimizer/early_cutoff.py",
+    "custom_components/heatpump_optimizer/flow_meter.py",
+    "custom_components/heatpump_optimizer/open_meteo.py",
+    "custom_components/heatpump_optimizer/entity.py",
+    "custom_components/heatpump_optimizer/replay_doc.py",
+    "custom_components/heatpump_optimizer/power_guard.py",
+    "custom_components/heatpump_optimizer/binary_sensor.py",
+    "custom_components/heatpump_optimizer/climate.py",
+    "custom_components/heatpump_optimizer/comfort_learning.py",
+    "custom_components/heatpump_optimizer/external_heat.py",
+    "custom_components/heatpump_optimizer/dhw_planner.py",
+    "custom_components/heatpump_optimizer/curve_learning.py",
+    "custom_components/heatpump_optimizer/pv.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/flow_lift.py"
    ],
    "after": [],
-   "architect_note": "One owner per small rule: plan_step owns \"the step covering now\" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); the four modules D7-s1-06 marks as needing a design stay out. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2. Plan: ADR-001 and ADR-002 are this group's approved design. It is first in file order on every file it shares, so the fixer may land it in parts (layering and the reader's clock; the clone owners; dead state). The reader takes its clock from its caller, which leaves inputs.py with no Home Assistant import. Refused shapes: two bodies folded under one function with nothing shared, and a helper handed a detector's list."
+   "architect_note": "One owner per small rule: plan_step owns \"the step covering now\" with its end rule; water heat capacity, naive-instant zone and the finite test get one definition; accuracy.py stops carrying the Home Assistant import to five pure modules. D7-s1-05 and D7-s1-06 are the round's first score moves (duplication_copies, layer_violations); four of the six modules D7-s1-06 marks as needing a design are planned by ADR-002 part 2 (the reader's clock), which leaves setpoint_check and snapshots. 5 findings (0 merged in), size L; class tags N-duplicated-rule, N-leaf-imports-solver, N-no-expiry, N-structure-blind, P2."
   },
   {
    "group": "R11-SEAM-plant-model",
@@ -56,17 +76,22 @@
    "seam": "plant model",
    "size": "L",
    "files": [
-    "thermal_model.py",
-    "mixing_valve.py",
-    "defrost.py",
-    "presets.py",
-    "topology.py",
-    "coordinator.py",
-    "config_flow.py",
-    "sensor.py"
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/mixing_valve.py",
+    "custom_components/heatpump_optimizer/defrost.py",
+    "custom_components/heatpump_optimizer/presets.py",
+    "custom_components/heatpump_optimizer/topology.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/quick_setup.py"
    ],
    "after": [],
-   "architect_note": "Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers \"two zones\", \"modulating\" and \"has hot water\" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2. Plan: ADR-008 is the approved design of the predicate work; the law fixes are point fixes. The has-hot-water predicate becomes a public function with the gap advisor as a new reader. Golden drift from the Carnot fix is claimed with its direction."
+   "architect_note": "Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers \"two zones\", \"modulating\" and \"has hot water\" for the model, the plan views, the options page and the action. 11 findings (0 merged in), size L; class tags N-table-value, N-wrong-law, P2."
   },
   {
    "group": "R11-SEAM-inputs-guards",
@@ -86,11 +111,15 @@
    "seam": "input boundary",
    "size": "M",
    "files": [
-    "inputs.py",
-    "entry_config.py",
-    "pump_signals.py",
-    "open_meteo.py",
-    "heat_curve.py"
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/entry_config.py",
+    "custom_components/heatpump_optimizer/pump_signals.py",
+    "custom_components/heatpump_optimizer/open_meteo.py",
+    "custom_components/heatpump_optimizer/heat_curve.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/__init__.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/comfort_band.py"
    ],
    "after": [],
    "architect_note": "Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timestamp parsers, numeric options. The P1 sweep enumerator is the fitness function. 7 findings (0 merged in), size M; class tags N-missing-unit-scale, P1, P8."
@@ -112,8 +141,14 @@
    "seam": "input boundary",
    "size": "M",
    "files": [
-    "coordinator.py",
-    "inputs.py"
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "tests/entities.py",
+    "custom_components/heatpump_optimizer/binary_sensor.py",
+    "tests/features.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "docs/configuration.md"
    ],
    "after": [
     "R11-SEAM-kernel"
@@ -136,9 +171,15 @@
    "seam": "persisted store",
    "size": "M",
    "files": [
-    "store.py",
-    "snapshots.py",
-    "boost.py"
+    "custom_components/heatpump_optimizer/store.py",
+    "custom_components/heatpump_optimizer/snapshots.py",
+    "custom_components/heatpump_optimizer/boost.py",
+    "custom_components/heatpump_optimizer/comfort_learning.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/debugger.py",
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "custom_components/heatpump_optimizer/off_restore.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
    ],
    "after": [],
    "architect_note": "store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. 5 findings (0 merged in), size M; class tags N-silent-zero, P1, P2."
@@ -163,17 +204,18 @@
    "seam": "money",
    "size": "L",
    "files": [
-    "price_model.py",
-    "tariff.py",
-    "grid_fee.py",
-    "ledger.py",
-    "power_guard.py",
-    "currency.py",
-    "config_flow.py",
-    "coordinator.py"
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/ledger.py",
+    "custom_components/heatpump_optimizer/power_guard.py",
+    "custom_components/heatpump_optimizer/currency.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sensor.py"
    ],
    "after": [],
-   "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Plan: ADR-006. The exact top-k takes the largest, as its batch twin does; the smooth scalar becomes one row of its batch only if golden fixtures stay byte-identical and the solve-time harness does not regress, else that part is dropped and recorded."
+   "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8."
   },
   {
    "group": "R11-SEAM-solver",
@@ -190,8 +232,8 @@
    "seam": "solver",
    "size": "M",
    "files": [
-    "optimizer.py",
-    "plan_slots.py"
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/plan_slots.py"
    ],
    "after": [],
    "architect_note": "Start set brackets the all-off and wood-covered optima; the risk premium stays in the objective and out of every published money figure; the slot label tie is ordered. Fitness: D0 race harnesses, mutation kill rate on optimizer.py, shape_copies. 4 findings (0 merged in), size M; class tags N-objective-as-money, N-unordered-tiebreak, P4."
@@ -215,17 +257,19 @@
    "seam": "learners",
    "size": "L",
    "files": [
-    "sysid.py",
-    "accuracy.py",
-    "dhw_learning.py",
-    "heat_energy.py",
-    "draw_range.py",
-    "coordinator.py"
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/heat_energy.py",
+    "custom_components/heatpump_optimizer/draw_range.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/dhw_draws.py",
+    "tests/features.py"
    ],
    "after": [
     "R11-SEAM-plant-model"
    ],
-   "architect_note": "One freeze predicate owns which interval a learner may ingest (away, unplanned charge, load-limited probe, charge-start dip); the sysid adoption interval covers quantised readings. After the plant model: its law fixes move the residual every learner fits. 8 findings (0 merged in), size L; class tags I5, N-confounded-learner, N-event-misattribution, P5. Plan: ADR-008 (one freeze predicate) is the approved design; ADR-003 moves the identification switch from a per-cycle store on the collaborator to an argument of the arm call."
+   "architect_note": "One freeze predicate owns which interval a learner may ingest (away, unplanned charge, load-limited probe, charge-start dip); the sysid adoption interval covers quantised readings. After the plant model: its law fixes move the residual every learner fits. 8 findings (0 merged in), size L; class tags I5, N-confounded-learner, N-event-misattribution, P5."
   },
   {
    "group": "R11-SEAM-actuation-release",
@@ -244,13 +288,13 @@
    "seam": "actuation",
    "size": "L",
    "files": [
-    "pump_arbiter.py",
-    "off_restore.py",
-    "coordinator.py",
-    "legionella.py"
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/off_restore.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/legionella.py"
    ],
    "after": [],
-   "architect_note": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. Plan: ADR-004 is the approved design. The circulation pumps' write, record and restore move to one owner object registered with off_restore; the pinned check that Off writes nothing else is re-pinned to the 2026-11-15 ruling in the same PR."
+   "architect_note": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold."
   },
   {
    "group": "R11-SEAM-actuation-writes",
@@ -272,17 +316,22 @@
    "seam": "actuation",
    "size": "L",
    "files": [
-    "pump_arbiter.py",
-    "coordinator.py",
-    "freq_control.py",
-    "legionella.py",
-    "setpoint_check.py"
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/freq_control.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/setpoint_check.py",
+    "tests/harness.py",
+    "custom_components/heatpump_optimizer/heat_curve.py",
+    "custom_components/heatpump_optimizer/disinfection.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/repairs.py"
    ],
    "after": [
     "R11-SEAM-kernel",
     "R11-SEAM-actuation-release"
    ],
-   "architect_note": "What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3. Plan: reads the covering step from plan_step (ADR-001) and the held record as ADR-004 leaves it."
+   "architect_note": "What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3."
   },
   {
    "group": "R11-SEAM-cycle-solve",
@@ -303,13 +352,19 @@
    "seam": "cycle",
    "size": "L",
    "files": [
-    "coordinator.py",
-    "services.py",
-    "whatif.py",
-    "process_worker.py"
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/whatif.py",
+    "custom_components/heatpump_optimizer/process_worker.py",
+    "custom_components/heatpump_optimizer/price_tiles.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "README.md",
+    "docs/configuration.md"
    ],
    "after": [],
-   "architect_note": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Plan: no ADR fixes the shape of the one in-flight guard and budget; designer.md is dispatched before the fixer."
+   "architect_note": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2."
   },
   {
    "group": "R11-SEAM-cycle-reporting",
@@ -329,13 +384,26 @@
    "seam": "cycle",
    "size": "M",
    "files": [
-    "coordinator.py",
-    "away.py",
-    "services.py",
-    "datetime.py"
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/datetime.py",
+    "custom_components/heatpump_optimizer/boost.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/duty_switch.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/notifier.py",
+    "custom_components/heatpump_optimizer/off_restore.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/debugger.py",
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/quality_scale.yaml",
+    "custom_components/heatpump_optimizer/manifest.json"
    ],
    "after": [],
-   "architect_note": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure. Plan: ADR-003 (both writers of the shared optimization config publish a replaced context) and ADR-008 (away owns the return-time parser as a public function, read by the service, the coordinator and the datetime entity)."
+   "architect_note": "How a failure is reported: persist failures surface once above DEBUG, broad handlers leave a record, the generic arm is latched, an unparseable service argument raises, the context is write-once, the coordinator carries the typed entry and the strict-typing row is re-measured. 7 findings (0 merged in), size M; class tags I5, N-log-flood, N-shared-config, N-silent-zero, N-swallowed-failure."
   },
   {
    "group": "R11-SEAM-config",
@@ -356,12 +424,15 @@
    "seam": "config surface",
    "size": "L",
    "files": [
-    "config_flow.py",
-    "device_prefill.py",
-    "__init__.py"
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/device_prefill.py",
+    "custom_components/heatpump_optimizer/__init__.py",
+    "custom_components/heatpump_optimizer/silent_mode.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/translations/en.json"
    ],
    "after": [],
-   "architect_note": "One place for a setting: options-flow settings leave entry.data by a versioned migration, so reconfigure, the options save and the reader agree; the weekend value survives a weekday change; the pre-fill pages render their placeholders and store only settings. 6 findings (1 merged in), size L; class tags I4, N-dead-input, N-entry-data-placement, P2. Plan: the entry migration cannot be undone by a downgrade (tradeoff T18); designer.md is dispatched before the fixer, and the release notes owe the step first."
+   "architect_note": "One place for a setting: options-flow settings leave entry.data by a versioned migration, so reconfigure, the options save and the reader agree; the weekend value survives a weekday change; the pre-fill pages render their placeholders and store only settings. 6 findings (1 merged in), size L; class tags I4, N-dead-input, N-entry-data-placement, P2."
   },
   {
    "group": "R11-SEAM-entity-service",
@@ -382,10 +453,15 @@
    "seam": "entity and service surface",
    "size": "M",
    "files": [
-    "sensor.py",
-    "button.py",
-    "services.yaml",
-    "debugger.py"
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/debugger.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/entity.py",
+    "custom_components/heatpump_optimizer/config_flow.py"
    ],
    "after": [],
    "architect_note": "Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2."
@@ -410,7 +486,7 @@
    "seam": "card",
    "size": "L",
    "files": [
-    "www/heatpump-optimizer-card.js"
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
    ],
    "after": [],
    "architect_note": "Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9."
@@ -435,10 +511,16 @@
    "seam": "product text",
    "size": "M",
    "files": [
-    "strings.json",
-    "translations/de.json",
-    "translations/sv.json",
-    "translations/en.json"
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/de.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/wood_fuel.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/heat_curve.py",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "blueprints/automation/economy_mode_on_price_peak.yaml"
    ],
    "after": [
     "R11-SEAM-plant-model",
@@ -448,7 +530,7 @@
     "R11-SEAM-config",
     "R11-SEAM-entity-service"
    ],
-   "architect_note": "User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. Verified against the text ledger. 7 findings (1 merged in), size M; class tags I4, I5, N-copy-style. Plan: ADR-010."
+   "architect_note": "User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. Verified against the text ledger. 7 findings (1 merged in), size M; class tags I4, I5, N-copy-style."
   },
   {
    "group": "R11-SEAM-tests",
@@ -457,37 +539,69 @@
    "findings": [
     "D10-s1-05",
     "D10-s1-06",
-    "D14-s2-03",
-    "D7-s1-01",
-    "D7-s1-02",
-    "D7-s1-03",
-    "D7-s1-04",
     "D9-s3-01",
-    "D9-s3-02",
-    "D5-s6-02",
-    "D5-s8-04",
-    "D5-s8-05",
-    "D5-s9-01"
+    "D9-s3-02"
    ],
-   "merged": {
-    "D5-s9-02": "D5-s9-01",
-    "D5-s9-03": "D5-s9-01",
-    "D5-s8-03": "D5-s9-01"
-   },
+   "merged": {},
    "severity": "low",
    "seam": "test suite",
    "size": "L",
    "files": [
-    "tests/structure.py",
-    "tests/stress.py",
     "tests/config_flow_steps.py",
+    "tests/stress.py",
+    "tests/stress_budgets.json",
+    "tests/coverage_budgets.json",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/quality_scale.yaml",
+    "tools/coverage/coverage_tree.sh"
+   ],
+   "after": [],
+   "architect_note": "What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5."
+  },
+  {
+   "group": "R11-SEAM-ratchets",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D7-s1-02",
+    "D7-s1-03",
+    "D14-s2-03"
+   ],
+   "merged": {},
+   "severity": "low",
+   "seam": "test suite",
+   "size": "M",
+   "files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json",
     "tests/entities.py",
-    "tests/features.py"
+    "custom_components/heatpump_optimizer/sysid.py"
    ],
    "after": [
     "R11-SEAM-kernel"
    ],
-   "architect_note": "Ratchets that see what they claim (const fan-out through a module binding, same-function clones, unused imports, module size outside the class, .exception floods), flow recovery, stress over a coordinator cycle and every scenario, and resolvable citations. New rows are recorded at their measured value; after the kernel, whose removals set those values. 13 findings (3 merged in), size L; class tags I1, I5, N-log-flood, N-move-stale-path, N-structure-blind. Plan: ADR-009. New rows are recorded after the kernel; a repaired row that reads higher is a budget raise needing the owner's confirmation before the push; no function the architecture score reads from tests/structure.py changes, and the score's own clone census is not edited in this round."
+   "architect_note": "Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .critical log site. Each new row is recorded at its measured value, after the kernel, whose removals set those values. 3 findings (0 merged in), size M; class tags N-log-flood, N-structure-blind."
+  },
+  {
+   "group": "R11-SEAM-ratchet-raise",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D7-s1-01",
+    "D7-s1-04"
+   ],
+   "merged": {},
+   "severity": "low",
+   "seam": "test suite",
+   "size": "S",
+   "files": [
+    "tests/structure.py",
+    "tests/structure_budgets.json"
+   ],
+   "after": [
+    "R11-SEAM-kernel"
+   ],
+   "architect_note": "The two rows whose value the owner sets: const fan-out read through a module binding (the corrected row reads 4 against a budget of 3) and module lines outside the class, whose limit the owner chooses. Cut from the other ratchet rows so the owner's confirmation holds only these two findings. 2 findings (0 merged in), size S; class tags N-structure-blind."
   },
   {
    "group": "R11-SEAM-docs",
@@ -532,7 +646,7 @@
     "R11-SEAM-card",
     "R11-SEAM-product-text"
    ],
-   "architect_note": "Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc. Plan: ADR-010."
+   "architect_note": "Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc."
   },
   {
    "group": "R11-SEAM-governance-text",
@@ -564,10 +678,19 @@
     "dev/governance/dimensions/D15.md",
     "dev/audit/README.md",
     "tests/README.md",
-    "dev/programme/"
+    "dev/programme/",
+    "tools/audit/seat/INSTRUMENTS.md",
+    "tools/audit/archscore/ABOUT.md",
+    ".claude/skills/steward/SKILL.md",
+    "dev/governance/dimensions/D4.md",
+    "dev/governance/dimensions/criteria/D4-criteria.md",
+    "dev/governance/dimensions/D5.md",
+    "dev/governance/dimensions/criteria/D5-criteria.md",
+    "dev/governance/dimensions/D11.md",
+    "dev/governance/dimensions/D6.md"
    ],
    "after": [],
-   "architect_note": "Policy and programme prose with a false or unresolvable sentence. Policy files merge serially on the owner's approving review; no instrument code changes here. 10 findings (3 merged in), size M; class tags I4, I5, N-move-stale-path. Plan: ADR-010."
+   "architect_note": "Policy and programme prose with a false or unresolvable sentence. Policy files merge serially on the owner's approving review; no instrument code changes here. 10 findings (3 merged in), size M; class tags I4, I5, N-move-stale-path."
   },
   {
    "group": "R11-SEAM-comments-production",
@@ -584,50 +707,40 @@
    "seam": "production comments",
    "size": "XL",
    "files": [
-    "custom_components/heatpump_optimizer/*.py"
+    "custom_components/heatpump_optimizer/*.py",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
    ],
-   "after": [
-    "R11-SEAM-kernel",
-    "R11-SEAM-plant-model",
-    "R11-SEAM-inputs-guards",
-    "R11-SEAM-inputs-freshness",
-    "R11-SEAM-store",
-    "R11-SEAM-money",
-    "R11-SEAM-solver",
-    "R11-SEAM-learners",
-    "R11-SEAM-actuation-release",
-    "R11-SEAM-actuation-writes",
-    "R11-SEAM-cycle-solve",
-    "R11-SEAM-cycle-reporting",
-    "R11-SEAM-config",
-    "R11-SEAM-entity-service",
-    "R11-ARCH-cycle-surface",
-    "R11-ARCH-fabric-learner"
-   ],
-   "architect_note": "Criterion C5 over production comments (921 units in two seats' cells) and one false docstring. Text only; after every production group, since each rewrites the same hot files. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Plan: ADR-010; last on every production file, after the two refactor groups as well; may be cut into parts by seam."
+   "after": [],
+   "architect_note": "Criterion C5 over production comments (921 units in two seats' cells, 155 of them in the card's script) and one false docstring. Text only. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style."
   },
   {
    "group": "R11-SEAM-comments-tests",
    "issues": [],
    "fixes": [],
    "findings": [
-    "D5-s9-04"
+    "D5-s9-04",
+    "D5-s9-01",
+    "D5-s8-04",
+    "D5-s8-05"
    ],
    "merged": {
     "D5-s7-01": "D5-s9-04",
     "D5-s7-02": "D5-s9-04",
-    "D5-s7-03": "D5-s9-04"
+    "D5-s7-03": "D5-s9-04",
+    "D5-s9-02": "D5-s9-01",
+    "D5-s9-03": "D5-s9-01",
+    "D5-s8-03": "D5-s9-01"
    },
    "severity": "low",
    "seam": "test comments",
    "size": "XL",
    "files": [
-    "tests/*.py"
+    "tests/*.py",
+    "tests/run.sh",
+    "tests/card.mjs"
    ],
-   "after": [
-    "R11-SEAM-tests"
-   ],
-   "architect_note": "Criterion C5 over the test suite, with the dead names and false count D5-s7-01 lists. Text only; after the tests group. 1 findings (3 merged in), size XL; class tags N-comment-style. Plan: ADR-010; may be cut into parts."
+   "after": [],
+   "architect_note": "Text in the test suite: criterion C5 over tests/ with the dead names and false count D5-s7-01 lists, and the paths a test comment cites that do not resolve (one moved_paths sweep). Text only. 4 findings (6 merged in), size XL; class tags I5, N-comment-style, N-move-stale-path."
   },
   {
    "group": "R11-ARCH-cycle-surface",
@@ -639,12 +752,12 @@
    "seam": "cycle",
    "size": "S",
    "files": [
-    "boost.py",
-    "diagnostics.py",
-    "coordinator.py"
+    "custom_components/heatpump_optimizer/boost.py",
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
    ],
    "after": [],
-   "architect_note": "Refactor group with no finding (ADR-005, its approved design). Diagnostics reads the mode from the #1739 view; boost answers whether the global boost mode is live from the state it is already told, with a restart in boost mode as the failing test; the shutdown stops clearing the task set only if the fixer shows the clear redundant, and rebinding the slot instead is refused. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arms reach and tasks. Scenario: a coordinator-private change edits no collaborator (S25)."
+   "architect_note": "Refactor group with no finding (ADR-005, its approved design). Diagnostics reads the mode from the #1739 view; boost answers whether the global boost mode is live from the state it is already told, with a restart in boost mode as the failing test; the shutdown stops clearing the task set only if the fixer shows the clear redundant, and rebinding the slot instead is refused. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arms reach and tasks. Scenario: a coordinator-private change edits no collaborator (S25). 0 findings (0 merged in), size S; class tags ."
   },
   {
    "group": "R11-ARCH-fabric-learner",
@@ -656,14 +769,15 @@
    "seam": "learners",
    "size": "L",
    "files": [
-    "coordinator.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
     "tests/structure_budgets.json",
-    "tests/features.py"
+    "tests/features.py",
+    "tests/structure.py"
    ],
    "after": [
     "R11-SEAM-learners"
    ],
-   "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The house heat-loss, buffer cooling and internal-gains folds leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint: last on coordinator.py before the comment group. Evidence: a statement count of the eight methods, a prediction with no prototype. Scenario: growth of coordinator.py is priced and the class shrinks (S13)."
+   "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The buffer cooling, house heat-loss and internal-gains folds and the re-anchor leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint, which is read end to end after every coordinator merge. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arm fabric, reads the footprint 28 statements lower for two of the folds; the designer's note carries the reading of the whole cut. Scenario: growth of coordinator.py is priced and the class shrinks (S13)."
   }
  ],
  "deferred": {
@@ -1009,6 +1123,13 @@
    "into": "D5-s5-07",
    "round": 12,
    "reason": "criterion C5 over hook and harness files; the canonical is deferred under the freeze"
+  },
+  "D5-s6-02": {
+   "id": "D5-s6-02",
+   "verdict": "defer",
+   "into": null,
+   "round": 12,
+   "reason": "comment-only edit to an instrument file, read as inside the freeze (card P11); pending owner confirmation against the 2026-11-13 text-scope ruling; round-end proposal triage"
   }
  },
  "refused": {
@@ -1017,5 +1138,34 @@
   "D15-s2-06": "unreproduced at P2",
   "D15-s2-07": "unreproduced at P2",
   "D7-s3-06": "unreproduced at P2"
+ },
+ "file_exclusions": {
+  "R11-SEAM-ratchets": {
+   "coordinator.py": "D7-s1-03's bindings are deleted by R11-SEAM-kernel (dead-state part); this group adds the row",
+   "config_flow.py": "D7-s1-03's bindings are deleted by R11-SEAM-kernel (dead-state part); this group adds the row",
+   "thermal_model.py": "D7-s1-03's bindings are deleted by R11-SEAM-kernel (dead-state part); this group adds the row",
+   "optimizer.py": "D7-s1-03's bindings are deleted by R11-SEAM-kernel (dead-state part); this group adds the row",
+   "pump_arbiter.py": "D7-s1-03's bindings are deleted by R11-SEAM-kernel (dead-state part); this group adds the row",
+   "modbus_prefill.py": "D7-s1-03's bindings are deleted by R11-SEAM-kernel (dead-state part); this group adds the row",
+   "tools/audit/archscore/counters.py": "the scorer; ADR-009 part 3, round-end proposal triage",
+   "tools/audit/archscore/planted/redteam": "the scorer's planted cases; ADR-009 part 3, round-end proposal triage"
+  },
+  "R11-SEAM-ratchet-raise": {
+   "entry_config.py": "the module D7-s1-01 measures; the row is re-recorded, the module is not edited (ADR-009 part 2)",
+   "thermal_model.py": "the module D7-s1-01 measures; not edited",
+   "coordinator.py": "the module D7-s1-04 measures; not edited"
+  },
+  "R11-SEAM-tests": {
+   "coordinator.py": "D9-s3-02's lane drives coordinator cycles from tests/stress.py; the module is not edited"
+  },
+  "R11-SEAM-docs": {
+   "const.py": "D6-s1-01 and D6-s1-02 state the constant; the docs group edits text (ADR-010), and a changed default is the owner's decision (open point 5)",
+   "coordinator.py": "D6-s1-02's learner sentence: the learner is fixed by R11-SEAM-learners; this group re-runs the claim",
+   "pump_arbiter.py": "D6-s1-01's echo sentence: the text is aligned to the merged code; a changed window is the owner's decision (open point 5)"
+  },
+  "R11-SEAM-governance-text": {
+   "replay_doc.py": "D15-s1-02 names the module the gate reads; its own scope says no production change",
+   "tools/replay/debug_ingest.py": "D15-s1-02 names the gate D15.md should cite; an instrument, not edited (freeze)"
+  }
  }
 }

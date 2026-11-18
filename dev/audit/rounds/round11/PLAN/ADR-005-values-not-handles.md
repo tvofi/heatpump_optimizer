@@ -45,9 +45,9 @@ site, and a second remover that drops a still-running task from tracking.
 
 `prototypes.py --only reach` reads `coordinator_private_reach` 2 to 0;
 `--only tasks` reads `shared_inplace_writes` down one; both admissible alone
-and combined. Scenario served: maintainability, third scenario (S25, added in
-`SCENARIOS.md`), and robustness, third scenario (S5: unload completes in
-bounded time and orphans no store write).
+and combined. Scenarios served: S25 and S36, both added at step 6 in
+`SCENARIOS.md`: a collaborator is handed the value, and the task set has one
+writer at shutdown.
 
 ## Fitness functions
 

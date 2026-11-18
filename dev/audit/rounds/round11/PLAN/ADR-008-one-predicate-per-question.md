@@ -52,6 +52,18 @@ Generalization, first scenario (S16, T16); physical sanity, third scenario
 
 `private_cross_module` down three crossings: one in `R11-SEAM-plant-model`,
 two in `R11-SEAM-cycle-reporting`. Prediction from `layering.py`'s crossing
-list at the fork, no prototype. Acceptance: C18 (a private read through a
-module binding still counts); the d12-cells enumerator reads no single-zone
-cell with two floors; `m3_learner_freeze.py` reads zero contaminated ingests.
+list at the fork, no prototype.
+
+**Banked only with the new reader.** The count falls because
+`_dhw_enabled_from_config` and `_parse_return_time` lose their underscore; the
+readers that cross today still cross. What makes that more than a rename is
+the reader each finding adds: the sensor gap advisor calling the hot-water
+predicate (D8-s1-01), and `services.py` parsing the return time before the
+write (D10-s1-01). The reviewer finds that call in the PR's diff and its
+failing test in the PR's suite. Without it the fall is `metric-gamed`
+(`fix-review.md` step 14) and is not banked. The target does not need either
+term: every case in `PLAN.md` is stated without them.
+
+Acceptance: C18 (a private read through a module binding still counts); the
+d12-cells enumerator reads no single-zone cell with two floors;
+`m3_learner_freeze.py` reads zero contaminated ingests.
