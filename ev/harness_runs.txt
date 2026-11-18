@@ -1,0 +1,1 @@
+see verdict.md RESULT lines; commands: claims.py --only <c>, plan_claims.py, policy_health.py --list, probes.py --probe gov_paths, each at /home/user/{base,rev}3727
