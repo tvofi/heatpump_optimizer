@@ -92866,11 +92866,15 @@ R.check(
 # therefore descends twice, with the switch operand and as a solve that
 # prices no stop would, and the true objective judges the candidates of both.
 # Two duty-cycle days, one where each descent supplies the plan that ships:
-# the cells "duty-cycle price phase 30 outdoor 2.0" (mild) and "... outdoor
-# -4.0" (cold) that dev/audit/harnesses/r11_honest_starts_runs.py's
-# descents mode prints, both and each descent alone (design verdict r2).
-# The scores are of one non-convex solve per arm (``fixer.md`` step 15): the
-# margins measured on x86_64 are 0.07 and 0.39, the checks ask for 0.01.
+# the duty-cycle solve at price phase 30 that
+# dev/audit/harnesses/r11_honest_starts_runs.py's descents mode runs, at an
+# outdoor mean of 1.0 (mild) and -1.0 (cold), both and each descent alone
+# (design verdict r2). The scores are of one
+# non-convex solve per arm (``fixer.md`` step 15), so each day is one whose
+# shipping arm stands apart in each of four kernel classes measured
+# (OPENBLAS_CORETYPE unset with numpy's own dispatch; Haswell without
+# AVX-512; Sandybridge and Nehalem without AVX, numpy narrowed to match by
+# NPY_DISABLE_CPU_FEATURES): the checks ask for 0.01.
 _dsp_real_plans, _dsp_real_term = _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn
 _dsp_descents = []
 
@@ -92898,15 +92902,17 @@ def _dsp_arm(arm, **kw):
 
 _dsp_days = {
     day: {arm: _dsp_arm(arm, **kw) for arm in ("both", "operand", "unpriced", "no operand")}
-    # The cold day is -1 degC since R11-OUTSIDE-HONEST-DHW-RUNS: with the hot water
-    # committed as runs both descents ship one plan at -4 degC.
-    for day, kw in (("mild", {}), ("cold", {"out_mean": -1.0}))
+    # Both days moved with R11-OUTSIDE-HONEST-DHW-RUNS: with the hot water
+    # committed as runs both descents ship one plan at -4 degC, and at 2 degC
+    # the operand's descent alone comes within 0.01 of the shipped plan once
+    # numpy's dispatch has no AVX.
+    for day, kw in (("mild", {"out_mean": 1.0}), ("cold", {"out_mean": -1.0}))
 }
 R.check(
     "a solve that prices a stop commits both descents and ships the lower: on "
-    "the mild day (duty-cycle, price phase 30, 2 degC) the unpriced descent's "
+    "the mild day (duty-cycle, price phase 30, 1 degC) the unpriced descent's "
     "plan, which the operand's descent alone scores above; on the cold day "
-    "(the same at -4 degC) the operand's, which the unpriced descent alone scores above",
+    "(the same at -1 degC) the operand's, which the unpriced descent alone scores above",
     _dsp_days["mild"]["both"] <= _dsp_days["mild"]["unpriced"] + 1e-9
     and _dsp_days["mild"]["both"] < _dsp_days["mild"]["operand"] - 0.01
     and _dsp_days["cold"]["both"] <= _dsp_days["cold"]["operand"] + 1e-9
