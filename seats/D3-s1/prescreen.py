@@ -68,8 +68,13 @@ LOCK = threading.Lock()
 
 
 def drivers() -> list[str]:
+    """Box D3-m5 (D3.M5 kill-overlap matrix): D3S1_ALL_DRIVERS=1 keeps the
+    pre-screen's skipped stress/edge/backtest, so `baseline` traces them and
+    `run --full` drives every closure script the gate can drive (the Node
+    programs and golden.py stay out: mutation_table.DRIVER_EXCLUSIONS)."""
     clos = mt.load_closures()
-    allow = [s for s in mt.DEFAULT_SCRIPTS.split(",") if s not in PRESCREEN_SKIP]
+    skip = set() if os.environ.get("D3S1_ALL_DRIVERS") == "1" else PRESCREEN_SKIP
+    allow = [s for s in mt.DEFAULT_SCRIPTS.split(",") if s not in skip]
     return [s for s in allow if any(r in clos.get(s, ()) for r in RELS)]
 
 

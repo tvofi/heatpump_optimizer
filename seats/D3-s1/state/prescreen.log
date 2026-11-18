@@ -108,3 +108,4 @@
 2026-11-17T19:49:34Z PRE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._effective_dhw_windows GUARD_OFF 2b7f3dc4 L543 by=tests/env_drift.py ran=9 skip=7 wall=436.8s
 2026-11-17T19:49:38Z PRE KILLED custom_components/heatpump_optimizer/tariff.py:CapacityTariff.sample_factor GUARD_OFF 602d6665 L146 by=tests/env_drift.py ran=9 skip=7 wall=440.3s
 2026-11-17T19:50:25Z PRE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.clamp GUARD_OFF 55e7d0fb L270 by=- ran=15 skip=1 wall=488.1s
+2026-11-18T08:21:07Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=130.4s reach_ok=False

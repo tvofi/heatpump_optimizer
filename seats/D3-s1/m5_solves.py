@@ -16,6 +16,8 @@ per call (same result returned) -> solves for every script doubles (direction
 up) and checks stay flat, so checks_per_solve halves; identity run = null.
 
 Run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py [--scripts a,b] [--double-solve]
+Box D3-m5 (C4): for tests/env_drift.py the --capture --all child is also run
+directly under the hook (the parent drops it) and its solves added.
 Writes only under a mkdtemp root and its own worker tree under $TMPDIR.
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: owner macOS arm64, shared box.
 Expected: exact counts (contention-immune); CPU seconds provisional.
@@ -148,7 +150,36 @@ def main() -> int:
             ms += d["multi_start"]
             procs += 1
         checks = tally(p.stdout)
-        row = {"script": s, "rc": p.returncode, "checks": checks, "solves": opt,
+        cap_opt = cap_ms = cap_procs = None
+        if s == "tests/env_drift.py":
+            # Box D3-m5 (C4): env_drift.py starts its --capture child with
+            # PYTHONPATH reset to <tree>/tests/hastub, which drops this hook
+            # (D3-s1-01's mechanism), so the parent run counts no solve. Run
+            # that child directly under the hook, exactly as the parent
+            # launches it (--capture <tree> <out> --all), and count its solves.
+            cout = root / "capture"
+            cout.mkdir()
+            cenv = {**env, "D3S1_SOLVE_OUT": str(cout),
+                    "PYTHONPATH": f"{hook}{os.pathsep}{t / 'tests' / 'hastub'}"}
+            r2 = resource.getrusage(resource.RUSAGE_CHILDREN)
+            subprocess.run([sys.executable, "tests/env_drift.py", "--capture", str(t),
+                            str(root / "capture.json"), "--all"], cwd=t, env=cenv,
+                           capture_output=True, text=True, timeout=7200)
+            r3 = resource.getrusage(resource.RUSAGE_CHILDREN)
+            cap_opt = cap_ms = cap_procs = 0
+            for f in cout.glob("*.json"):
+                d = json.loads(f.read_text())
+                cap_opt += d["optimize"]
+                cap_ms += d["multi_start"]
+                cap_procs += 1
+            print(f"RESULT env_drift_capture_cpu_s={(r3.ru_utime + r3.ru_stime) - (r2.ru_utime + r2.ru_stime):.1f} s (provisional)")
+        if cap_opt is not None:
+            row_extra = {"solves_parent_traced": opt, "capture_solves": cap_opt,
+                         "capture_multi_starts": cap_ms, "capture_procs": cap_procs}
+            opt, ms = opt + cap_opt, ms + cap_ms
+        else:
+            row_extra = {}
+        row = {"script": s, "rc": p.returncode, "checks": checks, "solves": opt, **row_extra,
                "multi_starts": ms, "procs_recorded": procs,
                "cpu_s": round(cpu, 1), "wall_s": round(wall, 1),
                "checks_per_solve": (round(checks / opt, 3) if checks and opt else None)}
