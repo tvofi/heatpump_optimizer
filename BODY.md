@@ -2,7 +2,8 @@ Part 2 of R11-OUTSIDE-HONEST-STARTS-RUNS-P3. The finding is from Bankaifan's out
 
 ### The brief's carries
 
-- **Carries 2 and 4** (item 1d1c10a9, item ad4f75a0: the `median_off_s` headroom cut after a duty change, said to be not built). **Already built on main** by R10-DUTY-SWITCH-PLANNER-PRICE at 4a8115bc10:
+- **Carry 0 and Carry 1** (the clamped default start price, owner ruling Q2): built by part 1, #3697, merged at 332da69b74. Not rebuilt here; the roster lists them pending until a mark-carry lands.
+- **Carry 2 and Carry 4** (item 1d1c10a9, item ad4f75a0: the `median_off_s` headroom cut after a duty change, said to be not built). **Already built on main** by R10-DUTY-SWITCH-PLANNER-PRICE at 4a8115bc10:
   - `duty_legs.lost_share` is p x off seconds over the step.
   - `duty_legs.availability` charges the step a hot-water-to-heating change falls in.
   - `duty_legs.space_headroom` bounds a duty-cycle install's heating there at avail x p_max - dhw.
