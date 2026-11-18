@@ -2059,11 +2059,11 @@ session reads this file first.
   through the gate lock; never `VERSION`, the manifest version or the
   `RELEASE_NOTES.md` heading. **After any rebase, steps 2–8 are re-executed** —
   the evidence describes one tree and a rebase makes a new one.
-- **Reviewer** (`tools/audit/briefs/fix-review.md`): a fresh worktree at the
+- **Reviewer** (`dev/governance/roles/fix-review.md`): a fresh worktree at the
   head SHA, the mutation proof re-run, the measurement taken with the
   **finder's** harness rather than the fixer's, `env_drift.py --all` against
-  the claims, and an attack at other configurations. Verdict `Fix review:
-  merge` or `Fix review: blocked — <why>`. A reviewer never ranks below its
+  the claims, and an attack at other configurations. Verdict lines
+  take the grammar `bus.sh`'s `verdict_sha` accepts. A reviewer never ranks below its
   fixer.
 - **Claims.** A branch that moves fixtures claims them with a direction; the
   check is three-dot, never two-dot. A name cannot be both claimed and
@@ -2087,9 +2087,7 @@ session reads this file first.
   sloppiness, an unexamined refactor or an unmeasured feature — the first
   question is still whether the lines can be paid for elsewhere — but a metric
   at zero headroom is not a veto on new capability either (#398 read it as
-  one). `cross_seam_fraction` carries a
-  tolerance band and is never re-recorded: within the band there is nothing to
-  record, outside it the gate fails, so a re-record can only loosen.
+  one).
 - **Ownership.** `owner:<session>` and a `claimed-by:` comment before a branch
   is cut. An unlabelled issue is *unknown*, not free.
 - **Filing is the last resort**, `CLAUDE.md`'s fix-verify-file order, and this
@@ -2139,11 +2137,9 @@ reviewer, which is Opus 5 already. The absence is a decision, not an oversight.
 tokens stay as they are: `opus` → Opus 5, `sonnet` → Sonnet 5, `haiku` →
 Haiku 4.5 (unused today). `tierOk` still applies. The tokens do not need editing.
 
-**`.cursor/rules/*.mdc` still hold three `alwaysApply: true` policies, and
-nothing loads them for a Claude seat.** Cursor applied them automatically;
-Claude Code loads `CLAUDE.md` and nothing else. The files and every pointer to
-them stay — every seat is told to open all three at seat start, and `CLAUDE.md`'s
-summaries are not a substitute.
+**`.cursor/rules/*.mdc` and `.claude/rules/` are generated from
+`dev/governance/rules/`** by `tools/policy/rules_sync.mjs`. Claude Code loads
+`CLAUDE.md` and each `.claude/rules/` file whose `paths:` globs a read matches.
 
 **An architectural reviewer on the same model as its fixer is still a fresh
 agent, not the fixer continuing.** Independence here is procedural, not
@@ -2167,13 +2163,9 @@ to reach for. The rest still stands and is why it is kept.
   fork pays a full baseline capture — hence one fork per wave;
 - at most two agents run at once, and anything needing a quiet box (the
   stress ruler, the timing judges) runs alone;
-- **the gate lock is scoped to the runs that need it.** `fixer.md` step 5
-  mandates it for every local gate; that was written for a dedicated
-  eight-core machine, and on a shared container it serialises every agent.
-  The lock exists for one script — `tests/stress.py`, whose solve-time guard
-  measures the machine while it solves — so the rule now asks
-  `closure.py select` what the diff actually runs and takes the lock only
-  when the answer includes `stress.py`, reports `MODE: FULL`, or fails.
+- **the gate lock is scoped to the runs that need it.** The rule is
+  `gate-scoping.md`'s: `tests/gate_lock.py needs-lease` names each script's
+  exclusive lease, heavy slot or none, for what `closure.py select` runs.
   Measured on this tree: a test file selects one script, the card five, and
   none of them `stress.py`; `optimizer.py` and `coordinator.py` select
   sixteen and do. The trap the rule is written around is that a gate file or
@@ -2188,8 +2180,9 @@ to reach for. The rest still stands and is why it is kept.
 ## When a merge turns main red
 
 The programme has been in this state, so it gets a written answer rather than a
-judgement call each time. `web-fix-wave.js` logs `MAIN IS RED after <group>` and
-stops merging. What follows:
+judgement call each time. `web-fix-wave.js` logs `MAIN IS RED after <group>`, but
+its merge chain does not read that gate: nothing in the script stops the next
+merge. What follows:
 
 1. **A behaviour change in the merged diff → revert first, diagnose after.** The
    revert is cheap and main being trustworthy is what every later merge is judged
@@ -2279,7 +2272,7 @@ and editing one selects no gate script. Under `tools/` a generator is an orphan
 until `closure.py` names it, and `closure.py` is a `GATE_FILE`: classifying it
 would force `MODE: FULL` on every documentation branch that touched the list.
 
-**Still unfixed, and outside every lane item so far:** the `[![License: MIT]…](LICENSE)`
+**Since fixed — the badge's target is absolute now; the defect as found:** the `[![License: MIT]…](LICENSE)`
 badge. Its cause is the "first `(` of the matched span" clause above, not — as
 this paragraph said until #567's second review — a rule about link targets and
 `.md` extensions: the span the rewriter matches runs from the wrapping `[` to
@@ -2289,16 +2282,12 @@ badge comes out of the HACS pipeline as
 — so the badge image itself does not load, not merely its link. Control: the
 same badge with an **absolute** target renders correctly, so it is the relative
 target that pulls the whole construct into one span. Reproduced on 2026-09-07
-by rendering `README.md` through the pipeline. It needs a lane-B item; it is
-not one today. A relative target also leaves the `<a>` with no `href` at all
+by rendering `README.md` through the pipeline. A relative target also leaves the `<a>` with no `href` at all
 (measured), which is a second, smaller defect on the same construct.
 
-**Also stale, and also nobody's item:** `docs/architecture.md`'s outputs node
-still reads `65 entities / 55 sensors, 4 binary sensors, 4 buttons, 1 switch,
-1 climate`. It predates this programme (v5.1.0, #69), it is wrong at
-`origin/main` today, and no check reads it — `tests/entities.py`'s census
-covers `README.md` only. Extending that census to the architecture figure is
-the obvious repair and is a lane-B item, not a side-effect of one.
+**Since fixed:** `docs/architecture.md`'s outputs node carried entity counts
+from before this programme (v5.1.0, #69); `tests/entities.py` now checks that
+file's counts.
 
 **Delivery-status row.** No longer this PR's to add: #531 landed a truthed
 `| UX |` row on `main` while #567 was in review, and the merge that brought it
