@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_room BOOLOP 747e63dd",
+  "killed_by": "tests/block_duty.py",
+  "old": "    return points[i] if i is not None and i < len(points) else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return points[i] if i is not None or i < len(points) else None`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=23."
+}
