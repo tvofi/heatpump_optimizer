@@ -1,4 +1,63 @@
-# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=1.76 at 2026-11-18T18:51:54Z
+# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=1.05 at 2026-11-18T19:06:59Z
 ## run.log (driver steps + controls)
 === 2026-11-18T18:51:31Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.18 :: STEP baseline
+2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
+2026-11-18T18:57:42Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=155.7s reach_ok=False
+2026-11-18T18:59:33Z BASELINE tests/optimality.py rc=0 failed=0 wall=111.0s reach_ok=True
+2026-11-18T19:01:06Z BASELINE tests/entities.py rc=0 failed=0 wall=574.5s reach_ok=False
+2026-11-18T19:01:25Z BASELINE tests/finite_boundary.py rc=0 failed=0 wall=112.6s reach_ok=True
+2026-11-18T19:01:32Z BASELINE tests/config_flow_steps.py rc=0 failed=0 wall=25.8s reach_ok=True
+2026-11-18T19:01:55Z BASELINE tests/validate.py rc=0 failed=0 wall=23.0s reach_ok=True
+2026-11-18T19:02:18Z BASELINE tests/structure.py rc=0 failed=0 wall=23.5s reach_ok=False
+2026-11-18T19:02:20Z BASELINE tests/arch_score_head.py rc=0 failed=0 wall=54.6s reach_ok=True
+2026-11-18T19:02:32Z BASELINE tests/doc_claims.py rc=0 failed=0 wall=12.1s reach_ok=False
+2026-11-18T19:02:40Z BASELINE tests/block_duty.py rc=0 failed=0 wall=8.0s reach_ok=True
+2026-11-18T19:02:41Z BASELINE tests/typing_ruler.py rc=0 failed=0 wall=22.7s reach_ok=False
+2026-11-18T19:02:45Z BASELINE tests/guard_pins.py rc=0 failed=0 wall=4.8s reach_ok=True
+2026-11-18T19:02:47Z BASELINE tests/deployment_shape.py rc=0 failed=0 wall=2.6s reach_ok=False
+2026-11-18T19:02:47Z BASELINE tests/manual_plan.py rc=0 failed=0 wall=6.6s reach_ok=True
+2026-11-18T19:02:48Z BASELINE tests/plan_view.py rc=0 failed=0 wall=0.9s reach_ok=True
+2026-11-18T19:02:49Z BASELINE tests/debug_collect.py rc=0 failed=0 wall=1.3s reach_ok=True
+2026-11-18T19:02:49Z BASELINE tests/wood_advisor.py rc=0 failed=0 wall=0.8s reach_ok=True
+2026-11-18T19:02:50Z BASELINE tests/solar_alignment.py rc=0 failed=0 wall=0.8s reach_ok=True
+2026-11-18T19:05:26Z BASELINE tests/features.py rc=0 failed=0 wall=834.6s reach_ok=False
+2026-11-18T19:06:43Z BASELINE tests/env_drift.py rc=0 failed=0 wall=233.5s reach_ok=False
+RESULT load1=1.35
+RESULT thread_factor=1.00
+=== 2026-11-18T19:06:43Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.35 :: STEP null
+Traceback (most recent call last):
+  File "/home/user/wt/dev/audit/rounds/round11/D3/s1/prescreen.py", line 580, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/user/wt/dev/audit/rounds/round11/D3/s1/prescreen.py", line 571, in main
+    rc = {"baseline": cmd_baseline, "run": cmd_run, "null": cmd_null,
+          "reach": cmd_reach, "report": cmd_report, "retrace": cmd_retrace, "trace-capture": cmd_trace_capture, "complete": cmd_complete}[args.cmd](args)
+  File "/home/user/wt/dev/audit/rounds/round11/D3/s1/prescreen.py", line 480, in cmd_null
+    r = drive(t, null, base, args.full, nostop=True)
+  File "/home/user/wt/dev/audit/rounds/round11/D3/s1/prescreen.py", line 296, in drive
+    assert lines[m["line"] - 1].rstrip("\n") == m["old"], (m, lines[m["line"] - 1])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ({'kind': 'NULL_COMMENT', 'file': 'custom_components/heatpump_optimizer/batchmath.py', 'line': 19, 'old': '#: The two sides of every boundary between consecutive steps of a ``[B, n]``', 'new': '#: The two sides of every boundary between consecutive steps of a ``[B, n]`` (null control)'}, '#: The two sides of every boundary between consecutive steps of a ``[B, n]`` (null control)\n')
+=== 2026-11-18T19:06:43Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.35 :: FAIL null control
 ## prescreen.log
+2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
+2026-11-18T18:57:42Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=155.7s reach_ok=False
+2026-11-18T18:59:33Z BASELINE tests/optimality.py rc=0 failed=0 wall=111.0s reach_ok=True
+2026-11-18T19:01:06Z BASELINE tests/entities.py rc=0 failed=0 wall=574.5s reach_ok=False
+2026-11-18T19:01:25Z BASELINE tests/finite_boundary.py rc=0 failed=0 wall=112.6s reach_ok=True
+2026-11-18T19:01:32Z BASELINE tests/config_flow_steps.py rc=0 failed=0 wall=25.8s reach_ok=True
+2026-11-18T19:01:55Z BASELINE tests/validate.py rc=0 failed=0 wall=23.0s reach_ok=True
+2026-11-18T19:02:18Z BASELINE tests/structure.py rc=0 failed=0 wall=23.5s reach_ok=False
+2026-11-18T19:02:20Z BASELINE tests/arch_score_head.py rc=0 failed=0 wall=54.6s reach_ok=True
+2026-11-18T19:02:32Z BASELINE tests/doc_claims.py rc=0 failed=0 wall=12.1s reach_ok=False
+2026-11-18T19:02:40Z BASELINE tests/block_duty.py rc=0 failed=0 wall=8.0s reach_ok=True
+2026-11-18T19:02:41Z BASELINE tests/typing_ruler.py rc=0 failed=0 wall=22.7s reach_ok=False
+2026-11-18T19:02:45Z BASELINE tests/guard_pins.py rc=0 failed=0 wall=4.8s reach_ok=True
+2026-11-18T19:02:47Z BASELINE tests/deployment_shape.py rc=0 failed=0 wall=2.6s reach_ok=False
+2026-11-18T19:02:47Z BASELINE tests/manual_plan.py rc=0 failed=0 wall=6.6s reach_ok=True
+2026-11-18T19:02:48Z BASELINE tests/plan_view.py rc=0 failed=0 wall=0.9s reach_ok=True
+2026-11-18T19:02:49Z BASELINE tests/debug_collect.py rc=0 failed=0 wall=1.3s reach_ok=True
+2026-11-18T19:02:49Z BASELINE tests/wood_advisor.py rc=0 failed=0 wall=0.8s reach_ok=True
+2026-11-18T19:02:50Z BASELINE tests/solar_alignment.py rc=0 failed=0 wall=0.8s reach_ok=True
+2026-11-18T19:05:26Z BASELINE tests/features.py rc=0 failed=0 wall=834.6s reach_ok=False
+2026-11-18T19:06:43Z BASELINE tests/env_drift.py rc=0 failed=0 wall=233.5s reach_ok=False
