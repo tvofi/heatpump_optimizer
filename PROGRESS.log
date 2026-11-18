@@ -5,3 +5,4 @@
 1795005078 DONE blocked: frugal inline guard refuses reads; brief forbids subagents; BLOCKED.md on handoff-wip/r11-seam-governance-text
 1795006378 HB alive
 1795006383 INBOX acked through 1
+1795006399 CKPT resumed after inbox ruling 1; worktree cut at bc658f9d; extracting findings via worker snapshot d305a737abb6
