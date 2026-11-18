@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/supply_hold.py:hold_supply CMP_BOUND 5d48aa7c",
+  "killed_by": "tests/features.py",
+  "old": "    wait = (age < MIN_PAUSE or _ends_soon(inp, boosts, now)) if value else age < MIN_RUN",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`wait = (age < MIN_PAUSE or _ends_soon(inp, boosts, now)) if value else age <= MIN_RUN`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6. Each of the 2 sites under this anchor was killed."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/learner_progress.py:learner_progress GUARD_OFF 4ce7f012",
+  "killed_by": "tests/features.py",
+  "old": "    if frozen is not None and pauses(frozen[0]):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

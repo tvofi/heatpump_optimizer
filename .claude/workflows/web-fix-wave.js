@@ -209,6 +209,38 @@ const VERDICT_CLASSES = [
 // routes alike: the split measures the gate, it does not loosen it.
 const ROOT_CAUSE_CLASSES = ['root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded']
 
+// THE CLAUSE EACH CLASS ENFORCES (card E11-N-ROLE-CLAUSE, decision 0018 section
+// 3). A role contract is scorable per clause only when a block's class names
+// the clause, so each taught class is keyed here, once, to the step of its
+// role contract whose breach it reports: `<role>.md step N`, the role file
+// under dev/governance/roles/. `null` is a value: no numbered step teaches
+// that word. tools/audit/seat/review_strength.py reads this literal from the
+// tree (`--by clause`), never a copy, refuses a map whose keys are not exactly
+// VERDICT_CLASSES, and prints a clause the role file does not number as
+// UNRESOLVED. Keyed on the class word, so no verdict subject changes and a
+// window reviewed before this map reads by clause without a re-review. Keep
+// every comment above the literal: its reader takes the text between the
+// braces.
+const VERDICT_CLAUSES = {
+  'mutation-vacuous': 'fix-review.md step 1',
+  'harness': 'fix-review.md step 2',
+  'null-control': 'fix-review.md step 3',
+  'claims': 'fix-review.md step 4',
+  'version': 'fix-review.md step 5',
+  'head-moved': 'fix-review.md step 12',
+  'carry-missing': 'fix-review.md step 10',
+  'root-cause-unanswered': 'fix-review.md step 11',
+  'preflight-mismatch': null,
+  'class-open': 'fix-review.md step 6',
+  'conflict': null,
+  'other': null,
+  'product-tradeoff-regression': null,
+  'metric-gamed': 'fix-review.md step 14',
+  'architecture-unsound': 'fix-review.md step 15',
+  'root-cause-detectable': 'fix-review.md step 11',
+  'root-cause-unrecorded': 'fix-review.md step 11',
+}
+
 // The SHA must be the full 40-hex head SHA, not an unconstrained \S+: an
 // abbreviated form parses here but tools/pr/app_approve.sh requires exact
 // equality against the full head SHA and refuses it there, so an abbreviated
@@ -314,7 +346,7 @@ Return {pr, head_sha, summary} where pr is the PR NUMBER as an integer. If you c
 
 const reviewerPrompt = (g, fix, round) => `You are the adversarial fix reviewer for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW(g.group + '-' + round, fix.head_sha)}
 Read dev/governance/roles/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one worse than its bug. Check that the numbers are real: re-run the mutation proof the body names and confirm those checks fail; measure with the FINDER's harness rather than the fixer's, at ${fork} and at ${fix.head_sha}, printing your own RESULT lines; re-run every null control and both-ends check the body claims; run env_drift.py --all (and card_drift.mjs for card changes) against the merge base and confirm every moved fixture is claimed, every claim moved, and no may-drift fixture is claimed; run python3 tests/structure.py against origin/main's budgets and require any loosened metric to be named and argued in the body; confirm VERSION, the manifest and the notes heading are untouched; attack the fix at other topologies, other price profiles and the zero-evidence install; confirm the head SHA in the body is the head you measured. ${GATE}
-Post your verdict as a PR comment whose FIRST LINE is exactly "Fix review: merge ${fix.head_sha}" or "Fix review: blocked ${fix.head_sha} <class>: <why>", where <class> is one of ${VERDICT_CLASSES.join(', ')}; your RESULT lines follow it. The class is read by a script, so a blocked verdict without one is unreadable and is treated as blocked with no route to a repair. When the fix itself is sound but the branch turned a check red and the body does not name the cheaper detector or record that none exists, use root-cause-detectable if a detector cheaper than that check could have shown the red before the handoff (name it after the check), root-cause-unrecorded if the cheapest detector is the check that went red, and root-cause-unanswered only when you cannot tell -- each dispatches the root-cause seat rather than another repair round. Post it only once the head's workflows all concluded and a pr-contract run started after the last to conclude red, else the push-time run, checked the body (fix-review.md step 11); while it refuses, wait or hand back unverdicted, saying so. Return {verdict, comment} where comment's first line is that same line.`
+Post your verdict as a PR comment whose FIRST LINE is exactly "Fix review: merge ${fix.head_sha}" or "Fix review: blocked ${fix.head_sha} <class>: <why>", where <class> is one of ${VERDICT_CLASSES.join(', ')}; your RESULT lines follow it. The class is read by a script, so a blocked verdict without one is unreadable and is treated as blocked with no route to a repair. Block only on code, tests and harness (card C5): when the fix itself is sound but the branch turned a check red and the body does not name the cheaper detector or record that none exists, or a forward-carry is not landed, return merge with a "Note: <class>: <why>" line after the first line, which the orchestrator resolves at merge -- use root-cause-detectable if a detector cheaper than that check could have shown the red before the handoff (name it after the check), root-cause-unrecorded if the cheapest detector is the check that went red, root-cause-unanswered only when you cannot tell, and carry-missing for a carry; a note on custom_components/ is a block. Never return merge at a head with a concluded red (card C8). Return {verdict, comment} where comment's first line is that same line.`
 
 // The root-cause seat: its own context, beside the fix and never inside it, per
 // dev/governance/roles/root-cause.md. Until now the contracts named it and no

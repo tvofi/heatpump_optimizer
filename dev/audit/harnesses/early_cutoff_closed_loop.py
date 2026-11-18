@@ -36,6 +36,14 @@ room above the target is exempt (no cut at all). CUTOFF_ARMS=on runs only
 the cut-off arm.
 SIM_STEPS shortens the simulated day (15-minute steps, default 96).
 
+SUPPLY_HOLD=1 runs only a different measurement: the supply gate
+(``supply_hold.hold_supply``), gate off against gate on, the early cut-off not
+armed. Cycles land at CYCLE_PHASE_MIN (default 7) + 30 j minutes, inside a plan
+step; the cycle, the step tick and the held-write retry write the switch as
+``pump_arbiter`` does. Each variant runs on ``winter_typical`` and on a FLAT
+price (its mean): the flat run is the null control for each figure.
+CYCLE_PHASE_MIN=0 puts every cycle on a step boundary, the second null control.
+
     python3 dev/audit/harnesses/early_cutoff_closed_loop.py [VARIANT...]
 
 Run from a worktree root with the CI venv and
@@ -59,7 +67,8 @@ from heatpump_optimizer import early_cutoff
 from heatpump_optimizer.boost import BoostState
 from heatpump_optimizer.const import MODE_AUTO
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
-from heatpump_optimizer.pump_arbiter import ArbiterInputs
+from heatpump_optimizer import supply_hold
+from heatpump_optimizer.pump_arbiter import ArbiterInputs, ArbiterState
 from heatpump_optimizer.thermal_model import (
     MIN_RUNNING_DRAW_KW,
     ThermalModel,
@@ -185,6 +194,119 @@ def run(label: str, plant_kind: str, cutoff: bool) -> None:
           f"warm+on {over_on} min  held {dict(+held_why)}")
 
 
+def run_supply(variant: str, profile: str, gate: bool) -> None:
+    """One day of the supply switch under staggered cycles, gate off or on."""
+    phase, step = int(os.environ.get("CYCLE_PHASE_MIN", 7)), timedelta(minutes=15)
+    ctrl, plant = ThermalModel(params()), ThermalModel(params(
+        1.4 if variant == "HOT" else 1.0, LIGHT_MASS_SCALE if variant == "LIGHT" else 1.0))
+    cfg = OptimizationConfig(horizon_hours=24, time_step_minutes=15, target_temp=21.0,
+                             min_temp=18.0, max_temp=23.0, comfort_temp_day=21.0,
+                             comfort_temp_night=19.5)
+    opt, boosts, st_held = HeatPumpOptimizer(ctrl, cfg), BoostState(), ArbiterState()
+    pr2 = np.concatenate([prices("winter_typical", START),
+                          prices("winter_typical", START + timedelta(days=1))])
+    if profile == "flat":
+        pr2 = np.full_like(pr2, pr2.mean())
+    sim_start = START + timedelta(minutes=phase)
+    # last_updated an hour back: the first write is never held by an unset clock
+    hass = FakeHass({SWITCH: FakeState("off", last_updated=sim_start - timedelta(hours=1)),
+                     ROOM: FakeState("21.0")})
+    out = COLD_OUT if variant == "LIGHT" else OUT
+    # a run carried past a planned stop: the variant's own minimum, else the model's p_min
+    # (house(heat_pump_min_power=1.0) in params())
+    own = {"OWNMIN": PUMP_OWN_KW, "HOT": HOT_OWN_KW, "LIGHT": PUMP_OWN_KW}.get(variant)
+    carried = own if own is not None else 1.0
+    room, slab, ctrl_slab = 21.0, 22.0, 22.0
+    plan = plan_t0 = inp = None
+    cmd = last = None
+    is_held = False
+    n_held = episodes = booked = past_stop = pump_e = 0.0
+    rooms, trans = [], []
+    levels: list[float] = []
+
+    def decide(now: datetime, value: bool) -> None:
+        nonlocal n_held, episodes, is_held
+        if gate:
+            res = supply_hold.hold_supply(st_held, lambda: inp, boosts, value, now=now)
+            was, is_held = is_held, res is None
+            n_held += is_held
+            episodes += is_held and not was
+            if res is None:
+                return
+        cur = hass.states.get(SWITCH)
+        if (cur.state == "on") != value:
+            hass.states.set(SWITCH, FakeState("on" if value else "off", last_updated=now))
+            trans.append(now)
+
+    for m in range(SIM_STEPS * 15):
+        now = sim_start + timedelta(minutes=m)
+        s0 = now - timedelta(minutes=(now - START).total_seconds() // 60 % 15)
+        if m % 30 == 0:  # a cycle, at the harness's old resolution but off the step grid
+            k = int((s0 - START) / step)
+            st = ThermalState(room_temperature=room, slab_temperature=ctrl_slab, outdoor_temperature=out,
+                              upper_floor_temperature=room, lower_floor_temperature=room,
+                              buffer_tank_temperature=35.0)
+            z = np.zeros(N)
+            plan = opt.optimize(inputs=solve_inputs(initial_state=st, prices=pr2[k:k + N],
+                                                    outdoor_temps=np.full(N, out), wind_speeds=z,
+                                                    precipitation=z, solar_radiation=z, start_time=s0))
+            plan_t0 = s0
+            levels = [float(x) for x in plan.power_schedule]
+            ctrl_slab = float(plan.slab_temp_trajectory[2]) if len(plan.slab_temp_trajectory) > 2 else ctrl_slab
+            cmd = levels[0] > MIN_RUNNING_DRAW_KW
+            inp = ArbiterInputs(hass=hass, config={"indoor_temp_entity": ROOM,
+                                                   "heat_pump_switch_entity": SWITCH,
+                                                   "optimization_interval": 30},
+                                mode=MODE_AUTO, plan=plan, plan_stale=False, entry_released=False,
+                                state=st, thermal=ctrl, params=ctrl.params,
+                                action={"heat_pump_on": cmd}, measured_power_kw=None,
+                                disinfecting=False)
+            decide(now, cmd)
+            last = cmd
+        else:
+            idx = int((s0 - plan_t0) / step)
+            now_cmd = levels[idx] > MIN_RUNNING_DRAW_KW
+            if is_held and gate or (m % 15 == (-phase) % 15 and now_cmd != last):
+                last = now_cmd
+                decide(now, now_cmd)  # the step tick's write or the held write's retry
+        level = levels[int((s0 - plan_t0) / step)]
+        on = hass.states.get(SWITCH).state == "on"
+        if not on:
+            booked += (level > MIN_RUNNING_DRAW_KW) * level / 60
+            use = 0.0
+        elif level > MIN_RUNNING_DRAW_KW:
+            use = max(level, own) if own is not None else level
+        else:
+            use = carried
+            past_stop += use / 60
+        pst = ThermalState(room_temperature=room, slab_temperature=slab, outdoor_temperature=out,
+                           upper_floor_temperature=room, lower_floor_temperature=room,
+                           buffer_tank_temperature=35.0)
+        traj = plant.simulate_trajectory(pst, np.array([use]), wx(1, 0.0, out), dt_hours=1 / 60)
+        room, slab = float(traj[0][-1]), float(traj[1][-1])
+        rooms.append(room)
+        pump_e += use / 60
+    spans = [(b - a).total_seconds() / 60 for a, b in zip(trans, trans[1:], strict=False)]
+    # the switch starts off, so transitions alternate on, off, ...: even spans are runs;
+    # only intervals closed by two transitions are counted
+    runs = sum(1 for i, d in enumerate(spans) if d < 10 and i % 2 == 0)
+    pauses = sum(1 for i, d in enumerate(spans) if d < 10 and i % 2 == 1)
+    per_day = n_held * 1440 / (SIM_STEPS * 15)
+    # the tank is fixed at 35.0 in this harness, so the min tank figure is not informative
+    print(f"{variant:7s} {profile:14s} gate {'on' if gate else 'off':3s} held/day {per_day:5.1f} "
+          f"episodes {int(episodes):3d}  writes {len(trans):3d}  short runs {runs:2d} pauses {pauses:2d}  "
+          f"booked-not-delivered {booked:6.2f} kWh  run-past-stop {past_stop:6.2f} kWh  "
+          f"pump {pump_e:6.1f} kWh  room min {min(rooms):5.2f}  tank min {35.0:5.2f}")
+
+
+if os.environ.get("SUPPLY_HOLD") == "1":
+    print(f"mild day {OUT} degC, supply gate, cycles at minute {os.environ.get('CYCLE_PHASE_MIN', 7)} + 30 j; "
+          "early cut-off not armed; tank fixed at 35.0")
+    for kind in sys.argv[1:] or ("NULL", "HOT", "LIGHT"):
+        for profile in ("winter_typical", "flat"):
+            for gate in (False, True):
+                run_supply(kind, profile, gate)
+    sys.exit()
 print(f"mild day {OUT} degC, model p_min 1.0, comfort 21 day / 19.5 night; slab open-loop; "
       "plant stepped per minute")
 for kind in sys.argv[1:] or ("NULL", "OWNMIN", "HOT", "SUN", "COLDSUN", "LIGHT"):

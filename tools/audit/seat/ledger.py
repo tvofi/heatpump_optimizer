@@ -37,7 +37,7 @@ where its rewritten level `<log>.level` already lives:
 
 KINDS. DERIVED kinds are recomputed every pass from the live world and never
 accumulate: the relay rewrites them into `<log>.level` (`handoff-no-pr` through
-`level` here), the tick computes `design-build` and `review-owed`. EVENT kinds
+`level` here), the tick computes `design-build`, `design-review` and `review-owed`. EVENT kinds
 cannot be recomputed and live in events.tsv: an `open` at a new sha supersedes
 the subject's open entry (a moved subject closes the old one and opens one); a
 `close` at its sha, or at `-`, is the producer's disposal. The PR-keyed events
@@ -104,8 +104,8 @@ from merge_train import is_sha  # noqa: E402
 ROOT = Path(__file__).resolve().parents[3]
 KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
-    "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived", "handoff-body-unapplied": "derived", "handoff-hold-stale": "derived",
-    "design-build": "derived", "review-owed": "derived", "record-owed": "derived",
+    "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived", "handoff-body-unapplied": "derived", "handoff-hold-stale": "derived", "handoff-skipped": "derived",
+    "design-build": "derived", "design-review": "derived", "review-owed": "derived", "record-owed": "derived",
     "probe-refused": "derived", "handoff-verdict-held": "derived", "confirm-owed": "derived", "push-stuck": "derived",
     "seat-no-return": "derived", "carry-fold": "derived",
     "fixer-round": "derived", "recut": "derived", "train-parked": "derived", "dirty": "derived",
@@ -116,6 +116,7 @@ KINDS = {
 PR_KEYED = ("reviewer-fire", "verdict-unposted", "approve-held-runs", "dispatch")
 ARMS = (("refs/heads/probe/", "probe-ref"), ("refs/heads/handoff-body/", "handoff-no-pr"),
         ("refs/heads/handoff/", "handoff-no-pr"), ("refs/heads/design-verdict/", "design-build"),
+        ("refs/heads/design/", "design-review"),
         ("refs/heads/review/", "confirm-owed"), ("refs/heads/handoff-wip/", "blocked-stop"))
 STATE_REF = re.compile(r"^audit-r\d+-(?:plan|roster)$")
 RELAY_WRITE = re.compile(r"\b(ledger_open|level_line) ([a-z-]+) ")
@@ -380,6 +381,16 @@ def attempts(rows: list) -> dict:
 
 
 # ------------------------------------------------------------------- level
+def empty_net(git, main: str, tip: str) -> bool:
+    """tip's change against its merge-base with main is nothing, read cleanly: an add-then-remove pair
+    leaves no diff to carry. An unreadable merge-base or diff is not empty."""
+    rc, mb = git(["merge-base", main, tip])
+    if rc:
+        return False
+    rc, names = git(["diff", "--name-status", "--no-renames", mb.strip(), tip])
+    return rc == 0 and not names.strip()
+
+
 def covered(git, main: str, tip: str) -> bool:
     """Main carries every file tip's uncovered commits touch: the same bytes at
     the path; an added file's bytes elsewhere (a recovery moved it); a deletion
@@ -458,7 +469,7 @@ def reverse_applies(git, main: str, tip: str) -> bool:
                 and git(["apply", "--cached", "--check", patch], env)[0] != 0)
 
 
-ANCESTRY_WHY, CONTENT_WHY = ("ancestor", "merges-only"), ("reverse-apply", "content")
+ANCESTRY_WHY, CONTENT_WHY = ("ancestor", "merges-only"), ("reverse-apply", "empty", "content")
 
 
 def landed(git, main: str, tip: str, heads=(), ancestry: bool = True, content: bool = True) -> "str | None":
@@ -469,6 +480,7 @@ def landed(git, main: str, tip: str, heads=(), ancestry: bool = True, content: b
       merges-only    the only commits outside them are merges whose combined
                      diff is empty (no resolution of their own)
       reverse-apply  reverse_applies: the patch is on main, context and all
+      empty          the net change against the merge-base is nothing (an add-then-remove pair)
       content        covered: the change is on main under another commit"""
     if ancestry:
         rc, out = git(["rev-list", "--count", tip, "--not", main, *heads])
@@ -483,6 +495,8 @@ def landed(git, main: str, tip: str, heads=(), ancestry: bool = True, content: b
     if content:
         if reverse_applies(git, main, tip):
             return "reverse-apply"
+        if empty_net(git, main, tip):  # mut:emptynet
+            return "empty"
         if covered(git, main, tip):
             return "content"
     return None
@@ -632,6 +646,35 @@ def design_builds(verdicts: dict, designs: dict, stage_of, disp: dict) -> list[s
             continue
         out.append(f"DESIGN-BUILD: {group or '?'} design/{t} {m.group(1)[:12]} approved, no build "
                    f"dispatched (stage {stage or 'none'})")
+    return out
+
+
+DESIGN_REVIEW_STAGES = NOT_DISPATCHED + ("design", "design-review")
+VERDICT_SHA = re.compile(r"^Design review: (\S+) ([0-9a-f]{40})")
+
+
+def design_reviews_owed(designs: dict, firsts: dict, tip_at: dict, review_at: dict, stage_of,
+                        disp: dict, now: float, critical=()) -> list[str]:
+    """`DESIGN-REVIEW OWED` lines: a design/<t> tip that its design-verdict/<t>
+    does not name, with no design-reviewer dispatch committed since the tip.
+    designs {t: tip sha}, firsts {t: (verdict sha, verdict.md first line)},
+    tip_at {t: tip commit epoch}, review_at {t: epoch of the newest
+    dispatch/design-reviewer-<t> commit, absent with no ref}, all keyed
+    lowercased; stage_of(t) -> (group, stage), stage "closed" for a group that
+    is not open. A tip already disposed at its own sha is not owed."""
+    out = []
+    for t, tip in sorted(designs.items()):
+        group, stage = stage_of(t)
+        m = VERDICT_SHA.match(firsts.get(t, ("", ""))[1])
+        if (m and m.group(2) == tip) or stage not in DESIGN_REVIEW_STAGES \
+                or disp.get(f"refs/heads/design/{t}", ("",))[0] == tip:
+            continue
+        if t in review_at and review_at[t] >= tip_at[t]:
+            continue
+        out.append(f"DESIGN-REVIEW OWED:{' CP' if group in critical else ''} {group or '?'} design/{t} {tip[:12]} "
+                   f"-- verdict {m.group(1) if m else 'none'} {m.group(2)[:12] if m else '-'}, "
+                   f"no dispatch/design-reviewer-{t} since the tip ({(now - tip_at[t]) / 3600:.1f}h); "
+                   "dispatch the design reviewer")
     return out
 
 
@@ -841,6 +884,8 @@ def self_test() -> int:
         check("each of the five arms classifies", [classify(f"refs/heads/{p}/x") for p in
               ("probe", "handoff", "handoff-body", "design-verdict", "review")]
               == ["probe-ref", "handoff-no-pr", "handoff-no-pr", "design-build", "confirm-owed"])
+        check("a design tip classifies as design-review, beside the verdict arm's design-build",
+              classify("refs/heads/design/x") == "design-review" and classify("refs/heads/design-verdict/x") == "design-build")
         check("a ref of no arm is refused, not guessed", refuses(lambda: classify("refs/heads/main")) == "Refused")
         h = D / "imp"
         h.mkdir()
@@ -875,6 +920,16 @@ def self_test() -> int:
             del os.environ["HPO_STATE_DIR"]
         check("null control: dispose into the default home prints nothing and writes",
               rc_d == 0 and err.getvalue() == "" and dispositions(dflt)["refs/heads/probe/n"][0] == C)
+        dispose(h, "refs/heads/design/g1", C, "test")
+        check("dispose records a design tip, and a disposition at its sha silences DESIGN-REVIEW OWED",
+              design_reviews_owed({"g1": C}, {}, {"g1": 0}, {}, lambda t: ("R10-G1", "not-started"), {}, 3600.0) != []
+              and design_reviews_owed({"g1": C}, {}, {"g1": 0}, {}, lambda t: ("R10-G1", "not-started"),
+                                      dispositions(h), 3600.0) == [])
+        dro = lambda crit: design_reviews_owed({"g1": C}, {}, {"g1": 0}, {}, lambda t: ("R10-G1", "not-started"), {}, 3600.0, crit)
+        check("DESIGN-REVIEW OWED carries the CP mark for a critical group, as DESIGN OWED does",
+              [x.startswith("DESIGN-REVIEW OWED: CP R10-G1 ") for x in dro({"R10-G1"})] == [True])
+        check("null control: a group off the critical path prints no CP mark",
+              [x.startswith("DESIGN-REVIEW OWED: R10-G1 ") for x in dro(set())] == [True])
         check("dispose refuses a ref of no arm", refuses(lambda: dispose(h, "refs/heads/main", A)) == "Refused")
         check("a missing store with no legacy file is first run: empty", dispositions(D / "none") == {})
         (D / "bad").mkdir()
@@ -1021,6 +1076,8 @@ def self_test() -> int:
         cput = lambda p, m: ((cw / p).write_text(m + "\n"), cg("add", "-A"), cg("commit", "-qm", m),
                              cg("rev-parse", "HEAD"))[-1]
         cput("base.txt", "base")
+        # app_approve.sh --carry lists origin's branch heads (decision 0017): the fixture is its own origin.
+        cg("remote", "add", "origin", ".")
         cg("checkout", "-qb", "fix")
         vh = cput("fix.txt", "the reviewed fix")
         cg("checkout", "-q", "main")
@@ -1036,6 +1093,10 @@ def self_test() -> int:
         check("REVIEW OWED skips a head its newest merge verdict carries to (a clean main merge); "
               "a branch-own commit after it is owed (null control)",
               review_owed(crs, rb, set(), carrier) == [f"REVIEW OWED: #6 {own_head[:12]}"])
+        cg("remote", "rename", "origin", "elsewhere")
+        check("with origin's branch heads unreadable the same carried head is owed (fail closed)",
+              [l.split()[2] for l in review_owed(crs, rb, set(), carrier)] == ["#5", "#6"])
+        cg("remote", "rename", "elsewhere", "origin")
         rb["5"].append(f"Fix review: blocked {vh} harness: y")
         check("a newest verdict that is blocked carries nothing", [l.split()[2] for l in
               review_owed(crs, rb, set(), carrier)] == ["#5", "#6"])
@@ -1181,6 +1242,12 @@ def self_test() -> int:
         check("landed: a tip inside main reads ancestor, not merges-only", landed(gw, mn, anc) == "ancestor")
         check("landed: the re-applied hunk is content (reverse-apply cannot: forward applies too)",
               landed(gw, mn, cov) == "content" and not reverse_applies(gw, mn, cov))
+        g("checkout", "-qb", "work18", mn)
+        put("tmp_add.txt", "added then removed\n", "add a file")
+        g("rm", "-q", "tmp_add.txt")
+        g("commit", "-qm", "remove it again")
+        emt = g("rev-parse", "HEAD")
+        rl = put("real_new.txt", "one real uncovered line\n", "one real uncovered add on the empty pair")
         g("checkout", "-qb", "work7", gb)
         mv = put("moved.txt", "same bytes\n", "add a file")
         g("checkout", "-qb", "work8", gb)
@@ -1222,6 +1289,18 @@ def self_test() -> int:
         put("evil.txt", "E\n", "a merge with a resolution of its own")
         check("null control: a merge carrying its own resolution is not merges-only",
               landed(gw, m_a, g("rev-parse", "HEAD"), [fixh], content=False) is None)
+        # Carry 20, one oracle so that no setup line above can be dropped unread: an add-then-remove tip lands as
+        # empty; the same pair plus one real line stays None; a failing merge-base read (whose output, here, would
+        # diff empty) or a failing diff read is not empty; and landed's reasons are exactly the two declared tuples.
+        bad_rc, _ = gw(["merge-base", "--no-such-option"])
+        check("carry 20: an empty net diff lands as empty; one real line, an unreadable merge-base or diff does not;"
+              " the reasons driven here are ANCESTRY_WHY + CONTENT_WHY",
+              landed(gw, mn, emt) == "empty" and not covered(gw, mn, emt) and landed(gw, mn, rl) is None
+              and empty_net(gw, mn, emt) and bad_rc
+              and not empty_net(lambda a: (bad_rc, mn) if a[0] == "merge-base" else gw(a), mn, emt)
+              and not empty_net(lambda a: gw(a + ["--no-such-option"]) if a[0] == "diff" else gw(a), mn, emt)
+              and {landed(gw, mn, anc), landed(gw, m_a, tipm, [fixh]), landed(gw, rvm, rv), landed(gw, mn, emt),
+                   landed(gw, mn, cov)} == {*ANCESTRY_WHY, *CONTENT_WHY})
         g("checkout", "-q", "main")
         hr = [tuple(l.split()) for l in g("ls-remote", "origin", "refs/heads/handoff/*",
                                            "refs/heads/handoff-body/*").splitlines()]

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._on_defrost_event BOOLOP 88a8ba23",
+  "killed_by": "tests/entities.py",
+  "old": "        if raw is not None and str(raw).lower() not in (\"unknown\", \"unavailable\"):",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if raw is not None or str(raw).lower() not in (\"unknown\", \"unavailable\"):`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

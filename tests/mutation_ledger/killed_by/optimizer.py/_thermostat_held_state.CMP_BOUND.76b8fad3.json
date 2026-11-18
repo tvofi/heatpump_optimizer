@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_thermostat_held_state CMP_BOUND 76b8fad3",
-  "killed_by": "tests/features.py",
-  "old": "        if need > 0.0 else held.buffer_tank_temperature",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if need >= 0.0 else held.buffer_tank_temperature`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

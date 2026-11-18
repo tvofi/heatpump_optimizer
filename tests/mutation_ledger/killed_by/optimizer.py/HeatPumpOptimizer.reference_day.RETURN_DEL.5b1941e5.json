@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.reference_day RETURN_DEL 5b1941e5",
+  "killed_by": "tests/features.py",
+  "old": "        return week, sum(day_kwh.get(tuple(week[k:k + day]), math.nan) for k in range(0, 7 * day, day)) / 7.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1560,7 +1560,7 @@ def self_test() -> int:
     check("rows gate: disposition_gate forwards its head to the command",
           _seen_argv and _seen_argv[0][-2:] == ["--head", "abc123"] and _gate_ret == (True, "ok"))
     check("rows gate: main's rule 5 passes the stamp head",
-          "disposition_gate(last_tag, head=head)" in __import__("inspect").getsource(main))
+          "disposition_gate(last_tag, head=head)" in __import__("inspect").getsource(stamp_run))
     check("record beat: the dispatch payload carries lanes=beat on main",
           RECORD_BEAT_PAYLOAD == {"ref": "main", "inputs": {"lanes": "beat"}})
     _beat_sent: list = []
@@ -2128,6 +2128,30 @@ def self_test() -> int:
     check("round close: main takes the version from next_version, the round from the roster",
           "next_version(current, args.bump, args.round_close," in _main_src
           and "roster_round_at(ROOT)" in _main_src)
+    # Carry 1 (P447): the stamp holds main while a pushing stamp runs.
+    _hc, _hp = [], []
+    def _hrun(*a, **k):
+        _hc.append(a)
+        return ("c" * 40 + "\n") if a[1] == "commit-tree" else ("t" * 40 + "\n")
+    def _hpush(spec, key=None, kh=None):
+        _hp.append(spec)
+    with stamp_hold(True, None, None, push=_hpush, runner=_hrun):
+        _during = list(_hp)
+    check("stamp hold: a pushing stamp force-pushes a fresh commit to the hold ref, and deletes it on exit",
+          _during == [f"+{'c' * 40}:{STAMP_HOLD_REF}"] and _hp[-1] == f":{STAMP_HOLD_REF}" and len(_hp) == 2)
+    _hp.clear()
+    try:
+        with stamp_hold(True, None, None, push=_hpush, runner=_hrun):
+            raise Refuse(1, "x")
+    except Refuse:
+        pass
+    check("stamp hold: a refusal inside still releases the ref", _hp[-1] == f":{STAMP_HOLD_REF}")
+    _hp.clear()
+    with stamp_hold(False, None, None, push=_hpush, runner=_hrun):
+        pass
+    check("stamp hold: null control, unarmed (no --push, a dry run) pushes nothing", _hp == [])
+    check("stamp hold: main arms it for --push and not --dry-run only",
+          "stamp_hold(args.push and not args.dry_run," in inspect.getsource(main))
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -2874,6 +2898,40 @@ def stamp_message(nxt: str, title: str) -> str:
     return f"v{nxt}: stamp {title}"
 
 
+#: The ref a running stamp publishes (`STAMP_HOLD_REF` in merge_train.py): the
+#: train waits on it before a merge attempt, so main does not move under the gate.
+STAMP_HOLD_REF = "refs/heads/stamp-hold"
+
+
+@contextlib.contextmanager
+def stamp_hold(armed: bool, key: str | None = None, known_hosts: str | None = None, push=None, runner=None):
+    """Hold main while a pushing stamp runs: a commit made NOW (its committer date
+    is the hold's age, which the train reads) is force-pushed to STAMP_HOLD_REF
+    and deleted on exit, a refusal included. A refused take or release is a
+    warning, never a stop: the hold guards the train's merges, and the train
+    takes over a hold past its own age bound. `armed` False (no --push, a dry
+    run) touches nothing."""
+    if not armed:
+        yield
+        return
+    push, runner = push or push_via, runner or sh
+    try:
+        tree = runner("git", "rev-parse", "HEAD^{tree}").strip()
+        commit = runner("git", "commit-tree", tree, "-p", "HEAD", "-m", f"stamp hold pid={os.getpid()}").strip()
+        push(f"+{commit}:{STAMP_HOLD_REF}", key, known_hosts)
+        print(f"STAMP HOLD {STAMP_HOLD_REF} {commit[:8]}: the train waits")
+    except (subprocess.CalledProcessError, OSError) as exc:
+        print(f"WARNING: stamp hold not taken ({exc}); the train is not held", file=sys.stderr)
+    try:
+        yield
+    finally:
+        try:
+            push(f":{STAMP_HOLD_REF}", key, known_hosts)
+        except (subprocess.CalledProcessError, OSError) as exc:
+            print(f"WARNING: {STAMP_HOLD_REF} not released ({exc}); the train takes it over when it is "
+                  "old enough, or delete it by hand", file=sys.stderr)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--bump", choices=("patch", "minor", "major"),
@@ -2912,6 +2970,12 @@ def main() -> int:
         if problem:
             raise Refuse("push-key", problem + "; nothing was written, and origin is not a fallback")
 
+    with stamp_hold(args.push and not args.dry_run, args.push_key, args.known_hosts):
+        return stamp_run(args)
+
+
+def stamp_run(args) -> int:
+    """Rules 1-6 and the commit, tag and push: everything `main` runs under the stamp hold."""
     # Rule 3's version, decided before anything is fetched: a --bump major, or a
     # round the roster or VERSION contradicts, refuses at once (decision 0016).
     # Rule 1 then proves this checkout -- its VERSION and roster -- is origin/main.

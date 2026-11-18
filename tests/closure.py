@@ -268,6 +268,10 @@ INERT = (
     # reads it. Same class as LICENSE / DISCLAIMER.md: an unclassified root
     # file forced the FULL suite and failed the orphan check on #819.
     "SECURITY.md",
+    # The community-standards files GitHub renders (owner's item, round 11):
+    # the code of conduct and the issue forms. No gate script reads them.
+    "CODE_OF_CONDUCT.md",
+    ".github/ISSUE_TEMPLATE/",
     "NOTICE",
     # docs/ except the handover (HANDOVER_DIR below) and the pages a gate
     # script pins (INERT_EXCEPT below, #937 and #939) -- the same split
@@ -362,6 +366,8 @@ INERT = (
     # it -- only this gate has no dependency on it beyond that.
     "AGENTS.md",
     "DISCLAIMER.md",
+    # The long-term direction page (#3616): prose linked from README.md, read by no gate script.
+    "ROADMAP.md",
     # The quality-scale register (#229) sat here from #229 to #951: no gate
     # script read it, so the INERT listing was honest. #951 ended that --
     # tests/entities.py now reads the register to pin its coverage-bearing
@@ -589,11 +595,37 @@ INERT_EXCEPT = (
     # CI's closures-autofix refused: INERT and read. Same route as the files below:
     # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
     "tools/audit/seat/orchestrator_tick.py",
+    # R10-CI-PRIORITY-PAUSE: that self-test reads the tier setting (owed-line ranks);
+    # dev/audit/ is INERT by prefix, so the file moves to the recorded closure.
+    "dev/audit/config/ci_priority.json",
+    # R11-PRE-SECURITY-PRIVACY: tests/entities.py runs check-wave-script.mjs,
+    # which reads each dimension's owner_only flag here; CI's closures job said
+    # INERT READS UNDER-APPROXIMATED, and inert_reads alone leaves it UNDER-SCOPED.
+    # It moves to the recorded closure, so a scopes edit selects tests/entities.py.
+    "dev/audit/config/scopes.json",
+    # ... and that file's own readers: tests/entities.py loads the two new
+    # R10-CI-PRIORITY-PAUSE modules (ci_priority.py, ci_pause.py) and runs
+    # their self-tests, so the tools/audit/seat/ INERT prefix must not hide them.
+    "tools/audit/seat/ci_priority.py",
+    "tools/audit/seat/ci_pause.py",
+    # R11-PRE-STANDING-SCRIPTS: the tick loads the owed watch (its fired-ledger,
+    # seat-on and FIRE-OWED reads moved there), so that self-test reads it. Same
+    # route as ci_priority.py: the prefix stays INERT, the file joins the closure.
+    "tools/audit/seat/owed_watch.py",
+    # R11-PRE-ACK-COMPLETION part 2: the tick's self-test feeds the lines it emits through
+    # owed_unactioned's reader (the cap line, the design-review line), so that self-test reads it;
+    # ci_predict's self-test-reads arm names it UNDER-SCOPED. Same route as owed_watch.py.
+    "tools/audit/seat/owed_unactioned.py",
     # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
     # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
     "tools/audit/seat/pr_cap.py",
     "tools/policy/budget_raise_gate.py",
     "tools/pr/app_approve.sh",
+    # R10-SEAT-IDENTITY-P5: tests/entities.py reads the seat generator and its
+    # self-test (both added by this group). Same route as orchestrator_tick.py:
+    # tools/audit/seat/ stays INERT, these two join the recorded closure.
+    "tools/audit/seat/seat_gen.py",
+    "tools/audit/seat/seat_gen_selftest.py",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be
@@ -631,6 +663,9 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
+    # R11-PRE-PLAN-RENDER: plan_page.py imports the round's phases section, so
+    # the same self-test opens it; it joins the recorded closure beside it.
+    "tools/audit/seat/plan_phases.py",
     # R10-TICK-LEVELS P2: roster_sync.py (already a recorded read above) imports
     # the topic grammar's one owner in-process, so tests/entities.py's load of it
     # opens this file. CI's closures job 128825445404 was UNDER-SCOPED on it and
@@ -678,8 +713,14 @@ INERT_EXCEPT = (
     # dependency, not inert prose, whatever directory it lives in.
     "docs/dashboard-card.md",
     "docs/ecl110.md",
+    "docs/heat-curve.md",
     "docs/how-it-works.md",
     "docs/setup.md",
+    # R10-OUTSIDE-CONTRIBUTOR-CYCLE: the contributor guide is a reader doc
+    # like the four above, and CI's closures job recorded tests/doc_claims.py
+    # and tests/harness_headers.py opening it. Same route: out of the INERT
+    # prefix, into those two scripts' recorded closures.
+    "docs/CONTRIBUTING.md",
     "docs/img/model/dhw-demand-windows.svg",
     "docs/img/model/dhw-store-decay.svg",
     "docs/img/model/marginal-cop.svg",
@@ -758,6 +799,7 @@ INERT_EXCEPT = (
     "tools/audit/seat/instruments/beatd.py.md",
     "tools/audit/seat/instruments/cloud_dispatch.py.md",
     "tools/audit/seat/instruments/heartbeat.sh.md",
+    "tools/audit/seat/instruments/merge_train.py.md",
     "tools/audit/seat/instruments/tick_loop.sh.md",
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/postmerge.py",
@@ -1105,6 +1147,7 @@ _CITATION_POLICY = (
     r"\.claude/rules/[a-z0-9-]+\.md",
     r"dev/governance/roles/[A-Za-z0-9_.-]+\.md",
     r"dev/governance/dimensions/[A-Za-z0-9_.-]+\.md",
+    r"dev/governance/dimensions/criteria/[A-Za-z0-9_.-]+\.md",
 )
 
 

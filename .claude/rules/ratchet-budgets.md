@@ -14,19 +14,14 @@ paths:
 corpus: a policy file may shrink freely and never grow past its cap. Deliberately
 not the two-sided ratchet `tests/structure.py` applies to code — an "improved and
 not yet recorded" refusal on prose would charge a seat for deleting a paragraph,
-and deletion is what this corpus most needs. That asymmetry has a hole only
-visible when three caps are read together.
+and deletion is what this corpus most needs.
 
 **`always_loaded_tokens` measures a session that opens nothing.** `CLAUDE.md`
 plus any `.claude/rules/*.md` with no `paths:` key — what the harness loads
 before a seat has read anything. Moving prose out of `CLAUDE.md` into a
-`paths:`-scoped rule therefore lowers it **without deleting a line**. Across the
-split that made `CLAUDE.md` an index the floor fell by more than half while
-`corpus_tokens` moved a fraction of a percent; run `--budgets` for both rather
-than carrying either here, which `brief-citations.md` calls an error outright.
-The scoping is a real improvement — what would be dishonest is recording that
-drop as the ratchet, which hands the next pull request headroom nobody earned and
-prices a scoped rule at zero however far it grows.
+`paths:`-scoped rule therefore lowers it **without deleting a line**. Recording that drop as the ratchet
+hands the next pull request headroom nobody earned and prices a scoped rule at
+zero however far it grows.
 
 **`corpus_tokens` does not move when prose moves — while every capped file is a
 measured one.** It sums the policy files the globs match, so a split between two
@@ -40,9 +35,7 @@ that cannot be complete.
 **`roles` charges a seat for what it loads once it opens a file.** Each entry
 gives an `opens` list — one representative file per surface that role touches —
 and the cap is the floor plus every scoped rule whose globs match one of them.
-The floor is not the cost: at the same split every role paid more than the floor,
-and the record seat more than the whole floor cap that preceded it. A cap only
-the empty session meets is not measuring the thing it is named for. `opens` is a
+`opens` is a
 fixed sample: widening it is an edit a reviewer sees, which stops a cap being met
 by re-measuring against fewer files.
 
@@ -61,9 +54,6 @@ nothing, so #1122's resolution — zero the key and let `--budgets` re-measure
 the merged tree — is
 not needed for a collision inside the band, where neither branch edits the line.
 It stays the right move for one larger than the band.
-
-The ratchet is deferred, not disabled: a new brief-sized document is still
-refused, and that arm has to stay red for this to be a ratchet at all.
 
 **Re-record an aggregate down** when `--budgets` shows it more than `_band`
 below its cap, and on any reclassification — the case the next section names.
@@ -107,6 +97,16 @@ as a known defect is not a ratchet.
 production, and nonproduct lines per 1000 product lines. Each closes the
 other's hole (splitting production lowers the first, not the second; a pure
 move costs neither). Each cap takes its band as above; the window is frozen.
+
+**A target, not a record** (tvofi, 2026-11-13, card P2):
+`machinery_target_budgets.json` lowers `nonproduction_merges` by `step` every
+`every_merges` merges past its `anchor` (the rule: the program's THE TARGET;
+the enumerator: `--measure`, its target and merges past the anchor). It refuses a
+non-production pull request past it, never a production one or main's push. At
+a round start the orchestrator records the cap down to `--measure` and asks
+the owner for the round's anchor and step: a later anchor or a slower decline
+is a raise. **One in, one out:** a required check (the set
+`merge_train.py owed-reds` prints) enters only in the pull request retiring one.
 **The owner's exemption**: a change proving over 20% improvement in CI time,
 programme completion time, right-first-time or token usage appends its
 `exemptions` entry (number, measure, before, after, each one's command,

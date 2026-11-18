@@ -546,6 +546,63 @@ sensors = collect(sensor)
 by_name = {display_name("sensor", s): s for s in sensors}
 R.check("all sensors are constructible", len(sensors) > 30, str(len(sensors)))
 
+# #3616: the room list's two sensors exist only where a list is configured,
+# so the default roster above (no list) is their null control. Driven through
+# the real async_setup_entry with a coordinator whose config names two rooms.
+_ROOM_KEY = const.CONF_ROOM_TEMPERATURE_ENTITIES
+_ROOM_BLOCK = {
+    "configured_count": 3, "valid_count": 2, "average": 19.85, "spread": 0.7,
+    "coldest_entity": "climate.a", "warmest_entity": "sensor.b",
+    "per_room": {"climate.a": {"temperature": 19.5, "target": 21.0, "calling": True, "hvac_mode": "heat"},
+                 "sensor.b": {"temperature": 20.2, "target": None, "calling": None, "hvac_mode": None}},
+    "dropped": {"climate.c": "unavailable"},
+}
+_room_coord = FakeCoordinator({**DATA, "rooms": _ROOM_BLOCK})
+_room_coord._config = {_ROOM_KEY: ["climate.a", "sensor.b", "climate.c"]}
+_room_all = collect(sensor, coordinator=_room_coord)
+_room_keys = ("room_average_temperature", "room_temperature_spread")
+room_sensors = [e for e in _room_all if e._attr_translation_key in _room_keys]
+_room_by_key = {e._attr_translation_key: e for e in room_sensors}
+R.check(
+    "a configured room list adds exactly the room average and spread sensors; null control, the "
+    "default roster with no list holds neither",
+    len(_room_all) == len(sensors) + 2 and set(_room_by_key) == set(_room_keys)
+    and not any(e._attr_translation_key in _room_keys for e in sensors),
+    f"{len(_room_all)} vs {len(sensors)}: {sorted(_room_by_key)}",
+)
+R.check(
+    "the room sensors read the payload's rooms block: average in degC, spread in K, the dropped "
+    "room and the coldest and warmest as attributes",
+    _room_by_key["room_average_temperature"].native_value == 19.85
+    and _room_by_key["room_temperature_spread"].native_value == 0.7
+    and _room_by_key["room_temperature_spread"].native_unit_of_measurement == "K"
+    and getattr(_room_by_key["room_temperature_spread"], "_attr_device_class", None) is None
+    and _room_by_key["room_average_temperature"].extra_state_attributes["dropped"] == {"climate.c": "unavailable"}
+    and _room_by_key["room_temperature_spread"].extra_state_attributes
+    == {"coldest_entity": "climate.a", "warmest_entity": "sensor.b", "lift": None},
+    f"{[(e._attr_translation_key, e.native_value) for e in room_sensors]}",
+)
+# R11-OUTSIDE-ROOMS-P2: the floor lift the last solve was given rides the spread sensor.
+_ROOM_LIFT = {"size": 0.5, "entity": "climate.a", "gate": None}
+_room_lift_coord = FakeCoordinator({**DATA, "rooms": {**_ROOM_BLOCK, "lift": _ROOM_LIFT}})
+_room_lift_coord._config = _room_coord._config
+_room_lifted = {e._attr_translation_key: e for e in collect(sensor, coordinator=_room_lift_coord)
+                if e._attr_translation_key in _room_keys}
+R.check(
+    "the spread sensor's lift attribute is the rooms block's lift: its size, room and gate; the "
+    "average sensor carries none",
+    _room_lifted["room_temperature_spread"].extra_state_attributes["lift"] == _ROOM_LIFT
+    and "lift" not in _room_lifted["room_average_temperature"].extra_state_attributes,
+    f"{_room_lifted['room_temperature_spread'].extra_state_attributes}",
+)
+_room_quorum = FakeCoordinator({**DATA, "rooms": {**_ROOM_BLOCK, "average": None, "spread": None}})
+_room_quorum._config = _room_coord._config
+R.check(
+    "under the quorum both room sensors read unknown",
+    all(e.native_value is None for e in collect(sensor, coordinator=_room_quorum)
+        if e._attr_translation_key in _room_keys),
+)
+
 # Entity counts are published in the README, so they are a claim rather than a
 # detail. A count that quietly drifts makes the documentation wrong in the one
 # place a user checks before installing.
@@ -3904,7 +3961,8 @@ def _p2_registry(sources):
                  lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
                  and getattr(n.args[1], "value", None) in _P2_STAMPS),
              owners=["inputs.py::state_stamp"], dispositions={
-                 "early_cutoff.py::_cycle_guard":
+                 # The supply gate's and the early cut-off's one clock.
+                 "supply_hold.py::switch_age":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
                      "last heard from, which a re-reported 'on' resets",
@@ -3963,9 +4021,12 @@ def _p2_registry(sources):
                  "climate.py::HeatPumpOptimizerClimate.hvac_action":
                      "a fraction of the plan's power range, ORed with the "
                      "action's heat_pump_on, which planned_draws_run set",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._detect_immersion":
-                     "a commanded-draw gate on a metered excess: whether any "
-                     "power was commanded, not whether the plan's step runs",
+                 # R10-START-COUNTER-EDGES moved the over test out of
+                 # _detect_immersion into one owner both readers share.
+                 "thermal_model.py::immersion_over":
+                     "a commanded-draw gate on a metered excess, and its "
+                     "nameplate guard: whether any power was commanded, not "
+                     "whether the plan's step runs",
                  "optimizer.py::HeatPumpOptimizer.get_current_action":
                      "dhw_heating_active: the DHW circuit's own activity, not "
                      "the pump's running verdict",
@@ -6032,6 +6093,66 @@ R.check(
     "just TotalCostSensor",
 )
 
+# R10-SAV-VALUATION-RESIDUE Carry 10: on a combi store the pump's hot-water
+# mode also buys the space heat drawn from the store (the flux exchange), so
+# the three hot-water figures and the climate attribute carrying the first
+# say which split they show, through ``entity.dhw_split_attributes`` reading
+# the model's own ``combi_tank_active``. Static documentation, unrecorded like
+# ``split_method``. The null: the same store with combi off states nothing,
+# and a space figure on the combi store states nothing either.
+from heatpump_optimizer.thermal_model import ThermalParameters as _c10_TP  # noqa: E402
+
+
+def _c10_attrs(combi: bool) -> dict[str, object]:
+    params = _c10_TP(
+        dhw_combi_tank_enabled=combi, buffer_tank_volume=504.0,
+        mixing_valve_mode="smart_write", dhw_enabled=True,
+        dhw_tank_volume=200.0, combi_potable_volume_l=40.0,
+    )
+    coord = FakeCoordinator(DATA, _thermal_params=params,
+                            _month_totals={"dhw": (41.5, 62.25), "space": (120.0, 180.0)})
+    return {
+        "precondition": params.combi_tank_active,
+        **{
+            # Home Assistant's Entity answers None where a class defines no
+            # attributes; tests/hastub's has no such default, hence getattr.
+            cls.__name__: getattr(cls(coord, ENTRY), "extra_state_attributes", None)
+            for cls in (sensor.DHWHeatingCostSensor, sensor.DHWEnergySensor,
+                        sensor.DHWCostSensor, sensor.SpaceEnergySensor,
+                        _climate_platform.HeatPumpOptimizerClimate)
+        },
+    }
+
+
+_c10_on, _c10_off = _c10_attrs(True), _c10_attrs(False)
+# getattr, so a tree without the sentence reads red here rather than raising.
+_c10_split = getattr(_entity_base, "COMBI_DHW_SPLIT", None)
+_c10_dhw = ("DHWHeatingCostSensor", "DHWEnergySensor", "DHWCostSensor",
+            "HeatPumpOptimizerClimate")
+R.check(
+    "on a combi store each hot-water figure says it is the pump's hot-water "
+    "mode, space heat drawn from the store included (Carry 10)",
+    _c10_on["precondition"]
+    and isinstance(_c10_split, str)
+    and all((_c10_on[n] or {}).get("dhw_split") == _c10_split for n in _c10_dhw)
+    and "space heat drawn from the store" in _c10_split
+    and "dhw_split" not in _c10_on["SpaceEnergySensor"],
+    repr({n: (_c10_on[n] or {}).get("dhw_split") for n in _c10_dhw}),
+)
+R.check(
+    "and off a combi store none states it (Carry 10 null)",
+    not _c10_off["precondition"]
+    and _c10_off["DHWHeatingCostSensor"] is None
+    and not any("dhw_split" in (_c10_off[n] or {}) for n in _c10_dhw),
+    repr({n: _c10_off[n] for n in ("DHWHeatingCostSensor",)}),
+)
+R.check(
+    "the split statement is shown but never recorded (Carry 10, #1462's rule)",
+    all("dhw_split" in getattr(cls, "_unrecorded_attributes", frozenset())
+        for cls in (sensor.DHWHeatingCostSensor, sensor.DHWEnergySensor,
+                    sensor.DHWCostSensor, _climate_platform.HeatPumpOptimizerClimate)),
+)
+
 # --- R9-UX-7 (#1795): model status and the next-interval prediction ---------
 #
 # The learning view the coordinator already publishes had no reader but the
@@ -6591,9 +6712,9 @@ R.check(
 # Two the audit brief flagged and this PR deliberately leaves alone, pinned so
 # a future "consistency" pass does not add a device class to either.
 R.check(
-    "ECL110 Displace stays bare: it is a parallel shift, not a temperature",
-    getattr(by_name["ECL110 Displace"], "_attr_device_class", None) is None
-    and by_name["ECL110 Displace"]._attr_native_unit_of_measurement == "°C",
+    "Heat-Curve Displace stays bare: it is a parallel shift, not a temperature",
+    getattr(by_name["Heat-Curve Displace"], "_attr_device_class", None) is None
+    and by_name["Heat-Curve Displace"]._attr_native_unit_of_measurement == "°C",
     "a TEMPERATURE device class would have HA convert a delta as an absolute",
 )
 R.check(
@@ -10536,6 +10657,425 @@ R.check(
     f"services.yaml has {len(services)}",
 )
 
+# ---------------------------------------------------------------------------
+# R10-USER-TEXT-VERIFY-STRINGS: the user-visible claims a test can read mechanically, each against the artifact that
+# decides it, never a comment; the prose claims are judged in dev/audit/rounds/round10/user-text/RECORD.md.
+# ---------------------------------------------------------------------------
+import voluptuous as _ut_vol
+
+from heatpump_optimizer import accuracy as _ut_accuracy
+from heatpump_optimizer import const as _ut_const
+from heatpump_optimizer import legionella as _ut_legionella
+from heatpump_optimizer import presets as _ut_presets
+from heatpump_optimizer import pump_arbiter as _ut_arbiter
+from heatpump_optimizer import services as _ut_services
+from heatpump_optimizer import snapshots as _ut_snapshots
+from heatpump_optimizer import wood_fuel as _ut_wood
+from heatpump_optimizer.optimizer import OptimizationConfig as _UtOptimizationConfig
+
+_UT_STRINGS = json.loads((ROOT / "strings.json").read_text())
+
+
+def _ut_text(key: str, catalogue: dict | None = None) -> str:
+    node = _UT_STRINGS if catalogue is None else catalogue
+    for part in key.split("."):
+        node = node[part]
+    return node
+
+
+def _ut_dict_schema(schema):
+    """The vol.Schema whose dict a registered service schema validates (set_away's is inside a vol.All)."""
+    if isinstance(schema, _ut_vol.Schema) and isinstance(schema.schema, dict):
+        return schema
+    for inner in getattr(schema, "validators", ()):
+        found = _ut_dict_schema(inner)
+        if found is not None:
+            return found
+    return None
+
+
+class _UtRegistry:
+    """A stand-in for hass.services that records what async_register_services registers, so the schemas read
+    are the ones production hands Home Assistant, not a name-matched guess."""
+
+    def __init__(self) -> None:
+        self.schemas: dict = {}
+        self.services = self
+
+    def async_register(self, domain, service, handler, schema=None, **_kw) -> None:
+        self.schemas[service] = schema
+
+
+_ut_registry = _UtRegistry()
+_ut_services.async_register_services(_ut_registry)
+_UT_SCHEMAS = {service: _ut_dict_schema(schema) for service, schema in _ut_registry.schemas.items()}
+
+
+def _ut_fields(schema) -> dict:
+    return {str(getattr(marker, "schema", marker)): validator for marker, validator in schema.schema.items()}
+
+
+def _ut_field_findings(catalog: dict) -> list[str]:
+    """services.yaml fields that no registered schema names exactly, and number-selector bounds the field's own
+    validator refuses: the form would offer a value the handler rejects."""
+    out = []
+    for service, body in catalog.items():
+        schema = _UT_SCHEMAS.get(service)
+        want = set((body or {}).get("fields") or {})
+        if schema is None or set(fields := _ut_fields(schema)) != want:
+            out.append(f"{service}: its registered schema's fields are not exactly its services.yaml fields")
+            continue
+        for field, spec in ((body or {}).get("fields") or {}).items():
+            number = ((spec or {}).get("selector") or {}).get("number") or {}
+            for bound in ("min", "max"):
+                if bound not in number:
+                    continue
+                try:
+                    _ut_vol.Schema(fields[field])(number[bound])
+                except _ut_vol.Invalid as err:
+                    out.append(f"{service}.{field}: selector {bound} {number[bound]} refused ({err})")
+    return out
+
+
+R.check("services.yaml names exactly the registered services, each with exactly its registered schema's fields, and every number "
+        "selector's min and max pass that field's validator (R10-USER-TEXT-VERIFY-STRINGS)",
+        set(services) == set(_UT_SCHEMAS) and not (_ut_bad := _ut_field_findings(services)),
+        f"{sorted(set(services) ^ set(_UT_SCHEMAS))} " + "; ".join(_ut_bad[:4]))
+_ut_planted = json.loads(json.dumps(services))
+_ut_planted["set_thermal_parameters"]["fields"]["house_thermal_mass"]["selector"]["number"]["max"] = 10**6
+_ut_planted["simulate_plan"]["fields"]["planted_field"] = {"selector": {"text": None}}
+R.check("null control: a planted out-of-range selector max and a planted field no schema names are both refused",
+        len(_ut_bad := _ut_field_findings(_ut_planted)) == 2, repr(_ut_bad))
+try:
+    _UT_SCHEMAS["set_thermal_parameters"]({"planted_probe": 1.0})
+    _ut_probe_refused = False
+except _ut_vol.Invalid as err:
+    _ut_probe_refused = "extra keys not allowed" in str(err)
+R.check("the probe a field-set read does not name: set_thermal_parameters' schema refuses an unknown key, so its "
+        "field set is the set it accepts", _ut_probe_refused)
+
+# r11-service-schema: simulate_plan's number fields bound what their selectors offer, and each field takes the range
+# of the path that saves the setting: apply_schedule's validator for a field that service writes (the card's what-if
+# save), the options flow's selector for one only that flow writes. A design choice: the what-if prices only a value
+# a save would store. The three fields outside it are dispositioned by name, so a new number field must be too.
+from heatpump_optimizer import config_flow as _ss_config_flow
+
+_SS_SAVED_BY_SCHEDULE = {"target_temp": _ut_const.CONF_TARGET_TEMP, "comfort_temp_day": "comfort_temp_day",
+                         "dhw_setpoint": _ut_const.CONF_DHW_SETPOINT, "dhw_min_temperature": "dhw_min_temperature"}
+_SS_SAVED_BY_OPTIONS = {"min_temp": _ut_const.CONF_MIN_TEMP, "max_temp": _ut_const.CONF_MAX_TEMP,
+                        "comfort_weight": _ut_const.CONF_COMFORT_WEIGHT,
+                        "comfort_temp_night": _ut_const.CONF_COMFORT_TEMP_NIGHT}
+# silent_mode_power_fraction: the schema holds apply_schedule's 0..1, the selector the narrower usable 0.6..1;
+# the wood price and efficiency: wood_fuel._wood_override_fuel answers wood_fuel_not_ready outside its range, and the
+# options flow scales the price ceiling by currency, so no SEK bound is the saved one.
+_SS_EXEMPT = {"silent_mode_power_fraction", "wood_price_sek_m3", "wood_furnace_efficiency"}
+
+
+def _ss_range(validator) -> tuple | None:
+    for inner in getattr(validator, "validators", ()):
+        if isinstance(inner, _ut_vol.Range):
+            return (inner.min, inner.max)
+    return None
+
+
+def _ss_findings(catalog: dict, schemas: dict) -> list[str]:
+    sim = _ut_fields(schemas["simulate_plan"])
+    sched = _ut_fields(schemas["apply_schedule"])
+    options = {row.key: row.widget for row in _ss_config_flow._OPTION_FIELDS}
+    out = []
+    numbers = {f: s["selector"]["number"] for f, s in catalog["simulate_plan"]["fields"].items()
+               if "number" in ((s or {}).get("selector") or {})}
+    if not set(_SS_SAVED_BY_SCHEDULE) | set(_SS_SAVED_BY_OPTIONS) <= set(numbers) - _SS_EXEMPT:
+        out.append("a mapped field is no longer a simulate_plan number field")
+    for field, number in sorted(numbers.items()):
+        if field in _SS_EXEMPT:
+            continue
+        lo, hi, step = number.get("min"), number.get("max"), number.get("step", 1)
+        for probe in (lo - step, hi + step):
+            try:
+                _ut_vol.Schema(sim[field])(probe)
+                out.append(f"simulate_plan.{field}: accepts {probe}, past its selector {lo}..{hi}")
+            except _ut_vol.Invalid:
+                pass
+        if field in _SS_SAVED_BY_SCHEDULE:
+            saved = _ss_range(sched[_SS_SAVED_BY_SCHEDULE[field]])
+        elif field in _SS_SAVED_BY_OPTIONS:
+            cfg = options[_SS_SAVED_BY_OPTIONS[field]].config
+            saved = (cfg["min"], cfg["max"])
+        else:
+            continue
+        if not (saved == _ss_range(sim[field]) == (lo, hi)):
+            out.append(f"simulate_plan.{field}: selector {lo}..{hi}, schema {_ss_range(sim[field])}, saved {saved}")
+    return out
+
+
+R.check("simulate_plan: every number field refuses one step past its selector, and each mapped field's selector and "
+        "schema range are its save path's (r11-service-schema)",
+        not (_ss_bad := _ss_findings(services, _UT_SCHEMAS)), "; ".join(_ss_bad[:4]))
+_ss_planted_schemas = dict(_UT_SCHEMAS)
+_ss_planted_schemas["simulate_plan"] = _ut_vol.Schema({**_UT_SCHEMAS["simulate_plan"].schema,
+                                                       _ut_vol.Optional("comfort_weight"): _ut_vol.Coerce(float)})
+_ss_planted = json.loads(json.dumps(services))
+_ss_planted["simulate_plan"]["fields"]["min_temp"]["selector"]["number"]["max"] = 24
+R.check("null control: an unbounded comfort_weight and a min_temp selector narrower than its saved range are both "
+        "refused, and nothing else", {f.split(":")[0] for f in _ss_findings(_ss_planted, _ss_planted_schemas)}
+        == {"simulate_plan.comfort_weight", "simulate_plan.min_temp"}, repr(_ss_findings(_ss_planted, _ss_planted_schemas)))
+
+
+# r11-service-schema: an example is sent verbatim by the service form's "fill example data", and an absolute instant
+# ages: apply_manual_plan's 2024 expiry was refused as not in the future, set_away's return turned away off at once.
+# A leaf is an instant when either production parser reads it (manual_plan's slots and expiry, away's return time),
+# so the check is keyed on what a call would do; no relative datetime form exists to keep in its place.
+from heatpump_optimizer import manual_plan as _ss_manual
+
+_SS_NOW = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def _ss_instant(leaf) -> bool:
+    if isinstance(leaf, bool):
+        return False
+    try:
+        _ss_manual._parse_dt(leaf, _SS_NOW)
+        return True
+    except _ss_manual.ManualPlanError:
+        return _away_mod._parse_return_time(leaf) is not None
+
+
+def _ss_absolute(value) -> bool:
+    if isinstance(value, dict):
+        return any(_ss_absolute(v) for v in value.values())
+    if isinstance(value, list):
+        return any(_ss_absolute(v) for v in value)
+    return _ss_instant(value)
+
+
+def _ss_dated_examples(catalog: dict) -> list[str]:
+    return [f"{svc}.{field}" for svc, body in catalog.items()
+            for field, spec in ((body or {}).get("fields") or {}).items()
+            if "example" in (spec or {}) and _ss_absolute(spec["example"])]
+
+
+R.check("no services.yaml example is a date or datetime either production parser reads (r11-service-schema)",
+        not (_ss_dated := _ss_dated_examples(services)), repr(_ss_dated))
+# The spelling corpus: each raw spelling wrapped unquoted, single- and double-quoted, alone and as a slot's start and
+# end, then YAML-loaded as Home Assistant loads services.yaml (an unquoted stamp arrives as a date, a datetime or an
+# int). The oracle is production reading the raw text; the classifier sees only the loaded value.
+_ss_spellings = [f"{d}{t}{z}" for d in ("2024-01-02", "20240102") for t in ("", "T00:00", "T00:00:00", " 00:00:00",
+                 "T00:00:00.500") for z in (("",) if not t else ("", "Z", "+01:00", "-05:30"))]
+_ss_spellings += [s.lower() for s in _ss_spellings if "T" in s]
+_ss_cases = []
+for _ss_raw in _ss_spellings:
+    for _ss_q in ("", "'", '"'):
+        _ss_v = f"{_ss_q}{_ss_raw}{_ss_q}"
+        _ss_cases.append((_ss_raw, yaml.safe_load(f"example: {_ss_v}")["example"]))
+        _ss_cases.append((_ss_raw, yaml.safe_load(f"example:\n- start: {_ss_v}\n  end: {_ss_v}")["example"]))
+_ss_wrong = [(raw, loaded) for raw, loaded in _ss_cases if _ss_absolute(loaded) != _ss_instant(raw)]
+_ss_negatives = ["06:00-08:30, 17:00-22:00", "22:00-06:00", "weekend 23:00-07:00", "01JABCDEFGHJKMNPQRSTVWXYZ0",
+                 "snapshot", "settings", "two_tank_4way", "sensor.buffer_tank", 20, 0.7, -20, True, ["house_heat_loss_scale"]]
+R.check(f"the dated-example check agrees with production on all {len(_ss_cases)} generated spellings (date, time, "
+        "zone, case, YAML quoting, nested in a slot), both outcomes present, and flags none of the tree's undated "
+        "example shapes",
+        not _ss_wrong and {_ss_instant(r) for r, _ in _ss_cases} == {True, False}
+        and not any(map(_ss_absolute, _ss_negatives)),
+        repr(_ss_wrong[:3] + [v for v in _ss_negatives if _ss_absolute(v)]))
+
+# The wood price selector's floor is a price the what-if accepts: `_wood_override_fuel` refuses a price <= 0.
+_ut_wood_ok = {_ut_const.CONF_WOOD_TYPE: "birch", _ut_const.CONF_WOOD_PACKING: "packed",
+               _ut_const.CONF_WOOD_FURNACE_EFFICIENCY: 75.0}
+_ut_wood_min = services["simulate_plan"]["fields"]["wood_price_sek_m3"]["selector"]["number"]["min"]
+R.check("simulate_plan's wood price selector minimum is a price the what-if computes with",
+        _ut_wood._wood_override_fuel({**_ut_wood_ok, _ut_const.CONF_WOOD_PRICE_SEK_M3: _ut_wood_min}, {}) is not None,
+        f"min {_ut_wood_min}")
+R.check("null control: the same call at price 0 is refused, so the check above can fail",
+        _ut_wood._wood_override_fuel({**_ut_wood_ok, _ut_const.CONF_WOOD_PRICE_SEK_M3: 0}, {}) is None)
+
+_UT_UNIT_WORDS = {"°C per hour": "°C/h"}
+_UT_UNIT_RE = _re.compile(r"\bin (kWh/°C|kW/°C|°C per hour|°C/h|L/day|°C|L|m²|days)(?![\w/])")
+
+
+def _ut_unit_findings(catalog: dict, strings: dict) -> list[str]:
+    """A field description that states its unit ("in kW/°C") disagrees with its selector's unit_of_measurement."""
+    out = []
+    for service, body in catalog.items():
+        for field, spec in ((body or {}).get("fields") or {}).items():
+            unit = (((spec or {}).get("selector") or {}).get("number") or {}).get("unit_of_measurement")
+            text = strings["services"][service]["fields"][field]["description"]
+            stated = [_UT_UNIT_WORDS.get(m, m) for m in _UT_UNIT_RE.findall(text)]
+            if unit and stated and stated[0] != unit:
+                out.append(f"{service}.{field}: text says {stated[0]}, selector {unit}")
+    return out
+
+
+_ut_units = [(s, f) for s, b in services.items() for f, spec in ((b or {}).get("fields") or {}).items()
+             if (((spec or {}).get("selector") or {}).get("number") or {}).get("unit_of_measurement")
+             and _UT_UNIT_RE.search(_UT_STRINGS["services"][s]["fields"][f]["description"])]
+R.check("every service field whose description states its unit states the selector's unit (anchor: some do)",
+        len(_ut_units) >= 5 and not (_ut_bad := _ut_unit_findings(services, _UT_STRINGS)),
+        f"{len(_ut_units)} stated; " + "; ".join(_ut_bad))
+_ut_planted = json.loads(json.dumps(_UT_STRINGS))
+_ut_planted["services"]["set_thermal_parameters"]["fields"]["house_thermal_mass"]["description"] = (
+    "Planted: in kW/°C. " + _ut_planted["services"]["set_thermal_parameters"]["fields"]["house_thermal_mass"]["description"])
+R.check("null control: a planted kW/°C in the kWh/°C thermal-mass field is one finding",
+        len(_ut_unit_findings(services, _ut_planted)) == 1, repr(_ut_unit_findings(services, _ut_planted)))
+
+#: (strings.json key, the phrase as shipped, the number it states, the value the code decides it with, that value's
+#: name). A phrase reworded away fails its row, so a rewrite re-reads the constant instead of drifting from it.
+_UT_NUMBER_CLAIMS = [
+    ("issues.dhw_disinfection_switch_lost.description", "half an hour", 30,
+     _ut_const.DHW_DISINFECTION_LOST_MINUTES, "const.DHW_DISINFECTION_LOST_MINUTES"),
+    ("issues.accuracy_drift.description", "three settled days", 3,
+     _ut_accuracy.REFIT_SETTLED_DAYS, "accuracy.REFIT_SETTLED_DAYS"),
+    ("issues.accuracy_drift_rolled_back.description", "three settled days", 3,
+     _ut_accuracy.REFIT_SETTLED_DAYS, "accuracy.REFIT_SETTLED_DAYS"),
+    ("exceptions.restore_learned_snapshot_no_refit.message", "three settled days", 3,
+     _ut_accuracy.REFIT_SETTLED_DAYS, "accuracy.REFIT_SETTLED_DAYS"),
+    ("services.restore_learned_snapshot.description", "three settled days", 3,
+     _ut_accuracy.REFIT_SETTLED_DAYS, "accuracy.REFIT_SETTLED_DAYS"),
+    ("issues.accuracy_drift.description", "±7-10 %", 10, _ut_accuracy.REFIT_BAND_PERCENT, "accuracy.REFIT_BAND_PERCENT"),
+    ("issues.accuracy_drift_rolled_back.description", "±7-10 %", 10,
+     _ut_accuracy.REFIT_BAND_PERCENT, "accuracy.REFIT_BAND_PERCENT"),
+    ("issues.accuracy_drift.description", "weekly snapshot", 7,
+     _ut_snapshots.SNAPSHOT_INTERVAL_DAYS, "snapshots.SNAPSHOT_INTERVAL_DAYS"),
+    ("services.restore_learned_snapshot.description", "weekly snapshot", 7,
+     _ut_snapshots.SNAPSHOT_INTERVAL_DAYS, "snapshots.SNAPSHOT_INTERVAL_DAYS"),
+    ("entity.sensor.dhw_heating_cost.name", "(next 24 h)", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("entity.sensor.plan_dhw_heating.name", "(next 24 h)", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("entity.sensor.plan_space_heating.name", "(next 24 h)", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("services.run_optimization.description", "next 24 hours", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("services.apply_manual_plan.fields.expires_at.description", "20 hours from now", 20,
+     _ut_const.MANUAL_PLAN_WINDOW_HOURS, "const.MANUAL_PLAN_WINDOW_HOURS"),
+    ("services.apply_manual_plan.fields.expires_at.description", "24-hour horizon", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("services.set_mode.fields.mode.description", "1.5 °C below", 1.5,
+     _ut_const.ECONOMY_MIN_TEMP_WIDENING, "const.ECONOMY_MIN_TEMP_WIDENING"),
+    ("services.set_mode.fields.mode.description", "never below 15 °C", 15,
+     _ut_const.ECONOMY_ABSOLUTE_FLOOR, "const.ECONOMY_ABSOLUTE_FLOOR"),
+    ("issues.pump_write_ignored.description", "every five minutes", 5,
+     _ut_arbiter.RETRY_MINUTES, "pump_arbiter.RETRY_MINUTES"),
+    ("issues.dhw_legionella_overdue.description", "about a day after", 24,
+     _ut_legionella.DHW_LEGIONELLA_RETRY_HOURS, "legionella.DHW_LEGIONELLA_RETRY_HOURS"),
+    ("issues.dhw_legionella_unreachable.description", "about a day later", 24,
+     _ut_legionella.DHW_LEGIONELLA_RETRY_HOURS, "legionella.DHW_LEGIONELLA_RETRY_HOURS"),
+    ("services.set_thermal_parameters.fields.dhw_cooling_rate.description", "at 45 °C tank temperature", 45,
+     _ut_const.DHW_COOLING_REFERENCE_TANK_TEMP, "const.DHW_COOLING_REFERENCE_TANK_TEMP"),
+    ("services.set_thermal_parameters.fields.dhw_cooling_rate.description", "and 20 °C ambient", 20,
+     _ut_const.DHW_COOLING_REFERENCE_AMBIENT_TEMP, "const.DHW_COOLING_REFERENCE_AMBIENT_TEMP"),
+    ("services.set_thermal_parameters.fields.buffer_cooling_rate.description", "at 25 °C above ambient", 25,
+     _ut_const.DHW_COOLING_REFERENCE_DELTA, "const.DHW_COOLING_REFERENCE_DELTA"),
+    ("services.set_thermal_parameters.fields.dhw_legionella_temperature.description", "55 to 70 °C", 70,
+     ThermalParameters(dhw_setpoint=90.0).dhw_hard_max_temp, "ThermalParameters.dhw_hard_max_temp"),
+    *((f"services.{s}.fields.silent_mode_power_fraction.description", "raised to 0.6", 0.6,
+       _ut_const.CAPACITY_FLOOR_FRACTION, "const.CAPACITY_FLOOR_FRACTION")
+      for s in ("set_thermal_parameters", "simulate_plan", "apply_schedule")),
+    ("services.set_thermal_parameters.fields.slab_heat_transfer.description", "a fifth of a floor slab's", 0.2,
+     _ut_presets._EMITTER_RADIATOR_TRANSFER_PER_M2 / _ut_presets._EMITTER_SLAB_TRANSFER_PER_M2,
+     "presets._EMITTER_RADIATOR_TRANSFER_PER_M2 / _EMITTER_SLAB_TRANSFER_PER_M2"),
+]
+
+
+def _ut_number_findings(claims: list, strings: dict) -> list[str]:
+    out = []
+    for key, phrase, stated, decided, name in claims:
+        if phrase not in _ut_text(key, strings):
+            out.append(f"{key}: the phrase {phrase!r} is gone; re-read {name} and update this row")
+        elif abs(float(decided) - float(stated)) > 1e-9:
+            out.append(f"{key}: says {phrase!r} ({stated}) but {name} is {decided}")
+    return out
+
+
+R.check(f"each of the {len(_UT_NUMBER_CLAIMS)} numbers quoted in user text equals the constant the code decides it "
+        "with", not (_ut_bad := _ut_number_findings(_UT_NUMBER_CLAIMS, _UT_STRINGS)), "; ".join(_ut_bad[:4]))
+_ut_planted = json.loads(json.dumps(_UT_STRINGS))
+_ut_planted["issues"]["dhw_disinfection_switch_lost"]["description"] = _ut_text(
+    "issues.dhw_disinfection_switch_lost.description").replace("half an hour", "six hours")
+R.check("null control: the disinfection repair reworded to 'six hours' is one finding, and a constant moved off its "
+        "stated value is another",
+        len(_ut_number_findings(_UT_NUMBER_CLAIMS, _ut_planted)) == 1
+        and len(_ut_number_findings([(*_UT_NUMBER_CLAIMS[0][:3], 360.0, "planted")], _UT_STRINGS)) == 1)
+
+
+# Every raise that hands Home Assistant a translation key also passes an English message, which the exception's str()
+# returns to logs, script and automation traces and API callers. This round judged the catalogue's message, so the
+# fallback may state nothing that message does not: its literal fragments, in order, spell exactly the catalogue's
+# English message, each of the fallback's own placeholders standing for any text (the catalogue's placeholder, or a
+# word it spells out, as "three" for REFIT_SETTLED_DAYS, which the numbers row above pins). A key or message passed
+# through a parameter of the raising function is read at every call of it, as a pair. A computed message (`str(err)`,
+# `comfort_band.describe(...)`, a caller's `reason`) has no literal of its own to judge; it is counted, not matched.
+def _ut_fallback_findings(sources: dict, catalogue: dict) -> tuple[int, int, list[str]]:
+    matched, computed, out = 0, 0, []
+    for name, text in sorted(sources.items()):
+        tree = ast.parse(text)
+        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
+        for fn in [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+            params = [a.arg for a in fn.args.args]
+
+            def passed(node, call):
+                """The node a parameter-named ``node`` is bound to at ``call``, else ``node`` itself."""
+                if not (isinstance(node, ast.Name) and node.id in params):
+                    return node
+                at = params.index(node.id)
+                return next((k.value for k in call.keywords if k.arg == node.id),
+                            call.args[at] if at < len(call.args) else None)
+
+            for node in ast.walk(fn):
+                if not (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)):
+                    continue
+                kw = {k.arg: k.value for k in node.exc.keywords}
+                if "translation_key" not in kw:
+                    continue
+                key, msg = kw["translation_key"], node.exc.args[0] if node.exc.args else None
+                through = any(isinstance(n, ast.Name) and n.id in params for n in (key, msg))
+                sites = [c for c in calls if c.func.id == fn.name] if through else [None]
+                if not sites:
+                    out.append(f"{name}:{node.lineno}: {fn.name} passes its key or message through, and nothing calls it")
+                for call in sites:
+                    k, m = (n if call is None else passed(n, call) for n in (key, msg))
+                    where = f"{name}:{node.lineno if call is None else call.lineno}"
+                    if not (isinstance(k, ast.Constant) and isinstance(k.value, str)):
+                        out.append(f"{where}: the translation key {ast.unparse(k) if k else None} is not a literal")
+                        continue
+                    want = (catalogue.get(k.value) or {}).get("message")
+                    if want is None:
+                        out.append(f"{where}: no catalogue message for {k.value}")
+                        continue
+                    if isinstance(m, ast.Constant) and isinstance(m.value, str):
+                        parts = [m.value]
+                    elif isinstance(m, ast.JoinedStr):
+                        parts = [v.value if isinstance(v, ast.Constant) else None for v in m.values]
+                    else:
+                        computed += 1
+                        continue
+                    if _re.fullmatch("".join(".+?" if p is None else _re.escape(p) for p in parts), want, _re.S):
+                        matched += 1
+                    else:
+                        out.append(f"{where}: the fallback {ast.unparse(m)[:90]!r} is not {k.value}'s message {want!r}")
+    return matched, computed, out
+
+
+_UT_PY = {p.name: p.read_text() for p in sorted(ROOT.glob("*.py"))}
+_ut_matched, _ut_computed, _ut_bad = _ut_fallback_findings(_UT_PY, _UT_STRINGS["exceptions"])
+R.check("every raise that passes a translation key falls back to English its catalogue message states (anchor: at "
+        "least 30 literal fallbacks matched)", _ut_matched >= 30 and not _ut_bad,
+        f"{_ut_matched} matched, {_ut_computed} computed; " + "; ".join(_ut_bad[:4]))
+_ut_planted = dict(_UT_PY)
+_ut_planted["services.py"] = _UT_PY["services.py"].replace(
+    "settings and learned state are \"\n                \"unchanged, and only the undo snapshot the reset takes first was saved",
+    "nothing was changed")
+_ut_planted["debugger.py"] = _UT_PY["debugger.py"].replace('translation_key="debug_collect_inactive"',
+                                                           'translation_key="planted_unknown_key"')
+_ut_planted["coordinator.py"] = _UT_PY["coordinator.py"].replace(
+    '_raise_update_failed("update_failed", f"Error updating data: {err}"',
+    '_raise_update_failed("update_failed", f"Planted: nothing was changed: {err}"', 1)
+R.check("null control: the factory reset's merge-base fallback ('nothing was changed'), a key the catalogue lacks and "
+        "a planted message passed through _raise_update_failed are three findings",
+        len(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[2]) == 3,
+        repr(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[2]))
+
+
 R.check("simulate_plan is documented", "simulate_plan" in services)
 R.check(
     "its fields are documented for the UI",
@@ -10629,14 +11169,6 @@ R.check(
     ],
     "omitting a channel entirely must stay a legal call (leave it automatic)",
 )
-# D6-02 (#172): the documented example is what a user pastes into Developer
-# Tools. Folded into a string it read as JSON and failed the schema's own
-# ``[dict]`` the moment it was submitted.
-_manual_examples = {
-    field: spec["example"]
-    for field, spec in services["apply_manual_plan"]["fields"].items()
-    if "example" in spec
-}
 
 
 def _example_passes(schema, payload) -> tuple[bool, str]:
@@ -10647,22 +11179,9 @@ def _example_passes(schema, payload) -> tuple[bool, str]:
     return True, ""
 
 
-_manual_ok, _manual_why = _example_passes(
-    integration.SERVICE_SCHEMA_APPLY_MANUAL_PLAN, _manual_examples
-)
-R.check(
-    "the documented apply_manual_plan example passes the service's own schema",
-    bool(_manual_examples) and _manual_ok,
-    _manual_why,
-)
-R.check(
-    "and its slot examples are structured lists, not folded strings",
-    all(
-        isinstance(_manual_examples.get(f), list) and _manual_examples[f]
-        for f in ("space_slots", "dhw_slots")
-    ),
-    str({f: type(_manual_examples.get(f)).__name__ for f in ("space_slots", "dhw_slots")}),
-)
+# D6-02 (#172) pinned apply_manual_plan's slot examples here as structured lists; r11-service-schema removed them and
+# the expiry's, since each is an absolute instant that ages into a refusal. A re-added one is held by the
+# every-example-passes-its-schema check (a folded string fails ``[dict]``) and the no-dated-example check.
 
 R.check("clear_manual_plan is documented", "clear_manual_plan" in services)
 R.check(
@@ -11113,7 +11632,7 @@ R.check(
 _pub_fails = FakeCoordinator(DATA)
 
 
-async def _raise_publish(reason=None):
+async def _raise_publish(reason=None, heat_pump_on=None):
     raise OSError("mqtt unreachable")
 
 
@@ -12706,7 +13225,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
         "internal_gains_kw", "learner_progress", "lower_floor", "pump_max_power",
-        "pump_max_power_reason", "pump_max_power_source", "solar_aperture",
+        "pump_max_power_reason", "pump_max_power_source", "pump_min_power",
+        "pump_min_power_reason", "pump_min_power_source", "solar_aperture",
         "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
@@ -13020,7 +13540,7 @@ for _module, _name in (
 R.section("Naming, translation keys and id stability (v5.0.0)")
 
 _named_entities = (
-    [("sensor", s) for s in sensors]
+    [("sensor", s) for s in (*sensors, *room_sensors)]
     + [("binary_sensor", b) for b in binaries]
     + [("button", b) for b in buttons]
     + [("switch", s) for s in switches]
@@ -15726,6 +16246,30 @@ R.check(
     and _svc_fr == {"reset": _svc_entry.entry_id, "scope": "learners"},
     str(_svc_fr),
 )
+
+
+async def _svc_fr_refused(coord, scope):
+    return False  # Home Assistant refused the unload: the undo snapshot is saved, nothing else
+
+
+# The refused arm's English message is what the exception's str() hands logs, traces and API callers (R10-USER-TEXT-
+# VERIFY-STRINGS): it is the judged catalogue message, entry id filled, never the merge base's "nothing was changed".
+_svc_module.async_factory_reset = _svc_fr_refused
+try:
+    _svc_call(const.SERVICE_FACTORY_RESET, {"entry_id": _svc_entry.entry_id, "scope": "learners"})
+    _svc_fr_err = None
+except Exception as err:  # noqa: BLE001 -- the class is read below
+    _svc_fr_err = err
+finally:
+    _svc_module.async_factory_reset = _svc_fr_real
+_svc_fr_want = json.loads((ROOT / "strings.json").read_text())["exceptions"]["factory_reset_not_applied"]["message"]
+R.check(
+    "a refused factory_reset raises factory_reset_not_applied, whose English message is the catalogue's, entry id filled",
+    type(_svc_fr_err).__name__ == "HomeAssistantError"
+    and getattr(_svc_fr_err, "translation_key", None) == "factory_reset_not_applied"
+    and str(_svc_fr_err) == _svc_fr_want.format(entry_id=_svc_entry.entry_id),
+    repr(_svc_fr_err),
+)
 R.check(
     "reset_heat_loss_learners reaches the coordinator and reports what it reset",
     "reset_heat_loss" in _svc_log
@@ -17772,6 +18316,7 @@ R.check(
     set(_nightly.A4_INSIDE) <= set(_nightly.INSIDE_CHECKS)
     and set(_nightly.A4_INSIDE)
     == {
+        "a4:bridged",
         "a4:failed",
         "a4:unavailable",
         "a4:buttons",
@@ -17794,6 +18339,49 @@ R.check(
     and "send_response(500)" in _a4_serve_src
     and "send_response(401)" not in _a4_serve_src,
     "A4 must go through the Tibber counterparty (E57), not the FakeCoordinator poke",
+)
+# The price source is exhausted at the counterparty (a 200 with an ended curve,
+# which pull_prices accepts), never by writing the coordinator's prices.
+_a4_end_src = _inspect.getsource(_nightly.end_price_curve)
+R.check(
+    "A4 exhausts the published prices at the counterparty, not the coordinator",
+    "end_price_curve(True)" in _a4_walk_src
+    and "end_price_curve(False)" in _a4_walk_src
+    and "_prices" not in _a4_walk_src
+    and "_PRICE_CURVE_ENDED" in _a4_end_src
+    and "_PRICE_CURVE_ENDED" in _a4_serve_src
+    and "_ENDED_CURVE_AGE" in _a4_serve_src
+    and _nightly._ENDED_CURVE_AGE >= _nightly.timedelta(days=1),
+    "A4 phase 2 must reach UpdateFailed through the fake Tibber's ended curve",
+)
+_a4_bridge_before = [
+    {"entity_id": "sensor.a", "state": "1"},
+    {"entity_id": "button.b", "state": "unknown"},
+]
+_a4_bridge_up = [dict(r) for r in _a4_bridge_before]
+_a4_bridge_down = [
+    {"entity_id": "sensor.a", "state": "unavailable"},
+    {"entity_id": "button.b", "state": "unavailable"},
+]
+_a4_br_ok = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_ok, True, True, _a4_bridge_before, _a4_bridge_up)
+_a4_br_failed = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_failed, False, True, _a4_bridge_before, _a4_bridge_up)
+_a4_br_norepair = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_norepair, True, False, _a4_bridge_before, _a4_bridge_up)
+_a4_br_down = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_down, True, True, _a4_bridge_before, _a4_bridge_down)
+_a4_br_empty = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_empty, True, True, (), _a4_bridge_up)
+R.check(
+    "a4:bridged fails a failed update, a missing repair, an unavailable entity and an empty before-set",
+    all(
+        "a4:bridged" in c.failures()
+        for c in (_a4_br_failed, _a4_br_norepair, _a4_br_down, _a4_br_empty)
+    )
+    and "a4:bridged" not in _a4_br_ok.failures(),
+    f"ok={_a4_br_ok.results.get('a4:bridged')} failed={_a4_br_failed.results.get('a4:bridged')} "
+    f"norepair={_a4_br_norepair.results.get('a4:bridged')} down={_a4_br_down.results.get('a4:bridged')}",
 )
 _a4_failed_ok = _nightly.Checks()
 _nightly.check_a4_failed(_a4_failed_ok, False)
@@ -17885,7 +18473,7 @@ R.check(
     "and passing A4 checks still keep their detail",
     all(
         v[1]
-        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok)
+        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok, _a4_br_ok)
         for n, v in c.results.items()
         if n.startswith("a4:")
     ),
@@ -23798,6 +24386,16 @@ R.check(
     (_tick_run.stdout + _tick_run.stderr).strip()[-400:],
 )
 
+# --- R10-CI-PRIORITY-PAUSE: the tier rule, the train's pause and the sweep's priority/zombie rules ---
+for _cp_script in ("tools/audit/seat/ci_priority.py", "tools/audit/seat/ci_pause.py", "tools/pr/cancel_superseded.py"):
+    _cp_run = subprocess.run([sys.executable, "-I", str(_closure.ROOT / _cp_script), "--self-test"],
+                             capture_output=True, text=True, cwd=str(_closure.ROOT), check=False)
+    R.check(
+        f"{_cp_script} --self-test passes",
+        _cp_run.returncode == 0 and ", 0 failed" in _cp_run.stdout,
+        (_cp_run.stdout + _cp_run.stderr).strip()[-400:],
+    )
+
 # --- #493: inherited card claims on a roster-only three-dot -----------------
 #
 # PR #493 (squash ae97a65) touched only INERT roster/plan files. Claim files
@@ -25768,15 +26366,80 @@ R.check(
         if repr(_c) in _blob
     ),
 )
+def _diag_payload_at(when):
+    """The diagnostics payload with the clock pinned to ``when``."""
+    dt_util.freeze(when)
+    try:
+        _hass = FakeHass()
+        _entry = FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
+        _entry.runtime_data = integration.HeatPumpOptimizerCoordinator(
+            _hass, FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
+        )
+        return asyncio.run(_diag_mod.async_get_config_entry_diagnostics(_hass, _entry))
+    finally:
+        dt_util.freeze(None)
+
+
+def _clockless(a, b):
+    """``a`` with every value differing from ``b`` replaced by None, at any depth.
+
+    ``a`` and ``b`` are one payload taken at two pinned clocks, so what differs
+    is what the clock wrote (``exported_at``, the draw-range timestamp, any
+    later one) and no field is named here. A rounded coordinate such as "18.1"
+    is searched only in what is left, because a clock reading holds one by
+    chance (the check failed 1 of 2711 on main at 50373173).
+    """
+    if isinstance(a, dict) and isinstance(b, dict):
+        return {k: _clockless(v, b.get(k)) for k, v in a.items()}
+    if isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
+        return [_clockless(x, y) for x, y in zip(a, b)]
+    return a if a == b else None
+
+
+_CLOCK_A = datetime(2026, 1, 5, 3, 4, 5, tzinfo=UTC)
+_CLOCK_B = datetime(2026, 7, 9, 10, 11, 12, tzinfo=UTC)
+_ROUNDED = tuple(
+    str(round(_c, 1)) for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
+)
+
+
+def _rounded_hits(first, second):
+    """Each rounded coordinate found in the clock-free payload, with its context."""
+    blob = _json.dumps(_clockless(first, second), default=str)
+    return [
+        f"{r!r} in ...{blob[max(0, i - 40) : i + 20]}..."
+        for r in _ROUNDED
+        for i in [blob.find(r)]
+        if i >= 0
+    ]
+
+
+_diag_a = _diag_payload_at(_CLOCK_A)
+_diag_b = _diag_payload_at(_CLOCK_B)
 R.check(
     "the location is redacted whole, from data and from options, not coarsened",
     _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
     and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
-    and not any(
-        str(round(_c, 1)) in _blob
-        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
-    ),
-    repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)),
+    and not _rounded_hits(_diag_a, _diag_b),
+    repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION))
+    + " / rounded matches: "
+    + "; ".join(_rounded_hits(_diag_a, _diag_b)),
+)
+# The flake, deterministically: a clock reading that holds a rounded coordinate
+# fails the whole-blob search and passes the clock-free one.
+_diag_p = _diag_payload_at(datetime(2026, 1, 5, 3, 4, 18, 100000, tzinfo=UTC))
+R.check(
+    "the rounded-coordinate search ignores a clock reading that contains one",
+    any(r in _json.dumps(_diag_p, default=str) for r in _ROUNDED)
+    and not _rounded_hits(_diag_p, _diag_a),
+    "poisoned clock: whole-blob hit expected, clock-free hit not",
+)
+# Null control: a genuinely coarsened coordinate still fails the new search.
+_coarse = {**_diag_a, "config": {**_diag_a["config"], "coarse_probe": _ROUNDED[0]}}
+_coarse_b = {**_diag_b, "config": {**_diag_b["config"], "coarse_probe": _ROUNDED[0]}}
+R.check(
+    "a genuinely coarsened coordinate in the payload still fails the clock-free search",
+    bool(_rounded_hits(_coarse, _coarse_b)),
 )
 R.check(
     "a coordinate nested below the top level, inside a list, is redacted",
@@ -28612,22 +29275,6 @@ R.check(
     "without bound, and a body-REPLACING version deletes the 2.6 kB of "
     "tracking text that is the reason anyone opens #201 at all",
 )
-_DS_JOB = _workflow_job(
-    Path(".github/workflows/governance.yml").read_text(), "delivery-status")
-R.check(
-    "the ledger is wired into a job that runs on pull requests",
-    "github.event_name == 'pull_request'" in _DS_JOB
-    and "tests/delivery_status.py" in _DS_JOB,
-    f"pull_request={'pull_request' in _DS_JOB}, "
-    f"invoked={'tests/delivery_status.py' in _DS_JOB}",
-)
-R.check(
-    "and the pull-request lane passes no --since that would pin its answer",
-    "--since" not in _DS_JOB,
-    "`--since` names the window, so a job passing a fixed one would report the "
-    "same closed window for ever -- the always-green knob "
-    "`nightly_status.py`'s `--run` is pinned against",
-)
 # The permission widening, checked as a PROPERTY rather than as its instance:
 # the whole set of jobs in governance.yml that override the workflow's
 # `contents: read` floor. A job-level block REPLACES the floor for that job and
@@ -28643,19 +29290,16 @@ R.check(
 # both files: the blast radius did not change because a job changed file.
 _DS_GOV = Path(".github/workflows/governance.yml").read_text()
 _PC_WF = Path(".github/workflows/pr-contract.yml").read_text()
-_DS_PUB_JOB = _workflow_job(_DS_GOV, "delivery-status-publish")
 _DS_OVERRIDES = sorted(
     _m.group(1) for _wf_text in (_DS_GOV, _PC_WF) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _wf_text, re.M | re.S)
 )
 R.check(
-    "exactly three governance jobs override the workflow's read-only floor",
-    _DS_OVERRIDES == ["delivery-status-publish", "pr-contract", "record"],
+    "exactly two governance jobs override the workflow's read-only floor",
+    _DS_OVERRIDES == ["pr-contract", "record"],
     f"jobs with a permissions block: {_DS_OVERRIDES}. A fourth has to be argued "
-    "for rather than land, and the reporting lane is deliberately NOT one: "
-    "`delivery-status` runs on pull requests with no widening at all, because "
-    "it only reads the tree it is already checked out in",
+    "for rather than land (card C5 deleted the publishing lane)",
 )
 # EVERY GOVERNANCE JOB HOLDING A WRITE GRANT RUNS ONLY AT main (U4 resume).
 # Inside the umbrella `ci.yml`, a `workflow_dispatch` at a PR branch (autofix
@@ -28666,7 +29310,7 @@ R.check(
 # walked the whole `<tag>..origin/main` window on the GITHUB_TOKEN bucket #2629
 # budgets. The guard is read off the registered job and evaluated over literals;
 # the plant is the unguarded text, the null controls are the arms that must run.
-_RW_GOV_WRITERS = ("record", "delivery-status-publish")
+_RW_GOV_WRITERS = ("record",)
 _RW_OLD_RECORD_IF = (
     "github.event_name != 'pull_request' && github.event_name != 'merge_group'")
 _RW_PR_BRANCH = "refs/heads/claude/some-pr"
@@ -30301,7 +30945,7 @@ steps:
     run: |
       set -euo pipefail
       python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
-      for g in coverage_ratchet delivery_status; do
+      for g in coverage_ratchet; do
         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
           echo "$g=true" >> "$GITHUB_OUTPUT"
           echo "tests/$g.py changed: its own copy runs below"
@@ -30349,47 +30993,6 @@ steps:
     run: |
       python3 tests/coverage_ratchet.py \
         --coverage "$RUNNER_TEMP/coverage/coverage.json"
-
-  - name: The pull request's delivery_status.py, as `delivery-status` runs it
-    if: always() && steps.changed.outputs.delivery_status == 'true'
-    run: |
-      git fetch --no-tags --quiet origin main
-      # A non-zero exit shared with the base copy on this tree is that
-      # copy's own. Exit with the pull request's code only when the two
-      # differ, and exit 1 when this copy prints OVERDUE and the base
-      # copy does not: both of those exits are 1, so the codes alone
-      # cannot separate them.
-      head_copy="$RUNNER_TEMP/delivery_status.head.py"
-      cp tests/delivery_status.py "$head_copy"
-      git show origin/main:tests/delivery_status.py > tests/delivery_status.py
-      set +e
-      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
-      base_rc=$?
-      set -e
-      cp "$head_copy" tests/delivery_status.py
-      set +e
-      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
-      head_rc=$?
-      set -e
-      cat "$RUNNER_TEMP/delivery_status.base.out"
-      echo "----- head copy -----"
-      cat "$RUNNER_TEMP/delivery_status.head.out"
-      echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
-      head_overdue=0
-      base_overdue=0
-      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
-        head_overdue=1
-      fi
-      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
-        base_overdue=1
-      fi
-      if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
-        exit 1
-      fi
-      if [ "$head_rc" -ne "$base_rc" ]; then
-        exit "$head_rc"
-      fi
-      exit 0
 
   - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
@@ -30567,97 +31170,6 @@ R.check(
 )
 
 
-def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
-              head_verdict: str = "UNCHECKED", base_verdict: str = "UNCHECKED") -> int:
-    """Run the delivery_status step under bash -e with stub git and python.
-
-    The stub python prints `DELIVERY STATUS <verdict>` and exits with the
-    code for whichever copy the step has in tests/delivery_status.py, so the
-    step's own comparison is what the return code measures.
-    """
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        (root / "tests").mkdir()
-        (root / "tests" / "delivery_status.py").write_text(f"HEAD {head_verdict}\n")
-        (root / "rt").mkdir()
-        bindir = root / "bin"
-        bindir.mkdir()
-        (bindir / "git").write_text(
-            "#!/bin/sh\n"
-            "case \"$1\" in\n"
-            "  fetch) exit 0 ;;\n"
-            f"  show) printf 'BASE {base_verdict}\\n' ;;\n"
-            "  *) echo unexpected git \"$1\" >&2; exit 9 ;;\n"
-            "esac\n")
-        (bindir / "python").write_text(
-            "#!/bin/sh\n"
-            "f=$(cat tests/delivery_status.py)\n"
-            "case \"$f\" in\n"
-            "  *OVERDUE*) echo 'DELIVERY STATUS OVERDUE — x' ;;\n"
-            "  *) echo 'DELIVERY STATUS UNCHECKED — x' ;;\n"
-            "esac\n"
-            "case \"$f\" in\n"
-            f"  HEAD*) exit {head_rc} ;;\n"
-            f"  BASE*) exit {base_rc} ;;\n"
-            "  *) echo unreadable copy >&2; exit 9 ;;\n"
-            "esac\n")
-        os.chmod(bindir / "git", 0o700)
-        os.chmod(bindir / "python", 0o700)
-        _pt_ds_rc.modes = (
-            (bindir / "git").stat().st_mode & 0o777,
-            (bindir / "python").stat().st_mode & 0o777,
-        )
-        env = _stub_path_env(bindir, RUNNER_TEMP=str(root / "rt"))
-        proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
-                              capture_output=True, text=True)
-        return proc.returncode
-
-
-_PT_DS_RUN = next(
-    str(_s.get("run") or "")
-    for _s in _PT_DOCS["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
-    if "tests/delivery_status.py" in str(_s.get("run") or ""))
-_PT_DS_CASES = {
-    "shared-1": _pt_ds_rc(_PT_DS_RUN, 1, 1),
-    "head-only": _pt_ds_rc(_PT_DS_RUN, 1, 0),
-    "base-only": _pt_ds_rc(_PT_DS_RUN, 0, 1),
-    "shared-0": _pt_ds_rc(_PT_DS_RUN, 0, 0),
-    "head-crash": _pt_ds_rc(_PT_DS_RUN, 2, 1),
-    "head-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "UNCHECKED"),
-    "shared-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "OVERDUE"),
-}
-R.check(
-    "the delivery_status stubs are owner-executable and neither group nor world accessible",
-    _pt_ds_rc.modes == (0o700, 0o700),
-    "modes=" + ",".join(oct(m) for m in _pt_ds_rc.modes),
-)
-_PT_DS_DROP_EXIT = (
-    'if [ "$head_rc" -ne "$base_rc" ]; then\n  exit "$head_rc"\nfi\nexit 0')
-_PT_DS_DROP_OVERDUE = (
-    'if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then\n'
-    '  exit 1\nfi\n')
-_PT_DS_SAME = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, 'exit "$head_rc"\n')
-_PT_DS_ZERO = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, "exit 0\n")
-_PT_DS_NO_OVERDUE = _PT_DS_RUN.replace(_PT_DS_DROP_OVERDUE, "")
-R.check(
-    "graders-head-copy's delivery_status step is red only when this copy's "
-    "exit differs from the base copy's, or this copy alone prints OVERDUE",
-    _PT_DS_CASES == {
-        "shared-1": 0, "head-only": 1, "base-only": 0, "shared-0": 0,
-        "head-crash": 2, "head-overdue": 1, "shared-overdue": 0,
-    }
-    and _PT_DS_SAME != _PT_DS_RUN
-    and _pt_ds_rc(_PT_DS_SAME, 1, 1) == 1
-    and _PT_DS_ZERO != _PT_DS_RUN
-    and _pt_ds_rc(_PT_DS_ZERO, 1, 0) == 0
-    and _PT_DS_NO_OVERDUE != _PT_DS_RUN
-    and _pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, "OVERDUE", "UNCHECKED") == 0,
-    f"cases={_PT_DS_CASES}; dropping the exit comparison makes a shared 1 "
-    f"red ({_pt_ds_rc(_PT_DS_SAME, 1, 1)}), exiting 0 always makes a "
-    f"head-only 1 green ({_pt_ds_rc(_PT_DS_ZERO, 1, 0)}), and dropping the "
-    f"OVERDUE line makes a head-only OVERDUE green "
-    f"({_pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, 'OVERDUE', 'UNCHECKED')})",
-)
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
 # `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
@@ -31174,53 +31686,6 @@ R.check(
     "and its bot identity, messages and paths are the ones the autofix jobs commit",
     _AH_CONST is not None and not _AH_DRIFT,
     f"disagreeing jobs: {_AH_DRIFT}; constants: {_AH_CONST}",
-)
-_DS_PUB_PERMS = re.search(
-    r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
-R.check(
-    "and the publishing lane's grant is the one write it uses",
-    bool(_DS_PUB_PERMS)
-    and sorted(_DS_PUB_PERMS.group(1).split()) == sorted(
-        ["contents:", "read", "issues:", "write"]),
-    f"delivery-status-publish permissions: "
-    f"{_DS_PUB_PERMS.group(1).split() if _DS_PUB_PERMS else None} -- "
-    "`issues: write` edits #201's region and `contents: read` restates the "
-    "floor a job-level block replaces; the lane writes nothing else",
-)
-# THE FIXED POINT (#201 root cause, 2026-09-17). Merging a ledger PR was a push
-# to main, the push re-ran this lane, and the ledger moves on every push, so a
-# new ledger PR opened 14-22 s after each merge -- nine of eleven. The lane is
-# at a fixed point only while nothing it writes can land on main, which is
-# pinned on the wiring, over NON-COMMENT lines: no push, no PR write, no
-# machine token anywhere in the workflows (decision 0009 step 3b's only
-# consumer went with the PR), and no workflow that an issue-body edit starts.
-def _code_lines(text: str) -> str:
-    return "\n".join(
-        _l for _l in text.split("\n") if not _l.lstrip().startswith("#"))
-
-
-_DS_PUB_CODE = _code_lines(_DS_PUB_JOB)
-_DS_WRITES = [_t for _t in (r"(?<![\w'])push\s", r"/pulls", r"gh pr ",
-                            r"git commit") if re.search(_t, _DS_PUB_CODE)]
-_SA_FILES = {
-    _f.name: _code_lines(_f.read_text())
-    for _f in sorted(Path(".github/workflows").glob("*.y*ml"))}
-_SA_REFS = [_n for _n, _t in _SA_FILES.items() if "SEAT_AUTHOR_TOKEN" in _t]
-_ISSUE_TRIGGERED = [_n for _n, _t in _SA_FILES.items()
-                    # Keyed inside `on:` alone: a top-level `permissions:`
-                    # block's `issues: read` starts nothing.
-                    if re.search(r"^on:[ \t]*\n(?:(?:[ \t].*|#.*)?\n)*?  (issues|issue_comment):", _t, re.M)]
-R.check(
-    "the publishing lane writes nothing that lands on main, so its own "
-    "write cannot re-run it",
-    not _DS_WRITES and not _SA_REFS and not _ISSUE_TRIGGERED
-    and "persist-credentials: false" in _DS_PUB_CODE
-    and "#201's region is already current" in _DS_PUB_CODE,
-    f"writes in the lane: {_DS_WRITES}; workflows naming SEAT_AUTHOR_TOKEN: "
-    f"{_SA_REFS}; workflows an issue edit starts: {_ISSUE_TRIGGERED}. Each "
-    "must be empty: a commit, push or PR the lane makes lands on main as a "
-    "push that runs the lane again, and the ledger's `commits_after` moves "
-    "on every push, so no ledger it lands is ever the ledger it regenerates",
 )
 # #959 (option B): the `record` job -- already one of the three overrides for
 # its read grant -- WIDENED that grant with `issues: write` so its filing step
@@ -33357,15 +33822,6 @@ R.check(
     f"key={_FK_KEY.get('not-a-policy-file.md')!r}",
 )
 R.check(
-    "the publishing lane runs on main alone, never on a pull request",
-    "github.event_name == 'push'" in _DS_PUB_JOB
-    and "refs/heads/main" in _DS_PUB_JOB
-    and "pull_request" not in _DS_PUB_JOB,
-    "a write-scoped job reachable from a pull request is a write-scoped job "
-    "reachable from a fork, and the ledger it publishes is about `main`'s "
-    "history rather than about any branch",
-)
-R.check(
     "the ledger script is classified: NOT_A_TEST, and not on INERT",
     "delivery_status.py" in _closure.NOT_A_TEST
     and not _closure.is_inert("tests/delivery_status.py"),
@@ -34133,18 +34589,24 @@ _SP_FAULTS = {p: _sp_faults(p) for p in sorted(_SP_CITED)}
 for _sp_p, _sp_f in _SP_FAULTS.items():
     print(f"  cited  {_sp_p} by {', '.join(sorted(set(_SP_CITED[_sp_p])))}: "
           f"{'runs' if not _sp_f else '; '.join(_sp_f)}")
+_sp_unit = "dev/audit/rounds/round4/D12/units.py"
 R.check(
     "every program live policy or a carry's remeasure tells a seat to run, under a "
     "historical prefix, loads and resolves the paths it opens (#2227)",
-    len(_SP_POLICY) >= 20 and len(_SP_CARRIES) >= 1
-    and sum(any(c in _SP_CARRIES for c in v) for v in _SP_CITED.values()) >= 1
-    and len(_SP_CITED) >= 3 and not any(_SP_FAULTS.values()) and not _SP_STALE_RUN,
+    len(_SP_POLICY) >= 20
+    and len(_SP_CITED) >= 2 and not any(_SP_FAULTS.values()) and not _SP_STALE_RUN
+    # Design choice: a carry is the brief of a stage with no roster group and is
+    # discharged at closure, so the live tree may hold no carry citing a historical
+    # program; the carry source is pinned by a planted carry's JSON (the cited-program
+    # control below), not by a live file whose existence the arm cannot require.
+    and _sp_cited([("carry-0.json", "\n".join(_sp_remeasures(json.loads(
+        '{"carries": [{"remeasure": "run the D12 instrument '
+        '(dev/audit/rounds/round4/D12/units.py)"}]}'))))]) == {_sp_unit: ["carry-0.json"]},
     f"policy files {len(_SP_POLICY)}, carries {len(_SP_CARRIES)}, cited {len(_SP_CITED)} "
     f"(floors: an arm that finds nothing is not a pass); "
     f"faults {[f for v in _SP_FAULTS.values() for f in v]}; commands naming no file "
     f"{[f'{c}: {w} (now {p})' for c, w, p in _SP_STALE_RUN]}",
 )
-_sp_unit = "dev/audit/rounds/round4/D12/units.py"
 _sp_cog = "dev/audit/rounds/round6/D11/fix/codeowners_gap.py"
 # The planted stale literal is a file the move map retired, read from the
 # manifest rather than spelled here: a retired path written into a live file is
@@ -34174,7 +34636,10 @@ R.check(
     and _sp_faults(_sp_unit, _sp_unit_src + f"\n_P = {_sp_old!r}\n_X = os.path.join('.', _P)\n")
     and not _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = open(locate({_sp_old!r}))\n")
     and not _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = ({_sp_old!r},)\n")
-    and _sp_cog in _SP_CITED and len(_sp_cog_held) > 0 and not _sp_faults(_sp_cog)
+    # codeowners_gap's leg: no live carry or policy file cites it any more, so its
+    # citation source is a planted one (as dora_keys' and units' below), not a live file.
+    and _sp_cited([("x.md", f"run `{_sp_cog}`")]) == {_sp_cog: ["x.md"]}
+    and len(_sp_cog_held) > 0 and not _sp_faults(_sp_cog)
     and _sp_faults("dev/audit/rounds/round4/D11/no_such_harness.py")
     and _sp_cited([("x.md", "run `dev/audit/rounds/round4/D11/dora_keys.py` and "
                             "`tests/golden/config_flow.json`")])
@@ -34337,8 +34802,8 @@ _REC_REFUSAL = _REC_JOB.split(
     "- name: Every merged pull request has a disposition")[1].split(
         "\n      - name:")[0]
 R.check(
-    "the disposition refusal can set the record job's conclusion",
-    "continue-on-error" not in _REC_REFUSAL,
+    "the disposition refusal is report-only and cannot set the record job's conclusion (card C5, tvofi 2026-11-05)",
+    "continue-on-error: true" in _REC_REFUSAL,
     f"the refusing step is {_REC_REFUSAL.strip()[:220]!r}. `continue-on-error: "
     "true` on this step is #958's split: the step fails and the job concludes "
     "success, so a merged pull request with no disposition is reported and stays "
@@ -41240,6 +41705,7 @@ _egb3_resolve = {
     "self._away_state.as_dict()": ("away", "as_dict"),
     "state.as_dict()": ("away", "as_dict"),
     "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
+    "rooms.published(rooms.readings_of(self), rooms.lift_of(self))": ("rooms", "published"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}
@@ -42348,7 +42814,7 @@ _SR_TEXT = lambda n: (_SR / n).read_text() if (_SR / n).is_file() else ""  # noq
 _SR_STANDING = _SR_TEXT("standing.md")
 _SR_FAIL = (
     [f"a:{n}" for n in ("standing-merge.md", "standing-dispatch.md", "standing-tick.md",
-                        "standing-roster.md", "proposal-triage.md")
+                        "standing-roster.md")
      if "`standing.md`" not in _SR_TEXT(n)]
     + [f"b:{t}" for t in ("## Wait", "## Reads", "## Autofix hold", "## Recycle", "## Alive files",
                           "$HPO_STATE_DIR/alive/", "bus.sh orphans",

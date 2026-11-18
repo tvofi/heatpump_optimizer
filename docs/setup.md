@@ -42,6 +42,15 @@ Have two things to hand:
 Everything else — indoor and outdoor thermometers, tank probes, a power
 meter — is optional and can be pointed at later from the options pages.
 
+So is how the optimizer acts on the heat pump. The on/off switch is a picker on
+[Screen 2](#screen-2--optional-sensors); heat-curve control and compressor
+frequency control are not asked during setup and are set later from the
+options pages. Heat-curve control shifts your controller's own heat curve one
+of three ways: over MQTT topics (a Danfoss ECL110 through an MQTT bridge, for
+example), to an offset `number` entity, or to a curve setting the controller
+stores — see [heat-curve.md](heat-curve.md). With none of these, the plan is
+published on sensors for your own automations to act on.
+
 ## Adding the integration
 
 **Settings → Devices & services → Add integration → Heat Pump Cost
@@ -88,7 +97,7 @@ answers of the whole flow.*
 
 | Setting | What it asks |
 |---|---|
-| Name for this integration | Shown in front of every entity the integration creates. |
+| Name for this integration | The title of this entry under Devices & services. Entity names use the fixed device name, Heat Pump Optimizer. |
 | Electricity price source | `Tibber` uses your API token; `Price entity (Nord Pool or similar)` reads a Home Assistant price sensor. |
 | Tibber API token | Required only when the source is Tibber. Checked against Tibber before the flow continues — a network failure is reported as a connection problem, not as a bad token. |
 | Price sensor (Nord Pool or similar) | Required only when the source is an entity. |
@@ -119,7 +128,7 @@ with three answers:
 
 | Menu entry | What it does |
 |---|---|
-| **Quick setup (recommended)** | One page of questions about the house, then the heat pump's entities are read automatically. See [below](#quick-setup-recommended). |
+| **Quick setup (recommended)** | One page of questions about the house, then a page where you can pick the heat pump's device and check the settings read from its entities (leave it empty to skip). See [below](#quick-setup-recommended). |
 | **Continue setup** | The full wizard: temperatures, the building, the heat pump, hot water, weather sensitivity. See [below](#continue-setup--the-full-wizard). |
 | **Finish setup now** | Go straight to the review screen, then create the entry with shipped defaults; refine everything later in Options. |
 
@@ -166,8 +175,9 @@ gate — the volume alone changes nothing the model reads:
 - **Wood tank top sensor (optional)** — with the bottom sensor, this says how
   much a fire has left. A hot top over a cold bottom means the charge is
   nearly spent.
-- **Wood tank bottom sensor (optional)** — see the top sensor. Both are needed
-  for the remaining-energy estimate; one alone is read conservatively.
+- **Wood tank bottom sensor (optional)** — see the top sensor. With both, the
+  two are averaged for the remaining-energy estimate; the top alone is read as
+  5 °C colder than it shows, and the bottom alone gives no estimate.
 
 ### The building questionnaire
 
@@ -236,7 +246,7 @@ temperatures:
 
 ![The Temperature Settings page: seven sliders for target, minimum, maximum, day and night comfort, and the day's hours](img/setup/07-wizard-temperatures.png)
 
-*The gap between the target and the minimum is what makes savings possible:
+*The gap between the comfort temperatures and the minimum is what makes savings possible:
 the wider it is, the more the house can coast through expensive hours.*
 
 After the temperatures the wizard asks how you want to describe your
@@ -258,7 +268,7 @@ defaults once you confirm one last overview of what will be created:
 on purpose — it is a sensor this setup could use and does not have.*
 
 Everything the overview shows can be changed afterwards: open the integration
-and choose **Configure**, which presents the 24 options pages described in
+and choose **Configure**, which presents the 25 options pages described in
 [configuration.md](configuration.md#changing-settings-later) — with **Quick
 setup** among the everyday pages, for an install that wants to answer the
 house questions now — and the

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/external_heat.py:wood_mean_temperature RETURN_DEL 38dbafcc",
+  "killed_by": "tests/doc_claims.py",
+  "old": "    return top - 5.0",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/doc_claims.py from rc=0 failed=0 to rc=1 failed=2."
+}

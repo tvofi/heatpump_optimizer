@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_terminal_row_cost.row_cost RETURN_DEL 9bb715a6",
+  "killed_by": "tests/plan_view.py",
+  "old": "        return refill_price * deficit / max(cop_end, 1e-6)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

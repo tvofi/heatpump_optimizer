@@ -5,6 +5,8 @@
     python3 -I tools/ci/selftest_scope.py select --change M:docs/x.md [--change A:PATH]...
     python3 -I tools/ci/selftest_scope.py ids
     python3 -I tools/ci/selftest_scope.py record [--step ID]... [--out PATH]
+    python3 -I tools/ci/selftest_scope.py prune --step ID --drop KIND:ITEM [--drop ...]
+    python3 -I tools/ci/selftest_scope.py static
     python3 -I tools/ci/selftest_scope.py check --traces DIR [--write PATH]
     python3 -I tools/ci/selftest_scope.py settle
     python3 -I tools/ci/selftest_scope.py --self-test [--wrapper PATH] [--workflow PATH]
@@ -46,9 +48,13 @@ THE DRIFT CHECK, `check`, runs on every push to main over the traces that
 run took: it fails naming every step whose committed entry misses a file,
 probe, directory or flag the run measured, and every gated step with no
 entry. Over-approximation (an entry naming a file no longer read) is safe
-and is reported, not refused. `--write` saves the run's own measurement,
-which main uploads as the `selftest-closures` artifact: commit that file, or
-re-record with `record` (Linux, strace).
+and is reported, not refused. `--write` saves the table to commit, which
+main uploads as the `selftest-closures` artifact: the committed table unioned
+with this run's measurement, per step (lists unioned, flags OR'd, run_sha the
+run's; `union_entries`), because one run measures one environment and a read
+only another measured (a seat's Linux `record`: objects, index) is not stale
+for this run missing it. Commit that file, or re-record with `record` (Linux,
+strace) and union the same way.
 THE SETTLED INDEX, `settle`, runs untraced before any step is (CI's strace
 step; `record` itself): a fresh checkout leaves racily clean index entries,
 whose content the first index-refreshing git command re-reads, so without it
@@ -623,8 +629,12 @@ def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> t
         probes = set(e.get("probes", ()))
         misses = {
             "files": [f for f in m["files"] if not covers(have, f)],
+            # A probe under a directory the run listed is answered by that
+            # directory: excused here, refused once as a `dirs` miss when the
+            # table lacks it. So a measurement `write_table` compacted (the
+            # artifact) and the live one refuse the same lines.
             "probes": [p for p in m["probes"] if not covers(probes, p)
-                       and not any(a in dirs for a in _ancestors(p))],
+                       and not any(a in dirs or a in set(m["dirs"]) for a in _ancestors(p))],
             "dirs": sorted(set(m["dirs"]) - dirs)}
         refuse += [_under_scoped(sid, k, sorted(v)) for k, v in misses.items() if v]
         gone = {"files": [f for f in have if f not in set(m["files"]) and not (
@@ -698,6 +708,51 @@ def settle_index(root: Path, env: dict | None = None) -> int:
     return 1
 
 
+LIST_KINDS = ("files", "probes", "dirs", "git")
+FLAG_KINDS = ("index", "objects")
+
+
+def union_entry(old: dict | None, new: dict) -> dict:
+    """The committed entry with the new recording added: a record is taken at
+    one checkout and one trace, so it may miss a read the table holds from
+    another (R10-RCA-SELFTEST-SCOPE-DRIFT: replacing dropped 660, 8 and 10
+    entries in three merges). Over-approximation is safe, so no read leaves --
+    a probe stays a probe even where another recording read the path as a
+    file, because `drift` answers a measured probe from `probes` alone."""
+    old = old or {}
+    got = {k: sorted(set(old.get(k, ())) | set(new.get(k, ()))) for k in LIST_KINDS}
+    return {**new, **got, **{k: bool(old.get(k)) or bool(new.get(k)) for k in FLAG_KINDS}}
+
+
+def union_record(old: dict | None, measured: dict[str, dict], gated: set[str]) -> dict[str, dict]:
+    """The table `record` writes: every committed entry (a step not re-measured
+    stays as it is), each measured step unioned over its own, less steps the
+    workflow no longer gates -- a removed step is not a dropped read."""
+    entries = dict(old["steps"]) if old else {}
+    for sid, m in measured.items():
+        entries[sid] = union_entry(entries.get(sid), m)
+    return {k: v for k, v in entries.items() if k in gated}
+
+
+def prune_entries(table: dict, step: str, drops: list[str]) -> tuple[dict[str, dict], list[str]]:
+    """(entries, unknown): `table` less each `KIND:ITEM` of `step`, the one
+    way a read leaves the table (an index or objects flag is `KIND:` alone).
+    `record` and `check --write` only add reads, so none leaves another way."""
+    entries = {k: dict(v) for k, v in table["steps"].items()}
+    unknown = []
+    if step not in entries:
+        return entries, [f"no step {step}"]
+    for d in drops:
+        kind, _, item = d.partition(":")
+        if kind in FLAG_KINDS and not item and entries[step].get(kind):
+            entries[step][kind] = False
+        elif kind in LIST_KINDS and item in entries[step].get(kind, ()):
+            entries[step][kind] = [x for x in entries[step][kind] if x != item]
+        else:
+            unknown.append(d)
+    return entries, unknown
+
+
 def record(root: Path, only: list[str] | None, out: Path) -> int:
     if shutil.which("strace") is None:
         print("selftest_scope: record needs strace (Linux)", file=sys.stderr)
@@ -738,10 +793,7 @@ def record(root: Path, only: list[str] | None, out: Path) -> int:
     shutil.rmtree(tmp, ignore_errors=True)    # gigabytes of traces on a full record
     for line in broken:
         print(line, flush=True)
-    old = load_table(out)
-    entries = dict(old["steps"]) if old and only else {}
-    entries.update(measured)
-    entries = {k: v for k, v in entries.items() if k in set(gated_ids(steps))}
+    entries = union_record(load_table(out), measured, set(gated_ids(steps)))
     write_table(out, entries, root)
     print(f"selftest_scope: recorded {len(measured)} step(s) into {out}; "
           f"{len(failed)} failed {failed}, {len(broken)} broken trace(s)")
@@ -784,13 +836,23 @@ def write_table(out: Path, entries: dict[str, dict], root: Path = ROOT) -> None:
                                "steps": dict(sorted(entries.items()))}, indent=1) + "\n")
 
 
+def union_entries(table: dict | None, measured: dict[str, dict]) -> dict[str, dict]:
+    """Each measured step's entry unioned with the committed one by
+    `union_entry`, the one union `record` writes too: run_sha the measurement's.
+    A step the run did not measure keeps no entry (the measurement names every
+    gated step, else drift refuses UNMEASURED)."""
+    old = (table or {}).get("steps", {})
+    return {sid: union_entry(old.get(sid), m) for sid, m in measured.items()}
+
+
 def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT) -> int:
     steps = workflow_steps(root)
     gaps = wiring_gaps(steps)
     measured, broken = fold(trace_dir, steps, root)
+    table = load_table(root / TABLE)
     if write is not None:
-        write_table(write, measured, root)  # this run's measurement, to commit as the table
-    refuse, notes = drift(load_table(root / TABLE), measured, steps)
+        write_table(write, union_entries(table, measured), root)  # the table to commit
+    refuse, notes = drift(table, measured, steps)
     refuse = broken + refuse
     for line in gaps + refuse:
         print(f"  {line}")
@@ -1095,6 +1157,35 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("drift: a step this run did not trace is refused",
            drift(full_table, {k: v for k, v in measured.items() if k != "slow"}, st2)[0]
            == ["UNMEASURED step slow: this run left no trace of it"])
+        # The artifact `check --write` uploads is a compacted measurement: a
+        # probe under a directory the run listed is dropped. Drift over it and
+        # over the live measurement must refuse the same lines (the 33 against
+        # 34 gap of #3557's review).
+        dm = json.loads(json.dumps(measured))
+        dm["a"]["dirs"] += ["docs"]
+        dm["a"]["probes"] += ["docs/new.md"]
+        compacted = json.loads(json.dumps(dm))
+        compacted["a"]["probes"] = compact_probes(set(dm["a"]["probes"]), set(dm["a"]["dirs"]), set())
+        ck("drift: a probe under a directory the run listed is refused once, as the dirs miss, "
+           "live and compacted alike (null control: the compaction dropped it)",
+           "docs/new.md" not in compacted["a"]["probes"]
+           and drift(full_table, dm, st2)[0] == drift(full_table, compacted, st2)[0]
+           == ["UNDER-SCOPED step a: dirs misses ['docs']"])
+        # `check --write`'s table is the union: a planted committed read this
+        # run did not measure survives, and the run's own reads are added.
+        planted = json.loads(json.dumps(full_table))
+        planted["steps"]["b"].update(objects=True, files=["tools/x/only-elsewhere.py"],
+                                     probes=["tools/x/p.json"], git=["merge-base"])
+        planted["steps"]["gone"] = entry(st2[4], files=["x"])
+        planted["steps"]["a"]["run_sha"] = "old"
+        un = union_entries(planted, measured)
+        ck("union_entries keeps a committed read and flag the run did not measure, adds the run's, "
+           "takes the run's run_sha and drops an entry no step measured",
+           sorted(un) == ["a", "b", "slow"] and un["b"]["objects"] is True
+           and un["b"]["files"] == ["tools/x/only-elsewhere.py"] and un["b"]["git"] == ["merge-base"]
+           and un["b"]["probes"] == ["tools/x/p.json"] and un["a"]["index"] is True
+           and un["a"]["files"] == measured["a"]["files"] and un["a"]["run_sha"] == measured["a"]["run_sha"]
+           and drift({"steps": un}, measured, st2)[0] == [])
 
     # The edges a seat's run reaches but the cases above do not.
     ck("a duplicated step id is named", "DUPLICATE id a" in wiring_gaps(
@@ -1328,6 +1419,20 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("check: a table naming every read passes, and --write saves the measurement",
            rc_ok == 0 and "2 gated step(s), 0 refusal(s)" in out.getvalue()
            and (load_table(root / "m.json") or {}).get("steps", {}).get("a", {}).get("files") == ["tools/x/a.py"])
+        # --write writes the committed table unioned with the run: a planted
+        # committed read and flag this run did not measure survive the write.
+        was_table = (root / TABLE).read_text()
+        pt = json.loads(was_table)
+        pt["steps"]["slow"].update(objects=True, probes=["tools/x/planted.json"])
+        (root / TABLE).write_text(json.dumps(pt))
+        with contextlib.redirect_stdout(io.StringIO()):
+            main(["check", "--traces", str(tdir), "--write", str(root / "u.json")], root)
+        (root / TABLE).write_text(was_table)
+        us = (load_table(root / "u.json") or {}).get("steps", {})
+        ck("check --write: a planted committed read and flag the run did not measure survive the write",
+           us.get("slow", {}).get("objects") is True
+           and us.get("slow", {}).get("probes") == ["tools/x/planted.json"]
+           and us.get("a", {}).get("files") == ["tools/x/a.py"])
         (tdir / "step-slow.trace").write_text(whole(
             f'5 openat(AT_FDCWD<{root}>, "docs/d.md", O_RDONLY) = 3<{root}/docs/d.md>'))
         out = io.StringIO()
@@ -1475,6 +1580,58 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
     ck("settle_gaps: a settle only in launch, which starts traced steps, is refused",
        settle_gaps(job("apt\n", after=call)) != [])
 
+    # R10-SELFTEST-SCOPE-UNION-GUARD: `record` unions over the committed entry,
+    # and a read leaves the table only by `prune`, naming it.
+    def ent(files=(), probes=(), dirs=(), git=(), index=False, objects=False, sha="s"):
+        return {"run_sha": sha, "files": list(files), "probes": list(probes), "dirs": list(dirs),
+                "git": list(git), "index": index, "objects": objects}
+    held = {"steps": {"a": ent(["f1", "f2"], ["p1"], ["d1"], ["rev-list"], True, True),
+                      "b": ent(["g1"]), "gone": ent(["h1"])}}
+    new_a = ent(["f2", "f3"], ["p2", "f3"], ["d2"], ["add"], False, False, sha="t")
+    got = union_record(held, {"a": new_a}, {"a", "b"})
+    ck("union_record: recording one step over an entry holding reads the trace lacks keeps them",
+       got["a"]["files"] == ["f1", "f2", "f3"] and got["a"]["probes"] == ["f3", "p1", "p2"]
+       and got["a"]["dirs"] == ["d1", "d2"] and got["a"]["git"] == ["add", "rev-list"]
+       and got["a"]["index"] and got["a"]["objects"] and got["a"]["run_sha"] == "t")
+    ck("union_record: a step not re-measured is kept, a step the workflow no longer gates is not",
+       got["b"] == held["steps"]["b"] and "gone" not in got)
+    ck("union_record: with no committed table the measurement is the entry",
+       union_record(None, {"a": new_a}, {"a"})["a"]["files"] == ["f2", "f3"])
+    pruned, unknown = prune_entries(held, "a", ["files:f1", "index:", "git:rev-list"])
+    ck("prune_entries: a named read leaves, nothing else does",
+       unknown == [] and pruned["a"]["files"] == ["f2"] and not pruned["a"]["index"]
+       and pruned["a"]["git"] == [] and pruned["a"]["objects"] and pruned["b"] == held["steps"]["b"])
+    ck("prune_entries: a read the entry does not hold is reported, not ignored",
+       prune_entries(held, "a", ["files:nope"])[1] == ["files:nope"]
+       and prune_entries(held, "b", ["index:"])[1] == ["index:"]
+       and prune_entries(held, "zz", ["files:f1"])[1] == ["no step zz"])
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        gr = Path(os.path.realpath(td))
+        throwaway_git_init(gr, "-q")
+        # The prune CLI, the one sanctioned way a read leaves the table: it
+        # writes the table, and refuses a drop the entry does not hold with the
+        # file left byte-identical (the valid drop beside it is not applied).
+        (gr / TABLE).parent.mkdir(parents=True, exist_ok=True)
+        (gr / TABLE).write_text(json.dumps(held))
+        before = (gr / TABLE).read_bytes()
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc_unk = main(["prune", "--step", "a", "--drop", "files:f2", "--drop", "files:nope"], gr)
+            rc_nostep = main(["prune", "--step", "zz", "--drop", "files:f1"], gr)
+        ck("prune: an unknown drop or step is refused (rc 1), naming it, the table byte-identical",
+           rc_unk == 1 and rc_nostep == 1 and "files:nope" in err.getvalue()
+           and "no step zz" in err.getvalue() and (gr / TABLE).read_bytes() == before)
+        with tempfile.TemporaryDirectory() as empty, contextlib.redirect_stderr(io.StringIO()) as nerr:
+            rc_nt = main(["prune", "--step", "a", "--drop", "files:f2"], Path(empty))
+        ck("prune: a root with no readable table is refused (rc 1), naming it, and writes none",
+           rc_nt == 1 and "UNREADABLE" in nerr.getvalue() and not (Path(empty) / TABLE).exists())
+        rc_pr = main(["prune", "--step", "a", "--drop", "files:f2", "--drop", "objects:"], gr)
+        after = load_table(gr / TABLE)
+        ck("prune: a held drop writes the table, less exactly that read",
+           rc_pr == 0 and after is not None and after["steps"]["a"]["files"] == ["f1"]
+           and not after["steps"]["a"]["objects"] and after["steps"]["a"]["index"]
+           and after["steps"]["a"]["dirs"] == ["d1"] and after["steps"]["b"]["files"] == ["g1"])
+
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
     # list it is checked against is not empty (the check's own precondition).
@@ -1528,6 +1685,19 @@ def main(argv: list[str], root: Path = ROOT) -> int:
         only = [argv[k + 1] for k, a in enumerate(argv) if a == "--step"]
         out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else root / TABLE
         return record(root, only or None, out.resolve())
+    if argv[:1] == ["prune"] and "--step" in argv and "--drop" in argv:
+        table = load_table(root / TABLE)
+        step = argv[argv.index("--step") + 1]
+        drops = [argv[k + 1] for k, a in enumerate(argv) if a == "--drop"]
+        if table is None:
+            print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
+            return 1
+        entries, unknown = prune_entries(table, step, drops)
+        if unknown:
+            print(f"selftest_scope: not in the table, nothing written: {unknown}", file=sys.stderr)
+            return 1
+        write_table(root / TABLE, entries, root)
+        return 0
     if argv[:1] == ["check"] and "--traces" in argv:
         write = Path(argv[argv.index("--write") + 1]) if "--write" in argv else None
         return check_cli(Path(argv[argv.index("--traces") + 1]), write, root)

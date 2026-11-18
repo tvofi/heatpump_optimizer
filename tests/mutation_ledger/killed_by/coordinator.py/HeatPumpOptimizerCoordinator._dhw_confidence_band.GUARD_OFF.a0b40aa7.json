@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_confidence_band GUARD_OFF a0b40aa7",
+  "killed_by": "tests/features.py",
+  "old": "        if not self._dhw_accuracy.has_lead_history():",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}

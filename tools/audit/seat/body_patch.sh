@@ -254,6 +254,7 @@ if [ "${1:-}" != "--self-test" ]; then
   patch_body "$@"
   exit $?
 fi
+[ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded body_patch bash "$0" --self-test; }  # pr_args.sh's self-test bound
 
 # ---------------------------------------------------------------------------
 # --self-test: `gh`, `curl`, `openssl` and `node` are stubs on PATH; the git

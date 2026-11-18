@@ -284,6 +284,9 @@ MUTANTS = [
     # load_dests: P319, the round ref is read on the explicit-ref path too
     # load_dests: P43, a pull request's own carry files join at the pre-flight
     ("P43-extra", "carry |= carry_issues(repo, extra_ref)  # mut:extra", "pass  # mut:extra"),
+    # pr_group_of: a group only on the round's roster branch is the pull request's own group
+    ("R-roundgroup", '{**dests.round_groups, **dests.groups}.values())}  # mut:roundgroup',
+     'dests.groups.values())}  # mut:roundgroup'),
     ("P319-ref-path", "    if rref and rref != ref and not git(", "    if rref and not ref and not git("),
 ]
 

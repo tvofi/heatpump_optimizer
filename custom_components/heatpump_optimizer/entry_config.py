@@ -56,6 +56,11 @@ def _entity(value: Any, default: None) -> str | None:
     return str(value) if value else None
 
 
+def _entities(value: Any, default: tuple[str, ...]) -> tuple[str, ...]:
+    """A list of entity ids as a tuple; absent, None and empty all read ()."""
+    return tuple(str(item) for item in value if item) if isinstance(value, (list, tuple)) else ()
+
+
 def _spec(value: Any, default: str) -> str:
     """A window spec as text, "" where none is stored: blank is unset."""
     return str(value) if value else ""
@@ -94,6 +99,7 @@ class EntryConfig(Mapping[str, Any]):
     compressor_freq_entity: str | None = _entity_slot()
     compressor_freq_sensor: str | None = _entity_slot()
     dhw_disinfection_switch_entity: str | None = _entity_slot()
+    dhw_hysteresis_entity: str | None = _entity_slot()
     dhw_inlet_entity: str | None = _entity_slot()
     dhw_setpoint_entity: str | None = _entity_slot()
     dhw_temp_entity: str | None = _entity_slot()
@@ -115,9 +121,12 @@ class EntryConfig(Mapping[str, Any]):
     pv_export_price_entity: str | None = _entity_slot()
     pv_production_entity: str | None = _entity_slot()
     space_circulation_pump_entity: str | None = _entity_slot()
+    space_hysteresis_entity: str | None = _entity_slot()
     space_setpoint_entity: str | None = _entity_slot()
     vvc_pump_entity: str | None = _entity_slot()
     weather_entity: str | None = _entity_slot()
+    # The room thermometers (#3616): an entity list, not a slot.
+    room_temperature_entities: tuple[str, ...] = _key((), _entities)
 
     # Switches.
     capacity_curve_enabled: bool = _key(const.DEFAULT_CAPACITY_CURVE_ENABLED, _flag)
@@ -139,6 +148,7 @@ class EntryConfig(Mapping[str, Any]):
     peak_tariff_enabled: bool = _key(const.DEFAULT_PEAK_TARIFF_ENABLED, _flag)
     peak_tariff_weekdays_only: bool = _key(const.DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY, _flag)
     precip_type_enabled: bool = _key(const.DEFAULT_PRECIP_TYPE_ENABLED, _flag)
+    room_lift_enabled: bool = _key(const.DEFAULT_ROOM_LIFT_ENABLED, _flag)
     space_setpoint_power_feedback: bool = _key(const.DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, _flag)
     price_prior_enabled: bool = _key(const.DEFAULT_PRICE_PRIOR_ENABLED, _flag)
     price_tiles_enabled: bool = _key(const.DEFAULT_PRICE_TILES_ENABLED, _flag)
@@ -295,6 +305,7 @@ def _restore(raw: dict[str, Any], parsed: dict[str, Any]) -> EntryConfig:
 _WIRING: dict[str, str] = {
     "name": "the entry's name (Home Assistant's CONF_NAME), not a setting",
     const.CONF_COMPRESSOR_FREQ_SENSOR: "an entity assignment",
+    const.CONF_ROOM_TEMPERATURE_ENTITIES: "entity assignments: the room thermometers",
     const.CONF_PRICE_SOURCE: "the price source",
     const.CONF_TIBBER_TOKEN: "the price source's credential",
     const.CONF_SOLAR_FORECAST_SOURCE: "the solar feed, the price source's sibling: "

@@ -804,11 +804,16 @@ await block('the finder report schema', async () => {
     (S.required ?? []).includes('leads') && J([...(S.properties?.leads?.items?.required ?? [])].sort()) === J(['file', 'owner_seat', 'symbol', 'what']), J(S.properties?.leads))
   const re = (k) => new RegExp(F.properties?.[k]?.pattern ?? '$^')
   const idRe = re('id'), scopeRe = re('scope')
+  // D18 is admitted exactly when its brief exists (decision 0013: this file
+  // grades a pull request from the base, so the brief and the patterns land
+  // together and the grader that precedes them refuses either alone). D99 has
+  // no brief at any head and stays the unconditional null control.
+  const D18_BRIEF = briefListing().some(([f]) => f === 'D18.md')
   const ownerRe = new RegExp(S.properties?.leads?.items?.properties?.owner_seat?.pattern ?? '$^')
-  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && !scopeRe.test('D16-s1'), String(scopeRe))
+  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && scopeRe.test('D18-s1') === D18_BRIEF && !scopeRe.test('D99-s1') && scopeRe.test('D16-s1') && scopeRe.test('D17-s1'), String(scopeRe))
   t('a finding numbered under its seat is an id the schema admits (D13-s1-01, D1-s3-51)', idRe.test('D13-s1-01') && idRe.test('D1-s3-51'), String(idRe))
   t("a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control)",
-    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && !ownerRe.test('D16-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
+    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && ownerRe.test('D18-s1') === D18_BRIEF && !ownerRe.test('D99-s1') && ownerRe.test('D16-s1') && ownerRe.test('D17-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
   // A design choice, said so: the guess is refused unless it is a class the
   // ledger HAS, so a class the judge adds is added to bugclasses.json and to
   // this enum in one pull request -- this check fails until both carry it.
@@ -951,22 +956,34 @@ await block('the scoped round driver', async () => {
   if (!blk) return
   t('the dispatch block draws on no randomness and no clock', !/Math\.random|Date\b|performance\.now|crypto/.test(blk[0]), 'found one')
   t('and no planSeats: seats come from the scopes, not a rotation over the ledger', !/planSeats/.test(rd), 'audit-find.js still names planSeats')
-  const D = new Function(`${blk[0]}\nreturn { CADENCE, EVERY_DIM_ROUNDS, activeIn, seatsFromScopes, BOXES, CHROMIUM, boxGaps }`)()
+  const D = new Function(`${blk[0]}\nreturn { seatsFromScopes, BOXES, CHROMIUM, boxGaps, ownerOnlyOf: typeof ownerOnlyOf === 'function' ? ownerOnlyOf : undefined, carryOf: typeof carryOf === 'function' ? carryOf : undefined, seatCarry: typeof seatCarry === 'function' ? seatCarry : undefined, denominatorGaps: typeof denominatorGaps === 'function' ? denominatorGaps : undefined }`)()
+  // The denominator is unconditional (COMMON.md; tvofi 2026-11-13): the schema's
+  // coverage rows require it AND the driver enforces it. Each half is read from
+  // its own file, so dropping `enumerator` from the schema and the driver's
+  // inlined copy together is refused here, not read as a switch turned off.
+  const cov = JSON.parse(fs.readFileSync(at('dev/audit/config/finding.schema.json'), 'utf8')).properties?.coverage?.items?.required ?? []
+  const denomKeys = ['enumerator', 'universe', 'examined', 'not_reached', 'redispatched']
+  t(`the finder report schema's coverage rows require the denominator (${denomKeys.join(', ')})`, denomKeys.every((k) => cov.includes(k)), J(cov))
+  t('...and the driver enforces it (carryOf, seatCarry, denominatorGaps in the DISPATCH block)',
+    [D.carryOf, D.seatCarry, D.denominatorGaps].every((f) => typeof f === 'function'), `exported: ${['carryOf', 'seatCarry', 'denominatorGaps'].filter((k) => typeof D[k] === 'function')}`)
   // The seat ids and boxes below are read off the committed scopes and the
   // DISPATCH block, never named here: a re-cut of either (round 10 gave every
   // dimension three seats) must not turn a control into a test of old names.
-  const every = [...(D.EVERY_DIM_ROUNDS ?? [])]
-  t('round 9, and every round in EVERY_DIM_ROUNDS, runs every dimension (round 9: its plan, section 2 default 1)',
-    every.includes(9) && every.every((r) => L.dims.every((d) => D.activeIn(r, d))), J(every.map((r) => [r, L.dims.filter((d) => !D.activeIn(r, d))])))
-  // The cadence controls run at rounds no override names: `off` is neither even
-  // nor a multiple of three, `on6` is a multiple of six.
-  const free = Array.from({ length: 60 }, (_, i) => i + 10).filter((r) => !every.includes(r))
-  const off = free.find((r) => r % 2 !== 0 && r % 3 !== 0), on6 = free.find((r) => r % 6 === 0)
-  t(`...and the cadence is otherwise read from the round number (D11 and D5 off at ${off}, both on at ${on6}, D0 on at ${off})`,
-    !!off && !!on6 && !D.activeIn(off, 'D11') && D.activeIn(on6, 'D11') && D.activeIn(on6, 'D5') && !D.activeIn(off, 'D5') && D.activeIn(off, 'D0'), 'the cadence is not derived from the round')
-  const ids = L.dims.flatMap((d) => D.seatsFromScopes(scopes, d).map((s) => s.id))
-  const fileSeats = Object.entries(scopes).filter(([k]) => !k.startsWith('_')).flatMap(([d, x]) => Object.keys(x.seats).map((k) => `${d}-${k}`))
-  t('one seat per scopes.json seat, id <dim>-s<n>, nothing added or dropped', J(ids) === J(fileSeats), `${ids.length} vs ${fileSeats.length}`)
+  // Every dimension runs every round (tvofi 2026-11-13: D5, D6, D11 and D13 were
+  // the last on a cadence), so the driver declares none: no table or predicate
+  // that could take a dimension out of a round. The driven half is below
+  // (`a round no earlier override named dispatches every seat`).
+  t('the driver declares no cadence: no CADENCE, EVERY_DIM_ROUNDS or activeIn, and no seat filtered by round',
+    !/\b(CADENCE|EVERY_DIM_ROUNDS|activeIn)\b/.test(rd) && !/DIMS\.filter\(/.test(rd), 'audit-find.js still names one')
+  const allIds = L.dims.flatMap((d) => D.seatsFromScopes(scopes, d).map((s) => s.id))
+  const allFileSeats = Object.entries(scopes).filter(([k]) => !k.startsWith('_')).flatMap(([d, x]) => Object.keys(x.seats).map((k) => `${d}-${k}`))
+  t('one seat per scopes.json seat, id <dim>-s<n>, nothing added or dropped', J(allIds) === J(allFileSeats), `${allIds.length} vs ${allFileSeats.length}`)
+  // A public run dispatches, boxes and records every dimension but the
+  // owner-only ones ('the owner-only dimensions' below holds that half), so
+  // every control from here on reads the public seats.
+  const ownDims = new Set(typeof D.ownerOnlyOf === 'function' ? D.ownerOnlyOf(scopes) : [])
+  const isPublic = (id) => !ownDims.has(String(id).split('-')[0])
+  const ids = allIds.filter(isPublic), fileSeats = allFileSeats.filter(isPublic), pubDims = L.dims.filter(isPublic)
   // A seat whose blocks name different steps: its deep focus is their union in
   // the brief's order, not the first block's.
   const multi = L.dims.flatMap((d) => D.seatsFromScopes(scopes, d)).find((s) => s.blocks.length > 1 && new Set(s.blocks.map((b) => J(b.steps))).size > 1)
@@ -1005,19 +1022,26 @@ await block('the scoped round driver', async () => {
   // export (or another seat's tree) is visible in its prompt.
   const isoDims = new Set(L.isolated)
   const PREP = { exportDir: '/x', worktrees: Object.fromEntries(fileSeats.filter((id) => isoDims.has(id.split('-')[0])).map((id) => [id, `/w/${id}`])), python: 'py', rotation_ok: true, scopes_ok: true, scopes_rc: 0, scopes_out: 'ok' }
+  // A closed denominator for a seat: one row per step it owns, every carried item answered examined.
+  const closed = (id, args) => {
+    const seat = D.seatsFromScopes(args.scopes, id.split('-')[0]).find((x) => x.id === id)
+    if (!seat) return []
+    const carry = D.seatCarry(args.rotation, args.round, seat)
+    return seat.steps.map((m) => ({ step: `${seat.dim}.${m}`, enumerator: 'stub-enumerator', universe: 1, examined: 1, not_reached: [], redispatched: carry.filter((c) => c.step === m).map((c) => ({ item: c.id, state: 'examined' })), evidence: 'stub' }))
+  }
   const drive = async (args, { prep = {}, report = () => ({}), nullSeats = [], leadsOut = {}, gather } = {}) => {
     const calls = []
     const agent = async (prompt, o) => {
       calls.push({ label: o.label, prompt, schema: o.schema })
       if (o.label === 'prepare') return { ...PREP, ...prep }
       if (o.label === 'gather' && gather) return gather(prompt)
-      if (o.label === 'gather') return { reports: Object.fromEntries(fileSeats.map((id) => [id, { dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(id) }])), absent_boxes: [] }
+      if (o.label === 'gather') return { reports: Object.fromEntries(fileSeats.map((id) => [id, { dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: closed(id, args), unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(id) }])), absent_boxes: [] }
       if (o.label === 'leads') return { report_path: '/r/leads', findings: [], non_findings: [], harnesses: [], converted: [], closed: [], ...leadsOut }
       if (nullSeats.includes(o.label)) return null
       if (o.label === 'intake') return { branch: 'b', registered: [], rejected: [] }
       if (o.label === 'quiet') return { quiet_path: '/q', d3_confirmed: [] }
       if (o.label.startsWith('collect-')) return { branch: 'b', commit: 'c' }
-      return { dimension: o.label.split('-')[0], report_path: `/r/${o.label}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(o.label) }
+      return { dimension: o.label.split('-')[0], report_path: `/r/${o.label}`, coverage: closed(o.label, args), unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(o.label) }
     }
     const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${rbody} })()`)
     let out, error = ''
@@ -1068,7 +1092,7 @@ await block('the scoped round driver', async () => {
   const seatBoxes = Object.keys(D.BOXES).filter((b) => D.BOXES[b].heavy.length + D.BOXES[b].light.length)
   t(`from "intake" gathers once per box, each prompt naming its own box (${seatBoxes.length} boxes)`,
     gathers.length === seatBoxes.length && seatBoxes.every((b) => gathers.filter((c) => c.prompt.includes(`reports-${b}.json`)).length === 1), J(gathers.map((c) => (/reports-(B\d+)\.json/.exec(c.prompt) ?? [])[1])))
-  const rep = (id) => ({ dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [] })
+  const rep = (id) => ({ dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: closed(id, base), unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [] })
   const boxIn = (prompt) => (/reports-(B\d+)\.json/.exec(prompt) ?? [])[1]
   const own = (b) => Object.fromEntries([...D.BOXES[b].heavy, ...D.BOXES[b].light].map((id) => [id, rep(id)]))
   const cutBox = bx
@@ -1100,14 +1124,14 @@ await block('the scoped round driver', async () => {
   t(`an unknown box is refused (${noBox})`, !D.BOXES[noBox] && /is not one of/.test((await drive({ ...base, box: noBox })).error), `${noBox} accepted`)
   const both = await drive({ ...base, box: 'B1', from: 'intake' })
   t('box and from "intake" together are refused before Prepare', /exclusive/.test(both.error) && both.labels.length === 0, both.error || J(both.labels))
-  // Round `off` runs neither D5, D6, D11 nor D13 (cadence 2 and 3): a box
-  // holding both active and inactive seats carries only the active ones, and
-  // the placement check is taken over the active seats.
-  const mixed = Object.keys(D.BOXES).find((b) => { const ss = [...D.BOXES[b].heavy, ...D.BOXES[b].light].map((s) => D.activeIn(off, s.split('-')[0])); return ss.includes(true) && ss.includes(false) })
-  const want = mixed ? [...D.BOXES[mixed].heavy, ...D.BOXES[mixed].light].filter((s) => D.activeIn(off, s.split('-')[0])).sort() : []
-  const r10 = await drive({ ...base, round: off, box: mixed })
-  t(`a round that runs a subset places only the active seats (round ${off}, box ${mixed}: ${want.join(', ')})`,
-    !!mixed && r10.error === '' && J(r10.labels.filter(isFinder).sort()) === J(want), r10.error || J(r10.labels))
+  // Rounds 11 and 13 are odd and no multiple of six: the rounds the retired
+  // cadence (D5 and D6 every second round, D11 and D13 every third) left out.
+  for (const r of [11, 13]) {
+    const all = await drive({ ...base, round: r })
+    const ran = [...new Set(all.labels.filter(isFinder).map((l) => l.split('-')[0]))]
+    t(`a round no earlier override named dispatches every seat (round ${r}: ${ran.length} dimension(s) of ${pubDims.length}; D5, D6, D11, D13 among them)`,
+      all.error === '' && J(all.labels.filter(isFinder).sort()) === J([...fileSeats].sort()) && ['D5', 'D6', 'D11', 'D13'].every((d) => ran.includes(d)), all.error || J(pubDims.filter((d) => !ran.includes(d))))
+  }
 
   // The finder prompt: its cells, the wall, the fields.
   const p = (l) => r9.calls.find((c) => c.label === l)?.prompt ?? ''
@@ -1204,7 +1228,297 @@ await block('the scoped round driver', async () => {
   t('in a from "intake" run the leads seat is told the reports live on the box evidence branches, and a box run is not (null control)',
     /handoff\/audit-r9-find-<box>/.test(glp) && !/handoff\/audit-r9-find-<box>/.test(lp), glp.slice(-400))
   t('and the round\'s ledger entry names every active dimension, one step list per seat',
-    Object.keys(r9.out?.rotation_round ?? {}).length === L.dims.length && r9.out.rotation_round.D1.seats.length === Object.keys(scopes.D1.seats).length, J(Object.keys(r9.out?.rotation_round ?? {})))
+    Object.keys(r9.out?.rotation_round ?? {}).length === pubDims.length && r9.out.rotation_round.D1.seats.length === Object.keys(scopes.D1.seats).length, J(Object.keys(r9.out?.rotation_round ?? {})))
+
+  // The denominator (COMMON.md; tvofi 2026-11-13): a report names what its steps
+  // range over, how much it examined and what it left, and what the round before
+  // left is the first work of this one. Each refusal has its null control here.
+  await block('the denominator', async () => {
+    const seat = { dim: 'D1', steps: ['M1', 'M2'] }
+    const row = (m, o = {}) => ({ step: `D1.${m}`, enumerator: 'e', universe: 2, examined: 2, not_reached: [], redispatched: [], evidence: 'x', ...o })
+    const ok = { coverage: [row('M1'), row('M2')] }
+    const gaps = (rep, carry = []) => D.denominatorGaps(seat, rep, carry)
+    const refuses = (name, rep, re, carry = []) => { const g = gaps(rep, carry); t(`denominatorGaps refuses ${name}`, g.length > 0 && g.some((x) => re.test(x)), J(g)) }
+    t('denominatorGaps passes a closed report, one row per step (null control)', J(gaps(ok)) === J([]), J(gaps(ok)))
+    refuses('a step with no row', { coverage: [row('M1')] }, /M2/)
+    refuses('two rows for one step', { coverage: [row('M1'), row('M1'), row('M2')] }, /M1/)
+    refuses('an empty enumerator', { coverage: [row('M1', { enumerator: ' ' }), row('M2')] }, /M1/)
+    refuses('examined above universe', { coverage: [row('M1', { examined: 3 }), row('M2')] }, /M1/)
+    refuses('a non-integer universe', { coverage: [row('M1', { universe: 1.5, examined: 1 }), row('M2')] }, /M1/)
+    refuses('examined below universe with nothing listed not reached', { coverage: [row('M1', { examined: 1 }), row('M2')] }, /M1/)
+    refuses('examined equal to universe with a not_reached list', { coverage: [row('M1', { not_reached: ['a'] }), row('M2')] }, /M1/)
+    refuses('an absent coverage', {}, /M1/)
+    const c1 = { id: 'C1', step: 'M1', item: 'x', age: 1, overdue: false }
+    const withAns = (state) => ({ coverage: [row('M1', state ? { universe: 2, examined: state === 'examined' ? 2 : 1, not_reached: state === 'examined' ? [] : ['x'], redispatched: [{ item: 'C1', state }] } : {}), row('M2')] })
+    refuses('a carried item left unanswered', ok, /C1/, [c1])
+    t('...and passes it answered examined, or answered not_reached when not overdue and the counts close (null control)', J(gaps(withAns('examined'), [c1])) === J([]) && J(gaps(withAns('not_reached'), [c1])) === J([]), J([gaps(withAns('examined'), [c1]), gaps(withAns('not_reached'), [c1])]))
+    refuses('an overdue carried item answered not_reached', withAns('not_reached'), /C1/, [{ ...c1, overdue: true }])
+    t('...and passes the same overdue item answered examined (null control)', J(gaps(withAns('examined'), [{ ...c1, overdue: true }])) === J([]), J(gaps(withAns('examined'), [{ ...c1, overdue: true }])))
+
+    const led = { D1: { steps: ['M1', 'M2', 'M3'], rounds: {
+      9: { coverage: { M3: { enumerator: 'e', universe: 3, examined: 1, not_reached: ['a', 'b'] } } },
+      10: { coverage: { M1: 'spot', M2: 'deep', M3: { enumerator: 'e', universe: 3, examined: 2, not_reached: ['a'] } }, unfinished: [{ step: 'D1.M2', what: 'left' }] } } } }
+    const co = D.carryOf(led, 11, 'D1')
+    t('carryOf at round 11 reads round 10: the whole step for M1, "a" aged 2 for M3, the unfinished entry for M2; nothing for deep M2, "b" not carried',
+      co.length === 3 && co.filter((c) => c.step === 'M1').length === 1 && /whole step/.test(co.find((c) => c.step === 'M1')?.item ?? '') && co.find((c) => c.step === 'M3')?.item === 'a' && co.find((c) => c.step === 'M3')?.age === 2
+      && co.filter((c) => c.step === 'M2').length === 1 && co.find((c) => c.step === 'M2')?.item === 'unfinished: left' && !co.some((c) => c.item === 'b'), J(co))
+    const co10 = D.carryOf(led, 10, 'D1')
+    t('...at round 10 it reads round 9 only: a and b, each aged 1', co10.length === 2 && co10.every((c) => c.step === 'M3' && c.age === 1) && J(co10.map((c) => c.item)) === J(['a', 'b']), J(co10))
+    t('...and a dimension with no earlier round carries nothing (null control)', J(D.carryOf(led, 9, 'D1')) === J([]) && J(D.carryOf(led, 11, 'D2')) === J([]), J(D.carryOf(led, 9, 'D1')))
+
+    const sc = D.seatCarry(led, 11, { dim: 'D1', steps: ['M3', 'M2'] })
+    t('seatCarry numbers C1.. in order and keeps only the seat\'s steps', J(sc.map((c) => [c.id, c.step])) === J([['C1', 'M3'], ['C2', 'M2']]) && J(D.seatCarry(led, 11, { dim: 'D1', steps: ['M1'] }).map((c) => c.id)) === J(['C1']), J(sc))
+    const ov = (rotate) => D.seatCarry({ D1: { ...led.D1, ...(rotate ? { rotate } : {}) } }, 11, { dim: 'D1', steps: ['M3'] })[0].overdue
+    t('seatCarry marks the age-2 item overdue at bound 3, not at bound 4, not with no rotate', ov({ M3: { bound: 3 } }) === true && ov({ M3: { bound: 4 } }) === false && ov(undefined) === false, J([ov({ M3: { bound: 3 } }), ov({ M3: { bound: 4 } }), ov(undefined)]))
+
+    // Driven: the real committed scopes and ledger at round 11.
+    const b11 = { ...base, round: 11 }
+    const empty = await drive(b11, { report: (l) => (l === 'D1-s1' ? { coverage: [] } : {}) })
+    t('a seat whose report carries no denominator is dispatched twice, ends missing, and intake does not run',
+      empty.labels.filter((l) => l === 'D1-s1').length === 2 && J(empty.out?.missing) === J(['D1-s1']) && !empty.labels.includes('intake'), J({ n: empty.labels.filter((l) => l === 'D1-s1').length, missing: empty.out?.missing, error: empty.error }))
+    const full11 = await drive(b11)
+    t('...and with the default stub every seat reports and intake runs (null control)', full11.error === '' && J(full11.out?.missing) === J([]) && full11.labels.includes('intake') && full11.labels.filter((l) => l === 'D1-s1').length === 1, J({ error: full11.error, missing: full11.out?.missing }))
+
+    const fp = (l) => full11.calls.find((c) => c.label === l)?.prompt ?? ''
+    t('a seat with carry (D4-s1, whose round-10 M1 was "spot") is told FIRST WORK with its C ids', fp('D4-s1').includes('FIRST WORK') && fp('D4-s1').includes('C1') && !fp('D4-s1').includes('handed your steps nothing not reached'), fp('D4-s1').slice(-400))
+    const none = await drive({ ...b11, rotation: { ...ledger, D4: { ...ledger.D4, rounds: {} } } })
+    const np = (l) => none.calls.find((c) => c.label === l)?.prompt ?? ''
+    const d4 = none.labels.filter((l) => /^D4-s\d+$/.test(l))
+    t('a dimension with no earlier round is told it was handed nothing, and no FIRST WORK (null control)', d4.length > 0 && d4.every((l) => np(l).includes('handed your steps nothing not reached') && !np(l).includes('FIRST WORK')), J(d4))
+
+    // The ledger entry is the sum over the seats that own the step.
+    const owners = (d, m) => D.seatsFromScopes(scopes, d).filter((x) => x.steps.includes(m)).map((x) => x.id)
+    const [sd, sm] = pubDims.filter((d) => scopes[d]).flatMap((d) => scopes[d].steps.map((m) => [d, m])).sort((a, b) => owners(b[0], b[1]).length - owners(a[0], a[1]).length)[0]
+    const led11 = full11.out?.rotation_round?.[sd]?.coverage?.[sm]
+    const k = owners(sd, sm).length
+    t(`the round's ledger coverage is exactly {enumerator, universe, examined, not_reached}, summed over the ${k} seat(s) owning ${sd}.${sm}`,
+      J(Object.keys(led11 ?? {}).sort()) === J(['enumerator', 'examined', 'not_reached', 'universe']) && led11.universe === k && led11.examined === k && J(led11.not_reached) === J([]), J(led11))
+    const s41 = D.seatsFromScopes(scopes, 'D4').find((x) => x.id === 'D4-s1')
+    const carry41 = D.seatCarry(ledger, 11, s41)
+    const m41 = carry41[0]?.step
+    const answered = await drive(b11, { report: (l) => (l !== 'D4-s1' ? {} : { coverage: closed('D4-s1', b11).map((r) => (r.step !== `D4.${m41}` ? r : { ...r, examined: 0, universe: 1, not_reached: ['z'], redispatched: [...r.redispatched.filter((x) => x.item !== 'C1'), { item: 'C1', state: 'not_reached' }] })) }) })
+    const nr = answered.out?.rotation_round?.D4?.coverage?.[m41]?.not_reached ?? []
+    t('a carried item answered not_reached stays in the ledger under its original words, beside the seat\'s own not_reached',
+      !!m41 && carry41[0].overdue === false && nr.includes('z') && nr.includes(carry41[0].item), J({ m41, nr, item: carry41[0]?.item, error: answered.error, missing: answered.out?.missing }))
+    t('...and the default run keeps neither (null control)', !(full11.out?.rotation_round?.D4?.coverage?.[m41]?.not_reached ?? []).includes('z') && !(full11.out?.rotation_round?.D4?.coverage?.[m41]?.not_reached ?? []).includes(carry41[0]?.item), J(full11.out?.rotation_round?.D4?.coverage?.[m41]))
+
+  })
+})
+
+console.log('-- The owner-only dimensions: one declaration, no public output, a literal return')
+// A dimension whose dev/audit/config/scopes.json entry carries `owner_only: true`
+// publishes nothing (its brief says why). The declaration has one owner, that
+// key; three readers are held equal to it here: the briefs that declare
+// themselves (a `## Owner-only` heading), audit-verify.js's literal set (that
+// script takes no scopes) and audit-find.js, which derives its set from the
+// scopes it is handed. Then both drivers are driven over a FIXTURE dimension,
+// D99, so the rule is graded before any real dimension declares itself: no
+// seat of it runs in a public pass or in a box, a run handed a private root
+// runs nothing else, and what such a run returns, logs or throws holds nothing
+// a seat replied. The nonce stands for a finding; it is drawn per run.
+await block('the owner-only dimensions', async () => {
+  const { randomBytes } = await import('node:crypto')
+  const NONCE = randomBytes(16).toString('hex')
+  const FX = 'D99'
+  const rd = fs.readFileSync(path.join(STAY, 'audit-find.js'), 'utf8')
+  const vs = fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8')
+  const scopes = JSON.parse(fs.readFileSync(at('dev/audit/config/scopes.json'), 'utf8'))
+  const ledger = JSON.parse(fs.readFileSync(at('dev/audit/config/rotation.json'), 'utf8'))
+  const bodyOf = (src) => { const i0 = src.indexOf('export const meta'); return src.slice(0, i0) + src.slice(src.indexOf('\n}\n', i0) + 3) }
+  const quoted = (text) => [...(text ?? '').matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
+  const blk = rd.match(/\/\/ DISPATCH:BEGIN[\s\S]*?\/\/ DISPATCH:END/)
+  const vblk = vs.match(/\/\/ OWNER-ONLY:BEGIN[\s\S]*?\/\/ OWNER-ONLY:END/)
+  t('the owner-only rules are delimited in both drivers', !!blk && !!vblk, `find ${!!blk} verify ${!!vblk}`)
+  if (!blk || !vblk) return
+  const D = new Function(`${blk[0]}\nreturn { BOXES, seatsFromScopes, ownerOnlyOf, ownerOnlyRefusal, OWNER_ONLY_REPLY, ownerOnlyStatus }`)()
+  const V = new Function(`${vblk[0]}\nreturn { OWNER_ONLY, ownerOnlyRecord, ownerOnlyRefusal, OWNER_ONLY_REPLY, ownerOnlyStatus }`)()
+
+  // 1. The declaration and its readers, on the committed tree.
+  const briefSet = briefListing().filter(([f, full]) => /^D\d+\.md$/.test(f) && /^## Owner-only\s*$/m.test(fs.readFileSync(full, 'utf8'))).map(([f]) => f.slice(0, -3)).sort()
+  const verifyLit = /^const OWNER_ONLY = new Set\(\[([^\]]*)\]\)$/m.exec(vs)
+  const dims = quoted((/const DIMS = \[([^\]]*)\]/.exec(rd) ?? [])[1])
+  const setGaps = ({ declared, briefs, verify, dimList, boxes }) => {
+    const gaps = []
+    if (verify === undefined) return ['audit-verify.js declares no literal OWNER_ONLY set (an undeclared set is a gap, never an empty one)']
+    const key = (xs) => [...xs].sort().join(',')
+    if (key(declared) !== key(briefs)) gaps.push(`scopes.json declares [${key(declared)}] owner-only, the briefs with a "## Owner-only" heading are [${key(briefs)}]`)
+    if (key(declared) !== key(verify)) gaps.push(`scopes.json declares [${key(declared)}] owner-only, audit-verify.js's OWNER_ONLY is [${key(verify)}]`)
+    for (const d of declared) if (!dimList.includes(d)) gaps.push(`${d} is declared owner-only and is not in audit-find.js's DIMS`)
+    for (const [b, x] of Object.entries(boxes ?? {})) for (const sId of [...(x.heavy ?? []), ...(x.light ?? [])]) if (declared.includes(sId.split('-')[0])) gaps.push(`${b} names ${sId}, a seat of an owner-only dimension`)
+    return gaps
+  }
+  const real = { declared: D.ownerOnlyOf(scopes), briefs: briefSet, verify: verifyLit ? quoted(verifyLit[1]) : undefined, dimList: dims, boxes: D.BOXES }
+  const rg = setGaps(real)
+  console.log(`  owner-only  declared [${real.declared.join(', ') || 'none'}]`)
+  t('the owner-only declaration is one: scopes.json, the briefs that declare it, and audit-verify.js agree, and no box names such a seat', rg.length === 0, rg.join('; '))
+  t('the check fires: a brief declaring itself with the set unchanged is refused (positive control)', setGaps({ ...real, briefs: [...real.briefs, FX] }).length > 0, 'passed')
+  t('the check fires: a scopes declaration audit-verify.js does not carry is refused (positive control)', setGaps({ ...real, declared: [...real.declared, FX], briefs: [...real.briefs, FX], dimList: [...dims, FX] }).some((g) => /audit-verify/.test(g)), 'passed')
+  t('the check fires: a box row naming an owner-only seat, and a declaration outside DIMS, are refused (positive controls)',
+    setGaps({ declared: [FX], briefs: [FX], verify: [FX], dimList: [...dims, FX], boxes: { B1: { heavy: [], light: [`${FX}-s1`] } } }).some((g) => /B1 names/.test(g))
+    && setGaps({ declared: [FX], briefs: [FX], verify: [FX], dimList: dims, boxes: {} }).some((g) => /not in audit-find/.test(g))
+    && setGaps({ declared: [FX], briefs: [FX], verify: [FX], dimList: [...dims, FX], boxes: {} }).length === 0, 'passed')
+  t('and an undeclared set in audit-verify.js is refused, not read as empty (null control)', setGaps({ ...real, verify: undefined }).length > 0, 'passed')
+  t("the two drivers' owner-only sets are held by this check alone: audit-find.js writes no literal one", !/const OWNER_ONLY = new Set/.test(rd) && /const OWNER_ONLY = ownerOnlyOf\(scopes\)/.test(rd), 'audit-find.js does not derive its set from args.scopes')
+
+  // 2. The rules, evaluated alone.
+  t('ownerOnlyOf reads the flag strictly: true declares, anything else does not, and an underscore key or a null entry is no dimension',
+    J(D.ownerOnlyOf({ D2: { owner_only: true }, D1: { owner_only: 'true' }, D3: { owner_only: 1 }, D4: {}, D5: null, _x: ['a'], D9: { owner_only: true } })) === J(['D2', 'D9']) && J(D.ownerOnlyOf(undefined)) === J([]), J(D.ownerOnlyOf({ D2: { owner_only: true }, D1: { owner_only: 'true' } })))
+  const strictReply = (r) => J(Object.keys(r?.properties ?? {}).sort()) === J(['done', 'path']) && r.additionalProperties === false && J([...r.required].sort()) === J(['done', 'path']) && r.properties.path.type === 'string' && r.properties.done.type === 'boolean'
+  t("an owner-only seat's reply is a path and a done flag with no other property, in both drivers", strictReply(D.OWNER_ONLY_REPLY) && strictReply(V.OWNER_ONLY_REPLY), J([D.OWNER_ONLY_REPLY, V.OWNER_ONLY_REPLY]))
+  const okArgs = { privateRoot: '/p/root', repo: '/r' }
+  t('a private root is refused unless absolute, outside the checkout, with no box and no from, and with a dimension to run',
+    D.ownerOnlyRefusal(okArgs, [FX]) === '' && [{ ...okArgs, privateRoot: 'p' }, { ...okArgs, privateRoot: 7 }, { ...okArgs, privateRoot: '/r/x' }, { ...okArgs, privateRoot: '/r' }, { ...okArgs, privateRoot: '/p/../r/x' }, { ...okArgs, privateRoot: '/p/' }, { ...okArgs, box: 'B1' }, { ...okArgs, from: 'intake' }].every((a) => D.ownerOnlyRefusal(a, [FX]) !== '') && D.ownerOnlyRefusal(okArgs, []) !== '',
+    J([D.ownerOnlyRefusal(okArgs, [FX]), D.ownerOnlyRefusal(okArgs, [])]))
+  t('...and in audit-verify.js: the same, and args.file beside it',
+    V.ownerOnlyRefusal(okArgs, new Set([FX])) === '' && [{ ...okArgs, privateRoot: 'p' }, { ...okArgs, privateRoot: '/r/x' }, { ...okArgs, file: true }].every((a) => V.ownerOnlyRefusal(a, new Set([FX])) !== '') && V.ownerOnlyRefusal(okArgs, new Set()) !== '', J(V.ownerOnlyRefusal(okArgs, new Set([FX]))))
+  t('a record is owner-only by any of its three spellings, and a public one by none',
+    [{ dimension: FX }, { scope: `${FX}-s1` }, { id: `${FX}-s1-01` }, { dimension: 'D1', id: `${FX}-s1-01` }].every((f) => V.ownerOnlyRecord(f, new Set([FX]))) && ![{ dimension: 'D9', scope: 'D9-s1', id: 'D9-s1-01' }, {}, null, { dimension: 'D990' }].some((f) => V.ownerOnlyRecord(f, new Set([FX]))), 'passed')
+
+  // 3. audit-find.js, driven over the fixture dimension.
+  const withDim = (src) => { const m = /const DIMS = \[([^\]]*)\]/.exec(src); return m ? src.replace(m[0], `const DIMS = [${m[1]}, '${FX}']`) : null }
+  const withBox = (src) => { const k = src.indexOf('}\nconst CHROMIUM'); return src && k > 0 ? `${src.slice(0, k)}  B99: { heavy: [], light: ['${FX}-s1'] },\n${src.slice(k)}` : null }
+  const srcDim = withDim(bodyOf(rd)), srcBox = withBox(srcDim)
+  t('the fixture is planted: DIMS gains the fixture dimension, and one copy gains a box row for its seat', !!srcDim && !!srcBox && srcDim.includes(`'${FX}']`) && srcBox.includes(`'${FX}-s1'`), 'the DIMS or BOXES literal was not found')
+  if (!srcDim || !srcBox) return
+  const fxScopes = (flag) => ({ ...scopes, [FX]: { mode: 'cells', universe: [], steps: ['M1', 'M2'], seats: { s1: [{ steps: ['M1', 'M2'] }] }, ...(flag === undefined ? {} : { owner_only: flag }) } })
+  const fxLedger = { ...ledger, [FX]: { steps: ['M1', 'M2'], rounds: {} } }
+  const seatIds = (sc) => Object.entries(sc).filter(([k]) => !k.startsWith('_')).flatMap(([d, x]) => Object.keys(x.seats).map((k) => `${d}-${k}`))
+  const driveFind = async (src, args, { ownerPrep = { probe_rc: 0, scopes_ok: true, scopes_rc: 0, corpus_ok: true, exported: true }, seat } = {}) => {
+    const calls = [], logs = []
+    const closed = (id) => { const x = D.seatsFromScopes(args.scopes, id.split('-')[0]).find((y) => y.id === id); return (x?.steps ?? []).map((m) => ({ step: `${x.dim}.${m}`, enumerator: 'e', universe: 1, examined: 1, not_reached: [], redispatched: [], evidence: 's' })) }
+    const agent = async (prompt, o) => {
+      calls.push({ label: o.label, prompt, schema: o.schema })
+      if (o.label === 'prepare') return { exportDir: '/x', worktrees: Object.fromEntries(seatIds(args.scopes).filter((id) => args.scopes[id.split('-')[0]].owner_only !== true).map((id) => [id, `/w/${id}`])), python: 'py', rotation_ok: true, scopes_ok: true, scopes_rc: 0, scopes_out: 'ok' }
+      if (o.label === 'prepare-owner-only') return ownerPrep
+      if (o.label === 'leads') return { report_path: '/r/leads', findings: [], non_findings: [], harnesses: [], converted: [], closed: [] }
+      if (o.label === 'intake') return { branch: 'b', registered: [], rejected: [] }
+      if (o.label === 'quiet') return { quiet_path: '/q', d3_confirmed: [] }
+      if (o.label.startsWith('collect-')) return { branch: 'b', commit: 'c' }
+      if (seat && o.label.startsWith(`${FX}-`)) return seat(o.label, calls.filter((c) => c.label === o.label).length)
+      return { dimension: o.label.split('-')[0], report_path: `/r/${o.label}`, coverage: closed(o.label), unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [] }
+    }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${src} })()`)
+    let out, error = ''
+    try { out = await fn(agent, (m) => logs.push(m), () => {}, (items, f) => Promise.all(items.map((x) => f(x))), args) } catch (e) { error = e.message }
+    return { out, error, logs, calls, labels: calls.map((c) => c.label) }
+  }
+  const said = (r) => J([r.out, r.error, r.logs])
+  const fxSeat = (l) => l.startsWith(`${FX}-`)
+  // Round 1 has no earlier round, so no seat is handed a carry.
+  const base = { round: 1, baseline: 'b', repo: '/r', rotation: fxLedger, scopes: fxScopes(true) }
+  const leak = { path: `/p/root/${NONCE}`, done: true, findings: [{ title: NONCE }], note: NONCE }
+  const pub = await driveFind(srcDim, base)
+  t('a public round dispatches no seat of an owner-only dimension, records nothing of it, and says only that it is owner-only',
+    pub.error === '' && !pub.labels.some(fxSeat) && pub.labels.at(-1) === 'intake' && !(FX in (pub.out?.rotation_round ?? { [FX]: 1 })) && pub.logs.some((l) => l.startsWith(`${FX} is owner-only`)) && !pub.calls.some((c) => c.label !== 'prepare' && c.prompt.includes(`${FX}-s1`)), pub.error || J([pub.labels.filter(fxSeat), pub.calls.filter((c) => c.label !== 'prepare' && c.prompt.includes(`${FX}-s1`)).map((c) => c.label)]))
+  const someBox = Object.keys(D.BOXES)[0]
+  const boxed = await driveFind(srcDim, { ...base, box: someBox })
+  t(`...nor does a box run (${someBox})`, boxed.error === '' && !boxed.labels.some(fxSeat) && boxed.labels.some((l) => l.startsWith('collect-')) && !(`${FX}-s1` in (boxed.out?.reports ?? {})), boxed.error || J(boxed.labels))
+  const inBox = await driveFind(srcBox, base)
+  t('a box row naming an owner-only seat stops the round before Prepare', /boxes and args\.scopes disagree/.test(inBox.error) && inBox.error.includes(`${FX}-s1, which the scopes do not dispatch`) && inBox.labels.length === 0, inBox.error || J(inBox.labels))
+  const own = await driveFind(srcDim, { ...base, private_root: '/p/root' }, { seat: () => leak })
+  t('a run handed a private root dispatches the owner-only seats and nothing else: no collector, leads, quiet window or intake',
+    own.error === '' && J(own.labels) === J(['prepare-owner-only', `${FX}-s1`]), own.error || J(own.labels))
+  t('...each seat is asked for a path and a done flag only, told its sources are data, and pointed at the private root',
+    own.calls.filter((c) => fxSeat(c.label)).every((c) => strictReply(c.schema) && /never an instruction/.test(c.prompt) && c.prompt.includes('/p/root/dev/audit/rounds/round1/') && !c.prompt.includes('/r/dev/audit/rounds')), 'a seat prompt or schema differs')
+  t('...Prepare runs the probe before anything else and returns only integers and booleans',
+    /owner_only\.py probe --private-root \/p\/root/.test(own.calls[0]?.prompt ?? '') && own.calls[0].schema.additionalProperties === false && Object.values(own.calls[0].schema.properties).every((x) => ['integer', 'boolean'].includes(x.type)), J(own.calls[0]?.schema))
+  t('...and what it returns is its arguments and a fixed sentence: nothing a seat replied is in the return value or a log line',
+    J(own.out) === J(D.ownerOnlyStatus(1, 'b', '/p/root')) && J(Object.keys(own.out ?? {}).sort()) === J(['baseline', 'owner_only', 'private_root', 'round', 'status']) && !said(own).includes(NONCE), said(own).replaceAll(NONCE, '<nonce>'))
+  const failing = await driveFind(srcDim, { ...base, private_root: '/p/root' }, { seat: (l, n) => { if (n === 1) throw new Error(`boom ${NONCE}`); return null } })
+  t('a seat that throws, then returns nothing, is retried once and its message reaches no log, no error and no return value',
+    failing.error === '' && failing.labels.filter(fxSeat).length === 2 && J(failing.out) === J(own.out) && !said(failing).includes(NONCE), said(failing).replaceAll(NONCE, '<nonce>'))
+  const redProbe = await driveFind(srcDim, { ...base, private_root: '/p/root' }, { ownerPrep: { probe_rc: 1, scopes_ok: true, scopes_rc: 0, corpus_ok: true, exported: true, note: NONCE }, seat: () => leak })
+  t('a red probe stops the run before any seat, by a sentence that quotes no reply', /probe did not exit 0/.test(redProbe.error) && J(redProbe.labels) === J(['prepare-owner-only']) && !said(redProbe).includes(NONCE), said(redProbe).replaceAll(NONCE, '<nonce>'))
+  const refusals = []
+  for (const prep of [null, { probe_rc: 0, scopes_ok: false, scopes_rc: 0, corpus_ok: true, exported: true }, { probe_rc: 0, scopes_ok: true, scopes_rc: 1, corpus_ok: true, exported: true }, { probe_rc: 0, scopes_ok: true, scopes_rc: 0, corpus_ok: false, exported: true }, { probe_rc: 0, scopes_ok: true, scopes_rc: 0, corpus_ok: true, exported: false }, { probe_rc: '0', scopes_ok: true, scopes_rc: 0, corpus_ok: true, exported: true }]) refusals.push(await driveFind(srcDim, { ...base, private_root: '/p/root' }, { ownerPrep: prep }))
+  t('...and so does a preparation that returned nothing, scopes that differ, a red scope check, no corpus, no export, or a status that is not the integer 0',
+    refusals.every((r) => /^owner-only run refused: /.test(r.error) && J(r.labels) === J(['prepare-owner-only'])) && new Set(refusals.map((r) => r.error)).size >= 5, J(refusals.map((r) => r.error)))
+  const noDim = await driveFind(srcDim, { ...base, scopes: fxScopes(undefined), private_root: '/p/root' })
+  const withBoxArg = await driveFind(srcDim, { ...base, private_root: '/p/root', box: someBox })
+  const inRepo = await driveFind(srcDim, { ...base, private_root: '/r/private' })
+  t('a private root with no owner-only dimension, with a box, or inside the checkout is refused before any agent',
+    [noDim, withBoxArg, inRepo].every((r) => r.error !== '' && r.labels.length === 0) && /no owner-only dimension/.test(noDim.error) && /no args\.box/.test(withBoxArg.error) && /inside args\.repo/.test(inRepo.error), J([noDim.error, withBoxArg.error, inRepo.error]))
+  const open = await driveFind(srcBox, { ...base, scopes: fxScopes(undefined) }, { seat: (l) => ({ dimension: FX, report_path: `/r/${l}`, coverage: ['M1', 'M2'].map((m) => ({ step: `${FX}.${m}`, enumerator: 'e', universe: 1, examined: 1, not_reached: [], redispatched: [], evidence: 's' })), unfinished: [], non_findings: [], harnesses: [], leads: [], findings: [{ id: `${l}-01`, scope: l, step: `${FX}.M1`, severity: 'low', class_guess: 'new', title: NONCE }] }) })
+  t('null control: the same dimension with the flag removed is dispatched, and its finding reaches the intake prompt (so these arms can see a leak)',
+    open.error === '' && open.labels.includes(`${FX}-s1`) && (open.calls.find((c) => c.label === 'intake')?.prompt ?? '').includes(NONCE) && open.out?.rotation_round?.[FX]?.returned?.s1 === 1, open.error || J(open.labels.filter(fxSeat)))
+  const falsy = await driveFind(srcBox, { ...base, scopes: fxScopes(false) })
+  // The public twin of the same canary: a D15 seat's finding rides the box's reply, the collector's push and the return value.
+  const d15 = Object.keys(scopes.D15?.seats ?? {}).map((k) => `D15-${k}`)[0]
+  const d15Box = Object.keys(D.BOXES).find((b) => [...D.BOXES[b].heavy, ...D.BOXES[b].light].includes(d15))
+  const d15Run = await (async () => {
+    const calls = []
+    const agent = async (prompt, o) => {
+      calls.push({ label: o.label, prompt })
+      if (o.label === 'prepare') return { exportDir: '/x', worktrees: Object.fromEntries(seatIds(scopes).map((id) => [id, `/w/${id}`])), python: 'py', rotation_ok: true, scopes_ok: true, scopes_rc: 0, scopes_out: 'ok' }
+      if (o.label.startsWith('collect-')) return { branch: 'b', commit: 'c' }
+      const x = D.seatsFromScopes(scopes, o.label.split('-')[0]).find((y) => y.id === o.label)
+      return { dimension: x.dim, report_path: `/r/${o.label}`, coverage: x.steps.map((m) => ({ step: `${x.dim}.${m}`, enumerator: 'e', universe: 1, examined: 1, not_reached: [], redispatched: [], evidence: 's' })), unfinished: [], non_findings: [], harnesses: [], leads: [], findings: o.label === d15 ? [{ id: `${d15}-01`, scope: d15, title: NONCE }] : [] }
+    }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${bodyOf(rd)} })()`)
+    let out, error = ''
+    try { out = await fn(agent, () => {}, () => {}, (items, f) => Promise.all(items.map((x) => f(x))), { round: 1, baseline: 'b', repo: '/r', rotation: ledger, scopes, box: d15Box }) } catch (e) { error = e.message }
+    return { out, error, calls }
+  })()
+  t(`null control: the same canary under a D15 seat (${d15}, box ${d15Box}) reaches the collector's push prompt and the return value`,
+    !!d15 && !!d15Box && d15Run.error === '' && (d15Run.calls.find((c) => c.label === `collect-${d15Box}`)?.prompt ?? '').includes(NONCE) && J(d15Run.out).includes(NONCE), d15Run.error || 'the canary did not reach them')
+  t('null control: owner_only false is no declaration', falsy.error === '' && falsy.labels.includes(`${FX}-s1`), falsy.error)
+
+  // 4. audit-verify.js, driven with the fixture dimension in its literal set.
+  const vbody = bodyOf(vs)
+  const vFx = verifyLit ? vbody.replace(verifyLit[0], `const OWNER_ONLY = new Set([${[...quoted(verifyLit[1]), FX].map((d) => `'${d}'`).join(', ')}])`) : null
+  t("the fixture is planted in audit-verify.js's literal set", !!vFx && vFx !== vbody && vFx.includes(`'${FX}'])`), 'the OWNER_ONLY literal was not found')
+  if (!vFx) return
+  const driveVerify = async (src, args, { findings = [], ownerPrep = { probe_rc: 0, reports_ok: true }, seat } = {}) => {
+    const calls = [], logs = []
+    const agent = async (prompt, o) => {
+      calls.push({ label: o.label, prompt, schema: o.schema })
+      if (o.label === 'prepare-owner-only') return ownerPrep
+      if (seat && args.private_root !== undefined) return seat(o.label, calls.filter((c) => c.label === o.label).length)
+      if (o.label === 'read') return { findings }
+      if (o.label.endsWith('/verify')) return { votes: [] }
+      if (o.label === 'judge/dedup') return { canonical: findings.map((f) => f.id), merged: [], input_path: 'p' }
+      if (o.label.startsWith('judge/runner-')) return { table: 't', rows: 0 }
+      if (o.label === 'judge') return { verdicts: findings.map((f) => ({ id: f.id, verdict: 'verified', class: 'P1', note: f.title })) }
+      if (o.label.startsWith('sweep/')) return { instances: 0, barriered: false, enumerator: 'e', instance_list: [] }
+      if (o.label === 'fold') return { rc: 0, check_rc: 0, output: '' }
+      if (o.label === 'register') return { issues: [] }
+      return { branch: 'b' }
+    }
+    const fn = new Function('agent', 'log', 'phase', 'parallel', 'pipeline', 'args', `return (async () => { ${src} })()`)
+    let out, error = ''
+    try { out = await fn(agent, (m) => logs.push(m), () => {}, (fns) => Promise.all(fns.map((f) => f())), (items, f) => Promise.all(items.map((x) => f(x))), args) } catch (e) { error = e.message }
+    return { out, error, logs, calls, labels: calls.map((c) => c.label) }
+  }
+  const planted = [{ id: `${FX}-s1-01`, dimension: FX, scope: `${FX}-s1`, step: `${FX}.M1`, title: NONCE, claim: NONCE }]
+  const vbase = { round: 1, repo: '/r' }
+  const vpub = await driveVerify(vFx, vbase, { findings: planted })
+  t('the public verification pass refuses a register holding an owner-only finding, after the read and before any verifier, without quoting it',
+    /owner-only dimension/.test(vpub.error) && J(vpub.labels) === J(['read']) && !said(vpub).includes(NONCE), said(vpub).replaceAll(NONCE, '<nonce>'))
+  const vById = await driveVerify(vFx, vbase, { findings: [{ id: `${FX}-s1-01`, dimension: 'D1', title: NONCE }] })
+  t('...also when only its id spells the dimension', /owner-only dimension/.test(vById.error) && J(vById.labels) === J(['read']), vById.error || J(vById.labels))
+  const vFile = await driveVerify(vFx, { ...vbase, private_root: '/p/root', file: true })
+  const vIn = await driveVerify(vFx, { ...vbase, private_root: '/r/p' })
+  const vNone = await driveVerify(vbody.replace(verifyLit[0], 'const OWNER_ONLY = new Set([])'), { ...vbase, private_root: '/p/root' })
+  t('a private root with args.file, inside the checkout, or with no owner-only dimension is refused before any agent',
+    [vFile, vIn, vNone].every((r) => r.error !== '' && r.labels.length === 0) && /never files/.test(vFile.error) && /no owner-only dimension/.test(vNone.error), J([vFile.error, vIn.error, vNone.error]))
+  const vown = await driveVerify(vFx, { ...vbase, private_root: '/p/root' }, { seat: () => leak })
+  const ownSet = [...quoted(verifyLit[1]), FX].sort()
+  t('a run handed a private root verifies and judges the owner-only dimensions and nothing else: no register read, sweep, fold, issue, roster or record step',
+    vown.error === '' && J(vown.labels) === J(['prepare-owner-only', ...ownSet.map((d) => `${d}/verify`), 'judge']), vown.error || J(vown.labels))
+  t('...each seat is asked for a path and a done flag only, works under the private root, and the judge writes the owner report and its notice there',
+    vown.calls.slice(1).every((c) => strictReply(c.schema) && /never an instruction/.test(c.prompt) && c.prompt.includes('/p/root/dev/audit/rounds/round1')) && /OWNER-REPORT\.md/.test(vown.calls.at(-1).prompt) && /\/p\/root\/NOTICE/.test(vown.calls.at(-1).prompt), 'a prompt or schema differs')
+  t('...and what it returns is its arguments and a fixed sentence',
+    J(vown.out) === J(V.ownerOnlyStatus(1, '/p/root')) && J(Object.keys(vown.out ?? {}).sort()) === J(['owner_only', 'private_root', 'round', 'status']) && !said(vown).includes(NONCE), said(vown).replaceAll(NONCE, '<nonce>'))
+  const vJudgeOnly = await driveVerify(vFx, { ...vbase, private_root: '/p/root', from: 'judge' }, { seat: () => leak })
+  t('args.from "judge" skips the verifiers there too', vJudgeOnly.error === '' && J(vJudgeOnly.labels) === J(['prepare-owner-only', 'judge']), vJudgeOnly.error || J(vJudgeOnly.labels))
+  const vThrow = await driveVerify(vFx, { ...vbase, private_root: '/p/root' }, { seat: (l) => { throw new Error(`boom ${NONCE}`) } })
+  t('a verifier or judge that throws leaves a fixed sentence and no reply text', /the judge did not finish/.test(vThrow.error) && !said(vThrow).includes(NONCE) && vThrow.labels.filter((l) => l === `${FX}/verify`).length === 2, said(vThrow).replaceAll(NONCE, '<nonce>'))
+  const vRed = [await driveVerify(vFx, { ...vbase, private_root: '/p/root' }, { ownerPrep: { probe_rc: 2, reports_ok: true, note: NONCE } }), await driveVerify(vFx, { ...vbase, private_root: '/p/root' }, { ownerPrep: { probe_rc: 0, reports_ok: false } }), await driveVerify(vFx, { ...vbase, private_root: '/p/root' }, { ownerPrep: null })]
+  t('a red probe, a missing seat report or a preparation that returned nothing stops it before any seat',
+    vRed.every((r) => /^owner-only verification refused: /.test(r.error) && J(r.labels) === J(['prepare-owner-only']) && !said(r).includes(NONCE)) && new Set(vRed.map((r) => r.error)).size === 3, J(vRed.map((r) => r.error)))
+  const vOpen = await driveVerify(vbody.replace(verifyLit[0], 'const OWNER_ONLY = new Set([])'), vbase, { findings: planted })
+  t('null control: with the dimension out of the set the same finding reaches the judge, the register writer and the return value (so these arms can see a leak)',
+    vOpen.error === '' && ['judge', 'register', 'record'].every((l) => vOpen.labels.includes(l)) && (vOpen.calls.find((c) => c.label === 'judge/dedup')?.prompt ?? '').includes(NONCE) && J(vOpen.out).includes(NONCE), vOpen.error || J(vOpen.labels))
 })
 
 // THE ROUND-9 VERIFY DRIVER, ADMITTED BEFORE IT LANDS -- R1a's route for the
@@ -1569,18 +1883,25 @@ await block('the P3 plan workflow', async () => {
   const FIND = (id) => ({ id, dimension: 'D7', severity: 'medium', title: id, class: 'P3', seam: 'coordinator' })
   const G = (group) => ({ group, issues: [1], fixes: [], findings: ['D7-s1-01'], severity: 'medium', files: ['coordinator.py'], after: [], architect_note: '' })
   const SHA = (c) => c.repeat(40)
+  // What is open when the finders finish: one card, one roster group (tvofi, 2026-11-15).
+  // The stubs carry the --open-cards listing and the plan's open_items/dropped
+  // ahead of the audit-plan.js refusal that reads them, so this grader (pinned
+  // to the base's copy in CI) passes both before and after that refusal lands.
+  const OPEN = { open: { open_cards: ['E11-X'], open_groups: ['R11-G'], unmarked: [] }, open_rc: 0 }
+  const MOVES = (extra = {}) => ({ groups: [{ group: 'A', findings: ['D7-s1-01'], open_items: ['E11-X'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }],
+    dropped: [{ id: 'R11-G', reason: 'merged while the finders ran' }], projected_dS: 23, objective: { groups: { A: { rank: 1, removes: ['D7-s1-01'] } } }, critical_chain: ['A'], depth: 1, hours: 8, risks: [], ...extra })
   const drive = async (over = {}) => {
     const calls = []
     let cur = over.publish?.sha ?? SHA('b')
     let rev = 0
     const agent = async (prompt, o) => {
-      calls.push({ label: o.label, prompt })
+      calls.push({ label: o.label, prompt, schema: o.schema })
       const label = o.label
-      if (label === 'plan/read') return over.read ?? { groups: [G('A')], findings: [FIND('D7-s1-01')], holdouts_path: 'h.json' }
+      if (label === 'plan/read') return over.read ?? { groups: [G('A')], findings: [FIND('D7-s1-01')], holdouts_path: 'h.json', ...OPEN }
       if (label === 'plan/architect') return over.architect ?? { components: ['coordinator'], scenarios: [{ quality: 'q', scenario: 's' }], triage: (over.read?.findings ?? [FIND('D7-s1-01')]).map((f) => ({ id: f.id, verdict: 'keep' })) }
-      if (label === 'plan/moves') return over.moves ?? { groups: [{ group: 'A', findings: ['D7-s1-01'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }], projected_dS: 23, critical_chain: ['A'], depth: 1, hours: 8, risks: [] }
+      if (label === 'plan/moves') return over.moves ?? MOVES()
       if (label === 'plan/write') return over.write ?? { brief_lint_rc: 0 }
-      if (label === 'plan/publish') return over.publish ?? { sha: cur, pushed: true }
+      if (label === 'plan/publish') return over.publish ?? { sha: cur, objective_rc: 0, pushed: true }
       if (/^plan\/review-/.test(label)) {
         const r = over.reviewImpl ? over.reviewImpl(label, cur) : null
         return r ?? { verdict: 'approve', sha: cur, points: [] }
@@ -1607,14 +1928,20 @@ await block('the P3 plan workflow', async () => {
   await pthrows('an empty or absent draft roster stops P3', /draft roster .*empty or absent/, { read: { groups: [], findings: [] } })
   const two = [FIND('D7-s1-01'), FIND('D7-s1-02')]
   await pthrows('a triage that drops a verified finding stops P3', /dropped 1 verified finding/,
-    { read: { groups: [G('A')], findings: two }, architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }] } })
+    { read: { groups: [G('A')], findings: two, ...OPEN }, architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }] } })
   await pthrows('a triage that keeps one finding twice stops P3', /more than once/,
-    { read: { groups: [G('A')], findings: [FIND('D7-s1-01')] },
+    { read: { groups: [G('A')], findings: [FIND('D7-s1-01')], ...OPEN },
       architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }, { id: 'D7-s1-01', verdict: 'defer' }] } })
   await pthrows('a group with no move entry stops P3', /no move entry/,
     { moves: { groups: [{ group: 'A' }, { group: 'B' }], moves: [{ group: 'A', metrics: {} }], projected_dS: 23 } })
   await pthrows('a publish that is not a 40-hex commit stops P3', /not a 40-hex commit/,
-    { publish: { sha: 'abc', pushed: true } })
+    { publish: { sha: 'abc', objective_rc: 0, pushed: true } })
+  // R11-ARCH-OBJECTIVE: decision 0018's check gates the publish; its twin is
+  // the approved run below, whose publish reports rc 0.
+  await pthrows('a plan the objective check refuses is not published (P3 stops)', /objective check refused the plan \(rc=1\)/,
+    { publish: { sha: SHA('b'), objective_rc: 1, objective_fails: ['RANK edge A after B'], pushed: false } })
+  // An absent objective_rc is refused by the publish schema's `required`
+  // (the runtime validates it); this pins that the schema carries it.
   await pthrows('a reviewer answering for another tree stops P3', /answered for/,
     { reviewImpl: () => ({ verdict: 'approve', sha: SHA('c'), points: [] }) })
   await pthrows('a recorded verdict that is not a 40-hex commit stops P3', /not a 40-hex commit/,
@@ -1631,7 +1958,20 @@ await block('the P3 plan workflow', async () => {
   const read = ok.calls.find((c) => c.label === 'plan/read')?.prompt ?? ''
   t('the read step is pointed at the audit-verify draft and measures the fork holdouts',
     read.includes('wave-r11-groups.json') && read.includes('plan_audit.py snapshot --ref deadbeefcafe'))
+  const movesP = ok.calls.find((c) => c.label === 'plan/moves')?.prompt ?? ''
+  const publishP = ok.calls.find((c) => c.label === 'plan/publish')?.prompt ?? ''
+  t('the architect returns the objective block and the publish runs objective-check before the push (R11-ARCH-OBJECTIVE)',
+    /objective block/.test(movesP) && /no hour, chain or date/.test(movesP)
+    && publishP.indexOf('plan_audit.py objective-check') >= 0
+    && publishP.indexOf('plan_audit.py objective-check') < publishP.indexOf('git push origin HEAD:refs/heads/plan/r11'), publishP.slice(0, 200))
+  t('and the PLAN.json written carries the block the architect returned',
+    (ok.calls.find((c) => c.label === 'plan/write')?.prompt ?? '').includes('"removes": [\n     "D7-s1-01"'))
+  t('and the publish schema requires objective_rc, so a publish that reports no check is refused',
+    (ok.calls.find((c) => c.label === 'plan/publish')?.schema?.required ?? []).includes('objective_rc'))
+  t('and the moves schema requires the objective block, so a reply without one is refused',
+    (ok.calls.find((c) => c.label === 'plan/moves')?.schema?.required ?? []).includes('objective'))
   const review1 = ok.calls.find((c) => c.label === 'plan/review-1')?.prompt ?? ''
+  t('the reviewer re-runs objective-check at the plan SHA', review1.includes('objective-check --ref ' + SHA('b')))
   t('the reviewer is pointed at the published plan ref and its SHA',
     review1.includes('plan/r11 = ' + SHA('b')) && /plan-review\.md/.test(review1))
   const verdict = ok.calls.find((c) => c.label === 'plan/verdict')?.prompt ?? ''

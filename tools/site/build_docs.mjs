@@ -35,6 +35,9 @@ const BLOB = 'https://github.com/tvofi/heatpump_optimizer/blob/main/'
 const TREEURL = 'https://github.com/tvofi/heatpump_optimizer/tree/main/'
 // Rows of the README Documentation table the site links to GitHub instead of rendering, each with its reason.
 const EXCLUDE = {}
+// Documents that moved: the old page name keeps resolving, as a redirect to the new page with the fragment kept, so a
+// link to the old address still lands (docs/ecl110.md became docs/heat-curve.md; the old file stays as a pointer).
+const MOVED = { 'docs/ecl110.md': 'docs/heat-curve.md' }
 const errors = []
 const stats = { pages: 0, pageLinks: 0, anchors: 0, githubLinks: 0, images: 0, badges: 0, external: 0, mermaid: 0 }
 
@@ -168,7 +171,7 @@ function rawImages(html) {
 
 // ---- render ----
 const MARK = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="dusk" viewBox="0 0 48 48"><path d="M20 22 V26 H27 V35 H36 V22 Z" fill="var(--mk-heat)"/><path d="M6 12 H13 V19 H20 V26 H27 V35 H36 V13 H42" fill="none" stroke="var(--mk-line)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>'
-const THEME_JS = `(()=>{const r=document.documentElement,b=document.getElementById("theme"),mq=matchMedia("(prefers-color-scheme: dark)");let s=null;try{s=localStorage.getItem("hpo-theme")}catch(e){}const dark=()=>r.dataset.theme?r.dataset.theme==="dark":mq.matches;function a(t){if(t)r.dataset.theme=t;else delete r.dataset.theme;b.setAttribute("aria-label",dark()?"Switch to light theme":"Switch to dark theme")}a(s);b.addEventListener("click",()=>{const t=dark()?"light":"dark";a(t);try{localStorage.setItem("hpo-theme",t)}catch(e){};if(window.__mermaidRedraw)window.__mermaidRedraw()});const d=document.querySelector("nav.side details");if(d&&matchMedia("(max-width: 900px)").matches)d.open=false})();`
+const THEME_JS = `(()=>{const r=document.documentElement,b=document.getElementById("theme"),mq=matchMedia("(prefers-color-scheme: dark)");let s=null;try{s=localStorage.getItem("hpo-theme")}catch(e){}const dark=()=>r.dataset.theme?r.dataset.theme==="dark":mq.matches;function a(t){if(t)r.dataset.theme=t;else delete r.dataset.theme;document.querySelectorAll('picture source[media*="prefers-color-scheme"]').forEach(e=>{if(e.dataset.media===undefined)e.dataset.media=e.media;e.media=r.dataset.theme?(dark()?"all":"not all"):e.dataset.media});b.setAttribute("aria-label",dark()?"Switch to light theme":"Switch to dark theme")}a(s);b.addEventListener("click",()=>{const t=dark()?"light":"dark";a(t);try{localStorage.setItem("hpo-theme",t)}catch(e){};if(window.__mermaidRedraw)window.__mermaidRedraw()});const d=document.querySelector("nav.side details");if(d&&matchMedia("(max-width: 900px)").matches)d.open=false})();`
 
 const rendered = docs.map((d) => {
   CUR = d.src
@@ -244,8 +247,25 @@ ${mermaidJs(r.mermaid)}
   fs.writeFileSync(path.join(OUT, r.out), page)
 })
 stats.pages = rendered.length
+stats.redirects = 0
+const redirects = []
+for (const [from, to] of Object.entries(MOVED)) {
+  const target = PUBLISHED.get(to), old = outName(from)
+  // A tree without the old file has nothing to redirect (tests/doc_claims.py pins that this one keeps it).
+  if (!TREE.has(from)) continue
+  if (!target) { errors.push(`MOVED names ${to}, which is not a built page`); continue }
+  if ([...PUBLISHED.values()].includes(old)) { errors.push(`MOVED ${from}: ${old} is also a built page`); continue }
+  fs.writeFileSync(path.join(OUT, old), `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Moved</title>
+<meta http-equiv="refresh" content="0; url=${esc(target)}"><link rel="canonical" href="${esc(target)}">
+<script>location.replace(${JSON.stringify(target)} + location.hash)</script></head>
+<body><p>This page moved to <a href="${esc(target)}">${esc(target)}</a>.</p></body></html>
+`)
+  redirects.push({ src: from, out: old, to: target })
+  stats.redirects++
+}
 if (!rendered.length) errors.push('ANCHOR: zero pages built')
-fs.writeFileSync(path.join(OUT, 'docs-manifest.json'), JSON.stringify({ built: rendered.map((r) => ({ src: r.src, out: r.out, mermaid: r.mermaid })), excluded: EXCLUDE }, null, 1))
+fs.writeFileSync(path.join(OUT, 'docs-manifest.json'), JSON.stringify({ built: rendered.map((r) => ({ src: r.src, out: r.out, mermaid: r.mermaid })), excluded: EXCLUDE, moved: redirects }, null, 1))
 console.log(Object.entries(stats).map(([k, v]) => `${k} ${v}`).join(', '))
 console.log(`built ${rendered.length} page(s): ${rendered.map((r) => r.out).join(', ')}; excluded ${Object.keys(EXCLUDE).join(', ') || 'none'}`)
 for (const e of errors) console.log('FAIL', e)

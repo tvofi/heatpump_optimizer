@@ -62,16 +62,19 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.1.12
+# claims-for: 10.0.3
 #
-# v7.1.12: Charge-dip draws, price-outage steering, disinfection set-point, off restore, card labels. The stamp empties the list; the
+# v10.0.3: Self-test hotfix and round-11 preparation. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-cycling_cost  # honest-starts-and-runs P1+P2+P4: a start is priced as one start and the plan ships as runs in {0} u [p_min, p_max]; measured base 870238eb21 vs this head on one box: steps under the floor 9 -> 0 (one hot-water charge ends inside its last step), running steps that follow a step under the floor 13 -> 5, energy 44.80 -> 43.30 kWh, predicted cost 34.30 -> 33.50, lowest room 17.18 -> 17.14 C; P4 commits its hot water to whole charges
-everything_on  # honest-starts-and-runs P1+P2+P4: as cycling_cost; steps under the floor 11 -> 0, running steps that follow a step under the floor 14 -> 4, energy 65.59 -> 67.55 kWh, predicted cost 58.98 -> 61.52, lowest room 17.69 -> 17.84 C
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+coord_all_features  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_dhw  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_grid_fee  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_minimal  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_two_zone  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
 # BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
 # price_known/baseline_cost) still fail. Remove when drift lanes are pinned
 # or the polish improvement scale leaves 5e-5-2e-2.
@@ -119,15 +122,13 @@ everything_on  # honest-starts-and-runs P1+P2+P4: as cycling_cost; steps under t
 # keys (prices/outdoor_temps/price_known/baseline_cost) still fail. Remove
 # when drift lanes are pinned or the polish improvement scale leaves
 # 5e-5-2e-2.
-# (honest-starts-and-runs suspends cycling_cost's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+# may-drift: cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
 # #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
 # band (objective rel -1.7666e-04, deterministic on one box),
 # runner-conditional for the same reason; judged keys still fail. Remove
 # when drift lanes are pinned or the polish improvement scale leaves
 # 5e-5-2e-2.
-# (honest-starts-and-runs suspends everything_on's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
+# may-drift: everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
 # directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
 # the noise band (objective rel -5.2974e-03, deterministic on one box),
 # runner-conditional for the same reason; judged keys still fail. Remove
@@ -767,3 +768,35 @@ everything_on  # honest-starts-and-runs P1+P2+P4: as cycling_cost; steps under t
 # changes exactly two leaves (the plain and the seeded render of
 # dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
 # it, so every other fixture is byte-identical. Re-recorded in the committed file.
+# R10-SAV-VALUATION-RESIDUE part 2: behind a valve the reference is booked as
+# simulated from its held state, no longer re-spread by steady demand
+# (_apportion_by_steady_demand removed). Measured with golden.py and
+# env_drift.py against the merge base in one environment: exactly these eight
+# valved fixtures move, in baseline_cost and the savings derived from it (plan
+# leaves exempt); every unvalved fixture is unmoved, which is the null.
+# baseline_cost is a judged key a may-drift entry cannot excuse, so the six
+# with one are suspended above for this release (the wood_coil precedent).
+# Direction per fixture, branch vs base:
+# R11-OUTSIDE-HONEST-STARTS-RUNS (pull request 3529, Bankaifan): a start is
+# priced as one start (`runs.start_count`) in place of the swing of the
+# combined draw, and a solve that prices a start, or whose install cannot
+# duty-cycle, ships the lowest-scoring of its relaxed plan's committed runs.
+# Measured with tests/env_drift.py --all against the merge base in one
+# environment: exactly the two plan fixtures that set a cycling cost move, and
+# every other fixture is byte-identical, which is the null. The third fixture
+# with a cycling cost, coord_all_features, is byte-identical too and is not
+# claimed: a coord capture holds no plan. Both entries were may-drift, which a
+# claim cannot stand beside, so they are suspended above for this release.
+# Direction per fixture, base -> head, one box; the space plan's steps between
+# the running rule and the 1.0 kW floor, starts by the edge count
+# (`runs.edge_count`), energy, predicted_cost, lowest room. Hot-water levels
+# under the floor are the planner's and are not committed here.
+# R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): the model status sensor
+# publishes which electrical minimum the plan used, so every coord capture gains,
+# under `sensors.model_status.extra_state_attributes`, `pump_min_power`,
+# `pump_min_power_reason` and `pump_min_power_source`. Those three leaves are
+# the whole diff in each fixture, each "present on one side only" and ADDED at
+# this head (the direction); no other leaf moves (tests/env_drift.py --all
+# against the merge base, one environment). Claimed rather than re-recorded, as
+# R10-COP-GATE-D's keys were: the committed files were patched in those three
+# paths alone, each null because a coord fixture holds no plan.

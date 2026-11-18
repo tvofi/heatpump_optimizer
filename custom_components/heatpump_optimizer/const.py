@@ -51,6 +51,11 @@ CONF_FLOOR_RETURN_TEMP_ENTITY: Final = "floor_return_temp_entity"
 # comfort bounds as the upper floor, so the zone reads as permanently
 # overshooting and the optimizer under-heats the one room it cannot see.
 CONF_LOWER_FLOOR_TEMP_ENTITY: Final = "lower_floor_temp_entity"
+# A list of room thermometers, climate or sensor entities (#3616); optional.
+CONF_ROOM_TEMPERATURE_ENTITIES: Final = "room_temperature_entities"
+# Opt-in: a room short of its own target raises the planned comfort floor.
+CONF_ROOM_LIFT_ENABLED: Final = "room_lift_enabled"
+DEFAULT_ROOM_LIFT_ENABLED: Final = False
 
 # Solar irradiance forecast source.
 #
@@ -603,6 +608,12 @@ OUTAGE_DHW_DELAY_MINUTES: Final = 45.0
 # the electricity, which is a trade worth taking; anyone who wants the starts
 # back has a knob denominated in real currency. `tests/validate.py` reports the
 # start count per scenario, which is how that decision gets made from evidence.
+# The option's default stays 0. One exception is applied at solve time, not
+# here: an install whose planned levels are clamped (it cannot duty-cycle)
+# and that prices no start plans at ``optimizer.CLAMPED_DEFAULT_START_PRICE``
+# (``OptimizationConfig.start_price``), because a clamped plan is committed to
+# whole runs and an unpriced commit can ship more starts than the plan it
+# replaced.
 CONF_CYCLING_COST: Final = "compressor_cycling_cost"
 DEFAULT_CYCLING_COST: Final = 0.0
 
@@ -823,6 +834,11 @@ SPACE_SETPOINT_WATER_UNITS: Final = ("flow", "return")
 #: :data:`pump_arbiter.FLOW_HEAT_C`.
 CONF_FLOW_HEAT_C: Final = "flow_heat_c"
 DEFAULT_FLOW_HEAT_C: Final = 55.0
+#: The highest heating-flow ceiling the options flow offers, °C, and the
+#: highest set-point-entity maximum a boost writes (``pump_arbiter.
+#: _boost_ceiling_c``): above it the entity is no heating-flow set-point
+#: (a generic number helper reads 100), so a boost keeps the planned level.
+FLOW_HEAT_C_MAX: Final = 70.0
 #: The flow set-point's lift over the measured inlet water at the modulation
 #: floor, K. Absent keeps :data:`thermal_model.FLOW_MIN_LIFT_K`. A controller
 #: that takes the set-point as its return-water target modulates on the gap
@@ -1029,13 +1045,24 @@ CONF_SPACE_PUMP_ENTITY: Final = "space_circulation_pump_entity"
 CONF_DHW_DISINFECTION_SWITCH_ENTITY: Final = "dhw_disinfection_switch_entity"
 CONF_DHW_DISINFECTION_MODE: Final = "dhw_disinfection_mode"
 DEFAULT_DHW_DISINFECTION_MODE: Final = "observe"
-#: The pump-duty arbiter (pump_arbiter.py): off (the default) writes and
-#: reads nothing; observe classifies what the pump did on each planned step;
+#: The pump-duty arbiter (pump_arbiter.py): off (the default) makes the
+#: arbiter write nothing and read no pump entity; the compressor's running
+#: signal is observed in every mode, for the start counter, by
+#: running_signal.py. Observe classifies what the pump did on each planned step;
 #: control writes the pump's mode and set-points per step, retries a write
 #: the pump ignored and stands down to off on any other change it did not make.
 CONF_PUMP_DUTY_MODE: Final = "pump_duty_mode"
 DEFAULT_PUMP_DUTY_MODE: Final = "off"
 PUMP_DUTY_MODES: Final = ("off", "observe", "control")
+#: The pump's own start hysteresis per duty, K, read from an entity as a
+#: temperature difference (``inputs.read_temperature_delta_k``) with no age
+#: gate: a setting changes only when someone changes it. Hot water: the pump
+#: starts a charge only below its target less this, so the plan places no
+#: charge on a warmer tank. Heating: its controller starts only once the
+#: target sits this far above the water, so the floor's lift is never below
+#: it (``thermal_model.start_flow_min_lift_k``).
+CONF_SPACE_HYSTERESIS_ENTITY: Final = "space_hysteresis_entity"
+CONF_DHW_HYSTERESIS_ENTITY: Final = "dhw_hysteresis_entity"
 #: How long a switch the optimizer turned on may stay unreadable before its
 #: record is dropped with a repair, when it is no longer the configured
 #: switch or has no state at all (renamed or deleted). Not immediate: at
@@ -1055,6 +1082,13 @@ DHW_LEGIONELLA_HOLD_MINUTES: Final = 20.0
 # ever recorded, and the countdown latches overdue for ever. Long enough that
 # any healthy tank finishes well inside it; far shorter than the interval.
 DHW_LEGIONELLA_BOOST_MAX_HOURS: Final = 12.0
+#: The longest settling tail a space boost owes the interval learners, hours
+#: (#1935): ``boost.SPACE_SETTLE_TAIL``, which ``boost.settle_tail`` scales to
+#: the boosted time, and the store's look-ahead for the persisted tail.
+BOOST_SPACE_SETTLE_TAIL_HOURS: Final = 12.0
+#: The interval learners' longest sample, hours: the coordinator's sample bound
+#: and ``boost.settle_tail``'s floor, which must hold every sample a boost overlaps.
+HOUSE_LOSS_MAX_SAMPLE_HOURS: Final = 1.5
 #: #20 — events per window before the p90 fully replaces the mean (ramp).
 DHW_QUANTILE_MIN_EVENTS: Final = 8
 #: #18 — day-type samples at which the blend is half day-type, half pooled.
@@ -1219,12 +1253,10 @@ DEFAULT_COMPRESSOR_RATED_STARTS: Final = 100000
 CONF_WEAR_AUTOTUNE_ENABLED: Final = "wear_autotune_enabled"
 DEFAULT_WEAR_AUTOTUNE_ENABLED: Final = False
 #: #39 — refresh one what-if price tile after each scheduled solve.
-#: Off by default: the tile set is three extra solves of real CPU.
+#: Off by default: a rotation of the tile set is up to five extra solves of
+#: real CPU, one for each degree tile and up to three for the power-cap tile.
 CONF_PRICE_TILES_ENABLED: Final = "price_tiles_enabled"
 DEFAULT_PRICE_TILES_ENABLED: Final = False
-#: #55 — consecutive samples on the far side of the threshold before an
-#: edge counts. One noisy meter reading must not book a compressor start.
-START_HYSTERESIS_SAMPLES: Final = 2
 #: #65 — smoothing for the daily operation-score samples (~3 weeks).
 SCORE_ALPHA: Final = 0.05
 #: #908 — consecutive free-price days (mean spot <= 0.01) after which the

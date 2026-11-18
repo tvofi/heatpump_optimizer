@@ -41,7 +41,7 @@ mypy now checks. Values read through a coordinator's hubs are checked too:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 if TYPE_CHECKING:
     from .open_meteo import SolarDiagnostics  # standalone-loaded by a test: not imported at run time
@@ -245,12 +245,13 @@ class SolarAperture(TypedDict, total=False):
 
 
 class LearnerProgress(TypedDict):
-    phase: str  # "off" | "waiting" | "counting" | "settling"
+    phase: str  # "off" | "waiting" | "counting" | "settling" | "frozen"
     progress: float | None
-    waiting_for: str | None  # "colder" | "darker" | "sunnier"
+    waiting_for: str | None  # "colder" | "darker" | "sunnier" | "boost"
     eta_days: float | None  # counting only
     samples: int
     samples_needed: int | None
+    frozen_until: NotRequired[str | None]  # phase "frozen" only; None unknown
 
 
 class SnapshotRing(TypedDict, total=False):
@@ -390,6 +391,7 @@ class FuseAdvisor(TypedDict, total=False):
     feasible: bool
     comfort_shortfall_c: float
     worst_margin_kw: float
+    #: The what-if's steady-state figure (#2257); None when its pair failed.
     cost_delta_sek_month: float | None
     error: str
 
@@ -853,7 +855,8 @@ class LearningView(TypedDict, total=False):
     #: and ``accuracy.cop_observability`` (#2262).
     measured_cop_at: str | None
     cop_refusal: str | None
-    #: ``draw_range.SolveBand.as_dict()`` stamped on the live plan, or None.
+    #: ``draw_range.SolveBand.as_dict()`` stamped on the live plan, or None:
+    #: both ends of the band, under the top's historical name.
     pump_max_power: dict[str, Any] | None
     cop_observability: str
     defrost_derate: float
@@ -942,6 +945,45 @@ class InputHealthView(TypedDict, total=False):
     learner_freeze_reason: str | None
 
 
+class Room(TypedDict):
+    temperature: float
+    target: float | None
+    calling: bool | None
+    hvac_mode: str | None
+
+
+class RoomLift(TypedDict):
+    """``rooms.HeldLift`` as published: K asked of the floor before the
+    per-step clip, the room that set it, the gate that zeroed it."""
+
+    size: float
+    entity: str | None
+    gate: str | None
+
+
+class Rooms(TypedDict, total=False):
+    """The room list's summary (#3616); None leaves under its quorum.
+
+    ``per_room`` holds each readable room, ``dropped`` each other room's
+    problem word, both keyed by entity id: no room name is stored. ``lift``
+    is None until a solve has run.
+    """
+
+    configured_count: int
+    valid_count: int
+    average: float | None
+    spread: float | None
+    coldest_entity: str | None
+    warmest_entity: str | None
+    per_room: dict[str, Room]
+    dropped: dict[str, str]
+    lift: RoomLift | None
+
+
+class RoomsView(TypedDict, total=False):
+    rooms: Rooms
+
+
 class MixingValveView(TypedDict, total=False):
     mixing_valve_mode: str
     valve_target_recommendation: MixingValveRecommendation
@@ -1015,6 +1057,7 @@ class Payload(
     Ecl110View,
     ExternalHeatView,
     InputHealthView,
+    RoomsView,
     MixingValveView,
     AwayView,
     EnergyTotals,

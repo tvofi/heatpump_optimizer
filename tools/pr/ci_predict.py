@@ -60,6 +60,11 @@ so `prepr.sh` step 6d warns and the body owes each one a disposition.
 through `closure.write_closures`, then predicts again; the entry it writes is
 an over-approximation at worst, the direction `_fold_inert_reads` keeps.
 
+STEP REPLAY, opt-in with SELF-TEST READS, runs each `instrument-self-tests`
+step whose run text names a changed file as the runner does, and predicts a
+red the base's step of that name does not share (#3245: a self-test summary
+line removed while governance.yml still grepped it).
+
 `--body FILE` adds a fifth arm, the carry check `pr-contract` runs on the body
 (R10-CI-LAYOUT-P2 carry 6): `tools/audit/carry_audit.py`'s own `audit`, imported
 from the checkout under test and never restated, so a finding item routed to a
@@ -499,6 +504,246 @@ def wiring_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
             for g in gaps if len(g) > 1 and named(g[1].rstrip(":"))]
 
 
+# THE STEP REPLAY ARM (#3245's root-cause countermeasure). A step of
+# instrument-self-tests that tees a self-test and greps its summary lines is
+# graded on those lines, which no local path read: #3245 removed handoff_push.sh's
+# delivery_row line and governance.yml still grepped it, red after the handoff.
+INSTRUMENT_WF, INSTRUMENT_JOB = ".github/workflows/governance.yml", "instrument-self-tests"
+
+
+def instrument_steps(root: Path) -> dict[str, str]:
+    """{step name: run text} of every instrument-self-tests step that runs a command.
+    Read as text, not YAML: governance's runner python has no yaml module, and
+    every step there is `- name:` then a `run: |` block (or a one-line `run:`)."""
+    p = root / INSTRUMENT_WF
+    text = p.read_text() if p.is_file() else ""
+    at = text.find(f"\n  {INSTRUMENT_JOB}:\n")
+    if at < 0:
+        return {}
+    job = text[at + 1:]
+    end = re.search(r"\n  [A-Za-z][\w-]*:\n", job)
+    job = job[:end.start() + 1] if end else job
+    out = {}
+    for chunk in job.split("\n      - name: ")[1:]:
+        name, _, rest = chunk.partition("\n")
+        m = re.search(r"^        run: \|\n((?:(?: {10}.*)?\n)*)", rest + "\n", re.M)
+        one = re.search(r"^        run: (?!\|)(.+)$", rest, re.M)
+        run = "\n".join(ln[10:] for ln in m.group(1).splitlines()) if m else (one.group(1) if one else "")
+        if run.strip():
+            out[name.strip()] = run
+    return out
+
+
+def names_changed(root: Path, run: str, changed: set[str]) -> bool:
+    """A step's run text names a changed file, or names a tool whose own text
+    names a changed script by file name: ref_privacy.py's self-test drives
+    body_push.sh, and #3245's head reddened that step without the step naming it."""
+    if any(c in run for c in changed):
+        return True
+    names = {Path(c).name for c in changed if c.endswith((".py", ".sh", ".mjs"))}
+    for tool in set(re.findall(r"(?:tools|tests|dev)/[\w./-]+\.(?:py|sh|mjs)", run)):
+        p = root / tool
+        text = p.read_text(errors="replace") if p.is_file() else ""
+        if any(n in text for n in names):
+            return True
+    return False
+
+
+def recorded_readers(root: Path, changed: set[str]) -> set[str]:
+    """The instrument-self-tests steps whose recorded closure in `root`'s
+    tools/ci/selftest_closures.json holds a changed path in `files` -- the
+    readers a step's run text does not name: queue_pre_flight.py's step reads
+    merge_train.py, which 23b943c987 reddened unnamed. Parsed by
+    selftest_scope's own `job_steps` and `covers`; an unreadable table is none."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ci"))
+    try:
+        import selftest_scope as ss
+    finally:
+        sys.path.pop(0)
+    table = ss.load_table(root / ss.TABLE)
+    wf = root / INSTRUMENT_WF
+    if table is None or not wf.is_file():
+        return set()
+    return {st.name for st in ss.job_steps(wf.read_text(), INSTRUMENT_JOB)
+            if st.id in table["steps"]
+            and any(ss.covers(table["steps"][st.id].get("files", ()), c) for c in changed)}
+
+
+# A replay that ran out of time measured nothing about the tree: a loaded host
+# (load average 100+) timed out clean branches at 180 s while CI was green.
+STEP_REPLAY_TIMEOUT_ENV = "HPO_STEP_REPLAY_TIMEOUT_S"
+TIMED_OUT = -124  # never a bash rc: bash exits 0..255
+
+
+def step_replay_timeout() -> float:
+    """The replay bound in seconds: the environment's, else SELF_TEST_TIMEOUT."""
+    import os
+    try:
+        v = float(os.environ.get(STEP_REPLAY_TIMEOUT_ENV, ""))
+    except ValueError:
+        return SELF_TEST_TIMEOUT
+    return v if v > 0 else SELF_TEST_TIMEOUT
+
+
+def replay_step(tree: Path, run: str) -> int:
+    """The step's rc as a GitHub runner runs a `run:` block (bash -eo pipefail),
+    or TIMED_OUT when it outlived `step_replay_timeout()`."""
+    import os
+    import tempfile
+    with tempfile.TemporaryDirectory() as t:
+        env = dict(os.environ, RUNNER_TEMP=t)
+        try:
+            return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", run],
+                                  cwd=tree, env=env, capture_output=True,
+                                  timeout=step_replay_timeout()).returncode
+        except subprocess.TimeoutExpired:
+            return TIMED_OUT
+
+
+def step_replay_preds(root: Path, base: str, changed: set[str],
+                      notes: list | None = None) -> list[tuple[str, str]]:
+    """Each instrument-self-tests step whose run text names a changed file, or
+    whose recorded closure reads one (`recorded_readers`), replayed at the
+    head; one red there is replayed again, as the base's step of
+    that name, in a detached worktree of the base, and predicted only where the
+    base's is green -- so a step this container cannot run (a missing binary,
+    an unset variable: red at both ends) is a note left to CI, never the branch's."""
+    import tempfile
+    head = instrument_steps(root)
+    readers = recorded_readers(root, changed)  # mut:readers
+    hit = {n: r for n, r in head.items() if n in readers or names_changed(root, r, changed)}
+    ran = {n: replay_step(root, r) for n, r in hit.items()}
+    for n, rc in ran.items():
+        if rc == TIMED_OUT:
+            (notes if notes is not None else []).append(
+                f"UNMEASURED {n}: timed out at {step_replay_timeout():g} s on this host")
+    reds = {n: rc for n, rc in ran.items() if rc and rc != TIMED_OUT}
+    if not reds:
+        return []
+    out = []
+    with tempfile.TemporaryDirectory() as d:
+        wt = Path(d) / "base"
+        if git(root, "worktree", "add", "-q", "--detach", str(wt), base) is None:
+            return [("instrument", f"STEP REPLAY {n}: rc {rc} at the head; the base did not check out")
+                    for n, rc in reds.items()]
+        try:
+            was = instrument_steps(wt)
+            for n, rc in reds.items():
+                b = replay_step(wt, was[n]) if n in was else None
+                if b:
+                    (notes if notes is not None else []).append(
+                        f"STEP REPLAY {n}: rc {rc} at the head and {b} at the base -- this container's, left to CI")
+                else:
+                    out.append(("instrument", f"STEP REPLAY {n}: rc {rc} at the head, "
+                                + ("a step the base lacks" if b is None else "0 at the base")))
+        finally:
+            git(root, "worktree", "remove", "--force", str(wt))
+    return out
+
+
+def step_replay_self_test(root: Path) -> int:
+    """`step_replay_preds` over a scratch repo: a summary line the head stops
+    printing, its null control, and a step red at both ends."""
+    import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    from throwaway_git import throwaway_git_init
+    bad = 0
+    with tempfile.TemporaryDirectory() as d:
+        t = Path(d)
+        env = throwaway_git_init(t, "-q", "-b", "main")
+        g = lambda *a: subprocess.run(["git", *a], cwd=t, env=env, capture_output=True, text=True)
+        (t / ".github" / "workflows").mkdir(parents=True)
+        (t / "tools").mkdir()
+        step = ("      - name: {n}\n        run: |\n          set -o pipefail\n"
+                "          bash tools/{n}.sh --self-test | tee \"$RUNNER_TEMP/{n}.txt\"\n"
+                "          grep -Eq '^{n} self-test: [1-9][0-9]* checks, 0 failed$' \"$RUNNER_TEMP/{n}.txt\"\n")
+        (t / INSTRUMENT_WF).write_text(f"jobs:\n  {INSTRUMENT_JOB}:\n    steps:\n"
+                                       + step.format(n="a") + step.format(n="b")
+                                       + "      - name: c\n        run: bash tools/c.sh\n"
+                                       + "      - name: d\n        id: d\n        run: bash tools/d.sh\n")
+        # d's run text and d.sh name no file of tools/lib/: only its recorded closure reads x.sh.
+        (t / "tools" / "lib").mkdir()
+        (t / "tools" / "lib" / "x.sh").write_text("true\n")
+        (t / "tools" / "d.sh").write_text("set -e; for f in tools/lib/*.sh; do . \"$f\"; done\n")
+        (t / "tools" / "ci").mkdir()
+        table = t / "tools" / "ci" / "selftest_closures.json"
+        table.write_text(json.dumps({"steps": {"d": {"files": ["tools/d.sh", "tools/lib/x.sh"]}}}))
+        # c's step names only c.sh, whose text drives a.sh (ref_privacy.py over body_push.sh).
+        (t / "tools" / "c.sh").write_text("bash tools/a.sh --self-test | grep -q '^a self-test:'\n")
+        ok = "echo '{n} self-test: 3 checks, 0 failed'\n"
+        (t / "tools" / "a.sh").write_text(ok.format(n="a"))
+        (t / "tools" / "b.sh").write_text("exit 127\n")
+        g("add", "-A")
+        g("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base")
+        base = g("rev-parse", "HEAD").stdout.strip()
+        cases = (("a summary line the head stops printing is predicted red, in a's step and in c's, "
+                  "whose tool names a.sh", "echo nothing\n", {"tools/a.sh"}, 2),
+                 ("null control: the head still printing it is not", ok.format(n="a") + "# edited\n", {"tools/a.sh"}, 0),
+                 ("null control: a step the diff names no file of is not replayed", "echo nothing\n", set(), 0))
+        for label, text, changed, want in cases:
+            (t / "tools" / "a.sh").write_text(text)
+            got = len(step_replay_preds(t, base, changed))
+            print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
+            bad += got != want
+        notes: list[str] = []
+        got = len(step_replay_preds(t, base, {"tools/b.sh"}, notes))
+        good = got == 0 and len(notes) == 1
+        print(f"  {'ok  ' if good else 'FAIL'} a step red at the base too is a note, not this branch's red")
+        bad += not good
+        import os
+        (t / "tools" / "a.sh").write_text("sleep 5\n" + ok.format(n="a"))
+        (t / "tools" / "b.sh").write_text("exit 1\n")
+        was = os.environ.get(STEP_REPLAY_TIMEOUT_ENV)
+        os.environ[STEP_REPLAY_TIMEOUT_ENV] = "0.5"
+        try:
+            notes = []
+            got = len(step_replay_preds(t, base, {"tools/a.sh"}, notes))
+            good = got == 0 and len(notes) == 2 and all(x.startswith("UNMEASURED ") for x in notes)
+            print(f"  {'ok  ' if good else 'FAIL'} a step that outlives the bound at the head is UNMEASURED, not a red")
+            bad += not good
+            # null control: rc 1 at the head, 0 at the base, under the same tiny bound, is still predicted
+            (t / "tools" / "a.sh").write_text("exit 1\n")
+            notes = []
+            got = len(step_replay_preds(t, base, {"tools/a.sh"}, notes))
+            good = got == 2 and not any(x.startswith("UNMEASURED") for x in notes)
+            print(f"  {'ok  ' if good else 'FAIL'} null control: rc 1 at the head and 0 at the base is still predicted")
+            bad += not good
+        finally:
+            if was is None:
+                os.environ.pop(STEP_REPLAY_TIMEOUT_ENV, None)
+            else:
+                os.environ[STEP_REPLAY_TIMEOUT_ENV] = was
+        (t / "tools" / "lib" / "x.sh").write_text("exit 1\n")
+        got = [l for _, l in step_replay_preds(t, base, {"tools/lib/x.sh"})]
+        good = len(got) == 1 and got[0].startswith("STEP REPLAY d:")
+        print(f"  {'ok  ' if good else 'FAIL'} a step whose recorded closure reads the changed file, "
+              f"its run text naming none, is replayed and predicted red")
+        bad += not good
+        table.write_text(json.dumps({"steps": {"d": {"files": ["tools/d.sh"]}}}))
+        got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
+        print(f"  {'ok  ' if got == 0 else 'FAIL'} null control: a closure not holding the changed file is not replayed")
+        bad += got != 0
+        table.write_text(json.dumps({"steps": {"d": {"files": ["tools/lib/**"]}}}))
+        got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
+        print(f"  {'ok  ' if got == 1 else 'FAIL'} a closure's `tools/lib/**` entry covers the changed file")
+        bad += got != 1
+        table.unlink()
+        got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
+        print(f"  {'ok  ' if got == 0 else 'FAIL'} no table: no recorded reader, nothing replayed, nothing raised")
+        bad += got != 0
+    g = globals()
+    real = g["step_replay_preds"]
+    g["step_replay_preds"] = lambda *_a: [("instrument", "STEP REPLAY sentinel")]
+    try:
+        _, preds, _ = predict(root, "HEAD", only="step-replay")
+    finally:
+        g["step_replay_preds"] = real
+    good = ("instrument", "STEP REPLAY sentinel") in preds
+    print(f"  {'ok  ' if good else 'FAIL'} predict reaches the step-replay arm by name (its call site, not only its helper)")
+    bad += not good
+    return bad
+
+
 def mutant_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
     """`instrument-self-tests`'s seat mutant drivers (`r10_*_mutants.py
     --self-test`), run when the diff touches a file a driver plants into.
@@ -661,6 +906,32 @@ def run_key(job: str, prog: str, argv) -> tuple[str, ...]:
     return (job, Path(prog).name, *(a for a in argv if a.startswith("--")))
 
 
+ROUND_ROSTERS = "+refs/heads/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster"
+
+
+def refresh_round_rosters(root: Path) -> str | None:
+    """pr-contract fetches the round rosters before its carry check; a seat's
+    remote-tracking ref is as old as its last fetch, so a group the roster
+    gained since reads as a bad destination. Fetch them into `root` as CI does
+    (the grader arm's clone then takes them, `fetch_round_rosters`). None when
+    fetched, else the note that the roster read may be stale."""
+    try:
+        out = subprocess.run(["git", "fetch", "-q", "--no-tags", "origin", ROUND_ROSTERS],
+                             cwd=root, capture_output=True, text=True, timeout=60)
+        why = f"failed: {' '.join(out.stderr.split())[:240] or 'no output'}" if out.returncode else None
+    except subprocess.TimeoutExpired:
+        why = "timed out"
+    return None if why is None else f"ROSTER UNFETCHED: git fetch of the round rosters {why}; the carry check read this clone's refs"
+
+
+def fetch_round_rosters(run) -> None:
+    """CI's pr-contract fetches the round rosters' remote-tracking refs; a
+    --shared clone's own origin/handoff/* are root's local branches, so take
+    root's refs/remotes/origin ones. A glob matching nothing is harmless."""
+    run("git", "fetch", "-q", "--no-tags", "origin",
+        "+refs/remotes/origin/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster")
+
+
 def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = None) -> tuple[str, subprocess.CompletedProcess | None]:
     """Run `steps` (each a function of the tree, its runner and a scratch
     directory) where CI's pull-request run of `job` runs them: the merge of
@@ -683,6 +954,7 @@ def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = No
             return subprocess.run(a, cwd=r, env=env, input=input, capture_output=True, text=True)
 
         run("git", "update-ref", "refs/remotes/origin/main", tip)
+        fetch_round_rosters(run)  # mut:roundrefs
         run("git", "checkout", "-q", "--detach", tip)
         if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
             return "unmerged", None
@@ -949,7 +1221,8 @@ def unpinned(base):
 # the 5 s budget the seat's checks meet (eight others then; R10-FLOW-JIDOKA's
 # review, 2026-10-26).
 ARMS = ("orphans", "layout", "privacy", "wiring", "mutants", "agreement", "graders", "no-recording",
-        "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads")
+        "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads",
+        "step-replay")
 
 
 def is_red(job: str, line: str) -> bool:
@@ -967,6 +1240,10 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
     if not base:
         return 2, [], f"no merge base between {base_ref} and HEAD"
+    if body:  # the carry arm, and the graders arm's pr-contract run, read the round roster
+        stale = refresh_round_rosters(root)  # mut:roundfetch
+        if stale and notes is not None:
+            notes.append(stale)
     sys.path[:0] = [str(root / "tests"), str(root / "tests" / "hastub")]
     import closure
     names = git(root, "diff", "--name-only", "--no-renames", f"{base}...HEAD") or ""
@@ -990,13 +1267,14 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
         ("mutation", lambda: unpinned(base)),
         ("self-test-reads", lambda: self_test_reads(root, changed, closures, inert_reads,
                                                     closure, scripts, notes=notes)),
+        ("step-replay", lambda: step_replay_preds(root, base, changed, notes)),
     )
     preds: list[tuple[str, str]] = []
     for name, arm in arms:
         # The arms that run a gate's programs: on --record-self-tests (prepr 6d)
         # or by name. `graders` takes minutes where it is keyed, so body_push.sh's
         # seconds-budget run leaves it to prepr (R10-RCA-PREPR-HEAD-GRADERS).
-        if (only is None and (name not in ("self-test-reads", "graders") or record)) or name == only:
+        if (only is None and (name not in ("self-test-reads", "graders", "step-replay") or record)) or name == only:
             preds += arm()
     if body:
         preds += carry_preds(root, body)
@@ -1066,7 +1344,11 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                    "graded by the copy it replaces: move it into the data the grader reads (corpus_excluded.json "
                    "for named-docs, #2916's repair), or land the grader change first "
                    "(dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md); the body names it under ## Red checks")
-    if any(j == "instrument" for j, _ in preds):
+    if any(j == "instrument" and l.startswith("STEP REPLAY") for j, l in preds):
+        out.append("a STEP REPLAY red is the step's own grep missing a line its self-test no longer prints, "
+                   "or the self-test failing: rerun the step's run text from governance.yml, then fix the "
+                   "tool or the step's grep (#3245)")
+    if any(j == "instrument" and not l.startswith("STEP REPLAY") for j, l in preds):
         out.append("a REF PRIVACY refusal is repaired as `python3 -I tools/audit/seat/ref_privacy.py --check` "
                    "names it: a push site guarded and registered in PUSHERS, a published host path scrubbed")
     if any(j == "fast" and l.startswith("UNCLASSIFIED") for j, l in preds):
@@ -1400,6 +1682,8 @@ def self_test() -> int:
     bad += mutant_self_test(root)
     bad += null_control_self_test(root)
     bad += graders_self_test(root)
+    bad += step_replay_self_test(root)
+    bad += roundref_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
         sys.path.insert(0, str(root / "tools" / "ci"))
@@ -1412,6 +1696,129 @@ def self_test() -> int:
         bad += bool(miss)
     print(f"ci_predict self-test: {bad} failed")
     return 1 if bad else 0
+
+
+def roundref_self_test(root: Path) -> int:
+    """ci_tree_run's clone gets root's refs/remotes/origin round-roster refs,
+    not root's stale local branch (fail-before / pass-after), a null with the
+    remote-tracking ref absent, and the call line itself pinned."""
+    import inspect
+    import shutil
+    import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
+    ref = "refs/remotes/origin/handoff/audit-r10-roster"
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-roundref-"))
+    bad = 0
+
+    def check(label, ok):
+        nonlocal bad
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+        bad += not ok
+    try:
+        for tracking in (True, False):
+            src = tmp / f"src{tracking}"
+            senv = throwaway_git_init(src, "-q", "-b", "main")
+
+            def sgit(*a):
+                return subprocess.run(a, cwd=src, env=senv, capture_output=True, text=True, check=True).stdout.strip()
+            sgit("git", "commit", "-q", "--allow-empty", "-m", "stale")
+            stale = sgit("git", "rev-parse", "HEAD")
+            sgit("git", "branch", "handoff/audit-r10-roster")
+            sgit("git", "commit", "-q", "--allow-empty", "-m", "newer")
+            newer = sgit("git", "rev-parse", "HEAD")
+            if tracking:
+                sgit("git", "update-ref", ref, newer)
+            r = tmp / f"clone{tracking}"
+            env = throwaway_git_clone(src, r, "-q", "--shared", "--no-checkout")
+
+            def run(*a, input=None):
+                return subprocess.run(a, cwd=r, env=env, input=input, capture_output=True, text=True)
+
+            def got():
+                return run("git", "rev-parse", "-q", "--verify", ref).stdout.strip()
+            check(f"clone's round ref is the stale local branch before the fetch (tracking={tracking})", got() == stale)
+            try:
+                fetch_round_rosters(run)
+                raised = False
+            except Exception:
+                raised = True
+            check(f"fetch_round_rosters {'takes root' + chr(39) + 's remote-tracking ref' if tracking else 'leaves the ref and does not raise'}",
+                  not raised and got() == (newer if tracking else stale))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    line = [l for l in inspect.getsource(ci_tree_run).splitlines() if "fetch_round_rosters" in l]
+    check("ci_tree_run calls fetch_round_rosters on one `# mut:roundrefs` line", len(line) == 1 and "# mut:roundrefs" in line[0])
+    return bad + roundfetch_self_test(root)
+
+
+def roundfetch_self_test(root: Path) -> int:
+    """refresh_round_rosters moves a seat's stale remote-tracking round ref to
+    origin's branch, as pr-contract's fetch does; null: an unreachable origin
+    leaves the ref, raises nothing and returns the note; predict refreshes
+    when given a body and only then."""
+    import shutil
+    import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
+    ref = "refs/remotes/origin/handoff/audit-r10-roster"
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-roundfetch-"))
+    bad = 0
+
+    def check(label, ok):
+        nonlocal bad
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+        bad += not ok
+    try:
+        o = tmp / "o"  # origin: its branches are what pr-contract fetches
+        oenv = throwaway_git_init(o, "-q", "-b", "main")
+
+        def sgit(*a):
+            return subprocess.run(a, cwd=o, env=oenv, capture_output=True, text=True, check=True).stdout.strip()
+        sgit("git", "commit", "-q", "--allow-empty", "-m", "main")
+        sgit("git", "branch", "handoff/audit-r10-roster")
+        stale = sgit("git", "rev-parse", "HEAD")
+        r = tmp / "seat"
+        env = throwaway_git_clone(o, r, "-q")
+        sgit("git", "checkout", "-q", "handoff/audit-r10-roster")
+        sgit("git", "commit", "-q", "--allow-empty", "-m", "the roster gains a group")
+        newer = sgit("git", "rev-parse", "HEAD")
+
+        def got():
+            return subprocess.run(["git", "rev-parse", "-q", "--verify", ref], cwd=r, env=env,
+                                  capture_output=True, text=True).stdout.strip()
+        check("the seat's round ref is stale before the refresh", got() == stale)
+        note = refresh_round_rosters(r)
+        check("refresh_round_rosters moves it to origin's branch and returns no note",
+              note is None and got() == newer)
+        subprocess.run(["git", "update-ref", ref, stale], cwd=r, env=env, check=True)
+        subprocess.run(["git", "remote", "set-url", "origin", str(tmp / "absent.git")], cwd=r, env=env, check=True)
+        try:
+            note, raised = refresh_round_rosters(r), False
+        except Exception:
+            note, raised = None, True
+        check("an unreachable origin leaves the ref, raises nothing and notes ROSTER UNFETCHED with git's "
+              "reason (null control)", not raised and got() == stale
+              and (note or "").startswith("ROSTER UNFETCHED") and "absent.git" in (note or ""))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    g = globals()
+    real, calls = g["refresh_round_rosters"], []
+    g["refresh_round_rosters"] = lambda r: calls.append(r) or "ROSTER UNFETCHED sentinel"
+    try:
+        with tempfile.NamedTemporaryFile("w", suffix=".md") as f:
+            f.write("## Forward-carry\n\nnone\n")
+            f.flush()
+            notes: list[str] = []
+            predict(root, "HEAD", body=f.name, only="orphans", notes=notes)
+            check("predict with a body refreshes the round rosters and notes a failed refresh",
+                  len(calls) == 1 and "ROSTER UNFETCHED sentinel" in notes)
+            calls.clear()
+            predict(root, "HEAD", only="orphans", notes=[])
+            check("predict without a body fetches nothing (null control)", not calls)
+    finally:
+        g["refresh_round_rosters"] = real
+    return bad
 
 
 def graders_self_test(root: Path) -> int:

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:<module> CONST a4245540",
+  "old": "_RESOLVED_CANDIDATES = 2",
+  "reason": "Survived tests/features.py, the one driver run, under `mutation_table.py --pin-killed --scripts tests/features.py` at 3f0149a81b (R11-OUTSIDE-HONEST-STARTS-RUNS, repair round 4; pull request 3602, the build of Bankaifan's pull request 3529); the other drivers of the file's closure were not run. Re-solving four candidates instead of two can only lower the lowest score the stage ships, so every selection check still holds, and no check counts the L-BFGS-B runs a stage call makes. A killing check is in R11-OUTSIDE-HONEST-STARTS-RUNS-P2's brief (item i).",
+  "verdict": "gap"
+}

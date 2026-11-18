@@ -289,6 +289,31 @@ privacy_line() { # -> one line; rc 0 nothing refused, 1 refused
   return 1
 }
 
+# Step 3f8's whole body: the added lines of tools/**/*.sh judged by `shell_hazard.py`
+# (a raw `wc -l` string compare, a stub over the host's padded `wc`, an early-exit
+# reader on a pipe under pipefail), which Linux CI cannot see and the macOS seat
+# and a large producer found three and three times (R10-RCA-PREPR-DARWIN-SELFTEST,
+# R10-RCA-FAMILY-PIPEFAIL-SIGPIPE). Under 0.1 s; it reads the diff from the merge base.
+hazard_line() { # -> one line; rc 0 nothing refused, 1 refused
+  local out
+  out=$(python3 -I tools/audit/seat/shell_hazard.py --check --base origin/main 2>&1) \
+    && { printf 'no shell hazard on an added tools/**/*.sh line'; return 0; }
+  printf '%s' "$(grep -m3 . <<<"$out" | cut -c1-220 | tr '\n' ';')"
+  return 1
+}
+
+# Step 3f9's whole body, over the tree in `$1` (default: this one): the static half of
+# `tests/harness_headers.py`, which CI's `fast` ran alone, so a harness whose inlined
+# `repo_root` drifted from `tools/audit/repo_root.py` passed every local step and went
+# red there (r10-rca-ci-critpath-3 item ce268b05; f0b75645). Under a second.
+inline_walk_line() { # [root] -> one line; rc 0 every walk matches, 1 one differs
+  local out
+  out=$(cd "${1:-.}" && python3 -I -c "import sys; sys.path.insert(0, 'tests'); import harness_headers; raise SystemExit(harness_headers.inline_scan())" 2>&1) \
+    && { printf 'every inlined repo_root walk matches the canonical helper'; return 0; }
+  printf '%s' "$(grep -m3 . <<<"$out" | cut -c1-220 | tr '\n' ';')"
+  return 1
+}
+
 # Step 4's trigger: what check-wave-script.mjs reads, as `pinned_touched` globs.
 # The briefs are `briefListing()`'s two directories; the pre-move briefs glob
 # matched no file, so a role-contract-only diff printed `skip` and went red on
@@ -1376,11 +1401,19 @@ PY
 # job that re-executes this script exports a credential to it, so there the
 # arm prints its skip line and stays local-only-deterministic, the position
 # PREPR_SKIP_CLOSURES holds for the closures step.
-REDS_JQ='.check_runs[]
-         | select(.status == "completed" and .conclusion == "failure")
-         | select(.name != "pr-contract / pr-contract" and .name != "gate")
-         | .name'
-
+# One read per sha carries all three facts the arm needs, as lines: `T <total_count>` (per
+# page), `P` per run not yet completed, `R <name>` per red. The total used to be a second
+# read of every commit on an all-green branch (PC-1113-13 / ANCESTRY-REDS-PER-COMMIT-READS).
+REDS_JQ='(.total_count | "T \(.)"),
+         (.check_runs[] | select(.status != "completed") | "P"),
+         (.check_runs[]
+          | select(.status == "completed" and .conclusion == "failure")
+          | select(.name != "pr-contract / pr-contract" and .name != "gate")
+          | "R \(.name)")'
+# A sha's read is kept under the state dir for PREPR_ANCESTRY_TTL_S (default 3600 s) when it holds a
+# run and no run at it was still going: a commit's runs are final then, and `update_pr` and each
+# prepr run re-read the same ancestry. A read with a run pending, or with no run at all (CI not yet
+# queued on a just-pushed commit), is never kept: a red may still land.
 gh_credential() { # gh binary -> the token on stdout, rc 1 when none
   case "${GITHUB_TOKEN:-}" in ?*) printf '%s' "$GITHUB_TOKEN"; return 0 ;; esac
   case "${GH_TOKEN:-}" in ?*) printf '%s' "$GH_TOKEN"; return 0 ;; esac
@@ -1401,7 +1434,7 @@ alert_reds() { # the branch's own remote head ref -> rc 0: alert lines (maybe no
 ancestry_reds() { # the branch's own remote head ref
   # -> rc 0: the red names, one per line, sorted unique
   #    rc 3: the skip reason (one line)
-  local ghc tok url repo base shas sha out names any
+  local ghc tok url repo base shas sha out names any n
   ghc=${PREPR_GH:-gh}   # --self-test replaces the gh binary word, argv identical
   command -v "$ghc" >/dev/null 2>&1 || { echo "gh is absent, so no branch check run could be read"; return 3; }
   tok=$(gh_credential "$ghc") || { echo "no token: GITHUB_TOKEN and GH_TOKEN are unset and \`$ghc auth token\` refuses, so no branch check run could be read"; return 3; }
@@ -1416,24 +1449,35 @@ ancestry_reds() { # the branch's own remote head ref
   base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main, so no ancestry could be enumerated"; return 3; }
   shas=$(git rev-list "$base..$1" 2>/dev/null) || { echo "$1 could not be read, so no ancestry was enumerated"; return 3; }
   [ -n "$shas" ] || { echo "no commit of this branch is on $1 yet -- the first push has no ancestry to read"; return 3; }
-  names=""; any=""
+  local cdir f fresh runs ttl=${PREPR_ANCESTRY_TTL_S:-3600}
+  cdir=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/prepr-ancestry
+  names=""; any=""; runs=0
   for sha in $shas; do
-    out=$("$ghc" api --paginate "repos/$repo/commits/$sha/check-runs" --jq "$REDS_JQ" 2>/dev/null) || {
-      echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3; }
-    [ -n "$out" ] && { names="$names$out"$'\n'; any=1; }
-  done
-  if [ -z "$any" ]; then
-    # Nothing failed anywhere: say whether that was MEASURED or merely
-    # unpopulated -- a branch whose commits never ran CI owes no answer and
-    # confirms nothing, and `total_count` is on the first page of the same
-    # endpoint this loop already read. Only the all-green branch pays for
-    # this second pass.
-    for sha in $shas; do
-      out=$("$ghc" api "repos/$repo/commits/$sha/check-runs" --jq '.total_count' 2>/dev/null) || {
+    f=$cdir/${repo//\//_}-$sha
+    fresh=""
+    if [ -f "$f" ] && [ -n "$(find "$f" -mmin "-$((ttl / 60))" 2>/dev/null)" ]; then
+      out=$(cat "$f")
+    else
+      out=$("$ghc" api --paginate "repos/$repo/commits/$sha/check-runs" --jq "$REDS_JQ" 2>/dev/null) || {
         echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3; }
-      [ "${out:-0}" -gt 0 ] 2>/dev/null && { any=1; break; }
-    done
-    [ -n "$any" ] || { echo "no pushed commit carries any check run, so there is no red to answer and none confirmed absent"; return 3; }
+      # a read that did not answer in the lines' shape is UNCHECKED, never confirmed empty
+      case "$out" in "T "*) ;; *)
+        echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3 ;; esac
+      fresh=1
+    fi
+    n=$(printf '%s\n' "$out" | sed -n 's/^T //p' | sort -n | tail -1)
+    [ "${n:-0}" -gt 0 ] 2>/dev/null && runs=1
+    # a fresh read is kept only when the commit carries a run and none is still going
+    if [ -n "$fresh" ] && [ "${n:-0}" -gt 0 ] 2>/dev/null && ! grep -qx P <<<"$out" && mkdir -p "$cdir" 2>/dev/null; then
+      printf '%s\n' "$out" >"$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null || rm -f "$f.$$"
+    fi
+    n=$(printf '%s\n' "$out" | sed -n 's/^R //p')
+    [ -n "$n" ] && { names="$names$n"$'\n'; any=1; }
+  done
+  # Nothing failed anywhere: say whether that was MEASURED or merely unpopulated -- a branch
+  # whose commits never ran CI owes no answer and confirms nothing; the totals came with the reads.
+  if [ -z "$any" ] && [ "$runs" -eq 0 ]; then
+    echo "no pushed commit carries any check run, so there is no red to answer and none confirmed absent"; return 3
   fi
   printf '%s' "$names" | sort -u
 }
@@ -1759,6 +1803,33 @@ merged_steps() { # body, unpinned-site key file -> step lines
   esac
 }
 
+# A hotfix group's branch runs the scoped prepr by default (tvofi, 2026-11-09: "hotfixes should
+# have aggressively scoped or no prepr"; the main de.json hotfix spent about 40 min in a full
+# one while 7 PRs waited). The class is the roster's, through gate_priority.py's own
+# derivation of the group's dispatch rank -- the one the gate lease already trusts -- so a
+# branch name alone never decides it, and an unreadable roster answers 0, a full run. Only an
+# UNSET variable takes the default: a caller's value, set empty included, wins per variable.
+# The scope is code and closures; the merged-tree structure ratchet, ci predict and the body
+# and contract checks (`merged_steps`, steps 1a-1a3, 6, 7) stay, as under any PREPR_SKIP_CODE.
+# The defaults are not exported: only this shell reads them, and a child (the self-test step,
+# a merged-tree command) must not inherit a skip the roster chose for this run alone.
+hotfix_class() { # branch -> 1 when the roster classes its group a hotfix, else 0
+  python3 tools/pr/gate_priority.py --hotfix --branch "$1" 2>/dev/null
+}
+hotfix_scope() { # branch -> sets the unset skips (this shell's, never exported); prints one line when it scoped
+  if [ -n "${PREPR_SKIP_CODE+x}" ] && [ -n "${PREPR_SKIP_CLOSURES+x}" ]; then return 0; fi
+  [ "$(hotfix_class "$1")" = 1 ] || return 0
+  HOTFIX_SCOPED=1
+  [ -n "${PREPR_SKIP_CODE+x}" ] || PREPR_SKIP_CODE=hotfix
+  [ -n "${PREPR_SKIP_CLOSURES+x}" ] || PREPR_SKIP_CLOSURES=1
+  say ok "hotfix scope" "$1 is a hotfix group's branch: code and closure steps skipped; merged structure, ci predict, body and contract checks run (a caller's PREPR_SKIP_CODE / PREPR_SKIP_CLOSURES, set empty included, wins)"
+}
+
+code_steps_line() { # REUSE -> the main flow's code-steps line; HOTFIX_SCOPED names the roster's default
+  if [ -n "${HOTFIX_SCOPED:-}" ] && [ "$1" = hotfix ]; then say ok "code steps" "hotfix scope: no heavy slot, and the steps keyed to the code alone are dropped"
+  elif [ -n "$1" ]; then say ok "code steps" "reused from the receipt at ${1:0:12}: no heavy slot, and the steps keyed to the code alone are dropped"; fi
+}
+
 selftest_owed() { # changed-paths file -> 0 when a changed path is a self-test input
   awk 'NR==FNR { if ($0 ~ /\/$/) d[$0]=1; else f[$0]=1; next }
        ($0 in f) { hit=1; exit }
@@ -1915,6 +1986,10 @@ selftest_tmp_root() {
 # (merge base, gate mode, version edit, claim files) are demonstrated by the
 # `pr-contract` job running this script on every pull request.
 if [ "${1:-}" = "--self-test" ]; then
+  # The rows set or leave unset these two themselves; a caller exporting one
+  # (update_pr.sh exports PREPR_SKIP_CLOSURES=1) must not reach a fixture child
+  # shell, where an assignment to an exported name keeps it exported.
+  unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES
   # Every throwaway repository below takes the shared helper: auto-maintenance
   # off and no inherited git config (R9-RCA-stamp-race). The cwd is the top level.
   . tests/throwaway_git.sh || exit 2
@@ -2079,6 +2154,7 @@ if [ "${1:-}" = "--self-test" ]; then
   RAFIX=$(cd tools/policy/fixtures/red-ancestry && pwd -P)
   RA=$(mktemp -d)
   export PREPR_NO_ALERTS=1   # the rows below never reach code scanning; the alert rows opt in
+  export PREPR_ANCESTRY_TTL_S=0 HPO_STATE_DIR; HPO_STATE_DIR=$(mktemp -d)   # no kept read crosses a fixture; the cache rows below opt in
   (
     set -e; throwaway_git_env; cd "$RA"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
@@ -2107,6 +2183,7 @@ for a in "$@"; do
   prev=$a
 done
 [ -n "$filter" ] && [ -n "$url" ] || exit 5
+[ -z "${CALLS:-}" ] || echo "$url" >>"$CALLS"
 sha=${url#*/commits/}; sha=${sha%/check-runs}
 [ -f "$REDFIX/$sha.json" ] || exit 1
 exec jq -r "$filter" "$REDFIX/$sha.json"
@@ -2167,6 +2244,67 @@ EOS
     reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
   st $? 3 "an absent gh skips the arm (never refuses)"
   case "$out" in *gh\ is\ absent*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
+  # PC-1113-13 / ANCESTRY-REDS-PER-COMMIT-READS: the calls one ancestry read makes grow with the
+  # branch's commits, so they are counted (the stub appends each url to $CALLS) over a 520-commit
+  # branch whose every commit is green, then with a red on an ancestor, then warm.
+  LONG=$(mktemp -d); LFIX=$(mktemp -d); LCALLS="$LONG.calls"
+  (
+    set -e; throwaway_git_env; cd "$LONG"; throwaway_git_init . -q -b main
+    git config user.name st; git config user.email st@st
+    git remote add origin https://github.com/tvofi/heatpump_optimizer.git
+    export GIT_AUTHOR_NAME=st GIT_AUTHOR_EMAIL=st@st GIT_COMMITTER_NAME=st GIT_COMMITTER_EMAIL=st@st
+    export GIT_AUTHOR_DATE='2005-04-07T22:13:13 +0000' GIT_COMMITTER_DATE='2005-04-07T22:13:13 +0000'
+    echo a > code; git add -A; git -c commit.gpgsign=false commit -qm base
+    tree=$(git write-tree); parent=$(git rev-parse HEAD)
+    for i in $(seq 1 520); do parent=$(git commit-tree "$tree" -p "$parent" -m "c$i"); done
+    git update-ref refs/remotes/origin/long "$parent"; git update-ref refs/remotes/origin/main main
+  ) >/dev/null 2>&1
+  long_shas=$(GIT_DIR="$LONG/.git" git rev-list main..origin/long)
+  for sha in $long_shas; do
+    printf '{"total_count":1,"check_runs":[{"name":"fast (3.14)","status":"completed","conclusion":"success"}]}' >"$LFIX/$sha.json"
+  done
+  lreds() { # ttl, extra env... -> "<rc>:<names joined>:<calls>"
+    local ttl=$1 out r; shift; : >"$LCALLS"
+    out=$(GIT_DIR="$LONG/.git" REDFIX="$LFIX" CALLS="$LCALLS" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+      PREPR_ANCESTRY_TTL_S="$ttl" HPO_STATE_DIR="$LSTATE" ancestry_reds origin/long); r=$?
+    echo "$r:$(echo $out):$(wc -l <"$LCALLS" | tr -d ' ')"
+  }
+  LSTATE=$(mktemp -d)
+  got=$(lreds 0)
+  st "$got" "0::520" "an all-green 520-commit branch reads each commit once: 520 calls, the total_count read with it (the merge base made 520 and then one more for the total)"
+  got=$(lreds 3600); got2=$(lreds 3600)
+  st "$got2" "0::0" "a second run in the hour reads nothing: every commit's runs were final and are kept"
+  oldest=$(printf '%s\n' $long_shas | sed -n 100p)
+  printf '{"total_count":2,"check_runs":[{"name":"fast (3.14)","status":"completed","conclusion":"success"},{"name":"closures","status":"completed","conclusion":"failure"}]}' >"$LFIX/$oldest.json"
+  rm -rf "$LSTATE"; LSTATE=$(mktemp -d)
+  got=$(lreds 3600); got2=$(lreds 3600)
+  st "$got" "0:closures:520" "a red on an ancestor commit is named on the cold read"
+  st "$got2" "0:closures:0" "and on the warm read, from the kept lines (no answered red lost)"
+  pending=$(printf '%s\n' $long_shas | sed -n 7p)
+  printf '{"total_count":1,"check_runs":[{"name":"fast (3.14)","status":"in_progress","conclusion":null}]}' >"$LFIX/$pending.json"
+  rm -rf "$LSTATE"; LSTATE=$(mktemp -d)
+  lreds 3600 >/dev/null; got2=$(lreds 3600)
+  st "$got2" "0:closures:1" "a commit with a run still pending is read again each time (never kept), the other 519 are kept"
+  got=$(lreds 0)
+  st "$got" "0:closures:520" "null control: with the keeping off (TTL 0) every commit is read, so the zero above is the cache's"
+  # A commit carrying no check run yet (just pushed, CI not queued) has no final runs: its read
+  # is never kept, so a red that lands on it within the hour is named on the next read.
+  for sha in "$oldest" "$pending"; do
+    printf '{"total_count":1,"check_runs":[{"name":"fast (3.14)","status":"completed","conclusion":"success"}]}' >"$LFIX/$sha.json"
+  done
+  zero=$(printf '%s\n' $long_shas | sed -n 1p)
+  printf '{"total_count":0,"check_runs":[]}' >"$LFIX/$zero.json"
+  rm -rf "$LSTATE"; LSTATE=$(mktemp -d)
+  got=$(lreds 3600)
+  st "$got" "0::520" "a commit with no check run yet is read cold with the other 519 (no red stands)"
+  printf '{"total_count":1,"check_runs":[{"name":"closures","status":"completed","conclusion":"failure"}]}' >"$LFIX/$zero.json"
+  got2=$(lreds 3600)
+  st "$got2" "0:closures:1" "a red landing on that commit in the hour is named on the warm read: it alone is read again, never kept"
+  : >"$LCALLS"
+  GIT_DIR="$RA/.git" REDFIX="$RAFIX/green" CALLS="$LCALLS" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    PREPR_ANCESTRY_TTL_S=0 HPO_STATE_DIR="$(mktemp -d)" ancestry_reds origin/fix >/dev/null
+  st "$(wc -l <"$LCALLS" | tr -d ' ')" 2 "null control: a 2-commit all-green branch makes 2 calls (the merge base made 3), never more than before"
+  rm -rf "$LONG" "$LFIX" "$LONG.calls" "$LSTATE"
   # The alert listing (R4-1): `alert_reds` runs tools/pr/local_alerts.py, replaced here
   # by a script printing one alert line (the plant) or none (the null). An alert is a
   # red the body must name; a listing that could not be read says so and never refuses.
@@ -2399,14 +2537,15 @@ EOS
   printf 'def f(x):\n    if x > 0:\n        return 1\n    return 0\n' > "$MR/lib.py"
   printf 'import sys\nsys.path.insert(0, ".")\nfrom lib import f\nsys.exit(0 if [f(v) for v in (-2, 0, 1, 2)] == [0, 0, 1, 1] else 1)\n' > "$MR/tests/check.py"
   (mg add -A && mg commit -qm branch) >/dev/null 2>&1
-  got=$(mutants_line "$MR" "$MB" "false"); r=$?
+  got=$(MUTANT_IN_PLACE= mutants_line "$MR" "$MB" "false"); r=$?
   st "$r" 1 "a MUTANT_CMD failing on the unedited tree is refused, never read as no survivor"
   case "$got" in *'BASELINE FAILS'*) st 1 1 "and the refusal quotes mutant_run's own reason";; *) st 0 1 "and the refusal quotes mutant_run's own reason";; esac
-  got=$(mutants_line "$MR" "$MB" "python3 tests/check.py"); r=$?
+  got=$(MUTANT_IN_PLACE= mutants_line "$MR" "$MB" "python3 tests/check.py"); r=$?
   st "$r" 0 "a check killing every mutant of the added lines passes (null control)"
   # A check that needs the checkout (git) fails the archive copy's baseline and
-  # passes in place: the case MUTANT_IN_PLACE exists for, measured on 3379.
-  got=$(mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
+  # passes in place: the case MUTANT_IN_PLACE exists for, measured on 3379. The
+  # archive-copy rows clear MUTANT_IN_PLACE: a fixer runs prepr with it set (fixer.md step 2).
+  got=$(MUTANT_IN_PLACE= mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
   st "$r" 1 "a check needing a git checkout measures nothing in the archive copy, and is refused"
   got=$(MUTANT_IN_PLACE=1 mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
   st "$r" 0 "the same check under MUTANT_IN_PLACE=1 runs in the checkout and passes"
@@ -3309,6 +3448,34 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   case "$got" in *'docs/zz_leak.md:2: host-path'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and names the file and line"
   (cd "$PDX/r" && git checkout -q phome && privacy_line >/dev/null); st $? 0 "the same line made home-relative passes (null control)"
+  # Step 3f8: an early-exit reader on a pipe under pipefail, and a raw wc string compare, in lines
+  # the diff adds to a tools/**/*.sh are refused, named by file, line and rule; the here-string and
+  # the stripped count pass. The instances are 09b7856fc0's carry-tip read and #3455's compare.
+  (cd "$PDX/r" && $G checkout -q -f -b hzbad origin/main && mkdir -p tools/q && printf '#!/bin/bash\nset -uo pipefail\nprintf x | %s x\nst "$(a | wc -l)" 0 m\n' 'grep -q' > tools/q/z.sh \
+    && $G add -A && $G commit -qm hzbad && $G checkout -q -b hzok origin/main && mkdir -p tools/q && printf '#!/bin/bash\nset -uo pipefail\ngrep -q x <<<x\nst "$(a | wc -l | tr -d " ")" 0 m\n' > tools/q/z.sh \
+    && $G add -A && $G commit -qm hzok) >/dev/null 2>&1
+  got=$(cd "$PDX/r" && git checkout -q hzbad && hazard_line); r=$?
+  st "$r" 1 "hazard_line refuses an early-exit pipe and a raw wc compare in added lines"
+  case "$got" in *'tools/q/z.sh:3: early-pipe'*'tools/q/z.sh:4: wc-compare'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names each file, line and rule"
+  (cd "$PDX/r" && git checkout -q hzok && hazard_line >/dev/null); st $? 0 "the here-string and the stripped count pass (null control)"
+  case "$(sed -n '/^# --- 3f8\./,/^step "shell hazard"/p' "$PREPR_PATH")" in *'HAZARD_LINE=$(hazard_line)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 3f8 calls hazard_line, the function the rows above drive"
+  # Step 3f9: the scan over a scratch tree holding the canonical helpers, `inline_scan`'s own
+  # corpus (one python, javascript and shell copy, judge_batch.py), so a copy that drifts is
+  # one planted line; the real tree is its own null control (the step).
+  IW=$(mktemp -d); mkdir -p "$IW/tests" "$IW/tools/audit" "$IW/dev/audit/harnesses"
+  cp tests/harness_headers.py "$IW/tests/"; cp tools/audit/repo_root.py tools/audit/repo_root.mjs tools/audit/repo_root.sh tools/audit/judge_batch.py "$IW/tools/audit/"
+  cp dev/audit/harnesses/d907_kernel_band.py dev/audit/harnesses/r10_product_page.mjs dev/audit/harnesses/git_auto_maintenance_race.sh "$IW/dev/audit/harnesses/"
+  (inline_walk_line "$IW" >/dev/null); st $? 0 "inline_walk_line passes over a tree whose copies match the helper (null control)"
+  sed 's/^    here = Path(start).resolve()$/    here = Path(start)/' "$IW/dev/audit/harnesses/d907_kernel_band.py" > "$IW/x.py" && mv "$IW/x.py" "$IW/dev/audit/harnesses/d907_kernel_band.py"
+  got=$(inline_walk_line "$IW"); r=$?
+  st "$r" 1 "inline_walk_line refuses a harness whose inlined repo_root differs from the helper"
+  case "$got" in *'FAIL python'*d907_kernel_band*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names the drifted file"
+  rm -rf "$IW"
+  case "$(sed -n '/^# --- 3f9\./,/^step "inline walks"/p' "$PREPR_PATH")" in *'WALK_LINE=$(inline_walk_line)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 3f9 calls inline_walk_line, the function the rows above drive"
   rm -rf "$PDX"
   rm -rf "$CLM"
   rm -rf "$FB"
@@ -4120,6 +4287,68 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
   st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +(heavy slot|policy_lint|self-test|agreement lane|gate priority) ')$(printf '%s\n' "$RA" | grep -c '^  ok  *code steps  ')" 01 "(a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps"
   st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +merged structure ')$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +ci predict ')" 11 "(a) and runs tests/structure.py and ci predict on HEAD merged with main, once each"
   st "$([ -f "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt" ] && echo left)" "" "(a) a run with a body removes an earlier receipt first, so one that writes none leaves none"
+  # (a, hotfix): the main flow itself on a roster-classed hotfix branch, with the
+  # classifier stubbed at the path hotfix_class runs (an excluded fixture file in the
+  # throwaway checkout): its code-steps line is the hotfix line, never a receipt claim
+  # at "hotfix" -- the row hs above cannot see, since hs re-enacts the flow's sequence.
+  # Null control: the same hotfix branch with the caller's receipt and closure skips
+  # set prints no scope line and the receipt line (a classed-0 run would be a full one).
+  rhot() { # classifier answer, then the caller's VAR=value assignments -> the flow's scope and code-steps lines
+    local cls=$1; shift
+    (cd "$RQ/wt" && mkdir -p tools/pr && printf 'print(%s)\n' "$cls" > tools/pr/gate_priority.py \
+      && printf 'tools/\n' >> "$(git rev-parse --absolute-git-dir)/info/exclude" \
+      && git checkout -q -B fix/r10-hotfix-st \
+      && (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; env "$@" PREPR_VERBOSE=1 timeout 300 bash "$OLDPWD/tools/pr/prepr.sh" "$RQ/a.md" 2>&1) \
+      | grep -E '^  [a-zA-Z]+ +(hotfix scope|code steps) ' | sed -E 's/^  ([a-zA-Z]+) +(hotfix scope|code steps) +([^:]*).*/\1 \2: \3;/' | tr -d '\n'
+     rm -rf tools; git checkout -q --detach)
+  }
+  st "$(rhot 1)" "ok hotfix scope: fix/r10-hotfix-st is a hotfix group's branch;ok code steps: hotfix scope;" "(a, hotfix) the main flow on a hotfix branch prints the scope line and the hotfix code-steps line, not a receipt reuse"
+  st "$(rhot 1 PREPR_SKIP_CODE=0123456789abcdef0123456789abcdef01234567 PREPR_SKIP_CLOSURES=1)" "ok code steps: reused from the receipt at 0123456789ab;" "(a, hotfix) null control: the caller's skips set, the same branch prints no scope line and the receipt line"
+  # Carry 21: a hotfix group's branch defaults to the scoped run, decided once from the
+  # roster's class (`hotfix_class`, gate_priority.py --hotfix), never from the branch name.
+  # hs: the main flow's own sequence (hotfix_scope, then REUSE and code_steps_line) under a
+  # stubbed classifier. Each say prints "<label>=<message up to its first colon>;"; then the
+  # two skips as this shell holds them, and as a child process sees them (never exported).
+  hs() { # classifier answer -> "<say lines>|<CODE>|<CLOSURES>|<child CODE>,<child CLOSURES>"
+    local cls=$1
+    ( hotfix_class() { printf '%s' "$cls"; }
+      say() { printf '%s=%s;' "$2" "${3%%:*}"; }
+      HOTFIX_SCOPED=""
+      hotfix_scope fix/any
+      code_steps_line "${PREPR_SKIP_CODE:-}"
+      printf '|%s|%s|%s' "${PREPR_SKIP_CODE-unset}" "${PREPR_SKIP_CLOSURES-unset}" \
+        "$(bash -c 'printf "%s,%s" "${PREPR_SKIP_CODE-unset}" "${PREPR_SKIP_CLOSURES-unset}"')" )
+  }
+  HSL="hotfix scope=fix/any is a hotfix group's branch;"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 1) )" "${HSL}code steps=hotfix scope;|hotfix|1|unset,unset" "(hotfix) a roster-classed hotfix branch prints the scope line and the hotfix code-steps line (never a receipt claim), and defaults both skips on in this shell only"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 0) )" "|unset|unset|unset,unset" "(hotfix) null control: a non-hotfix branch prints nothing and sets neither skip"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; PREPR_SKIP_CODE=; hs 1) )" "${HSL}||1|unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; PREPR_SKIP_CLOSURES=; hs 1) )" "${HSL}code steps=hotfix scope;|hotfix||unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays"
+  st "$( (export PREPR_SKIP_CODE=abc PREPR_SKIP_CLOSURES=x; hs 1) )" "code steps=reused from the receipt at abc;|abc|x|abc,x" "(hotfix) explicit values pass through unchanged and, both set, no scope line; a caller's own value is still a receipt reuse"
+  st "$( (export PREPR_SKIP_CODE=hotfix PREPR_SKIP_CLOSURES=x; hs 1) )" "code steps=reused from the receipt at hotfix;|hotfix|x|hotfix,x" "(hotfix) the hotfix code-steps line is keyed to the roster's scoping, not to the value: a caller's literal PREPR_SKIP_CODE=hotfix is a receipt reuse"
+  # End to end, the seam the stub above skips: hotfix_class runs the real
+  # gate_priority.py --hotfix against a fixture roster published as a local origin, so
+  # the CLI's answer and the flag prepr passes are both under test. Only the hotfix
+  # group's branch answers 1; an outside, a critical-path, a plain and an unmapped
+  # branch answer 0 (gate priority would give the first two 1 and the hotfix 2).
+  HC=$(mktemp -d)
+  ( set -e; throwaway_git_env; cd "$HC"; throwaway_git_init . -q -b main
+    export GIT_AUTHOR_NAME=st GIT_AUTHOR_EMAIL=st@st GIT_COMMITTER_NAME=st GIT_COMMITTER_EMAIL=st@st
+    mkdir -p dev/programme/rosters
+    printf '%s\n' '{"groups": [{"group": "R10-HOT", "kind": "bug", "resume": {"branch": "handoff/r10-hot"}},
+      {"group": "R10-OUT", "source": "outside", "resume": {"branch": "handoff/r10-out"}},
+      {"group": "R10-CRIT", "resume": {"branch": "handoff/r10-crit"}},
+      {"group": "R10-OTHER", "resume": {"branch": "handoff/r10-other"}}]}' > dev/programme/rosters/wave-r10-groups.json
+    printf '%s\n' '{"at": "2026-10-20T00:00:00Z", "critical": ["R10-CRIT"]}' > dev/programme/rosters/critical-path.json
+    git add -A; git commit -q -m roster
+    git branch handoff/audit-r10-roster
+    git remote add origin "$HC"; git fetch -q origin ) >/dev/null 2>&1
+  ln -s "$PWD/tools" "$HC/tools"
+  hcl() { (cd "$HC" && for b in handoff/r10-hot handoff/r10-out handoff/r10-crit handoff/r10-other fix/none; do printf '%s ' "$(hotfix_class "$b")"; done); }
+  st "$(hcl)" "1 0 0 0 0 " "(hotfix) end to end: hotfix_class answers 1 for the roster's hotfix group only, through gate_priority.py --hotfix"
+  st "$(cd "$HC" && unset HPO_GATE_PRIORITY && python3 tools/pr/gate_priority.py --branch handoff/r10-hot; python3 tools/pr/gate_priority.py --branch handoff/r10-out)" "$(printf '2\n1')" "(hotfix) null control: the same fixture's lease priority is 2 and 1, so the 1 / 0 above is the class, not the priority"
+  rm -rf "$HC"
+  st "$(awk '/^hotfix_scope "\$\(git rev-parse --abbrev-ref HEAD/{a=NR} /^REUSE=/{b=NR} END{print (a>0 && b>a) ? "ok" : "late"}' "$PREPR_PATH")" ok "(hotfix) the main flow decides the scope once, before REUSE is read from PREPR_SKIP_CODE"
   rm -rf "$RQ"
 
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
@@ -4192,8 +4421,10 @@ summary_start
 # at that code sha was found and the head is its clean merge with the live head
 # and main, so the steps keyed to the code alone are dropped and no heavy slot is
 # taken; the steps keyed to main, the body or the merge still run (`merged_steps`).
+HOTFIX_SCOPED=""
+hotfix_scope "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
 REUSE=${PREPR_SKIP_CODE:-}
-[ -z "$REUSE" ] || say ok "code steps" "reused from the receipt at ${REUSE:0:12}: no heavy slot, and the steps keyed to the code alone are dropped"
+code_steps_line "$REUSE"
 
 # --- 1a. no transport file in any commit the branch adds (`transport_in_ancestry`).
 TRANSPORT=$(transport_in_ancestry "$BASE" HEAD)
@@ -4253,7 +4484,7 @@ say ok "gate priority" "$HPO_GATE_PRIORITY (env, .gate-priority, then the critic
 # --- 1b. the heavy-slot lease (R10-PREPR-CAP, #2267).
 # WHY THIS EXISTS. This run is the heavy thing a seat starts most often, and its
 # steps -- the `--self-test` in 3h, the mutants drive, the closure recordings --
-# are minutes of CPU each. nudge.md §8's cap of four was advisory: the tick
+# are minutes of CPU each. The orchestrator's cap of four was advisory: the tick
 # counted and flagged it and nothing blocked a fifth, so on 2026-10-14 ten ran
 # at once and load1 reached 168 on 8 cores. `tests/gate_lock.py`'s pool is that
 # cap made mechanical (four slots, FIFO, expiry and orphan-steal shared with
@@ -4454,6 +4685,14 @@ rm -f /tmp/prepr-tp.$$
 # `ref_privacy --check` `instrument-self-tests` runs (`privacy_line` above).
 PRIVACY_LINE=$(privacy_line)
 step "ref privacy" $? "$PRIVACY_LINE"
+
+# --- 3f8. no shell hazard on a line this branch adds to tools/**/*.sh (`hazard_line` above).
+HAZARD_LINE=$(hazard_line)
+step "shell hazard" $? "$HAZARD_LINE"
+
+# --- 3f9. the inlined repo_root walks match the canonical helper (`inline_walk_line` above).
+WALK_LINE=$(inline_walk_line)
+step "inline walks" $? "$WALK_LINE"
 
 if [ -n "$REUSE" ]; then
   say skip "code-keyed steps" "PREPR_SKIP_CODE: pinned graders, self-test, wave-script"

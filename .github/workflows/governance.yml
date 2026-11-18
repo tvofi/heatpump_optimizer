@@ -25,7 +25,7 @@ name: Governance
 # Inside a called workflow `github.event_name` and `github.event` are the
 # caller's, so every job's `if:` and every `github.event.pull_request.*`
 # expression below reads the umbrella's event unchanged; the push guards on
-# `record` and `delivery-status-publish` are the same text they were.
+# `record` is the same text they were.
 #
 # The umbrella's pull_request types carry no `edited`, which the header above
 # explained for this file's own list (#1514): a body edit starts nothing here.
@@ -60,7 +60,10 @@ permissions:
 jobs:
   policy-docs:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # The field-coverage step alone runs about three minutes when a listed input
+    # changed (dev/audit/rca/R10-RCA-FAMILY-POLICY-DOCS-TIMEOUT.md); 5 was the
+    # budget of the linter this job started as.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -292,9 +295,19 @@ jobs:
     # that misses what it read (`drift`), so a wrong closure turns main red
     # within one merge. The rule, its fail-closed arms and its blind spots
     # are tools/ci/selftest_scope.py's docstring.
-    # A push traces every step and folds the traces (measured locally: about
-    # 34 minutes for both), so it gets 60.
-    timeout-minutes: ${{ github.event_name == 'push' && 60 || 30 }}
+    # A push traces every step and folds the traces, so it gets 90
+    # (r11-hotfix-main-selftest-red). Over main's eleven ci.yml push runs on
+    # 2026-11-15 (b046b22d to 66865be3) the job finished in 34.5 to 52.9
+    # minutes or was cancelled at 60; each cancelled one had reached the
+    # mutant step at 57.2 to 59.8 minutes, which with the mutant and drift
+    # steps' own spread (1.0-1.4 and 4.3-6.0, flat across runs) projects to
+    # about 67. The spread is the runner, not the tree: the in-line steps ran
+    # about 2.3x slower on some hosts than others at near-identical heads.
+    # Splitting or sharding the job buys about half its wall but needs the
+    # drift check and the selftest-closures artifact per shard. Re-derive,
+    # never carry: list the job in main's ci.yml push runs, duration =
+    # completed_at - started_at, and the mutant step's started_at.
+    timeout-minutes: ${{ github.event_name == 'push' && 90 || 30 }}
     env:
       HPO_JOB_GRADES: nothing
       SELFTEST_TRACE: ${{ github.event_name == 'push' && '1' || '' }}
@@ -483,6 +496,74 @@ jobs:
         id: bottleneck-alert
         if: steps.scope.outputs.bottleneck-alert == 'true'
         run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
+
+      # The convergence scorecard's report-only lines: each rule held to its
+      # null control over planted inputs, offline, and one mutant per predicate.
+      - name: Show the scorecard holding each of its lines to its null control
+        id: scorecard
+        if: steps.scope.outputs.scorecard == 'true'
+        run: python3 -I tools/audit/seat/scorecard.py --self-test
+
+      # The stable tools ref (R11-PRE-TOOLCHAIN-PIN): behind's count over the
+      # seat paths and promote's refusals (absent, off main, not a fast-forward,
+      # machinery not green, a push that moved nothing), each beside the case
+      # that moves the ref, over a throwaway origin; GitHub is a fake.
+      - name: Show the stable tools ref promoting only a machinery-green commit of main, fast-forward
+        id: toolchain
+        if: steps.scope.outputs.toolchain == 'true'
+        run: python3 -I tools/audit/seat/toolchain.py --self-test
+
+      # Decision 0018's flow reads per round and week (R11-PRE-ROUND-METRICS):
+      # lead_time from the roster-entry commit, product_green with the gate's
+      # check count, restore, runner seconds and tokens; an empty input reads
+      # unread, never a value, and one mutant per predicate is killed, offline.
+      - name: Show the round metrics reading unread on an empty input and each read on a planted one
+        id: round-metrics
+        if: steps.scope.outputs.round-metrics == 'true'
+        run: python3 -I tools/audit/seat/round_metrics.py --self-test
+
+      # Decision 0018 section 5's two held-out checks (R11-PRE-ROUND-METRICS):
+      # planted-defect recall's refusals and its count after the judge, and the
+      # two-finder overlap estimate; each holds an empty input to unread, never
+      # a value, and kills one mutant per predicate, offline.
+      - name: Show planted-defect recall refusing an unsound plant and reading unread on no input
+        id: plant-recall
+        if: steps.scope.outputs.plant-recall == 'true'
+        run: python3 -I tools/audit/seat/plant_recall.py --self-test
+
+      - name: Show the two-finder overlap estimate counting after the judge and reading unread on no input
+        id: finder-overlap
+        if: steps.scope.outputs.finder-overlap == 'true'
+        run: python3 -I tools/audit/seat/finder_overlap.py --self-test
+
+      # The owner-only channel (R11-PRE-SECURITY-PRIVACY): a dimension whose
+      # scopes.json entry carries `owner_only: true` publishes nothing. The
+      # launcher's probe over a fixture view of an account, the corpus mirror
+      # over a stub of gh, git and HTTPS, the candidate detectors, and the
+      # harness that plants a canary on every public path of the pipeline.
+      - name: Show the owner-only launcher's probe refusing an account that can publish
+        id: owner-only-launcher
+        if: steps.scope.outputs.owner-only-launcher == 'true'
+        run: python3 -I tools/audit/seat/owner_only.py --self-test
+      - name: Show the corpus mirror pausing at its cursor under a rate limit and resuming exactly
+        id: corpus-mirror
+        if: steps.scope.outputs.corpus-mirror == 'true'
+        run: python3 -I tools/audit/seat/corpus_mirror.py --self-test
+      - name: Show the leak detectors firing on a planted twin and quiet once it is masked
+        id: leak-detectors
+        if: steps.scope.outputs.leak-detectors == 'true'
+        run: python3 -I tools/audit/leak_detectors.py --self-test
+      - name: Show a planted owner-only canary reaching no public path of the audit pipeline
+        id: owner-only-channel
+        if: steps.scope.outputs.owner-only-channel == 'true'
+        run: python3 -I dev/audit/harnesses/owner_only_channel.py
+      # The convergence record's loop ledger (R11-PRE-ROUND-METRICS part 2; cards
+      # P7 and L1): escapes by found_by and owning dimension, injected, refix and
+      # the countermeasure loop per round and week; a partial ledger reads unread.
+      - name: Show the loop ledger reading unread on an empty or partial ledger and each read on a recorded one
+        id: loop-ledger
+        if: steps.scope.outputs.loop-ledger == 'true'
+        run: python3 -I tools/audit/seat/loop_ledger.py --self-test
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
@@ -703,6 +784,7 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/seat/bare_array.py --self-test
           python3 -I tools/audit/seat/bare_array.py --check
+          python3 -I tools/audit/seat/shell_hazard.py --self-test
 
       # A push whose ref name or commit message names the host (#2310: 70
       # wip-sync refs carried the account name). The self-test drives the
@@ -806,6 +888,29 @@ jobs:
           python3 -I tools/audit/seat/carry_fold.py --self-test | tee "$RUNNER_TEMP/carry-fold-self-test.txt"
           grep -Eq '^carry_fold self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/carry-fold-self-test.txt"
 
+      # Decision 0018's regret oracle solves, so its self-test needs the
+      # pinned solver stack this job's python3 lacks: an interpreter of its
+      # own (update-environment false, so every other step keeps the job's),
+      # installed from the same hashes as the test gate, both gated by the
+      # step's measured read set like every step here.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: regret-oracle-python
+        if: ${{ !cancelled() && steps.scope.outputs.regret-oracle == 'true' }}
+        with:
+          python-version: "3.14"
+          update-environment: false
+
+      - name: Show the regret oracle reading its planted and null controls
+        id: regret-oracle
+        if: ${{ !cancelled() && steps.scope.outputs.regret-oracle == 'true' }}
+        env:
+          PY: ${{ steps.regret-oracle-python.outputs.python-path }}
+        run: |
+          set -euo pipefail
+          PY=${PY:-python3}  # the set-up interpreter; unset only where a tool replays this step outside CI
+          "$PY" -m pip install --quiet --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+          "$PY" -I tools/audit/regret_oracle.py --self-test
+
       # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
       # wiring check above counts every tools/ file now, so each of these has
       # a step here or it reddens that check; four that the carry's weaker
@@ -820,6 +925,9 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/archscore/gate.py --self-test
           python3 -I tools/audit/check_scopes.py --self-test --repo .
+          python3 -I tools/audit/enumerate.py --self-test
+          python3 -I tools/audit/product_reads.py --self-test
+          python3 -I tools/audit/text_ledger.py --self-test
           # merge_throughput.py's `flow` subcommand (R10-FLOW-BOARD) rides
           # this same self-test: the fixture's exact counts, the unchanged
           # fixture's null control, and a named arm per classification
@@ -960,13 +1068,12 @@ jobs:
           python3 -I tools/audit/seat/mutant_run.py --self-test | tee "$RUNNER_TEMP/mutant-run-self-test.txt"
           grep -Eq '^mutant_run self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mutant-run-self-test.txt"
 
-      - name: Show the handoff push and its row writer refusing their own fixtures
+      - name: Show the handoff push refusing its own fixtures
         id: handoff-push
         if: ${{ !cancelled() && steps.scope.outputs.handoff-push == 'true' }}
         run: |
           set -o pipefail
           bash tools/audit/seat/handoff_push.sh --self-test | tee "$RUNNER_TEMP/handoff-push-self-test.txt"
-          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
           grep -Eq '^handoff_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
 
       - name: Show the handover prompt refusing its own fixtures
@@ -1025,6 +1132,17 @@ jobs:
           python3 -I tools/audit/seat/pr_cap.py --self-test | tee "$RUNNER_TEMP/pr-cap-self-test.txt"
           grep -Eq '^pr_cap self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-cap-self-test.txt"
 
+      # R10-CI-PRIORITY-PAUSE: the tier rule and the train's pause.
+      - name: Show the CI-priority rule and the train pause refusing their own fixtures
+        id: ci-priority
+        if: ${{ !cancelled() && steps.scope.outputs.ci-priority == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ci_priority.py --self-test | tee "$RUNNER_TEMP/ci-priority-self-test.txt"
+          grep -Eq '^ci_priority self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-priority-self-test.txt"
+          python3 -I tools/audit/seat/ci_pause.py --self-test | tee "$RUNNER_TEMP/ci-pause-self-test.txt"
+          grep -Eq '^ci_pause self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-pause-self-test.txt"
+
       - name: Show the open driver refusing its own fixtures
         id: open-driver
         if: ${{ !cancelled() && steps.scope.outputs.open-driver == 'true' }}
@@ -1032,6 +1150,14 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/open_driver.py --self-test | tee "$RUNNER_TEMP/open-driver-self-test.txt"
           grep -Eq '^open_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-driver-self-test.txt"
+
+      - name: Show the seat generation token and session lock refusing their own fixtures
+        id: seat-gen
+        if: ${{ !cancelled() && steps.scope.outputs.seat-gen == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/seat_gen.py --self-test | tee "$RUNNER_TEMP/seat-gen-self-test.txt"
+          grep -Eq '^seat_gen self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-gen-self-test.txt"
 
       - name: Show the proof watcher refusing its own fixtures
         id: proof-watcher
@@ -1212,6 +1338,18 @@ jobs:
           python3 -I tools/audit/seat/state_docs.py --self-test | tee "$RUNNER_TEMP/state-docs-self-test.txt"
           grep -Eq '^state_docs self-test: all checks passed$' "$RUNNER_TEMP/state-docs-self-test.txt"
 
+      # Decision 0017: admission, the three path classes, class O in both forms
+      # against every writer under the owner's account, the approve subcommand,
+      # and the two workflow pins (no contributor-named value in a run: block;
+      # the fork conjunct on tests.yml's laneskip step), over a faked gh.
+      - name: Show the outside-contributor contract (tools/pr/outside.py) refusing its own fixtures
+        id: outside-contract
+        if: ${{ !cancelled() && steps.scope.outputs.outside-contract == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/outside.py --self-test | tee "$RUNNER_TEMP/outside-self-test.txt"
+          grep -Eq '^outside self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/outside-self-test.txt"
+
       - name: Show the tick loop refusing its own fixtures
         id: tick-loop
         if: ${{ !cancelled() && steps.scope.outputs.tick-loop == 'true' }}
@@ -1379,7 +1517,7 @@ jobs:
           python3 -I tools/audit/seat/sweep_driver.py --self-test | tee "$RUNNER_TEMP/sweep-driver-self-test.txt"
           grep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"
 
-      - name: Show the beat's Gantt and verdict-audit instruments (sweep_gantt.py, verdict_audit.py) refusing their own fixtures
+      - name: Show the beat's Gantt, verdict-audit and owed-watch instruments (sweep_gantt.py, verdict_audit.py, owed_watch.py) refusing their own fixtures
         id: gantt-and-verdict-audit
         if: ${{ !cancelled() && steps.scope.outputs.gantt-and-verdict-audit == 'true' }}
         run: |
@@ -1388,6 +1526,8 @@ jobs:
           grep -Eq '^sweep_gantt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-gantt-self-test.txt"
           python3 -I tools/audit/seat/verdict_audit.py --self-test | tee "$RUNNER_TEMP/verdict-audit-self-test.txt"
           grep -Eq '^verdict_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/verdict-audit-self-test.txt"
+          python3 -I tools/audit/seat/owed_watch.py --self-test | tee "$RUNNER_TEMP/owed-watch-self-test.txt"
+          grep -Eq '^owed_watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/owed-watch-self-test.txt"
 
       - name: Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures
         id: survivor-list
@@ -1722,11 +1862,15 @@ jobs:
             'tools/audit/seat/gh_read.py' \
             'tools/audit/seat/ledger.py' \
             'tools/audit/seat/proof_watch.py' \
+            'tools/audit/seat/ci_pause.py' \
+            'tools/audit/seat/ci_priority.py' \
             'tools/audit/seat/merge_train.py' \
             'tools/audit/seat/queue_pre_flight.py' \
             'tools/audit/seat/ref_privacy.py' \
             'tools/audit/seat/record_row.py' \
             'tools/audit/seat/roster_lib.py' \
+            'tools/audit/seat/seat_gen.py' \
+            'tools/audit/seat/seat_gen_selftest.py' \
             'tools/audit/seat/tmp_paths.py' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
@@ -1852,7 +1996,7 @@ jobs:
       # not this file's judgement: #201 comment 5670207248 item 4 approves
       # `issues: write` on this one job. It is declared on the job that uses it
       # rather than the workflow floor precisely so no other lane inherits it:
-      # `policy-docs`, `env-matrix`, `wave-script` and `delivery-status` keep
+      # `policy-docs`, `env-matrix` and `wave-script` keep
       # the read-only floor, `pr-contract` (its own file) keeps what it holds,
       # and the set of overriding jobs is pinned in tests/entities.py as the
       # blast radius.
@@ -1932,6 +2076,8 @@ jobs:
       # here cannot block an unrelated merge.
       - name: Every merged pull request has a disposition
         id: refusal
+        # card C5 (tvofi 2026-11-05): the record no longer grades main; the verdict stays in the summary
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -2091,162 +2237,3 @@ jobs:
             echo "the record protocol promises, cleared by the next \`record:\` beat writing"
             echo "the row. The job is not a required context and must not become one."
           } | tee /dev/stderr >> "$GITHUB_STEP_SUMMARY"
-
-  # `main`'s CURRENT `record` conclusion, reported as a red check on every pull
-  # request. #713's construction (`nightly-status`, `tests/nightly_status.py`)
-  # pointed at `record` instead of the nightly, because #533 and this are the
-  # same shape: a conclusion that lands on a commit nobody re-reads.
-  #
-  # WHY IT IS NEEDED WHILE `record` ABOVE IS CORRECT. `record`'s `if:` is right
-  # and the job above says why. The defect, when this job shipped, was that
-  # `record` -- then one of the required contexts the `main-protect` ruleset's
-  # endpoint returned, and since dropped from them by #884 -- reported
-  # `skipped` on the only event a seat reads it at: every other required
-  # context `success` and `record` alone `skipped` at #734's head `b63470b`.
-  # The live set is the required checks that endpoint returns, never a count
-  # from here. So the disposition rule is enforced only after a
-  # merge and the red lands on whoever pushes next: seven red-`main` events in
-  # the five days to 2026-09-10, the last of them #734 merging with no row nine
-  # hours after #708 landed the protocol saying the row precedes the merge.
-  # This does not prevent that merge. It converts "`main` is red and nobody
-  # looks" into "every open pull request says so". Root cause on #541 comment
-  # 5622000848; its home for the record is #678, where (c) is already recorded
-  # for the identical cause on a different surface.
-  #
-  # It must NOT be added to `main-protect`'s required contexts. That is a
-  # ruleset change and a separate owner decision, and requiring it would make
-  # one lane's unfixed red refuse every unrelated merge in the repository -- for
-  # a condition the pull request's author did not cause and usually cannot fix.
-  # The report says so on every run, green as well as red.
-  #
-  # Pull requests only. A lane reporting on `main`'s own state must not be able
-  # to turn `main` red: that would put the reporter inside the thing it reports
-  # on, and one unfixed row would redden every subsequent push.
-  # The delivery ledger, which replaced `record-status`'s predicate. See
-  # `tests/delivery_status.py` for the measurement that motivated it: `record`
-  # concluded `failure` on 28 of main's last 40 commits, in six streaks each
-  # ended by a `record:` leftover-row commit, because it asked whether every
-  # merge has a row RIGHT NOW while the protocol promises a row SOON, in a
-  # batch. This asks what the protocol actually promises.
-  #
-  # On a pull request it reports and does not gate: `--check` is passed so a
-  # genuinely stalled batch is red, and pending merges are printed by name,
-  # which is the part a seat can act on and which a tick never was.
-  #
-  # `--since` is deliberately not passed: the window is the last release tag,
-  # and a fixed one would report the same closed window for ever.
-  # `tests/entities.py` pins that absence, the way it pins `nightly_status.py`
-  # taking no `--run`.
-  delivery-status:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # The window is `<last tag>..origin/main`, so the tags and main's
-          # history both have to be here. A shallow clone would silently
-          # report an empty window, which is the vacuous green this check
-          # names as its own failure mode.
-          fetch-depth: 0
-
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.13"
-
-      # No `pip install`, the same reason `record-status` had none: a reporter
-      # whose job is to notice that something went dark must not be breakable
-      # by the dependency set, and it costs seconds beside a forty-minute gate.
-      # PINNED (decision 0013): restored from the base, checked byte-identical
-      # to the base's object, and run under `-I -S`, all in this one step.
-      # Nothing before it in this job runs the pull request's code: after
-      # anything that did, the job would be the pull request's (it could
-      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
-      # through `$GITHUB_ENV`, or use the runner's sudo). This file is
-      # @tvofi's, so that review keeps it true; `codeowners_gap.py --check` is
-      # a lint that refuses the forms known to break it. The pull
-      # request's own copy runs in `tests.yml`'s `graders-head-copy`, which is
-      # not required.
-      - name: Report what is pending and what is overdue a row
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
-          git checkout "$PINNED" -- \
-            'tests/delivery_status.py' \
-            'tests/layout.py'
-          test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
-          git fetch --no-tags --quiet origin main
-          python -I -S tests/delivery_status.py --check
-
-  # #201's region, regenerated on every push to main. The ledger itself needs
-  # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`
-  # builds it from git alone, so any clone answers
-  # `python3 tests/delivery_status.py --emit <path>`, and #201's body carries
-  # the same content in a delimited region so the issue's own text survives.
-  #
-  # THE LANE WRITES NOTHING THAT LANDS ON MAIN, and that is its fixed point.
-  # The ledger lists every merge in the window with `commits_after`, so it
-  # moves on EVERY push to main. #1011's Option 2 landed it through a
-  # `ci/delivery-ledger` PR, and merging that PR was itself a push to main
-  # that moved the ledger again: nine of the eleven ledger PRs were opened
-  # 14-22 s after the previous one merged, each a merge with no row, main
-  # churn, and an open PR that decision 0009 step 6's quiet moment never got
-  # (#201 root cause of 2026-09-17). An issue-body edit fires no workflow in
-  # this repository, so one push yields at most one edit and nothing else.
-  # The JSON goes to the job summary; `tests/entities.py` pins that no step
-  # pushes, opens a PR or holds SEAT_AUTHOR_TOKEN.
-  delivery-status-publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    # `issues: write` edits #201's region; `contents: read` restates the
-    # workflow floor a job-level block replaces, for the checkout.
-    permissions:
-      contents: read
-      issues: write
-    # Ledger finding (b) (#201, W4D-G6): pushes to main arrive in bursts, and
-    # two runs' read-modify-write of #201's body must not interleave. Each run
-    # regenerates wholesale from its own push, so the newer supersedes the
-    # older outright and cancel-in-progress loses nothing.
-    concurrency:
-      group: delivery-status-publish
-      cancel-in-progress: true
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.13"
-
-      - name: Regenerate the ledger and put it in #201's region
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python tests/delivery_status.py --emit "$RUNNER_TEMP/ledger.json"
-          { echo '```json'; cat "$RUNNER_TEMP/ledger.json"; echo '```'; } \
-            >> "$GITHUB_STEP_SUMMARY"
-          python tests/delivery_status.py \
-            --from "$RUNNER_TEMP/ledger.json" --markdown > "$RUNNER_TEMP/region.md"
-          python - <<'PY'
-          import os, pathlib, subprocess, sys
-          sys.path.insert(0, "tests")
-          import delivery_status as ds
-          body = subprocess.run(
-              ["gh", "issue", "view", "201", "--json", "body", "--jq", ".body"],
-              capture_output=True, text=True, check=True).stdout.rstrip("\n")
-          region = pathlib.Path(os.environ["RUNNER_TEMP"], "region.md").read_text()
-          updated = ds.splice(body, region.rstrip("\n"))
-          if updated == body:
-              print("#201's region is already current")
-          else:
-              pathlib.Path(os.environ["RUNNER_TEMP"], "body.md").write_text(updated)
-              subprocess.run(
-                  ["gh", "issue", "edit", "201", "--body-file",
-                   os.environ["RUNNER_TEMP"] + "/body.md"], check=True)
-              print("#201's region updated")
-          PY

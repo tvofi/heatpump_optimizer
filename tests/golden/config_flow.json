@@ -939,6 +939,10 @@
     "Heat pump telemetry"
    ],
    [
+    "rooms",
+    "Room thermometers"
+   ],
+   [
     "building",
     "Heating system and heat storage"
    ],
@@ -1048,6 +1052,7 @@
   "dhw_disinfection_switch_entity": "sensor.seed_dhw_disinfection_switch_entity",
   "dhw_elastic_legionella_enabled": true,
   "dhw_free_disinfection_enabled": true,
+  "dhw_hysteresis_entity": "sensor.seed_dhw_hysteresis_entity",
   "dhw_inlet_entity": "sensor.seed_dhw_inlet_entity",
   "dhw_legionella_enabled": true,
   "dhw_quantile_targets_enabled": true,
@@ -1106,10 +1111,13 @@
   "pv_enabled": true,
   "pv_export_price_entity": "sensor.seed_pv_export_price_entity",
   "pv_production_entity": "sensor.seed_pv_production_entity",
+  "room_lift_enabled": true,
+  "room_temperature_entities": "sensor.seed_room_temperature_entities",
   "snow_roof_factor_enabled": true,
   "solar_aperture_learning_enabled": true,
   "solar_radiation_entity": "sensor.seed_solar_radiation_entity",
   "space_circulation_pump_entity": "sensor.seed_space_circulation_pump_entity",
+  "space_hysteresis_entity": "sensor.seed_space_hysteresis_entity",
   "space_setpoint_entity": "sensor.seed_space_setpoint_entity",
   "staleness_watchdog_enabled": true,
   "system_identification_enabled": true,
@@ -2315,6 +2323,14 @@
     "required": "Optional",
     "selector": "SelectSelector"
    },
+   "dhw_hysteresis_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor', 'number', 'input_number']}]"
+    },
+    "default": "'sensor.seed_dhw_hysteresis_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
    "heat_pump_backup_heater_entity": {
     "config": {
      "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
@@ -2396,6 +2412,14 @@
     "default": "'off'",
     "required": "Optional",
     "selector": "SelectSelector"
+   },
+   "space_hysteresis_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor', 'number', 'input_number']}]"
+    },
+    "default": "'sensor.seed_space_hysteresis_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
    }
   },
   "factory_reset": {
@@ -3499,6 +3523,33 @@
      "filter": "[{'domain': ['sensor']}]"
     },
     "default": "'sensor.seed_wood_tank_top_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   }
+  },
+  "rooms": {
+   "after_save": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['menu', 'close']",
+     "translation_key": "'after_save'"
+    },
+    "default": "'menu'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "room_lift_enabled": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "type"
+   },
+   "room_temperature_entities": {
+    "config": {
+     "filter": "[{'domain': ['climate']}, {'domain': ['sensor'], 'device_class': ['temperature']}]",
+     "multiple": "True"
+    },
+    "default": "'sensor.seed_room_temperature_entities'",
     "required": "Optional",
     "selector": "EntitySelector"
    }
@@ -5027,6 +5078,14 @@
    "required": "Optional",
    "selector": "SelectSelector"
   },
+  "dhw_hysteresis_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor', 'number', 'input_number']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
   "heat_pump_backup_heater_entity": {
    "config": {
     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
@@ -5108,6 +5167,14 @@
    "default": "'off'",
    "required": "Optional",
    "selector": "SelectSelector"
+  },
+  "space_hysteresis_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor', 'number', 'input_number']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
   }
  },
  "factory_reset": {
@@ -6143,6 +6210,33 @@
   "wood_tank_top_entity": {
    "config": {
     "filter": "[{'domain': ['sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  }
+ },
+ "rooms": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "room_lift_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "room_temperature_entities": {
+   "config": {
+    "filter": "[{'domain': ['climate']}, {'domain': ['sensor'], 'device_class': ['temperature']}]",
+    "multiple": "True"
    },
    "default": null,
    "required": "Optional",

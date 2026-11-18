@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:place_startable RETURN_DEL 68208daf",
+  "killed_by": "tests/block_duty.py",
+  "old": "    return drop_unstartable(plan, start_below, temps_of)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=5."
+}

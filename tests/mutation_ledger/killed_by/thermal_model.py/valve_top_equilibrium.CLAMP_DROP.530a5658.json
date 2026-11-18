@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:valve_top_equilibrium CLAMP_DROP 530a5658",
+  "killed_by": "tests/features.py",
+  "old": "    t_rad, t_floor = min(top_rad, p.buffer_max_temp), min(top_floor, p.buffer_max_temp)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`t_rad, t_floor = (top_rad), min(top_floor, p.buffer_max_temp)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

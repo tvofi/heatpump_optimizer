@@ -75,6 +75,9 @@ from .const import (
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_BUFFER_MAX_TEMP,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_ROOM_TEMPERATURE_ENTITIES,
+    CONF_ROOM_LIFT_ENABLED,
+    DEFAULT_ROOM_LIFT_ENABLED,
     CONF_MIXING_VALVE_MODE,
     CONF_MIXING_VALVE_TARGET,
     CONF_MIXING_VALVE_TARGET_ENTITY,
@@ -213,6 +216,7 @@ from .const import (
     SPACE_SETPOINT_WATER_UNITS,
     CONF_FLOW_HEAT_C,
     DEFAULT_FLOW_HEAT_C,
+    FLOW_HEAT_C_MAX,
     CONF_FLOW_MIN_LIFT_K,
     CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
@@ -412,6 +416,8 @@ from .const import (
     CONF_PUMP_DUTY_MODE,
     DEFAULT_PUMP_DUTY_MODE,
     PUMP_DUTY_MODES,
+    CONF_SPACE_HYSTERESIS_ENTITY,
+    CONF_DHW_HYSTERESIS_ENTITY,
     CONF_MOLD_GUARD_ENABLED,
     DEFAULT_MOLD_GUARD_ENABLED,
     CONF_INDOOR_HUMIDITY_ENTITY,
@@ -471,6 +477,7 @@ from . import (
     prefill_offer,
     presets,
     quick_setup,
+    rooms,
     topology,
 )
 from .wood_fuel import wood_furnace_on
@@ -1128,6 +1135,17 @@ def _entity_of(
     )
 
 
+def _room_thermometers() -> selector.EntitySelector:
+    """A list of room thermometers (#3616): room thermostats, or temperature
+    sensors. ``_entity_of``'s ``filter`` form, two filters, any number picked."""
+    return selector.EntitySelector(
+        selector.EntitySelectorConfig(
+            filter=[{"domain": ["climate"]}, {"domain": ["sensor"], "device_class": ["temperature"]}],
+            multiple=True,
+        )
+    )
+
+
 def _select(options: list[str], translation_key: str) -> selector.SelectSelector:
     """A dropdown of fixed options with a translation key for its labels."""
     return selector.SelectSelector(
@@ -1620,6 +1638,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("entities", "Sensors and entities", _ADVANCED),
     _P("entities_metering", "Power and solar sensors", _ADVANCED),
     _P("entities_pump", "Heat pump telemetry", _ADVANCED),
+    _P("rooms", "Room thermometers", _ADVANCED),
     _P("building", "Heating system and heat storage", _ADVANCED),
     _P("building_preset", "Building type and emitters", _ADVANCED),
     _P("thermal_model", "Thermal model (expert)", _ADVANCED),
@@ -1696,7 +1715,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities", CONF_FLOW_MIN_LIFT_K, DEFAULT_FLOW_MIN_LIFT_K, _number(0.5, 15, 0.5, 'K'), when=_water_space_setpoint, group="indoor"),
     # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
     # ceiling at the gate would write "off" on every heating step.
-    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, 70, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, FLOW_HEAT_C_MAX, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
     # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
     # on by default, and it acts only where a power meter is configured too.
     _F("entities", CONF_SPACE_SETPOINT_POWER_FEEDBACK, DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, selector.BooleanSelector(), when=_water_space_setpoint, group="indoor"),
@@ -1725,6 +1744,11 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities_pump
     _F("entities_pump", CONF_HEAT_PUMP_MODE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY]))),
     _F("entities_pump", CONF_PUMP_DUTY_MODE, DEFAULT_PUMP_DUTY_MODE, _select(list(PUMP_DUTY_MODES), 'pump_duty_mode')),
+    # The pump's own start hysteresis per duty: one picker each, a number or a sensor.
+    *(
+        _F("entities_pump", key, _STORED, _entity_of(['sensor', 'number', 'input_number']))
+        for key in (CONF_SPACE_HYSTERESIS_ENTITY, CONF_DHW_HYSTERESIS_ENTITY)
+    ),
     _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_ONLINE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),
@@ -1745,6 +1769,9 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # same picker every other water temperature on the plant uses.
     _F("entities_pump", CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
     _F("entities_pump", CONF_HEAT_PUMP_RETURN_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
+    # -- rooms: a list, cleared to None like an entity slot when emptied.
+    _F("rooms", CONF_ROOM_TEMPERATURE_ENTITIES, _STORED, _room_thermometers()),
+    _F("rooms", CONF_ROOM_LIFT_ENABLED, DEFAULT_ROOM_LIFT_ENABLED, bool),
     # -- comfort
     _F("comfort", CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP, _number(15, 28, 0.5, '°C', slider=True), required=True, group="band"),
     _F("comfort", CONF_MIN_TEMP, DEFAULT_MIN_TEMP, _number(14, 25, 0.5, '°C', slider=True), required=True, group="band"),
@@ -1959,6 +1986,18 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # restart and applies install-wide.
     _F("modbus_prefill", CONF_PREFILL_OFFER, DEFAULT_PREFILL_OFFER, selector.BooleanSelector()),
 )
+
+
+def option_range(key: str) -> tuple[float, float]:
+    """The ``(min, max)`` the options flow's number field for ``key`` offers.
+
+    The options table owns a setting's editable range; a service pricing the
+    same setting reads it here rather than carrying a copy that can drift.
+    """
+    for row in _OPTION_FIELDS:
+        if row.key == key and isinstance(row.widget, selector.NumberSelector):
+            return row.widget.config["min"], row.widget.config["max"]
+    raise KeyError(key)
 
 
 def _field_marker(row: _F, current: dict[str, Any], hass: HomeAssistant) -> Any:
@@ -2543,6 +2582,12 @@ def _clear_absent(
         if row.default is _STORED and not cleaned.get(row.key):
             cleaned[row.key] = None
     return cleaned
+
+
+async def _room_list_errors(submit: dict[str, Any], _current: dict[str, Any]) -> dict[str, str]:
+    """A room list is at most ``rooms.ROOMS_MAX`` entities."""
+    too_many = len(submit.get(CONF_ROOM_TEMPERATURE_ENTITIES) or ()) > rooms.ROOMS_MAX
+    return {CONF_ROOM_TEMPERATURE_ENTITIES: "too_many_rooms"} if too_many else {}
 
 
 def _setup_overview_form(
@@ -3268,6 +3313,24 @@ class HeatPumpOptimizerConfigFlow(
         )
 
 
+def _registry_step(
+    step_id: str, check: _PageCheck | None = None
+) -> Callable[[HeatPumpOptimizerOptionsFlow, dict[str, Any] | None], Awaitable[ConfigFlowResult]]:
+    """The step method of a page that is ``_page`` alone: no check bound to
+    the flow, nothing shaping what is saved. What the page shows and says is
+    the registry's (``_OPTION_PAGES``, ``_OPTION_FIELDS``) and its translations',
+    and so is whether a save clears: only a page with a ``_STORED`` row has a
+    slot to null (``_page``)."""
+    clear = any(row.default is _STORED for row in _OPTION_FIELDS if row.step == step_id)
+
+    async def step(
+        flow: HeatPumpOptimizerOptionsFlow, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return await flow._page(step_id, user_input, clear=clear, check=check)
+
+    return step
+
+
 class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.OptionsFlow):
     """Handle options flow for Heat Pump Optimizer.
 
@@ -3651,11 +3714,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
         return errors
 
-    async def async_step_entities_pump(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """What the heat pump reports about itself."""
-        return await self._page("entities_pump", user_input, clear=True)
+    async_step_entities_pump = _registry_step("entities_pump")
+
+    async_step_rooms = _registry_step("rooms", _room_list_errors)
 
     async def async_step_comfort(
         self, user_input: dict[str, Any] | None = None
@@ -3722,11 +3783,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             errors[CONF_DHW_DISINFECTION_MODE] = "disinfection_control_needs_entity"
         return errors
 
-    async def async_step_hot_water_pumps(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Hot-water circulation pump scheduling."""
-        return await self._page("hot_water_pumps", user_input, clear=True)
+    async_step_hot_water_pumps = _registry_step("hot_water_pumps")
 
     async def async_step_building(
         self, user_input: dict[str, Any] | None = None
@@ -3821,11 +3878,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """Two-zone split and solar orientation."""
         return await self._thermal_model_page("thermal_model_zones", user_input)
 
-    async def async_step_tuning(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Balance between saving money and holding the setpoint."""
-        return await self._page("tuning", user_input)
+    async_step_tuning = _registry_step("tuning")
 
     async def async_step_heat_curve(
         self, user_input: dict[str, Any] | None = None
@@ -3923,17 +3976,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             errors[CONF_GRID_FEE_RULES] = fee_problem
         return errors
 
-    async def async_step_solar_pv(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Photovoltaic array and export economics."""
-        return await self._page("solar_pv", user_input, clear=True)
+    async_step_solar_pv = _registry_step("solar_pv")
 
-    async def async_step_away(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Deep setback while the house is empty, with timed recovery."""
-        return await self._page("away", user_input, clear=True)
+    async_step_away = _registry_step("away")
 
     async def async_step_learning(
         self, user_input: dict[str, Any] | None = None
@@ -3949,11 +3994,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """
         return await self._page("learning", user_input)
 
-    async def async_step_learning_features(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Plan-affecting learning toggles."""
-        return await self._page("learning_features", user_input)
+    async_step_learning_features = _registry_step("learning_features")
 
     #: The preview a first submit of the pre-fill page computed: the prefix to
     #: store with the save (None when it found nothing, so nothing is written),

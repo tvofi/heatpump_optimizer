@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:BoostState._clear_spent CMP_BOUND 885babf4",
+  "killed_by": "tests/features.py",
+  "old": "        if (tail is not None and utc_elapsed_seconds(tail, now) <= 0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if (tail is not None and utc_elapsed_seconds(tail, now) < 0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -55,7 +55,7 @@ survivable — a wrong guess about hour 20 is corrected forty times before hour
 sequenceDiagram
     autonumber
     participant C as Coordinator
-    participant P as Prices (Tibber + learned prior)
+    participant P as Prices (Tibber or a price sensor, + learned prior)
     participant W as Weather entity (HA)
     participant S as Your sensors
     participant M as Thermal model
@@ -74,7 +74,7 @@ sequenceDiagram
     O->>O: solve: hot water first (LP + repair),<br/>then space heating around it,<br/>then one co-optimization pass
     O-->>C: space + DHW slot plan
     C->>C: apply manual-plan pins (≤20 h),<br/>safety releases pinned-off slots
-    C->>E: publish plan sensors, switch heat pump,<br/>ECL110 displace / frequency advice
+    C->>E: publish plan sensors, switch heat pump,<br/>heat-curve displace / frequency advice
     Note over C: between plans the peak guard folds power-meter events<br/>and flips a flag (2 agree engage / 2 clear).<br/>It never solves — the next solve only reads the flag
     Note over M: afterwards: compare prediction vs reality,<br/>nudge learned parameters
 ```
@@ -88,8 +88,8 @@ repair passes against the real tank simulation — and space heating is then
 optimized around the fixed DHW blocks by multi-start L-BFGS-B.
 
 Solving them in sequence would let hot water fill the cheapest hours to the
-compressor ceiling and push space heating into dearer ones. Two things prevent
-that:
+compressor ceiling and push space heating into more expensive ones. Two
+things prevent that:
 
 - **A congestion premium** inside the DHW program. Taking compressor capacity
   in a step where space heating also wants it is charged the extra price of
@@ -124,7 +124,7 @@ What the space heating solve minimizes:
 |---|---|
 | `grid_cost(P_space + P_dhw)` | Electricity, piecewise in PV surplus, × `price_weight` |
 | comfort terms | Pull toward the target, plus penalties for breaching the floor/ceiling |
-| cycling cost | Compressor start-stop wear, × `price_weight` |
+| cycling cost | Compressor wear: the cost of one start × the plan's starts, × `price_weight` |
 | capacity tariff | The month's peak charge exposure, × `price_weight` |
 | terminal cost | The value of heat left stored at the end of the horizon |
 
@@ -157,7 +157,19 @@ trade off.
 would be priced in invented units, and measured, it costs about 5% of the
 two-zone winter bill for no reduction in compressor starts. Discouraging
 chatter is the cycling cost's job, and that is denominated in currency per
-start-stop cycle.
+compressor start.
+
+**A priced start is counted as one start.** A start is an off-to-on edge of the
+compressor, whatever level it starts to; changing level inside a run is free.
+A level under the pump's minimum power is a duty-cycle average, so the solve
+counts it as the starts it is. With a start priced, or on an install that
+cannot duty-cycle, the solve first plans without the start cost, then commits
+that plan to whole runs at or above the minimum power, at the same energy: a
+step lifted to the minimum is paid for by a step left out. Several such plans
+are scored with the start cost included, and the cheapest ships. An install
+that cannot duty-cycle and prices no start is planned at a start price of 0.1,
+so that commit does not ship more starts than the plan it replaced. (Finding and
+method: Bankaifan, pull request 3529.)
 
 ### Weather anticipation is emergent, not a bonus
 
@@ -617,9 +629,10 @@ redundant cycle.
 
 Two opt-in refinements:
 
-- **Free disinfection**: if another heat source holds the tank at the
-  disinfection temperature *long enough*, that counts as a completed cycle. It
-  is hold-verified, so a momentary blip at 60 °C credits nothing.
+- **Hold-verified disinfection**: with *Credit disinfection from any heat
+  source* on, a heat source resets the timer only once the tank has held the
+  disinfection temperature for 20 minutes, so a momentary blip at 60 °C credits
+  nothing; with it off, any observation resets it at once, as above.
 - **A price-aware cycle**: inside its interval the cycle may run a day or two
   early (no sooner than a configurable minimum, default 5 days) when a known
   price beats what a typical remaining day is expected to bottom out at. The
@@ -646,7 +659,8 @@ Everything here is inert until configured or until evidence exists:
   Advisor** reports the cheapest setpoint that still covers your learned heavy
   days — read-only, the decision stays yours.
 - **Circulation pumps** (opt-in): a VVC loop pump runs only around your demand
-  frames, with a lead (default 20 minutes) so the loop is hot when they open.
+  frames, with a lead (default 20 minutes) so the loop is hot when they open;
+  with hot water off or no frames it is left on.
   The space circulation pump pauses only in provably idle, warm slots, and is
   forced on whenever heat is planned, the heat curve is being driven, any room
   is near its comfort floor, or it is freezing outside.
@@ -734,7 +748,8 @@ zero confidence.
 
 Added per kWh moved through the grid, and increasingly by time of day: several
 Swedish grid companies charge roughly 25 öre/kWh more on winter weekdays 06–22.
-Tibber's price does not include it. Configure it on the Grid costs page — as
+Tibber's price does not include it, and a price sensor includes it only if you
+added it there yourself. Configure it on the Grid costs page — as
 time-of-use rules like `Nov-Mar Mon-Fri 06:00-22:00 = 0.25`, as a flat figure,
 or as a live sensor — and every planned hour is priced at spot *plus* fee, which
 moves load to nights and weekends in winter even when spot alone would not. The
@@ -819,13 +834,25 @@ constraint would make it a mixed-integer program, not affordable inside a Home
 Assistant update.
 
 It defaults to **zero**, because the measurement came first: realistic plans
-make two to four starts a day, so most installs have nothing to fix, and the
-planned start count is published so the decision can be made from evidence. The
+make two to four starts a day, so most installs have nothing to fix. The plan's
+own projected start count is not published on any entity; the decision is made
+from the realised count. The
 **Compressor Starts** sensor counts realised starts from the power meter
 (debounced, and blind to the immersion element on purpose). Give it a
 replacement cost and a rated start count and every start books its share of the
 eventual swap — and an opt-in switch lets that realised wear price floor the
 cycling cost the optimizer plans with.
+
+A switch between hot water and heating at a steady draw is invisible to the
+cycling term, which prices swings in the total draw. On a pump that stops
+the compressor at such a switch, it is a stop and a start. With **Pump duty
+control** at Control the optimizer learns, per direction, how often a switch
+it wrote stopped the compressor and for how long; once that is established
+([Pump duty control](configuration.md#pump-duty-control)), the plan charges
+the switch `min(a, b) / p_max` cycles at the cycling cost (`a` and `b` the
+draws on either side, `p_max` the pump's maximum) times that probability;
+for a switch from hot water to heating it also counts the off time as heat
+not delivered.
 
 ---
 
@@ -920,8 +947,8 @@ that cannot save them anything should not be able to cost them anything.
 ## Away and holiday mode
 
 A week away is the largest single saving a heating system can offer: a deep
-setback plus hot water suppressed entirely, except for a legionella cycle timed
-to complete before you return.
+setback plus hot water held only at its away minimum (20 °C unless you change
+it), while the legionella cycle keeps its usual interval.
 
 What makes this more than a manual setpoint is the **return time**. Knowing when
 the house must be comfortable again lets the recovery heat be bought in the
@@ -938,6 +965,26 @@ Recovery starts deliberately early: the ramp begins a full estimated recovery
 duration plus an hour's margin before the stated return, and the estimate is
 rounded up and capped at 24 hours. A wrong return time is a comfort failure you
 will notice; arriving to a house half a degree warm costs a little.
+
+A change of the away indicator, the away switch or the holiday calendar
+replans at once, not at the next optimization interval.
+
+**Away and the mold guard.** With *Keep cold surfaces below mold humidity* on,
+the room is never planned below the mold-safe temperature, and that floor
+outranks the away setback by design: protecting the coldest surface comes
+before saving. The mold-safe temperature rises with indoor humidity and falls
+with outdoor temperature. The floor the plan holds is that temperature capped
+at your comfort target: the guard never heats past the target, because drying
+a house further is a dehumidifier's job. In a humid house in cold weather the
+floor can therefore sit at or near the target itself. On one recorded install,
+at 52–53 % indoor humidity and 1 to 5 °C outdoors, the mold-safe temperature
+worked out at 19.2 to 20.9 °C; with a 19.5 °C comfort target the floor in force
+was 19.2 to 19.5 °C, and the plan heats to it while you are away. The setback
+to *Temperature while away* then saves little or no space-heating energy for as
+long as the guard holds the floor above it. Hot water still drops to its away
+minimum. The setback saves again once the house is dry enough, or mild
+enough, that the mold-safe temperature falls below the away temperature; the
+**Mold Floor Breach** sensor's `floor_c` attribute shows the floor in force.
 
 ---
 
@@ -1040,10 +1087,12 @@ modelled COP; without that, it is the power the plan commanded. Gaining better
 evidence (adding a power meter, or a heat meter's first measured interval)
 discards the evidence gathered on the weaker one.
 
-**An estimated power reading.** The integration cannot tell a revenue meter
-from a power figure the heat pump computes for itself: both are read as the
-measured draw. If yours is an estimate and it reads high, the house looks
-leakier by about the same factor, and the plan buys heat it does not need.
+**An estimated power reading.** The heat-loss learner reads a power figure the
+heat pump computes for itself exactly as it reads a revenue meter: both are the
+measured draw. The *meter or estimate* setting on the metering page decides only
+whether a COP counts as measured, not what the learners train on. If yours is
+an estimate and it reads high, the house looks leakier by about the same
+factor, and the plan buys heat it does not need.
 Prefer a real meter, and reset the learners after changing the slot.
 
 **Starting again.** The **Learning Reset Heat Loss** button and the
@@ -1053,16 +1102,37 @@ and learning starts again from there. Changing the indoor or the lower floor
 temperature sensor resets the learner fitted on it the same way, because
 evidence fitted against one sensor says nothing about another.
 
-<!-- [target: R10-COP-GATE, R10-COP-PARTLOAD] -->
 ### COP, and the tracking-error gate
 
 With a power meter, COP becomes observable instead of derived from a nameplate
 figure and a temperature curve. The learned `cop_scale` multiplies the nameplate
 curve, bounded to [0.5, 1.6] so a mis-scaled power entity cannot destroy the
-model. A sample only counts if the pump is genuinely running (below a third of
-nameplate the reading is mostly auxiliaries), and samples are skipped while the
-immersion element is drawing, because a resistive kW is a different appliance on
-the same meter.
+model. A sample only counts if the pump is genuinely running: the draw and the
+plan's ask must both reach 80 % of the configured minimum power (with no minimum
+configured, 30 % of the maximum), and never less than 0.2 kW, because below that
+the reading is mostly auxiliaries. Samples are skipped while the immersion
+element is drawing, because a resistive kW is a different appliance on the same
+meter.
+
+**Measured COP, and the model's COP.** A COP is *measured* only where both sides
+are meters: a heat energy meter or a thermal power meter for the heat, and a
+power or energy meter for the electricity, neither of them the pump's own
+estimate (the *meter or estimate* settings on the metering page), and, for an
+interval that heated hot water, a heat reading declared to see the hot-water
+circuit. Only a measured COP is recorded and graded. Every other install still
+trains `cop_scale`, from the vendor's estimate or from the commanded-versus-
+measured power ratio below, but its efficiency is the model's own, and the
+Health page says so: *COP cannot be measured on this install*, with what it
+lacks.
+
+**Efficiency at part load.** *Heat pump COP loss at max power* (default 0, off)
+lowers the COP linearly from the minimum to the maximum power, to one minus the
+setting at max power, because larger heat flows need larger temperature
+differences across the heat exchangers. The plan then prices each step at its own
+draw, so a kWh of heat bought at high power costs more than one bought near
+the minimum. A value
+at or above *band / (band + max power)*, band being max minus min power, would
+make more power buy less heat; the setting is then ignored and treated as 0.
 
 Samples are also skipped where the shortfall belongs to the **defrost derate**,
 which learns from the same signal: folding both would correct one shortfall
@@ -1104,8 +1174,8 @@ Two caveats are worth stating plainly:
   compared and the more careful of them stands. A single quiet interval cannot
   undo a season of evidence, in either direction.
 
-**The subtlest gate matters most.** Delivered heat is not measured, so a
-commanded-versus-measured gap is ambiguous: a modest one is efficiency signal, a
+**The subtlest gate matters most.** Without a heat reading, delivered heat is
+not measured, so a commanded-versus-measured gap is ambiguous: a modest one is efficiency signal, a
 large one means the pump is not running the plan at all — compressor limits,
 cycling, ramp lag — and delivered thermal output is unknown. Folding those
 intervals wrote pure tracking error into `cop_scale`, and from there into every
@@ -1127,7 +1197,6 @@ by itself makes 1.0 the only fixed point and drags a perfectly-confirmed model
 back toward "trust the nameplate". The same vetted sample feeds the compressor
 health watch and the capacity envelope, so both inherit every filter for free.
 
-<!-- [target: R10-CEILING-PROBE] -->
 ### Active system identification
 
 Optional, and the fastest way to a good model. On a mild, cheap night the
@@ -1140,6 +1209,45 @@ switch on *Allow a one-off measurement experiment* under Advanced settings →
 Self-learning and diagnostics, and then trigger it with the **Run System
 Identification** button — until the option is on, that button does nothing but
 log that identification is disabled.
+
+**The ceiling probe.** Once the house has converged, or while the fit waits
+for its 30-day gap, the same button arms a second experiment where the install
+can run it: **Pump duty control** set to Control, the space set-point written
+as a flow or return temperature, a power meter on the heat pump, and the plan
+not writing compressor power itself (a compressor frequency entity with its
+control set to Control skips the probe, since the plan already sets the draw
+directly). On the same
+kind of night (between 23:00 and 05:00, outdoor between −5 and 10 °C, a price
+among the cheapest 30 % of the horizon) it asks for full power, which writes the
+*Heating flow ceiling*, for the longest step of at most two hours that keeps the room inside
+the comfort bound, and records the metered draw. It needs room for at least two
+metering intervals, or it aborts. Twelve recorded intervals make a learned
+maximum, their median. Where that median is more than 15 % below the configured
+**Heat pump max power**, the plan is solved with the learned figure, because
+the pump cannot draw what the setting says; it never raises the configured
+maximum. A learned maximum lapses 45 days after its newest sample, and two
+ordinary intervals at the top set-point that draw more than 15 % above it
+clear it, so it is measured again. A probe runs
+at most every 7 days until a maximum is learned and every 30 days after. The
+**Learning Model Status** sensor publishes the maximum in use and where it came
+from (`pump_max_power`, `pump_max_power_source`, `pump_max_power_reason`), and
+the last experiment's kind, phase and result in `system_identification_outcome`.
+
+The minimum is learned from the meter too, from the runs the plan asked at the
+minimum in force: the configured **Heat pump min power**, or the learned
+minimum once there is one. Once 48 such runs are metered, the low end of their
+draw (the 10th percentile) is the learned minimum where it is more than 15 %
+above **Heat pump min power**, and the plan books it where its levels are
+clamped to the pump's range (a plan that cycles the pump below its minimum is
+left as it is). It is never below **Heat pump min power** nor above the maximum
+in use, and it does not lapse with age: a learned minimum moves only on the
+runs asked at it, so it rises when they draw more than 15 % above it and comes
+down when they draw more than 15 % below it, and changing **Heat pump min
+power** or **Heat pump max power** clears it. A pump whose least draw falls
+below a learned minimum is never asked to run there, so the way down is to
+change **Heat pump min power**. The **Learning Model Status** sensor publishes
+the minimum in use and where it came from (`pump_min_power`,
+`pump_min_power_source`, `pump_min_power_reason`).
 
 The fit regresses the room's rate of change on `(T_room − T_out)`, applied power
 and a **constant**, over both the step and relaxation phases: relaxation carries
@@ -1275,7 +1383,10 @@ anticipating weather nobody has forecast. Everything below is built on those cod
 
 Optional price tiles also re-price the plan under the comfort schedule one degree
 lower, one higher, and power capped at 75%. One tile is refreshed per scheduled
-solve, in rotation, so the whole set costs at most one extra solve per interval.
+solve, in rotation, so a refresh costs one extra solve for a degree tile and up to three for the power-cap tile.
+The power-cap tile is refreshed at most every six hours, the first time six hours after a start:
+between refreshes its turn in the rotation solves nothing, and the tile keeps the figure and the
+time of its last refresh.
 A degree tile prices the degree held from a steady start (the thermostat
 baseline's difference), not the plan's spend from the house as it stands, which
 includes a one-off coast or heat-up. The cap tile, and the fuse advisor's bill
@@ -1358,5 +1469,5 @@ does raising your minimum temperature. Both work.
 - [architecture.md](architecture.md) — module layout and the internal data flow.
 - [dashboard-card.md](dashboard-card.md) — the card, its options, the plan
   editor and the Setup page.
-- [ecl110.md](ecl110.md) — the optional ECL110 MQTT control path.
+- [heat-curve.md](heat-curve.md) — the optional heat-curve control path, three ways: MQTT topics (for example a Danfoss ECL110), an offset entity, a stored curve parameter.
 - [the archive](../dev/archive/backlog.md) — the delivered archive and the open findings.

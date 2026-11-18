@@ -575,6 +575,13 @@ INVENTORY: dict[str, Entry] = {
         "Upstream needs hass.bus and an event loop, so what is pinned is the "
         "stub's own wiring"
     ),
+    "homeassistant.helpers.event.async_call_later": U(
+        "records [delay, action] on hass.timers and returns a cancel that "
+        "removes it, so an armed or a leaked timer is visible; nothing fires "
+        "it, a test calls the action. Refuses a plain function as the state "
+        "tracker does. Upstream needs an event loop, so what is pinned is the "
+        "stub's own wiring"
+    ),
     # -- helpers.issue_registry ---------------------------------------------
     "homeassistant.helpers.issue_registry.IssueSeverity": H("string constants, probed"),
     "homeassistant.helpers.issue_registry.async_create_issue": U(
@@ -1092,6 +1099,64 @@ def _error_generated_message():
 
     err = HomeAssistantError(translation_domain="heatpump_optimizer", translation_key="k")
     assert err.args == ("k",)
+
+
+@contract(
+    "homeassistant.core.StateMachine",
+    "a restart's first write stamps last_changed anew, whatever state it restores",
+    cite="core.py StateMachine.async_set -- no last_changed parameter; a new state is stamped at the write",
+    expect="real",
+)
+def _restart_stamps_last_changed():
+    # supply_hold measures a run on the switch's last_changed: after a restart
+    # a pump found running reads as a run that started at the restart.
+    import asyncio
+    import tempfile
+    from datetime import timedelta
+
+    from homeassistant.core import HomeAssistant, State
+    from homeassistant.util import dt as dt_util
+
+    async def main():
+        hass = HomeAssistant(tempfile.mkdtemp())
+        restored = State("switch.hp", "on", last_changed=dt_util.utcnow() - timedelta(hours=1))
+        before = dt_util.utcnow()
+        try:
+            hass.states.async_set("switch.hp", restored.state, restored.attributes)
+            written = hass.states.get("switch.hp")
+        finally:
+            await hass.async_stop(force=True)
+        assert written.state == "on"
+        assert written.last_changed >= before > restored.last_changed
+
+    asyncio.run(main())
+
+
+@contract(
+    "homeassistant.core.StateMachine",
+    "StateMachine.get(None) raises",
+    cite="core.py StateMachine.get -- a miss retries entity_id.lower()",
+    expect="real",
+)
+def _get_none_raises():
+    # pump_arbiter.supply_switch reads no switch on an install without one;
+    # tests/features.py's no-switch install reads states as upstream does.
+    import asyncio
+    import tempfile
+
+    from homeassistant.core import HomeAssistant
+
+    async def main():
+        hass = HomeAssistant(tempfile.mkdtemp())
+        try:
+            hass.states.get(None)
+        except AttributeError:
+            return
+        finally:
+            await hass.async_stop(force=True)
+        raise AssertionError("StateMachine.get(None) returned")
+
+    asyncio.run(main())
 
 
 @contract(
@@ -2077,6 +2142,32 @@ def _state_change_refuses_executor_job():
     except TypeError:
         return
     raise AssertionError("an untagged plain listener was accepted")
+
+
+@contract(
+    "homeassistant.helpers.event.async_call_later",
+    "the returned callable cancels the timer, and twice is harmless",
+    cite="helpers/event.py -- async_call_later returns a cancel callable",
+    expect="stub",
+)
+def _call_later_cancel():
+    from homeassistant.core import callback
+    from homeassistant.helpers.event import async_call_later
+
+    class _Hass:
+        pass
+
+    hass = _Hass()
+    cancel = async_call_later(hass, 30.0, callback(lambda now: None))
+    assert len(hass.timers) == 1 and hass.timers[0][0] == 30.0
+    cancel()
+    assert hass.timers == []
+    cancel()
+    try:
+        async_call_later(hass, 1.0, lambda now: None)
+    except TypeError:
+        return
+    raise AssertionError("an untagged plain timer action was accepted")
 
 
 # -- helpers.issue_registry --------------------------------------------------

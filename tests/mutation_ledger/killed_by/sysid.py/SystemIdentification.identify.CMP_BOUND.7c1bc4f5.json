@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 7c1bc4f5",
+  "killed_by": "tests/features.py",
+  "old": "        if solution.shape[0] >= 4:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if solution.shape[0] > 4:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

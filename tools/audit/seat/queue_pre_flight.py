@@ -338,6 +338,8 @@ def _self_test() -> int:
                 return 0, world.get("row_text", f"- [#7](https://example.test/7) — **open**, t")
             if "status" in argv and "--porcelain" in argv:  # Train.freeable's reads
                 return 0, world.get("holder_status", "")
+            if argv[:2] == ["git", "hash-object"] or (argv[:2] == ["git", "rev-parse"] and argv[2].startswith("origin/main:")):
+                return 0, "b" * 40  # `Train.outside_is_mains`: this checkout's copy is main's blob
             if argv[:3] == ["git", "-C", "/somewhere/wt"] and "rev-parse" in argv:
                 return 0, "1" * 40
             if argv[:2] == ["git", "rev-parse"]:
@@ -366,6 +368,13 @@ def _self_test() -> int:
                 return 0, mt._jl(world.get("comments", []))
             if argv[:2] == ["gh", "api"] and a.endswith("/pulls/7 --jq .body // \"\""):
                 return 0, world.get("body", "")
+            if argv == ["gh", "api", "repos/o/r/pulls/7"]:
+                # `Train.fork_head`'s read, which `policy_approval_due` makes before any approval is
+                # due (decision 0017): a branch of ours unless the case names another head repository.
+                if world.get("pull_fail"):
+                    return 1, "gh: HTTP 502"
+                return 0, json.dumps({"number": 7, "head": {"ref": "fix/x", "repo": {
+                    "full_name": world.get("head_repo", "o/r")}}, "base": {"ref": "main", "repo": {"full_name": "o/r"}}})
             if argv[:3] == ["gh", "api", "user"]:  # the acting account `policy_approval_due` reads: the owner's
                 return 0, mt._mandate_gate().OWNER_LOGIN
             return 0, ""
@@ -494,6 +503,24 @@ def _self_test() -> int:
           due(dict(MANDATED)) == mt.MID and due({**MANDATED, "thread": [revoke()]}) is None
           and due({**MANDATED, "mandate": mandate(NOW, from_min=-120, until_min=-1)}) is None
           and due({**MANDATED, "mandate": mandate(NOW, scope="code-owned")}) is None)
+    # Decision 0017: the --mandate posts no approval on a cross-repository head, and a head the
+    # pulls API does not answer for is never taken for ours. The pulls read is `Train.fork_head`'s,
+    # through the real tools/pr/outside.py; every row above answers it as a branch of ours.
+    FORK = {**MANDATED, "head_repo": "contributor/r"}
+    check("a cross-repository policy head under the --mandate PARKs on the review, named as a head "
+          "the train posts no approval on (null control: the same world as a branch of ours passes, above)",
+          go(dict(FORK), train_mandate=str(mt.MID))[:2] == ("PARK", "policy")
+          and "the head is cross-repository" in go(dict(FORK), train_mandate=str(mt.MID))[2])
+    check("... and policy_approval_due names no mandate for it",
+          due(dict(FORK)) is None)
+    check("a policy head whose pull request the pulls API does not answer for PARKs at `outside` under "
+          "the --mandate: an unread head is never taken for ours",
+          go({**MANDATED, "pull_fail": True}, train_mandate=str(mt.MID))[:2] == ("PARK", "outside")
+          and "never taken for ours" in go({**MANDATED, "pull_fail": True}, train_mandate=str(mt.MID))[2])
+    _w = dict(POL)
+    go(_w)
+    check("null control: with no --mandate the pulls object is not read at all",
+          not any(c == "gh api repos/o/r/pulls/7" for c in _w.get("calls", [])))
     # The train judges a mandated raise's body against the gate's measured score (a scorer
     # run on a worktree); the world here answers with the one line JUSTIFIED_BODY names.
     mt.Train._measured_score = lambda self, g, h: "Architecture score: dS +0.4000 IMPROVES"

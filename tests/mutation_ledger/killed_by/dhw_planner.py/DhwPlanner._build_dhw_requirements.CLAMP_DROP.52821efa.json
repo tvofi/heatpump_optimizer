@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 52821efa",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        requirement = np.maximum(np.maximum(floor_temps, ready_temps), runup_temps)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`requirement = (np.maximum(floor_temps, ready_temps))`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=6. Each of the 2 sites under this anchor was killed."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_schedule.py:plan_commands_heat CLAMP_DROP 0e01cc25",
+  "killed_by": "tests/features.py",
+  "old": "    nxt = min(idx + 1, n - 1)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`nxt = (idx + 1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

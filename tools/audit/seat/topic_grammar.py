@@ -2,6 +2,7 @@
 """The topic grammar: one owner for how a topic joins dispatch, return, PR and roster records.
 
     python3 tools/audit/seat/topic_grammar.py pr-topic <head>
+    python3 tools/audit/seat/topic_grammar.py handoff-topics <head>...
     python3 tools/audit/seat/topic_grammar.py family-refs <topic> <kind>[,<kind>...] < ls-remote-text
     python3 tools/audit/seat/topic_grammar.py --self-test
 
@@ -11,6 +12,11 @@ group. A split adds `-p<N>` partway through the work, so a join keyed on the exa
 (dev/audit/rca/topic-family.md). The rules:
 
   pr_topic    a PR head less `fix/` and one trailing `-pr`.
+  handoff_topics  the `handoff/<t>` topics a PR head can carry, the first with a ref deciding:
+              `fix/<t>-pr` is <t>-pr then <t> (a group whose own topic ends `-pr` returns under the
+              first), `fix/<t>` is <t>, any other shape none. review_packet.py's handoff-not-applied
+              and cloud_relay.sh's handoff arm both read it: the arm reading <t> alone left #3358
+              behind handoff/r10-combi-tank-pr while the dispatch read refused it (R11-PRE-RELAY-REBUILD).
   family      the topic less one trailing `-p<N>` is the base; the family is the base plus every
               `<base>-p<N>`. A bare `-<N>` is never a member: R10-ROSTER-OPS-2, R10-STALE-PATHS-2
               and R10-TICK-DRIVERS-2 are distinct groups.
@@ -34,6 +40,11 @@ PART = re.compile(r"(.+)-p\d+")
 def pr_topic(head: str) -> str:
     t = head[len("fix/"):] if head.startswith("fix/") else head
     return t[:-len("-pr")] if t.endswith("-pr") else t
+
+
+def handoff_topics(head: str) -> "list[str]":
+    t = head[len("fix/"):] if head.startswith("fix/") else ""
+    return [x for x in ([t, t[:-len("-pr")]] if t.endswith("-pr") else [t]) if x]
 
 
 def base(topic: str) -> str:
@@ -108,6 +119,20 @@ def self_test() -> int:
 
     ck("pr_topic strips fix/ and one -pr", [pr_topic(h) for h in ("fix/a-p1-pr", "fix/a", "a-pr-pr", "handoff/x")]
        == ["a-p1", "a", "a-pr", "handoff/x"])
+    ck("handoff_topics: fix/<t>-pr reads <t>-pr then <t>, fix/<t> reads <t>, any other shape none",
+       [handoff_topics(h) for h in ("fix/a-pr", "fix/a", "a-pr", "fix/", "fix/-pr", "handoff/x")]
+       == [["a-pr", "a"], ["a"], [], [], ["-pr"], []])  # mut:tghandoff
+    import contextlib
+    import io
+
+    def cli(*argv):  # main's stdout and rc: the bash readers (cloud_relay.sh's handoff arm) read the CLI
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc = main(list(argv))
+        return out.getvalue(), rc
+    ck("handoff-topics CLI: one topic per line over every head, in order, rc 0; no head prints nothing, rc 0",
+       cli("handoff-topics", "fix/a-pr", "fix/b", "record/x") == ("a-pr\na\nb\n", 0)
+       and cli("handoff-topics") == ("", 0))
     ck("the base drops one trailing -p<N> only", [base(t) for t in ("a-p2", "a", "a-p1-p2", "r10-roster-ops-2")]
        == ["a", "a", "a-p1", "r10-roster-ops-2"])
     ls = "\n".join(f"{c * 40}\trefs/heads/{r}" for c, r in (
@@ -141,6 +166,10 @@ def main(argv) -> int:
         return self_test()
     if len(argv) == 2 and argv[0] == "pr-topic":
         print(pr_topic(argv[1]))
+        return 0
+    if argv[:1] == ["handoff-topics"]:
+        for t in (t for head in argv[1:] for t in handoff_topics(head)):
+            print(t)
         return 0
     if len(argv) == 3 and argv[0] == "family-refs":
         for sha, ref in family_refs(argv[1], sys.stdin.read(), argv[2].split(",")):

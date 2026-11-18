@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:wood_sek_per_kwh CMP_BOUND c2cc0c1a",
+  "killed_by": "tests/features.py",
+  "old": "    if useful <= 0.0:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if useful < 0.0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

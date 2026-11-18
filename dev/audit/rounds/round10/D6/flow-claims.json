@@ -1,0 +1,3935 @@
+{
+ "merge_base": "154dbb4c61652135381ce66646d23f7109d1c142",
+ "rule": "distinct English texts of 40+ characters under config, options, selector in strings.json at the merge base (flow_claims.py distinct)",
+ "verdicts": {
+  "true": 286,
+  "false": 27,
+  "stale": 12,
+  "unverifiable": 4,
+  "no-claim": 40
+ },
+ "rows": [
+  {
+   "key": "config.step.user.description",
+   "n_keys": 1,
+   "claim": "Token required only for Tibber; optional sensors on next screen",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2623-2640",
+    "custom_components/heatpump_optimizer/config_flow.py:2658"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user.data_description.name",
+   "n_keys": 1,
+   "claim": "Name is shown in front of every sensor",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1354",
+    "custom_components/heatpump_optimizer/config_flow.py:2889",
+    "custom_components/heatpump_optimizer/coordinator.py:4210-4212",
+    "custom_components/heatpump_optimizer/entity.py:204",
+    "custom_components/heatpump_optimizer/diagnostics.py:96-100"
+   ],
+   "verdict": "false",
+   "why": "CONF_NAME is used only as the config-entry title; the device name is the constant \"Heat Pump Optimizer\" and entities are named after the device.",
+   "correction": "The name of this integration entry in Home Assistant's list of integrations. It is not part of entity names: they all start with \"Heat Pump Optimizer\"."
+  },
+  {
+   "key": "config.step.user.data_description.price_source",
+   "n_keys": 2,
+   "claim": "Tibber uses token; Entity reads an HA price sensor",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2623-2640",
+    "custom_components/heatpump_optimizer/price_model.py:785-795"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user.data_description.tibber_token",
+   "n_keys": 2,
+   "claim": "Token reads hourly prices; not required when source is entity; leave as-is",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2631-2633",
+    "custom_components/heatpump_optimizer/config_flow.py:3625-3627"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user.data_description.price_entity",
+   "n_keys": 2,
+   "claim": "Required when source is entity; typical attrs raw_today/raw_tomorrow",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2625-2626",
+    "custom_components/heatpump_optimizer/config_flow.py:3620-3623",
+    "custom_components/heatpump_optimizer/price_model.py:795"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user.data_description.weather_entity",
+   "n_keys": 2,
+   "claim": "Weather entity supplies temp/wind/rain forecast; 24h horizon; required",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1360",
+    "custom_components/heatpump_optimizer/coordinator.py:7040-7090",
+    "custom_components/heatpump_optimizer/optimizer.py:2123"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.temperature.description",
+   "n_keys": 2,
+   "claim": "Gap between target and minimum gives savings room",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2250-2257 get_comfort_temp",
+    "custom_components/heatpump_optimizer/optimizer.py:2259-2266 get_temp_bounds"
+   ],
+   "verdict": "stale",
+   "why": "the plan pulls toward the day/night comfort temperatures, so the savings room is their gap to the minimum, not the target's",
+   "correction": "How warm you want the house, and how far the optimizer may drift from that to save money. The gap between the comfort temperatures and the minimum is what makes savings possible: the wider it is, the more the house can coast through expensive hours."
+  },
+  {
+   "key": "config.step.temperature.data_description.target_temperature",
+   "n_keys": 2,
+   "claim": "Optimizer aims for target_temperature and only drifts to avoid expensive hours",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:4170",
+    "custom_components/heatpump_optimizer/optimizer.py:2251-2258",
+    "custom_components/heatpump_optimizer/optimizer.py:5441",
+    "custom_components/heatpump_optimizer/optimizer.py:2973",
+    "custom_components/heatpump_optimizer/optimizer.py:3653",
+    "custom_components/heatpump_optimizer/optimizer.py:5991",
+    "custom_components/heatpump_optimizer/comfort_band.py:172-187",
+    "custom_components/heatpump_optimizer/coordinator.py:4232-4267",
+    "custom_components/heatpump_optimizer/climate.py:150"
+   ],
+   "verdict": "false",
+   "why": "Per-step pull is get_comfort_temp (day/night/weekend/holiday); target_temp only caps stored-heat value, seeds baselines and the idle fallback, backs the climate entity, and must lie within min/max.",
+   "correction": "The house's reference temperature: the thermostat (climate) entity shows and sets it. The plan itself aims for the daytime and night-time comfort temperatures below and only drifts away from them to avoid expensive hours. It has to sit between the coldest and warmest acceptable temperatures."
+  },
+  {
+   "key": "config.step.temperature.data_description.min_temperature",
+   "n_keys": 2,
+   "claim": "Coldest the plan will take the house; soft but heavily priced",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2260-2267",
+    "custom_components/heatpump_optimizer/away.py:404-405",
+    "custom_components/heatpump_optimizer/coordinator.py:6272-6282",
+    "custom_components/heatpump_optimizer/const.py:1293",
+    "custom_components/heatpump_optimizer/const.py:1668",
+    "custom_components/heatpump_optimizer/const.py:1671"
+   ],
+   "verdict": "stale",
+   "why": "Night floor is min-0.5, Economy and the open-window option widen it downward (floored at 15 °C), and the plan's gap is to the comfort temperatures, not the target.",
+   "correction": "The coldest the plan will take the house in the daytime; at night the limit is 0.5 K lower. The Economy optimization mode lowers it by a further 1.5 K, and a detected open window by 1 K when Ease heating while a window is open is on, never below 15 °C. A strongly priced bound rather than a hard constraint — a hard one would leave a cold morning the pump cannot heat through with no plan at all — but breaching it costs far more than the electricity saved, at prices a couple of orders of magnitude beyond real ones, so the plan holds above it. A wider gap to the comfort temperatures means more room to save.",
+   "pinned": "check_flow_text_claims (figures)"
+  },
+  {
+   "key": "config.step.temperature.data_description.max_temperature",
+   "n_keys": 2,
+   "claim": "Max is priced like the minimum and just as firm; plan aims for target",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2251-2258",
+    "custom_components/heatpump_optimizer/optimizer.py:4170",
+    "custom_components/heatpump_optimizer/optimizer.py:2889-2897"
+   ],
+   "verdict": "false",
+   "why": "Only 'aims for the target temperature' is false (the pull is to the day/night comfort temperatures); the half-weight overshoot penalty is a harmless difference at real prices so that sentence is kept.",
+   "correction": "The warmest the plan will pre-heat the house to during cheap hours. Priced the same way as the minimum, and just as firm at any real price. A limit, never a target: the plan aims for the daytime and night-time comfort temperatures and only comes near this when cheap hours make storing heat worth it. It cannot hold back heat the house gets for free, so a sunny summer room may still drift above it."
+  },
+  {
+   "key": "config.step.temperature.data_description.comfort_temp_day",
+   "n_keys": 2,
+   "claim": "Preferred temp during waking hours",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2253-2258",
+    "custom_components/heatpump_optimizer/config_flow.py:1752"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.temperature.data_description.comfort_temp_night",
+   "n_keys": 2,
+   "claim": "Night preferred temp; lower saves money (advice)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2253-2258",
+    "custom_components/heatpump_optimizer/config_flow.py:1753"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.temperature.data_description.day_start_hour",
+   "n_keys": 2,
+   "claim": "Hour of morning when day temp takes over",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2255-2258",
+    "custom_components/heatpump_optimizer/config_flow.py:1754 (0-23, default 7 const.py:1328)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.temperature.data_description.day_end_hour",
+   "n_keys": 2,
+   "claim": "Hour of evening when night temp takes over",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2255-2258",
+    "custom_components/heatpump_optimizer/config_flow.py:1755 (1-24, default 22 const.py:1329)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building.description",
+   "n_keys": 1,
+   "claim": "Two paths: describe building (derive) or enter values; refine later in options",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2950-2972"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_describe.description",
+   "n_keys": 1,
+   "claim": "Answers set starting values; self-learning model refines them",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2974-2995",
+    "custom_components/heatpump_optimizer/thermal_model.py:1590-1612"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_describe.data_description.building_structure",
+   "n_keys": 4,
+   "claim": "Heavy materials inside insulation store heat",
+   "evidence": [
+    "custom_components/heatpump_optimizer/presets.py:63-71"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_describe.data_description.building_era",
+   "n_keys": 4,
+   "claim": "Era proxies insulation standard",
+   "evidence": [
+    "custom_components/heatpump_optimizer/presets.py:110-116"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_describe.data_description.building_foundation",
+   "n_keys": 4,
+   "claim": "Crawl space adds loss; heated basement adds loss and mass",
+   "evidence": [
+    "custom_components/heatpump_optimizer/presets.py:82-86"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_describe.data_description.heated_area_m2",
+   "n_keys": 4,
+   "claim": "Everything scaled by area",
+   "evidence": [
+    "custom_components/heatpump_optimizer/presets.py:185-239",
+    "custom_components/heatpump_optimizer/config_flow.py:1243 (20-1000 m2)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_describe.data_description.upper_floor_emitter",
+   "n_keys": 4,
+   "claim": "Upper floor emitter sets how far ahead heating can be shifted",
+   "evidence": [
+    "custom_components/heatpump_optimizer/presets.py:218-247",
+    "custom_components/heatpump_optimizer/presets.py:259-263",
+    "custom_components/heatpump_optimizer/presets.py:293-318",
+    "custom_components/heatpump_optimizer/presets.py:374-393",
+    "custom_components/heatpump_optimizer/config_flow.py:1256-1263"
+   ],
+   "verdict": "false",
+   "why": "In a single-zone derivation only lower_emitter is read; the setup page always derives single-zone and the derived response time is discarded.",
+   "correction": "Radiators respond in minutes, floor heating in hours. Only used for a two-zone house, where it sets the upper floor's heat store and how its heat is delivered. A single-zone house is modelled from the lower floor heating answer alone."
+  },
+  {
+   "key": "config.step.building_describe.data_description.lower_floor_emitter",
+   "n_keys": 4,
+   "claim": "Heated slab is a large actively-charged store",
+   "evidence": [
+    "custom_components/heatpump_optimizer/presets.py:125",
+    "custom_components/heatpump_optimizer/presets.py:228"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_extras.description",
+   "n_keys": 1,
+   "claim": "Three nameplate numbers; derived values reviewable in options",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2155-2159",
+    "custom_components/heatpump_optimizer/config_flow.py:3017",
+    "custom_components/heatpump_optimizer/config_flow.py:1842"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_extras.data_description.heat_pump_cop_nominal",
+   "n_keys": 3,
+   "claim": "COP definition and typical values",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1842 (range 1.5-6.0)",
+    "custom_components/heatpump_optimizer/const.py:1335 (default 3.5)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_extras.data_description.heat_pump_max_power",
+   "n_keys": 3,
+   "claim": "Max electrical input; caps heat storable per hour",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:560",
+    "custom_components/heatpump_optimizer/optimizer.py:4799"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.building_extras.data_description.heat_pump_min_power",
+   "n_keys": 3,
+   "claim": "Lowest electrical input without cycling",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:561",
+    "custom_components/heatpump_optimizer/thermal_model.py:737-747"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.thermal.description",
+   "n_keys": 1,
+   "claim": "Defaults suit a typical well-insulated Scandinavian slab-heated house",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:1331-1334"
+   ],
+   "verdict": "unverifiable"
+  },
+  {
+   "key": "config.step.thermal.data_description.house_thermal_mass",
+   "n_keys": 2,
+   "claim": "Mass per m2 timber 0.02, stone 0.05+; heavy floors counted under Slab mass",
+   "evidence": [
+    "custom_components/heatpump_optimizer/presets.py:60-68",
+    "custom_components/heatpump_optimizer/presets.py:226-246"
+   ],
+   "verdict": "false",
+   "why": "For radiators the building-description derivation adds the heavy floor mass to house_thermal_mass, not to the slab figure, so 'counted separately' holds only for floor heating.",
+   "correction": "How much heat the room air, furnishings and light fabric store per degree — roughly 0.02 kWh/°C per m² of heated area for a timber house, 0.05 or more for stone. In a floor-heated house the heavy floor and heated slab are counted separately under Slab floor thermal mass, so this figure alone is not the whole building. In a one-zone radiator house the heavy floor is added to this figure instead, because the radiator circuit itself holds almost no heat."
+  },
+  {
+   "key": "config.step.thermal.data_description.house_heat_loss_coefficient",
+   "n_keys": 2,
+   "claim": "Heat loss per K; 0.25*20=5 kW",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1840 (range 0.01-1.0 at :693)",
+    "custom_components/heatpump_optimizer/thermal_model.py:3321"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.thermal.data_description.slab_thermal_mass",
+   "n_keys": 2,
+   "claim": "Slab/radiator-circuit mass; radiator 100 m2 ~0.2, slab ~10",
+   "evidence": [
+    "custom_components/heatpump_optimizer/presets.py:228",
+    "custom_components/heatpump_optimizer/presets.py:233"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.thermal.data_description.slab_heat_transfer",
+   "n_keys": 2,
+   "claim": "Slab-to-room transfer; lower=sluggish; radiators much faster and sit far higher",
+   "evidence": [
+    "custom_components/heatpump_optimizer/presets.py:129",
+    "custom_components/heatpump_optimizer/presets.py:139",
+    "custom_components/heatpump_optimizer/presets.py:226-236",
+    "custom_components/heatpump_optimizer/config_flow.py:703"
+   ],
+   "verdict": "false",
+   "why": "Derived radiator transfer is 0.002/m² versus 0.010/m² for a floor, so radiators do not 'sit far higher'; their speed comes from tiny mass.",
+   "correction": "How quickly heat moves from that store into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance. A radiator circuit is faster even though its value is lower, because it holds far less heat: about 0.2 for 100 m², against about 1 for a floor of the same size."
+  },
+  {
+   "key": "config.step.thermal.data_description.optimization_interval",
+   "n_keys": 2,
+   "claim": "Recalculation interval",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1860 (10-120 min)",
+    "custom_components/heatpump_optimizer/const.py:1648 (default 30)",
+    "custom_components/heatpump_optimizer/coordinator.py:3548"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.thermal.data_description.price_weight",
+   "n_keys": 2,
+   "claim": "Higher price weight chases cheap hours harder at cost of temperature swing",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:4817",
+    "custom_components/heatpump_optimizer/const.py:1649",
+    "custom_components/heatpump_optimizer/config_flow.py:1858 (0.1-10)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.thermal.data_description.comfort_weight",
+   "n_keys": 2,
+   "claim": "Comfort weight counterweight; scaled against allowed range; 5 / 10 / 20 behaviour",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:4772",
+    "custom_components/heatpump_optimizer/optimizer.py:2893-2901",
+    "custom_components/heatpump_optimizer/config_flow.py:1859 (0.1-20)",
+    "custom_components/heatpump_optimizer/const.py:1650 (default 5.0)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.description",
+   "n_keys": 1,
+   "claim": "Optional two-zone/solar page; defaults ok if no two-zone",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3051-3106"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data.solar_heat_gain_coefficient",
+   "n_keys": 2,
+   "claim": "Label: how much sunlight windows let through",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3083"
+   ],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "config.step.zones.data.two_zone",
+   "n_keys": 1,
+   "claim": "Label: house has two zones",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3083"
+   ],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "config.step.zones.data_description.upper_floor_thermal_mass",
+   "n_keys": 2,
+   "claim": "Two-zone only; upper floor mass usually lower than slab",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1111-1128",
+    "custom_components/heatpump_optimizer/const.py:1346-1347"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.lower_floor_thermal_mass",
+   "n_keys": 2,
+   "claim": "Two-zone only; slab lower floor mass",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1111-1128"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.upper_floor_heat_loss",
+   "n_keys": 2,
+   "claim": "Two-zone only; upper floor heat loss",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1111-1128"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.lower_floor_heat_loss",
+   "n_keys": 2,
+   "claim": "Two-zone only; lower floor heat loss",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1111-1128"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.inter_zone_heat_transfer",
+   "n_keys": 2,
+   "claim": "Inter-zone drift; higher = heating one warms other",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:4076"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.radiator_power_fraction",
+   "n_keys": 2,
+   "claim": "Two-zone only; 0=all slab, 1=all radiators; 0.4=40%",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:3812-3830",
+    "custom_components/heatpump_optimizer/const.py:1351",
+    "custom_components/heatpump_optimizer/config_flow.py:1854 (0-1)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.upper_floor_area_ratio",
+   "n_keys": 2,
+   "claim": "Share of floor area upstairs; 0.5 equal",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:4072-4073",
+    "custom_components/heatpump_optimizer/const.py:1352"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.buffer_tank_volume",
+   "n_keys": 2,
+   "claim": "Larger buffer tanks store more cheap heat",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:293-307",
+    "custom_components/heatpump_optimizer/const.py:1353",
+    "custom_components/heatpump_optimizer/const.py:1365",
+    "custom_components/heatpump_optimizer/mixing_valve.py:73-75"
+   ],
+   "verdict": "stale",
+   "why": "buffer_is_store needs a throttling valve and at least 100 L; below that a larger tank stores nothing the plan uses.",
+   "correction": "Litres. The tank between the heat pump and the heating circuits. The optimizer plans around it as a store of cheap heat only once a throttling mixing valve is set up in Options and the tank holds at least 100 litres; otherwise the volume only sizes the tank in the model."
+  },
+  {
+   "key": "config.step.zones.data_description.window_area",
+   "n_keys": 2,
+   "claim": "Glazing area with direct sun; used for free solar heating",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:3365-3379",
+    "custom_components/heatpump_optimizer/const.py:1368"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.solar_orientation_factor",
+   "n_keys": 2,
+   "claim": "Orientation factor; 1.0 = south, lower for east/west",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:3365",
+    "custom_components/heatpump_optimizer/config_flow.py:1856 (0-1)",
+    "custom_components/heatpump_optimizer/const.py:1369"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.solar_heat_gain_coefficient",
+   "n_keys": 2,
+   "claim": "SHGC: 0.6 typical triple glazing; higher = more free heat",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:3377-3379",
+    "custom_components/heatpump_optimizer/const.py:1370"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.zones.data_description.two_zone",
+   "n_keys": 1,
+   "claim": "On: two-zone model and zone fields apply; Off: one zone regardless",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3062-3072",
+    "custom_components/heatpump_optimizer/thermal_model.py:1115-1121"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.description",
+   "n_keys": 2,
+   "claim": "Guarantees usable tank temp in periods, heats in cheapest hours before; may cool outside",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:892",
+    "custom_components/heatpump_optimizer/dhw_planner.py:918-937",
+    "custom_components/heatpump_optimizer/const.py:1581 (schedule default True: 1574)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_schedule_enabled",
+   "n_keys": 2,
+   "claim": "On: guaranteed only in windows; Off: tank kept hot around the clock",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:422-428",
+    "custom_components/heatpump_optimizer/thermal_model.py:857-870"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_windows",
+   "n_keys": 2,
+   "claim": "Window syntax, day selectors, no selector = every day",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:17-29",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:109-111"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_min_temperature",
+   "n_keys": 2,
+   "claim": "Min temp guaranteed during windows; ~45 enough",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:833",
+    "custom_components/heatpump_optimizer/dhw_planner.py:892",
+    "custom_components/heatpump_optimizer/const.py:1376 (default 45.0)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_idle_min_temperature",
+   "n_keys": 2,
+   "claim": "Idle min temp outside windows; default ~room temp = no energy",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:835",
+    "custom_components/heatpump_optimizer/const.py:1578 (default 20.0)",
+    "custom_components/heatpump_optimizer/thermal_model.py:139"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_setpoint",
+   "n_keys": 2,
+   "claim": "Setpoint is upper limit on charging, not target; only filled high when cheap storage pays",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:922-937",
+    "custom_components/heatpump_optimizer/thermal_model.py:872-895",
+    "custom_components/heatpump_optimizer/config_flow.py:3134-3145"
+   ],
+   "verdict": "false",
+   "why": "The ready temperature before a window is dhw_min plus the needed rise from expected draw (clipped to the set-point), so the tank is heated for need, not only for cheap-heat storage; a cycle exceeds the limit.",
+   "correction": "An upper limit on charging, not a target. Before each hot water period the tank is brought to the temperature the expected hot water use needs, between Hot water temperature you need and this limit; it is filled higher than that only when storing extra cheap heat pays off. The anti-legionella cycle is the exception and can take the tank above this limit."
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_tank_volume",
+   "n_keys": 2,
+   "claim": "Litres; larger tank stores more cheap electricity",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:830",
+    "custom_components/heatpump_optimizer/const.py:1374"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_daily_consumption",
+   "n_keys": 2,
+   "claim": "Daily litres; used to work out how much to store",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:913-937",
+    "custom_components/heatpump_optimizer/const.py:1385"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_cooling_rate",
+   "n_keys": 2,
+   "claim": "Cooling rate at 45C/20C reference; refined automatically; good insulation = charge earlier",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:1391-1393",
+    "custom_components/heatpump_optimizer/dhw_learning.py:519-545",
+    "custom_components/heatpump_optimizer/coordinator.py:6833"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_legionella_enabled",
+   "n_keys": 2,
+   "claim": "Periodic heat-up to kill legionella; strongly recommended",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:1581 (default True)",
+    "custom_components/heatpump_optimizer/dhw_planner.py:473-478",
+    "custom_components/heatpump_optimizer/thermal_model.py:316-322"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_legionella_interval_days",
+   "n_keys": 2,
+   "claim": "Interval of disinfection; placed in cheapest hour before deadline",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:473-516",
+    "custom_components/heatpump_optimizer/const.py:1583 (default 7.0)",
+    "custom_components/heatpump_optimizer/config_flow.py:1788 (1-30)"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.dhw.data_description.dhw_enabled",
+   "n_keys": 1,
+   "claim": "On: planned/charged; other fields only apply when on",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1164-1178",
+    "custom_components/heatpump_optimizer/config_flow.py:3118-3140"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.weather_sensitivity.description",
+   "n_keys": 1,
+   "claim": "Wind/rain affect heat-loss predictions; higher wind sens = more pre-heating",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:3321-3340",
+    "custom_components/heatpump_optimizer/const.py:1597-1598",
+    "custom_components/heatpump_optimizer/config_flow.py:1896-1897"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.weather_sensitivity.data_description.wind_sensitivity_factor",
+   "n_keys": 2,
+   "claim": "loss scales (1+sens*wind); raising it pre-heats before wind",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:3331",
+    "custom_components/heatpump_optimizer/optimizer.py:3669",
+    "custom_components/heatpump_optimizer/const.py:1597"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.weather_sensitivity.data_description.rain_heat_loss_multiplier",
+   "n_keys": 2,
+   "claim": "1.0 = no rain effect",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:3340",
+    "custom_components/heatpump_optimizer/optimizer.py:3680",
+    "custom_components/heatpump_optimizer/const.py:1598"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.reauth_confirm.description",
+   "n_keys": 1,
+   "claim": "reauth form triggered when Tibber refuses token; new token validated, saved, entry reloaded",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:7031-7034",
+    "custom_components/heatpump_optimizer/config_flow.py:3245-3258"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.description",
+   "n_keys": 1,
+   "claim": "all sensors on the page optional",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1396-1418"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.indoor_temp_entity",
+   "n_keys": 3,
+   "claim": "without indoor sensor model is trusted (learning frozen)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6659-6663",
+    "custom_components/heatpump_optimizer/thermal_model.py:1587",
+    "custom_components/heatpump_optimizer/thermal_model.py:1614"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.outdoor_temp_entity",
+   "n_keys": 3,
+   "claim": "local outdoor sensor preferred over forecast for current hour",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6665-6676"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.heat_pump_switch_entity",
+   "n_keys": 3,
+   "claim": "switch used to turn pump off in expensive hours",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:7827-7831",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1982"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.solar_radiation_entity",
+   "n_keys": 3,
+   "claim": "sensor lets optimizer skip heating before a sunny afternoon",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6716-6729",
+    "custom_components/heatpump_optimizer/coordinator.py:7320-7328",
+    "custom_components/heatpump_optimizer/coordinator.py:7400-7437"
+   ],
+   "verdict": "false",
+   "why": "The sensor is read once as a current value; the horizon series comes from the weather forecast or Open-Meteo.",
+   "correction": "Optional. Sunshine in W/m² measured at your house. It tells the optimizer how much solar heat the house is getting right now, which it uses for the current state and for learning. Expected sun later in the day comes from the Solar irradiance source, not from this sensor."
+  },
+  {
+   "key": "config.step.user_sensors.data_description.solar_forecast_source",
+   "n_keys": 3,
+   "claim": "weather entity vs Open-Meteo free, no account, location below",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:7186-7209",
+    "custom_components/heatpump_optimizer/open_meteo.py:8",
+    "custom_components/heatpump_optimizer/const.py:68-71"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.solar_location",
+   "n_keys": 3,
+   "claim": "HA home location default; only used for Open-Meteo",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1208-1216",
+    "custom_components/heatpump_optimizer/coordinator.py:7162-7183",
+    "custom_components/heatpump_optimizer/coordinator.py:7188-7192"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.floor_return_temp_entity",
+   "n_keys": 3,
+   "claim": "floor return water temp used to estimate slab heat",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6679-6684"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.lower_floor_temp_entity",
+   "n_keys": 3,
+   "claim": "lower floor falls back to main room sensor when no thermometer; two-zone only",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6686-6693",
+    "custom_components/heatpump_optimizer/coordinator.py:6860-6865",
+    "custom_components/heatpump_optimizer/coordinator.py:7654-7658"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.dhw_temp_entity",
+   "n_keys": 3,
+   "claim": "real tank temp; manual boost resets anti-legionella timer",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6733-6738",
+    "custom_components/heatpump_optimizer/legionella.py:198-200",
+    "custom_components/heatpump_optimizer/legionella.py:246-250"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.buffer_tank_temp_entity",
+   "n_keys": 3,
+   "claim": "buffer cooling learned from sensor",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:5640",
+    "custom_components/heatpump_optimizer/coordinator.py:5652"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.heat_pump_mode_entity",
+   "n_keys": 3,
+   "claim": "read-only unless Pump duty control = Control; empty = full capability",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py:564",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1740",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1757",
+    "custom_components/heatpump_optimizer/pump_signals.py:456-461",
+    "custom_components/heatpump_optimizer/pump_signals.py:507-512"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.heat_pump_defrost_entity",
+   "n_keys": 3,
+   "claim": "defrost flag read; sampled by polling",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_signals.py:514",
+    "custom_components/heatpump_optimizer/defrost.py:19-27"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.heat_pump_online_entity",
+   "n_keys": 3,
+   "claim": "online flag marks pump unreachable and freezes learning",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_signals.py:515",
+    "custom_components/heatpump_optimizer/pump_signals.py:524-525"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.user_sensors.data_description.heat_pump_fault_entity",
+   "n_keys": 3,
+   "claim": "only boolean fault flag used",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_signals.py:516-518",
+    "custom_components/heatpump_optimizer/pump_signals.py:526-527"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.finish_setup.description",
+   "n_keys": 1,
+   "claim": "entry created only at flow end; skip to defaults; later set in Options",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2854-2869",
+    "custom_components/heatpump_optimizer/config_flow.py:2886-2889"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.quick_setup.description",
+   "n_keys": 1,
+   "claim": "heat pump's entities are read automatically on next screen",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2746-2758",
+    "custom_components/heatpump_optimizer/config_flow.py:2773-2781",
+    "custom_components/heatpump_optimizer/config_flow.py:2905-2915"
+   ],
+   "verdict": "false",
+   "why": "Nothing is read automatically: the user must pick a device on the device_prefill page, and an empty pick skips it.",
+   "correction": "Tell the optimizer what your system is and it does the rest. The next screen offers to read a heat pump device's entities: pick the device and submit to see suggestions you can edit, or leave it empty to skip. Anything left out here starts from a sensible default you can refine later in Options."
+  },
+  {
+   "key": "config.step.quick_setup.data_description.two_zone",
+   "n_keys": 2,
+   "claim": "on = two separately heated floors, writes explicit two_zone_mode",
+   "evidence": [
+    "custom_components/heatpump_optimizer/quick_setup.py:205",
+    "custom_components/heatpump_optimizer/quick_setup.py:100-106"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.quick_setup.data_description.buffer_tank",
+   "n_keys": 2,
+   "claim": "on writes 500 L; default 35 L; store only with throttling valve",
+   "evidence": [
+    "custom_components/heatpump_optimizer/quick_setup.py:83",
+    "custom_components/heatpump_optimizer/quick_setup.py:219-222",
+    "custom_components/heatpump_optimizer/const.py:1353",
+    "custom_components/heatpump_optimizer/const.py:1365",
+    "custom_components/heatpump_optimizer/thermal_model.py:302-303"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.quick_setup.data_description.dhw_tank",
+   "n_keys": 2,
+   "claim": "dhw tank on by default (shipped True) -> dhw_enabled",
+   "evidence": [
+    "custom_components/heatpump_optimizer/quick_setup.py:100-106",
+    "custom_components/heatpump_optimizer/quick_setup.py:206-208"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.quick_setup.data_description.wood_furnace",
+   "n_keys": 2,
+   "claim": "wood furnace on: heat factored in, pump suppressed while fire detected",
+   "evidence": [
+    "custom_components/heatpump_optimizer/quick_setup.py:209-211",
+    "custom_components/heatpump_optimizer/coordinator.py:5083",
+    "custom_components/heatpump_optimizer/coordinator.py:5239",
+    "custom_components/heatpump_optimizer/coordinator.py:5254"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.quick_setup.data_description.wood_buffer_tank",
+   "n_keys": 2,
+   "claim": "two-tank physics only with a probe",
+   "evidence": [
+    "custom_components/heatpump_optimizer/quick_setup.py:28-33",
+    "custom_components/heatpump_optimizer/thermal_model.py:424-426",
+    "custom_components/heatpump_optimizer/coordinator.py:6746-6750"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.quick_setup.data_description.wood_tank_top_entity",
+   "n_keys": 3,
+   "claim": "hot top over cold bottom means charge nearly spent; two sensors say how much a fire has left",
+   "evidence": [
+    "custom_components/heatpump_optimizer/external_heat.py:42-57",
+    "custom_components/heatpump_optimizer/external_heat.py:343-351",
+    "custom_components/heatpump_optimizer/const.py:362",
+    "custom_components/heatpump_optimizer/coordinator.py:5235"
+   ],
+   "verdict": "false",
+   "why": "Energy = max(0, mean - (buffer tank temp + 2)) x volume; a hot top over a cold bottom gives a middling average, not 'nearly spent'.",
+   "correction": "Together with the bottom sensor this gives the heat left in the wood tank: the average of the two readings, counted only above the buffer tank temperature plus 2 °C. With this top sensor alone the average is taken as 5 °C below it."
+  },
+  {
+   "key": "config.step.quick_setup.data_description.wood_tank_bottom_entity",
+   "n_keys": 3,
+   "claim": "both needed for remaining-energy estimate; one alone read conservatively",
+   "evidence": [
+    "custom_components/heatpump_optimizer/external_heat.py:42-57",
+    "custom_components/heatpump_optimizer/external_heat.py:343-351",
+    "custom_components/heatpump_optimizer/coordinator.py:6745-6756"
+   ],
+   "verdict": "false",
+   "why": "wood_mean_temperature returns None without the top probe and top-5 °C with the top probe alone, so 'both are needed' is false.",
+   "correction": "See the top sensor. The top sensor alone is enough for the remaining-energy estimate, read conservatively; the bottom sensor alone gives no estimate."
+  },
+  {
+   "key": "config.step.setup_overview.description",
+   "n_keys": 2,
+   "claim": "overview shows current config; empty slots shown deliberately",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2548-2563",
+    "custom_components/heatpump_optimizer/topology.py:15",
+    "custom_components/heatpump_optimizer/topology.py:745"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.description",
+   "n_keys": 1,
+   "claim": "pick device, next form suggests, nothing written until submit; backup heater 601 != 7 means own electric heat",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2755-2810",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:272-283"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data.compressor_freq_sensor",
+   "n_keys": 3,
+   "claim": "label with advice 'recommended for control'",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.prefill_device",
+   "n_keys": 1,
+   "claim": "entities mapped by published definitions or names; empty = skip",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2755-2760",
+    "custom_components/heatpump_optimizer/config_flow.py:2786-2788"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.dhw_setpoint",
+   "n_keys": 2,
+   "claim": "register 0194H (404) x 0.1",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:81",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:223"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.dhw_min_temperature",
+   "n_keys": 2,
+   "claim": "register 0196H (406) x 0.1 -> min temp",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:81",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:225"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.dhw_windows",
+   "n_keys": 2,
+   "claim": "registers 712/713 (02C8H/02C9H), hour*256+min, only while schedule (711) set; saving windows turns DHW on",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:205-212",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:227",
+    "custom_components/heatpump_optimizer/config_flow.py:2420-2424",
+    "custom_components/heatpump_optimizer/config_flow.py:2494-2515"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.dhw_legionella_temperature",
+   "n_keys": 2,
+   "claim": "register 0195H (405) x 0.1",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:81",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:224"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.dhw_legionella_interval_days",
+   "n_keys": 2,
+   "claim": "7 // number of set days in 02CAH (714)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:215-218",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:228"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.silent_mode_windows",
+   "n_keys": 2,
+   "claim": "registers 518/519 (0206H/0207H), hour*256+minute",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:205-212",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:239"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.heat_pump_max_power",
+   "n_keys": 2,
+   "claim": "unit capacity kW heat / nominal COP",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:236-241"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.space_setpoint_unit",
+   "n_keys": 2,
+   "claim": "flow only when register 4109 (100DH) == 0",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:109",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:234",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:243"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.mixing_valve_write_target_kind",
+   "n_keys": 2,
+   "claim": "flow only on water control and with two-zone configured",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:244-252",
+    "custom_components/heatpump_optimizer/config_flow.py:2357-2362"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.compressor_freq_sensor",
+   "n_keys": 2,
+   "claim": "actual compressor frequency, only while slot empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:97",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:266-268"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.outdoor_temp_entity",
+   "n_keys": 1,
+   "claim": "outdoor air temp sensor, only while slot empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:94",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:266-268"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.dhw_temp_entity",
+   "n_keys": 1,
+   "claim": "DHW tank temp sensor, only while empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:95",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:266-268"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.heat_pump_supply_temp_entity",
+   "n_keys": 1,
+   "claim": "leaving water T1, only while empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:96",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:266-268"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.heat_pump_return_temp_entity",
+   "n_keys": 1,
+   "claim": "entering water Tw-in, only while empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:97",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:266-268"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.heat_pump_capacity_limited_entity",
+   "n_keys": 1,
+   "claim": "night-mode frequency-reduction active flag, only while empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:99-101",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:266-268"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.step.device_prefill.data_description.after_save",
+   "n_keys": 23,
+   "claim": "saving writes immediately; field picks where dialog goes next",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1190-1205",
+    "custom_components/heatpump_optimizer/config_flow.py:2176-2190",
+    "custom_components/heatpump_optimizer/config_flow.py:2712-2717",
+    "custom_components/heatpump_optimizer/config_flow.py:2794-2810",
+    "custom_components/heatpump_optimizer/config_flow.py:2839-2870",
+    "custom_components/heatpump_optimizer/config_flow.py:3359-3366"
+   ],
+   "verdict": "false",
+   "why": "_prefill_schema wraps _options_schema so the field is rendered on the second form, but the second submit never reads it, updates only the wizard data and goes to finish_setup; options pages (which pop it in _save_or_menu) keep their text.",
+   "correction": "Setup carries on to the next page whichever you choose; nothing is saved until setup finishes."
+  },
+  {
+   "key": "config.error.invalid_tibber_token",
+   "n_keys": 2,
+   "claim": "token rejected (HTTP 401/403 or GraphQL errors)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:498-527",
+    "custom_components/heatpump_optimizer/config_flow.py:2636-2637",
+    "custom_components/heatpump_optimizer/config_flow.py:3631-3632"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.tibber_token_required",
+   "n_keys": 2,
+   "claim": "token required when price source is Tibber",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2632-2633",
+    "custom_components/heatpump_optimizer/config_flow.py:3625-3627"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.price_entity_required",
+   "n_keys": 2,
+   "claim": "price entity required when source is entity",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2623-2625",
+    "custom_components/heatpump_optimizer/config_flow.py:3618-3621"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.cannot_connect",
+   "n_keys": 2,
+   "claim": "any non-auth failure is cannot_connect",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:498-527",
+    "custom_components/heatpump_optimizer/config_flow.py:2638-2639"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.invalid_dhw_windows",
+   "n_keys": 2,
+   "claim": "unparseable windows -> error; comma separated 24h",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:567-577",
+    "custom_components/heatpump_optimizer/config_flow.py:3688-3690"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.dhw_window_too_short",
+   "n_keys": 2,
+   "claim": "window shorter than 15 min (one plan step) rejected",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:549",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:579-580",
+    "custom_components/heatpump_optimizer/plan_step.py:18"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.silent_mode_window_too_short",
+   "n_keys": 2,
+   "claim": "silent window shorter than 15 min rejected",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2362-2366",
+    "custom_components/heatpump_optimizer/config_flow.py:3899",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:549"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.dhw_min_too_close",
+   "n_keys": 2,
+   "claim": "min must be >= 5 C below setpoint",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1046",
+    "custom_components/heatpump_optimizer/const.py:1384"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.min_above_target",
+   "n_keys": 2,
+   "claim": "min > target",
+   "evidence": [
+    "custom_components/heatpump_optimizer/comfort_band.py:171"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.max_below_target",
+   "n_keys": 2,
+   "claim": "target > max",
+   "evidence": [
+    "custom_components/heatpump_optimizer/comfort_band.py:180"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.night_above_day",
+   "n_keys": 2,
+   "claim": "night > day",
+   "evidence": [
+    "custom_components/heatpump_optimizer/comfort_band.py:189",
+    "custom_components/heatpump_optimizer/comfort_band.py:111-117"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.day_window_empty",
+   "n_keys": 2,
+   "claim": "start >= end",
+   "evidence": [
+    "custom_components/heatpump_optimizer/comfort_band.py:200",
+    "custom_components/heatpump_optimizer/comfort_band.py:120-126"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.comfort_outside_band",
+   "n_keys": 2,
+   "claim": "day/night comfort within [min,max]",
+   "evidence": [
+    "custom_components/heatpump_optimizer/comfort_band.py:128-147",
+    "custom_components/heatpump_optimizer/comfort_band.py:220-234"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.min_power_above_max",
+   "n_keys": 2,
+   "claim": "min power > max power",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:955-962"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.stored_value_out_of_range",
+   "n_keys": 2,
+   "claim": "stored out-of-range value: selector range widened, error shown, still saveable",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:893-915",
+    "custom_components/heatpump_optimizer/config_flow.py:779-816"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.flow_target_needs_two_zone",
+   "n_keys": 2,
+   "claim": "Flow write target for the mixing valve needs the two-zone model",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3763-3769",
+    "custom_components/heatpump_optimizer/config_flow.py:2352-2361"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.error.prefill_device_unreadable",
+   "n_keys": 2,
+   "claim": "Device unreadable; leave device empty and name a Modbus package prefix instead",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2201-2214",
+    "custom_components/heatpump_optimizer/config_flow.py:2776-2782",
+    "custom_components/heatpump_optimizer/config_flow.py:4040-4057"
+   ],
+   "verdict": "false",
+   "why": "The setup page has only the device pick (no prefix field), so 'name a Modbus package prefix instead' is impossible there; options.error.prefill_device_unreadable keeps the old text, true on the options page.",
+   "correction": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty to skip the pre-fill and continue setup; the Modbus package prefix route is on the options page, under Pre-fill from a heat pump device."
+  },
+  {
+   "key": "config.error.heat_curve_entity_in_use",
+   "n_keys": 2,
+   "claim": "Heat-curve entity may not equal the space/DHW set-point, valve write, compressor-frequency or mode entity",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2325-2341"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.abort.reauth_successful",
+   "n_keys": 1,
+   "claim": "Reauth updates token and reloads entry",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3252-3258"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "config.abort.reconfigure_successful",
+   "n_keys": 1,
+   "claim": "Reconfigure updates data and reloads entry",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2826-2837"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.init.description",
+   "n_keys": 1,
+   "claim": "Sensors, building and control hardware are under Advanced settings",
+   "evidence": [
+    "custom_components/heatpump_optimizer/strings.json:options.step.advanced.menu_options"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.advanced.description",
+   "n_keys": 1,
+   "claim": "Advanced menu holds sensors, building/thermal model, solar, learning, control hardware",
+   "evidence": [
+    "custom_components/heatpump_optimizer/strings.json:options.step.advanced.menu_options"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities.description",
+   "n_keys": 1,
+   "claim": "Page is entities the optimizer reads; only price token and weather required; clearing stops use",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1681",
+    "custom_components/heatpump_optimizer/config_flow.py:1689",
+    "custom_components/heatpump_optimizer/config_flow.py:1706",
+    "custom_components/heatpump_optimizer/config_flow.py:3600-3635",
+    "custom_components/heatpump_optimizer/coordinator.py:7816-7829",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:625-651"
+   ],
+   "verdict": "stale",
+   "why": "The page also holds two entities the optimizer writes, and the price requirement depends on the source (token for Tibber, sensor for Entity).",
+   "correction": "Choose which Home Assistant entities the optimizer uses: mostly sensors it reads, plus the heat pump on/off switch and the space-heating set-point entity, which it can write. Clear a field to stop using that entity. Only the weather forecast and the electricity price source are required: a Tibber token, or a price sensor when the price source is an entity. Every other entity makes the model more accurate or enables control, and is optional."
+  },
+  {
+   "key": "options.step.entities.sections.credentials.data_description.price_surcharge",
+   "n_keys": 1,
+   "claim": "Surcharge added after VAT in price currency",
+   "evidence": [
+    "custom_components/heatpump_optimizer/price_model.py:763-775",
+    "custom_components/heatpump_optimizer/price_model.py:856-864"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities.sections.credentials.data_description.price_vat",
+   "n_keys": 1,
+   "claim": "total = value x VAT + surcharge; 1.0 leaves unchanged",
+   "evidence": [
+    "custom_components/heatpump_optimizer/price_model.py:769-771",
+    "custom_components/heatpump_optimizer/const.py:35"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data.space_setpoint_entity",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data.space_setpoint_power_feedback",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data.space_setpoint_low_limit_entity",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data.space_setpoint_high_limit_entity",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data_description.space_setpoint_entity",
+   "n_keys": 1,
+   "claim": "Space set-point entity used only to notice unreadable; optimizer never writes a recommended space set-point",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py:625-651",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1211-1230",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1608-1631",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:114-125",
+    "custom_components/heatpump_optimizer/setpoint_check.py:150-165"
+   ],
+   "verdict": "stale",
+   "why": "Under Control the arbiter writes this entity every step and restores the captured baseline on off/unload; only Off/Observe leave it read-only.",
+   "correction": "left to R10-HOTFIX-FLOW-SETPOINT-STUCK, which corrects this sentence and its translations (the owner's brief)",
+   "pinned": "check_flow_text_claims (written slots)"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data_description.space_setpoint_unit",
+   "n_keys": 1,
+   "claim": "Last sentence: unit is a declaration; integration never recommends a space set-point (rest: unit semantics, 5 K return offset, 25 C gate)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py:625-651",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:222",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:241",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:783-792",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1211-1230"
+   ],
+   "verdict": "stale",
+   "why": "Only the last sentence is false: under Control the arbiter writes the plan's room (Indoor) or water (Flow/Return) temperature to the entity; the 5 K offset and 25/20 °C gates check out.",
+   "correction": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit tells the optimizer what the number means: with Pump duty control at Control it writes the plan's room temperature (Indoor temperature) or water temperature (Flow temperature, Return temperature) to this entity.",
+   "pinned": "check_flow_text_claims (written slots)"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data_description.flow_min_lift_k",
+   "n_keys": 1,
+   "claim": "With Control: lowest-power write = measured inlet + lift (return target skips valve outlet); 5 K default; 1-2 K advice",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py:719-730",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:761-774",
+    "custom_components/heatpump_optimizer/const.py:831-832",
+    "custom_components/heatpump_optimizer/config_flow.py:1695"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data_description.flow_heat_c",
+   "n_keys": 1,
+   "claim": "Ceiling at full power and highest write; default 55; min 30; gate 25 flow / 20 return",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:824-825",
+    "custom_components/heatpump_optimizer/config_flow.py:1698",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:777-792",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:894-910"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data_description.space_setpoint_power_feedback",
+   "n_keys": 1,
+   "claim": "Feedback default on; needs Control, flow/return unit, power sensor; 5-min hold; nudge down/up, 10 % deadband; off writes inlet+lift",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:836-837",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:273-285",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:926-1000",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1224-1226"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data_description.space_setpoint_low_limit_entity",
+   "n_keys": 1,
+   "claim": "Low-limit sensor bounds Follow the planned power; used by it alone; empty = nothing changes",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py:733-736",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1005-1031",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1034-1050"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities.sections.indoor.data_description.space_setpoint_high_limit_entity",
+   "n_keys": 1,
+   "claim": "High-limit sensor bounds Follow the planned power; used by it alone",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py:733-736",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1005-1031"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.weekend.data_description.comfort_temp_day_weekend",
+   "n_keys": 1,
+   "claim": "Weekend value; defaults to weekday value",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1756-1757",
+    "custom_components/heatpump_optimizer/optimizer.py:2241-2255"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.weekend.data_description.comfort_temp_night_weekend",
+   "n_keys": 1,
+   "claim": "Weekend value; defaults to weekday value",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1756-1757",
+    "custom_components/heatpump_optimizer/optimizer.py:2241-2255"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.weekend.data_description.day_end_hour_weekend",
+   "n_keys": 1,
+   "claim": "Weekend evening hour switch to night",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2253-2272",
+    "custom_components/heatpump_optimizer/config_flow.py:1759"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.weekend.data_description.day_start_hour_weekend",
+   "n_keys": 1,
+   "claim": "Weekend morning hour switch to day",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2253-2272",
+    "custom_components/heatpump_optimizer/config_flow.py:1758"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.holiday.data_description.holiday_comfort_temp_day",
+   "n_keys": 1,
+   "claim": "Holiday-day comfort; away setback still wins",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2226-2236",
+    "custom_components/heatpump_optimizer/away.py:353-358",
+    "custom_components/heatpump_optimizer/away.py:396-403"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.holiday.data_description.holiday_comfort_temp_night",
+   "n_keys": 1,
+   "claim": "Night comfort on holiday days",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2226-2236"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.holiday.data_description.holiday_day_end_hour",
+   "n_keys": 1,
+   "claim": "Holiday evening hour",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2226-2240",
+    "custom_components/heatpump_optimizer/config_flow.py:1763"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.holiday.data_description.holiday_day_start_hour",
+   "n_keys": 1,
+   "claim": "Holiday morning hour",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:2226-2240",
+    "custom_components/heatpump_optimizer/config_flow.py:1762"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.mold.data_description.indoor_humidity_entity",
+   "n_keys": 1,
+   "claim": "Humidity sensor; without it mold guard stays off",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:9176-9190",
+    "custom_components/heatpump_optimizer/coordinator.py:9211-9220",
+    "custom_components/heatpump_optimizer/config_flow.py:1765"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.mold.data_description.mold_guard_enabled",
+   "n_keys": 1,
+   "claim": "Guard raises floor from humidity and outdoor forecast; never above comfort target; needs humidity sensor; 80 % surface RH",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:9192-9232",
+    "custom_components/heatpump_optimizer/const.py:1205",
+    "custom_components/heatpump_optimizer/thermal_model.py:2687-2713"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.mold.data_description.mold_floor_breach_margin",
+   "n_keys": 1,
+   "claim": "Breach binary sensor on when room is margin below mold floor",
+   "evidence": [
+    "custom_components/heatpump_optimizer/binary_sensor.py:172-216",
+    "custom_components/heatpump_optimizer/const.py:1209-1210",
+    "custom_components/heatpump_optimizer/config_flow.py:1767"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.comfort.sections.mold.data_description.thermal_bridge_frsi",
+   "n_keys": 1,
+   "claim": "surface = outdoor + fRsi*(room-outdoor); 0.75 default; lower = colder spot = more cautious",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:2698-2713",
+    "custom_components/heatpump_optimizer/const.py:1201-1203",
+    "custom_components/heatpump_optimizer/config_flow.py:1766"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.schedule.data_description.holiday_dhw_windows",
+   "n_keys": 1,
+   "claim": "Holiday DHW windows used on calendar days instead of weekday/weekend; empty = ordinary schedule",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:383-417",
+    "custom_components/heatpump_optimizer/thermal_model.py:167-175"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.schedule.data_description.dhw_windows_by_day",
+   "n_keys": 1,
+   "claim": "Toggle on: weekday fields override holiday and ordinary; off: holiday then ordinary",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:608-619",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:408-417",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:640-668"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.by_day.data_description.dhw_windows_mon",
+   "n_keys": 1,
+   "claim": "Per-day windows; empty inherits holiday windows on holiday days else ordinary",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:408-417",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:660-678"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.by_day.data_description.dhw_windows_tue",
+   "n_keys": 1,
+   "claim": "Per-day windows; empty inherits holiday windows on holiday days else ordinary",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:408-417",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:660-678"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.by_day.data_description.dhw_windows_wed",
+   "n_keys": 1,
+   "claim": "Per-day windows; empty inherits holiday windows on holiday days else ordinary",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:408-417",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:660-678"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.by_day.data_description.dhw_windows_thu",
+   "n_keys": 1,
+   "claim": "Per-day windows; empty inherits holiday windows on holiday days else ordinary",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:408-417",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:660-678"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.by_day.data_description.dhw_windows_fri",
+   "n_keys": 1,
+   "claim": "Per-day windows; empty inherits holiday windows on holiday days else ordinary",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:408-417",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:660-678"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.by_day.data_description.dhw_windows_sat",
+   "n_keys": 1,
+   "claim": "Per-day windows; empty inherits holiday windows on holiday days else ordinary",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:408-417",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:660-678"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.by_day.data_description.dhw_windows_sun",
+   "n_keys": 1,
+   "claim": "Per-day windows; empty inherits holiday windows on holiday days else ordinary",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:408-417",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:660-678"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water.sections.temperatures.data.dhw_setpoint_entity",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.hot_water.sections.temperatures.data_description.dhw_setpoint_entity",
+   "n_keys": 1,
+   "claim": "Repair offered to raise set-point when below disinfection temp or DHW minimum",
+   "evidence": [
+    "custom_components/heatpump_optimizer/setpoint_check.py:114-146",
+    "custom_components/heatpump_optimizer/setpoint_check.py:121-135"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.description",
+   "n_keys": 1,
+   "claim": "Valve settings only take effect with the two-zone model configured",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:3636-3700",
+    "custom_components/heatpump_optimizer/thermal_model.py:2207-2252",
+    "custom_components/heatpump_optimizer/config_flow.py:3763-3769",
+    "custom_components/heatpump_optimizer/coordinator.py:7752-7756",
+    "custom_components/heatpump_optimizer/thermal_model.py:293-307"
+   ],
+   "verdict": "false",
+   "why": "The single-zone simulation has its own valve branch (_single_valve_rates); only mixing_valve_write_target_kind=flow is refused without two-zone.",
+   "correction": "Everything between the heat sources and the emitters: the mixing valve, the buffer tank as a store, and the wood furnace tank with its probes. Leave the valve at \"No mixing valve\" if you do not have one — the model is already correct for that case. The valve settings work with the single-zone and the two-zone model; only writing a Flow temperature to the valve control entity needs the two-zone model."
+  },
+  {
+   "key": "options.step.building.sections.valve.data.flow_curve_cop_enabled",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.building.sections.valve.data.mixing_valve_target",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+   "n_keys": 1,
+   "claim": "Learned offset capped at 15 C so only part of extra work priced; plus off by default, valve refusal, watch skips intervals without fresh supply reading",
+   "evidence": [
+    "custom_components/heatpump_optimizer/flow_lift.py:58",
+    "custom_components/heatpump_optimizer/flow_lift.py:71",
+    "custom_components/heatpump_optimizer/flow_lift.py:196-204",
+    "custom_components/heatpump_optimizer/config_flow.py:3770-3776"
+   ],
+   "verdict": "false",
+   "why": "FLOW_BIAS_CLAMP_K (15) bounds only the downward side; the upward bound is a 75 °C supply (FLOW_SUPPLY_MAX_C) minus the curve.",
+   "correction": "Off by default. For a system with no mixing valve, where the pump feeds the radiators or floor loops directly. When on, plans and costs account for the pump working harder to make hotter water: the supply temperature is taken from the model's own weather curve, plus the offset learned from the supply water temperature sensor if you have one. With that sensor, the efficiency health watch also judges the pump at a common water temperature, so a hotter supply is not reported as a failing compressor, and it skips any interval where the sensor has no fresh reading, so while that sensor is unavailable the watch does not judge space heating at all. The learned offset can lower the supply at most 15 K below the model's curve and can raise it at most to a 75 °C supply. Not available with a mixing valve, whose tank temperature already sets the price.",
+   "pinned": "check_flow_text_claims (figures)"
+  },
+  {
+   "key": "options.step.building.sections.valve.data_description.mixing_valve_mode",
+   "n_keys": 1,
+   "claim": "Manual/Read/Commanded mode meanings",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6698-6701",
+    "custom_components/heatpump_optimizer/coordinator.py:7727-7745",
+    "custom_components/heatpump_optimizer/mixing_valve.py:30-60"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.valve.data_description.mixing_valve_target",
+   "n_keys": 1,
+   "claim": "Indoor target; 0 = top of comfort band",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:2181",
+    "custom_components/heatpump_optimizer/const.py:905",
+    "custom_components/heatpump_optimizer/config_flow.py:1809"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.valve.data_description.mixing_valve_target_entity",
+   "n_keys": 1,
+   "claim": "Reads valve target from sensor rather than fixed value",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6698-6701"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.valve.data_description.mixing_valve_write_entity",
+   "n_keys": 1,
+   "claim": "Needed for Commanded mode; written after each planning cycle only when target changes",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:7727-7790",
+    "custom_components/heatpump_optimizer/coordinator.py:6500-6503",
+    "custom_components/heatpump_optimizer/const.py:885"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.valve.data_description.mixing_valve_write_target_kind",
+   "n_keys": 1,
+   "claim": "Indoor default; flow derived from same flow curve; flow needs water-temperature entity",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:893-894",
+    "custom_components/heatpump_optimizer/coordinator.py:7770-7780",
+    "custom_components/heatpump_optimizer/config_flow.py:3763-3769"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.buffer.data_description.buffer_max_temperature",
+   "n_keys": 1,
+   "claim": "Tank never charged above this in the plan",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:3875",
+    "custom_components/heatpump_optimizer/thermal_model.py:2231",
+    "custom_components/heatpump_optimizer/optimizer.py:5484"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.combi.data_description.dhw_combi_tank_enabled",
+   "n_keys": 1,
+   "claim": "Combi needs throttling valve, buffer >=100 L, hot water on, no wood coil; S/45 K; middle well",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:316-322",
+    "custom_components/heatpump_optimizer/const.py:1365",
+    "custom_components/heatpump_optimizer/config_flow.py:3777-3779",
+    "custom_components/heatpump_optimizer/thermal_model.py:293-306"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.combi.data_description.dhw_combi_tank_type",
+   "n_keys": 1,
+   "claim": "Choosing a type fills two numbers; edit after or choose Custom",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:616-628",
+    "custom_components/heatpump_optimizer/const.py:1000-1004"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.combi.data_description.combi_dhw_effectiveness",
+   "n_keys": 1,
+   "claim": "Range 0.1-1; presets 0.85/0.95/0.75; cold inlet field exists",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1818",
+    "custom_components/heatpump_optimizer/const.py:1000-1004",
+    "custom_components/heatpump_optimizer/thermal_model.py:151-153",
+    "custom_components/heatpump_optimizer/strings.json:1287,1316"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.combi.data_description.combi_potable_volume_l",
+   "n_keys": 1,
+   "claim": "Litres of potable water; 0 for fresh-water station; preset 30/150/0",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:1000-1004",
+    "custom_components/heatpump_optimizer/config_flow.py:1819"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.combi.data_description.dhw_combi_legionella_force",
+   "n_keys": 1,
+   "claim": "<=3 L potable: legionella cycle off by default; toggle forces it",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:1013",
+    "custom_components/heatpump_optimizer/thermal_model.py:325-331"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data.dhw_wood_coil_enabled",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.building.sections.wood.data.external_heat_decay_minutes",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.building.sections.wood.data.external_heat_detection_enabled",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.building.sections.wood.data.external_heat_min_rise",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.building.sections.wood.data.valve_outlet_temp_entity",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.building.sections.wood.data.wood_lighting_lead_minutes",
+   "n_keys": 1,
+   "claim": "lighting starts this many minutes before a cheaper window",
+   "evidence": [
+    "custom_components/heatpump_optimizer/wood_fuel.py:200",
+    "custom_components/heatpump_optimizer/wood_fuel.py:564"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.dhw_wood_coil_enabled",
+   "n_keys": 1,
+   "claim": "coil preheats DHW refill; only when wood tank modelled as own store",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:360",
+    "custom_components/heatpump_optimizer/thermal_model.py:367",
+    "custom_components/heatpump_optimizer/thermal_model.py:424",
+    "custom_components/heatpump_optimizer/thermal_model.py:2856"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.external_heat_decay_minutes",
+   "n_keys": 1,
+   "claim": "detected heat keeps contributing for the decay time after evidence fades (default 90, range 15-360)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/external_heat.py:449",
+    "custom_components/heatpump_optimizer/external_heat.py:470",
+    "custom_components/heatpump_optimizer/const.py:324",
+    "custom_components/heatpump_optimizer/config_flow.py:1830"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.external_heat_detection_enabled",
+   "n_keys": 1,
+   "claim": "detects tank warming with pump idle; planned electric DHW held back",
+   "evidence": [
+    "custom_components/heatpump_optimizer/external_heat.py:1",
+    "custom_components/heatpump_optimizer/coordinator.py:5083",
+    "custom_components/heatpump_optimizer/dhw_planner.py:1220"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.external_heat_entity",
+   "n_keys": 1,
+   "claim": "entity overrides automatic detection both ways; flag trusted indefinitely; numeric probe trusted 60 min after last report",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:5159",
+    "custom_components/heatpump_optimizer/coordinator.py:5162",
+    "custom_components/heatpump_optimizer/coordinator.py:5186",
+    "custom_components/heatpump_optimizer/const.py:1756",
+    "custom_components/heatpump_optimizer/external_heat.py:262"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.external_heat_min_rise",
+   "n_keys": 1,
+   "claim": "advice: raise if triggered; asymmetric cost rationale (default 1.5 C/h, range 0.5-10)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/external_heat.py:19",
+    "custom_components/heatpump_optimizer/const.py:323",
+    "custom_components/heatpump_optimizer/config_flow.py:1829"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.valve_outlet_temp_entity",
+   "n_keys": 1,
+   "claim": "outlet temp with tank sensors gives mixing fraction so electric heat stands down proportionally",
+   "evidence": [
+    "custom_components/heatpump_optimizer/external_heat.py:322",
+    "custom_components/heatpump_optimizer/external_heat.py:364",
+    "custom_components/heatpump_optimizer/external_heat.py:370",
+    "custom_components/heatpump_optimizer/external_heat.py:372"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.wood_furnace_efficiency",
+   "n_keys": 1,
+   "claim": "percent; default 75, range 10-95",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:346",
+    "custom_components/heatpump_optimizer/config_flow.py:1834",
+    "custom_components/heatpump_optimizer/wood_fuel.py:60"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.wood_lighting_lead_minutes",
+   "n_keys": 1,
+   "claim": "lead before cheaper window sets lighting window attributes on Wood Cheaper Than Heat Pump sensor (default 60, 0-240)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/wood_fuel.py:200",
+    "custom_components/heatpump_optimizer/wood_fuel.py:564",
+    "custom_components/heatpump_optimizer/binary_sensor.py:337",
+    "custom_components/heatpump_optimizer/const.py:350"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.wood_furnace_enabled",
+   "n_keys": 1,
+   "claim": "off hides wood fields, keeps stored values; lone 500 L tank volume does not turn it on",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1821",
+    "custom_components/heatpump_optimizer/config_flow.py:2010",
+    "custom_components/heatpump_optimizer/wood_fuel.py:78",
+    "custom_components/heatpump_optimizer/wood_fuel.py:92"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.wood_packing",
+   "n_keys": 1,
+   "claim": "loose is billed at 0.60 of packed",
+   "evidence": [
+    "custom_components/heatpump_optimizer/wood_fuel.py:33",
+    "custom_components/heatpump_optimizer/wood_fuel.py:34",
+    "custom_components/heatpump_optimizer/wood_fuel.py:35"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.wood_price_sek_m3",
+   "n_keys": 1,
+   "claim": "empty keeps cheaper-than-pump sensor unavailable, no default",
+   "evidence": [
+    "custom_components/heatpump_optimizer/wood_fuel.py:127",
+    "custom_components/heatpump_optimizer/wood_fuel.py:131",
+    "custom_components/heatpump_optimizer/binary_sensor.py:323",
+    "custom_components/heatpump_optimizer/config_flow.py:1833"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.wood_tank_volume",
+   "n_keys": 1,
+   "claim": "tank volume bounds free heat a fire can still deliver (default 500 L, 50-3000)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/external_heat.py:348",
+    "custom_components/heatpump_optimizer/external_heat.py:350",
+    "custom_components/heatpump_optimizer/const.py:338",
+    "custom_components/heatpump_optimizer/config_flow.py:1825"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.wood.data_description.wood_type",
+   "n_keys": 1,
+   "claim": "default is Mixed",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:344",
+    "custom_components/heatpump_optimizer/config_flow.py:1831"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building.sections.circulation.data.space_circulation_pump_entity",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.building.sections.circulation.data_description.space_circulation_pump_entity",
+   "n_keys": 1,
+   "claim": "pump paused only when provably idle and warm; runs when heat planned, freezing, or a room near floor",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_schedule.py:72",
+    "custom_components/heatpump_optimizer/pump_schedule.py:76",
+    "custom_components/heatpump_optimizer/pump_schedule.py:81",
+    "custom_components/heatpump_optimizer/pump_schedule.py:86",
+    "custom_components/heatpump_optimizer/coordinator.py:4549"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.tuning.description",
+   "n_keys": 1,
+   "claim": "raising comfort weight holds temperature more strictly; lowering gives bigger savings",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1859",
+    "custom_components/heatpump_optimizer/optimizer.py:2126",
+    "custom_components/heatpump_optimizer/optimizer.py:2860"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.tuning.sections.wear.data_description.compressor_cycling_cost",
+   "n_keys": 1,
+   "claim": "plan discourages cycling; default 0; planned start count published on plan sensors",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:3161",
+    "custom_components/heatpump_optimizer/sensor.py:2750-2787",
+    "custom_components/heatpump_optimizer/sensor.py:2147-2155",
+    "custom_components/heatpump_optimizer/optimizer.py:1605-1633"
+   ],
+   "verdict": "false",
+   "why": "The planned start count is in coordinator data but no sensor attribute exposes it; the only starts sensor counts realised starts and is disabled by default.",
+   "correction": "Discourages plans that switch on and off repeatedly. Leave at 0 unless you have reason to think your unit is cycling too much; the Compressor Starts sensor (disabled until you enable it) counts the starts your pump actually makes, so you can look before deciding."
+  },
+  {
+   "key": "options.step.tuning.sections.wear.data_description.compressor_rated_starts",
+   "n_keys": 1,
+   "claim": "replacement cost divided by rated starts (default 100000, 1000-1000000)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/wear.py:186",
+    "custom_components/heatpump_optimizer/wear.py:190",
+    "custom_components/heatpump_optimizer/const.py:1220",
+    "custom_components/heatpump_optimizer/config_flow.py:1865"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.tuning.sections.wear.data_description.compressor_replacement_cost",
+   "n_keys": 1,
+   "claim": "cost/rated starts prices every realised start; 0 keeps counter pure observation",
+   "evidence": [
+    "custom_components/heatpump_optimizer/wear.py:186",
+    "custom_components/heatpump_optimizer/coordinator.py:10508",
+    "custom_components/heatpump_optimizer/coordinator.py:10512",
+    "custom_components/heatpump_optimizer/const.py:1217"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.tuning.sections.wear.data_description.wear_autotune_enabled",
+   "n_keys": 1,
+   "claim": "wear price per start becomes a floor (max) under cycling cost; only insight feature that changes plans",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:10473",
+    "custom_components/heatpump_optimizer/coordinator.py:10484",
+    "custom_components/heatpump_optimizer/coordinator.py:10485",
+    "custom_components/heatpump_optimizer/const.py:1221"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.tuning.sections.risk.data.confidence_margins_enabled",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.tuning.sections.risk.data_description.confidence_margins_enabled",
+   "n_keys": 1,
+   "claim": "floor rises by exactly the expected error, capped 0.8 C, shrinking as accuracy improves (first pass false; refuted on re-check: The margin is sigma(lead) x (1 - trust), capped at 0.8 °C, but the text already says it shrinks to nothing as accuracy improves, so 'exactly that expected error' is a harmless simplification.)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:9148-9172",
+    "custom_components/heatpump_optimizer/const.py:1195"
+   ],
+   "verdict": "true",
+   "pinned": "check_flow_text_claims (figures)"
+  },
+  {
+   "key": "options.step.tuning.sections.risk.data_description.price_risk_lambda",
+   "n_keys": 1,
+   "claim": "premium on guessed (unpublished-horizon) prices proportional to sigma; 0 trusts guesses",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:4150",
+    "custom_components/heatpump_optimizer/optimizer.py:4151",
+    "custom_components/heatpump_optimizer/optimizer.py:4152",
+    "custom_components/heatpump_optimizer/const.py:518"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.tuning.sections.risk.data_description.price_tiles_enabled",
+   "n_keys": 1,
+   "claim": "after each scheduled solve one tile in rotation (-1 degree, +1 degree, 75% cap), 30-day average, default off",
+   "evidence": [
+    "custom_components/heatpump_optimizer/price_tiles.py:49",
+    "custom_components/heatpump_optimizer/price_tiles.py:55",
+    "custom_components/heatpump_optimizer/price_tiles.py:137",
+    "custom_components/heatpump_optimizer/coordinator.py:10723",
+    "custom_components/heatpump_optimizer/const.py:1228"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.description",
+   "n_keys": 1,
+   "claim": "shifts curve up in cheap/down in expensive hours via ECL110 MQTT, number entity, or both; leave empty if neither",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:167",
+    "custom_components/heatpump_optimizer/heat_curve.py:294",
+    "custom_components/heatpump_optimizer/optimizer.py:5946"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data.heat_curve_persistent_band_k",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.heat_curve.data.heat_curve_persistent_min_dwell_minutes",
+   "n_keys": 1,
+   "claim": "least time between writes to a stored parameter",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:547"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.ecl110_displace_set_topic",
+   "n_keys": 1,
+   "claim": "offset published to this topic; nothing published while it and legacy topic empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:167",
+    "custom_components/heatpump_optimizer/heat_curve.py:232",
+    "custom_components/heatpump_optimizer/config_flow.py:1875"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.ecl110_command_topic",
+   "n_keys": 1,
+   "claim": "legacy JSON payload topic for older setups",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:250",
+    "custom_components/heatpump_optimizer/heat_curve.py:259",
+    "custom_components/heatpump_optimizer/config_flow.py:1876"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.ecl110_state_topic",
+   "n_keys": 1,
+   "claim": "topic the controller state is read from",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:4160",
+    "custom_components/heatpump_optimizer/coordinator.py:4162",
+    "custom_components/heatpump_optimizer/coordinator.py:4167"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.ecl110_mqtt_retain",
+   "n_keys": 1,
+   "claim": "retain flag keeps last offset on broker (default False)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:241",
+    "custom_components/heatpump_optimizer/const.py:1604"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.ecl110_displace_min",
+   "n_keys": 1,
+   "claim": "lower clamp for offset (default -20, range -30..0)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:7701",
+    "custom_components/heatpump_optimizer/const.py:1605",
+    "custom_components/heatpump_optimizer/config_flow.py:1880"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.ecl110_displace_max",
+   "n_keys": 1,
+   "claim": "upper clamp for offset (default 20, range 0..30)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:7701",
+    "custom_components/heatpump_optimizer/const.py:1606",
+    "custom_components/heatpump_optimizer/config_flow.py:1881"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.ecl110_pid_time_constant_hours",
+   "n_keys": 1,
+   "claim": "controller response time; used so plan does not ask for faster changes than system follows",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:5957",
+    "custom_components/heatpump_optimizer/optimizer.py:5963",
+    "custom_components/heatpump_optimizer/thermal_model.py:3423",
+    "custom_components/heatpump_optimizer/const.py:1607"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.heat_curve_displace_entity",
+   "n_keys": 1,
+   "claim": "kind offset: off/unload writes 0; kind persistent: off/unload writes back pre-first-write value",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:117",
+    "custom_components/heatpump_optimizer/heat_curve.py:120",
+    "custom_components/heatpump_optimizer/heat_curve.py:156",
+    "custom_components/heatpump_optimizer/heat_curve.py:525"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.heat_curve_target_kind",
+   "n_keys": 1,
+   "claim": "offset vs persistent semantics, restore on off, writes limited per day",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:117",
+    "custom_components/heatpump_optimizer/heat_curve.py:120",
+    "custom_components/heatpump_optimizer/heat_curve.py:547",
+    "custom_components/heatpump_optimizer/const.py:1608"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.heat_curve_offset_band_k",
+   "n_keys": 1,
+   "claim": "written offset stays within +-band K (default 3, range 0.5-5)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:323",
+    "custom_components/heatpump_optimizer/const.py:1614",
+    "custom_components/heatpump_optimizer/const.py:1615"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.heat_curve_persistent_band_k",
+   "n_keys": 1,
+   "claim": "stored value moved at most +-band K from pre-first-write value (default 3, range 0.5-5)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:457",
+    "custom_components/heatpump_optimizer/const.py:1625",
+    "custom_components/heatpump_optimizer/const.py:1626"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.heat_curve_persistent_writes_per_day",
+   "n_keys": 1,
+   "claim": "writes per local day incl. restore, one kept back; 0 or 1 writes nothing; default 12 range 0-48",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:557",
+    "custom_components/heatpump_optimizer/const.py:1627",
+    "custom_components/heatpump_optimizer/const.py:1628"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.heat_curve.data_description.heat_curve_persistent_min_dwell_minutes",
+   "n_keys": 1,
+   "claim": "next write waits at least this long (default 60, range 15-360)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:547",
+    "custom_components/heatpump_optimizer/const.py:1629",
+    "custom_components/heatpump_optimizer/const.py:1630"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.building_preset.description",
+   "n_keys": 1,
+   "claim": "\"answer three questions\" and numbers are derived, starting values only, leave off for real values",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1219-1227",
+    "custom_components/heatpump_optimizer/config_flow.py:1230-1250",
+    "custom_components/heatpump_optimizer/config_flow.py:1892-1895",
+    "custom_components/heatpump_optimizer/presets.py:293-318"
+   ],
+   "verdict": "stale",
+   "why": "The questionnaire has six fields, not three.",
+   "correction": "Describe the building — what it is built from, roughly when it was built, its foundation, heated area and how each floor is heated — and the thermal model's numbers are worked out for you. These are starting values only — the self-learning model refines them from how your house actually behaves, so they do not have to be exact. Leave this off if you have real values from an energy declaration and prefer to enter them directly on the thermal model page."
+  },
+  {
+   "key": "options.step.building_preset.sections.derivation.data.building_preset_enabled",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.building_preset.sections.derivation.data_description.building_preset_enabled",
+   "n_keys": 1,
+   "claim": "enabled: each save overwrites thermal mass, heat loss, emitter values",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3852",
+    "custom_components/heatpump_optimizer/config_flow.py:732",
+    "custom_components/heatpump_optimizer/config_flow.py:1011"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.thermal_model.description",
+   "n_keys": 1,
+   "claim": "empty field keeps value; filling in two-zone fields on this page turns two-zone on",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1838-1847",
+    "custom_components/heatpump_optimizer/config_flow.py:1848-1856",
+    "custom_components/heatpump_optimizer/thermal_model.py:1105-1131"
+   ],
+   "verdict": "stale",
+   "why": "The two-zone fields moved to thermal_model_zones and an explicit two_zone_mode decides; filling fields on this page no longer turns two-zone on.",
+   "correction": "The raw numbers behind the thermal model, otherwise only asked during setup. A field left empty keeps its current value and is never saved, so a single-zone house stays single-zone. The two-zone values are on the Two-zone model page: with Two-zone model set to Automatic, saving a zone value turns the two-zone model on, and On or Off forces it either way.\n\n{preset_warning}"
+  },
+  {
+   "key": "options.step.thermal_model.data_description.compressor_modulation",
+   "n_keys": 1,
+   "claim": "On/off vs modulating planning; Automatic: switch+setpoint and no frequency entity = on/off, else modulating",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1362",
+    "custom_components/heatpump_optimizer/thermal_model.py:1379",
+    "custom_components/heatpump_optimizer/thermal_model.py:1456",
+    "custom_components/heatpump_optimizer/thermal_model.py:1437",
+    "custom_components/heatpump_optimizer/const.py:862"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.thermal_model.data_description.heat_pump_cop_partload_derate",
+   "n_keys": 1,
+   "claim": "fraction of COP lost at max vs min power; 0 = off; keep below band/(band+max)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:2499",
+    "custom_components/heatpump_optimizer/thermal_model.py:2546",
+    "custom_components/heatpump_optimizer/config_flow.py:977",
+    "custom_components/heatpump_optimizer/const.py:1340",
+    "custom_components/heatpump_optimizer/const.py:1343"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid.description",
+   "n_keys": 1,
+   "claim": "capacity charge on highest hours: stacking can cost more",
+   "evidence": [
+    "custom_components/heatpump_optimizer/tariff.py:119",
+    "custom_components/heatpump_optimizer/coordinator.py:8643"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid.data_description.peak_tariff_enabled",
+   "n_keys": 1,
+   "claim": "adds monthly peak fee to the objective (default off)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/tariff.py:119",
+    "custom_components/heatpump_optimizer/coordinator.py:8643",
+    "custom_components/heatpump_optimizer/const.py:471"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid.data_description.peak_tariff_price_per_kw",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.grid.data_description.peak_tariff_peaks_averaged",
+   "n_keys": 1,
+   "claim": "most Swedish tariffs average three highest hours",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:475",
+    "custom_components/heatpump_optimizer/config_flow.py:1901"
+   ],
+   "verdict": "unverifiable"
+  },
+  {
+   "key": "options.step.grid.data_description.peak_tariff_window_minutes",
+   "n_keys": 1,
+   "claim": "hourly for most tariffs; 15 min less forgiving",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1902",
+    "custom_components/heatpump_optimizer/const.py:476"
+   ],
+   "verdict": "unverifiable"
+  },
+  {
+   "key": "options.step.grid.data_description.peak_tariff_months",
+   "n_keys": 1,
+   "claim": "e.g. Nov-Mar; empty = every month; outside months peak counts zero",
+   "evidence": [
+    "custom_components/heatpump_optimizer/tariff.py:101",
+    "custom_components/heatpump_optimizer/tariff.py:138",
+    "custom_components/heatpump_optimizer/config_flow.py:3876"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid.data_description.peak_tariff_hours",
+   "n_keys": 1,
+   "claim": "empty = every hour counts fully; outside hours count at off-peak factor",
+   "evidence": [
+    "custom_components/heatpump_optimizer/tariff.py:143",
+    "custom_components/heatpump_optimizer/tariff.py:145",
+    "custom_components/heatpump_optimizer/config_flow.py:3878"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid.data_description.peak_tariff_weekdays_only",
+   "n_keys": 1,
+   "claim": "Saturday/Sunday count at off-peak factor",
+   "evidence": [
+    "custom_components/heatpump_optimizer/tariff.py:141",
+    "custom_components/heatpump_optimizer/const.py:506"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid.data_description.peak_tariff_offpeak_factor",
+   "n_keys": 1,
+   "claim": "1.0 same; 0.5 half rate; 0 off-peak free (range 0-1, default 1.0)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/tariff.py:107",
+    "custom_components/heatpump_optimizer/tariff.py:148",
+    "custom_components/heatpump_optimizer/const.py:508",
+    "custom_components/heatpump_optimizer/config_flow.py:1906"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid.data_description.peak_tariff_distinct_days",
+   "n_keys": 1,
+   "claim": "highest hour per distinct day (default on); off averages highest regardless of day",
+   "evidence": [
+    "custom_components/heatpump_optimizer/tariff.py:111",
+    "custom_components/heatpump_optimizer/tariff.py:326",
+    "custom_components/heatpump_optimizer/const.py:513"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.solar_pv.description",
+   "n_keys": 1,
+   "claim": "surplus heating beats export; optimizer prices each hour at consumption cost",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:3433",
+    "custom_components/heatpump_optimizer/optimizer.py:3723",
+    "custom_components/heatpump_optimizer/pv.py:94"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.solar_pv.data_description.pv_system_efficiency",
+   "n_keys": 1,
+   "claim": "losses between sunlight and meter; 0.8 typical",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pv.py:50",
+    "custom_components/heatpump_optimizer/pv.py:72",
+    "custom_components/heatpump_optimizer/const.py:619",
+    "custom_components/heatpump_optimizer/config_flow.py:1926"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.solar_pv.data_description.pv_export_price",
+   "n_keys": 1,
+   "claim": "while surplus, extra kWh costs the export price",
+   "evidence": [
+    "custom_components/heatpump_optimizer/optimizer.py:3433",
+    "custom_components/heatpump_optimizer/pv.py:106",
+    "custom_components/heatpump_optimizer/coordinator.py:9808"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.solar_pv.data_description.pv_export_price_entity",
+   "n_keys": 1,
+   "claim": "Entity gives export compensation tied to spot price, used instead of the fixed value",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:9808-9815"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.solar_pv.data_description.pv_enabled",
+   "n_keys": 1,
+   "claim": "Enables planning on PV surplus; surplus kWh priced at import minus export",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:9801",
+    "custom_components/heatpump_optimizer/optimizer.py:3433",
+    "custom_components/heatpump_optimizer/pv.py:94-106"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.solar_pv.data_description.pv_peak_kw",
+   "n_keys": 1,
+   "claim": "Peak kW scales the production forecast",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pv.py:64-77",
+    "custom_components/heatpump_optimizer/coordinator.py:9802"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.solar_pv.data_description.pv_production_entity",
+   "n_keys": 1,
+   "claim": "Live production sensor makes the forecast correct itself",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:9816-9822",
+    "custom_components/heatpump_optimizer/coordinator.py:9835-9838"
+   ],
+   "verdict": "false",
+   "why": "Only production[0] is overwritten; nothing learns from or rescales the later forecast.",
+   "correction": "Optional. A live production sensor replaces the forecast for the current step with the measured output (capped at the installed capacity); later hours stay on the forecast from solar irradiance."
+  },
+  {
+   "key": "options.step.away.description",
+   "n_keys": 1,
+   "claim": "Stating a return time makes recovery heat be bought in cheap hours beforehand",
+   "evidence": [
+    "custom_components/heatpump_optimizer/away.py:507-523",
+    "custom_components/heatpump_optimizer/away.py:538-565"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.away.data_description.away_presence_entity",
+   "n_keys": 1,
+   "claim": "Plan-page toggle overrides presence until off; person not_home means away when toggle is off",
+   "evidence": [
+    "custom_components/heatpump_optimizer/away.py:543-560",
+    "custom_components/heatpump_optimizer/away.py:167-190"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.away.data_description.holiday_calendar_entity",
+   "n_keys": 1,
+   "claim": "Holiday calendar on => holiday comfort/hot-water windows replace weekday/weekend; away setback wins",
+   "evidence": [
+    "custom_components/heatpump_optimizer/away.py:299-312",
+    "custom_components/heatpump_optimizer/away.py:595-606",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:387-414"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.away.data_description.away_dhw_min_temperature",
+   "n_keys": 1,
+   "claim": "Anti-legionella cycle still runs and is timed to finish before you get back",
+   "evidence": [
+    "custom_components/heatpump_optimizer/away.py:76-80",
+    "custom_components/heatpump_optimizer/away.py:299-312",
+    "custom_components/heatpump_optimizer/away.py:396-402",
+    "custom_components/heatpump_optimizer/dhw_planner.py:470-560"
+   ],
+   "verdict": "false",
+   "why": "legionella_before_return is defined but read nowhere and the legionella planner never reads the away state or return time.",
+   "correction": "The anti-legionella cycle still runs, on its usual schedule; it is not timed to your return."
+  },
+  {
+   "key": "options.step.away.data_description.away_temperature",
+   "n_keys": 1,
+   "claim": "Hold temperature while away (advice on range)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/away.py:299-312",
+    "custom_components/heatpump_optimizer/config_flow.py:1933",
+    "custom_components/heatpump_optimizer/const.py:630"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.quick_setup.description",
+   "n_keys": 1,
+   "claim": "Changing an answer re-derives thermal model; untouched submit writes nothing; no device pre-fill",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3511-3600",
+    "custom_components/heatpump_optimizer/quick_setup.py:166-218"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning.description",
+   "n_keys": 1,
+   "claim": "Sensor watchdog is on by default; the rest are off until turned on",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:276",
+    "custom_components/heatpump_optimizer/const.py:461",
+    "custom_components/heatpump_optimizer/const.py:635",
+    "custom_components/heatpump_optimizer/const.py:639",
+    "custom_components/heatpump_optimizer/const.py:643"
+   ],
+   "verdict": "false",
+   "why": "DEFAULT_PRICE_PRIOR_ENABLED is True, so a second switch is on by default.",
+   "correction": "Watchdogs and optional learning features. The sensor watchdog protects everything else. It and the price estimate past the published horizon are on by default; the rest are off until you turn them on."
+  },
+  {
+   "key": "options.step.learning.data.comfort_learning_enabled",
+   "n_keys": 1,
+   "claim": "label",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.learning.data.price_prior_enabled",
+   "n_keys": 1,
+   "claim": "label",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.learning.data_description.staleness_watchdog_enabled",
+   "n_keys": 1,
+   "claim": "With watchdog on, an old value is treated as missing and learning pauses",
+   "evidence": [
+    "custom_components/heatpump_optimizer/inputs.py:266-285",
+    "custom_components/heatpump_optimizer/coordinator.py:5212"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning.data_description.staleness_max_age_scale",
+   "n_keys": 1,
+   "claim": "Scale raises the sensor age limit",
+   "evidence": [
+    "custom_components/heatpump_optimizer/inputs.py:266-282",
+    "custom_components/heatpump_optimizer/const.py:280-282"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning.data_description.comfort_learning_enabled",
+   "n_keys": 1,
+   "claim": "Overrides adjust the comfort weight; shown on own sensor; reset button",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:10976-11000",
+    "custom_components/heatpump_optimizer/sensor.py:2380-2400",
+    "custom_components/heatpump_optimizer/button.py:159-174"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning.data_description.system_identification_enabled",
+   "n_keys": 1,
+   "claim": "Small deliberate heating step on mild cheap night; aborts if temperature drifts",
+   "evidence": [
+    "custom_components/heatpump_optimizer/sysid.py:1-30",
+    "custom_components/heatpump_optimizer/sysid.py:1510-1523"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning.data_description.price_prior_enabled",
+   "n_keys": 1,
+   "claim": "Fills horizon from learned price shape, marks estimated hours; off repeats last price",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:7262-7268",
+    "custom_components/heatpump_optimizer/price_model.py:488-540",
+    "custom_components/heatpump_optimizer/coordinator.py:8631"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning.data_description.debug_collect_enabled",
+   "n_keys": 1,
+   "claim": "7 days, row per cycle, daily snapshot, read-only self-tests <=15 min, off deletes",
+   "evidence": [
+    "custom_components/heatpump_optimizer/debugger.py:71-76",
+    "custom_components/heatpump_optimizer/debugger.py:685-687",
+    "custom_components/heatpump_optimizer/debugger.py:1-30"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.description",
+   "n_keys": 1,
+   "claim": "page contents label",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1708-1724"
+   ],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data.heat_pump_thermal_power_entity",
+   "n_keys": 1,
+   "claim": "label",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data.heat_pump_power_source",
+   "n_keys": 1,
+   "claim": "label",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data.heat_pump_thermal_power_source",
+   "n_keys": 1,
+   "claim": "label",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data_description.heat_pump_energy_entity",
+   "n_keys": 1,
+   "claim": "Cumulative kWh meter is more accurate than adding up power readings",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1326-1328",
+    "custom_components/heatpump_optimizer/thermal_model.py:1443",
+    "custom_components/heatpump_optimizer/heat_energy.py:315-321",
+    "custom_components/heatpump_optimizer/heat_energy.py:396-440",
+    "custom_components/heatpump_optimizer/coordinator.py:1108-1116",
+    "custom_components/heatpump_optimizer/coordinator.py:6712-6713"
+   ],
+   "verdict": "false",
+   "why": "The counter only feeds heat-counter COP spans (cop_electric); cost and peak accounting still integrate the power readings.",
+   "correction": "A cumulative kWh meter of the heat pump's electricity, if you have one. It is used together with the Heat pump heat energy meter: over each span the delivered heat is divided by this meter's kWh, which counts short compressor runs that power readings between updates miss. On its own it changes nothing the plan or the learners use."
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data_description.heat_pump_heat_energy_entity",
+   "n_keys": 1,
+   "claim": "Heat counter outranks thermal power and flow; efficiency measured with energy meter; mode-entity split of DHW",
+   "evidence": [
+    "custom_components/heatpump_optimizer/flow_meter.py:52-68",
+    "custom_components/heatpump_optimizer/thermal_model.py:1438-1449",
+    "custom_components/heatpump_optimizer/heat_energy.py:229-249"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data_description.heat_pump_power_entity",
+   "n_keys": 1,
+   "claim": "Actual draw; enables measured efficiency/cost check/wood detection; W or kW",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:190-195",
+    "custom_components/heatpump_optimizer/external_heat.py:228-229",
+    "custom_components/heatpump_optimizer/thermal_model.py:1326-1328"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data_description.heat_pump_thermal_power_entity",
+   "n_keys": 1,
+   "claim": "Thermal meter in W/kW; used instead of flow sensor; learners read delivered heat",
+   "evidence": [
+    "custom_components/heatpump_optimizer/flow_meter.py:52-68",
+    "custom_components/heatpump_optimizer/const.py:190-195"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data_description.heat_pump_power_source",
+   "n_keys": 1,
+   "claim": "Source meter/estimate/auto; only metered heat over metered power graded as measured COP; auto reads \"estimat\" id",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1479-1485",
+    "custom_components/heatpump_optimizer/thermal_model.py:1331-1344",
+    "custom_components/heatpump_optimizer/const.py:1271"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data_description.heat_pump_thermal_power_source",
+   "n_keys": 1,
+   "claim": "Estimated thermal figure trains learners but never a measured COP",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1331-1360",
+    "custom_components/heatpump_optimizer/const.py:1271"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data_description.heat_meter_sees_dhw",
+   "n_keys": 1,
+   "claim": "Turn on only if the heat meter also sees DHW; off => hot-water runs record no measured COP",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1342-1344",
+    "custom_components/heatpump_optimizer/const.py:1276"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.meters.data_description.house_power_entity",
+   "n_keys": 1,
+   "claim": "Total house consumption used for peak tracking; without it peak is only the pump",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:8660-8680",
+    "custom_components/heatpump_optimizer/coordinator.py:8742"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.compressor.data_description.compressor_freq_entity",
+   "n_keys": 1,
+   "claim": "Learns kW-per-Hz map, recommends frequency, observation only until mode control",
+   "evidence": [
+    "custom_components/heatpump_optimizer/freq_control.py:1-30",
+    "custom_components/heatpump_optimizer/const.py:1284",
+    "custom_components/heatpump_optimizer/coordinator.py:10870-10905"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.compressor.data_description.compressor_freq_sensor",
+   "n_keys": 1,
+   "claim": "Actual-frequency sensor preferred for reported value; sensor alone enough to observe; control needs number",
+   "evidence": [
+    "custom_components/heatpump_optimizer/freq_control.py:76-126",
+    "custom_components/heatpump_optimizer/coordinator.py:10870-10876"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.compressor.data_description.flow_meter_entity",
+   "n_keys": 1,
+   "claim": "Flow sensor units; supply+return give heat when no power or frequency signal; energy sensor does not switch it off",
+   "evidence": [
+    "custom_components/heatpump_optimizer/flow_meter.py:52-110",
+    "custom_components/heatpump_optimizer/const.py:204-213",
+    "custom_components/heatpump_optimizer/thermal_model.py:1431-1437"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.compressor.data_description.freq_control_mode",
+   "n_keys": 1,
+   "claim": "Observe never writes; control writes via number.set_value, 1 per 5 min, clamped, 3 divergent ticks stands down; needs number",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:10870-10905",
+    "custom_components/heatpump_optimizer/freq_control.py:57-65",
+    "custom_components/heatpump_optimizer/freq_control.py:289-330"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.compressor.data_description.compressor_freq_min_hz",
+   "n_keys": 1,
+   "claim": "Range used when only sensor configured or number lacks min/max",
+   "evidence": [
+    "custom_components/heatpump_optimizer/freq_control.py:76-126",
+    "custom_components/heatpump_optimizer/const.py:1289-1291"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_metering.sections.compressor.data_description.compressor_freq_max_hz",
+   "n_keys": 1,
+   "claim": "Number entity own max wins",
+   "evidence": [
+    "custom_components/heatpump_optimizer/freq_control.py:106-112"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_pump.description",
+   "n_keys": 1,
+   "claim": "page description",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.entities_pump.data_description.pump_duty_mode",
+   "n_keys": 1,
+   "claim": "Off never writes; Observe writes nothing + 24h ledger; Control mode/set-point mapping; 90/30 min lease; 55/35/5 C; write back; 5 min resend",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py:52-58",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:126-128",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:783-792",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:873-925",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1186-1208",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1211-1230",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1238-1255",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1269-1299",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1797-1816",
+    "custom_components/heatpump_optimizer/pump_arbiter.py:1935-1958",
+    "custom_components/heatpump_optimizer/coordinator.py:7816-7829"
+   ],
+   "verdict": "stale",
+   "why": "A planned both step is split (DHW only, then Heating); heating steps write a level-following flow up to the ceiling and non-heating steps the 25/20 °C gate, not entity max/min; the cycle temperature is written during a cycle; and the power switch is written whatever the option says.",
+   "correction": "Off (the default) never writes the pump's operating mode or set-points. Observe writes none either and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). With any of the three, the heat pump on/off switch, if you have set one, is still switched by the plan. Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, unchanged on idle steps; on a step that plans both, hot water only for the hot-water share of the step and then heating, a share under 5 minutes going to the other duty; Heating + DHW while a boost or an anti-legionella cycle calls for both, and whenever the plan is not in charge), the hot water set-point entity (the hot water set-point configured on the hot water page, or the anti-legionella temperature during a cycle) and the space set-point entity (for a flow set-point, a target that follows the planned power — the heating flow (55 °C, or the Heating flow ceiling) at full power, toward 5 °C (or the Minimum lift above the inlet water) above the first fresh reading of the heat-pump return, buffer tank, floor return or valve outlet (35 °C when none is configured) at the modulation floor — on steps that heat the house, 25 °C on steps that do not (20 °C for a Return temperature set-point, or the entity's own minimum if that is higher), and 35 °C or the weather curve, whichever is higher, when the plan is not in charge; for an indoor one, the planned room temperature). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered instead: the hot water one to 30 °C, a flow set-point to the same 25 °C (20 °C for Return temperature), an indoor one to 5 °C, each never below the entity's own minimum. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors), unless the room is already at its planned temperature. Where Capacity limited (night mode) is a switch and silent windows are scheduled, Control also holds that switch on inside a silent window and off outside one. While Optimizer active is on, any change to those entities the optimizer did not make is written back at once; turn Optimizer active off to change the pump by hand. A value the pump does not hold raises a warning and is sent again every 5 minutes.",
+   "pinned": "check_flow_text_claims (figures)"
+  },
+  {
+   "key": "options.step.entities_pump.data_description.heat_pump_backup_heater_entity",
+   "n_keys": 1,
+   "claim": "Backup heater on => meter not read as efficiency measurement; heat still counts; house learners keep running",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_signals.py:150-190",
+    "custom_components/heatpump_optimizer/coordinator.py:894-919"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_pump.data_description.heat_pump_dhw_booster_entity",
+   "n_keys": 1,
+   "claim": "Booster on treated like backup; each switch-on recorded as hot water rescue; immersion feedback makes plan heat earlier",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_signals.py:166-185",
+    "custom_components/heatpump_optimizer/coordinator.py:9142",
+    "custom_components/heatpump_optimizer/coordinator.py:4331"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_pump.data_description.heat_pump_capacity_limited_entity",
+   "n_keys": 1,
+   "claim": "Capacity-limited intervals not used for efficiency/capacity learning; measured power still used for cost",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_signals.py:187-203"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_pump.data_description.heat_pump_supply_temp_entity",
+   "n_keys": 1,
+   "claim": "Supply temp learns curve offset; recorded only unless Price the supply temperature lift is on",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:1200-1216",
+    "custom_components/heatpump_optimizer/const.py:891-896",
+    "custom_components/heatpump_optimizer/flow_lift.py:74-91"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.entities_pump.data_description.heat_pump_return_temp_entity",
+   "n_keys": 1,
+   "claim": "Physical advice about which pipe return temp is",
+   "evidence": [
+    "custom_components/heatpump_optimizer/flow_lift.py:74-91"
+   ],
+   "verdict": "unverifiable"
+  },
+  {
+   "key": "options.step.hot_water_tank.description",
+   "n_keys": 1,
+   "claim": "page description",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.tank.data_description.shower_flow_lpm",
+   "n_keys": 1,
+   "claim": "Shower flow only used for shower minutes on mixed water sensor",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:4400-4412",
+    "custom_components/heatpump_optimizer/const.py:1016"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.inlet.data_description.dhw_inlet_entity",
+   "n_keys": 1,
+   "claim": "Live inlet sensor replaces model",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:4293-4296",
+    "custom_components/heatpump_optimizer/thermal_model.py:806-822"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.inlet.data_description.dhw_inlet_seasonal_amplitude",
+   "n_keys": 1,
+   "claim": "Half-swing around mean; coldest ~day 60 (late Feb/1 Mar), warmest late summer; 0 = constant",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:830-836",
+    "custom_components/heatpump_optimizer/config_flow.py:1794"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.inlet.data_description.dhw_inlet_temp",
+   "n_keys": 1,
+   "claim": "Annual mean; default 10 C",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:950",
+    "custom_components/heatpump_optimizer/config_flow.py:1793"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.recovery.data_description.greywater_recovery_effectiveness",
+   "n_keys": 1,
+   "claim": "Fraction of drain heat returned; 0 none",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:838-858",
+    "custom_components/heatpump_optimizer/config_flow.py:1796"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.disinfection.data.dhw_elastic_legionella_enabled",
+   "n_keys": 1,
+   "claim": "label",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.disinfection.data.dhw_free_disinfection_enabled",
+   "n_keys": 1,
+   "claim": "label",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.disinfection.data_description.dhw_disinfection_mode",
+   "n_keys": 1,
+   "claim": "Observe never writes; control on at cycle start/off at end; not while pump mode makes no hot water; only owned switch turned off; manual-on caveat",
+   "evidence": [
+    "custom_components/heatpump_optimizer/disinfection.py:123-170",
+    "custom_components/heatpump_optimizer/disinfection.py:1-50"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.disinfection.data_description.dhw_disinfection_switch_entity",
+   "n_keys": 1,
+   "claim": "Observe: read and shown on hot-water sensor attributes; control: turns on/off",
+   "evidence": [
+    "custom_components/heatpump_optimizer/disinfection.py:250-275",
+    "custom_components/heatpump_optimizer/disinfection.py:115-135"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.disinfection.data_description.dhw_elastic_legionella_enabled",
+   "n_keys": 1,
+   "claim": "Cycle may run early when electricity cheap; deadline honoured",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:508-585",
+    "custom_components/heatpump_optimizer/const.py:965-968"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled",
+   "n_keys": 1,
+   "claim": "Enabling counts any heat source holding the tank at temperature as a completed cycle",
+   "evidence": [
+    "custom_components/heatpump_optimizer/legionella.py:197-243",
+    "custom_components/heatpump_optimizer/const.py:962-963",
+    "custom_components/heatpump_optimizer/const.py:1049"
+   ],
+   "verdict": "false",
+   "why": "async_track credits any source in both states; the flag only changes instant credit into 20-minute hold-verified credit.",
+   "correction": "If a wood boiler, solar coil or immersion heater gets the tank to the anti-legionella temperature, that counts as a completed cycle instead of running another one. Off, reaching the temperature (within 1 °C) counts at once, however briefly; on, the tank has to hold it for 20 minutes first.",
+   "pinned": "check_flow_text_claims (figures)"
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.disinfection.data_description.dhw_legionella_min_interval_days",
+   "n_keys": 1,
+   "claim": "Never run anti-legionella cycles closer together than this, even on cheap days",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_planner.py:545-551",
+    "custom_components/heatpump_optimizer/config_flow.py:1788",
+    "custom_components/heatpump_optimizer/config_flow.py:1800"
+   ],
+   "verdict": "false",
+   "why": "min_interval is read only in the elastic branch; the regular deadline branch ignores it.",
+   "correction": "With Let the anti-legionella cycle pick a cheap day on, a cycle may run early on a cheap day only after this many days since the last one. It never delays a cycle that is due at the regular interval, and does nothing while that option is off."
+  },
+  {
+   "key": "options.step.hot_water_tank.sections.disinfection.data_description.dhw_quantile_targets_enabled",
+   "n_keys": 1,
+   "claim": "Learns per-window heavy-day (p90) draw; needs configured time frames; blends in with evidence",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:4342-4350",
+    "custom_components/heatpump_optimizer/dhw_planner.py:908-925"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.hot_water_pumps.data.vvc_pump_entity",
+   "n_keys": 1,
+   "claim": "label",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.hot_water_pumps.data_description.vvc_pump_entity",
+   "n_keys": 1,
+   "claim": "When set, the pump only runs during hot water time frames plus lead",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_schedule.py:30-52",
+    "custom_components/heatpump_optimizer/coordinator.py:4508-4522"
+   ],
+   "verdict": "false",
+   "why": "vvc_should_run returns True always when there are no demand windows.",
+   "correction": "A switch controlling the hot water circulation (VVC) loop pump. When set and hot water time frames are configured, the pump runs only during those time frames plus the lead time below; with no time frames, or with hot water off, it is kept on."
+  },
+  {
+   "key": "options.step.hot_water_pumps.data_description.vvc_lead_minutes",
+   "n_keys": 1,
+   "claim": "Lead minutes before a time frame pump starts",
+   "evidence": [
+    "custom_components/heatpump_optimizer/pump_schedule.py:41-52",
+    "custom_components/heatpump_optimizer/const.py:1020"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid_connection.description",
+   "n_keys": 1,
+   "claim": "page contents label",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:1909-1915"
+   ],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.grid_connection.data_description.main_fuse_amperes",
+   "n_keys": 1,
+   "claim": "0 leaves fuse unconfigured; fuse advisor, fuse guard AND headroom sensor dormant",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:8881-8935",
+    "custom_components/heatpump_optimizer/entry_config.py:261-264",
+    "custom_components/heatpump_optimizer/coordinator.py:8960-8978",
+    "custom_components/heatpump_optimizer/coordinator.py:6298-6301",
+    "custom_components/heatpump_optimizer/sensor.py:2450-2480"
+   ],
+   "verdict": "false",
+   "why": "Headroom is computed from the capacity threshold when no fuse is set and is unavailable only when neither limit exists.",
+   "correction": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor and the fuse guard dormant; the headroom sensor then follows your capacity-tariff peak alone, and has no value if there is no capacity tariff either. There is no safe default to guess, and a wrong one would cap a bigger house."
+  },
+  {
+   "key": "options.step.grid_connection.data_description.fuse_guard_enabled",
+   "n_keys": 1,
+   "claim": "Caps planned HP power at fuse minus house load; infeasible comfort floor is reported on sensors",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6298",
+    "custom_components/heatpump_optimizer/coordinator.py:6301",
+    "custom_components/heatpump_optimizer/optimizer.py:4285",
+    "custom_components/heatpump_optimizer/optimizer.py:4318"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid_connection.data_description.peak_guard_enabled",
+   "n_keys": 1,
+   "claim": "Live meter projection of window mean; holds back electric DHW and nudges heat curve down; needs power meter; floors win",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:8742",
+    "custom_components/heatpump_optimizer/coordinator.py:8826",
+    "custom_components/heatpump_optimizer/coordinator.py:8860",
+    "custom_components/heatpump_optimizer/power_guard.py:98",
+    "custom_components/heatpump_optimizer/coordinator.py:8834"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid_connection.data_description.peak_guard_margin_kw",
+   "n_keys": 1,
+   "claim": "Guard acts when projection exceeds threshold minus margin; larger margin catches more",
+   "evidence": [
+    "custom_components/heatpump_optimizer/power_guard.py:132",
+    "custom_components/heatpump_optimizer/config_flow.py:1913",
+    "custom_components/heatpump_optimizer/const.py:539"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid_connection.data_description.silent_mode_windows",
+   "n_keys": 1,
+   "claim": "Window grammar; plan assumes full power without it; empty plans without it",
+   "evidence": [
+    "custom_components/heatpump_optimizer/silent_mode.py:8",
+    "custom_components/heatpump_optimizer/silent_mode.py:21",
+    "custom_components/heatpump_optimizer/config_flow.py:1914",
+    "custom_components/heatpump_optimizer/const.py:546"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid_connection.data_description.silent_mode_power_fraction",
+   "n_keys": 1,
+   "claim": "Share of max electrical power kept inside silent mode schedule; 1.0 caps nothing; slider floor equals capacity floor (first pass false; refuted on re-check: The text is true for the pump's own silent schedule; that the same fraction also caps the Silent windows set through the Set thermal parameters action is an omission, not a false claim.)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/quiet_windows.py:398-425",
+    "custom_components/heatpump_optimizer/quiet_windows.py:470-473",
+    "custom_components/heatpump_optimizer/const.py:1140",
+    "custom_components/heatpump_optimizer/config_flow.py:1915"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid_fees.description",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.grid_fees.data.dso_product",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.grid_fees.data_description.dso_product",
+   "n_keys": 1,
+   "claim": "Selecting a product writes fee rules and peak-tariff fields; unknown or stale products write nothing",
+   "evidence": [
+    "custom_components/heatpump_optimizer/grid_fee.py:448-476",
+    "custom_components/heatpump_optimizer/grid_fee.py:481-512",
+    "custom_components/heatpump_optimizer/config_flow.py:2059-2063"
+   ],
+   "verdict": "false",
+   "why": "'Stale' in code means rules failing to parse (never true for shipped rows); there is no date check, so an expired product still writes, and mode and peak-tariff-enabled are also written.",
+   "correction": "A dated Sweden-only table. Selecting a product writes transfer-fee rules and peak-tariff fields you can still edit, switches the transfer fee to Time-of-use rules and turns the peak tariff on. Verify against your bill: a product keeps writing its values after its end date. A product the table does not know writes nothing."
+  },
+  {
+   "key": "options.step.grid_fees.data_description.grid_fee_mode",
+   "n_keys": 1,
+   "claim": "Plan sees whole marginal price; 'Rules' uses schedule; 'Live sensor' follows an entity",
+   "evidence": [
+    "custom_components/heatpump_optimizer/grid_fee.py:94",
+    "custom_components/heatpump_optimizer/grid_fee.py:299",
+    "custom_components/heatpump_optimizer/config_flow.py:1918",
+    "custom_components/heatpump_optimizer/strings.json:1686"
+   ],
+   "verdict": "stale",
+   "why": "The selector label is 'Time-of-use rules', not 'Rules'.",
+   "correction": "The fee your grid company adds per kWh transferred. Tibber's price does not include it, so with it configured the plan finally sees the whole marginal price. \"Time-of-use rules\" uses the schedule below; \"Live sensor\" follows an entity."
+  },
+  {
+   "key": "options.step.grid_fees.data_description.grid_fee_fixed",
+   "n_keys": 1,
+   "claim": "Flat fee added in every hour on top of any rules",
+   "evidence": [
+    "custom_components/heatpump_optimizer/grid_fee.py:255-257",
+    "custom_components/heatpump_optimizer/grid_fee.py:274-283",
+    "custom_components/heatpump_optimizer/grid_fee.py:309-316",
+    "custom_components/heatpump_optimizer/const.py:489"
+   ],
+   "verdict": "false",
+   "why": "from_config reads the fixed fee only when mode != none, and live-sensor mode adds it too.",
+   "correction": "A flat fee added in every hour, on top of the time-of-use rules or the live sensor's value. It only applies when Grid transfer fee is Time-of-use rules or Live sensor; with None it is ignored. Take it from your grid invoice."
+  },
+  {
+   "key": "options.step.grid_fees.data_description.grid_fee_rules",
+   "n_keys": 1,
+   "claim": "Rule syntax, optional parts, overlap adds, decimal comma",
+   "evidence": [
+    "custom_components/heatpump_optimizer/grid_fee.py:212",
+    "custom_components/heatpump_optimizer/grid_fee.py:219",
+    "custom_components/heatpump_optimizer/grid_fee.py:312",
+    "custom_components/heatpump_optimizer/grid_fee.py:12"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid_fees.data_description.grid_fee_entity",
+   "n_keys": 1,
+   "claim": "Sensor in currency/kWh, value added to every planned hour",
+   "evidence": [
+    "custom_components/heatpump_optimizer/grid_fee.py:300",
+    "custom_components/heatpump_optimizer/grid_fee.py:330",
+    "custom_components/heatpump_optimizer/coordinator.py:7603",
+    "custom_components/heatpump_optimizer/grid_fee.py:310"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.grid_fees.data_description.contract_fixed_price",
+   "n_keys": 1,
+   "claim": "Fixed contract price drives Contract Comparison column; 0 leaves it out",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:10453",
+    "custom_components/heatpump_optimizer/coordinator.py:10454",
+    "custom_components/heatpump_optimizer/const.py:520"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning_features.description",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.learning_features.sections.weather.data_description.open_window_relax_enabled",
+   "n_keys": 1,
+   "claim": "Detector always pauses learning; with option lowers the heating target by 1 C while window open",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:6272-6282",
+    "custom_components/heatpump_optimizer/away.py:404-405",
+    "custom_components/heatpump_optimizer/const.py:1293",
+    "custom_components/heatpump_optimizer/const.py:1671",
+    "custom_components/heatpump_optimizer/coordinator.py:5813",
+    "custom_components/heatpump_optimizer/coordinator.py:6945"
+   ],
+   "verdict": "false",
+   "why": "The relax widens only the min_temp floor via solve_bands (floored at 15 °C); the target temperature is untouched.",
+   "correction": "The open-window detector always pauses learning — that part is free and always on. This additionally lowers the coldest acceptable temperature by 1 °C (never below 15 °C) while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.",
+   "pinned": "check_flow_text_claims (figures)"
+  },
+  {
+   "key": "options.step.learning_features.sections.weather.data_description.outage_recovery_enabled",
+   "n_keys": 1,
+   "claim": "Long gap opens 2 h recovery window: capacity charge priced from first kW, DHW queued 45 min unless tank low",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:580",
+    "custom_components/heatpump_optimizer/const.py:582",
+    "custom_components/heatpump_optimizer/const.py:584",
+    "custom_components/heatpump_optimizer/coordinator.py:6228",
+    "custom_components/heatpump_optimizer/coordinator.py:9044"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning_features.sections.weather.data_description.precip_type_enabled",
+   "n_keys": 1,
+   "claim": "Snow vs rain weighting; without it snow treated as rain; needs Open-Meteo",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:7511",
+    "custom_components/heatpump_optimizer/coordinator.py:7487",
+    "custom_components/heatpump_optimizer/coordinator.py:7494"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning_features.sections.weather.data_description.snow_roof_factor_enabled",
+   "n_keys": 1,
+   "claim": "Solar gain halved for two days after heavy snowfall; crude",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:1124",
+    "custom_components/heatpump_optimizer/const.py:1125",
+    "custom_components/heatpump_optimizer/const.py:1121",
+    "custom_components/heatpump_optimizer/coordinator.py:7546"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning_features.sections.model.data.solar_aperture_learning_enabled",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.learning_features.sections.model.data_description.capacity_curve_enabled",
+   "n_keys": 1,
+   "claim": "Learns delivered heat per outdoor temp; trims plan; at least 60% of nameplate stays",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:9363",
+    "custom_components/heatpump_optimizer/coordinator.py:9368",
+    "custom_components/heatpump_optimizer/coordinator.py:9373",
+    "custom_components/heatpump_optimizer/const.py:1140"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning_features.sections.model.data_description.curve_learning_enabled",
+   "n_keys": 1,
+   "claim": "creeps cooler by at most six tenths of a degree per week (first pass false against MAX_DOWN_PER_WEEK = 0.5; refuted: the realised worst case is STEP_K 0.2 K every DAYS_PER_STEP 3 days, three steps in one 7-day window, D6-s2-03, corrected to 0.6 by b1024f9ef3)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/curve_learning.py:43 MAX_DOWN_PER_WEEK",
+    "custom_components/heatpump_optimizer/curve_learning.py:121-136 _step_down"
+   ],
+   "verdict": "true",
+   "pinned": "check_flow_text_claims (figures)"
+  },
+  {
+   "key": "options.step.learning_features.sections.model.data_description.internal_gains_learning_enabled",
+   "n_keys": 1,
+   "claim": "Per-hour internal gains profile from dark-hour errors, tethered to configured value",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:1165",
+    "custom_components/heatpump_optimizer/const.py:1172",
+    "custom_components/heatpump_optimizer/const.py:1183",
+    "custom_components/heatpump_optimizer/thermal_model.py:3384"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning_features.sections.model.data_description.solar_aperture_learning_enabled",
+   "n_keys": 1,
+   "claim": "Scales solar gain from sunny-hour residuals between a third and double the configured value",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:1147",
+    "custom_components/heatpump_optimizer/const.py:1148",
+    "custom_components/heatpump_optimizer/const.py:1154"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.learning_features.sections.plant.data_description.immersion_feedback_enabled",
+   "n_keys": 1,
+   "claim": "Repeated immersion use raises hot-water margin; extra cost as own ledger line",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:9284",
+    "custom_components/heatpump_optimizer/coordinator.py:9304",
+    "custom_components/heatpump_optimizer/coordinator.py:10384"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.thermal_model_zones.description",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "options.step.thermal_model_zones.sections.mode.data_description.two_zone_mode",
+   "n_keys": 1,
+   "claim": "Off forces single zone; On forces two-zone; Automatic = two-zone once any zone value stored, can only turn on",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:1120",
+    "custom_components/heatpump_optimizer/thermal_model.py:1122",
+    "custom_components/heatpump_optimizer/thermal_model.py:1125",
+    "custom_components/heatpump_optimizer/const.py:770"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.modbus_prefill.description",
+   "n_keys": 1,
+   "claim": "Page reads values from pump's registers (list); empty slots only; clear = left as it was; nothing about house; found/heater placeholder; name-matched roles",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:4036-4060",
+    "custom_components/heatpump_optimizer/config_flow.py:4070-4072",
+    "custom_components/heatpump_optimizer/device_prefill.py:288-305",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:222-262",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:275"
+   ],
+   "verdict": "stale",
+   "why": "The page opens with a device pick beside the prefix, and heat_pump_max_power is suggested from unit capacity over COP.",
+   "correction": "For a Rotenso Windmi or another GCHV-built heat pump, read through the tuya_heat_pump project's Modbus package or through the pump's own Home Assistant device. Pick the device, or leave it empty and name the package's entity prefix, and submit: the next form suggests values read from the pump - the hot water set-points and schedule, the anti-legionella days, the night mode schedule, the pump's maximum electrical power (from its unit capacity), whether the pump steers on water temperature, and the pump's own sensors for sensor slots that are still empty. Edit or clear any of them; only what you keep is saved, and a field you clear is left as it was. Nothing about the house or its heating system can be read this way.\n\nEntities read: {found}. Backup heater type register: {backup_heater_type} - any value but 7 means the pump has electric heat of its own, which the heater slots on Heat pump telemetry are there to watch.\n\nRoles read from an entity's NAME rather than from a published definition - the page cannot verify those, so check each before saving: {name_matched}. Roles read from published definitions, by source: {matched_sources}."
+  },
+  {
+   "key": "options.step.modbus_prefill.data_description.prefill_device",
+   "n_keys": 1,
+   "claim": "Device pick replaces package; empty uses prefix; suggestions come from published definitions",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:4036-4060",
+    "custom_components/heatpump_optimizer/device_prefill.py:288-305"
+   ],
+   "verdict": "stale",
+   "why": "resolve_with_fallback fills roles a source table lacks by entity name, which the page lists as name-matched; the config-flow sibling text already says so.",
+   "correction": "Pick the heat pump's own device to read its entities instead of a Modbus package. Leave it empty to use the prefix below. The suggestions come from that integration's published definitions, or from the entities' names where nothing is published - not from a reading of your unit - so check them."
+  },
+  {
+   "key": "options.step.modbus_prefill.data_description.modbus_prefill_prefix",
+   "n_keys": 1,
+   "claim": "Prefix like hp; saved only when package found under it",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:4065",
+    "custom_components/heatpump_optimizer/config_flow.py:4085",
+    "custom_components/heatpump_optimizer/config_flow.py:4086"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.modbus_prefill.data_description.outdoor_temp_entity",
+   "n_keys": 1,
+   "claim": "outdoor air temperature sensor suggested only while slot empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:97",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:242",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:243"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.modbus_prefill.data_description.dhw_temp_entity",
+   "n_keys": 1,
+   "claim": "hot water tank temperature sensor suggested only while slot empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:97",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:242",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:243"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.modbus_prefill.data_description.heat_pump_supply_temp_entity",
+   "n_keys": 1,
+   "claim": "leaving water temperature T1 sensor suggested only while slot empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:97",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:242",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:243"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.modbus_prefill.data_description.heat_pump_return_temp_entity",
+   "n_keys": 1,
+   "claim": "entering water temperature Tw-in sensor suggested only while slot empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:97",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:242",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:243"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.modbus_prefill.data_description.heat_pump_capacity_limited_entity",
+   "n_keys": 1,
+   "claim": "night mode frequency reduction active sensor suggested only while slot empty",
+   "evidence": [
+    "custom_components/heatpump_optimizer/modbus_prefill.py:97",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:242",
+    "custom_components/heatpump_optimizer/modbus_prefill.py:243"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.modbus_prefill.data_description.prefill_offer",
+   "n_keys": 1,
+   "claim": "Offered at setup when a device can fill settings; default off; stored",
+   "evidence": [
+    "custom_components/heatpump_optimizer/const.py:571",
+    "custom_components/heatpump_optimizer/prefill_offer.py:84",
+    "custom_components/heatpump_optimizer/config_flow.py:2285",
+    "custom_components/heatpump_optimizer/config_flow.py:2909"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.factory_reset.description",
+   "n_keys": 1,
+   "claim": "Reset scopes: settings default except wiring kept; learned values forgotten (list); snapshot taken; undo until next weekly snapshot; reloads",
+   "evidence": [
+    "custom_components/heatpump_optimizer/entry_config.py:293",
+    "custom_components/heatpump_optimizer/coordinator.py:1447",
+    "custom_components/heatpump_optimizer/coordinator.py:1497",
+    "custom_components/heatpump_optimizer/snapshots.py:245",
+    "custom_components/heatpump_optimizer/snapshots.py:48",
+    "custom_components/heatpump_optimizer/coordinator.py:1486"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.step.factory_reset.data_description.confirm",
+   "n_keys": 1,
+   "claim": "Unticked: nothing changes, menu returns",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3502",
+    "custom_components/heatpump_optimizer/config_flow.py:3503",
+    "custom_components/heatpump_optimizer/config_flow.py:2568"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.freq_control_needs_number",
+   "n_keys": 1,
+   "claim": "Control mode needs a number entity; sensor alone observes",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3649",
+    "custom_components/heatpump_optimizer/config_flow.py:3650",
+    "custom_components/heatpump_optimizer/config_flow.py:1719",
+    "custom_components/heatpump_optimizer/freq_control.py:13"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.disinfection_control_needs_entity",
+   "n_keys": 1,
+   "claim": "Control turns pump disinfection switch on/off, needs one",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3719",
+    "custom_components/heatpump_optimizer/config_flow.py:3722",
+    "custom_components/heatpump_optimizer/disinfection.py:160",
+    "custom_components/heatpump_optimizer/config_flow.py:1801"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.invalid_grid_fee_rules",
+   "n_keys": 1,
+   "claim": "Fee rules unreadable",
+   "evidence": [
+    "custom_components/heatpump_optimizer/grid_fee.py:243",
+    "custom_components/heatpump_optimizer/grid_fee.py:244"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.grid_fee_rules_negative",
+   "n_keys": 1,
+   "claim": "Negative rate refused",
+   "evidence": [
+    "custom_components/heatpump_optimizer/grid_fee.py:245",
+    "custom_components/heatpump_optimizer/grid_fee.py:246"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.grid_fee_rules_implausible",
+   "n_keys": 1,
+   "claim": "Rate above bound refused; bound in currency",
+   "evidence": [
+    "custom_components/heatpump_optimizer/grid_fee.py:247",
+    "custom_components/heatpump_optimizer/grid_fee.py:248",
+    "custom_components/heatpump_optimizer/grid_fee.py:60"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.invalid_peak_months",
+   "n_keys": 1,
+   "claim": "Months spec invalid",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3875",
+    "custom_components/heatpump_optimizer/config_flow.py:3876"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.invalid_peak_hours",
+   "n_keys": 1,
+   "claim": "Hours spec invalid",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3877",
+    "custom_components/heatpump_optimizer/config_flow.py:3878"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.partload_derate_above_limit",
+   "n_keys": 1,
+   "claim": "Derate must be below band/(band+max); 0.44 for 1-5 kW; 0.17 for 4-5 kW",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:2513",
+    "custom_components/heatpump_optimizer/config_flow.py:977"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.flow_curve_needs_direct_plant",
+   "n_keys": 1,
+   "claim": "Flow-curve lift refused behind a throttling valve",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3770",
+    "custom_components/heatpump_optimizer/config_flow.py:3776",
+    "custom_components/heatpump_optimizer/mixing_valve.py:58"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.dhw_windows_day_selector",
+   "n_keys": 1,
+   "claim": "Day field refuses day selectors",
+   "evidence": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py:592",
+    "custom_components/heatpump_optimizer/dhw_schedule.py:605",
+    "custom_components/heatpump_optimizer/config_flow.py:1025"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.combi_needs_store",
+   "n_keys": 1,
+   "claim": "Combi needs throttling valve, buffer >= 100 L, hot water on, no wood coil",
+   "evidence": [
+    "custom_components/heatpump_optimizer/thermal_model.py:317",
+    "custom_components/heatpump_optimizer/thermal_model.py:301",
+    "custom_components/heatpump_optimizer/const.py:1365",
+    "custom_components/heatpump_optimizer/config_flow.py:3777"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.heat_curve_not_offset",
+   "n_keys": 1,
+   "claim": "Entity range excludes 0 so not an offset",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2318",
+    "custom_components/heatpump_optimizer/heat_curve.py:299"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.heat_curve_unreadable",
+   "n_keys": 1,
+   "claim": "Entity has no reading so baseline unknown (persistent kind)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2311",
+    "custom_components/heatpump_optimizer/config_flow.py:2312"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.error.heat_curve_out_of_range",
+   "n_keys": 1,
+   "claim": "Entity reads outside its declared range (persistent kind)",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:2314",
+    "custom_components/heatpump_optimizer/config_flow.py:2315"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.abort.factory_reset_done",
+   "n_keys": 1,
+   "claim": "Reset done, reloaded, Restore learned snapshot undoes",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3509",
+    "custom_components/heatpump_optimizer/coordinator.py:9751",
+    "custom_components/heatpump_optimizer/coordinator.py:9759"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.abort.factory_reset_not_loaded",
+   "n_keys": 1,
+   "claim": "Not loaded => nothing to reset",
+   "evidence": [
+    "custom_components/heatpump_optimizer/config_flow.py:3504",
+    "custom_components/heatpump_optimizer/config_flow.py:3505"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "options.abort.factory_reset_not_applied",
+   "n_keys": 1,
+   "claim": "HA refused unload; nothing changed",
+   "evidence": [
+    "custom_components/heatpump_optimizer/coordinator.py:1478",
+    "custom_components/heatpump_optimizer/coordinator.py:1479",
+    "custom_components/heatpump_optimizer/coordinator.py:1513"
+   ],
+   "verdict": "true"
+  },
+  {
+   "key": "selector.building_structure.options.timber_crawlspace",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "selector.dso_product.options.goteborg_energi_effekt_2026",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "selector.dhw_combi_tank_type.options.internal_coil",
+   "n_keys": 1,
+   "claim": "",
+   "evidence": [],
+   "verdict": "no-claim"
+  },
+  {
+   "key": "selector.heat_curve_target_kind.options.persistent",
+   "n_keys": 1,
+   "claim": "Persistent: stored by controller, written back on off",
+   "evidence": [
+    "custom_components/heatpump_optimizer/heat_curve.py:33",
+    "custom_components/heatpump_optimizer/heat_curve.py:46",
+    "custom_components/heatpump_optimizer/off_restore.py:19"
+   ],
+   "verdict": "true"
+  }
+ ]
+}

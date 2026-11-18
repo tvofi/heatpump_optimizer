@@ -216,6 +216,11 @@ jobs:
           # The title too: a queue entry's payload does not carry it, and a
           # dispatch's has no pull request. Read like the body, never the payload.
           gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.title // ""' > /tmp/pr-title.txt
+          # The whole answer, for tools/pr/outside.py (decision 0017), which
+          # policy_lint spawns below: the author's id and type, the head
+          # repository and the head ref name reach it as a file, never as text
+          # in a shell line.
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > /tmp/pr-pull.json
           # Every commit's identity, for the Dependabot arm alone
           # (tools/policy/dependabot_contract.mjs): a human commit pushed onto a
           # Dependabot branch keeps the bot as the PR's author, so the author
@@ -353,17 +358,25 @@ jobs:
             RED_ARGS+=(--red "$name")
           done < /tmp/pr-reds.txt
           PR_TITLE=$(cat /tmp/pr-title.txt)
+          # --outside-pull, --outside-ref (decision 0017): for an author that is
+          # neither App, policy_lint spawns the base's tools/pr/outside.py (the
+          # restore above takes tools/pr/*.py) over the pull request the API
+          # step saved, with no token; admitted, the author arm alone relaxes.
+          # An early signal: a fork head runs its own merge ref's workflow
+          # files, so `bus.sh adopt`, from main's copy on our machine, is the gate.
           if test -f .claude/workflows/policy_lint.mjs; then
             node .claude/workflows/policy_lint.mjs \
               --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
               --author "$(cat /tmp/pr-author.txt)" --commits-file /tmp/pr-commits.tsv \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
+              --outside-pull /tmp/pr-pull.json --outside-ref "$PR_BASE" \
               "${RED_ARGS[@]}"
           else
             node tools/policy/policy_lint.mjs \
               --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
               --author "$(cat /tmp/pr-author.txt)" --commits-file /tmp/pr-commits.tsv \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
+              --outside-pull /tmp/pr-pull.json --outside-ref "$PR_BASE" \
               "${RED_ARGS[@]}"
           fi
 

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor CMP_BOUND 387f0db6",
+  "killed_by": "tests/features.py",
+  "old": "            (a for a in FUSE_LADDER_A if a < amps), default=None",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`(a for a in FUSE_LADDER_A if a <= amps), default=None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

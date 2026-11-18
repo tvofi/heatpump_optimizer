@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:commit CLAMP_DROP 66553920",
+  "killed_by": "tests/features.py",
+  "old": "    level = np.minimum(np.maximum(q, f), cap)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`level = (np.maximum(q, f))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3. Each of the 2 sites under this anchor was killed."
+}
