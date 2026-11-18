@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_step_pairs CMP_BOUND 860cc128",
+  "killed_by": "tests/features.py",
+  "old": "            if history.times[j] - history.times[i] <= PAIR_GAP_MIN]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if history.times[j] - history.times[i] < PAIR_GAP_MIN]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

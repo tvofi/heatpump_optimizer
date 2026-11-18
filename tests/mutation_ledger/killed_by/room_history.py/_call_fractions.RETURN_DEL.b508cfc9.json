@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_call_fractions RETURN_DEL b508cfc9",
+  "killed_by": "tests/features.py",
+  "old": "    return np.array([np.nan if v is None else v / FULL_SHARE for v in column], dtype=float)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
