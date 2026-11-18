@@ -31,7 +31,7 @@ waits: finish, release, take again behind it. `run.sh` under `HPO_GATE_LOCK_LABE
 refuses every leased script at once if that label holds none: `take` first (#2368).
 
 **The mypy census runs here, given pins**: `HPO_TYPING_PYTHON` names one carrying them; unset it prints the install command, unpinned it fails.
-**A gate run rewrites `tools/audit/round4/D6/`**: check it out before any `git add -A`.
+**A gate run rewrites `dev/audit/rounds/round4/D6/`**: check it out before any `git add -A`.
 **`instrument-self-tests` is scoped too**: `tools/ci/selftest_scope.py` states its rule and re-record (#201 comment 6707834331).
 
 ## `prepr.sh` is not CI

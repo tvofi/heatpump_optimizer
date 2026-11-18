@@ -35082,6 +35082,39 @@ for _fl_name, _fl_kwargs, _fl_mutate in (
         f"{_fl_blocked._flow_bias.as_dict()}",
     )
 
+# R11-VALVE-REFERENCE r1: behind a throttling valve on a single-zone house the
+# supply follows the valve's tank-charge temperature, not the space curve, so
+# the fold takes no sample. A two-zone valved install keeps folding (bitwise,
+# the architect note), as does a single-zone house with no valve (the control).
+_fl_valve = {}
+for _fl_zone in ("off", "on"):
+    for _fl_mode in ("none", "manual", "smart_read", "smart_write"):
+        _fl_v = _fl_coord(two_zone_mode=_fl_zone, mixing_valve_mode=_fl_mode)
+        _fold_flow_lift(_fl_v, _T6)
+        _fl_valve[(_fl_zone, _fl_mode)] = _fl_v._flow_bias.samples
+# The other end of the learner's range: a bias already on its clamp, learned
+# before the valve was configured, is held as it was, not moved.
+_fl_clamped = _fl_coord(two_zone_mode="off", mixing_valve_mode="manual")
+_fl_clamped._flow_bias.observe(_fl_expected_curve - 50.0, _fl_expected_curve)
+_fl_held = _fl_clamped._flow_bias.as_dict()
+_fold_flow_lift(_fl_clamped, _T6)
+_fl_valve["clamped held"] = (
+    _fl_clamped._flow_bias.as_dict() == _fl_held
+    and abs(_fl_held["bias_k"]) == flow_lift.FLOW_BIAS_CLAMP_K
+)
+R.check(
+    "R11-VALVE-REFERENCE r1: a single-zone house behind a throttling valve folds "
+    "nothing; with no valve, and every two-zone install, it folds (null control)",
+    _fl_valve == {
+        ("off", "none"): 1, ("off", "manual"): 0,
+        ("off", "smart_read"): 0, ("off", "smart_write"): 0,
+        ("on", "none"): 1, ("on", "manual"): 1,
+        ("on", "smart_read"): 1, ("on", "smart_write"): 1,
+        "clamped held": True,
+    },
+    f"{_fl_valve!r}",
+)
+
 # -- persistence is additive -------------------------------------------------
 _fl_store = _t2_coord()
 _fl_store._flow_bias.observe(40.0, 34.0)
@@ -76777,9 +76810,25 @@ R.check(
 
 
 # The coin is seeded (``DITHER_SEED``), so a probe re-measures alike: the
-# order of the first twelve pairs of a fresh dither, H for the high level first.
+# order of the first twelve pairs of a fresh dither, H for the high level
+# first, a row read under every level.
+def _ss_levels_read(sd, n, read=lambda tick: True):
+    """``n`` steps of ``sd`` at base 1.0, half an hour apart, each followed by
+    a follower's row where ``read(tick)``, read under the level the step
+    before handed out (the interval that just ended); a row taken first. The
+    levels handed out."""
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))
+    out, ran = [], 1.0
+    for tick in range(n):
+        out.append(sd.step(1.0, True, _CF_T0 + _cf_td(minutes=30 * tick)))
+        if read(tick):
+            sd.take(_cf_row(1.5, 1.5 * ran / 0.8, scale=ran, at=_CF_T0 + _cf_td(minutes=30 * tick)))
+        ran = out[-1]
+    return out
+
+
 _ss_coin = _ss_SD()
-_ss_coin_seq = "".join("H" if _ss_coin.step(1.0, True) > 1.0 else "L" for _ in range(24))
+_ss_coin_seq = "".join("H" if x > 1.0 else "L" for x in _ss_levels_read(_ss_coin, 24))
 R.check(
     "a fresh dither hands out the same levels on every run: its first twelve "
     "pairs lead high six times, then low, high, high, high, high, low",
@@ -77006,9 +77055,9 @@ R.check(
 
 
 def _ss_take_under(reading):
-    """Rows taken under one ``reading``: two (heat asks 2.0 then 1.5 kW) under
-    a first-of-pair reading, one under a second-of-pair reading."""
-    sd = _ss_SD(reading=reading)
+    """Rows taken under one ``reading`` of pair (0, 1): two (heat asks 2.0
+    then 1.5 kW) under a first-of-pair reading, one under a second-of-pair reading."""
+    sd = _ss_SD(reading=(0, 1, reading[1]), pair=(0, 1))
     try:
         for asked in ((2.0, 1.5) if not reading[1] else (1.5,)):
             sd.take(_cf_row(asked, asked, scale=1.0, at=_CF_T0))
@@ -77048,31 +77097,76 @@ def _ss_floor_gap(n, every=3):
     return rec, seen
 
 
-_ss_b_gap.append(_ss_floor_gap(150))
 _ss_b_gap_end = [(len(rec.probe.dither.contrasts), rec.scale_response, rec.probe.dither.rows) for rec, _o in _ss_b_gap]
 R.check(
-    "two admitted rows then a frozen cycle, an unread one, or one refused "
-    "under the duty floor, repeated over 150 cycles: no pair completes and "
-    "the verdict stays pending on 100 rows, where the same follower "
-    "uninterrupted latches at the 50th; the scale is at the base on the cycle "
-    "after each frozen or unread one, and for a floor refusal on the cycle "
-    "after it (the refused cycle itself still set a dither level)",
-    _ss_b_gap_end == [(0, "pending", 100)] * 3
+    "two admitted rows then a frozen cycle or an unread one, repeated over "
+    "150 cycles: no pair completes and the verdict stays pending on 100 rows, "
+    "where the same follower uninterrupted latches at the 50th; the scale is "
+    "at the base on the cycle after each",
+    _ss_b_gap_end == [(0, "pending", 100)] * 2
     and all({o[t][0] for t in range(3, 150, 3)} == {1.0} for _r, o in _ss_b_gap)
-    and {_ss_b_gap[2][1][t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724}
-    and all({o[t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724} for _r, o in _ss_b_gap[:2]),
+    and all({o[t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724} for _r, o in _ss_b_gap),
     f"{_ss_b_gap_end}; {[o[:9] for _r, o in _ss_b_gap]}",
 )
-# Three admitted rows then a floor refusal: the pair's first row is read, its
-# second is not, and the row after the gap ran at the next pair's level -- half
-# the time a full step from the first. It must not complete that pair.
-_ss_b_gap4 = _ss_floor_gap(400, every=4)[0]
+# A read cycle that admits no row (a floor refusal) keeps the pair in flight:
+# the slot it missed is handed out again and held until a row is read under
+# it (BLOCKED.md departure A, approved on inbox/r11-outside-self-setting-pump
+# line 2). Every pair completes in the coin's order, from rows that were read
+# under the level the slot names; the follower latches follows.
+_ss_b_fl, _ss_b_fl_out = _ss_floor_gap(300)
+_ss_b_fl4, _ss_b_fl4_out = _ss_floor_gap(300, every=4)
+_ss_b_fl_at = [next((t for t, x in enumerate(o) if x[1] == "follows"), None) for o in (_ss_b_fl_out, _ss_b_fl4_out)]
 R.check(
-    "a pair whose second row was refused is void, not stretched to the row "
-    "after the gap: three admitted rows then a floor refusal, over 400 "
-    "cycles, completes no pair on 300 rows",
-    (len(_ss_b_gap4.probe.dither.contrasts), _ss_b_gap4.scale_response, _ss_b_gap4.probe.dither.rows) == (0, "pending", 300),
-    f"{(len(_ss_b_gap4.probe.dither.contrasts), _ss_b_gap4.scale_response, _ss_b_gap4.probe.dither.rows)}",
+    "two (or three) admitted rows then a floor refusal, over 300 cycles: the "
+    "pairs complete and the follower latches follows, where frozen or unread "
+    "gaps complete none",
+    None not in _ss_b_fl_at and _ss_b_fl.scale_response == _ss_b_fl4.scale_response == "follows",
+    f"latched at {_ss_b_fl_at}; {_ss_b_fl.scale_response}/{_ss_b_fl4.scale_response}",
+)
+
+
+# The hold itself, on a bare dither: rows read only where ``read(tick)``.
+def _ss_hold(read, n=12):
+    sd = _ss_SD()
+    levels = _ss_levels_read(sd, n, read)
+    return [round(x, 4) for x in levels], [round(c, 9) for c in sd.contrasts], sd.rows
+
+
+# One in three read: each missed slot is handed out again until a row is read
+# under it; the level handed out ahead of the miss runs once and is ignored.
+_ss_hold3 = _ss_hold(lambda tick: tick % 3 == 2, 24)
+R.check(
+    "a slot whose row was not read is handed out again and held until one "
+    "is: one row in three read, the pairs still complete in the coin's order, "
+    "each contrast +1 for a follower; with every row read the levels are the "
+    "uninterrupted sequence",
+    _ss_hold3[1] == [1.0] * 2 and _ss_hold3[2] == 9
+    and _ss_hold(lambda tick: True)[0] == [round(x, 4) for x in _ss_levels_read(_ss_SD(), 12)],
+    f"{_ss_hold3}",
+)
+# The pair voids past COP_HOLD_HORIZON_S from its first row, and the scale
+# waits at the base until a row is read: no row read after the first, steps
+# an hour apart.
+def _ss_hold_horizon(hours):
+    """The first slot's row read at ``_CF_T0`` + 30 min, then none: the two
+    levels handed out, and the scale at each of ``hours`` after that row."""
+    sd = _ss_SD()
+    first, second = _ss_levels_read(sd, 2)
+    sd.step(1.0, True, _CF_T0 + _cf_td(hours=1))  # the next pair's first, handed out ahead
+    at = sd.first.at
+    seen = [sd.step(1.0, True, at + _cf_td(hours=h)) for h in hours]
+    return round(first, 4), round(second, 4), [round(x, 4) for x in seen], sd.pair
+
+
+_ss_hh = [_ss_hold_horizon(h) for h in ((0, 24, 168), (168 + 1 / 3600, 169, 170), (-1, 2, 3))]
+R.check(
+    "a pair holding for its second row voids once COP_HOLD_HORIZON_S has "
+    "passed from its first (the bound inclusive) or its age is unknowable: "
+    "the scale returns to the base and stays there with no row read",
+    _ss_hh[0][2] == [_ss_hh[0][1]] * 3 and _ss_hh[0][3] is not None and _ss_hh[0][0] * _ss_hh[0][1] > 0
+    and [x[2] for x in _ss_hh[1:]] == [[1.0, 1.0, 1.0]] * 2 and [x[3] for x in _ss_hh[1:]] == [None] * 2
+    and _ss_hh[0][1] != _ss_hh[0][0] and 1.0 not in _ss_hh[0][:2],
+    f"{_ss_hh}",
 )
 
 
@@ -77177,12 +77271,14 @@ for _ss_i in range(3):
     _ss_idle_seen.append(_ss_seen(_ss_idle))
 _ss_idle_back = _ss_trace(_ss_idle, _ss_flat(4), true=0.8)
 R.check(
-    "mid-probe, a pump that goes off: the first idle cycle still runs the "
-    "level set before its refusal was known, every later one is at the base, "
-    "and the dither resumes on the second cycle after rows return",
-    _ss_idle_seen[0][0] in (0.9325, 1.0724) and [x[0] for x in _ss_idle_seen[1:]] == [1.0, 1.0]
+    "mid-probe, a pump that goes off (read cycles, no row): the scale holds "
+    "the slot whose row was missed, never the base, and the dither goes on "
+    "at its levels once rows return (departure A: was the base from the "
+    "second idle cycle)",
+    _ss_idle_seen[0][0] in (0.9325, 1.0724) and len({x[0] for x in _ss_idle_seen[1:]}) == 1
+    and {x[0] for x in _ss_idle_seen[1:]} <= {0.9325, 1.0724}
     and {x[1:] for x in _ss_idle_seen} == {(0, "pending", 1.0, "duty_floor")}
-    and [x[0] for x in _ss_idle_back[:1]] == [1.0] and {x[0] for x in _ss_idle_back[1:]} <= {0.9325, 1.0724},
+    and {x[0] for x in _ss_idle_back} <= {0.9325, 1.0724},
     f"{_ss_idle_seen}; back {_ss_idle_back}",
 )
 # A frozen cycle moves no scale (the owed scale sits past the freeze gate),
@@ -77238,6 +77334,148 @@ R.check(
     "does_not_follow over 672 cycles and folds nothing",
     {x[2] for x in _ss_rep} == {"pending"} and _ss_rep[-1][1] == 0,
     f"{sorted({x[2] for x in _ss_rep})}; {_ss_rep[-1]}; scales {sorted({x[0] for x in _ss_rep})}",
+)
+# A pair whose first slot never reads a row is bounded too: from when it was
+# handed out, not from each later step.
+def _ss_first_hold(hours):
+    sd = _ss_SD()
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))
+    first = sd.step(1.0, True, _CF_T0)
+    return round(first, 4), [round(sd.step(1.0, True, _CF_T0 + _cf_td(hours=h)), 4) for h in hours]
+
+
+_ss_fh = _ss_first_hold((1, 100, 168, 168 + 1 / 3600, 169))
+R.check(
+    "a first slot no row is read under: the step after it hands out the "
+    "second ahead (the miss is not known yet), then the first is held from "
+    "when it was handed out until COP_HOLD_HORIZON_S has passed (inclusive), "
+    "then the scale returns to the base and stays there",
+    _ss_fh[1][1:] == [_ss_fh[0]] * 2 + [1.0, 1.0]
+    and {_ss_fh[0], _ss_fh[1][0]} == {0.9325, 1.0724},
+    f"{_ss_fh}",
+)
+
+
+# So is the next pair's first slot, from the row that completed the pair before.
+def _ss_next_hold(hours):
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)  # the first pair completes on the row read at the third step
+    done = sd.since
+    return done == _CF_T0 + _cf_td(minutes=60) and sd.first is None, len(sd.contrasts), [round(sd.step(1.0, True, done + _cf_td(hours=h)), 4) for h in hours]
+
+
+_ss_nh = _ss_next_hold((1, 100, 168, 168 + 1 / 3600, 169))
+R.check(
+    "the next pair's first slot, no row read under it, is held from the row "
+    "that completed the pair before until COP_HOLD_HORIZON_S has passed, then "
+    "the scale is at the base",
+    _ss_nh[:2] == (True, 1) and _ss_nh[2][1:3] == [_ss_nh[2][2]] * 2 and _ss_nh[2][2] != 1.0 and _ss_nh[2][3:] == [1.0, 1.0],
+    f"{_ss_nh}",
+)
+
+
+# clear() ends the pair in flight, and a void forgets a row read before it:
+# after either, the scale waits at the base until a row is read again.
+def _ss_cleared():
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)
+    sd.clear()
+    return sd.pair, sd.first, sd.reading, sd.ahead, sd.step(1.0, True, _CF_T0 + _cf_td(hours=2))
+
+
+def _ss_after_void():
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))  # a row read, then a frozen cycle
+    return [sd.step(1.0, read, _CF_T0 + _cf_td(hours=h)) for h, read in ((2, False), (3, True), (4, True))]
+
+
+R.check(
+    "clear() leaves no pair, row or slot and the next step is at the base; "
+    "a frozen cycle voids the pair and drops the row read before it, so "
+    "with no row read since, the steps after it stay at the base",
+    _ss_cleared() == (None, None, None, None, 1.0) and _ss_after_void() == [1.0, 1.0, 1.0],
+    f"{_ss_cleared()} / {_ss_after_void()}",
+)
+
+
+# The probe consumes the row-read flag on every cycle, also where it hands
+# out no dither level (parked): a row read on a parked cycle does not start
+# a pair days later at the re-arm.
+def _ss_stale_admit():
+    probe = _df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0, level=1.0)
+    probe.dither.admitted = True
+    probe.owed_scale(lambda: 1.0, _CF_T0 + _cf_td(hours=1))
+    return probe.owed_scale(lambda: 1.0, _CF_T0 + _cf_td(days=8)), probe.parked_at, probe.dither.pair
+
+
+R.check(
+    "a row read on a parked cycle is forgotten by the next cycle: at the "
+    "re-arm with no row read since, the scale stays at the base and no pair starts",
+    _ss_stale_admit() == (None, None, None),
+    f"{_ss_stale_admit()}",
+)
+# Carry 6 (BLOCKED.md departure B1, approved on inbox/r11-outside-self-setting-pump
+# line 2): under that plan the dither spans the window by its own step, the
+# evidence turns obtainable and resets the probe, and a new one starts, without
+# end. PROBE_VOID_CAP probes in a row that a reset ends with no pair read park
+# the next on its first row, for COP_HOLD_HORIZON_S.
+def _ss_probes(coord, pairs, true, reprice):
+    """Probes started (a base appearing) and cycles at a dither level, over a re-priced run."""
+    started, dithered, had = 0, 0, False
+    for asked, drawn in pairs:
+        _ss_step(coord, reprice / coord._cop_scale, reprice / true)
+        probe = coord._measured_cop.probe
+        started += probe.base is not None and not had
+        had = probe.base is not None
+        dithered += had and abs(coord._cop_scale - probe.base) > 1e-9
+    return started, dithered, coord._measured_cop.scale_response, getattr(coord._measured_cop.probe, "voided", "-")
+
+
+_ss_rep_cap = _ss_probes(_ss_coord(), _ss_flat(336), 0.8, 1.2)
+R.check(
+    "a re-priced plan resets its probe with no pair read; after "
+    "PROBE_VOID_CAP (3) such probes the next parks on its first row: over "
+    "336 cycles (the horizon) 4 probes start, pending, and the scale leaves "
+    "the base on at most 20 cycles",
+    getattr(_df_acc, "PROBE_VOID_CAP", None) == 3 and _ss_rep_cap[0] == 4 and _ss_rep_cap[1] <= 20 and _ss_rep_cap[2:] == ("pending", 3),
+    f"{_ss_rep_cap}",
+)
+
+
+def _ss_void_count(voided, base, contrasts, parked):
+    """``ScaleProbe.voided`` after one reset of a probe in that state."""
+    probe = _df_acc.ScaleProbe(base=base, voided=voided, parked_at=_CF_T0 if parked else None,
+                               dither=_ss_SD(contrasts=list(contrasts)))
+    probe.reset(False)
+    return probe.voided
+
+
+R.check(
+    "a reset counts a running probe that read no pair, clears the count for "
+    "one that read a pair, and leaves it for a parked probe or none running",
+    [_ss_void_count(*c) for c in ((0, 1.0, [], False), (2, 1.0, [], False), (2, 1.0, [1.0], False), (3, 1.0, [], True), (2, None, [], False))]
+    == [1, 3, 0, 3, 2],
+    f"{[_ss_void_count(*c) for c in ((0, 1.0, [], False), (2, 1.0, [], False), (2, 1.0, [1.0], False), (3, 1.0, [], True), (2, None, [], False))]}",
+)
+
+
+def _ss_capped(voided, after):
+    """A fresh probe at ``voided``: parked by its first row, and the scale owed ``after`` later."""
+    probe = _df_acc.ScaleProbe(voided=voided)
+    probe.admit(_cf_row(1.5, 1.5, scale=1.0, at=_CF_T0))
+    parked = probe.parked_at
+    probe.owed_scale(lambda: 1.0, _CF_T0 + after)
+    return parked == _CF_T0, probe.parked_at is not None, probe.voided
+
+
+R.check(
+    "a probe that starts at PROBE_VOID_CAP voided ones parks on its first "
+    "row; one under the cap does not; past COP_HOLD_HORIZON_S it re-arms and "
+    "the count clears",
+    [_ss_capped(v, a) for v, a in ((3, _cf_td(hours=1)), (2, _cf_td(hours=1)), (3, _cf_td(days=7, seconds=1)))]
+    == [(True, True, 3), (False, False, 2), (True, False, 0)],
+    f"{[_ss_capped(v, a) for v, a in ((3, _cf_td(hours=1)), (2, _cf_td(hours=1)), (3, _cf_td(days=7, seconds=1)))]}",
 )
 # The ratio refusal is logged where it is decided (moved from the
 # coordinator): a refusal logs its code, a fold logs nothing.

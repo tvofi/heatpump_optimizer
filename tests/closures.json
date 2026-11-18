@@ -4309,6 +4309,7 @@
    "dev/audit/harnesses/claim_merge_mutants.py",
    "dev/audit/harnesses/climate_native_alias_realcore.py",
    "dev/audit/harnesses/closing_keyword_ownership.py",
+   "dev/audit/harnesses/cop_dither_fabric.py",
    "dev/audit/harnesses/cop_duty_floor.py",
    "dev/audit/harnesses/cop_scale_probe_sweep.py",
    "dev/audit/harnesses/d15_bundle_reads.py",
