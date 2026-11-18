@@ -97345,4 +97345,157 @@ R.check(
     f"appended={len(_rh_appended)} ring={len(_rh_gap_h.times)}",
 )
 
+# Verdict 478e2ab9 (mutation-vacuous): each predicate below is driven through the code that holds it.
+_rh_mix = _rh.History()
+_rh_mix_p = None
+for _rh_k, (_rh_rd, _rh_hs) in enumerate([
+    (_RhReading("climate.a", 20.0, 21.0, True, "heat"), _rh.House(-3.0, 28.0, 1.0, 2.5, 0.0)),
+    (_RhReading("climate.a", 21.0, 21.5, True, "heat", "stale"), _rh.House(-3.0, 28.0, 2.0, 2.5, 1.5)),
+    (_RhReading("climate.a", 22.0, 22.0, None, "heat"), _rh.House(-3.0, 28.0, 3.0, 2.5, 0.0)),
+    (_RhReading("climate.a", 23.0, 22.0, False, "heat"), _rh.House(-3.0, 28.0, 3.0, 2.5, 0.0)),
+]):
+    _rh_mix_p, _ = _rh.note(_rh_mix, _rh_mix_p, _RH_M0 + 7 * _rh_k, [_rh_rd], _rh_hs)
+_rh_mix_p, _ = _rh.note(_rh_mix, _rh_mix_p, _RH_M0 + 30, [], _rh_house())
+R.check(
+    "one period: a reading with a problem and one reporting no action are not calling samples (share 5000, "
+    "one call of two), the target is the period's last (22.0), power is the mean of the cycles' (2.25 kW, "
+    "not the last 3.0), and a hot-water cycle is not space heating (three of four cycles)",
+    _rh_mix.rooms["climate.a"] == {"t": [2000], "target": [2200], "call": [5000]}
+    and _rh_mix.house == {"outdoor": [-300], "return": [2800], "power": [225], "space": [7500]},
+    f"{_rh_mix.rooms} {_rh_mix.house}",
+)
+_rh_nullc = _rh_grid([None if k % 10 == 0 else 10000 * (k % 2) for k in range(200)])
+_rh_nullc_v = _rh_code(_rh_nullc)
+R.check(
+    "a pair needs the first row's calling share: 200 rows, every tenth with none, step 179 times and the fit "
+    "reads finite; null control, the same ring with every share held steps 199 times",
+    _rh_nullc_v.get("pairs") == 179 and _rh_nullc_v["code"] in ("separable", "no_response")
+    and (_rh_nullc_v.get("t") is None or bool(np.isfinite(_rh_nullc_v["t"])))
+    and _rh_code(_rh_grid([10000 * (k % 2) for k in range(200)]))["pairs"] == 199,
+    f"{_rh_nullc_v}",
+)
+R.check(
+    "stored row times off the half-hour grid empty the ring, the first row's included; null control, the same "
+    "rows on the grid load",
+    _rh.loaded({**_rh_edge, "times": "0,45"}).times == []
+    and _rh.loaded({**_rh_edge, "times": "15,45"}).times == []
+    and _rh.loaded({**_rh_edge, "times": "0,60"}).times == [0, 60],
+)
+_rh_spc = _rh_grid([10000 * (k % 2) for k in range(200)])
+_rh_spc.house["space"] = [10000, 0] * 100
+R.check(
+    "the house line reads only periods spent mostly on space heating: 100 of 200 rows; null control, 200 with "
+    "every period on space heating",
+    _rh.identifiability_report(_rh_spc)["house"] == {"verdict": "short_history", "rows": 100}
+    and _rh.identifiability_report(_rh_grid([10000 * (k % 2) for k in range(200)]))["house"]["rows"] == 200,
+    f"{_rh.identifiability_report(_rh_spc)['house']}",
+)
+_rh_full_owner = _RhOwner("rh_full")
+_rh_aio.run(_rh_cycles(_rh_full_owner, 1, [_RhReading("sensor.a", 20.0)]))
+_rh_full_rec = _rr.record_of(_rh_full_owner)
+_rh_full_rec.history, _rh_full_rec.period = _rh.loaded(_rh.stored(_rh_h15)), None
+_rh_full_1 = _rr.report_of(_rh_full_owner)
+_rh_full_last = _rh_full_rec.history.times[-1] - _RH_M0
+for _rh_m in (30, 60):
+    _rh_aio.run(_rr.async_note_cycle(_rh_full_owner, _RH_T0 + _rh_td(minutes=_rh_full_last + _rh_m),
+                                     [_RhReading("sensor.a", 20.0)], _rh_house()))
+_rh_full_2 = _rr.report_of(_rh_full_owner)
+R.check(
+    "a full ring's report is re-read when a row replaces its oldest: the row count stays HISTORY_LENGTH and "
+    "the report is a new object; null control, read again with no new row it is the same object",
+    _rh_full_1["rows"] == _rh_full_2["rows"] == _rh.HISTORY_LENGTH and _rh_full_2 is not _rh_full_1
+    and _rr.report_of(_rh_full_owner) is _rh_full_2
+    and _rh_full_rec.history.times[-1] - _RH_M0 == _rh_full_last + 30,
+    f"rows={_rh_full_1['rows']},{_rh_full_2['rows']}",
+)
+
+# The coordinator's cycle step: a production coordinator runs _async_update_data with
+# a room list, and its own outdoor, floor-return, measured-power and plan values reach the ring.
+from heatpump_optimizer import rooms as _rh_rooms  # noqa: E402
+from heatpump_optimizer.const import CONF_FLOOR_RETURN_TEMP_ENTITY as _RH_FR  # noqa: E402
+
+_RH_CYCLES = [  # (minutes past _RH_T0, metered kW, plan space kW, plan hot-water kW)
+    (0, 1.0, 2.5, 0.0), (10, 2.0, 2.5, 1.5), (20, 3.0, 2.5, 0.0), (30, 1.0, 2.5, 0.0)]
+
+
+async def _rh_coord_cycles():
+    hass = _SrcHass()
+    for entity, value in {**_SRC_SENSORS, "sensor.floor_return": 28.0}.items():
+        hass.states.set(entity, FakeState(str(value)))
+    coord = HeatPumpOptimizerCoordinator(hass, FakeEntry(entry_id="rh_cycle", data={
+        "tibber_token": "x", "weather_entity": "weather.home", "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor", "heat_pump_power_entity": "sensor.power",
+        _RH_FR: "sensor.floor_return"}))
+    hour = _src_clock[0].replace(minute=0)
+    coord._prices = [{"total": round(0.6 + 0.5 * (h % 12) / 12, 4), "level": "NORMAL",
+                      "starts_at": (hour + timedelta(hours=h - 26)).isoformat()} for h in range(74)]
+
+    async def _no_fetch():
+        return None
+
+    coord._fetch_tibber_prices = coord._fetch_weather_forecast = coord._fetch_solar_forecast = _no_fetch
+    await asyncio.gather(*hass._tasks)
+    coord._skip_solve_once = False
+    seen, step = [], {}
+    real_apply, real_note = coord._apply_action, _rr.async_note_cycle
+
+    async def _apply():  # the plan's kW are the test's, set where the cycle sets them
+        await real_apply()
+        coord._current_action["power"], coord._current_action["dhw_power"] = step["plan"]
+
+    async def _note(c, _now, readings, house):  # the cycle's own arguments; the test's clock
+        seen.append(house)
+        await real_note(c, _RH_T0 + _rh_td(minutes=step["m"]), readings, house)
+
+    coord._apply_action = _apply
+    reading = (_RhReading("climate.a", 20.0, 21.0, True, "heat"),)
+    with _src_mock.patch.object(_rr, "async_note_cycle", _note), \
+            _src_mock.patch.object(_rh_rooms, "readings_of", lambda o: reading if o is coord else ()):
+        for m, kw, space, dhw in _RH_CYCLES:
+            step["m"], step["plan"] = m, (space, dhw)
+            hass.states.set("sensor.power", FakeState(str(kw), attributes={"unit_of_measurement": "kW"}))
+            hass.states.set("sensor.outdoor", FakeState(str(-3.0 - m / 10)))
+            await coord._async_update_data()
+    return coord, seen
+
+
+_rh_cc, _rh_cc_seen = _rh_aio.run(_rh_coord_cycles())
+_rh_cc_rec = _rr.record_of(_rh_cc)
+R.check(
+    "a production coordinator's cycle hands the room history this cycle's outdoor reading (not the context "
+    "the cycle started with: the first cycle reads -3.0, not the 5.0 default), the floor return (28.0), "
+    "metered power and the plan's space and hot-water kW, and the closed row holds them: outdoor the "
+    "period's last -500, return 2800, power the period's mean 200 (not the last 300), space heating two "
+    "cycles of three (the hot-water one not); null control, each value distinct from the one it could be "
+    "swapped for",
+    len(_rh_cc_seen) == len(_RH_CYCLES)
+    and [(h.outdoor_c, h.floor_return_c, h.measured_kw, h.space_kw, h.dhw_kw) for h in _rh_cc_seen]
+    == [(-3.0 - m / 10, 28.0, kw, s, d) for m, kw, s, d in _RH_CYCLES]
+    and _rh_cc_rec is not None and _rh_cc_rec.history.times == [_RH_M0]
+    and _rh_cc_rec.history.house == {"outdoor": [-500], "return": [2800], "power": [200], "space": [6667]}
+    and _rh_cc_rec.history.rooms["climate.a"]["call"] == [10000],
+    f"seen={[(h.outdoor_c, h.floor_return_c, h.measured_kw, h.space_kw, h.dhw_kw) for h in _rh_cc_seen]} "
+    f"house={None if _rh_cc_rec is None else _rh_cc_rec.history.house}",
+)
+
+# The unload flush, through the entry's own async_unload_entry.
+_rh_ul_hass = FakeHass()
+_seed_prices(_rh_ul_hass)
+_rh_ul_entry = FakeEntry(data=_LC_DATA, entry_id="rh_unload")
+_RH_UL_KEY = "heatpump_optimizer_rh_unload_room_history"
+_asyncio.run(_ha_setup_entry(_integ, _rh_ul_hass, _rh_ul_entry))
+_rh_ul_coord = _rh_ul_entry.runtime_data
+_rh_aio.run(_rh_cycles(_rh_ul_coord, 3, [_RhReading("sensor.a", 20.0)]))
+_rh_storage._DISK.pop(_RH_UL_KEY, None)
+_rh_ul_before = _RH_UL_KEY in _rh_storage._DISK
+_rh_ul_ok = _asyncio.run(_ha_unload_entry(_integ, _rh_ul_hass, _rh_ul_entry))
+_rh_ul_doc = _fi_json.loads(_rh_storage._DISK.get(_RH_UL_KEY, "{}"))
+R.check(
+    "unloading the entry saves the rows the last save missed: two closed rows, unsaved before the unload, are "
+    "in the store after it; null control, the store held nothing before the unload",
+    _rh_ul_ok and not _rh_ul_before
+    and _rh_ul_doc.get("data", _rh_ul_doc).get("times", "").split(",") == [str(_RH_M0), str(_RH_M0 + 30)],
+    f"before={_rh_ul_before} after={_rh_ul_doc}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
