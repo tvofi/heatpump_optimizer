@@ -1,0 +1,2 @@
+ONLY=tests/harness_headers.py,tests/boost_drift_replay.py,tests/optimality.py,tests/config_flow_steps.py,tests/finite_boundary.py,tests/arch_score_head.py,tests/validate.py,tests/structure.py,tests/doc_claims.py,tests/typing_ruler.py,tests/guard_pins.py,tests/block_duty.py,tests/deployment_shape.py,tests/plan_view.py,tests/manual_plan.py,tests/wood_advisor.py,tests/debug_collect.py,tests/solar_alignment.py,tests/entities.py,tests/env_drift.py,tests/features.py,tests/card_drift.mjs,tests/edge.py,tests/backtest.py,tests/card.mjs,tests/golden.py
+MATRIX-CHAIN-DONE

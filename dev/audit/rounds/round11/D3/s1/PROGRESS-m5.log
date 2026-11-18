@@ -1,0 +1,6 @@
+2026-11-18T08:19:02Z D3-m5: R0 restored from c0adbc19; R1 baselines re-taken here (21/21 green), trace-capture ok, null LIVES/16, posctl 2/2 KILLED
+2026-11-18T09:07:31Z D3-m5: M5(a) gate table done (state/gate_table.jsonl)
+2026-11-18T13:59:18Z D3-m5: M5(b) matrix 25/38 driven
+2026-11-18T16:03:14Z D3-m5: M5(b) main matrix 38/38 done; stress column running
+2026-11-18T17:24:08Z D3-m5: M5(b) matrix complete incl. stress column
+2026-11-18T17:26:50Z D3-m5: REPORT.json/REPORT.md written (1 finding D3-s1-52); checker ok
