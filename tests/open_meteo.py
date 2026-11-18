@@ -140,10 +140,21 @@ _y1_clean = om._parse_block(block(0, [100.0, 200.0, 300.0, 400.0]), "shortwave_r
 check(
     "a stamp with no representable span is dropped, and the block still averages",
     datetime(1, 1, 1, 0, 0, tzinfo=UTC) not in _y1_series.times
+    and datetime(1, 1, 1, 1, 0, tzinfo=UTC) in _y1_series.times
     and all(t - _y1_series.resolution < t for t in _y1_series.times)
     and _y1_series.resolution == timedelta(hours=1)
     and approx(_y1_mean, _y1_clean.mean_over(_y1_start, _y1_start + timedelta(hours=3))),
     f"times={_y1_series.times[:2]} mean={_y1_mean!r}",
+)
+_y1_two = om._parse_block(
+    {"time": ["0001-01-01T00:00", "2026-08-21T00:00", "2026-08-21T01:00"],
+     "shortwave_radiation": [1.0, 100.0, 200.0]},
+    "shortwave_radiation",
+)
+check(
+    "the floor keeps a stamp exactly one resolution past year 1, and two kept samples are a series",
+    len(_y1_two.times) == 2 and _y1_two.values == (100.0, 200.0),
+    f"times={_y1_two.times}",
 )
 
 hourly = om._parse_block(block(0, [0.0, 0.0, 100.0, 300.0, 500.0]), "shortwave_radiation")

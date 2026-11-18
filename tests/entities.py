@@ -15577,14 +15577,47 @@ R.check(
 from heatpump_optimizer.entry_config import EntryConfig as _MigEC  # noqa: E402
 from dataclasses import fields as _mig_fields  # noqa: E402
 
-_mig_bad_data = {"min_temperature": [19.0], "max_temperature": "abc", "dhw_tank_volume": "200"}
+_mig_bad_data = {"min_temperature": [19.0], "max_temperature": "abc", "dhw_tank_volume": "200",
+                 "mixing_valve_target": "abc"}
 _mig_bad_options = {"target_temperature": None, "comfort_weight": {"v": 1.0}, "price_weight": "nan",
                     "cop_scale": True, "silent_mode_power_fraction": "abc"}
+import logging as _mig_logging  # noqa: E402
+
+
+class _MigLog(_mig_logging.Handler):
+    def __init__(self):
+        super().__init__(_mig_logging.WARNING)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def _mig_warnings(entry):
+    """Migrate ``entry``; return (result, the integration's WARNING records)."""
+    handler, logger = _MigLog(), _mig_logging.getLogger(integration.__name__)
+    logger.addHandler(handler)
+    try:
+        return asyncio.run(integration.async_migrate_entry(_mig_hass, entry)), handler.records
+    finally:
+        logger.removeHandler(handler)
+
+
+_mig_quiet = FakeEntry(data={"min_temperature": 19.0, "dhw_tank_volume": 200.0})
+_mig_quiet_ok, _mig_quiet_logs = _mig_warnings(_mig_quiet)
+R.check(
+    "a healthy old entry migrates with no repair warning (null control)",
+    _mig_quiet_ok is True and not _mig_quiet_logs
+    and _mig_quiet.data == {"min_temperature": 19.0, "dhw_tank_volume": 200.0},
+    f"{[r.getMessage() for r in _mig_quiet_logs]}",
+)
 _mig_bad = FakeEntry(data=dict(_mig_bad_data), options=dict(_mig_bad_options))
 _mig_before = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+_mig_bad_ok, _mig_bad_logs = _mig_warnings(_mig_bad)
 R.check(
-    "an old entry's non-numbers under numeric options are repaired",
-    asyncio.run(integration.async_migrate_entry(_mig_hass, _mig_bad)) is True
+    "an old entry's non-numbers under numeric options are repaired, with one warning naming them",
+    _mig_bad_ok is True
+    and len(_mig_bad_logs) == 1 and "min_temperature" in _mig_bad_logs[0].getMessage()
     and _mig_bad.version == const.CONFIG_ENTRY_VERSION
     and _mig_bad.data == {"dhw_tank_volume": 200.0}
     and _mig_bad.options == {"silent_mode_power_fraction": "abc"},

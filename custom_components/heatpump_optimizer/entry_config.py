@@ -186,6 +186,7 @@ class EntryConfig(Mapping[str, Any]):
     main_fuse_phases: float = _key(const.DEFAULT_MAIN_FUSE_PHASES, finite_float)
     max_temperature: float = _key(const.DEFAULT_MAX_TEMP, finite_float)
     min_temperature: float = _key(const.DEFAULT_MIN_TEMP, finite_float)
+    mixing_valve_target: float = _key(const.DEFAULT_MIXING_VALVE_TARGET, finite_float)
     mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, finite_float)
     optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, finite_float)
     peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, finite_float)
