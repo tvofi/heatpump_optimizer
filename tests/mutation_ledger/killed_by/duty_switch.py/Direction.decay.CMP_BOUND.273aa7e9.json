@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:Direction.decay CMP_BOUND 273aa7e9",
+  "killed_by": "tests/features.py",
+  "old": "        factor = min(self.weights(when)[1], N_CAP) / n if n > 0.0 else 1.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`factor = min(self.weights(when)[1], N_CAP) / n if n >= 0.0 else 1.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

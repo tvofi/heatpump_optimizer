@@ -82,8 +82,11 @@
   with no dispatch for its PR, head and nonce is owed `undispatched` and never
   confirmed; a tip the relay did not push waits for the orchestrator's own
   read. It makes no `gh` call (`bus.sh confirm` posts).
-  Handoff arm: for each OPEN pull request, topic = `headRefName` less `fix/` and
-  `-pr`; if `handoff-body/<topic>` and `handoff/<topic>` exist and the handoff is
+  Handoff arm: for each OPEN pull request, topic = the first of
+  `topic_grammar.py handoff-topics <headRefName>` with a `handoff/` ref
+  (`fix/<t>-pr` is `<t>-pr`, then `<t>`: review_packet.py's read, so #3358's
+  `handoff/r10-combi-tank-pr` is not left behind an older `handoff/r10-combi-tank`);
+  if `handoff-body/<topic>` and `handoff/<topic>` exist and the handoff is
   not an ancestor of the PR head, it runs `update_pr.sh <branch> <code-sha>
   <BODY.md> <issues>` (issues = the body's closing keywords; BODY.md is written
   to a per-run `cloud-body.*` directory under the state dir and removed after,
@@ -107,7 +110,13 @@
   own checkout is (never moved: bash reads a running script as it goes). A
   dirty tree is refused by name, left untouched and owed as `handoff-update`;
   one held by a live relay (`relay-tools.lock`, a dead pid's taken over) is
-  busy and retried next pass.
+  busy, owed `handoff-skipped` for the pass, and retried next pass.
+  No skip of a handoff the head lacks is silent (#3358): a hold-file skip is
+  `handoff-held ... #<pr> HOLD`; no body ref is
+  `HELD-NOBODY` (`handoff-held ... #<pr> NOBODY`); an unreadable ref or head,
+  a busy tools tree, a BUSY update or an unreadable body is
+  `OWED <utc> handoff-skipped <ref> <tip> #<pr> <why>` in `<log>.level`, rewritten
+  every pass. A head holding its handoff is owed nothing.
   Freeze (R10-FLOW-ROSTER-FREEZE): a PR whose live head is under review is not
   updated either, so roster edits accumulate on the handoff ref and land between
   reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head
@@ -116,7 +125,12 @@
   registry and only it, P288; its nonce prefix and time are printed as
   `dispatch=<nonce8> at=<utc>`). A verdict ref the listing names but the fetch
   cannot read freezes too (`HELD-UNREAD`): it may be a merge at the head. A
-  blocked verdict, or one at an older head, freezes nothing. Each prints
+  blocked verdict, or one at an older head, freezes nothing. A review whose
+  verdict came back (`probe/rev-<pr>-<nonce8>`) and that the relay refused
+  (`cloud-relayed.refused`) or `dispose` took is over: `RELEASED-REVIEW`, and
+  the update runs. Else the HELD-REVIEW line names the probe's state:
+  `probe=none (in flight)`, `probe=<sha8> relayed, not yet on verdict/<pr>`, or
+  `probe=<sha8> held by the relay (dispose it to release)`. Each prints
   `HELD-<why> #<pr> <handoff tip>[ dispatch=<nonce8> at=<utc>]` once per pass and is
   `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in `<log>.level`;
   `cloud-handoff-release` (the hold file's grammar) releases a listed PR from the
@@ -153,7 +167,8 @@
   relay's stderr. An update that
   exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
   `upd-<branch>.lock`, typically the orchestrator's own update of that PR, or an `open_pr.sh` between its two pushes): it is
-  not recorded, and the next pass retries it. The update runs in a process
+  not recorded, is owed `handoff-skipped ... BUSY: update_pr: <last line>` for
+  that pass, and the next pass retries it. The update runs in a process
   group of its own, so a signal to the loop's whole group reaches it only
   through the loop's reap, and a KILL to that group leaves it to finish. The
   `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
@@ -197,3 +212,12 @@
   `HELD-PENDING-CI` line, retried next pass), RED refuses it, and a PR head that moved since the
   draft refuses it naming both heads. `HPO_RELAY_CLASSIFY` replaces the command. A fired session
   with no return ref after the bounded window is `SEAT ENDED NO RETURN` (the no-return arm above).
+- Owed red text (OWED-RED-TEXT-TO-CLOUD): a cloud seat has no `gh`. When the
+  carry-fold arm reads a `handoff-wip/<topic>` BLOCKED.md naming
+  `body_push: REFUSED PREDICTOR` whose `PREDICT <check> ...` lines name a check
+  in `merge_train.py owed-reds` (an unreadable set: every failing check), it reads
+  that check at the topic's open PR head (`failure_logs.sh`: name, conclusion,
+  error lines) into `<state>/cloud-owed-red-<topic>.md` and names that file on the
+  `carry-fold` level line, for the orchestrator's next message to the seat. A
+  refusal naming no owed red, or a topic with no open PR, adds no text.
+  `HPO_RELAY_OWED` and `HPO_RELAY_FAILLOGS` replace the two readers.

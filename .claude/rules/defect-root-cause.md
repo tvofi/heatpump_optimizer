@@ -13,8 +13,6 @@ cause, and the **process** that let the cause reach a user or an expensive gate.
 
 ## When this applies
 
-Either of:
-
 - the defect **reached a released version**; or
 - the defect **turned a PR red on a check that a cheaper detector could have
   run.**
@@ -22,7 +20,7 @@ Either of:
 The second trigger is a question, not a stopwatch: what separates is whether the
 same failure was reachable earlier and more cheaply than the gate that found it.
 Answer it by naming the cheaper detector and its standing cost, or by recording
-that none exists. A worked example of each:
+that none exists. One example each:
 
 - **Qualifies.** `closure.py no-copies` refused a test symbol that shared a name
   with a production symbol, after roughly fifteen minutes of CI. The same check
@@ -36,14 +34,12 @@ that none exists. A worked example of each:
 ## What is owed
 
 1. **Fix the defect** under normal policy (`fixer.md`); nothing here replaces it.
-2. **In parallel, and in a separate seat**, establish the root cause and the
-   **process root cause**. A separate seat because the fixer is invested in the
-   fix; independence here is procedural, exactly as it is for `fix-review`.
+2. **In parallel, and in a separate seat** (the fixer is invested in the fix),
+   establish the root cause and the **process root cause**.
 3. **Address the root cause.** Countermeasures include worker instructions, the
    plan, testing procedure, a local check, a hook, a CI change. When the defect
    was found late in CI, a cheaper and earlier detector is strongly preferred.
-4. **Address the process root cause when it pays for itself** — see the cost
-   test below.
+4. **Address the process root cause when it pays for itself** (the cost test).
 5. **A countermeasure is a change like any other**: reproduced, verified,
    mutation-proven, independently reviewed.
 
@@ -56,17 +52,14 @@ Every process failure is in exactly one of four states:
 - **(c) The process was followed and did not produce the intended result.**
 - **(d) The process was sound and its preconditions changed underneath it.**
 
-Name the state. The countermeasure differs by state, and the most common
-mistake is treating (c) or (d) as (b) — writing a firmer instruction when the
-instruction was obeyed and wrong. A check half-ported out of its lane is **(c)**:
-#2073's step 6d ran and passed on every stale-pin PR while its unit read one of
-`mutation`'s two directions.
+Name the state; the countermeasure differs by it. The most common mistake is
+treating (c) or (d) as (b): a firmer instruction for one obeyed and wrong. A
+check half-ported out of its lane is **(c)**: #2073's step 6d ran and passed on
+every stale-pin PR while its unit read one of `mutation`'s two directions.
 
 For **(d)**, the countermeasure is rarely a new rule: it is making the process
 notice its own precondition change.
 
-Permanent countermeasures may change how plans, rosters and briefs are made;
-how worker instructions are written; or repository conventions and policy.
 **Repository rules and policy are changed only with the owner's approval**, and
 the request states which of the four states it addresses.
 
@@ -83,6 +76,11 @@ cycle**. State the numbers, do not assert the conclusion.
   to every run, every session, forever — not the once-off cost of writing it.
 - `P(recurrence)` uses the **measured class frequency** where one exists;
   otherwise state the estimate and its basis.
+- The cost side prices **induced work**: follow-up items expected (the
+  instrument's offspring rate in `loop_ledger.py` times an item's mean cost)
+  and the generated artifacts or pins it stales in open branches; while the
+  ledger reads `unread`, the loop study's rates per RCA and per machinery merge
+  (round-10 round-end triage, P742).
 
 **"No countermeasure" is a legitimate, recordable outcome.** Some defects are
 irreducible: the cheapest detector that would have caught them is the gate that
@@ -108,7 +106,7 @@ on the defect it was written for, and passing once the defect is fixed.** Both
 runs go in the report.
 
 A check that passes while the bug is present is worse than no check: it converts
-an open defect into a closed one. The shape keeps recurring here — a key-set
+an open defect into a closed one. The shape recurs — a key-set
 check that supplied the value it asserted, an invariant green on a broken tree,
 an autofix successful while skipping its own repair — each caught by a control
 that assumed the check was lying, none by the check itself.
@@ -126,24 +124,24 @@ or the recorded refusal, and that path.
 
 ## Enforcement
 
-The second trigger is the one with an observable moment, and it is enforced
-there. The moment is **a check that went red on a commit in the branch**; the
-checker is the **fix reviewer**, before returning `merge`.
+The second trigger has an observable moment: **a check that went red on a commit in the
+branch**; the checker is the **fix reviewer**, before returning `merge`.
 
 The fixer whose branch turned a check red names that check in the PR body, and
 answers the trigger's question there: the cheaper detector and its standing
 cost, or the recorded finding that none exists. Both answers are legitimate: the
 worked examples above are one of each.
 
-The reviewer reads the PR's checks, not the body's account; a red check the body
-does not answer is **`blocked: root-cause trigger unanswered for <check>`**.
+The reviewer reads the PR's checks, not the body's account; an unanswered red is
+the note `root-cause-unanswered: <check>`, resolved at merge (card C5); a head
+still red takes no merge verdict (card C8).
 
 **Only a red on a required check is owed an answer** (tvofi, 2026-11-07): the set
-`merge_train.py owed-reds` prints, which `policy_lint.mjs --pr-body` reads. A red
-outside it, an alert apart, blocks nothing; `nightly-status` and `delivery-status`
-grade `main`, and their red is the orchestrator's there: fix the nightly lane and
-dispatch Nightly (`web-fragments.md`), or drain the overdue rows. An unreadable set
-keeps the pre-ruling rule. A cause outside this repository is named with its owner.
+`merge_train.py owed-reds` prints, which `policy_lint.mjs --pr-body` reads; an unreadable
+set keeps the pre-ruling rule, exempting `nightly-status` unless the diff touches its
+`REPORTER_INPUTS`. A red outside the set, an alert apart, blocks nothing; `nightly-status`
+grades `main`, where the orchestrator fixes its lane and dispatches Nightly
+(`web-fragments.md`). A cause outside this repository is named with its owner.
 An `instrument-self-tests` step red at the head and not at the merge base is the pull
 request's finding, a block (`fix-review.md` step 11); one inherited from `main` stays unowed.
 

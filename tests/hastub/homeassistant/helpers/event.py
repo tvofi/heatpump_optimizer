@@ -38,3 +38,28 @@ def async_track_state_change_event(hass, entity_ids, action):
             listeners.remove(entry)
 
     return _unsub
+
+
+def async_call_later(hass, delay, action):
+    """Record a one-shot timer on ``hass.timers`` as ``[delay, action]``.
+
+    No lane runs a loop to fire it: a test fires a timer by calling its
+    action with a time, as upstream's does at expiry. The returned cancel
+    removes the entry, so an armed timer is visible and a cancelled one is
+    gone; twice is harmless, as upstream's. A plain function that is neither
+    ``@callback`` nor a coroutine is refused, as the state tracker refuses it.
+    """
+    if not (getattr(action, "_hass_callback", False) or inspect.iscoroutinefunction(action)):
+        raise TypeError(f"{action!r} is neither @callback nor a coroutine function")
+    timers = getattr(hass, "timers", None)
+    if timers is None:
+        timers = []
+        hass.timers = timers
+    entry = [delay, action]
+    timers.append(entry)
+
+    def _cancel():
+        if entry in timers:
+            timers.remove(entry)
+
+    return _cancel

@@ -274,6 +274,7 @@ merge bot PRs automatically"; run and batch):
 from __future__ import annotations
 
 import argparse
+import ast
 import contextlib
 import datetime
 import fcntl
@@ -456,8 +457,8 @@ def owed_reds(train) -> "tuple[int, str]":
     return 0, "\n".join(judged(gating_names(req)))
 
 
-ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!){repository(owner:$o,name:$n){pullRequest(number:$pr){"
-            "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100){pageInfo{hasNextPage} "
+ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!,$after:String){repository(owner:$o,name:$n){pullRequest(number:$pr){"
+            "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100,after:$after){pageInfo{hasNextPage endCursor} "
             "nodes{__typename ... on CheckRun{name status conclusion isRequired(pullRequestNumber:$pr)} "
             "... on StatusContext{context state isRequired(pullRequestNumber:$pr)}}}}}}}}}}")
 PLATFORM_PASS = ("SUCCESS", "NEUTRAL", "SKIPPED")
@@ -493,18 +494,145 @@ def platform_gate(payload, head: str) -> "tuple[str, str]":
     return "green", f"{len(gates)} required gate run(s) pass"
 
 
-def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str]]":
+def rollup_walk(fetch, head: str, max_pages: int = gh_read.MAX_PAGES):
+    """Every page of the rollup's contexts as ONE ROLLUP_Q-shaped payload
+    (R10-HOTFIX-TRAIN-CONTEXT-PAGES): a required context past the first 100 was
+    never seen, and platform_gate read such a head `unread`, a green approved
+    head refused. `fetch(cursor)` is one read (None for the first page) and
+    returns the parsed answer or raises ValueError/OSError; the walk follows
+    `endCursor` and stops on the first page whose answer carries no rollup or
+    is at another head, returning that payload for platform_gate to call
+    unread. A walk past <max_pages> returns the merge with hasNextPage still
+    true: refused as unread, never truncated. One read per page, so a head of
+    one page makes the one read it always did."""
+    merged, cursor = None, None
+    for _ in range(max_pages):
+        payload = fetch(cursor)
+        try:
+            commit = payload["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]
+            ctx = commit["statusCheckRollup"]["contexts"]
+            more, cursor = ctx["pageInfo"]["hasNextPage"], ctx["pageInfo"].get("endCursor")
+        except (KeyError, IndexError, TypeError):
+            return payload
+        if commit.get("oid") != head:
+            return payload
+        if merged is None:
+            merged = payload
+        else:
+            have = merged["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"]["contexts"]
+            have["nodes"] = list(have["nodes"]) + list(ctx["nodes"])
+            have["pageInfo"] = ctx["pageInfo"]
+        if not more or not cursor:
+            return merged
+    return merged
+
+
+#: P436's barrier lives in `classify` itself, so no caller list exists to be
+#: incomplete: a reader names how it read deferral, and the read is judged at
+#: run time by its value and its caller's frame, whatever spelling, alias,
+#: getattr, partial or module reached the call. `busy` is required: a `Busy`
+#: (gate.py's reading at the head), or FINAL, a read that ignores deferral,
+#: accepted only from the frames registered in FINAL_READERS. Anything else --
+#: no busy, None, (), a plain list -- raises BlindRead.
+class FinalRead:
+    """The type of FINAL, the one value a read ignoring deferral passes as `busy`."""
+
+    def __repr__(self) -> str:
+        return type(self).__name__
+
+
+FINAL = FinalRead()
+
+#: The frames whose FINAL read is a decision, keyed (repo path, co_qualname) of
+#: the function calling `classify`.
+FINAL_READERS = {
+    ("tools/audit/seat/merge_train.py", "approval_owed"): "re-reads a head whose approval is owed: a deferral there is the policy gate's, not this read's",
+    ("tools/audit/seat/merge_train.py", "Train.classify_at"): "the first read of the two-step: a red GATE is re-read against busy/sweep right after",
+    ("tools/audit/seat/merge_train.py", "Train.wait_ci"): "the first read of the poll: a red GATE is re-read against busy right after",
+    ("tools/audit/seat/merge_train.py", "Train.main_green"): "main's tip: a push to main runs the full code run, no edit-run deferral exists there",
+    ("tools/audit/seat/orchestrator_tick.py", "Tick._classify_reading"): "the fallback when classify_at cannot run: a red stays red (fail closed)",
+}
+
+#: The functions that read a head's runs, the only frames that may mint an EMPTY
+#: Busy ("nothing at this head is busy" is a reading; a non-empty Busy only
+#: ever turns a red into a wait, so it is minted anywhere).
+BUSY_MINTERS = frozenset({("tools/audit/seat/merge_train.py", "gate_busy"),
+                          ("tools/audit/seat/merge_train.py", "gate_rerunning")})
+
+
+class BlindRead(TypeError):
+    """A read of the gate conclusion that states no deferral reading."""
+
+
+def caller_frame(depth: int) -> "tuple[str, str]":
+    """(repo path, co_qualname) of the function <depth> frames above the caller of
+    this function; a file outside ROOT keeps its absolute path, so no
+    registered key matches it."""
+    code = sys._getframe(depth + 1).f_code
+    path = Path(code.co_filename).resolve()
+    rel = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else str(path)
+    return rel, code.co_qualname
+
+
+def blind_sites(sources: "dict[str, str]") -> "list[str]":
+    """The barrier's direct spellings found BEFORE run time (carry 2): in each
+    (repo path -> source) given, a `classify(..)` call passing FINAL from a
+    frame not in FINAL_READERS, or an empty `Busy()` from a frame not in
+    BUSY_MINTERS, as "path:line qualname what". Frames are named as
+    `caller_frame` names them (co_qualname). An alias, getattr or partial is
+    beyond a scan; the run-time barrier still refuses those."""
+    out = []
+
+    def walk(path: str, node, qual: str) -> None:
+        for ch in ast.iter_child_nodes(node):
+            q = qual
+            if isinstance(ch, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                q = (f"{qual}.<locals>.{ch.name}" if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                     else f"{qual}.{ch.name}" if qual else ch.name)
+            if isinstance(ch, ast.Call):
+                f = ch.func
+                name = f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else None
+                final = any(isinstance(a, ast.Name) and a.id == "FINAL" or isinstance(a, ast.Attribute)
+                            and a.attr == "FINAL" for a in [*ch.args, *(k.value for k in ch.keywords)])
+                if name == "classify" and final and (path, qual) not in FINAL_READERS:
+                    out.append(f"{path}:{ch.lineno} {qual or '<module>'} classify(.., FINAL)")
+                if name == "Busy" and not ch.args and not ch.keywords and (path, qual) not in BUSY_MINTERS:
+                    out.append(f"{path}:{ch.lineno} {qual or '<module>'} Busy()")
+            walk(path, ch, q)
+    for path, src in sources.items():
+        walk(path, ast.parse(src), "")
+    return out
+
+
+class Busy(list):
+    """gate.py's `busy` at one head: the ci.yml run ids still adding a source.
+    Non-empty, a red GATE is a wait; empty, it is final -- so an empty one is
+    minted only by BUSY_MINTERS."""
+
+    def __init__(self, ids=()):
+        super().__init__(ids)
+        if not self and caller_frame(1) not in BUSY_MINTERS:
+            raise BlindRead(f"an empty Busy minted at {caller_frame(1)}, which reads no runs")
+
+
+def classify(latest: dict, required, busy) -> "tuple[str, list[str], list[str]]":
     """(state, pending, red) over the required contexts less NOT_GATING, each
     on its latest run: 'red' when any concluded non-green, else 'wait' while
     any is pending or has no run yet, else 'green'. A red GATE is pending
-    while `busy` (gate_busy: a ci.yml run at the head still adding a source)
-    is non-empty. `required` None (a ruleset that could not be read) raises
-    ValueError: a refusal, never green. A head is reviewable (K15 (d))
-    exactly when `red` is empty."""
+    while `busy` (a Busy) is non-empty; FINAL reads it red, from a
+    FINAL_READERS frame only (BlindRead otherwise). `required` None (a ruleset
+    that could not be read) raises ValueError: a refusal, never green. A head is
+    reviewable (K15 (d)) exactly when `red` is empty."""
+    if isinstance(busy, Busy):
+        deferred = {GATE} if busy else set()
+    elif busy is FINAL and caller_frame(1) in FINAL_READERS:
+        deferred = set()
+    else:
+        raise BlindRead(f"classify from {caller_frame(1)} with busy={busy!r}: pass gate_busy's Busy, "
+                        "or FINAL from a FINAL_READERS frame")
     if required is None:
         raise ValueError(f"{RULESET}'s required contexts are unreadable; nothing is judged against a guessed list")
     names = judged(required)
-    deferred = {GATE} if busy else set()
     pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending"
                      or (n in deferred and run_state(latest[n]) == "red"))
     red = sorted(n for n in names if n in latest and run_state(latest[n]) == "red" and n not in deferred)
@@ -549,7 +677,7 @@ def gate_busy(ci_runs, check_runs) -> list:
             for r in ci_runs]
     # The train is no run: gate.py's tie-break between two gates (a LATER run
     # whose gate started) has no train side, so run_id is past every id.
-    return _gate_py().busy({"run_id": float("inf")}, runs)
+    return Busy(_gate_py().busy({"run_id": float("inf")}, runs))
 
 
 def gate_rerunning(ci_runs, check_runs) -> list:
@@ -559,8 +687,18 @@ def gate_rerunning(ci_runs, check_runs) -> list:
     `busy` reads it judging. Its red is the one being re-judged."""
     done = {(c.get("check_suite") or {}).get("id") for c in gate_suites(check_runs or ())
             if c.get("status") == "completed"}
-    return sorted(r["id"] for r in ci_runs
-                  if r.get("status") not in ("completed", "action_required") and r.get("check_suite_id") in done)
+    return Busy(sorted(r["id"] for r in ci_runs
+                  if r.get("status") not in ("completed", "action_required") and r.get("check_suite_id") in done))
+
+
+def green_gate_end(check_runs) -> "str | None":
+    """The newest `completed_at` among the green GATE suites, as the ISO string
+    GitHub wrote, or None when none is green or a stamp is unreadable."""
+    ends = [c.get("completed_at") for c in gate_suites(check_runs or ()) if run_state(c) == "green"]
+    try:
+        return max(ends, key=lambda t: datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp())
+    except (ValueError, AttributeError):
+        return None
 
 
 def sweep_settling(check_runs, now: float) -> bool:
@@ -568,12 +706,15 @@ def sweep_settling(check_runs, now: float) -> bool:
     before <now> (epoch seconds), so gate-sweep's re-run of a red beside it may
     not have started. A stamp ahead of <now>, or none readable, is unknowable:
     no settle, the red stands."""
-    ends = [c.get("completed_at") for c in gate_suites(check_runs or ()) if run_state(c) == "green"]
-    try:
-        last = max(datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp() for t in ends)
-    except (ValueError, AttributeError):
+    end = green_gate_end(check_runs)
+    if end is None:
         return False
-    return 0 <= now - last <= SWEEP_SETTLE_SECONDS
+    return 0 <= now - datetime.datetime.fromisoformat(end.replace("Z", "+00:00")).timestamp() <= SWEEP_SETTLE_SECONDS
+
+
+#: The one marker a Busy carries when the wait is on a gate-sweep.yml run that is
+#: queued or in progress (`Train._sweep_busy`), as against a ci.yml run id.
+SWEEP_QUEUED = "sweep-run"
 
 
 #: Polls a red GATE beside a green GATE suite is still waited on once no run is
@@ -582,6 +723,12 @@ def sweep_settling(check_runs, now: float) -> bool:
 #: One poll (HEARTBEAT_SECONDS) covers the sweep's start; a sweep that never
 #: re-runs it leaves the red standing, read one poll later.
 SWEEP_SETTLE_POLLS = 1
+
+#: How long after its run_started_at a started ci.yml run at a deferring head is
+#: waited on past `polls`: the longest job ceiling in ci.yml (prelude, 150 min),
+#: one named constant in place of reading each job's timeout-minutes. A wait on
+#: a run past it, or on a queued one, is bounded by `polls` alone (TIMEOUT).
+CODE_RUN_DEADLINE_SECONDS = 150 * 60
 
 
 def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
@@ -730,7 +877,7 @@ def approval_owed(train: "Train", pr: int, head: str, runs, required) -> "str | 
     the three-dot names from git. A read that fails or a raise_hold Stop is
     None: fail closed, the head stays not reviewable. The merge state is
     untouched: `classify` and the train judge as before."""
-    red = set(classify(latest_runs(runs), gating_names(required))[2])
+    red = set(classify(latest_runs(runs), gating_names(required), FINAL)[2])
     if RAISE_GATE not in red or red - {GATE, RAISE_GATE}:
         return None
     if not gate_raise_only(train, runs):
@@ -915,6 +1062,11 @@ def infra_due(attempt: int, failed: list[dict], logs: dict) -> "tuple[float, lis
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
 POLL_SECONDS = 300
+# Carry 6 (ii): a re-run the train starts for a non-priority pull request waits
+# while a priority run is queued, re-asked each POLL_SECONDS; past six polls
+# (30 min, the order of the priority wait carry 4 measured) it runs anyway,
+# logged, so a priority queue that never drains cannot stall the train.
+HOLD_POLLS = 6
 # The heartbeat (tvofi, 2026-10-13): the batch train sat silent 2+ hours inside
 # --overlap's up-front recarry phase (each recarry logs only on completion, and
 # app_push's prepr takes 5-15 min per entry) and inside wait_ci's poll cycle,
@@ -949,6 +1101,12 @@ MAIN_MOVED_TRIES = 3
 # (a recarry or a poll), never a whole CI wait and never a whole batch. A
 # `batch/` rehearsal publishes nothing: it merges nothing into main.
 HOLD_REF = "refs/heads/train-hold"
+#: The reverse hold: a stamp (tools/release/stamp.py, `STAMP_HOLD_REF` there) publishes
+#: it while it runs; a merge attempt waits on it (`Train.stamp_hold_wait`), and a hold
+#: at or past STAMP_HOLD_MAX_AGE_S is a dead holder's and is taken over.
+STAMP_HOLD_REF = "refs/heads/stamp-hold"
+STAMP_HOLD_MAX_AGE_S = 7200
+STAMP_HOLD_POLL_S = 30
 #: The approver App's login (app_approve.sh's VERDICT_AUTHORS): its APPROVED
 #: review at a head is that head's approval, never posted twice (P86).
 APPROVER_LOGIN = "hpo-approver[bot]"
@@ -1042,6 +1200,7 @@ class Stop(Exception):
 # "Base branch was modified", the GraphQL "is not up to date" family).
 BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
 HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
+OUTSIDE = "OUTSIDE"                  # a head from a fork (decision 0017): its contract, or a move only the fork can make, is owed
 def runs_approved(runs: "list[dict]") -> bool:
     """True when a head's pull_request runs listing has at least one run and
     none still held action_required (its status or its conclusion)."""
@@ -1114,6 +1273,34 @@ def classified(s: Stop) -> str:
 # The one reader of the owner's recorded mandate, old path first (the TOOLS
 # convention above).
 GATE_PATHS = (".claude/workflows/budget_raise_gate.py", "tools/policy/budget_raise_gate.py")
+
+# THE ONE OWNER of "is this pull request's head a fork's, is it an admitted
+# outside pull request, which class is each path it changes, and is its class-O
+# read the owner's" is tools/pr/outside.py (decision 0017). The train loads it
+# by path, as it loads the mandate gate, and re-types none of it: no second
+# definition of cross-repository, of the classes or of the outside-read line.
+# The two calls it makes are `Train.fork_head` and `Train.outside_contract`.
+OUTSIDE_PATH = "tools/pr/outside.py"
+# What that contract executes or reads on our side. The train runs it only
+# from files byte-equal to origin/main's own (`Train.outside_is_mains`): a
+# seat checkout behind main is an old contract, and one ahead of it is nobody's.
+OUTSIDE_MAIN_COPIES = (OUTSIDE_PATH, GATE_PATHS[-1], "dev/governance/config/outside_contributors.json",
+                       ".github/CODEOWNERS", "tools/pr/app_approve.sh", "tools/policy/policy_lint.mjs",
+                       "tests/closure.py")
+FORK_REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+
+
+@functools.lru_cache(maxsize=None)
+def _outside_gate():
+    p = ROOT / OUTSIDE_PATH
+    if not p.is_file():
+        raise Stop("outside", f"{OUTSIDE_PATH} is not in this checkout, so whether a head is a fork's cannot "
+                   "be read; an unread head is never taken for ours")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("outside", str(p))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 @functools.lru_cache(maxsize=None)
@@ -1500,6 +1687,22 @@ def rollup_states(entries) -> "dict[str, str]":
     return {n: ("PENDING" if n in pending else v[1]) for n, v in best.items()}
 
 
+def rollup_red_after_pass(entries, name: str) -> bool:
+    """True when every `name` entry that passed AND the newest failed one carry a
+    stamp (`completedAt`, else `startedAt`) and the failure is strictly newer than
+    every pass: a red that landed after the last green, never a deferral."""
+    def stamp(c):
+        xs = [x for x in (c.get("completedAt"), c.get("startedAt")) if x and not x.startswith("0001")]
+        return xs[0] if xs else ""
+    passes, fails = [], []
+    for c in entries:
+        if (c.get("name") or c.get("context") or "?") != name:
+            continue
+        st = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        (passes if st == "SUCCESS" else fails if st in POLICY_RED else []).append(stamp(c))
+    return bool(fails and passes and all(passes) and all(fails) and max(fails) > max(passes))
+
+
 APPROVER_BOT = "hpo-approver[bot]"
 WAIT_GATES = (GATE, RAISE_GATE)
 
@@ -1572,6 +1775,12 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
     Carry 15: a record pull request outside a `--stamp` add is HELD-FOR-STAMP,
     rc 0, nothing added. Carry 14: a started train's first batch is every
     ready pull request (`Train.ready_batch`; <ready>, the sweep's queue)."""
+    if os.environ.get("HPO_SEAT_GEN"):  # a superseded seat's lingering job adds nothing
+        import seat_gen
+        gen_rc, gen_msg = seat_gen.check_env()
+        if gen_rc:
+            t.log(f"ADD REFUSED #{item.get('pr')} {gen_msg}")
+            return 1
     pr = item.get("pr")
     stamp_why = t.held_for_stamp(int(pr)) if str(pr).isdigit() else None
     if stamp_why:
@@ -1639,6 +1848,54 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
                                    for e in queue})
         t.log(f"STARTED train.sh pid {pid} over {' '.join('#%d' % int(e['pr']) for e in queue)}; queue {qf.name}")
         return 0
+
+
+# Quiet output hides only this named chatter: every other line is a key line (a
+# merge, an OWED obligation, a failing check name, a SKIP the throughput reader
+# parses) and prints, so a line a later edit adds shows by default.
+QUIET_CHATTER = (
+    (r"beat: waiting ", "beat: waiting for CI (poll 3, t+720s, required: 4, concluded: 2/4)"),
+    (r"merge_train: ", "merge_train: git fetch origin main: retry 2 after rc=128"),
+    (r"wait: gate red at \S+ is a deferral", "wait: gate red at abcd1234 is a deferral while run(s) 55 are running"),
+    (r"#\d+ recarry START", "#12 recarry START (branch fix/x)"),
+    (r"#\d+ recarry: ", "#12 recarry: main merged, head abcd1234; pushed"),
+    (r"#\d+ overlap: recarry start", "#12 overlap: recarry start"),
+    (r"#\d+ \w+ platform gate=green", "#12 abcd1234 platform gate=green: all rollups green"),
+    (r"(released|deleted) ", "released worktree wt-12"),
+    (r"grade \S+ \S+: ok", "grade batch-1 abcd1234: ok (41s)"),
+)
+QUIET_CHATTER_RE = re.compile("|".join(f"(?:{p})" for p, _ in QUIET_CHATTER))
+QUIET_TAIL = 20
+
+
+def quiet_log(full: Path, out=print, tail: int = QUIET_TAIL):
+    """The train's quiet log (owner card 2026-10-24): every line goes to `full`;
+    stdout gets every line but the named chatter (QUIET_CHATTER), and a
+    `TRAIN STOPPED` line first prints the last `tail` chatter lines, the
+    failing step's tail. `--verbose`/TRAIN_VERBOSE=1 skips it."""
+    held: list[str] = []
+    fh = open(full, "a", buffering=1)
+
+    def log(m) -> None:
+        m = str(m)
+        fh.write(m + "\n")
+        if QUIET_CHATTER_RE.match(m):
+            held.append(m)
+            del held[:-tail]
+            return
+        if "TRAIN STOPPED" in m:
+            for h in held:
+                out("  | " + h)
+            held.clear()
+        out(m)
+    out(f"quiet output: the full log is {full} (--verbose or TRAIN_VERBOSE=1 prints it)")
+    return log
+
+
+def wire_quiet(a, opts: dict) -> None:
+    """Quiet is the default; `--verbose` or TRAIN_VERBOSE=1 restores the stream."""
+    if not (a.verbose or os.environ.get("TRAIN_VERBOSE") == "1"):
+        opts["log"] = quiet_log(Path(a.state_dir) / "train-full.log")
 
 
 BASELINE_JOBS = 6  # completed same-name runs the one-job pulse takes its p50 and max from
@@ -1733,6 +1990,8 @@ class Train:
         self.cp_read: "tuple[dict, set] | None" = None  # (roster, critical ids), read once per run
         self.skipped: list[dict] = []
         self.approved: dict[int, str] = {}  # {pr: head} this run approved (P86: never twice at one head)
+        self.forks: "dict[int, tuple[str, str] | None]" = {}  # {pr: (head repository, head branch) | None}: `fork_head`
+        self.contracted: dict[int, str] = {}  # {pr: head} the outside contract last held at (`outside_contract`)
         self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
         self.held = False  # this run's HOLD_REF is published (hold_refresh/hold_release)
         self.hold_armed = False  # a train/batch owns the ref; `wait-ci` never publishes one
@@ -2070,9 +2329,9 @@ class Train:
         code, runs, _ = self.pages(f"repos/{self.repo}/commits/{h}/check-runs", "check_runs")
         return None if code else runs
 
-    def gate_deferred(self, h: str, red: "list[str]") -> "list[int]":
-        """The ids of the other workflow runs at <h> still unfinished when the
-        only red is GATE, else []. An edit run's gate fails by design while a
+    def gate_deferred_runs(self, h: str, red: "list[str]") -> "list[tuple]":
+        """The (id, status, run_started_at) of the other workflow runs at <h> still
+        unfinished when the only red is GATE, else []. An edit run's gate fails by design while a
         code run at the same head is unfinished ("still being judged; their
         gate decides", gate.py `deferral`), and that run's own gate check-run
         does not exist until every unit finishes (ci.yml: gate needs
@@ -2085,18 +2344,53 @@ class Train:
         code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}", "workflow_runs")
         if code:
             return []
-        return sorted(r["id"] for r in runs if isinstance(r.get("id"), int)
+        return sorted((r["id"], (r.get("status") or "").strip(), (r.get("run_started_at") or "").strip())
+                      for r in runs if isinstance(r.get("id"), int)
                       and (r.get("status") or "") not in ("completed", "action_required", ""))
 
-    def _gate_busy(self, h: str, check_runs) -> list:
+    def _sibling_in_deadline(self, rows) -> bool:
+        """Whether a deferral's deciding run is STARTED (in_progress) and still
+        inside CODE_RUN_DEADLINE_SECONDS of its run_started_at: such a wait is
+        bounded by that run's own deadline, not by `polls` (#3398 ran 5863 s and
+        concluded success; polls=24 is ~5832 s). A run still queued, past its
+        deadline, or with no readable start keeps the polls bound."""
+        for _rid, st, started in rows:
+            try:
+                t0 = datetime.datetime.fromisoformat(started.replace("Z", "+00:00")).timestamp()
+            except (ValueError, AttributeError):
+                continue
+            if st == "in_progress" and 0 <= self.wall() - t0 <= CODE_RUN_DEADLINE_SECONDS:
+                return True
+        return False
+
+    def _gate_busy(self, h: str, check_runs) -> "Busy | None":
         """gate_busy at <h> from one ci.yml runs listing by head sha. An
-        unreadable listing reads no run busy, logged: the red stands as it did
-        before this read existed -- a refusal, never a wait on a guess."""
+        unreadable listing is None, logged: the red stands as it did before
+        this read existed -- a refusal, never a wait on a guess, and never an
+        empty Busy minted from runs it did not read (carry 2)."""
         code, ci_runs, _ = self.pages(f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}", "workflow_runs")
         if code:
             self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
-            return []
+            return None  # no reading: never an empty Busy, which states "nothing at this head is busy"
         return gate_busy(ci_runs, check_runs) or gate_rerunning(ci_runs, check_runs)
+
+    def _sweep_busy(self, h: str, check_runs) -> "Busy | None":
+        """`Busy([SWEEP_QUEUED])` while a gate-sweep.yml run created at or after
+        the newest green GATE suite's `completed_at` is queued or in progress
+        (GATE-SWEEP-QUEUE-WAIT: the sweep's job can sit behind the runner cap
+        for ten minutes, past the settle). One listing read at <h>; no green
+        suite, an unreadable listing or only completed runs read None (never an
+        empty Busy, which only the gate readers mint), and the red stands after
+        the settle poll."""
+        end = green_gate_end(check_runs)
+        if end is None:
+            return None
+        code, sweeps, _ = self.pages(
+            f"repos/{self.repo}/actions/workflows/gate-sweep.yml/runs?created=%3E%3D{end}", "workflow_runs")
+        if code or not sweeps:
+            return None
+        return Busy([SWEEP_QUEUED]) if any(
+            (r.get("status") or "") not in ("completed", "action_required", "") for r in sweeps) else None
 
     def classify_at(self, h: str, runs, required) -> "tuple[str, list[str], list[str]]":
         """`classify` over <h>'s check runs with a red GATE re-read against
@@ -2105,10 +2399,11 @@ class Train:
         readers (the `classify` subcommand, proof_watch), none of which re-reads
         a RED. `wait_ci`, which polls, takes the same settle as SWEEP_SETTLE_POLLS."""
         last = latest_runs(runs or ())
-        state = classify(last, required)
+        state = classify(last, required, FINAL)
         if GATE not in state[2]:
             return state
-        busy = self._gate_busy(h, runs) or (["sweep"] if sweep_settling(runs, self.wall()) else [])
+        busy = (self._sweep_busy(h, runs) or self._gate_busy(h, runs)
+                or (Busy(["sweep"]) if sweep_settling(runs, self.wall()) else None))
         return classify(last, required, busy) if busy else state
 
     def wait_ci(self, h: str, only: "list[str] | None" = None,
@@ -2140,29 +2435,40 @@ class Train:
         graced = False
         held: list = []
         settle = 0
-        for k in range(1, self.polls + 1):
+        k, deferring, last_def = 0, [], 0
+        while k < self.polls or (last_def and not deferring and k <= last_def + 2) or self._sibling_in_deadline(deferring):
+            k += 1
+            deferring = []
             runs = self._check_runs(h)
+            self.pause_poll(runs, h)
             last = latest_runs(runs or ())
             if only is not None and runs is not None:
-                state = classify(last, only)
+                state = classify(last, only, FINAL)
                 if GATE in state[2]:
-                    busy = self._gate_busy(h, runs)
+                    busy = self._sweep_busy(h, runs) or self._gate_busy(h, runs)
                     if not busy and settle < SWEEP_SETTLE_POLLS and any(
                             run_state(c) == "green" for c in gate_suites(runs)):
                         settle += 1
-                        busy = ["sweep"]
+                        busy = Busy(["sweep"])
                     if busy != held:
                         held = busy
-                        if busy == ["sweep"]:
+                        if busy == [SWEEP_QUEUED]:
+                            self.log(f"gate red at {h[:8]}: a gate-sweep.yml run created after the green gate is "
+                                     "queued or in progress: waiting for its re-run")
+                        elif busy == ["sweep"]:
                             self.log(f"gate red at {h[:8]} beside a green gate suite, no ci.yml run busy: "
                                      f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
                         elif busy:
                             self.log(f"gate red at {h[:8]} is a deferral while ci.yml run(s) {busy} "
                                      "are unfinished: waiting (gate.py busy)")
-                    state = classify(last, only, busy)
+                    if busy:  # a deferral reading; none (or an unread listing) keeps the red above
+                        state = classify(last, only, busy)
                 _, pending, red = state
                 if not pending:
-                    sib = self.gate_deferred(h, red)
+                    rows = self.gate_deferred_runs(h, red)
+                    sib = [r[0] for r in rows]
+                    deferring = rows
+                    last_def = k if rows else last_def
                     if sib:
                         graced = True
                     elif graced and red == [GATE]:
@@ -2178,12 +2484,16 @@ class Train:
                 red = sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
                 # Every unit concluded, so gate.py's `busy` names no run; the
                 # sweep's re-run of a deferred red takes the train's settle.
-                if not (GATE in red and settle < SWEEP_SETTLE_POLLS
-                        and any(run_state(c) == "green" for c in gate_suites(runs))):
+                if GATE in red and self._sweep_busy(h, runs):
+                    self.log(f"gate red at {h[:8]}, every run concluded: a gate-sweep.yml run is queued or in "
+                             "progress: waiting for its re-run")
+                elif not (GATE in red and settle < SWEEP_SETTLE_POLLS
+                          and any(run_state(c) == "green" for c in gate_suites(runs))):
                     return red
-                settle += 1
-                self.log(f"gate red at {h[:8]} beside a green gate suite, every run concluded: "
-                         f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
+                else:
+                    settle += 1
+                    self.log(f"gate red at {h[:8]} beside a green gate suite, every run concluded: "
+                             f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
             now = self.clock()
             # A poll slower than the beat prints ONE beat, whose elapsed names
             # the true wait; a boundary-exact tick never prints twice.
@@ -2216,10 +2526,17 @@ class Train:
         required-check evaluation must say the same, or the entry stops. A
         rollup that cannot be read is no agreement."""
         owner, name = self.repo.split("/")
-        code, o = self.run(["gh", "api", "graphql", "-f", f"query={ROLLUP_Q}", "-F", f"pr={pr}",
-                            "-f", f"o={owner}", "-f", f"n={name}"])
+        def fetch(cursor):
+            argv = ["gh", "api", "graphql", "-f", f"query={ROLLUP_Q}", "-F", f"pr={pr}",
+                    "-f", f"o={owner}", "-f", f"n={name}"] + (["-f", f"after={cursor}"] if cursor else [])
+            code, o = self.run(argv)
+            if code:
+                raise OSError(o.strip()[-160:])
+            return json.loads(o)
         try:
-            state, why = platform_gate(json.loads(o), h) if code == 0 else ("unread", o.strip()[-160:])
+            state, why = platform_gate(rollup_walk(fetch, h), h)
+        except OSError as e:
+            state, why = "unread", str(e)
         except ValueError:
             state, why = "unread", "the rollup answer is not JSON"
         self.log(f"#{pr} {h[:8]} platform gate={state}: {why}")
@@ -2373,6 +2690,111 @@ class Train:
         the merge as the budget-raise-gate check judges it at the head."""
         return g.measured_score("origin/main", h)
 
+    def fork_head(self, pr: int) -> "tuple[str, str] | None":
+        """(head repository, head branch) when <pr>'s head is cross-repository,
+        None when it is a branch of ours: outside.py's own reading of the pulls
+        API object, which the train neither re-types nor guesses (decision
+        0017). Read once per pull request per invocation -- a pull request
+        cannot change its head repository. Both names are GitHub's, of the
+        contributor's choosing: they travel as argv and log text only, never
+        inside a shell string. A pull request, or a fork's name, that cannot be
+        read is a Stop: an unread head is never taken for ours. The outside.py
+        executed is origin/main's blob or none (`outside_is_mains`, asked
+        before the read): a checkout's copy answering "ours" would otherwise
+        never reach the contract's own comparison."""
+        if pr in self.forks:
+            return self.forks[pr]
+        self.outside_is_mains((OUTSIDE_PATH,))  # main's copy is the one executed below, or none is
+        code, o = self.run(["gh", "api", f"repos/{self.repo}/pulls/{pr}"])
+        try:
+            pull = json.loads(o) if code == 0 else None
+        except ValueError:
+            pull = None
+        if not isinstance(pull, dict) or not isinstance(pull.get("head"), dict):
+            raise Stop("outside", f"#{pr} could not be read from the pulls API ({o.strip()[-120:] or 'no output'}); "
+                       "an unread head is never taken for ours")
+        try:
+            facts = _outside_gate().pull_facts(self.repo, pr, pull)
+            cross = _outside_gate().cross_repository(facts, self.repo)
+        except Stop:
+            raise
+        except Exception as e:  # fail closed: outside.py's answer, or none
+            raise Stop("outside", f"{OUTSIDE_PATH} could not say whether #{pr}'s head is cross-repository "
+                       f"({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})") from None
+        fork = None
+        if cross:
+            name, ref = str(facts["head_repo"] or ""), str(facts["head_ref"] or "")
+            if not FORK_REPO.fullmatch(name) or name == self.repo or not ref or ref != ref.strip():
+                raise Stop("outside", f"#{pr}'s head is cross-repository and the pulls API names no head "
+                           f"repository and branch for it ('{name[:60]}', '{ref[:60]}'): deleted, or unread", cls=OUTSIDE)
+            fork = (name, ref)
+        self.forks[pr] = fork
+        return fork
+
+    def outside_is_mains(self, rels: "tuple[str, ...]" = OUTSIDE_MAIN_COPIES) -> None:
+        """The outside contract runs from origin/main's copies or not at all
+        (carry 23): origin/main is fetched HERE, and every file of <rels>
+        (OUTSIDE_MAIN_COPIES for the contract, outside.py alone before
+        `fork_head` executes it) in this checkout must be byte-equal to main's
+        blob of that path. Never the head's copy -- nothing of a fork head is
+        executed or imported on this machine -- and never a stale seat's."""
+        code, o = self.run(["git", "fetch", "-q", "origin", "main"])
+        if code:
+            raise Stop("outside", "origin/main could not be fetched for the outside contract: " + o.strip()[-160:])
+        for rel in rels:
+            c1, want = self.run(["git", "rev-parse", f"origin/main:{rel}"])
+            c2, have = self.run(["git", "hash-object", "--", rel])
+            if c1 or c2 or not is_sha(want.strip()) or want.strip() != have.strip():
+                raise Stop("outside", f"{rel} in this checkout is not origin/main's copy "
+                           f"(main {want.strip()[:12] or 'unread'}, here {have.strip()[:12] or 'unread'}): the "
+                           "outside contract is main's or it is not run; run the train from a checkout at main",
+                           cls=OUTSIDE)
+
+    def outside_contract(self, pr: int, h: str, fork: "tuple[str, str]") -> str:
+        """outside.py's WHOLE contract for the cross-repository <pr> at the
+        landing head <h>, from main's copy (carry 23): allowlist, repository
+        and base, the path rule, the head ref name, no other pull request of
+        any state at <h>, the manifest version, and class O -- the owner's
+        approving review at the head or his machinery's under a mandate in
+        force NOW. Read on every call, before any approval and whatever
+        CODEOWNERS says: class O holds paths under tests/ no CODEOWNERS line
+        owns, on which app_approve.sh answers "app", and the owner's revocation
+        of the mandate since adoption must park the head here. A refusal, or a
+        contract that cannot be read, is a Stop naming the fork; the reason
+        returned is outside.py's own."""
+        self.contracted.pop(pr, None)
+        self.outside_is_mains()
+        try:
+            # `check`: rc 0 admitted, 1 refused, 3 not an outside pull request (no allowlist entry),
+            # on a fork head a refusal too. It reads the live head, so the admission must name <h>.
+            rc, lines = _outside_gate().check(self.repo, pr, "origin/main")
+            why = "; ".join(str(ln) for ln in lines)
+            ok = rc == 0 and any(str(ln).startswith("OUTSIDE: ") and f" at {h}: " in str(ln) for ln in lines)
+            if rc == 0 and not ok:
+                why = f"it admitted a head other than {h[:12]}: {why}"
+        except Stop:
+            raise
+        except Exception as e:  # fail closed: an unread contract admits nothing
+            ok, why = False, f"the contract could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})"
+        if ok is not True:
+            raise Stop("approve", f"the outside contract refuses #{pr} at {h[:12]} (head {fork[0]}:{fork[1]}): "
+                       f"{str(why)[:400]}; parked for the owner's review at the head, or the fork's own fix "
+                       "(decision 0017)", cls=OUTSIDE)
+        self.contracted[pr] = h
+        return str(why)
+
+    def no_fork_post(self, pr: int, what: str) -> None:
+        """Stop before <what> is posted on a cross-repository head. The train's
+        approvals under the owner's account are posted after, and on the basis
+        of, the adopted verdict, which on a fork head the contributor's
+        reviewer wrote: there class O is outside.py's approve subcommand alone,
+        run by our own class-O read seat (decision 0017, (E))."""
+        fork = self.fork_head(pr)
+        if fork is not None:
+            raise Stop("approve", f"{what} is never posted on a cross-repository head ({fork[0]}:{fork[1]}): the "
+                       "verdict it would rest on is the contributor's reviewer's; class O is outside.py's approve "
+                       "subcommand, from our own read of the class-O diff (decision 0017)", cls=OUTSIDE)
+
     def raise_hold(self, pr: int, h: str, files: "list[str]") -> "tuple[list[str], bool, str]":
         """(raises, held, why) for <pr> at <h>: the train's ONE reading of a
         budget raise, shared by `approve` and queue_pre_flight.py.
@@ -2456,7 +2878,12 @@ class Train:
     def _post_carry(self, pr: int, h: str, body: str) -> str:
         """Post <body> as an approval at <h> and READ IT BACK: the newest review
         at <h> must carry this body byte-for-byte, or the post is a Stop, not a
-        pass -- a carried approval nobody can read back approves nothing."""
+        pass -- a carried approval nobody can read back approves nothing.
+        Never on a cross-repository head (`no_fork_post`): over a class-O
+        approval the carried body would repeat the outside-read line under a
+        second citation, and app_approve.sh's carry already takes that
+        approval across main's commits."""
+        self.no_fork_post(pr, "a carried owner approval")
         bf = self.state / f"carry{pr}.md"
         bf.write_text(body)
         if self.head(pr) != h:
@@ -2491,6 +2918,8 @@ class Train:
             item["carry_refused"] = why
         if not self.approval_carry or not self.mandate:
             return no("--approval-carry or --mandate is not given")
+        if self.fork_head(pr) is not None:
+            return no("the head is cross-repository, where the train carries no owner approval (decision 0017)")
         chain = [c for c in item.get("carried_chain") or [item.get("carried_from")] if is_sha(c or "") and c != h]
         if not chain:
             return no("this run's recarry did not move the head")
@@ -2526,12 +2955,64 @@ class Train:
                   f"mandate re-read in force at merge: {self.mandate}.\n")
         return self._post_carry(pr, h, body)
 
+    def pre_approve(self, serial: "list[dict]", lead: bool, req: "list[str]") -> None:
+        """P628 (R10-TRAIN-REVIEW-PRESETTLE, carry 1): at batch start, after any
+        up-front recarry, step 6's approval for each serial entry that lands
+        after another entry (`lead`: a batch entry lands first; else the first
+        serial entry has none before it) and passes steps 1-5 now
+        (`pre_approval_refusal`), so its `CI review` run runs while the earlier
+        entries merge. `approve` is once per head: at the entry's turn it finds
+        this approval and posts nothing; a head that moved is approved afresh
+        there. An entry refused here is left to step 6 unchanged."""
+        for a in serial if lead else serial[1:]:
+            pr, h = a["pr"], a.get("rc_head") or a["head"]
+            why = self.pre_approval_refusal(a, h, req)
+            self.log(f"#{pr} not pre-approved at {h[:8]}: {why}" if why else
+                     f"#{pr} pre-approved at batch start ({self.approve(pr, h, a, a['files'])})")
+
+    def pre_approval_refusal(self, a: dict, h: str, req: "list[str]") -> "str | None":
+        """Why <a> at <h> takes no approval at batch start, or None: steps 1-5 read
+        once, nothing waited for -- verdicted, the live head, main inside (a
+        recarry still owed moves the head; under a ruleset requiring no up-to-date
+        branch, Card 5's `merges_as_is` lands it unmoved), classify_at GREEN, CARRY yes, no
+        policy path (its approval is `policy_approve`'s, at the merge) and no
+        budget raise (`raise_hold`)."""
+        pr = a["pr"]
+        if BOT_ROUTE in a["route"]:
+            return "a bot tip: its recarry at its turn is the App push"
+        if not is_sha(a.get("verdict") or ""):
+            return "unverdicted"
+        if self.head(pr) != h:
+            return "the head moved"
+        if not a.get("rc_head") and not self.contains_main(h) and self.strict_update() is not False:
+            return "main is not inside and the ruleset requires an up-to-date branch: its recarry moves the head"
+        runs = self._check_runs(h)
+        state = "unread" if runs is None else self.classify_at(h, runs, req)[0]
+        if state != "green":
+            return f"not GREEN ({state})"
+        if "CARRY: yes" not in self.run(["bash", tool("app_approve"), "--carry", a["verdict"], h])[1]:
+            return "CARRY no"
+        if self.policy_paths(a["files"]):
+            return "a policy head: its approval is posted under the mandate at its turn"
+        if self.raise_hold(pr, h, a["files"])[0]:
+            return "a budget raise: the owner's approval at its turn"
+        return None
+
     def approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
         """Step 6, ONCE per head (R10-TRAIN-UPGRADE, triage P86): every approval
         starts a `CI review` run of ci.yml that the merge then waits on, and
         app_approve.sh posts on every call -- so a head this run approved, or
         one the approver App already approved, is not approved again. A head
-        that moved is a new head and is approved afresh."""
+        that moved is a new head and is approved afresh.
+
+        A cross-repository head first passes outside.py's whole contract at
+        <h> (`outside_contract`), on EVERY call and before either shortcut
+        below: an approval already at the head says nothing of a mandate
+        revoked since."""
+        fork = self.fork_head(pr)
+        if fork is not None:
+            self.log(f"#{pr} outside contract holds at {h[:8]} ({fork[0]}:{fork[1]}): "
+                     f"{self.outside_contract(pr, h, fork)[:200]}")
         if self.approved.get(pr) == h:
             return "already, at this head, by this train"
         if any(r.get("state") == "APPROVED" and r.get("commit_id") == h
@@ -2543,6 +3024,9 @@ class Train:
         return how
 
     def _approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
+        fork = self.fork_head(pr)
+        if fork is not None and self.contracted.get(pr) != h:
+            self.outside_contract(pr, h, fork)  # never an approval path without the contract at this head
         code, o = self.run(["bash", tool("app_approve"), self.repo, str(pr), h])
         if code == 0 and "REFUSE" not in o:
             return "app"
@@ -2551,6 +3035,14 @@ class Train:
         owned = re.search(r"(?m)^app_approve: REFUSE: #%d touches code-owned paths \(([^)]*)\);" % pr, o)
         if owned is None:
             raise Stop("approve", "app_approve.sh refused: " + (o.splitlines() or ["(no output)"])[-1][:200])
+        if fork is not None:
+            # ONE path for a code-owned cross-repository head (decision 0017, (E)): the
+            # contract above held at <h>, class O with it, so the approval the ruleset's
+            # code-owner rule wants is already there -- the owner's, or outside.py's under
+            # his mandate. Never `raise_hold`, the carry or a post of the train's own.
+            self.log(f"#{pr} code-owned ({owned.group(1).strip()}) on a cross-repository head: "
+                     "the class-O approval at the head is the approval")
+            return "owner"
         if not self.mandate:
             raise Stop("approve", f"code-owned ({owned.group(1).strip()}) and no --mandate given: the owner's review")
         raises, held, why = self.raise_hold(pr, h, files)
@@ -2562,7 +3054,9 @@ class Train:
             if carried is None:
                 raise Stop("approve", f"code-owned and {why}")
             return carried
-        self._post_agent_approval(pr, h, item, "code-owned", owned.group(1).split(), self.mandate, "approve")
+        # A bare id reads "under <id>", which budget_raise_gate.MANDATE_CITE does not take as a citation.
+        under = f"mandate comment {self.mandate}" if re.fullmatch(r"\d{6,}", self.mandate) else self.mandate
+        self._post_agent_approval(pr, h, item, "code-owned", owned.group(1).split(), under, "approve")
         return "mandate"
 
     def _agent_approval_body(self, h: str, item: dict, what: str, paths: "list[str]", under: str) -> str:
@@ -2579,7 +3073,9 @@ class Train:
         (the code-owned approval of step 6 and the policy approval of step 5,
         R10-TRAIN-UPGRADE): its body names the paths, the role, the mandate it
         is given under, the verdict and the head; the head is re-checked right
-        before the post, and a refused post is a Stop."""
+        before the post, and a refused post is a Stop. Never on a
+        cross-repository head (`no_fork_post`)."""
+        self.no_fork_post(pr, f"an agent approval for {what} paths")
         body = self._agent_approval_body(h, item, what, paths, under)
         bf = self.state / f"{name}{pr}.md"
         bf.write_text(body)
@@ -2612,6 +3108,9 @@ class Train:
         pol = self.policy_paths(files) if cid else []
         if not pol:
             return None, pol, ""
+        if self.fork_head(pr) is not None:
+            # Policy paths are class R: adoption refused this head, and `policy_gate` stops it.
+            return None, pol, "the head is cross-repository, where the train posts no approval (decision 0017)"
         g = _mandate_gate()
         if any(f.endswith(g.SUFFIX) for f in files):
             # A budget file beside the policy: whether it raises is the owner's
@@ -2695,7 +3194,16 @@ class Train:
         pull request's BRANCH checked out at `origin/<branch>` (-B, so an
         existing local branch is reset), never a detached HEAD:
         `app_push.sh` pushes only a committed tip, and a detached auto-merge
-        sha is not the committed tip of anything (#1943)."""
+        sha is not the committed tip of anything (#1943).
+
+        A cross-repository head (`fork_head`) reads nothing of `origin/<branch>`:
+        a fork names its own branch, and ours of that name is another head. Its
+        worktree is DETACHED at refs/pull/<pr>/head -- so no local branch of
+        ours is reset and no holder is ever freed for it -- and remerge_main.sh
+        is told the head repository the pulls API names (--head-repo), which
+        moves the fork's branch by GitHub's own update-branch. The merge is
+        automatic or the entry parks naming the fork: the train never
+        resolves, and no approval of ours rides on what it pushed."""
         pr, v = int(item["pr"]), item["verdict"]
         if not is_sha(v):
             raise Stop("queue", f"verdict '{v}' is not a 40-hex sha")
@@ -2712,9 +3220,18 @@ class Train:
         item.pop("nr_base", None)
         if not self.contains_main(h) and not self.merges_as_is(item, h):
             self.hold_refresh()  # a recarry is 5-15 min in app_push's prepr; --overlap's up-front loop is not a wait
-            br = item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
+            fork = self.fork_head(pr)
+            br = fork[1] if fork else item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
-            if not wt.exists():
+            if fork and not wt.exists():
+                ref = f"refs/remotes/pull/{pr}/head"
+                self.run(["git", "fetch", "-q", "origin", f"+refs/pull/{pr}/head:{ref}"])
+                if not self.ok("git", "worktree", "add", "-q", "--detach", str(wt), ref):
+                    raise Stop("recarry", f"could not make a detached worktree at {wt} from refs/pull/{pr}/head "
+                               f"(the fork head {fork[0]}:{br})", cls=OUTSIDE)
+                if not item.get("worktree"):
+                    self.made_wts.append(wt)
+            elif not wt.exists():
                 self.run(["git", "fetch", "-q", "origin", br])
                 # The worktree must hold the pull request's BRANCH, not a
                 # detached HEAD: remerge_main.sh's app_push pushes only a
@@ -2731,11 +3248,19 @@ class Train:
             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
             # The recarry itself takes 5-15 min inside app_push's prepr and logs
             # only on completion; this line makes it visible mid-flight.
-            self.log(f"#{pr} recarry START (branch {br})")
-            code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body)])
+            self.log(f"#{pr} recarry START ({'fork ' + fork[0] + ', ' if fork else ''}branch {br})")
+            code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body),
+                                *(["--head-repo", fork[0]] if fork else [])])
+            if "MERGE CONFLICT" in o and fork:
+                raise Stop("recarry", f"main does not merge into the fork head {fork[0]}:{br} without a resolution; "
+                           "parked: the train never resolves on a fork, its owner merges main and the "
+                           "contributor's reviewer verdicts the new head (decision 0017)", cls=OUTSIDE)
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
             failed = next((ln.strip() for ln in o.splitlines() if ln.startswith("REMERGE FAILED")), None)
+            if failed and fork and " at push" in failed:
+                raise Stop("recarry", f"{failed}; parked: no identity of ours moved the fork's branch, and no "
+                           "personal token is tried without the owner (decision 0017)", cls=OUTSIDE)
             if failed:  # carry f7d2bf7c: git failed before any conflict, so nothing is owed a fixer
                 raise Stop("recarry", f"{failed}; run the train again once git answers")
             if "PUSHED" not in o:
@@ -2912,6 +3437,11 @@ class Train:
         each attempt when the base is not where the merge expects it; the merge sha."""
         if self.head(pr) != h:
             raise Stop("approve", "head moved")
+        fork = self.fork_head(pr)
+        if fork is not None and not self.real:
+            # A rehearsal merges the head into a branch of ours too: a fork head is put to the
+            # contract on every base (on main, by `approve` below), and its base rule refuses it here.
+            self.outside_contract(pr, h, fork)
         if self.real:
             self.policy_approve(pr, h, item, files)
             under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
@@ -2930,6 +3460,7 @@ class Train:
                 self.review_settle(pr, h)
             else:
                 self.sleep(30)
+            self.stamp_hold_wait()
             guard()
             code, whole = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
                                     "--match-head-commit", h])
@@ -2990,7 +3521,7 @@ class Train:
         return st.split()[-1]
 
     def post_merge(self, pr: int) -> None:
-        """The rest of nudge.md step 12, by `postmerge.py` (the record-issue line, the
+        """The post-merge bookkeeping, by `postmerge.py` (the record-issue line, the
         roster stage, the state docs, main's suite state). Its OWED lines are
         logged and never undo or stop the merge; the tool itself opens the
         ledger's `postmerge-owed` event for a step that failed."""
@@ -3021,21 +3552,41 @@ class Train:
             d = None
         if not isinstance(d, dict):
             return f"the merge state could not be read ({o.strip()[-120:] or 'no output'})", True, False
-        last = rollup_states(d.get("statusCheckRollup") or ())
-        red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED]
+        entries = d.get("statusCheckRollup") or ()
+        last = rollup_states(entries)
+        seen: dict = {}
+        for c in entries:
+            nm = c.get("name") or c.get("context") or "?"
+            seen.setdefault(nm, set()).add((c.get("conclusion") or c.get("state") or c.get("status") or "").upper())
+        # A deferral gate (gate.py `deferral`) fails at once beside a gate that
+        # passed (a CI review run's), and collapsing by name hides it (P590):
+        # the same-named contexts are read together, and a failing GATE beside
+        # a passing one, or while `_gate_busy` (classify_at's reading: gate.py's
+        # `busy` over the ci.yml runs, not any unfinished workflow) names a run,
+        # is a deferral. A failure stamped strictly newer than every pass is a
+        # real red (P608: #3445). The deferral is only the gate's own: the other
+        # required contexts are read below, so a red beside it is still named.
+        deferral = bool(GATE in req and GATE not in self.ignore and seen.get(GATE, set()) & set(POLICY_RED)
+                        and ((("SUCCESS" in seen[GATE]) and not rollup_red_after_pass(entries, GATE))
+                             or self._gate_busy(h, self._check_runs(h))))
+        red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED and not (deferral and n == GATE)]
         pending = [n for n in req if n not in self.ignore and n not in red
-                   and last.get(n) not in ("SUCCESS", "SKIPPED", "NEUTRAL")]
+                   and (last.get(n) not in ("SUCCESS", "SKIPPED", "NEUTRAL") or (deferral and n == GATE))]
         ms, rd = d.get("mergeStateStatus") or "?", d.get("reviewDecision") or "none"
         state = f"mergeStateStatus {ms}, reviewDecision {rd}"
         if red:
             return f"required context(s) red at {h[:8]}: {', '.join(red)} ({state})", False, False
         if pending:
-            return f"required context(s) not yet green at {h[:8]}: {', '.join(pending)} ({state})", True, False
+            why = " -- gate is a deferral: its deciding run settles it" if deferral else ""
+            return f"required context(s) not yet green at {h[:8]}: {', '.join(pending)}{why} ({state})", True, False
         if rd in ("REVIEW_REQUIRED", "CHANGES_REQUESTED") or ms == "BLOCKED":
             if self.review_run_settling(pr, h):
                 return (f"{state}: every required context is green and the approver's approval sits at "
                         f"{h[:8]}, whose `CI review` run is unfinished or ended under {REVIEW_SETTLE_SECONDS} s "
                         "ago: the policy has not caught up"), True, False
+            if rd == "APPROVED":  # a review exists: only its last-push rule can be unmet
+                return (f"{state}: every required context is green and a review exists, so the missing "
+                        f"requirement is an approval of the last push, at the moved head {h[:8]}"), False, True
             return (f"{state}: every required context is green, so the missing requirement is a review "
                     f"at {h[:8]}"), False, rd != "CHANGES_REQUESTED"
         return f"{state}, every required context green: no cause read", False, False
@@ -3079,28 +3630,61 @@ class Train:
         except (Stop, ValueError):
             return False
 
+    def actions_mark(self) -> "str | None":
+        """The newest `updated_at` among the completed runs of the repository's 30
+        newest-created workflow runs: one listing. The reading after a poll that
+        equals the one before it means no run in the repository completed between
+        them -- Actions measurably stalled (TRAIN-WAIT-CAP-OUTAGE; 2026-11-11
+        20:12-21:09Z, 218 jobs queued). "" when none of the 30 has completed; None
+        when the listing is unreadable."""
+        code, o = self.run(["gh", "api", f"repos/{self.repo}/actions/runs?per_page=30", "--jq",
+                            '[.workflow_runs[] | select(.status == "completed") | .updated_at] | max // ""'])
+        return o.strip() if code == 0 else None
+
+    def counted_poll(self, readable: bool, mark: list) -> bool:
+        """Whether a wait's poll counts toward `wait_cap_s`: it read its own
+        listing, and `actions_mark` read a value other than the previous poll's
+        (`mark`, [] before the first reading, updated in place; a first reading
+        has nothing to equal, so it counts). An unread poll adds no GitHub call."""
+        if not readable:
+            return False
+        now = self.actions_mark()
+        if now is None:
+            return False
+        moved = not mark or mark[0] != now  # mut:stalled
+        mark[:] = [now]
+        return moved
+
     def review_settle(self, pr: int, h: str) -> None:
         """Before the FIRST merge attempt (P86, P331): the approval's `CI review`
         run at <h> must conclude, or base-branch policy refuses the merge. It is
-        bounded by TIME, not by the fast poll count: the 5-s grain for `polls`
-        reads, then POLL_SECONDS while a run at <h> is unfinished, `polls` more
-        times (the CI-wait budget, polls x POLL_SECONDS; measured p50 91 s, p90
-        2388 s, p95 5549 s). The still-running line is logged at most once per
-        POLL_SECONDS. At the budget's end the merge proceeds as before; an
-        unreadable listing is not a wait."""
+        bounded by `wait_cap_s` of COUNTED wait: the 5-s grain for the first
+        `polls` reads, then POLL_SECONDS (the CI-wait budget; measured p50 91 s,
+        p90 2388 s, p95 5549 s). A poll that cannot read the listing, or reads
+        while Actions is stalled (`counted_poll`), adds nothing and neither ends
+        the wait nor counts toward the cap (TRAIN-WAIT-CAP-OUTAGE). The
+        still-running line is logged at most once per POLL_SECONDS of counted
+        wait. At the cap the merge proceeds as before."""
         waited = last_logged = 0.0
-        for n in range(self.polls * 2):
+        cap, mark, n = self.wait_cap_s(), [], 0
+        while waited < cap:
             grain = REVIEW_POLL_SECONDS if n < self.polls else POLL_SECONDS
+            n += 1
             self.sleep(grain)
-            waited += grain
             runs = self.review_runs(h)
             open_ = [r[0] for r in runs or () if r[1] != "completed"]
-            if not open_:
+            if runs is not None and not open_:
                 return
+            if not self.counted_poll(runs is not None, mark):
+                self.log(f"#{pr} review-run wait at {h[:8]}: " + (
+                    "the listing is unreadable" if runs is None else "no run in the repository completed "
+                    "since the previous poll (Actions stalled)") + f"; not counted ({int(waited)} s of {cap} s)")
+                continue
+            waited += grain
             if not last_logged or waited - last_logged >= POLL_SECONDS:
                 last_logged = waited
                 self.log(f"#{pr} review run(s) {', '.join(open_)} at {h[:8]} still running; the merge waits "
-                         f"({int(waited)} s of {self.wait_cap_s()} s)")
+                         f"({int(waited)} s of {cap} s)")
 
     def release_worktrees(self) -> None:
         """Before the run's closing line (and again, a no-op, in `train`/`batch`'s
@@ -3109,7 +3693,12 @@ class Train:
         own worktree holding a branch (train-b5, #2290: PARKed by
         ~/hpo-orch/train-b5/wt/2290). Never forced: one with changes stays,
         logged NOT released; a queue entry's own `worktree` is never touched."""
+        lc, listed = self.run(["git", "worktree", "list", "--porcelain"])
+        reg = {str(Path(ln[9:]).resolve()) for ln in listed.splitlines() if ln.startswith("worktree ")}
         for wt in self.made_wts:
+            if lc == 0 and str(Path(wt).resolve()) not in reg and not Path(wt).exists():
+                self.log(f"released {wt} (already collected)")  # worktree_gc.sh took it with the merged branch
+                continue
             code, o = self.run(["git", "worktree", "remove", str(wt)])
             self.log(f"released {wt}" if code == 0 else
                      f"NOT released {wt} (rc={code}: {o.strip()[-160:]}); remove it by hand")
@@ -3176,12 +3765,114 @@ class Train:
                  f"NOT released: {HOLD_REF} stays (rc={code}: {said.strip()[-160:]}); "
                  "it expires at the beat's own bound, or delete it by hand")
 
+    def stamp_hold_age(self) -> "float | None":
+        """Seconds since the stamp hold commit was made, or None when no hold
+        stands or its age is unknowable (unreadable, or dated ahead of this
+        clock). A negative age is returned as is: the caller reads it as live and
+        bounds it by its own poll count, since this hold guards main against a
+        merge and a slow train clock must not read a just-taken hold as absent.
+        Two reads: the ref, then its commit date."""
+        sha = self.out("gh", "api", f"repos/{self.repo}/git/ref/{STAMP_HOLD_REF.removeprefix('refs/')}",
+                       "--jq", ".object.sha").strip()
+        if not is_sha(sha):
+            return None
+        stamp = self.out("gh", "api", f"repos/{self.repo}/git/commits/{sha}", "--jq", ".committer.date").strip()
+        try:
+            age = time.time() - datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            return None
+        return age
+
+    def stamp_hold_wait(self) -> None:
+        """Before a merge attempt: wait while a stamp holds main (STAMP-HOLD).
+        A hold at or past STAMP_HOLD_MAX_AGE_S is a dead holder's: taken over
+        and logged, not deleted. Only a real train (it merges into main) waits."""
+        if not self.real:
+            return
+        waited = 0
+        while True:
+            age = self.stamp_hold_age()
+            if age is None:
+                return
+            # a future-dated hold (a slower clock here) is live; the wait's own
+            # elapsed time bounds it where its age never would
+            if max(age, waited) >= STAMP_HOLD_MAX_AGE_S:
+                self.log(f"STAMP-HOLD taken over: {STAMP_HOLD_REF} is {int(max(age, waited))}s old, past "
+                         f"{STAMP_HOLD_MAX_AGE_S}s; its holder is dead")
+                return
+            self.log(f"STAMP-HOLD: a stamp is running ({int(age)}s old); no merge until it exits")
+            self.hold_refresh()  # the record beat reads train-hold stale at HOLD_MAX_AGE_S; this wait runs to 7200
+            self.sleep(STAMP_HOLD_POLL_S)
+            waited += STAMP_HOLD_POLL_S
+
     def unwind(self) -> None:
         """The closing lines of a train or batch, run once a stop is already
         unwinding it: release the worktrees, then the hold, ignoring a second stop."""
         with stop_ignored():
             self.release_worktrees()
             self.hold_release()
+            self.pause_resume("train exit")
+
+    # --- the CI pause (ci_pause.py: pause the lowest-priority PR's CI while the head's job queues) ---
+    def ci_pause(self):
+        """The train's one CiPause, built on first use; None when the module cannot load."""
+        if getattr(self, "_ci_pause", None) is None:
+            try:
+                if str(Path(__file__).resolve().parent) not in sys.path:
+                    sys.path.insert(0, str(Path(__file__).resolve().parent))
+                import ci_pause
+                self._ci_pause = ci_pause.CiPause(self)
+            except Exception as e:  # noqa: BLE001 - the pause is an optimisation, never a gate
+                self.log(f"PAUSE unavailable: {str(e)[:120]}")
+                self._ci_pause = False
+        return self._ci_pause or None
+
+    def protected_prs(self) -> "set[int]":
+        """Pull requests the pause may never touch: in the train's batches, in its spool, or seen with a verdict."""
+        out: set = set()
+        for batch in (getattr(self, "_queue", None) or {}).get("batches") or []:
+            out |= {int(e["pr"]) for e in batch if isinstance(e, dict) and str(e.get("pr", "")).isdigit()}
+        out |= {int(e["pr"]) for e in spool_read(self.state)[0]}
+        out |= {int(k) for k, v in (getattr(self, "_seen", None) or {}).items()
+                if str(k).isdigit() and isinstance(v, dict) and v.get("verdict")}
+        return out
+
+    def pause_poll(self, runs, h: str) -> None:
+        cp = self.ci_pause()
+        if cp is not None:
+            try:
+                cp.poll(runs, h)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"PAUSE error: {str(e)[:120]}")
+
+    def hold_reruns(self, h: str, what: str) -> None:
+        """Carry 6 (ii): before a re-run at <h>, wait while `CiPause.hold` names a queued priority
+        run (logged HOLD once, HOLD-END when it clears), at most HOLD_POLLS polls (HOLD-EXPIRED).
+        No pause module, or a hold that raises, waits for nothing."""
+        cp = self.ci_pause()
+        for k in range(HOLD_POLLS if cp is not None else 0):
+            try:
+                why = cp.hold(h)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"HOLD error: {str(e)[:120]}")
+                return
+            if not why:
+                if k:
+                    self.log(f"HOLD-END {what} at {h[:8]} after {k} poll(s)")
+                return
+            if not k:
+                self.log(f"HOLD {what} at {h[:8]}: {why}")
+            self.sleep(POLL_SECONDS)
+        if cp is not None:
+            self.log(f"HOLD-EXPIRED {what} at {h[:8]} after {HOLD_POLLS} poll(s): re-running")
+
+    def pause_resume(self, why: str) -> None:
+        cp = self.ci_pause()
+        if cp is not None:
+            try:
+                cp.resume_all(why)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"RESUME error: {str(e)[:120]}")
 
     def train(self, queue: list[dict]) -> int:
         try:
@@ -3193,6 +3884,7 @@ class Train:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.pause_resume("train start")
         self.hold_armed = True
         self.hold_refresh()  # before anything can merge: the record beat waits
         for item in self.preflight(queue):
@@ -3455,26 +4147,25 @@ class Train:
     def tree(self, rev: str) -> str:
         return self.git("rev-parse", f"{rev}^{{tree}}")
 
-    def _checks_rule(self, field: str) -> "tuple[bool, str]":
-        """RULESET's required_status_checks rule's <field> (a jq path under
-        .parameters), read live: (read ok, the jq output)."""
-        code, rid = self.run(["gh", "api", f"repos/{self.repo}/rulesets", "--jq",
-                              f'.[] | select(.name == "{RULESET}") | .id'])
-        code2, o = self.run(["gh", "api", f"repos/{self.repo}/rulesets/{rid.strip()}", "--jq",
-                             '.rules[] | select(.type == "required_status_checks") | .parameters' + field])
-        return not (code or code2 or not rid.strip().isdigit()), o
+    def _checks_rule(self) -> "tuple[bool, dict]":
+        """RULESET's required_status_checks rule's parameters, read live through
+        `gh_read.ruleset_checks`: both reads conditional, their ETag and body shared
+        with every process under the same $HPO_STATE_DIR (`gh_read.etag_dir`; a 304
+        costs no core-bucket call)."""
+        return gh_read.ruleset_checks(self.run, self.repo, RULESET)
 
     def strict_update(self) -> "bool | None":
         """Whether RULESET requires a branch up to date before its merge
         (`strict_required_status_checks_policy`), read live; None unreadable."""
-        ok, o = self._checks_rule(".strict_required_status_checks_policy")
-        return {"true": True, "false": False}.get(o.strip()) if ok else None
+        ok, params = self._checks_rule()
+        got = params.get("strict_required_status_checks_policy")
+        return got if ok and isinstance(got, bool) else None
 
     def required(self, pr_head: bool = False) -> list[str]:
         """The ruleset's required contexts, read live; less PR_ONLY unless
         <pr_head> (a pull request's head carries those; main and a proof never)."""
-        ok, o = self._checks_rule(".required_status_checks[].context")
-        names = sorted({n.strip() for n in o.splitlines() if n.strip()} - set(() if pr_head else PR_ONLY))
+        ok, params = self._checks_rule()
+        names = sorted(gh_read.required_contexts(params) - set(() if pr_head else PR_ONLY))
         if not ok or not names:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
@@ -3804,7 +4495,7 @@ class Train:
         # flight is a wait, never red, and only RED carries `why` (K15).
         if self.overlap:
             runs = self._check_runs(tip)
-            state, pending, red = classify(latest_runs(runs or ()), req)
+            state, pending, red = classify(latest_runs(runs or ()), req, FINAL)
             if runs is None:
                 self.log(f"OVERLAP: {self.base} at {tip[:12]}: check runs unreadable; --overlap does not wait")
             elif state == "red":
@@ -3872,6 +4563,8 @@ class Train:
             if code or not stale(c, st.strip()):
                 continue
             if m.group(1) not in reran.values():
+                if not reran:
+                    self.hold_reruns(h, "stale re-run")
                 code, o = self.run(["gh", "api", "-X", "POST", f"repos/{self.repo}/actions/runs/{m.group(1)}/rerun"])
                 self.log(f"STALE {name} at {h[:8]}: check-run {c.get('id')} {c.get('status')} over completed "
                          f"run {m.group(1)}; re-run once (rc={code}{': ' + o.strip()[-120:] if code else ''})")
@@ -3941,9 +4634,9 @@ class Train:
         moved off (a new head owes a new verdict). It runs after the batch's own
         merges, so no wait here holds one; a rejoin refused again is skipped
         again, its earlier row replaced."""
-        cap = self.wait_cap_s()
+        cap, mark, idle, seen = self.wait_cap_s(), [], {}, {}
         while waiting:
-            later = []
+            later, counted = [], None  # one `actions_mark` read per round, shared by its entries
             for item, h, since in waiting:
                 pr = int(item["pr"])
                 if self.head(pr) != h:
@@ -3951,6 +4644,8 @@ class Train:
                     continue
                 runs = self._check_runs(h)
                 state = "wait" if runs is None else self.classify_at(h, runs, req)[0]
+                if state == "wait" and runs is not None and counted is None:
+                    counted = self.counted_poll(True, mark)
                 if state == "green":
                     self.log(f"REJOIN #{pr}: GREEN at {h[:8]}, {int(self.clock() - since)} s after its skip; "
                              "it rejoins this train")
@@ -3963,10 +4658,17 @@ class Train:
                         self.skip(pr, "post-merge" if self.is_merged(pr) else s.step, f"#{pr} {s.why}", s.cls)
                 elif state == "red":
                     self.log(f"REJOIN #{pr}: RED at {h[:8]}; stays skipped (a real red never rejoins)")
-                elif self.clock() - since >= cap:
-                    self.log(f"REJOIN #{pr}: still WAIT at {h[:8]} past the {cap} s cap; stays skipped")
                 else:
-                    later.append((item, h, since))
+                    # TRAIN-WAIT-CAP-OUTAGE: the time since this entry's previous read counts toward
+                    # the cap only when this read read its runs and Actions moved since the last.
+                    now = self.clock()
+                    if runs is None or not counted:
+                        idle[pr] = idle.get(pr, 0.0) + now - seen.get(pr, since)
+                    seen[pr] = now
+                    if now - since - idle.get(pr, 0.0) >= cap:
+                        self.log(f"REJOIN #{pr}: still WAIT at {h[:8]} past the {cap} s cap; stays skipped")
+                    else:
+                        later.append((item, h, since))
             waiting = later
             if waiting:
                 self.hold_refresh()  # the rejoin's wait is a train wait: the record beat stays held
@@ -4001,6 +4703,7 @@ class Train:
             return 1
         self.skipped = []
         total = 0
+        self.pause_resume("train start")  # a pause a dead train left (ci_pause.py)
         self._queue = {"batches": batches, "next": 0, "closed": False}
         try:
             while True:
@@ -4171,11 +4874,9 @@ class Train:
             return f"{s.step}: {s.why}"
         return None
 
-    def add_verdict(self, pr: int, v: str, item: dict) -> "str | None":
-        """`admit_add`'s `verdict` rule, the queue builder's own read: the newest
-        posted verdict on <pr> is verdict/<pr>'s tip and `merge` at <v>
-        (`posted_verdict`). An add naming no comment gets that verdict's id,
-        which the mandate approval quotes; one naming another is refused."""
+    def bus_posted(self, pr: int) -> "tuple[str, str] | str":
+        """`posted_verdict` at verdict/<pr>'s tip on the bus: the add check's read,
+        which `posted-verdict` gives merge_pr.sh."""
         sys.modules.setdefault("merge_train", sys.modules[__name__])  # proof_watch imports the train
         import proof_watch
         allow = proof_watch.verdict_allowlist(ROOT / "tools/pr/app_approve.sh")
@@ -4185,7 +4886,14 @@ class Train:
         if code:
             return f"the verdict bus could not be read: {o.strip()[-160:]}"
         tip = next((ln.split()[0] for ln in o.splitlines() if ln.split() and is_sha(ln.split()[0])), None)
-        got = self.posted_verdict(pr, tip, allow)
+        return self.posted_verdict(pr, tip, allow)
+
+    def add_verdict(self, pr: int, v: str, item: dict) -> "str | None":
+        """`admit_add`'s `verdict` rule, the queue builder's own read: the newest
+        posted verdict on <pr> is verdict/<pr>'s tip and `merge` at <v>
+        (`posted_verdict`). An add naming no comment gets that verdict's id,
+        which the mandate approval quotes; one naming another is refused."""
+        got = self.bus_posted(pr)
         if isinstance(got, str):
             return got
         if got[0] != v:
@@ -4271,6 +4979,10 @@ class Train:
                         if s.step == "main" or not self.skip_bad:
                             raise
                         self.skip(a["pr"], s.step, s.why, s.cls)
+            if self.real and serial:
+                skipped = {s["pr"] for s in self.skipped[mine:]}
+                self.pre_approve([a for a in serial if a["pr"] not in skipped],
+                                 len(entries) > len(serial), head_req)
             kept, proofs, dropped = self.settle(tag, base, [a for a in entries if not a["route"]], req)
             lone = kept[0]["pr"] if len(kept) == 1 else None  # the unproved merge, by number
             if lone:
@@ -4404,7 +5116,7 @@ def auto_train_argv(repo: str, state: "str | Path", mandate: "str | None") -> "l
 def sweep(t: Train, train_argv: "list[str]", add=train_add, ledger_log: "str | None" = None) -> int:
     """One backstop sweep; its last line is `SWEEP HELD|REFUSED|DONE ...`. HELD:
     the obligations ledger holds an open `train-stop` (a stopped train is read
-    before anything reloads it: nudge.md step 3). Otherwise each entry
+    before anything reloads it: standing-merge.md). Otherwise each entry
     `build_queue` admits is handed to `add`, unless an earlier sweep handed it
     over at the same head. rc 2 on REFUSED: an unreadable ledger or pull request
     list, or an `add` that could not start a train."""
@@ -4465,6 +5177,10 @@ def _self_test() -> int:
     # scorer run on a worktree); the world below answers with one fixed line.
     MEASURED = ["Architecture score: dS +0.4000 IMPROVES"]
     Train._measured_score = lambda self, g, h: MEASURED[0]
+    # Whether a head is a fork's is tools/pr/outside.py's reading of a pulls API
+    # object no fixture below answers: every case here is a branch of ours, and
+    # `_outside_self_test` puts the real reader back for the cross-repository cases.
+    real_fork_head, Train.fork_head = Train.fork_head, lambda self, pr: None
 
     def check(name: str, cond: bool) -> None:
         nonlocal passed, failed
@@ -4485,6 +5201,16 @@ def _self_test() -> int:
             got = budget_fixture(world.get("budgets"), argv, world.get("base", (0, "e" * 40 + "\n"))[1].strip())
             if got is not None:
                 return got
+            if argv[:2] == ["gh", "api"] and len(argv) == 3 and re.fullmatch(r"repos/o/r/pulls/\d+", argv[2]):
+                return world.get("pull", (0, ""))  # `fork_head`'s read: unanswered unless the case says
+            if argv == ["git", "fetch", "-q", "origin", "main"]:  # `outside_is_mains`
+                return world.get("main_fetch", (0, ""))
+            if argv[:2] == ["git", "rev-parse"] and argv[2].startswith("origin/main:"):
+                return 0, "f" * 40
+            if argv[:2] == ["git", "hash-object"]:  # `stale`: the one path this checkout holds another copy of
+                return 0, ("0" if argv[-1] == world.get("stale") else "f") * 40
+            if argv[:3] == ["git", "worktree", "add"] and "wt_add" in world:
+                return world["wt_add"]
             if "record_row.py" in a:  # --bot-prs: the record PR lookup and its guard
                 if "--find-open" in argv:  # a merged record PR is no longer open
                     return (0, "0") if 9 in world.get("bot_merged", ()) else world.get("bot_find", (0, "0"))
@@ -4540,6 +5266,9 @@ def _self_test() -> int:
                 return (0 if world["contains"].pop(0) else 1) if world["contains"] else 0, ""
             if "remerge_main.sh" in a:
                 return 0, world.get("remerge", "PUSHED")
+            if argv[:2] == ["gh", "api"] and "actions/runs?per_page=30" in a:  # `actions_mark`
+                n = world["mark_reads"] = world.get("mark_reads", 0) + 1
+                return world.get("marks", lambda n: (0, f"2026-11-11T20:{n:02d}:00Z"))(n)
             if argv[:2] == ["gh", "api"] and a.endswith("/rerun"):  # K15 (b)'s re-run
                 world.get("on_rerun", lambda: None)()
                 return 0, ""
@@ -4549,6 +5278,11 @@ def _self_test() -> int:
                 return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
             if "statusCheckRollup" in a:  # A5's platform cross-check
                 world["rollup_reads"] = world.get("rollup_reads", 0) + 1
+                if "rollup_pages" in world:  # a paged listing: the answer follows the `after=` cursor asked
+                    cur = next((x[6:] for x in argv if x.startswith("after=")), None)
+                    world.setdefault("rollup_cursors", []).append(cur)
+                    world.setdefault("rollup_queries", []).append(next((x[6:] for x in argv if x.startswith("query=")), ""))
+                    return world["rollup_pages"](cur)
                 return world.get("rollup", (1, "HTTP 502"))
             if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
                 world["ci_list_reads"] = world.get("ci_list_reads", 0) + 1
@@ -4605,10 +5339,8 @@ def _self_test() -> int:
             if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
                 # every record issue is read; the fixture's thread is #201's
                 return 0, _jl(world.get("thread", []) if "/issues/201/" in a else [])
-            if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
-                return (0, "7") if world.get("required", "fast\n") else (1, "HTTP 404")
-            if "rulesets/7" in a:
-                return 0, world.get("required", "fast\n")
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", world.get("required", "fast\n"))
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
             if argv[:3] == ["gh", "api", "user"]:  # the acting account
@@ -4658,6 +5390,9 @@ def _self_test() -> int:
             lines.append(s)
             timeline.append(("log", s))
 
+        gate_was, reader_was = globals()["_outside_gate"], Train.fork_head
+        if "gate" in world:  # a pulls object is answered: the real reader, over a stubbed outside.py
+            globals()["_outside_gate"], Train.fork_head = (lambda: world["gate"]), real_fork_head
         with tempfile.TemporaryDirectory() as d:
             rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs,
                        run=run_traced, sleep=lambda s: None, log=logline, polls=opts.pop("polls", 2), merge_tries=3,
@@ -4665,6 +5400,7 @@ def _self_test() -> int:
             for key, name in (("approve_body", "approve7.md"), ("carry_body", "carry7.md")):
                 f = Path(d) / name
                 world[key] = f.read_text() if f.exists() else ""
+        globals()["_outside_gate"], Train.fork_head = gate_was, reader_was
         world["timeline"] = timeline
         return rc, lines, calls
 
@@ -4746,6 +5482,49 @@ def _self_test() -> int:
           and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
           and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
           and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
+    # R10-CI-PRIORITY-PAUSE: wait_ci feeds each poll's check-runs to the pause; unwind resumes.
+    import ci_pause as _cp
+    import datetime as _dt
+    pnow = 1_800_000_000.0
+    qrun = [{"name": "tests", "status": "queued", "conclusion": None, "id": 1,
+             "started_at": _dt.datetime.fromtimestamp(pnow - 600, _dt.timezone.utc).isoformat().replace("+00:00", "Z")}]
+    pposts: list[str] = []
+
+    def pause_run(argv, cwd=None, stdin=None):
+        c = " ".join(argv)
+        if "-X POST" in c:
+            pposts.append(c.split("repos/o/r/")[1])
+            return 0, ""
+        if "check-runs" in c:
+            return 0, "\n".join(json.dumps(x) for x in qrun)
+        if "/pulls?state=open" in c:
+            return 0, json.dumps({"n": 5, "sha": "b" * 40, "ref": "fix/low", "fork": False})
+        if "/comments" in c:
+            return 0, json.dumps([[{"body": "hi"}]])
+        if "/actions/runs?head_sha=" in c:
+            return 0, "77"
+        if "/pulls/5" in c:
+            return 0, json.dumps({"head": {"sha": "b" * 40}})
+        return 0, ""
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=pause_run, sleep=lambda s: None, log=lambda s: None,
+                  polls=1, wall=lambda: pnow)
+        t._ci_pause = _cp.CiPause(t, {**__import__("ci_priority").load_setting(), "priority_cancel": True},
+                                  ({"groups": [{"group": "LOW", "resume": {"branch": "fix/low"}, "class": "instrument"}]}, set()))
+        t.wait_ci(H0)
+        cancelled = list(pposts)
+        pposts.clear()
+        t.unwind()
+        resumed = list(pposts)
+        t_off = Train("o/r", Path(d), None, "", (), 1, run=pause_run, sleep=lambda s: None, log=lambda s: None,
+                      polls=1, wall=lambda: pnow)
+        pposts.clear()
+        t_off._ci_pause = False
+        t_off.wait_ci(H0)
+    check("wait_ci feeds its poll to the pause: a head job queued 10 min cancels the victim's run; "
+          "unwind re-runs its failed jobs; with the pause unavailable nothing is cancelled",
+          cancelled == ["actions/runs/77/cancel"] and resumed == ["actions/runs/77/rerun-failed-jobs"] and pposts == [])
+    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
     # one-job pulse (R10-TICK-RESIDUE-P2 carry 0): the baseline is the same listing's completed same-name runs
     def jr(name, st, a, b=None):
         iso = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
@@ -5228,6 +6007,16 @@ def _self_test() -> int:
     b = w["approve_body"]
     check("the mandate body names the label, role, paths, verdict comment and head",
           all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
+    for mand, cited, name in (("5951564627", {5951564627}, "a bare numeric --mandate id"),
+                              ("https://github.com/o/r/issues/201#issuecomment-5951564627", {5951564627},
+                               "null control: a --mandate given as an issuecomment URL")):
+        w2 = {"approve": owned}
+        go(w2, mandate=mand)
+        b2 = w2["approve_body"]
+        check(f"the code-owned approval body for {name} is read by MANDATE_CITE as that comment id"
+              + (" and is worded `mandate comment <id>`" if mand.isdigit() else ", the label unchanged"),
+              {int(a or c) for a, c in _mandate_gate().MANDATE_CITE.findall(b2)} == cited
+              and (f"under mandate comment {mand}," in b2 if mand.isdigit() else f"under {mand}," in b2))
     rc, lines, calls = go({"approve": owned, "budgets": RAISE_FIXTURE,
                            "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
                           mandate="m")
@@ -5579,6 +6368,379 @@ def _self_test() -> int:
     rm = (ROOT / TOOLS["remerge_main"][0]).read_text()
     check("remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on",
           re.search(r'bash "\$_push" --recarry ', rm) is not None and "RECARRY|" in rm)
+    check("remerge_main.sh takes a fork head's repository as --head-repo and moves it by update-branch, never app_push.sh",
+          '"${1:-}" = --head-repo' in rm and "/update-branch" in rm and "expected_head_sha" in rm)
+
+    # DECISION 0017, PART 2: a head that is a fork's. tools/pr/outside.py is part
+    # 1's and owns every fact. The train makes two calls of it: `pull_facts(repo,
+    # pr, pull)`, here always the REAL module's, and `check(repo, pr, ref)`, which
+    # OutsideStub answers from `answers` ((ok, why) per call) so what is pinned is
+    # the train's side: which calls it makes, when, and what each answer stops.
+    # The real `check` is driven below ("the real outside.py"). FORK names are
+    # GitHub's, of the contributor's choosing.
+    REAL_OUTSIDE = _outside_gate.__wrapped__()
+
+    class OutsideStub:
+        def __init__(self, *answers) -> None:
+            self.answers = list(answers) or [(True, "class F only")]
+            self.asked: list = []
+            self.crossed = 0
+            self.at = [H0]  # the heads an admission names, one per call, the last repeated
+
+        def pull_facts(self, repo, pr, pull):
+            self.crossed += 1
+            if pull["head"].get("boom"):
+                raise RuntimeError("no head repository")
+            return REAL_OUTSIDE.pull_facts(repo, pr, pull)
+
+        def cross_repository(self, facts, repo):
+            return REAL_OUTSIDE.cross_repository(facts, repo)
+
+        def check(self, repo, pr, ref, **kw):
+            self.asked.append((repo, pr, ref))
+            out = self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]
+            if isinstance(out, Exception):
+                raise out
+            ok, why = out
+            at = self.at.pop(0) if len(self.at) > 1 else self.at[0]
+            return (0, [str(why), f"OUTSIDE: #{pr} by contributor (id 1) at {at}: 1 class-F and 0 class-O path(s), "
+                        "none refused"]) if ok is True else (1, ["REFUSE: " + str(why)])
+
+    def pull_of(full: str, ref: str, **head) -> "tuple[int, str]":
+        return 0, json.dumps({"number": 7, "head": dict({"ref": ref, "repo": {"full_name": full}}, **head),
+                              "base": {"ref": "main", "repo": {"full_name": "o/r"}}})
+    FORK, FREF = "contributor/r", "fix/issue-12_a.b"
+    THEIRS, OURS = pull_of(FORK, FREF), pull_of("o/r", "fix/x")
+    OWNED = (1, "app_approve: REFUSE: #7 touches code-owned paths (tests/features.py); the owner's review")
+
+    def seat(world: dict, fn, mandate: "str | None" = "4100000001", **opts):
+        """<fn>(train) over fake(world) with the real `fork_head`: (its return, or the Stop it raised;
+        calls; log lines)."""
+        world.setdefault("heads", [H0])
+        world.setdefault("contains", [])
+        world.setdefault("gate", OutsideStub())
+        run, calls = fake(world)
+        lines: list[str] = []
+        gate_was, reader_was = globals()["_outside_gate"], Train.fork_head
+        globals()["_outside_gate"], Train.fork_head = (lambda: world["gate"]), real_fork_head
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                t = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), 1, run=run,
+                          sleep=lambda s: None, log=lines.append, critical=lambda it: False,
+                          outside=lambda it: False, **opts)
+                try:
+                    got = fn(t)
+                except Stop as stop:
+                    got = stop
+        finally:
+            globals()["_outside_gate"], Train.fork_head = gate_was, reader_was
+        return got, calls, lines
+
+    def parked(got, *words: str) -> bool:
+        return isinstance(got, Stop) and got.cls == OUTSIDE and all(w in got.why for w in words)
+    FILES = ["custom_components/x.py"]
+    step6 = lambda t: t.approve(7, H0, dict(item), FILES)
+    app_posts = lambda calls: [i for i, c in enumerate(calls)  # step 6's own call: never the --carry read
+                               if c[:1] == ["bash"] and "app_approve.sh" in c[1] and "--carry" not in c]
+    asked_app = lambda calls: bool(app_posts(calls))
+
+    w = {"pull": THEIRS, "gate": OutsideStub()}
+    rc, lines, calls = go(w)
+    check("fork head: a cross-repository head passes outside.py's whole contract at the landing head, read from "
+          "origin/main, before app_approve.sh is asked, and merges on the App's approval with no review of the train's",
+          rc == 0 and merged(calls) and not approved(calls) and asked_app(calls)
+          and set(w["gate"].asked) == {("o/r", 7, "origin/main")}
+          and any("outside contract holds" in ln and f"{FORK}:{FREF}" in ln for ln in lines)
+          and calls.index(["git", "fetch", "-q", "origin", "main"]) < app_posts(calls)[0])
+    w = {"pull": OURS, "gate": OutsideStub()}
+    rc, lines, calls = go(w)
+    check("fork head null control: a head of ours, read by the same reader, is asked of outside.py and never "
+          "put to the outside contract",
+          rc == 0 and merged(calls) and w["gate"].crossed >= 1 and w["gate"].asked == []
+          and not any("outside contract" in ln for ln in lines))
+    w = {"pull": THEIRS, "gate": OutsideStub((False, "tools/x.py is class R"))}
+    rc, lines, calls = go(w)
+    check("fork head: a contract outside.py refuses parks the entry [OUTSIDE] with outside.py's own reason and the "
+          "fork's name, before app_approve.sh is asked, nothing merged",
+          rc == 1 and not merged(calls) and not approved(calls) and not asked_app(calls)
+          and "[OUTSIDE]" in lines[-1] and "tools/x.py is class R" in lines[-1] and f"{FORK}:{FREF}" in lines[-1])
+    for name, pull in (("unreadable", (1, "gh: HTTP 502")), ("no JSON", (0, "<html>")), ("no head", (0, "{}")),
+                       ("refused by outside.py", pull_of(FORK, FREF, boom=True)),
+                       ("cross-repository with its fork deleted", (0, json.dumps({"number": 7, "head": {"ref": FREF, "repo": None}}))),
+                       ("read for another pull request", (0, json.dumps({"number": 8, "head": {"ref": FREF, "repo": {"full_name": FORK}}})))):
+        w = {"pull": pull, "gate": OutsideStub()}
+        got, calls, _ = seat(w, step6)
+        said = {"u": "could not be read from the pulls API", "n": "could not be read from the pulls API",
+                "r": "could not say whether", "c": "names no head repository and branch"}[name[0]]
+        said = "is not #7" if name.startswith("read for") else said
+        check(f"fork head: a pulls object {name} is a Stop saying so -- an unread head is never taken for ours -- "
+              "and nothing is approved", isinstance(got, Stop) and got.step == "outside" and said in got.why
+              and not asked_app(calls) and not approved(calls))
+    # Carry 8 (r11-outside-contributor-cycle-p3): the checkout's outside.py is compared with
+    # origin/main's blob BEFORE `fork_head` executes it. The decisive case is a head of ours: a
+    # copy that answers "ours" never reaches `outside_contract`'s comparison, so a reader that
+    # ran it first let any checkout's copy say whose head it is.
+    for name, pull in (("of ours", OURS), ("a fork's", THEIRS)):
+        w = {"pull": pull, "gate": OutsideStub(), "stale": OUTSIDE_PATH}
+        got, calls, _ = seat(w, step6)
+        check(f"fork head: a checkout whose {OUTSIDE_PATH} is not origin/main's blob stops before that copy is "
+              f"executed, on a head {name} too, and nothing is approved",
+              parked(got, OUTSIDE_PATH, "not origin/main's copy") and w["gate"].crossed == 0
+              and w["gate"].asked == [] and not asked_app(calls) and not approved(calls))
+    w = {"pull": OURS, "gate": OutsideStub(), "stale": "tools/pr/app_approve.sh"}
+    got, calls, _ = seat(w, lambda t: t.fork_head(7))
+    check("fork head null control: a head of ours read from main's outside.py is ours, whatever another of the "
+          "contract's copies says (only the executed file is compared before the read)",
+          got is None and w["gate"].crossed == 1 and ["git", "fetch", "-q", "origin", "main"] in calls
+          and calls.index(["git", "fetch", "-q", "origin", "main"]) < calls.index(["gh", "api", "repos/o/r/pulls/7"]))
+    # Carry 9: a batch/ rehearsal merges the head into a branch of ours too, so a fork head is put to
+    # the contract on that base as well -- which refuses it, the contract's base being main.
+    land = lambda t: t.land(7, H0, dict(item), FILES, lambda: None)
+    w = {"pull": THEIRS, "gate": OutsideStub((False, "the base is o/r:batch/x, not o/r:main"))}
+    got, calls, _ = seat(w, land, base="batch/x")
+    check("fork head on a batch/ base: the outside contract is asked before the pinned merge, and its refusal "
+          "parks the entry [OUTSIDE] naming the fork, nothing merged",
+          parked(got, "the base is o/r:batch/x", f"{FORK}:{FREF}") and w["gate"].asked == [("o/r", 7, "origin/main")]
+          and not merged(calls) and not asked_app(calls))
+    w = {"pull": OURS, "gate": OutsideStub((False, "never asked"))}
+    got, calls, _ = seat(w, land, base="batch/x")
+    check("null control: a head of ours on a batch/ base is never put to the outside contract and is merged",
+          not isinstance(got, Stop) and w["gate"].asked == [] and merged(calls))
+    # THE REAL tools/pr/outside.py (decision 0017, part 1): its own `pull_facts` and `check`, over this
+    # tree's policy_lint.mjs, tests/closure.py and mandate gate; only its edges are answered here (the API,
+    # git, and `git show` at the ref). A renamed entry point or a changed answer fails HERE, not on the train.
+    def real_outside(author_id: int = 555001, paths=("custom_components/heatpump_optimizer/x.py",),
+                     head: str = H0, repo: str = FORK):
+        mod = _outside_gate.__wrapped__()
+        pull = {"number": 7, "state": "open", "user": {"login": "contributor", "id": author_id, "type": "User"},
+                "head": {"sha": head, "ref": FREF, "repo": {"full_name": repo, "owner": {"login": "contributor"}}},
+                "base": {"ref": "main", "repo": {"full_name": "o/r"}}}
+        files = {mod.ALLOWLIST: json.dumps({"contributors": [{"login": "contributor", "id": 555001}]}),
+                 mod.CODEOWNERS: "/.github/ @tvofi\n"}
+
+        def api(path, pages=False):
+            if path.split("?")[0] == "repos/o/r/pulls/7":
+                return pull
+            if pages:
+                return []
+            raise mod.Refuse("unexpected read " + path)
+
+        def git(*a):
+            verb = a[2] if a[0] == "-c" else a[0]
+            return {"fetch": "", "rev-parse": head + "\n", "merge-base": "b" * 40 + "\n",
+                    "diff": "".join(p + "\n" for p in paths)}[verb]
+        mod.api, mod.git, mod.show = api, git, lambda ref, path: files.get(path)
+        real_check, mod.asked = mod.check, []
+        mod.check = lambda *a, **k: (mod.asked.append(a), real_check(*a, **k))[1]
+        return {"pull": (0, json.dumps(pull)), "gate": mod}
+    w = real_outside()
+    rc, lines, calls = go(w)
+    check("the real outside.py: a fork head of an allowlisted author changing class-F paths only is ADMITTED by its "
+          "own `check` at the landing head, and the train merges it on the App's approval",
+          rc == 0 and merged(calls) and not approved(calls) and w["gate"].asked == [("o/r", 7, "origin/main")]
+          and any("outside contract holds" in ln and f"{FORK}:{FREF}" in ln for ln in lines))
+    w = real_outside(repo="o/r")
+    rc, lines, calls = go(w)
+    check("the real outside.py null control: a head of ours is read by its `pull_facts` as ours, merged, and never "
+          "put to `check`", rc == 0 and merged(calls) and w["gate"].asked == []
+          and not any("outside contract" in ln for ln in lines))
+    for name, kw, said in (("a class-R path", {"paths": ("tools/x.py",)}, "class R: tools/x.py"),
+                           ("an author on no allowlist entry (rc 3)", {"author_id": 9}, "NOT OUTSIDE: #7's author"),
+                           ("an admission of another head", {"head": H1}, f"admitted a head other than {H0[:12]}")):
+        w = real_outside(**kw)
+        rc, lines, calls = go(w)
+        check(f"the real outside.py: {name} parks the fork head [OUTSIDE] with the contract's own words, nothing "
+              "merged or approved", rc == 1 and not merged(calls) and not approved(calls) and "[OUTSIDE]" in lines[-1]
+              and said in lines[-1] and len(w["gate"].asked) == 1)
+    for rc_said in (1, 3):
+        w = {"pull": THEIRS, "gate": OutsideStub()}
+        w["gate"].check = lambda *a, rc_said=rc_said, **k: (rc_said, [f"OUTSIDE: #7 by contributor (id 1) at {H0}: 1 class-F"])
+        got, calls, _ = seat(w, step6)
+        check(f"fork head: `check` exiting {rc_said} parks [OUTSIDE] even beside an admission-shaped line -- only rc 0 admits",
+              parked(got, "the outside contract refuses") and not asked_app(calls))
+    for shape, said in (("a refusal's own words", f"REFUSE: #7 at {H0}: class R: tools/x.py"),
+                        ("the admission's words mid-line", f"note: OUTSIDE: #7 by contributor (id 1) at {H0}: 1 class-F")):
+        w = {"pull": THEIRS, "gate": OutsideStub()}
+        w["gate"].check = lambda *a, said=said, **k: (0, [said])
+        got, calls, _ = seat(w, step6)
+        check(f"fork head: `check` exiting 0 beside {shape} naming the head parks [OUTSIDE] -- the admission is the line "
+              "that starts with outside.py's `OUTSIDE: `, not any line naming the head",
+              parked(got, "the outside contract refuses", "admitted a head other than") and not asked_app(calls))
+    w = {"pull": THEIRS, "gate": OutsideStub()}
+    w["gate"].check = lambda *a, **k: (0, [f"OUTSIDE: #7 by contributor (id 1) at {H0}: 1 class-F"])
+    got, calls, _ = seat(w, step6)
+    check("... null control: the same rc 0 beside the line starting `OUTSIDE: ` at the head is admitted",
+          not isinstance(got, Stop))
+    # Carry 23: class O holds paths under tests/ no CODEOWNERS line owns, where app_approve.sh
+    # answers "app". The contract is read again at every step 6, the shortcuts included.
+    w = {"pull": THEIRS, "gate": OutsideStub((True, "class O: the mandate is in force"),
+                                               (False, "class O: mandate 4100000001 was revoked"))}
+    held: list = []
+
+    def twice(t):
+        first = t.approve(7, H0, dict(item), ["tests/features.py"])
+        held.append(dict(t.contracted))
+        try:
+            t.approve(7, H0, dict(item), ["tests/features.py"])
+        except Stop as stop:
+            held.append(dict(t.contracted))
+            return first, stop
+    got, calls, _ = seat(w, twice)
+    check("fork head (carry 23): an unowned class-O path, approved 'app' at adoption's head, PARKS at the next "
+          "step 6 once the mandate is revoked -- the contract is read before the already-approved shortcut",
+          got is not None and got[0] == "app" and parked(got[1], "mandate 4100000001 was revoked", "owner's review")
+          and len(w["gate"].asked) == 2 and len(app_posts(calls)) == 1)
+    check("... the head the contract held at is recorded, and the record is dropped the moment it is read again: "
+          "a refusal leaves no head for `_approve` to trust", held == [{7: H0}, {}])
+    check("... and the pull request is read from the pulls API once for both, a head repository being fixed",
+          sum(c == ["gh", "api", "repos/o/r/pulls/7"] for c in calls) == 1 and w["gate"].crossed == 1)
+    for answer, want in (((True, "class F only"), "app"), ((False, "class R"), None)):
+        w = {"pull": THEIRS, "gate": OutsideStub(answer)}
+        got, calls, _ = seat(w, lambda t: t._approve(7, H0, dict(item), FILES))
+        check("fork head: `_approve` reached without step 6's own read still runs the contract at this head first: "
+              + ("it holds, the App approves" if want else "it refuses, and app_approve.sh is never asked"),
+              len(w["gate"].asked) == 1 and (got == want if want else parked(got, "class R") and not asked_app(calls)))
+    w = {"pull": OURS}
+    got, calls, _ = seat(w, lambda t: (t.approve(7, H0, dict(item), FILES), t.approve(7, H0, dict(item), FILES)))
+    check("... null control: on a head of ours the second step 6 is the shortcut, and nothing is read for it",
+          got == ("app", "already, at this head, by this train"))
+    w = {"pull": THEIRS, "gate": OutsideStub(RuntimeError("the reviews could not be read"))}
+    got, calls, _ = seat(w, step6)
+    check("fork head: a contract that cannot be read parks, fail closed, nothing approved",
+          parked(got, "the reviews could not be read") and not asked_app(calls))
+    for name, world in (("a checkout whose outside.py is not origin/main's blob", {"stale": OUTSIDE_PATH}),
+                        ("a checkout whose allowlist is not origin/main's blob", {"stale": OUTSIDE_MAIN_COPIES[2]}),
+                        ("an origin/main that cannot be fetched", {"main_fetch": (128, "g" * 40 + "fatal: 502 " + "x" * 149)})):
+        w = dict(world, pull=THEIRS, gate=OutsideStub())
+        got, calls, _ = seat(w, step6)
+        check(f"fork head (carry 23): {name} stops before the contract is asked of anything -- main's copy or none",
+              isinstance(got, Stop) and got.step == "outside" and w["gate"].asked == [] and not asked_app(calls)
+              and ("main_fetch" not in world or got.why.endswith(": fatal: 502 " + "x" * 149)))
+    check("fork head (carry 23): the files the contract must hold as origin/main's own are outside.py, the mandate "
+          "gate, the allowlist, CODEOWNERS, app_approve.sh, policy_lint.mjs and tests/closure.py, by path",
+          OUTSIDE_MAIN_COPIES == ("tools/pr/outside.py", "tools/policy/budget_raise_gate.py",
+                                  "dev/governance/config/outside_contributors.json", ".github/CODEOWNERS",
+                                  "tools/pr/app_approve.sh", "tools/policy/policy_lint.mjs", "tests/closure.py"))
+    # ... read off the real module: every file it opens under its own root, and the two it reads at the ref.
+    src = (ROOT / OUTSIDE_PATH).read_text().split("\ndef self_test")[0]  # what the contract runs, not its self-test
+    opened = set(re.findall(r'(?:root|ROOT) / "([^"]+)"', src)) | {REAL_OUTSIDE.ALLOWLIST, REAL_OUTSIDE.CODEOWNERS}
+    check("... and that list is exactly what the real outside.py opens under its root or reads at the ref",
+          len(opened) >= 6 and opened == set(OUTSIDE_MAIN_COPIES) - {OUTSIDE_PATH})
+    # The loader itself, which every case above stubs: by path, fail closed when the file is absent.
+    path_was = globals()["OUTSIDE_PATH"]
+    with tempfile.TemporaryDirectory() as d:
+        (Path(d) / "outside.py").write_text("def cross_repository(pull, repo):\n    return 'from the file'\n")
+        globals()["OUTSIDE_PATH"] = str(Path(d) / "outside.py")
+        try:
+            loaded = _outside_gate.__wrapped__()
+            globals()["OUTSIDE_PATH"] = str(Path(d) / "absent.py")
+            try:
+                absent = _outside_gate.__wrapped__()
+            except Stop as stop:
+                absent = stop
+        finally:
+            globals()["OUTSIDE_PATH"] = path_was
+    check("the outside.py loader executes the file at its path and hands the module back",
+          getattr(loaded, "cross_repository", lambda *a: None)(None, "") == "from the file")
+    check("... and with no file there it is a Stop, never a module: an unread head is never taken for ours",
+          isinstance(absent, Stop) and absent.step == "outside" and "is not in this checkout" in absent.why)
+    # (E): a code-owned cross-repository head takes ONE path, and no writer of the train's posts there.
+    w = {"pull": THEIRS, "approve": OWNED, "gate": OutsideStub((True, "class O: the owner's review at the head"))}
+    got, calls, lines = seat(w, lambda t: t.approve(7, H0, dict(item), ["tests/features.py", "tests/structure_budgets.json"]))
+    check("fork head: code-owned with class O standing returns 'owner' -- no post, no budget read (never raise_hold), "
+          "no carry", got == "owner" and not approved(calls)
+          and not any(c[:2] in (["git", "ls-tree"], ["git", "merge-base"]) for c in calls))
+    w = {"pull": THEIRS, "approve": OWNED, "gate": OutsideStub((False, "class O: no approval at the head"))}
+    got, calls, _ = seat(w, step6)
+    check("fork head: code-owned with class O failing parks naming the owner's review, nothing posted",
+          parked(got, "class O: no approval at the head", "owner's review") and not approved(calls))
+    w = {"pull": OURS, "approve": OWNED}
+    got, calls, _ = seat(w, step6)
+    check("... null control: the same code-owned refusal on a head of ours still posts the mandate approval",
+          got == "mandate" and approved(calls))
+    posts = (("_post_agent_approval as _approve calls it",
+              lambda t: t._post_agent_approval(7, H0, dict(item), "code-owned", ["tests/features.py"], t.mandate, "approve")),
+             ("_post_agent_approval as policy_approve calls it",
+              lambda t: t._post_agent_approval(7, H0, dict(item), "policy", ["CLAUDE.md"], "mandate comment 4100000001", "policy")),
+             ("_post_carry", lambda t: t._post_carry(7, H0, "the prior owner review's body at " + H0 + "\n")))
+    for name, post in posts:
+        got, calls, _ = seat({"pull": THEIRS}, post)
+        check(f"fork head: {name} Stops [OUTSIDE] on a cross-repository head with no --approve call",
+              parked(got, "never posted on a cross-repository head", FORK) and not approved(calls))
+        got, calls, _ = seat({"pull": OURS}, post)
+        check(f"... null control: {name} on a head of ours still posts",
+              not isinstance(got, Stop) and sum(c[:3] == ["gh", "pr", "review"] and "--approve" in c for c in calls) == 1)
+    due = lambda t: t.policy_approval_due(7, H0, ["CLAUDE.md"])
+    got, calls, _ = seat({"pull": THEIRS}, due)
+    check("fork head: step 5 is never due on a cross-repository head (policy paths are class R), and says so",
+          got[0] is None and got[1] == ["CLAUDE.md"] and "cross-repository" in got[2] and not approved(calls))
+    got, calls, _ = seat({"pull": OURS}, due)
+    check("... null control: on a head of ours the same read goes on to the mandate", "cross-repository" not in got[2])
+    carried_item = dict(item, carried_from=H1, carried_chain=[H1])
+    got, calls, _ = seat({"pull": THEIRS}, lambda t: (t._carry_owner_approval(7, H0, carried_item, FILES),
+                                                      carried_item.get("carry_refused")), approval_carry=True)
+    check("fork head: --approval-carry carries nothing on a cross-repository head, its reason left for the park line",
+          got[0] is None and "cross-repository" in got[1] and not approved(calls))
+    # The main merge: worktree from the pull ref, push target from the pulls API, park on conflict.
+    w = {"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "heads": [H0, H1],
+         "remerge": f"RECARRY: fork head {FORK}:{FREF} merged with main\nPUSHED {H1} to {FORK}:{FREF}"}
+    w["gate"].at = [H1]  # the one step 6 is at the merged head
+    rc, lines, calls = go(w)
+    rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
+    check("fork head recarry: the worktree is DETACHED at refs/pull/<pr>/head, nothing of origin/<branch> is fetched "
+          "or reset, and remerge_main.sh gets the pulls API's branch and --head-repo; merged at the new head",
+          rc == 0 and ["git", "fetch", "-q", "origin", "+refs/pull/7/head:refs/remotes/pull/7/head"] in calls
+          and ["git", "worktree", "add", "-q", "--detach", "/nonexistent-wt", "refs/remotes/pull/7/head"] in calls
+          and not any("-B" in c or f"origin/{FREF}" in c or "origin/fix/x" in c for c in calls)
+          and rm_argv[-5:] == ["/nonexistent-wt", FREF, rm_argv[-3], "--head-repo", FORK]
+          and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+          and f"#7 recarry START (fork {FORK}, branch {FREF})" in lines
+          and w["gate"].asked == [("o/r", 7, "origin/main")])
+    for given, what in ((None, "one it made is this run's to release"), ("/nonexistent-wt", "one it was handed is not")):
+        made: list = []
+        it = {k: v for k, v in item.items() if k != "worktree" or given}
+
+        def recarried(t):
+            t.recarry(dict(it))
+            made.extend(str(x) for x in t.made_wts)
+            return str(t.state / "wt" / "7")
+        got, calls, _ = seat({"pull": THEIRS, "contains": [False], "heads": [H0, H1]}, recarried)
+        check(f"fork head recarry: the detached worktree -- {what}", made == ([] if given else [got]))
+    rc, lines, calls = go({"pull": OURS, "gate": OutsideStub(), "contains": [False], "heads": [H0, H1]})
+    rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
+    check("... null control: a head of ours is recarried from origin/<branch> on -B, with no --head-repo",
+          rc == 0 and ["git", "worktree", "add", "-q", "-B", "fix/x", "/nonexistent-wt", "origin/fix/x"] in calls
+          and "--head-repo" not in rm_argv and not any("refs/pull/7/head" in " ".join(c) for c in calls))
+    EVIL = 'a";$(id)'
+    rc, lines, calls = go({"pull": pull_of(FORK, EVIL), "gate": OutsideStub(), "contains": [False], "heads": [H0, H1]})
+    rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
+    check("fork head recarry: a branch name of the contributor's choosing travels as ONE argv element, verbatim, "
+          "and into no git ref or refspec", EVIL in rm_argv and not any(EVIL in x for c in calls if c[0] == "git" for x in c))
+    for out, words in (("MERGE CONFLICT 7", ("does not merge into the fork head", "never resolves")),
+                       (f"REMERGE FAILED 7 at push (fork {FORK}:{FREF}): GitHub refused update-branch",
+                        ("at push", "no personal token"))):
+        rc, lines, calls = go({"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "remerge": out})
+        check(f"fork head recarry: `{out.split(' (')[0]}` parks [OUTSIDE] naming the fork; nothing merged or approved",
+              rc == 1 and "[OUTSIDE]" in lines[-1] and FORK in lines[-1] and all(x in lines[-1] for x in words)
+              and not merged(calls) and not approved(calls))
+    rc, lines, calls = go({"pull": OURS, "gate": OutsideStub(), "contains": [False], "remerge": "MERGE CONFLICT 7"})
+    check("... null control: a conflict on a head of ours is the fixer's, as before, and carries no [OUTSIDE]",
+          rc == 1 and "[OUTSIDE]" not in lines[-1] and "that is a fixer's, and a re-review" in lines[-1])
+    rc, lines, calls = go({"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "wt_add": (128, "fatal")})
+    check("fork head recarry: a worktree that cannot be made at the pull ref parks [OUTSIDE]; no holder is freed for it",
+          rc == 1 and "[OUTSIDE]" in lines[-1] and "refs/pull/7/head" in lines[-1]
+          and not any("remerge_main.sh" in " ".join(c) or "--detach" in c and c[1] == "checkout" for c in calls))
+    # Carries 16 and 26: check runs are keyed by commit, so a second pull request at the same head,
+    # open or closed, leaves runs of the same names there. Which the platform cross-check counts:
+    def rollup(*conclusions: str) -> dict:
+        nodes = [{"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": c, "isRequired": True}
+                 for c in conclusions]
+        return {"data": {"repository": {"pullRequest": {"commits": {"nodes": [{"commit": {
+            "oid": H0, "statusCheckRollup": {"contexts": {"pageInfo": {"hasNextPage": False}, "nodes": nodes}}}}]}}}}}
+    check("two pull requests at one head (carries 16, 26): platform_gate counts EVERY required gate run GitHub lists "
+          "at the head, so a green run another pull request left there cannot hide this one's red",
+          platform_gate(rollup("FAILURE", "SUCCESS"), H0)[0] == "red" and platform_gate(rollup("SUCCESS", "FAILURE"), H0)[0] == "red")
+    check("... null control: two passing runs of the name read green", platform_gate(rollup("SUCCESS", "SUCCESS"), H0)[0] == "green")
     # End-to-end absorbed-branch recarry against a REAL fixture repo (#1943):
     # the train's `git worktree add` runs for real, the remerge stub performs
     # remerge_main.sh's actual merge on that worktree, and then applies
@@ -5688,11 +6850,42 @@ def _self_test() -> int:
     # The train releases the recarry worktrees it made (train-b5 left wt/2290
     # holding the branch, and the next pre-flight PARKed the entry on it).
     own = {k: v for k, v in item.items() if k != "worktree"}
-    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, q=[dict(own)])
+    def listing(base_run):  # the recarry worktree is registered with git, as in life
+        added: list = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            if argv[:3] == ["git", "worktree", "add"]:
+                added.append(argv[-2])
+            if argv[:3] == ["git", "worktree", "list"]:
+                return 0, "".join(f"worktree {x}\n\n" for x in added)
+            return base_run(argv, cwd=cwd, stdin=stdin)
+        return run
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, q=[dict(own)], wrap=listing)
     removed = [c for c in calls if c[:3] == ["git", "worktree", "remove"]]
     check("a recarry worktree the train made under its state dir is removed at the run's end, never forced",
           rc == 0 and len(removed) == 1 and removed[0][3].endswith("/wt/7") and "--force" not in removed[0]
           and any(ln.startswith("released ") for ln in lines))
+    def release(listed, wt, remove_rc=0):
+        out, calls_ = [], []
+
+        def rrun(argv, cwd=ROOT, stdin=None):
+            calls_.append(argv)
+            if argv[:3] == ["git", "worktree", "list"]:
+                return 0, "".join(f"worktree {x}\nHEAD {'a' * 40}\n\n" for x in listed)
+            return (remove_rc, "fatal: x is not a working tree") if argv[:3] == ["git", "worktree", "remove"] else (0, "")
+        t = Train("o/r", Path("/nonexistent-state"), None, "the orchestrator", ("nightly-status",), 1,
+                  run=rrun, sleep=lambda s: None, log=out.append)
+        t.made_wts = [Path(wt)]
+        t.release_worktrees()
+        return out, [c for c in calls_ if c[:3] == ["git", "worktree", "remove"]]
+    out, rm = release(["/nonexistent-main"], "/nonexistent-state/wt/7")
+    check("a recarry worktree worktree_gc.sh already collected (unlisted, absent) is not removed again",
+          rm == [] and any("already collected" in ln for ln in out) and not any("NOT released" in ln for ln in out))
+    out, rm = release(["/nonexistent-state/wt/7"], "/nonexistent-state/wt/7")
+    check("... while one still registered is removed (null control)", len(rm) == 1 and out == ["released /nonexistent-state/wt/7"])
+    out, rm = release(["/nonexistent-state/wt/7"], "/nonexistent-state/wt/7", remove_rc=128)
+    check("... and a failed remove of a registered one still logs NOT released (null control)",
+          len(rm) == 1 and any("NOT released" in ln for ln in out))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
     check("... and a queue entry's own worktree is never touched (null control)",
           rc == 0 and not any(c[:3] == ["git", "worktree", "remove"] for c in calls))
@@ -5847,11 +7040,14 @@ def _self_test() -> int:
     _read_retry_self_test(check)
     _git_retry_self_test(check)
     _review_settle_self_test(check)
+    _pre_approve_self_test(check)
     _rollup_draft_self_test(check)
     _gate_race_self_test(check)
+    _gate_reader_barrier_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
     _batch_self_test(check)
+    _ruleset_etag_self_test(check)
     _failed_marker_self_test(check)
     _add_self_test(check)
     _queue_self_test(check)
@@ -5859,6 +7055,39 @@ def _self_test() -> int:
     _introduced_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _ruleset_etag_self_test(check) -> None:
+    """R10-GH-READ-RESIDUE-P3 item 1: the train's two ruleset reads are conditional and shared
+    through the state dir (P625: 235 reads an hour from 120 processes, each reading once)."""
+    calls: list = []
+
+    def srv(argv, cwd=ROOT, stdin=None):
+        calls.append(list(argv))
+        return gh_read.fake_ruleset(argv, "7", "fast\npr-contract\n", "true")
+
+    def train(d):
+        return Train("o/r", Path(d), None, "", (), 1, run=srv, sleep=lambda s: None, log=lambda s: None)
+    with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as st:
+        saved = os.environ.get("HPO_STATE_DIR")
+        os.environ["HPO_STATE_DIR"] = st
+        try:
+            first = train(d).required(pr_head=True)
+            cold = len(calls)
+            second = Train("o/r", Path(d), None, "", (), 1, run=srv, sleep=lambda s: None, log=lambda s: None)
+            warm_names, warm_strict = second.required(pr_head=True), second.strict_update()
+            warm = calls[cold:]
+        finally:
+            if saved is None:
+                os.environ.pop("HPO_STATE_DIR", None)
+            else:
+                os.environ["HPO_STATE_DIR"] = saved
+    check("a cold required() makes two plain ruleset reads (null control: no stored ETag, no If-None-Match)",
+          first == ["fast", "pr-contract"] and cold == 2 and not any("If-None-Match" in " ".join(c) for c in calls[:2]))
+    check("a second train process (a fresh object, the shared state dir) reads both rulesets conditionally "
+          "and gets the same set and the strict flag from the stored bodies",
+          warm_names == first and warm_strict is True and len(warm) == 4
+          and all("If-None-Match" in " ".join(c) for c in warm))
 
 
 def _introduced_self_test(check) -> None:
@@ -5895,10 +7124,8 @@ def _introduced_self_test(check) -> None:
             calls.append(a)
             if argv[:2] == ["git", "merge-base"]:
                 return (0, mb + "\n") if mb else (128, "fatal: Not a valid commit name")
-            if a.endswith("rulesets --jq " + argv[-1]):
-                return 0, "7"
-            if "rulesets/7" in a:
-                return 0, "fast\n"
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", "fast")
             for sha, runs in ((H, head_runs), (B, base_runs)):
                 if f"commits/{sha}/{SELFTESTS_RUNS}" in a:  # the filtered read: one JSON array
                     return (1, "HTTP 502") if runs is None else (0, json.dumps(
@@ -6640,10 +7867,13 @@ def _gate_race_self_test(check) -> None:
         calls_sb: list = []
         return run, calls, calls_sb
 
-    def wait(checks, sibs, polls=4):
+    NOW = 1_800_000_000.0
+
+    def wait(checks, sibs, polls=4, wall=None):
         run, calls, calls_sb = world(checks, sibs)
         with tempfile.TemporaryDirectory() as d:
-            t = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None, polls=polls)
+            t = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None, polls=polls,
+                      wall=wall or (lambda: NOW))
             return t.wait_ci(H, only=[GATE]), calls_sb
     busy = _jl([{"id": 42237558473, "status": "in_progress"}, {"id": 42237558635, "status": "completed"}])
     done = _jl([{"id": 42237558473, "status": "completed"}, {"id": 42237558635, "status": "completed"}])
@@ -6653,6 +7883,34 @@ def _gate_race_self_test(check) -> None:
           "not returned red (the #3248 scene)", red == [])
     red, _ = wait([[edit_gate]], [busy], polls=3)
     check("a sibling run that never finishes ends as TIMEOUT, bounded by the polls", red == ["TIMEOUT"])
+    def iso(ago):
+        return datetime.datetime.fromtimestamp(NOW - ago, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    started = lambda st, ago: _jl([{"id": 42237558473, "status": st, "run_started_at": iso(ago)}])
+    red, sb = wait([[edit_gate]] * 8 + [[rerun_green, code_gate]],
+                   [started("in_progress", 5000)] * 7 + [done], polls=3)
+    check("carry 4 (1): a STARTED sibling run inside its deadline is waited on past `polls` (#3398: 5863 s, "
+          "polls=24 is ~5832 s), not TIMEOUT", red == [] and len(sb) > 3)
+    red, _ = wait([[edit_gate]], [started("queued", 5000)], polls=3)
+    check("carry 4 (1) null: a QUEUED sibling keeps the polls bound (TIMEOUT)", red == ["TIMEOUT"])
+    red, sb = wait([[edit_gate]], [started("in_progress", CODE_RUN_DEADLINE_SECONDS + 60)], polls=3)
+    check("carry 4 (1) null: a started sibling past its deadline keeps the polls bound (TIMEOUT)",
+          red == ["TIMEOUT"] and len(sb) == 3)
+    ceiling = max(int(m) for m in re.findall(r"timeout-minutes:\s*(\d+)", (ROOT / ".github/workflows/ci.yml").read_text()))
+    check("carry 4 (1): CODE_RUN_DEADLINE_SECONDS is ci.yml's longest job ceiling (timeout-minutes) in seconds, "
+          "read from the registered artifact", CODE_RUN_DEADLINE_SECONDS == ceiling * 60)
+    with tempfile.TemporaryDirectory() as d:  # the deadline's edges, read directly: [0, CODE_RUN_DEADLINE_SECONDS] inclusive
+        tb = Train("o/r", Path(d), None, "", (), 1, run=lambda *a, **k: (0, ""), sleep=lambda s: None,
+                   log=lambda s: None, polls=3, wall=lambda: NOW)
+        edge = lambda st, ago: tb._sibling_in_deadline([(1, st, iso(ago))])  # noqa: E731
+        check("carry 4 (1) edges: a started run is inside its deadline at 0 s and at exactly the deadline, outside "
+              "one second past it, and a queued or unreadable-start one is never inside",
+              edge("in_progress", 0) is True and edge("in_progress", CODE_RUN_DEADLINE_SECONDS) is True
+              and edge("in_progress", CODE_RUN_DEADLINE_SECONDS + 1) is False and edge("queued", 5) is False
+              and tb._sibling_in_deadline([(1, "in_progress", "")]) is False)
+    tick = iter(range(10 ** 6))
+    red, sb = wait([[edit_gate]], [started("in_progress", 5000)], polls=3, wall=lambda: NOW + 600 * next(tick))
+    check("carry 4 (1): a started sibling that never finishes ends at its deadline as TIMEOUT, never unbounded "
+          "(the wall advances 600 s a read)", red == ["TIMEOUT"] and 3 < len(sb) < 40)
     red, sb = wait([[edit_gate]], [done])
     check("null control: a red gate with no unfinished sibling run still returns red on the first poll",
           red == [GATE] and len(sb) == 1)
@@ -6667,6 +7925,127 @@ def _gate_race_self_test(check) -> None:
         r = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None,
                   polls=3).wait_ci(H, only=["fast"])
     check("a failed unit beside an unfinished sibling is final: only the gate defers", r == ["fast"] and not sb)
+
+
+#: One planted reader per spelling every review found passing a caller scan:
+#: (name, source). Each defines `reader(latest, required)` reading the gate
+#: conclusion with no deferral; `_F` is FINAL, the only spelling of that read.
+PLANTED_READERS = [
+    ("direct call", "def reader(latest, required):\n    return classify(latest, required, _F)\n"),
+    ("import alias", "def reader(latest, required):\n    from merge_train import classify as judge\n    return judge(latest, required, _F)\n"),
+    ("rebinding", "judge = classify\ndef reader(latest, required):\n    return judge(latest, required, _F)\n"),
+    ("getattr", "import sys\ndef reader(latest, required):\n    return getattr(sys.modules['merge_train'], 'classify')(latest, required, _F)\n"),
+    ("functools.partial", "import functools\ndef reader(latest, required):\n    return functools.partial(classify, latest, required)(_F)\n"),
+    ("a function named *self_test*", "def reader_self_test(latest, required):\n    return classify(latest, required, _F)\nreader = reader_self_test\n"),
+    ("busy omitted", "def reader(latest, required):\n    return classify(latest, required)\n"),
+    ("busy a literal ()", "def reader(latest, required):\n    return classify(latest, required, ())\n"),
+    ("busy rebound to an empty Busy", "def reader(latest, required):\n    b = Busy()\n    return classify(latest, required, b)\n"),
+]
+
+
+def plant(src: str, filename: str) -> dict:
+    """<src> run as a module of its own whose code objects carry <filename>, with
+    merge_train's names in scope: its functions' frames are <filename>'s."""
+    ns = {k: v for k, v in globals().items() if not k.startswith("__")} | {"_F": FINAL, "__name__": "planted"}
+    exec(compile(src, filename, "exec"), ns)
+    return ns
+
+
+def _gate_reader_barrier_self_test(check) -> None:
+    sys.modules.setdefault("merge_train", sys.modules[__name__])
+    red_gate = latest_runs([{"name": GATE, "status": "completed", "conclusion": "failure", "started_at": "1"}])
+    here = str(Path(__file__).resolve())
+
+    def blind(fn) -> bool:
+        try:
+            fn(red_gate, [GATE])
+        except TypeError:  # BlindRead, or a missing busy: either refuses
+            return True
+        return False
+    places = {"merge_train.py": here, "orchestrator_tick.py": str(ROOT / "tools/audit/seat/orchestrator_tick.py"),
+              "a module outside the seat": str(ROOT / "custom_components/elsewhere.py"),
+              "a module outside the tree": "/nonexistent/elsewhere.py"}
+    passed = [(name, where) for name, src in PLANTED_READERS for where, f in places.items()
+              if not blind(plant(src, f)["reader"])]
+    check(f"P436 barrier: each of the {len(PLANTED_READERS)} planted deferral-blind readers, planted in each of "
+          f"{len(places)} modules, refuses a red gate (BlindRead, or TypeError for no busy) -- passed: {passed[:4]}", not passed)
+    def at(path: str, qual: str):
+        """A FINAL reader whose frame is (path, qual)."""
+        cls, _, fn = qual.rpartition(".")
+        body = f"def {fn}(latest, required):\n    return classify(latest, required, _F)\n"
+        if cls:
+            body = f"class {cls}:\n    @staticmethod\n" + "".join(f"    {ln}\n" for ln in body.splitlines())
+        ns = plant(body, str(ROOT / path))
+        return getattr(ns[cls], fn) if cls else ns[fn]
+    refused = [k for k in FINAL_READERS if blind(at(*k))]
+    check(f"P436 barrier null: a FINAL read from each FINAL_READERS frame is read, not refused -- refused: {refused}",
+          not refused)
+    defs = {}
+    for path, qual in FINAL_READERS:
+        tree = ast.parse((ROOT / path).read_text())
+        quals = {f"{c.name}.{f.name}" for c in tree.body if isinstance(c, ast.ClassDef)
+                 for f in c.body if isinstance(f, ast.FunctionDef)}
+        defs[(path, qual)] = qual in quals | {f.name for f in tree.body if isinstance(f, ast.FunctionDef)}
+    check(f"P436 barrier: every FINAL_READERS key names a function in its file -- stale: {[k for k, v in defs.items() if not v]}",
+          all(defs.values()))
+    # Carry 2 (c): the direct spellings are refused at self-test time, not first at a train's run.
+    tree_src = {f.relative_to(ROOT).as_posix(): f.read_text() for f in sorted(ROOT.glob("tools/**/*.py"))
+                if "merge_train" in f.read_text()}
+    found = blind_sites(tree_src)
+    check(f"carry 2 (c): no module under tools/ naming merge_train holds a direct classify(.., FINAL) outside "
+          f"FINAL_READERS or an empty Busy() outside BUSY_MINTERS ({len(tree_src)} modules scanned) -- {found[:3]}",
+          not found and "tools/audit/seat/orchestrator_tick.py" in tree_src and len(tree_src) > 2)
+    blind_src = ("import merge_train as mt\ndef reader(l, r):\n    return classify(l, r, FINAL)\n"
+                 "class T:\n    def read(self, l, r):\n        return mt.classify(l, r, busy=mt.FINAL)\n"
+                 "def mint():\n    return Busy()\n")
+    got = blind_sites({"tools/audit/seat/proof_watch.py": blind_src})
+    check(f"carry 2 (c): a planted direct FINAL read (bare and as mt.classify(busy=mt.FINAL), in a method) and an "
+          f"empty Busy() in unregistered frames are each found by the scan -- {got}",
+          [g.split()[1:] for g in got] == [["reader", "classify(..,", "FINAL)"], ["T.read", "classify(..,", "FINAL)"],
+                                           ["mint", "Busy()"]])
+    null_src = ("def approval_owed(l, r):\n    return classify(l, r, FINAL)\n"
+                "def gate_busy():\n    return Busy()\ndef other():\n    return classify(l, r, Busy([1])), Busy([7])\n")
+    check("carry 2 (c) null: the same spellings in registered frames, and a non-empty Busy anywhere, are not found",
+          blind_sites({"tools/audit/seat/merge_train.py": null_src}) == [])
+    with tempfile.TemporaryDirectory() as d:
+        tu = Train("o/r", Path(d), None, "", (), 1, run=lambda argv, cwd=None, stdin=None: (1, "HTTP 502"),
+                   sleep=lambda s: None, log=lambda s: None, polls=1)
+        check("carry 2 (b): an unreadable ci.yml listing is no reading (None), never an empty Busy, and the red "
+              "gate stays red in classify_at",
+              tu._gate_busy("f" * 40, []) is None and tu.classify_at("f" * 40, [
+                  {"name": GATE, "status": "completed", "conclusion": "failure", "started_at": "1"}], [GATE])[0] == "red")
+    minted = plant("def gate_busy():\n    return Busy()\n", here)["gate_busy"]()
+    check("P436 barrier: an empty Busy is minted by a BUSY_MINTERS frame and reads the red final; a non-empty "
+          "Busy minted anywhere defers it; gate_busy over no runs is an empty Busy",
+          classify(red_gate, [GATE], minted) == ("red", [], [GATE])
+          and classify(red_gate, [GATE], Busy([7])) == ("wait", [GATE], [])
+          and gate_busy([], []) == [] and isinstance(gate_busy([], []), Busy))
+    check("P436 barrier null: an unregistered frame sharing a registered qualname, file basename or path is refused (the key is repo path and qualname)",
+          blind(at("tools/audit/seat/proof_watch.py", "approval_owed"))
+          and blind(at("tools/audit/seat/merge_train.py", "Tick._classify_reading"))
+          and blind(at("dev/audit/harnesses/merge_train.py", "approval_owed")))
+    try:
+        at("tools/audit/seat/proof_watch.py", "approval_owed")(red_gate, [GATE])
+        said = ""
+    except BlindRead as e:
+        said = str(e)
+    check("P436 barrier: a refusal names the caller's frame and the busy it was given, FINAL by its type name -- "
+          f"{said[:120]}", "'tools/audit/seat/proof_watch.py', 'approval_owed'" in said and "busy=FinalRead:" in said)
+    stamped = lambda n, st, at: {"name": n, "conclusion": st, "completedAt": at}  # noqa: E731
+    G1, G2 = "2026-11-12T09:00:00Z", "2026-11-12T10:00:00Z"
+    check("P608 rollup_red_after_pass: a failure strictly newer than the pass is real, an equal stamp is a deferral "
+          "(no order proves the red landed later), the other name's entries are never read, and an unstamped entry is no proof",
+          rollup_red_after_pass([stamped("gate", "SUCCESS", G1), stamped("gate", "FAILURE", G2)], "gate") is True
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G2), stamped("gate", "FAILURE", G2)], "gate") is False
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G2), stamped("gate", "FAILURE", G1)], "gate") is False
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G1), stamped("gate", "FAILURE", G2),
+                                     stamped("other", "SUCCESS", "2026-11-12T12:00:00Z")], "gate") is True
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G2), stamped("gate", "FAILURE", G1),
+                                     stamped("other", "FAILURE", "2026-11-12T12:00:00Z")], "gate") is False
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", ""), stamped("gate", "FAILURE", G2)], "gate") is False)
+    sh = (ROOT / "tools/audit/seat/merge_pr.sh").read_text()
+    check("P436 barrier: merge_pr.sh's raw latest-check red read is followed by a classify WAIT-wait before RED",
+          sh.index('conclusion=="failure"') < sh.index("merge_train.py} classify") < sh.index('echo "RED: $red"'))
 
 
 def _rollup_draft_self_test(check) -> None:
@@ -6791,6 +8170,138 @@ def _rollup_draft_self_test(check) -> None:
     t.record_drafts(q)
     check("P609 null: a non-draft entry is recorded False and makes no gh pr ready call",
           q[0]["draft"] is False and not any(c.startswith("gh pr ready") for c in calls))
+    # Carry 1 (P447): a merge attempt waits while a stamp holds main.
+    def stamped(age_s, clears_after=None, real=True, refreshes=None, date=None):
+        t, calls = world({})
+        t.real = real
+        if refreshes is not None:
+            t.hold_armed, real_refresh = True, t.hold_refresh
+            t.hold_refresh = lambda: (refreshes.append(1), real_refresh())[1]
+        base_out, polls, logs = t.out, [0], []
+        def out(*argv):
+            a = " ".join(argv)
+            if "git/ref/heads/stamp-hold" in a:
+                gone = clears_after is not None and polls[0] >= clears_after
+                return "" if (age_s is None or gone) else "a" * 40
+            if "git/commits/" in a:
+                if date is not None:
+                    return date
+                when = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=age_s)
+                return when.strftime("%Y-%m-%dT%H:%M:%SZ")
+            return base_out(*argv)
+        def sleep(s):
+            polls[0] += 1
+        t.out, t.sleep, t.log = out, sleep, logs.append
+        t.policy_approve = t.policy_gate = t.approve = lambda *a, **k: None
+        try:
+            t.land(7, H, {"pr": 7}, [], lambda: None)
+        except Stop as e:
+            logs.append(f"STOP {e.why}")
+        return logs, calls, polls[0]
+    logs, calls, polls = stamped(60, clears_after=3)
+    held_at = [i for i, c in enumerate(calls) if "gh pr merge" in c]
+    check("stamp hold: a live hold logs STAMP-HOLD and waits, and the merge runs only after it clears",
+          sum(l.startswith("STAMP-HOLD:") for l in logs) == 3 and polls == 3 and len(held_at) == 1)
+    refreshed: list = []
+    logs, calls, polls = stamped(60, clears_after=3, refreshes=refreshed)
+    check("stamp hold: every poll of a held wait refreshes train-hold (the record beat reads it stale at 3600 s)",
+          polls == 3 and len(refreshed) == 3)
+    logs, calls, polls = stamped(-300, clears_after=3)
+    check("stamp hold: a future-dated hold (this clock behind the stamp's) is live, not absent",
+          polls == 3 and sum(l.startswith("STAMP-HOLD:") for l in logs) == 3)
+    logs, calls, polls = stamped(-300)
+    check("stamp hold: a future-dated hold that never clears is taken over by the wait's own poll count",
+          polls == STAMP_HOLD_MAX_AGE_S // STAMP_HOLD_POLL_S
+          and any(l.startswith("STAMP-HOLD taken over") for l in logs) and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(60, date="not-a-date")
+    check("stamp hold: an unreadable commit date is no wait (the age is unknowable), and the merge runs",
+          polls == 0 and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(None)
+    check("stamp hold: null control, no hold runs the merge as today with no wait",
+          not any("STAMP-HOLD" in l for l in logs) and polls == 0 and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(STAMP_HOLD_MAX_AGE_S + 5)
+    check("stamp hold: a hold past the age bound is a dead holder's, taken over, and the merge runs",
+          any(l.startswith("STAMP-HOLD taken over") for l in logs) and polls == 0
+          and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(60, real=False)
+    check("stamp hold: a rehearsal batch (merges nothing into main) does not wait",
+          polls == 0 and not any("STAMP-HOLD" in l for l in logs))
+    # rollup_states and record_drafts pins (the P608/P609 survivors X10, X14, X16, X17)
+    ok_, bad_ = {"name": "g", "conclusion": "SUCCESS", "completedAt": "2026-01-02T00:00:00Z"}, {"name": "g", "conclusion": "FAILURE", "completedAt": "2026-01-02T00:00:00Z"}
+    check("P608 an equal stamp keeps the later listed entry, in both list orders",
+          rollup_states([ok_, bad_])["g"] == "FAILURE" and rollup_states([bad_, ok_])["g"] == "SUCCESS")
+    two = rollup_states([{"name": "g", "conclusion": "FAILURE", "startedAt": "2026-01-01T00:00:00Z", "completedAt": "2026-01-05T00:00:00Z"},
+                         {"name": "g", "conclusion": "SUCCESS", "startedAt": "2026-01-03T00:00:00Z", "completedAt": "2026-01-04T00:00:00Z"}])
+    check("P608 an entry with two valid stamps is dated by completedAt, not startedAt", two["g"] == "FAILURE")
+    check("P608 a status-context entry (context key, no name) is keyed by its context",
+          rollup_states([{"context": "ci/x", "state": "SUCCESS"}]) == {"ci/x": "SUCCESS"})
+    t, calls = world({})
+    t.real = False
+    t.out = lambda *a: calls.append("READ " + " ".join(a)) or "true"
+    q = [{"pr": 7}]
+    t.record_drafts(q)
+    check("P609 record_drafts on a rehearsal (real false) reads nothing and records nothing",
+          "draft" not in q[0] and not any(c.startswith("READ") for c in calls))
+    check("stamp hold: the ref names agree between the train and the stamp",
+          STAMP_HOLD_REF == "refs/heads/stamp-hold"
+          and 'STAMP_HOLD_REF = "refs/heads/stamp-hold"' in (ROOT / "tools/release/stamp.py").read_text())
+
+
+def _pre_approve_self_test(check) -> None:
+    """P628 / carry 1's acceptance (i)-(v), at `pre_approve` with every step 1-5
+    read stubbed; (vi)'s ordering runs through the whole batch in `_self_test`."""
+    def world(heads, red=(), carry_no=(), no_main=()):
+        calls, lines = [], []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            calls.append(argv)
+            if "--carry" in argv:
+                return 0, "CARRY: no" if argv[-1] in carry_no else "CARRY: yes"
+            return 0, ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lines.append, polls=1)
+        t.head = lambda pr: heads[pr]
+        t.contains_main = lambda h: calls.append(["contains", h]) or h not in no_main
+        t.strict_update = lambda: True
+        t._check_runs = lambda h: calls.append(["check-runs", h]) or []
+        t.classify_at = lambda h, runs, req: ("red" if h in red else "green", [], [])
+        t.policy_paths = lambda files: [f for f in files if f.startswith("dev/governance/")]  # policy_lint's, read elsewhere
+        t.raise_hold = lambda pr, h, files: (["m: 3 -> 4"] if "tests/structure_budgets.json" in files else [], True, "")
+        t._reviews = lambda pr, why: []
+        t._approve = lambda pr, h, item, files: calls.append(["POST", pr, h]) or "APPROVED"
+        return t, calls, lines
+    ent = lambda pr, files=("tools/x.py",), v="c" * 40, route=("workflow",): {  # noqa: E731
+        "pr": pr, "head": f"{pr:040x}", "verdict": v, "files": list(files), "route": list(route)}
+    heads = {n: f"{n:040x}" for n in range(1, 10)}
+    t, calls, lines = world(heads)
+    t.pre_approve([ent(1), ent(2), ent(3)], True, ["gate"])
+    posts = [c for c in calls if c[0] == "POST"]
+    again = [t.approve(n, heads[n], ent(n), []) for n in (1, 2, 3)]
+    check("P628 (i): N eligible serial entries are each approved once at batch start, and approve() at the merge "
+          "returns `already, at this head` posting nothing",
+          [c[1] for c in posts] == [1, 2, 3] and all(a.startswith("already, at this head") for a in again)
+          and len([c for c in calls if c[0] == "POST"]) == 3
+          and sum("pre-approved at batch start (APPROVED)" in ln for ln in lines) == 3)
+    heads2 = {**heads, 2: "e" * 40}
+    t.head = lambda pr: heads2[pr]
+    got = t.approve(2, heads2[2], ent(2), [])
+    check("P628 (ii): a head that moved after the batch-start approval is approved afresh at its turn",
+          got == "APPROVED" and [c for c in calls if c[0] == "POST"][-1] == ["POST", 2, "e" * 40])
+    t, calls, lines = world(heads, red={heads[5]}, carry_no={heads[4]}, no_main={heads[9]})
+    t.pre_approve([ent(4), ent(5), ent(6, v="not-a-sha"), ent(7, files=("dev/governance/roles/fixer.md",)),
+                   ent(8, files=("tests/structure_budgets.json",)), ent(9)], True, ["gate"])
+    why = {int(m.group(1)): ln for ln in lines if (m := re.match(r"#(\d+) not pre-approved", ln))}
+    check("P628 (iii): a CARRY-no, red, unverdicted, policy (no mandate posted at batch start), budget-raise or "
+          "main-outside entry is not pre-approved, each naming why",
+          not [c for c in calls if c[0] == "POST"] and sorted(why) == [4, 5, 6, 7, 8, 9]
+          and "CARRY no" in why[4] and "not GREEN (red)" in why[5] and "unverdicted" in why[6]
+          and "a policy head" in why[7] and "a budget raise" in why[8] and "main is not inside" in why[9])
+    t, calls, lines = world(heads)
+    t.pre_approve([ent(1)], False, ["gate"])
+    t.pre_approve([ent(1), ent(2)], False, ["gate"])
+    check("P628 (iv) null: a one-entry batch reads and posts nothing at batch start (the call order is main's), "
+          "and with no batch entry first, the first serial entry is left to its turn",
+          [c for c in calls if c[0] == "POST"] == [["POST", 2, heads[2]]] and not any(
+              len(c) > 1 and c[1] == heads[1] for c in calls if c[0] in ("contains", "check-runs")))
 
 
 def _review_settle_self_test(check) -> None:
@@ -6803,10 +8314,21 @@ def _review_settle_self_test(check) -> None:
     H, NOW = "b" * 40, 1_000_000.0
     iso = lambda ago: datetime.datetime.fromtimestamp(NOW - ago, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
 
-    def world(runs, reviews=(), rollup="SUCCESS", ms="BLOCKED", rd="APPROVED", open_reads=0):
-        sleeps, lines, reads = [], [], [0]
+    def world(runs, reviews=(), rollup="SUCCESS", ms="BLOCKED", rd="APPROVED", open_reads=0, ci=(), every=(),
+              req=("gate",), unread=(), marks=None):
+        sleeps, lines, reads, mk = [], [], [0], [0]
         def run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
+            if "actions/runs?per_page=30" in a:  # `actions_mark`: by default a run completes between polls
+                mk[0] += 1
+                return (0, f"2026-11-11T20:{mk[0]:02d}:00Z") if marks is None else marks(mk[0])
+            if "actions/runs?event=pull_request_review" in a and reads[0] + 1 in unread:
+                reads[0] += 1
+                return 1, "HTTP 502"
+            if "workflows/ci.yml/runs?head_sha=" in a:  # the ci.yml runs `_gate_busy` reads
+                return 0, _jl(list(ci))
+            if "actions/runs?head_sha=" in a:  # EVERY workflow's runs: not the deferral's reading
+                return 0, _jl(list(every))
             if "actions/runs?event=pull_request_review" in a:
                 reads[0] += 1
                 if open_reads:  # #3031's shape: unfinished for the first <open_reads> reads
@@ -6814,15 +8336,50 @@ def _review_settle_self_test(check) -> None:
                 return 0, "\n".join(f"{i} {st} {iso(ago)}" for i, st, ago in runs)
             if "statusCheckRollup" in a:
                 return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd,
-                                      "statusCheckRollup": [{"name": "gate", "conclusion": rollup}]})
+                                      "statusCheckRollup": [r if isinstance(r, dict) else {"name": "gate", "conclusion": r}
+                                                            for r in ([rollup] if isinstance(rollup, str) else rollup)]})
             if "/reviews" in a:
                 return 0, _jl(list(reviews))
             return 0, ""
         t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleeps.append, log=lines.append,
                   polls=3, wall=lambda: NOW)
-        t.required = lambda pr_head=False: ["gate"]
+        t.required = lambda pr_head=False: list(req)
+        t.mk = mk
         return t, sleeps, lines, reads
     appr = {"state": "APPROVED", "commit_id": H, "user": {"login": APPROVER_LOGIN}}
+    # TRAIN-WAIT-CAP-OUTAGE (2026-11-11 20:12-21:09Z, #3455): an unread or stalled poll counts nothing
+    t, sleeps, lines, reads = world([], open_reads=8, unread=range(1, 6))
+    t.review_settle(3455, H)
+    counted = [ln for ln in lines if "still running" in ln]
+    check("TRAIN-WAIT-CAP-OUTAGE (1): five polls that cannot read the listing leave `waited` at its start "
+          "value -- the wait neither ends nor counts them (the first counted line reads one grain), and no "
+          "`actions_mark` read rides an unread poll",
+          reads[0] == 9 and sum("the listing is unreadable; not counted (0 s of" in ln for ln in lines) == 5
+          and bool(counted) and f"({POLL_SECONDS} s of" in counted[0] and t.mk[0] == 3)
+    t, sleeps, lines, reads = world([("77", "queued", 5)], marks=lambda n: (0, "2026-11-11T20:12:00Z"))
+    stop = [0]
+
+    def outage(sec, _s=sleeps):
+        _s.append(sec)
+        if len(_s) >= 40:
+            stop[0] = 1
+            raise Stop("probe", "the stalled wait did not end on its own")
+    t.sleep = outage
+    try:
+        t.review_settle(3455, H)
+    except Stop:
+        pass
+    check("TRAIN-WAIT-CAP-OUTAGE (2): while no run in the repository completes between polls, a queued "
+          "review run's wait counts only its first poll and never reaches the cap (39 polls before the "
+          "probe stops it, one GitHub listing added per poll)",
+          stop[0] == 1 and sum("Actions stalled" in ln for ln in lines) == 38
+          and t.mk[0] == reads[0] == 39)
+    t, sleeps, lines, reads = world([("77", "queued", 5)])
+    t.review_settle(3455, H)
+    check("TRAIN-WAIT-CAP-OUTAGE null: reads succeeding and Actions moving, a run still queued: the cap still "
+          "expires as before (polls fast + polls slow reads, no line not counted)",
+          sleeps == [REVIEW_POLL_SECONDS] * 3 + [POLL_SECONDS] * 3 and reads[0] == 6
+          and not any("not counted" in ln for ln in lines))
     # (1) the wait is time-bounded: 3 fast polls, then POLL_SECONDS ones, then the merge proceeds
     t, sleeps, lines, reads = world([], open_reads=5)
     t.review_settle(3039, H)
@@ -6846,13 +8403,48 @@ def _review_settle_self_test(check) -> None:
     check("P331 (2) an unfinished run counts as settling", why(runs=[("77", "in_progress", 10)], reviews=[appr])[1] is True)
     got = why(runs=[("77", "completed", 600)], reviews=[appr])
     check("P331 (2) null: the run ended long ago (#2968's missing owner review): parked as a review owed, "
-          "as before", got[1] is False and got[2] is True and "missing requirement is a review" in got[0])
+          "as an approval owed at the moved head (reviewDecision APPROVED: a last-push rule, never 'a review')",
+          got[1] is False and got[2] is True and "last push" in got[0] and "is a review" not in got[0])
+    got = why(runs=[("77", "completed", 600)], reviews=[appr], rd="REVIEW_REQUIRED")
+    check("P590 null: REVIEW_REQUIRED keeps the review wording", got[1] is False and "missing requirement is a review" in got[0])
     check("P331 (2) null: no review run at the head parks", why(runs=[], reviews=[appr])[1] is False)
     check("P331 (2) null: a settling run but no approver approval at that head parks",
           why(runs=[("77", "completed", 60)], reviews=[dict(appr, commit_id="c" * 40)])[1] is False
           and why(runs=[("77", "completed", 60)], reviews=[])[1] is False)
     got = why(runs=[("77", "completed", 60)], reviews=[appr], rollup="FAILURE")
     check("P331 (2) null: a required context red parks, never waits", got[1] is False and "red" in got[0])
+    # P590: a CI review run's passing gate beside the edit run's deferral failure gate
+    for order in (["SUCCESS", "FAILURE"], ["FAILURE", "SUCCESS"]):
+        got = why(runs=[("77", "completed", 600)], reviews=[appr], rollup=order)
+        check(f"P590 a rollup holding a success gate and a deferral failure gate ({order[0]} first) waits, "
+              "with no review wording", got[1] is True and got[2] is False and "deferral" in got[0]
+              and "review" not in got[0].split("(")[0])
+    # P436: a deferral gate is the gate's own, read as classify_at reads it (gate.py's `busy` over the
+    # ci.yml runs); every other required context is still read, and an unrelated unfinished workflow is
+    # no deferral. Each case drives policy_refusal; its null is the reading it must not give.
+    FAIL = lambda n, at: {"name": n, "conclusion": "FAILURE", "completedAt": at}  # noqa: E731
+    code_q, other = [{"id": 5, "status": "queued"}], [{"id": 9, "name": "codeql", "status": "in_progress"}]
+    both = ("gate", "tests / fast (3.14)")
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T09:55:00Z")], ci=code_q)
+    check("P436 A: a gate FAILURE while a ci.yml run is unfinished is a deferral wait (reason names it)",
+          got[1] is True and "deferral" in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T09:55:00Z")])
+    check("P436 A null: the same gate FAILURE with no unfinished ci.yml run is red, never a wait",
+          got[1] is False and "red" in got[0] and "deferral" not in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T09:55:00Z"), FAIL("gate", "2026-11-12T11:00:00Z")],
+              every=other)
+    check("P436 B: a real gate red beside an unrelated unfinished workflow (not a ci.yml run) is red",
+          got[1] is False and "red" in got[0] and "deferral" not in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T11:00:00Z")], every=other)
+    check("P436 B': a lone real gate red beside an unrelated unfinished workflow is red",
+          got[1] is False and "red" in got[0] and "deferral" not in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T09:55:00Z"), FAIL(both[1], "2026-11-12T10:10:00Z")],
+              ci=code_q, req=both)
+    check("P436 C: another required context red beside a deferral gate is named, and the refusal does not wait",
+          got[1] is False and "red at" in got[0] and both[1] in got[0] and "gate," not in got[0] and "deferral" not in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[{"name": "gate", "conclusion": "SUCCESS"}, FAIL(both[1], "2026-11-12T10:10:00Z")],
+              req=both)
+    check("P436 C null: the same other-context red with a green gate is named red", got[1] is False and both[1] in got[0])
 
 
 def _git_retry_self_test(check) -> None:
@@ -6988,6 +8580,8 @@ def _unwind_self_test(check) -> None:
         "rec = open(sys.argv[1], 'a')\n"
         "def run(argv, cwd=None, stdin=None):\n"
         "    rec.write(' '.join(argv) + '\\n'); rec.flush()\n"
+        "    if argv[:3] == ['git', 'worktree', 'list']:\n"  # /x is registered, as in life, so it is removed
+        "        return 0, 'worktree /x\\n\\n'\n"
         "    if argv[:3] == ['git', 'worktree', 'remove']:\n"
         "        rec.write('UNWINDING\\n'); rec.flush(); time.sleep(2)\n"
         "    return 0, ''\n")
@@ -7156,9 +8750,9 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
         check(f"defer-wait table: {what} (gate_busy == gate.py busy == {want})", gate_busy(ci_runs, crs) == own == want)
     check("defer-wait: classify reads a red gate as pending while busy, red without (null: a red non-gate context "
           "stays red whatever is busy)",
-          classify(latest_runs([edit_red]), [GATE], [C]) == ("wait", [GATE], [])
-          and classify(latest_runs([edit_red]), [GATE]) == ("red", [], [GATE])
-          and classify(latest_runs([cr("fast", conclusion="failure")]), ["fast"], [C])[0] == "red")
+          classify(latest_runs([edit_red]), [GATE], Busy([C])) == ("wait", [GATE], [])
+          and classify(latest_runs([edit_red]), [GATE], gate_busy([], [])) == ("red", [], [GATE])
+          and classify(latest_runs([cr("fast", conclusion="failure")]), ["fast"], Busy([C]))[0] == "red")
     code_gate_live = unit(GATE, 2, "in_progress", started="15:20")
     code_gate_green = unit(GATE, 2, started="15:20")
     scene = [  # one frame per check-runs read, i.e. per poll
@@ -7215,10 +8809,8 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
 
         def run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
-            if a.endswith("rulesets --jq " + argv[-1]) and argv[2] == "repos/o/r/rulesets":
-                return 0, "7\n"
-            if "repos/o/r/rulesets/7" in argv:
-                return 0, GATE + "\n"
+            if "repos/o/r/rulesets" in argv or "repos/o/r/rulesets/7" in argv:
+                return gh_read.fake_ruleset(argv, "7", GATE)
             if "actions/workflows/ci.yml/runs" in a:
                 return ci_out or (0, "\n".join(json.dumps(r) for r in frame.get("ci_runs", [])))
             if "check-runs" in a:
@@ -7274,6 +8866,7 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
           red == [GATE] and reads == 1 and not logged)
 
     _settle_gap_self_test(check, cli, wr)
+    _sweep_queue_self_test(check)
 
 
 def _settle_gap_self_test(check, cli, wr) -> None:
@@ -7356,6 +8949,68 @@ def _settle_gap_self_test(check, cli, wr) -> None:
           rc == 1 and line.startswith("RED "))
 
 
+def _sweep_queue_self_test(check) -> None:
+    """GATE-SWEEP-QUEUE-WAIT (#3446 at 4cc5d8b962): gate-sweep's run was created
+    3 s after the green gate and its job started ten minutes later, past the
+    one-poll settle. A red GATE beside a green suite is a wait while a
+    gate-sweep.yml run created at or after that green is queued or in progress."""
+    H = "a" * 40
+    END = "2026-11-12T08:31:14Z"
+
+    def g(cid, suite, conclusion, done):
+        return {"name": GATE, "id": cid, "status": "completed", "conclusion": conclusion, "started_at": done,
+                "completed_at": done, "check_suite": {"id": suite}}
+    red, green = g(1, 11, "failure", "2026-11-12T08:30:50Z"), g(2, 12, "success", END)
+    swept = g(3, 11, "success", "2026-11-12T08:42:30Z")
+
+    def sw(status):
+        return [{"id": 42987689816, "status": status, "created_at": "2026-11-12T08:31:17Z"}]
+
+    def drive(frames, polls=6, only=True):
+        """frames: per poll (check runs, sweep listing); the last repeats."""
+        logged, urls, n = [], [], [0]
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if "gate-sweep.yml/runs" in a:
+                urls.append(a)
+                return 0, "\n".join(json.dumps(r) for r in frames[min(n[0], len(frames)) - 1][1])
+            if "ci.yml/runs" in a:
+                return 0, ""
+            if "check-runs" in a:
+                n[0] += 1
+                return 0, "\n".join(json.dumps(c) for c in frames[min(n[0], len(frames)) - 1][0])
+            return 9, "unstubbed: " + a
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=logged.append, polls=polls,
+                  wall=lambda: datetime.datetime.fromisoformat(END.replace("Z", "+00:00")).timestamp() + 3600)
+        return (t.wait_ci(H, only=[GATE]) if only else t.wait_ci(H)), logged, urls, t
+    base = [red, green]
+    r, lg, urls, _ = drive([(base, sw("queued"))] * 3 + [(base, sw("in_progress")), ([red, green, swept], sw("completed"))])
+    check("sweep queue: a sweep created after the green gate, queued then in progress for four polls, is waited on "
+          "past the one-poll settle and its green is read", r == [] and any("queued or in progress" in x for x in lg))
+    check("sweep queue: the listing read is bounded below by the green gate's completed_at",
+          urls and all(f"created=%3E%3D{END}" in u for u in urls))
+    r, lg, _, _ = drive([(base, sw("completed"))])
+    check("sweep queue null: a completed sweep with the red unchanged is RED after the settle poll",
+          r == [GATE] and not any("queued or in progress" in x for x in lg))
+    r, lg, _, _ = drive([(base, [])])
+    check("sweep queue null: no sweep run at all is RED after the settle poll", r == [GATE])
+    r, _, _, _ = drive([(base, sw("queued"))], polls=3)
+    check("sweep queue bound: a sweep that stays queued ends in TIMEOUT within polls", r == ["TIMEOUT"])
+    r, _, _, _ = drive([([red], sw("queued"))])
+    check("sweep queue null: with no green gate suite beside the red, a queued sweep is not waited on (no listing read)",
+          r == [GATE])
+    r, lg, _, _ = drive([(base, sw("queued"))] * 2 + [([red, green, swept], sw("completed"))], only=False)
+    check("sweep queue wait-ci: every run concluded, a queued sweep is waited on too", r == [])
+    r, lg, _, t = drive([(base, sw("queued"))])
+    last = latest_runs(base)
+    check("sweep queue classify_at: a queued sweep reads WAIT, a completed one RED (the one-read readers)",
+          t.classify_at(H, base, [GATE])[0] == "wait")
+    r, lg, _, t = drive([(base, sw("completed"))])
+    check("sweep queue classify_at null: a completed sweep, past the settle, reads RED",
+          t.classify_at(H, base, [GATE])[0] == "red")
+
+
 def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     """THE STATE CLASSIFIER (R10-FLOW-MAIN-GATE, Lean flow study K15)."""
     import contextlib
@@ -7370,20 +9025,20 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
                       cr("record", conclusion="failure"), cr("record-autofix", conclusion="failure")])
     check("K15 (a): main e7c66485's shape -- required contexts in flight, record and record-autofix red -- "
           "reads wait, never red, even with record listed as required",
-          classify(e7, req) == ("wait", ["mutation", "typing"], []))
+          classify(e7, req, gate_busy([], [])) == ("wait", ["mutation", "typing"], []))
     check("K15 (a): every required context green reads green; a non-required red is not counted",
           classify(latest_runs([cr("fast"), cr("mutation"), cr("typing"), cr("codeql", conclusion="failure")]),
-                   req) == ("green", [], []))
+                   req, gate_busy([], [])) == ("green", [], []))
     check("K15 (a): a failed required context reads red while another is still in flight",
           classify(latest_runs([cr("fast", conclusion="failure"), cr("mutation", "in_progress"), cr("typing")]),
-                   req) == ("red", ["mutation"], ["fast"]))
+                   req, gate_busy([], [])) == ("red", ["mutation"], ["fast"]))
     check("K15 (a): judged on the latest run of each context -- a re-run that went green clears the red",
           classify(latest_runs([cr("fast", conclusion="failure"), cr("fast", started="2"), cr("mutation"),
-                                cr("typing")]), req)[0] == "green")
+                                cr("typing")]), req, gate_busy([], []))[0] == "green")
     check("K15 (a): a required context with no run yet is wait, never green",
-          classify(latest_runs([cr("fast"), cr("mutation")]), req) == ("wait", ["typing"], []))
+          classify(latest_runs([cr("fast"), cr("mutation")]), req, gate_busy([], [])) == ("wait", ["typing"], []))
     try:
-        classify(e7, None)
+        classify(e7, None, gate_busy([], []))
         refused = False
     except ValueError:
         refused = True
@@ -7423,17 +9078,17 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
                        ("(ii) an older green gate suite beside a newer red one",
                         [gt("success", 1, "1"), gt("failure", 2, "2")])):
         check(f"A5 {what} reads RED, never green (the worst suite stands)",
-              classify(latest_runs(runs), [GATE]) == ("red", [], [GATE]))
+              classify(latest_runs(runs), [GATE], gate_busy([], [])) == ("red", [], [GATE]))
     check("A5 null: two green gate suites read green, and a red attempt re-run green inside ONE suite is green",
-          classify(latest_runs([gt("success", 1, "1"), gt("success", 2, "2")]), [GATE])[0] == "green"
-          and classify(latest_runs([gt("failure", 1, "1"), gt("success", 1, "2")]), [GATE])[0] == "green")
+          classify(latest_runs([gt("success", 1, "1"), gt("success", 2, "2")]), [GATE], gate_busy([], []))[0] == "green"
+          and classify(latest_runs([gt("failure", 1, "1"), gt("success", 1, "2")]), [GATE], gate_busy([], []))[0] == "green")
     check("A5: a gate suite still running beside a red one is a wait, not yet a verdict",
-          classify(latest_runs([gt("failure", 1, "1"), gt(None, 2, "2", "in_progress")]), [GATE])[0] == "wait")
+          classify(latest_runs([gt("failure", 1, "1"), gt(None, 2, "2", "in_progress")]), [GATE], gate_busy([], []))[0] == "wait")
     check("A5/A1 item 4: a RATE-LIMITED gate (gate.py exit 3, a failed job) is red; so is a skipped or neutral "
           "gate, which judged nothing (null: a skipped non-gate context still reads green)",
-          all(classify(latest_runs([gt(c, title=tt)]), [GATE])[0] == "red"
+          all(classify(latest_runs([gt(c, title=tt)]), [GATE], gate_busy([], []))[0] == "red"
               for c, tt in (("failure", "RATE-LIMITED reset_epoch=1"), ("skipped", ""), ("neutral", "")))
-          and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"])[0] == "green")
+          and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"], gate_busy([], []))[0] == "green")
     owed = judged(gating_names([GATE, "nightly-status"]))
     check("owed-reds: the required set is the ruleset's plus gate_required less NOT_GATING -- a unit is owed, "
           "a NOT_GATING reporter the ruleset lists is not (null: tests / nightly-status is in neither)",
@@ -7484,6 +9139,49 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           platform_gate(rollup(ok_g, oid="f" * 40), H0)[0] == "unread"
           and platform_gate(rollup(ok_g, more=True), H0)[0] == "unread"
           and platform_gate({"data": None}, H0)[0] == "unread")
+    # R10-HOTFIX-TRAIN-CONTEXT-PAGES: a required context on page 2 is judged, never skipped.
+    def pager(*pages, oid=H0, oid_late=None):
+        """A faked listing: page k answers pages[k]; reads records the cursors asked."""
+        reads = []
+
+        def fetch(cursor):
+            reads.append(cursor)
+            k = 0 if cursor is None else int(cursor)
+            pl = rollup(oid=oid_late if k and oid_late else oid, more=k + 1 < len(pages), extra=pages[k])
+            pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+                "contexts"]["pageInfo"]["endCursor"] = str(k + 1)
+            return pl
+        return fetch, reads
+    filler = [dict(nonreq, name=f"x{i}") for i in range(3)]
+    gate_p1 = {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": "SUCCESS", "isRequired": True}
+    late = lambda c: {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": c, "isRequired": True}
+    f_red, r_red = pager(filler, [late("FAILURE")])
+    f_grn, r_grn = pager(filler, [late("SUCCESS")])
+    f_one, r_one = pager([gate_p1] + filler)
+    f_old, r_old = pager([gate_p1], [late("SUCCESS")], oid="f" * 40)
+    f_inf, _ = pager(*([[gate_p1]] * (gh_read.MAX_PAGES + 2)))
+    f_mid, r_mid = pager([gate_p1], [late("FAILURE")], oid_late="f" * 40)
+    got_red = platform_gate(rollup_walk(f_red, H0), H0)[0]
+    got_grn = platform_gate(rollup_walk(f_grn, H0), H0)[0]
+    check("A5 platform: a required context on page 2 that is red reads RED, green reads GREEN "
+          "(null: the one-page head makes the same single read, [None]; a walk past the page cap "
+          "and a later page at another head are unread)",
+          (got_red, got_grn) == ("red", "green") and r_red == r_grn == [None, "1"]
+          and platform_gate(rollup_walk(f_one, H0), H0)[0] == "green" and r_one == [None]
+          and platform_gate(rollup_walk(f_inf, H0), H0)[0] == "unread"
+          and platform_gate(rollup_walk(f_old, H0), H0)[0] == "unread")
+    check("A5 platform: a later page whose oid differs from the first page's is unread, never merged in "
+          "(null: the same listing at one oid reads red from its page 2)",
+          platform_gate(rollup_walk(f_mid, H0), H0)[0] == "unread" and r_mid == [None, "1"]
+          and platform_gate(rollup_walk(pager([gate_p1], [late("FAILURE")])[0], H0), H0)[0] == "red")
+    f_p1red, _ = pager([late("FAILURE")], [late("SUCCESS")])
+    f_p1oth, _ = pager([dict(nonreq, isRequired=True)], [late("SUCCESS")])
+    f_p2red, _ = pager([gate_p1], [dict(nonreq, isRequired=True)])
+    check("A5 platform: the merge keeps page 1's nodes: a red required gate, or another required context, on page 1 "
+          "reads RED though page 2's rerun is green (null: a red other-required context on page 2 reads red too)",
+          platform_gate(rollup_walk(f_p1red, H0), H0)[0] == "red"
+          and platform_gate(rollup_walk(f_p1oth, H0), H0)[0] == "red"
+          and platform_gate(rollup_walk(f_p2red, H0), H0)[0] == "red")
     gate_req = {"required": f"{GATE}\n"}
     for what, w, merges in (
             ("train green, GitHub green: it merges", dict(gate_req, runs=[gt()], rollup=(0, json.dumps(rollup(ok_g)))), True),
@@ -7497,6 +9195,25 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         rc, lines, calls = go(w)
         check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
               and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
+    def train_pages(cursor):  # page 2 (cursor "1") carries a red required gate; page 1 alone is green
+        k = 0 if cursor is None else int(cursor)
+        pl = rollup(ok_g if k == 0 else ("COMPLETED", "FAILURE"), more=k == 0)
+        pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+            "contexts"]["pageInfo"]["endCursor"] = "1"
+        return 0, json.dumps(pl)
+    w = dict(gate_req, runs=[gt()], rollup_pages=train_pages)
+    rc, lines, calls = go(w)
+    check("A5 serial: the train passes each page's endCursor on the next read, so a red required gate on "
+          "page 2 stops the merge (null: a one-page rollup is read once, with no cursor, and merges)",
+          not merged(calls) and w["rollup_cursors"][:2] == [None, "1"] and "red" in " ".join(lines))
+    w = dict(gate_req, runs=[gt()], rollup_pages=lambda c: (0, json.dumps(rollup(ok_g))))
+    rc, lines, calls = go(w)
+    check("A5 serial: the query the train sends asks for the page cursor and takes the `after` argument "
+          "(a real GitHub would otherwise serve page 1 forever, or refuse the unused variable)",
+          bool(w["rollup_queries"]) and all("endCursor" in q and "contexts(first:100,after:$after)" in q
+                                            for q in w["rollup_queries"]))
+    check("A5 serial null: a one-page rollup is read once, with no cursor, and merges",
+          merged(calls) and w["rollup_cursors"] == [None])
     _defer_wait_self_test(check, go, merged, cr, gt, gate_req, json.dumps(rollup(ok_g, ok_g)))
     rc, lines, calls = go({})  # go()'s default: the ruleset ["fast"], green runs
     check("A5 null: an old-layout ruleset (no gate) makes no platform read", rc == 0 and merged(calls)
@@ -7529,6 +9246,40 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     check("K15 (b): two stale check-runs over one workflow run re-run that run once, not once per check-run",
           rc == 0 and merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1
           and sum(ln.startswith("STALE ") for ln in lines) == 1)
+    asked: list = []
+
+    class _Hold:  # carry 6 (ii): a priority run queued for two polls, then none
+        def hold(self, h):
+            asked.append(h)
+            return "priority #10 run 901 is queued" if len(asked) <= 2 else None
+    _cp_attr = Train.ci_pause
+    Train.ci_pause = lambda self: _Hold()
+    try:
+        rc, lines, calls = go(stale_world("completed", True))
+    finally:
+        Train.ci_pause = _cp_attr
+    held_at = [i for i, ln in enumerate(lines) if ln.startswith("HOLD stale re-run at ")]
+    check("carry 6 (ii): the stale re-run of a non-priority head waits while a priority run is queued "
+          "(HOLD, then HOLD-END after 2 polls), then re-runs once and merges",
+          rc == 0 and merged(calls) and len(held_at) == 1 and "priority #10 run 901" in lines[held_at[0]]
+          and any(ln.startswith("HOLD-END stale re-run") and "after 2 poll(s)" in ln for ln in lines)
+          and len(asked) == 3 and sum(c[-1].endswith("/rerun") for c in calls) == 1)
+    asked.clear()
+    Train.ci_pause = lambda self: type("_Never", (), {"hold": lambda s, h: asked.append(h)})()
+    try:
+        rc, lines, calls = go(stale_world("completed", True))
+    finally:
+        Train.ci_pause = _cp_attr
+    check("carry 6 (ii) null: no priority run queued, the stale re-run is asked once and never waits",
+          rc == 0 and merged(calls) and len(asked) == 1 and not any(ln.startswith("HOLD") for ln in lines))
+    Train.ci_pause = lambda self: type("_Always", (), {"hold": lambda s, h: "priority #10 run 901 is queued"})()
+    try:
+        rc, lines, calls = go(stale_world("completed", True))
+    finally:
+        Train.ci_pause = _cp_attr
+    check("carry 6 (ii): a priority queue that never drains holds HOLD_POLLS polls, then re-runs (HOLD-EXPIRED)",
+          rc == 0 and merged(calls) and any(ln.startswith("HOLD-EXPIRED stale re-run") for ln in lines)
+          and sum(c[-1].endswith("/rerun") for c in calls) == 1)
     rc, lines, calls = go(stale_world("in_progress", False))
     check("K15 (b): a check-run whose run is still in progress is pending: no re-run (null control)",
           rc == 0 and not any(c[-1].endswith("/rerun") for c in calls))
@@ -7542,9 +9293,9 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             a = " ".join(argv)
             if "check-runs" in a:
                 return 0, "\n".join(json.dumps(c) for c in runs)
-            if a.endswith("rulesets --jq " + argv[-1]):
-                return (0, "7") if ruleset else (1, "HTTP 404")
-            return (0, ruleset) if "rulesets/7" in a else (1, "unexpected")
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", ruleset)
+            return 1, "unexpected"
         saved, buf = Train._run, io.StringIO()
         Train._run = staticmethod(fake_run)
         try:
@@ -7557,9 +9308,9 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     def owed_cli(ruleset) -> "tuple[int, str]":  # `owed-reds` through main, the ruleset faked as `cli` fakes it
         def fake_run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
-            if a.endswith("rulesets --jq " + argv[-1]):
-                return (0, "7") if ruleset else (1, "HTTP 404")
-            return (0, ruleset) if "rulesets/7" in a else (1, "unexpected")
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", ruleset)
+            return 1, "unexpected"
         saved, buf = Train._run, io.StringIO()
         Train._run = staticmethod(fake_run)
         try:
@@ -7614,10 +9365,8 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
                 return 0, ""
             if "check-runs" in a:
                 return 0, "\n".join(json.dumps(c) for c in runs)
-            if a.endswith("rulesets --jq " + argv[-1]):
-                return 0, "7"
-            if "rulesets/7" in a:
-                return 0, "gate\n"
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", "gate")
             if argv[:2] == ["git", "merge-base"]:
                 return 0, BASE + "\n"
             if argv[:4] == ["git", "diff", "--no-renames", "--name-only"]:
@@ -8104,6 +9853,9 @@ def _batch_self_test(check) -> None:
                 if "state,mergeCommit" in a:
                     return 0, f"MERGED {w['merged'][n]}" if n in w["merged"] else "OPEN None"
                 return 0, "fix: x"
+            if "actions/runs?per_page=30" in a:  # `actions_mark`: a run completes between polls unless stalled
+                k = w["mark_reads"] = w.get("mark_reads", 0) + 1
+                return 0, "2026-11-11T20:12:00Z" if k in w.get("stalled", ()) else f"2026-11-11T{k // 60:02d}:{k % 60:02d}:00Z"
             if "actions/runs?event=pull_request_review" in a:  # P86: the approval's review run,
                 w["review_reads"] = w.get("review_reads", 0) + 1  # running for its first `review_pending` reads
                 return 0, "77 completed" if w["review_reads"] > w.get("review_pending", 0) else "77 in_progress"
@@ -8138,18 +9890,14 @@ def _batch_self_test(check) -> None:
                 return 0, '2026-10-07T00:00:00Z >>> FAILED: "$PYTHON" tests/ratchet.py'
             if "/actions/jobs/" in a:
                 return 0, "no script here"
-            if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
-                return (0, "7") if w["required"] else (1, "HTTP 404")
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", w["required"], w.get("strict", "true"))
             if argv[:3] == ["gh", "api", "graphql"] and "statusCheckRollup" in a:  # A5's rollup: GitHub agrees
                 n = int(next(x for x in argv if x.startswith("pr="))[3:])
                 return 0, json.dumps({"data": {"repository": {"pullRequest": {"commits": {"nodes": [{"commit": {
                     "oid": w["heads"][n], "statusCheckRollup": {"contexts": {"pageInfo": {"hasNextPage": False},
                         "nodes": [{"__typename": "CheckRun", "name": GATE, "status": "COMPLETED",
                                    "conclusion": "SUCCESS", "isRequired": True}]}}}}]}}}}})
-            if "rulesets/7" in a and "strict_required_status_checks_policy" in a:
-                return 0, w.get("strict", "true")  # today's world: an up-to-date branch is required
-            if "rulesets/7" in a:
-                return 0, w["required"]
             if argv[:3] == ["gh", "workflow", "run"]:
                 w["dispatched"].append((argv[3], argv[argv.index("--ref") + 1]))
                 return 0, ""
@@ -8846,6 +10594,15 @@ def _batch_self_test(check) -> None:
           and w["cr_reads"].get(w["h2"], 0) <= 3 + 2 * (2 * (REVIEW_POLL_SECONDS + POLL_SECONDS)) // 60
           and w["slept"].count(min(POLL_SECONDS, HEARTBEAT_SECONDS)) == w["cr_reads"].get(w["h2"], 0) - 2
           and w["lines"][-1] == "TRAIN DONE" and [s["pr"] for s in (w["skip_json"] or [])] == [2])
+    cr0 = w["cr_reads"].get(w["h2"], 0)
+    w = go(two, base="main", skip_bad=True, setup=lambda w: (gated(["red", "wait"])(w), w.update(stalled=range(2, 30))),
+           clock=ticking())
+    rj = [ln for ln in w["lines"] if ln.startswith("REJOIN #2")]
+    check("TRAIN-WAIT-CAP-OUTAGE, the rejoin: rounds read while Actions is stalled (no run completed since the "
+          "previous read) add nothing toward the cap -- the 27 stalled rounds are 27 more reads than the null "
+          "control above before the same cap line",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and bool(rj) and "cap" in rj[-1]
+          and w["cr_reads"].get(w["h2"], 0) - cr0 == 27)
     w = go(two, base="main", skip_bad=True, setup=lambda w: (gated(["red", "green", "red"])(w), w.update(strict="false")),
            clock=ticking())
     check("REJOIN: a rejoin refused again (red at its own CI wait) is skipped again, its row replaced, "
@@ -8855,11 +10612,22 @@ def _batch_self_test(check) -> None:
           and "red at the head: gate" in (w["skip_json"] or [{}])[0].get("reason", "")
           and any(ln == "SKIP REPORT: 1 skipped of 2" for ln in w["lines"]) and w["lines"][-1] == "TRAIN DONE")
     w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main", skip_bad=True,
-           setup=lambda w: (gated(["red", "green"])(w), w.update(strict="false")), clock=ticking())
-    check("REJOIN (a), serial: a serial entry SKIPped on a red gate at its turn rejoins once GREEN and merges",
+           setup=lambda w: (gated(["red", "red", "green"])(w), w.update(strict="false")), clock=ticking())
+    check("REJOIN (a), serial: a serial entry SKIPped on a red gate at its turn rejoins once GREEN and merges "
+          "(its first read is P628's batch-start pre-approval read, red: not pre-approved)",
           w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
+          and any(ln.startswith("#2 not pre-approved at ") and "not GREEN (red)" in ln for ln in w["lines"])
           and any(ln.startswith("SKIP #2 ci: #2 red at the head: gate") for ln in w["lines"])
           and any(ln.startswith("REJOIN #2: GREEN") for ln in w["lines"]))
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main",
+           setup=lambda w: w.update(strict="false"))
+    ln = w["lines"]
+    pre = next((i for i, x in enumerate(ln) if x.startswith("#2 pre-approved at batch start")), None)
+    m1 = next((i for i, x in enumerate(ln) if x.startswith("#1 MERGED")), None)
+    check("P628 (vi), the #3453/#3447 order: a serial entry behind a batch merge is approved at batch start, "
+          "before the batch entry's merge, and its turn posts nothing (`already, at this head`)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and pre is not None and m1 is not None and pre < m1
+          and any(x.startswith("#2 approved (already, at this head") for x in ln))
     w = go(two, base="main", skip_bad=True, clock=ticking(),
            setup=lambda w: (gated(["red", "green"])(w), w.update(on_log=lambda ln: ln.startswith("SKIP #2")
                                                                   and w["heads"].update({2: "f" * 40}))))
@@ -9413,6 +11181,9 @@ def _add_self_test(check) -> None:
         def git(*a):
             return subprocess.run(["git", *a], cwd=gd, env=genv, capture_output=True, text=True,
                                   check=True).stdout.strip()
+        # app_approve.sh --carry lists origin's branch heads (decision 0017): the
+        # fixture is its own origin, so a head on a branch here is a head of ours.
+        git("remote", "add", "origin", ".")
         (gd / "m.txt").write_text("0\n")
         git("add", "-A"); git("commit", "-qm", "base"); git("checkout", "-qb", "pr")
         (gd / "a.py").write_text("x\n")
@@ -9424,6 +11195,8 @@ def _add_self_test(check) -> None:
         ch = git("rev-parse", "HEAD")
         (gd / "a.py").write_text("y\n"); git("commit", "-qam", "fix: an unreviewed delta")
         cn = git("rev-parse", "HEAD")
+        git("branch", "carried", ch)
+        cf = git("commit-tree", "-p", ch, "-m", "ci: re-record closures", ch + "^{tree}")
         held: list = []
 
         def carried(pr, head):
@@ -9459,6 +11232,12 @@ def _add_self_test(check) -> None:
               rc == 1 and lines[-1].startswith(f"ADD REFUSED #11 carry: the verdict {cv[:12]} does not carry to "
                                                f"head {cn[:12]}: CARRY: no")
               and f"own commits {cn[:9]} change its content" in lines[-1]
+              and [e["pr"] for e in spool_read(st)[0]] == [8, 10])
+        rc, lines = carried(12, cf)
+        check("a head on no branch of origin (a fork's) carrying an empty ci: commit past its verdict is refused "
+              "by the `carry` rule as not ours, nothing spooled",
+              rc == 1 and lines[-1].startswith("ADD REFUSED #12 carry:")
+              and f"{cf} is a commit after the" in lines[-1]  # the not-ours arm's words, cut by the train's line bound
               and [e["pr"] for e in spool_read(st)[0]] == [8, 10])
 
         st = Path(tempfile.mkdtemp(dir=tmp.name))
@@ -9548,6 +11327,29 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
         rc = train_add(live, {"pr": 14, "verdict": H, "verdict_comment": "42"}, ["train.sh"])
         check("P112 null: a plain add appends last",
               rc == 0 and [e["pr"] for e in spool_read(st)[0]] == [13, 11, 12, 14])
+        gd = Path(tempfile.mkdtemp(dir=st.parent))
+        (gd / "roster.gen").write_text("2 1\n")
+        st_g = spool3()
+        (st_g / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
+        spooled0 = lines_of(st_g)
+        prev_state = os.environ.get("HPO_STATE_DIR")
+        os.environ.update(HPO_STATE_DIR=str(gd), HPO_SEAT_GEN="roster=1")
+        try:
+            gsaid: list[str] = []
+            live_g = Train("o/r", st_g, None, "", (), 1, run=stub({"pr": 17}), log=gsaid.append)
+            rc = train_add(live_g, {"pr": 17, "verdict": H, "verdict_comment": "42"}, ["train.sh"])
+            check("seat_gen: an add under a superseded HPO_SEAT_GEN is refused rc 1 and spools nothing",
+                  rc == 1 and lines_of(st_g) == spooled0 and "SUPERSEDED roster gen=1 held=2" in gsaid[-1])
+            os.environ["HPO_SEAT_GEN"] = "roster=2"
+            rc = train_add(live_g, {"pr": 17, "verdict": H, "verdict_comment": "42"}, ["train.sh"])
+            check("seat_gen null: an add under the current generation spools as before",
+                  rc == 0 and len(lines_of(st_g)) == len(spooled0) + 1)
+        finally:
+            del os.environ["HPO_SEAT_GEN"]
+            if prev_state is None:
+                del os.environ["HPO_STATE_DIR"]
+            else:
+                os.environ["HPO_STATE_DIR"] = prev_state
         said: list[str] = []
         live = Train("o/r", st, None, "", (), 1, run=stub({"pr": 15}), log=said.append)
         rc = train_add(live, {"pr": 15, "verdict": H, "verdict_comment": "42"}, ["train.sh"], front=True)
@@ -9759,6 +11561,103 @@ def _post_approval_self_test(check) -> None:
     finally:
         globals()["train_add"] = real
     check("post-approval wait null: without the flag add never waits, it adds", rc == 0 and len(seen) == 1)
+    # Quiet output: only the named chatter is held; every key line prints; a stop shows the tail.
+    import io
+    with tempfile.TemporaryDirectory() as qd:
+        shown: list[str] = []
+        ql = quiet_log(Path(qd) / "full.log", out=shown.append, tail=2)
+        for m in ("#1 recarry START (branch a)", "wait: gate red at abc is a deferral", "#2 recarry START (branch b)",
+                  "TRAIN STOPPED #2 gate: red", "TRAIN DONE"):
+            ql(m)
+        full = (Path(qd) / "full.log").read_text().splitlines()
+        check("quiet log: every line reaches the full log", len(full) == 5)
+        check("quiet log: chatter is not shown until a stop", "#1 recarry START" not in " ".join(shown))
+        check("quiet log: a stop shows the failing step's tail, bounded, then itself",
+              shown[1:4] == ["  | wait: gate red at abc is a deferral", "  | #2 recarry START (branch b)",
+                             "TRAIN STOPPED #2 gate: red"] and shown[-1] == "TRAIN DONE")
+        shown.clear()
+        ql2 = quiet_log(Path(qd) / "f2.log", out=shown.append)
+        for m in ("#3 recarry START (branch c)", "#3 merged", "#4 recarry START (branch d)"):
+            ql2(m)
+        check("quiet log: a key line that is not a stop does not flush the held chatter",
+              shown[1:] == ["#3 merged"])
+        # every chatter member hides its own real line (a dropped member shows it); the list is not vacuous
+        for pat, sample in QUIET_CHATTER:
+            shown.clear()
+            quiet_log(Path(qd) / "f3.log", out=shown.append)(sample)
+            check(f"quiet log: chatter {pat!r} is hidden", len(shown) == 1 and re.match(pat, sample) is not None)
+        check("quiet log: the chatter list is the nine named members, none dropped", len(QUIET_CHATTER) == 9)
+        # key lines, spelled as merge_train.py's own f-strings write them, all print
+        keys = ("#12 MERGED abcd1234 at 5d6e7f80", "#12 post-merge steps OWED (rc=1); the merge stands",
+                "#12 post-merge: record row OWED", "#12 abcd1234 ci red=tests / unit,tests / mutation",
+                "#12 dropped to serial: the proof is red at tests / unit", "serial: #13 #14",
+                "SKIP #12 admission: [gate] tests / unit red", "STALE tests / unit at abcd1234: stale",
+                "OVERLAP: main at abcd1234 is RED (tests / unit)", "REJOIN #12: GREEN at abcd1234, 40 s",
+                "INFRA-RED tests / unit run 9: rate-limited", "LEFT #12: not eligible", "QUEUE #12 verdict abc comment 5",
+                "[MAIN-MOVED] before #12's merge: re-proving", "rehearsal: serial #13", "grade batch-1 abcd1234: RED (41s)",
+                "TRAIN DONE", "TRAIN STOPPED #12 gate: red", "PRE-FLIGHT: 3 of 4 admitted", "BATCH DONE b: 1 more",
+                "SKIP REPORT: 1 skipped of 3", "REFUSE add: x", "FRONT #12: spool", "NOT RUN #14")
+        for k in keys:
+            shown.clear()
+            quiet_log(Path(qd) / "f4.log", out=shown.append)(k)
+            check(f"quiet log: key line {k[:30]!r} prints", shown[1:] == [k])
+        skips = [k for k in keys if k.startswith("SKIP #")]
+        shown.clear()
+        quiet_log(Path(qd) / "f5.log", out=shown.append)(skips[0])
+        check("quiet log: a SKIP line reaches stdout in the shape merge_throughput's TRAIN_SKIP_RE parses",
+              shown[1:] == [skips[0]] and skips[0].startswith("SKIP #12 admission: "))
+        # the entry point wires it: a seeded stop exits the same in quiet and verbose, quiet keeps its key lines
+        qf = Path(qd) / "q.json"
+        qf.write_text("[]")
+
+        class _SeededTrain:
+            def __init__(self, *a, log=print, **kw):
+                self.log = log
+
+            def train(self, queue):
+                for m in ("#1 recarry START (branch a)", "#1 MERGED abcd1234", "#2 post-merge steps OWED (rc=1); the merge stands",
+                          "SKIP #3 admission: red", "#4 abcd1234 ci red=tests / unit", "TRAIN STOPPED #4 gate: tests / unit red"):
+                    self.log(m)
+                return 1
+
+        real_train = globals()["Train"]
+        globals()["Train"] = _SeededTrain
+        try:
+            res = {}
+            for mode, extra, env in (("quiet", [], None), ("verbose-flag", ["--verbose"], None), ("verbose-env", [], "1")):
+                buf = io.StringIO()
+                old = os.environ.get("TRAIN_VERBOSE")
+                if env:
+                    os.environ["TRAIN_VERBOSE"] = env
+                else:
+                    os.environ.pop("TRAIN_VERBOSE", None)
+                try:
+                    sd = Path(qd) / mode
+                    sd.mkdir()
+                    with contextlib.redirect_stdout(buf):
+                        rc = main(["run", str(qf), "--state-dir", str(sd), "--repo", "o/r", *extra])
+                finally:
+                    if old is None:
+                        os.environ.pop("TRAIN_VERBOSE", None)
+                    else:
+                        os.environ["TRAIN_VERBOSE"] = old
+                res[mode] = (rc, buf.getvalue(), (sd / "train-full.log").exists())
+        finally:
+            globals()["Train"] = real_train
+        qrc, qout, qlog = res["quiet"]
+        check("quiet run: the exit code on a seeded stop equals verbose's, flag and env",
+              qrc == res["verbose-flag"][0] == res["verbose-env"][0] == 1)
+        check("quiet run: main wires the quiet log (a full log is written, chatter held to the stop's tail)",
+              qlog and "  | #1 recarry START" in qout and qout.index("  | #1 recarry START") > qout.index("#4 abcd1234 ci red"))
+        check("quiet run: the merge, OWED, SKIP and failing-check lines all print",
+              all(x in qout for x in ("#1 MERGED abcd1234", "#2 post-merge steps OWED", "SKIP #3 admission: red",
+                                      "#4 abcd1234 ci red=tests / unit", "TRAIN STOPPED #4")))
+        check("verbose run: the stream is unfiltered and writes no quiet log (flag and env)",
+              all(not res[m][2] and res[m][1].splitlines()[0] == "#1 recarry START (branch a)"
+                  for m in ("verbose-flag", "verbose-env")))
+    check("quiet log: --verbose is a parser flag, off by default",
+          _parser().parse_args(["batch", "q"]).verbose is False
+          and _parser().parse_args(["batch", "q", "--verbose"]).verbose is True)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -9777,6 +11676,8 @@ def _parser() -> argparse.ArgumentParser:
                                  "one mandate, re-post that approval at h under a mandate RE-READ in force at "
                                  "the merge; a re-post that fails its byte-identical read-back is a stop. "
                                  "Default: off -- a budget stop stops, however clean the recarry was.")
+    train_opts.add_argument("--verbose", action="store_true",
+                            help="print every progress line (default: key lines, the full log in the state dir)")
     train_opts.add_argument("--main-moved-tries", type=int, default=MAIN_MOVED_TRIES,
                             help="a foreign merge that moves main under a settled head is recovered this many "
                                  "times per entry (serial: recarry and wait CI again; batch: re-prove what is "
@@ -9869,6 +11770,10 @@ def _parser() -> argparse.ArgumentParser:
     i.add_argument("--base", help="the base commit (default: git merge-base origin/main <sha>)")
     # The required set a `## Red checks` obligation is judged against
     # (policy_lint.mjs --pr-body): the one owner, read live.
+    pv = sub.add_parser("posted-verdict", parents=[common],
+                        help="`VERDICT <head> <comment id>` (rc 0) when the newest posted verdict on <pr> is "
+                             "verdict/<pr>'s tip and merge (the add check's read); else why not, rc 1")
+    pv.add_argument("pr", type=int)
     sub.add_parser("owed-reds", parents=[common],
                    help="the check names whose red a pull-request body owes an answer, one per line: "
                         "judged(gating_names(required(pr_head=True))); an unreadable ruleset is rc 2")
@@ -9885,7 +11790,9 @@ def main(argv: list[str]) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(line_buffering=True)
     if argv[:1] == ["--self-test"]:
-        return _self_test()
+        with tempfile.TemporaryDirectory() as st:  # the fakes' ETag files never reach the host's state dir
+            os.environ["HPO_STATE_DIR"] = st
+            return _self_test()
     if argv[:1] == ["job-log"]:  # `job-log <job id> <owner/repo>`: job_log for a shell caller
         if len(argv) != 3:
             print("usage: merge_train.py job-log <job id> <owner/repo>", file=sys.stderr)
@@ -9926,6 +11833,13 @@ def main(argv: list[str]) -> int:
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
+    if a.cmd == "posted-verdict":
+        try:
+            got = Train(a.repo, Path("."), None, "", (), a.min_runs).bus_posted(a.pr)
+        except Stop as s:
+            got = f"{s.step}: {s.why}"
+        print(got if isinstance(got, str) else f"VERDICT {got[0]} {got[1]}")
+        return 1 if isinstance(got, str) else 0
     if a.cmd == "owed-reds":
         rc, out = owed_reds(Train(a.repo, Path("."), None, "", (), a.min_runs))
         print(out)
@@ -9974,6 +11888,7 @@ def main(argv: list[str]) -> int:
     ignore = tuple(a.ignore_red) if a.ignore_red else ("tests / nightly-status",)
     opts = dict(approval_carry=a.approval_carry, main_moved_tries=a.main_moved_tries,
                 bot_prs=a.bot_prs, pre_flight=a.pre_flight, free_holders=a.free_holders)
+    wire_quiet(a, opts)
     if a.cmd == "batch":
         return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs,
                      base=a.base, skip_bad=a.skip_bad, overlap=a.overlap, **opts).batch(queue, a.tag)

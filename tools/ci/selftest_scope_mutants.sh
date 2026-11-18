@@ -49,10 +49,30 @@ scope_mutant "settle never rewrites the index" '["git", "update-index", "-q", "-
 scope_mutant "the settle command a no-op" 'return settle_index(root)' 'return 0'
 scope_mutant "settle_gaps reads no job" 'if any(s.id in UNGATED and SETTLE_CALL.search' 'if True or any(s.id in UNGATED and SETTLE_CALL.search'
 scope_mutant "static skips the settle check" 'problems = wiring_gaps(steps) + settle_gaps(steps)' 'problems = wiring_gaps(steps)'
+scope_mutant "record replaces the committed entry again" 'entries[sid] = union_entry(entries.get(sid), m)' 'entries[sid] = m'
+scope_mutant "record keeps a step the workflow no longer gates" 'return {k: v for k, v in entries.items() if k in gated}' 'return entries'
+scope_mutant "prune clears a flag the entry does not set" 'if kind in FLAG_KINDS and not item and entries[step].get(kind):' 'if kind in FLAG_KINDS and not item:'
+scope_mutant "prune drops a list item the entry does not hold" 'elif kind in LIST_KINDS and item in entries[step].get(kind, ()):' 'elif kind in LIST_KINDS:'
+scope_mutant "prune writes nothing" 'write_table(root / TABLE, entries, root)
+        return 0' 'return 0'
+scope_mutant "prune accepts an unknown drop" '        if unknown:
+            print(f"selftest_scope: not in the table' '        if False:
+            print(f"selftest_scope: not in the table'
+scope_mutant "check --write writes the bare measurement" 'write_table(write, union_entries(table, measured), root)' 'write_table(write, measured, root)'
+scope_mutant "the union drops a committed list entry" 'sorted(set(old.get(k, ())) | set(new.get(k, ())))' 'sorted(set(new.get(k, ())))'
+scope_mutant "the union drops a committed flag" 'bool(old.get(k)) or bool(new.get(k))' 'bool(new.get(k))'
+scope_mutant "drift refuses a probe the run's own listed dir answers" 'a in dirs or a in set(m["dirs"])' 'a in dirs'
 workflow_mutant "CI never settles the index" 'python3 -I tools/ci/selftest_scope.py settle' 'true'
 workflow_mutant "CI swallows a failed settle" 'python3 -I tools/ci/selftest_scope.py settle' 'python3 -I tools/ci/selftest_scope.py settle || true'
 wrapper_mutant "only launch untraced (the incident's wrapper)" 'case "$UNTRACED" in *" ${GITHUB_ACTION:-} "*)' 'case " launch " in *" ${GITHUB_ACTION:-} "*)'
 wrapper_mutant "no strace exec'd anyway" 'if ! command -v strace > /dev/null 2>&1; then' 'if false; then'
 wrapper_mutant "exit lines suppressed (-qq)" 'exec strace -f -q -y' 'exec strace -f -qq -y'
 wrapper_mutant "drift traced again" 'UNTRACED=" scope strace launch drift unread "' 'UNTRACED=" scope strace launch unread "'
+scope_mutant "prune goes on over an unreadable table" '        if table is None:
+            print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
+            return 1
+        entries, unknown' '        if False:
+            print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
+            return 1
+        entries, unknown'
 echo "SELFTEST-SCOPE MUTANTS: every mutant refused"

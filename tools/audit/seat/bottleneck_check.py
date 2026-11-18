@@ -33,8 +33,15 @@ smallest sample that may trip it, so that one verdict or one merge never fires:
 
 --memory PATH (the beat row's form): a metric that stays past its threshold
 re-prints the line it first printed, verbatim, so the digest's fold sees no
-new line and the wake fires once per trip; a metric back inside its threshold
-is forgotten, and its next trip prints afresh. The memory is keyed by the
+new line and the wake fires once per trip -- unless its live value is more
+than a quarter worse (WORSE) than the value that first line printed: then the
+live line prints, so the digest never shows a stale value that hides a
+worsening metric (owner ruling 2026-11-13, card P8; the process convergence
+audit's row a7, where "merge-wait 2.1 h" re-printed while it stood at 4.2 h).
+The first line stays the reference, so a held breach prints the live line on
+every beat it is past WORSE, and its first line again once it is not. Lower
+is worse for yield and throughput, higher for the rest. A metric back inside
+its threshold is forgotten, and its next trip prints afresh. The memory is keyed by the
 line's kind and metric, so a breach after an UNREADABLE beat for the same
 metric (or the reverse) is a new trip and prints.
 
@@ -65,10 +72,33 @@ THRESHOLDS = {
     "block-class": (0.30, 5),
 }
 SKIP_BATCHES = 2
+#: A held breach prints its live line once its value is worse than the first printed one by more than this share.
+WORSE = 0.25
+LOWER_IS_WORSE = {"yield", "throughput"}
+
+
+class Line(str):
+    """A breach line carrying the value it printed (None on an UNREADABLE line)."""
+    value: float | None = None
+
+
+def _line(text: str, value: float) -> Line:
+    ln = Line(text)
+    ln.value = value
+    return ln
 
 
 def _unread(metric: str, why: str) -> str:
     return f"BOTTLENECK-UNREADABLE: {metric} -- {why}"
+
+
+def worse(metric: str, first: float | None, live: float | None) -> bool:
+    """Whether `live` is worse than `first` by more than WORSE, in the metric's own direction."""
+    if first is None or live is None:
+        return False
+    if metric in LOWER_IS_WORSE:
+        return live < first * (1 - WORSE)
+    return live > first * (1 + WORSE)
 
 
 def judge(m: dict) -> list[str]:
@@ -82,9 +112,9 @@ def judge(m: dict) -> list[str]:
         merged, judged = v
         lim, n = THRESHOLDS["yield"]
         if judged >= n and merged / judged < lim:
-            out.append(f"BOTTLENECK: yield {merged / judged:.2f} ({merged}/{judged} first passes, 24 h) "
-                       f"vs {lim} -- read the blocked-class mix; brief its top class into the "
-                       "open fixers' briefs or a prepr check before dispatching more")
+            out.append(_line(f"BOTTLENECK: yield {merged / judged:.2f} ({merged}/{judged} first passes, 24 h) "
+                             f"vs {lim} -- read the blocked-class mix; brief its top class into the "
+                             "open fixers' briefs or a prepr check before dispatching more", merged / judged))
 
     v, why = m["batches"]
     if v is None:
@@ -96,10 +126,11 @@ def judge(m: dict) -> list[str]:
         lim, n = THRESHOLDS["skip-share"]
         if entries >= n and len(skips) / entries > lim:
             top, k = Counter(r for _, r in skips).most_common(1)[0]
-            out.append(f"BOTTLENECK: skip-share {len(skips) / entries:.0%} ({len(skips)}/{entries}, "
-                       f"batches {' '.join(b['tag'] for b in done)}) vs {lim:.0%} -- {k} of "
-                       f"{len(skips)} are '{top}': re-add a skipped head only once classify "
-                       "reads GREEN, and hold the next launch until the race it names settles")
+            out.append(_line(f"BOTTLENECK: skip-share {len(skips) / entries:.0%} ({len(skips)}/{entries}, "
+                             f"batches {' '.join(b['tag'] for b in done)}) vs {lim:.0%} -- {k} of "
+                             f"{len(skips)} are '{top}': re-add a skipped head only once classify "
+                             "reads GREEN, and hold the next launch until the race it names settles",
+                             len(skips) / entries))
 
     v, why = m["merge_wait"]
     if v is None:
@@ -111,10 +142,12 @@ def judge(m: dict) -> list[str]:
             med = statistics.median(r["hours"] for r in rows)
             if med > lim:
                 worst = max(rows, key=lambda r: r["hours"])
-                out.append(f"BOTTLENECK: merge-wait {med:.1f} h median ({len(rows)} PRs, 24 h; worst "
-                           f"#{worst['pr']} {worst['hours']:.1f} h) vs {lim:g} h -- the merge stage "
-                           "is the constraint: check the train is live and every verdicted head "
-                           "is queued before dispatching review or fix work")
+                # "hours", never "h": the digest's norm() reads "<n> h" as an age and blanks it,
+                # which would hide the live value this line exists to show.
+                out.append(_line(f"BOTTLENECK: merge-wait {med:.1f} hours median ({len(rows)} PRs, 24 h; worst "
+                                 f"#{worst['pr']} {worst['hours']:.1f} hours) vs {lim:g} hours -- the merge stage "
+                                 "is the constraint: check the train is live and every verdicted head "
+                                 "is queued before dispatching review or fix work", med))
 
     v, why = m["closed"]
     if v is None:
@@ -123,17 +156,17 @@ def judge(m: dict) -> list[str]:
         lim, _ = THRESHOLDS["throughput"]
         rate, want = round(v / 6.0, 6), round(lim * m["takt"], 6)
         if rate < want:
-            out.append(f"BOTTLENECK: throughput {rate:.2f}/h ({v} groups closed, 6 h) vs "
-                       f"{want:.2f}/h (0.7 x takt {m['takt']:g}) -- find the stage holding the "
-                       "work (merge-wait, skip-share, yield above) and drain it before "
-                       "dispatching new groups")
+            out.append(_line(f"BOTTLENECK: throughput {rate:.2f}/h ({v} groups closed, 6 h) vs "
+                             f"{want:.2f}/h (0.7 x takt {m['takt']:g}) -- find the stage holding the "
+                             "work (merge-wait, skip-share, yield above) and drain it before "
+                             "dispatching new groups", rate))
 
     v, why = m["wip"]
     if v is None:
         out.append(_unread("wip", why))
     elif len(v) >= m["wip_cap"]:
-        out.append(f"BOTTLENECK: wip {len(v)} in-progress vs cap {m['wip_cap']} -- dispatch no new "
-                   "group; move review and merge work first")
+        out.append(_line(f"BOTTLENECK: wip {len(v)} in-progress vs cap {m['wip_cap']} -- dispatch no new "
+                         "group; move review and merge work first", len(v)))
 
     v, why = m["classes"]
     if v is None:
@@ -144,9 +177,9 @@ def judge(m: dict) -> list[str]:
         if total >= n:
             top, k = v.most_common(1)[0]
             if k / total > lim:
-                out.append(f"BOTTLENECK: block-class {top or 'unclassed'} {k / total:.0%} ({k}/{total} "
-                           f"blocks, 24 h) vs {lim:.0%} -- a recurring class owes a root-cause seat "
-                           "(defect-root-cause.md) or a check that catches it before review")
+                out.append(_line(f"BOTTLENECK: block-class {top or 'unclassed'} {k / total:.0%} ({k}/{total} "
+                                 f"blocks, 24 h) vs {lim:.0%} -- a recurring class owes a root-cause seat "
+                                 "(defect-root-cause.md) or a check that catches it before review", k / total))
     return out
 
 
@@ -162,18 +195,27 @@ def state_of(line: str) -> str:
 
 
 def remembered(lines: list[str], memory: Path | None) -> list[str]:
-    """`lines` with each still-tripped state's FIRST line kept verbatim, and
-    the memory rewritten: tripped states only, so a recovery forgets."""
+    """`lines` with each still-tripped state's FIRST line kept verbatim unless
+    the live value is past WORSE of it, and the memory rewritten: tripped states
+    only, so a recovery forgets. A memory entry written before values were kept
+    (a bare line) has no value, so it is kept verbatim until the trip ends."""
     if memory is None:
         return lines
     try:
         old = json.loads(memory.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         old = {}
-    now = {state_of(ln): old.get(state_of(ln), ln) for ln in lines}
+    now, out = {}, []
+    for ln in lines:
+        first = old.get(state_of(ln))
+        if isinstance(first, str):
+            first = {"line": first, "value": None}
+        live = {"line": str(ln), "value": getattr(ln, "value", None)}
+        now[state_of(ln)] = first = first or live
+        out.append(live["line"] if worse(metric_of(ln), first["value"], live["value"]) else first["line"])
     memory.parent.mkdir(parents=True, exist_ok=True)
     memory.write_text(json.dumps(now, indent=1, sort_keys=True) + "\n", encoding="utf-8")
-    return [now[state_of(ln)] for ln in lines]
+    return out
 
 
 def live_metrics(checkout: Path, roster_ref: str | None, train_log: Path | None,
@@ -283,9 +325,36 @@ def self_test(mutate: str | None = None) -> int:
     with tempfile.TemporaryDirectory() as d:
         mem = Path(d) / "mem.json"
         first = remembered(judge(_fixture(closed=(4, ""))), mem)
-        again = remembered(judge(_fixture(closed=(3, ""))), mem)
+        again = remembered(judge(_fixture(closed=(3.5, ""))), mem)
         check("memory: a still-tripped metric re-prints its first line verbatim",
               again == first and "4 groups" in first[0], (first, again))
+        live = remembered(judge(_fixture(closed=(2, ""))), mem)
+        check("memory: a held breach more than a quarter worse prints the live line",
+              live == judge(_fixture(closed=(2, ""))) and "2 groups" in live[0], live)
+        back = remembered(judge(_fixture(closed=(3.5, ""))), mem)
+        check("memory: the first line stays the reference; back inside the quarter it prints again",
+              back == first, back)
+        mem.unlink()
+        wait = lambda h: {"merge_wait": (([{"pr": 1, "hours": h}] * 3, 0), "")}
+        first = remembered(judge(_fixture(**wait(2.4))), mem)
+        edge = remembered(judge(_fixture(**wait(3.0))), mem)
+        check("memory: exactly a quarter worse is not past it (null control)", edge == first, edge)
+        past = remembered(judge(_fixture(**wait(3.1))), mem)
+        check("memory: higher is worse for merge-wait; past the quarter prints live",
+              past and "3.1 hours median" in past[0], past)
+        mem.unlink()
+        first = remembered(judge(_fixture(**wait(4.0))), mem)
+        better = remembered(judge(_fixture(**wait(2.5))), mem)
+        check("memory: an improving value is never printed as live", better == first, better)
+        mem.unlink()
+        remembered(judge(_fixture(**{"yield": ((5, 10), "")})), mem)
+        low = remembered(judge(_fixture(**{"yield": ((3, 10), "")})), mem)
+        check("memory: lower is worse for yield; past the quarter prints live",
+              low and low[0].startswith("BOTTLENECK: yield 0.30 "), low)
+        mem.write_text(json.dumps({"BOTTLENECK: throughput": "BOTTLENECK: throughput old line"}))
+        legacy = remembered(judge(_fixture(closed=(1, ""))), mem)
+        check("memory: a bare-line memory from before values were kept stays verbatim",
+              legacy == ["BOTTLENECK: throughput old line"], legacy)
         remembered(judge(_fixture()), mem)
         after = remembered(judge(_fixture(closed=(3, ""))), mem)
         check("memory: a recovery forgets; the next trip prints afresh",
@@ -334,6 +403,17 @@ MEMORY_MUTANTS = (
     ("memory-key-metric", 'return " ".join(line.split()[:2])', "return line.split()[1]"),
     ("memory-key-kind", 'return " ".join(line.split()[:2])', "return line.split()[0]"),
 )
+#: The live-value rule: `worse`'s comparisons and direction, and `remembered`'s reference.
+WORSE_MUTANTS = (
+    ("worse-up-cmp", "return live > first * (1 + WORSE)", "return live >= first * (1 + WORSE)"),
+    ("worse-up-dir", "return live > first * (1 + WORSE)", "return live > first * (1 - WORSE)"),
+    ("worse-down-dir", "return live < first * (1 - WORSE)", "return live > first * (1 + WORSE)"),
+    ("worse-direction-set", "if metric in LOWER_IS_WORSE:", "if False:"),
+)
+REMEMBER_MUTANTS = (
+    ("reference-moves", "now[state_of(ln)] = first = first or live", "now[state_of(ln)] = first = live"),
+    ("live-never", 'out.append(live["line"] if worse(', 'out.append(first["line"] if worse('),
+)
 
 
 def run_mutants() -> int:
@@ -344,7 +424,9 @@ def run_mutants() -> int:
     survived = []
     g = globals()
     for fn, name, frag, repl in ([("judge", *m) for m in MUTANTS]
-                                 + [("state_of", *m) for m in MEMORY_MUTANTS]):
+                                 + [("state_of", *m) for m in MEMORY_MUTANTS]
+                                 + [("worse", *m) for m in WORSE_MUTANTS]
+                                 + [("remembered", *m) for m in REMEMBER_MUTANTS]):
         original = g[fn]
         src = textwrap.dedent(inspect.getsource(original))
         if src.count(frag) != 1:

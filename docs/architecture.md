@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 89 modules, of which 31 import the
+knows nothing about Home Assistant: 96 modules, of which 33 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back. The glue reads
 entity states, writes actuators and persists learned state. Keeping those two
@@ -118,7 +118,7 @@ custom_components/heatpump_optimizer/
 │                         #   and one coercion per key
 ├── store.py              # The store-load boundary: a Store whose loads refuse
 │                         #   non-finite numeric leaves
-├── config_flow.py        # Setup flow plus 24 option pages behind two menus
+├── config_flow.py        # Setup flow plus 25 option pages behind two menus
 ├── coordinator.py        # The update loop: read, fetch, solve, actuate, learn, publish
 ├── payload.py            # The typed contract of the payload the coordinator publishes
 ├── notifier.py           # The documented events, fired from the payload on each update
@@ -126,6 +126,10 @@ custom_components/heatpump_optimizer/
 ├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes
 ├── plan_step.py          # The plan step: its width, and which step an instant
 │                         #   falls in, for the solve and the pump arbiter
+├── duty_legs.py          # The legs a step is served in, the switches between
+│                         #   them, and what a stop at one costs the plan
+├── runs.py               # What a compressor start is in a plan, which runs of
+│                         #   a relaxed plan ship, and the shortest run and pause
 ├── plan_slots.py         # A channel's step schedule as the heating slots a plan publishes
 ├── slot_drivers.py       # Why each step runs or idles: five signed driver weights,
 │                         #   and the current step's "why now" for the card
@@ -134,6 +138,8 @@ custom_components/heatpump_optimizer/
 ├── process_worker.py     # One-shot interpreter for GIL-bound solves
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
 ├── inputs.py             # Guarded state reads with a staleness watchdog
+├── rooms.py              # The room thermometer list: its reading record, mean and spread
+│                         #   and the lift a cold room gives the planned comfort floor
 ├── issues.py             # The repair-notice writer: raise, clear, the docs link
 ├── log_latch.py          # The transition latch for persisting conditions logged at WARNING
 ├── comfort_band.py       # The band's cross-field rules, shared by the config
@@ -148,6 +154,10 @@ custom_components/heatpump_optimizer/
 ├── ledger.py             # Month-keyed ledger of settled energy and money
 ├── currency.py           # The one place the display currency is decided
 ├── wear.py               # Compressor start counting and the wear price it implies
+├── running_signal.py     # Whether the compressor runs: one listener per pump
+│                         #   in every mode, its debounced edges to the start
+│                         #   counter and the duty-switch learner
+├── whatif.py             # The what-if's scratch copies, user slot and steady figure's two branches
 ├── wood_fuel.py          # Firewood price and the cheaper-than-pump rule
 │
 │   # Weather, sun and hot water
@@ -172,11 +182,12 @@ custom_components/heatpump_optimizer/
 ├── snapshots.py          # Weekly learner snapshots and the rollback alarm
 ├── learner_progress.py   # Each thermal learner's phase, progress and wait; a day count only to a counting gate
 ├── comfort_learning.py   # Revealed-preference comfort-weight tuning
-├── curve_learning.py     # Standing cool-only bias on the ECL110 heat curve
+├── curve_learning.py     # Standing cool-only bias on the heat-curve displace
 ├── sysid.py              # Active step-response identification
 ├── presets.py            # Building archetypes to thermal parameters
 ├── external_heat.py      # Wood-furnace detection with hysteresis and decay
 ├── setpoint_check.py     # Disinfection set-point consistency: configured vs live
+├── slab_seed.py          # Whether a floor-return reading may seed the slab estimate
 │
 │   # The pump's own account of itself
 ├── pump_mode.py          # Operating-mode vocabulary: can it heat, can it make
@@ -186,10 +197,15 @@ custom_components/heatpump_optimizer/
 │                         #   integration asks
 ├── pump_arbiter.py       # Opt-in: writes the pump's mode and set-points per
 │                         #   plan step, and stands down on a manual change
+├── supply_hold.py        # The supply switch's minimum run and pause, held
+│                         #   across a re-solve, a cycle or a restart
 ├── duty_switch.py        # Learns per direction whether a duty switch stops
-│                         #   the running compressor; observes, changes nothing
-├── heat_curve.py         # The heat-curve displace's outputs: the ECL110 MQTT
-│                         #   topics and an offset number entity
+│                         #   the running compressor; a latched direction's
+│                         #   estimate is what the solve prices that switch by
+│                         #   and what orders the legs of a both step the
+│                         #   arbiter serves
+├── heat_curve.py         # The heat-curve displace's outputs: the MQTT topics
+│                         #   and a number entity, kind offset or persistent
 ├── off_restore.py        # The one owner of the off and unload restore: what
 │                         #   a writer restores when the optimizer lets go
 ├── early_cutoff.py       # Switches a space-heating pump off inside the
@@ -268,16 +284,16 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-31 of the 89 modules import `homeassistant` at module level: `__init__`,
+33 of the 96 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
-`dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `off_restore`, `pump_arbiter`, `repairs`, `services`,
-`store`. One module outside that set touches it at all: `inputs`
+`dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `off_restore`, `pump_arbiter`, `repairs`, `running_signal`, `services`,
+`store`, `supply_hold`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 57 modules are deliberately free of it, so each can be driven
+The other 62 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
@@ -330,7 +346,7 @@ solar  ─┘        │                                                    │
 ```
 
 Both optimizer paths share one set of cost terms — the comfort penalty, the
-terminal cost, the cycling and capacity charges — so enabling hot water cannot
+terminal cost, the start and capacity charges — so enabling hot water cannot
 change the space-heating objective. That is not hypothetical tidiness: it used
 to, and the two objectives had silently drifted apart.
 
@@ -385,7 +401,7 @@ Each bullet names the module that owns one rule, and what the rule is.
 - **The thermal parameters have one writer.** `_publish_params` in `coordinator.py` builds a new parameter set, which re-runs the divisor floor, and rebinds the coordinator context and the live model to it. A solve or a learner in the middle of an await keeps the set it read. The coordinator context is a frozen dataclass, replaced whole.
 - **A long computation works on a snapshot of the live state.** In `coordinator.py` a solve takes its own deep copy of the configuration, the parameters and the thermal state, and the away recovery job and the diagnosis each take a copy of the thermal state.
 - **One owner per duplicated shape.** `inputs.py` owns the power conversion: `normalize_power_kw` converts by the entity's declared unit and refuses an unknown one, and `state_power_kw` refuses a reading that is not finite before or after conversion. `finite_float` in `const.py` gives a value as a finite float, or a default. Two functions own what the end of the day reads as: `quiet_windows.wall_clock` folds it to 00:00, and `dhw_schedule.format_clock` keeps a window label's 24:00.
-- **One payload read on the entity base.** `entity.py` owns the finite scrub, the payload-number rule and the zone set-point attributes. A mixin in `sensor.py` reads the number at one path of the payload.
+- **One payload read on the entity base.** `entity.py` owns the finite scrub, the payload-number rule, the zone set-point attributes and the combi store's `dhw_split` attribute, which the hot-water cost and energy sensors and the climate entity all publish from one function. A mixin in `sensor.py` reads the number at one path of the payload.
 - **A delivered-heat counter.** `heat_energy.py` owns the span a delivered-heat kWh counter measured, the time the pump spent in each duty, and the one rule that splits an interval between space heating and hot water: the observed shares, else the plan's split. It imports nothing from Home Assistant; the coordinator reads the entities and calls in.
 - **An honest COP state.** `accuracy.cop_observability` owns the state: no electric meter, then an electric meter with no measured heat, which reads "not measurable", then estimated inputs or a heat meter.
 - **One rule for scores.** `compose_scores` in `coordinator.py` puts the grades on one scale; no evidence is no grade with one reason code, never zero. The insight payload takes the restart advice once and hands the same advice to the scores, and `house_loss_converged` is the convergence rule that both the envelope grade and the learning view's "learned" flag read.

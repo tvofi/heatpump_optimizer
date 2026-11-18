@@ -739,9 +739,10 @@ class ThermalParameters:
         meter that under-reads. Keyed on the floor, not on the nameplate
         maximum: an overstated maximum (14 kW on a pump drawing 2.5) put a
         third of it above every draw and no sample ever folded. With no
-        modulation floor configured (0) the nameplate third stands. Until the
-        meter shows the draw follows the ask, an interval departing from its
-        ask must also clear the nameplate third (``MeasuredCop.judge_ratio``).
+        modulation floor configured (0) the nameplate third stands. The folds
+        read it through ``draw_range.power_floor_kw``, which caps it by the
+        metered running draw. An interval departing from its ask is judged on
+        the draw evidence besides (``MeasuredCop.judge_ratio``).
         """
         if self.min_electrical_power > 0.0:
             return max(0.8 * self.min_electrical_power, 0.2)
@@ -751,9 +752,10 @@ class ThermalParameters:
     def nameplate_power_floor_kw(self) -> float:
         """The pre-#2066 duty floor: a third of nameplate, never below 0.2 kW.
 
-        Still the bar for an interval whose draw departs from its ask while
-        there is no evidence the draw follows the ask, so such an install folds
-        nothing base would not have.
+        Still the bar for an interval whose draw departs from its ask where
+        the evidence that the draw follows the ask is unobtainable or never
+        came (``MeasuredCop.release``), so such an install folds nothing base
+        would not have.
         """
         return max(0.3 * self.max_electrical_power, 0.2)
 
@@ -1183,7 +1185,7 @@ def _dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
 #: and ``_compute_baseline_power`` says why flooring them would burn
 #: ``min_electrical_power`` around the clock -- so every watt a plan books
 #: above this floor is heat its trajectory, its cost and its published
-#: savings all count as delivered, and it is what ``count_compressor_starts``
+#: savings all count as delivered, and it is what ``runs.edge_count``
 #: counts as a run. No seam that actuates or reports the plan may call such a
 #: step off. Until this owner existed the switch schedule called it off at
 #: half the modulation floor instead (see ``on_threshold_kw``), which on a
@@ -1875,6 +1877,67 @@ def configured_flow_min_lift_k(config: Any) -> float:
         number if number is not None and number > 0.0 else FLOW_MIN_LIFT_K
     )
 
+def start_flow_min_lift_k(config: Any, start_hysteresis_k: Any = None) -> float:
+    """The modulation floor's lift a heating write uses, K.
+
+    The configured lift (:func:`configured_flow_min_lift_k`), never below the
+    pump's own heating start hysteresis where one is read
+    (``ThermalState.space_start_hysteresis_k``): its controller starts only
+    once the target sits that far above the water, so a floor written closer
+    books heat on a step the pump never starts. The one lift every reader of
+    the floor takes; no hysteresis, or one at or below the configured lift,
+    is the configured lift.
+    """
+    lift = configured_flow_min_lift_k(config)
+    hysteresis = finite_float(start_hysteresis_k)
+    return lift if hysteresis is None else max(lift, hysteresis)
+
+
+def dhw_step_target_c(params: ThermalParameters, cycle: bool, grid: Any = None) -> float:
+    """The hot-water target a step holds on the pump, °C: the one statement
+    of it, which the write, the plan, the duty ledger and the start notice read.
+
+    On a ``cycle`` step (the plan books a disinfection cycle or the pump's
+    disinfection switch is held on) the cycle's temperature (``dhw_cycle_temp``,
+    the higher of the everyday set-point and the disinfection temperature) at
+    or below the tank's hard maximum (``dhw_hard_max_temp``, that temperature
+    capped at 70 °C), which no write exceeds. On any other, and where no cycle
+    is active, the everyday set-point at or below the charge limit
+    (``dhw_max_temp``): above it the tank would be held over the user's own
+    limit for good. Holding the everyday set-point through a cycle stopped the
+    pump's own thermostat short of the cycle's target (2026-11-01: 60 °C
+    planned, 55 °C written back within a minute).
+
+    ``grid`` is the set-point entity's (``inputs.SetpointGrid``): the value
+    goes on its step and never above the bound, which is rounded down (everyday
+    58, step 5: 55, not 60; everyday 57, disinfection 50, step 5: a cycle
+    writes 55). With none, no entity is written and the target stands as it is.
+    """
+    target = params.dhw_cycle_temp if cycle else None
+    value, limit = (
+        (params.dhw_setpoint, params.dhw_max_temp) if target is None
+        else (target, params.dhw_hard_max_temp)
+    )
+    if grid is None:
+        return min(float(value), float(limit))
+    return cast(float, grid.bounded(float(value), hi=limit))
+
+
+def dhw_start_below_c(target_c: Any, start_hysteresis_k: Any) -> float | None:
+    """The tank temperature below which the pump starts a charge, °C, or ``None``.
+
+    The target the step holds less the pump's own hot-water start hysteresis
+    (``ThermalState.dhw_start_hysteresis_k``): its tank thermostat starts a
+    charge only below that, whatever mode it is handed. ``None`` with no
+    target, no hysteresis read, or one not above zero: every charge is then
+    taken to start, which is the pump that starts on the mode alone.
+    """
+    target, hysteresis = finite_float(target_c), finite_float(start_hysteresis_k)
+    if target is None or hysteresis is None or hysteresis <= 0.0:
+        return None
+    return target - hysteresis
+
+
 def on_threshold_kw(params: ThermalParameters) -> float:
     """The MEASURED draw above which the compressor counts as running, in kW.
 
@@ -1890,6 +1953,27 @@ def on_threshold_kw(params: ThermalParameters) -> float:
     take this; readers of the plan take ``planned_draw_runs``.
     """
     return max(MIN_RUNNING_DRAW_KW, float(params.min_electrical_power) * 0.5)
+
+
+def immersion_level_kw(params: ThermalParameters) -> float:
+    """The MEASURED draw over which the meter carries more than the compressor (#11), in kW."""
+    return float(params.max_electrical_power) * const.IMMERSION_FACTOR
+
+
+def immersion_over(measured_kw: float | None, params: ThermalParameters, commanded_kw: float) -> bool:
+    """Whether one reading is the immersion element wearing the pump's meter (#11).
+
+    Over :func:`immersion_level_kw` while the plan commands heat: no
+    compressor pulls that. The coordinator's latch counts two of these, and
+    the running signal reads the meter as no signal on one, so the two never
+    disagree on what over means.
+    """
+    return (
+        measured_kw is not None
+        and float(params.max_electrical_power) > 0.1
+        and measured_kw > immersion_level_kw(params)
+        and commanded_kw > 0.1
+    )
 
 
 def is_sunlit_interval(solar_radiation: float | None) -> bool:
@@ -1929,6 +2013,14 @@ class ThermalState:
     # Hours since the tank was last known to be at anti-legionella temperature.
     # None means "unknown" and is treated as not due.
     dhw_hours_since_legionella: float | None = None
+    # The pump's own start hysteresis per duty, K (``dhw_hysteresis_entity``,
+    # ``space_hysteresis_entity``). None: not configured or unread, and every
+    # planned charge and every heating write is taken to start the pump.
+    dhw_start_hysteresis_k: float | None = None
+    space_start_hysteresis_k: float | None = None
+    # The grid the hot-water set-point entity is written on
+    # (``inputs.SetpointGrid``); None with no entity to write.
+    dhw_setpoint_grid: Any = None
 
     # ECL110 control state
     ecl110_displace_command: float = 0.0  # °C requested parallel shift
@@ -2174,16 +2266,27 @@ def _valve_flow_set(
 ) -> float:
     """The flow temperature the valve regulates to this step. A per-step
     ``valve_target`` (how a commanded valve holds its charge) beats the
-    configured target; an unconfigured one is the top of the comfort band."""
+    configured target; an unconfigured one is the top of the comfort band.
+
+    A single-zone valve feeds every emitter into the slab, which reaches the
+    room through ``slab_heat_transfer`` in series, and the room's
+    ``internal_gains`` cover part of its loss: the curve holds its target only
+    with both in it (R11-VALVE-REFERENCE). Two zones pass through unchanged."""
     if valve_target is not None:
         target = float(valve_target)
     else:
         target = p.mixing_valve_target or p.comfort_ceiling
+    free_heat_kw = 0.0
+    if not p.two_zone_enabled:
+        k_slab = p.slab_heat_transfer_floored
+        emitter_ua = emitter_ua * k_slab / (emitter_ua + k_slab)
+        free_heat_kw = p.internal_gains
     return mixing_valve.flow_setpoint(
         target_temp=target,
         outdoor_temp=outdoor_temp,
         heat_loss_coefficient=heat_loss_coefficient,
         emitter_ua=emitter_ua,
+        free_heat_kw=free_heat_kw,
     )
 
 
@@ -2289,6 +2392,58 @@ def valve_hold_temperature(
         min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
     })
     return float(np.interp(need_kw, [_circuit_draw(circuits, k) for k in kinks], kinks))
+
+
+def valve_top_draw(
+    model: "ThermalModel", state: ThermalState, outdoor_temp: float,
+    wind_speed: float, precipitation: float,
+) -> float:
+    """The most the emitters can draw behind the valve, kW: the tank at the
+    curve's top (or ``buffer_max_temp``), past which a hotter tank adds nothing."""
+    circuits = _valve_draw_circuits(
+        model, state, outdoor_temp, wind_speed, precipitation)
+    return _circuit_draw(circuits, model.params.buffer_max_temp)
+
+
+
+def valve_top_equilibrium(
+    model: "ThermalModel", state: ThermalState, outdoor_temp: float,
+    wind_speed: float, precipitation: float, solar_radiation: float,
+) -> ThermalState | None:
+    """The two-zone house where the plant settles with every circuit behind
+    the valve drawing at the curve's top (``valve_top_draw``): the floors
+    apart, radiators above, slab-fed floor below -- the warmest steady state
+    the valve lets through. ``None`` where a circuit's top sits at or below
+    the zone it heats, which draws nothing there.
+
+    With each zone below its circuit's top the plant's rates
+    (``_two_zone_rates``) are affine in the three zone temperatures, so one
+    linear solve of them is the equilibrium, exact.
+    """
+    p = model.params
+    (ua_rad, top_rad, _), (ua_floor, top_floor, _) = _valve_draw_circuits(
+        model, state, outdoor_temp, wind_speed, precipitation)
+    t_rad, t_floor = min(top_rad, p.buffer_max_temp), min(top_floor, p.buffer_max_temp)
+    u_upper, u_lower = model._zone_loss(wind_speed, precipitation)
+
+    def rates(x: np.ndarray) -> np.ndarray:
+        return np.array(model._two_zone_rates(
+            x[0], x[1], x[2], outdoor_temp, ua_rad * (t_rad - x[0]),
+            ua_floor * (t_floor - x[2]), u_upper, u_lower, solar_radiation, None))
+
+    x0 = np.array([state.upper_floor_temperature, state.lower_floor_temperature, state.slab_temperature])
+    at_x0 = rates(x0)
+    upper, lower, slab = x0 + np.linalg.solve(
+        np.column_stack([rates(x0 + e) - at_x0 for e in np.eye(3)]), -at_x0)
+    if upper >= t_rad or slab >= t_floor:
+        return None
+    return replace(
+        state,
+        room_temperature=float(upper * p.upper_floor_area_ratio
+                               + lower * (1.0 - p.upper_floor_area_ratio)),
+        upper_floor_temperature=float(upper), lower_floor_temperature=float(lower),
+        slab_temperature=float(slab),
+    )
 
 
 def valve_charge_demand(
@@ -3343,11 +3498,12 @@ class ThermalModel:
         return u_wind
 
     def flow_target_for_indoor(self, indoor_target: float, outdoor_temp: float) -> float:
-        """Flow temperature `mixing_valve.flow_setpoint`'s curve implies for
-        `indoor_target` (#398) -- the same conversion `_simulate_step_two_zone`
-        uses to bound a dumb valve's delivery, reused rather than re-derived.
-        """
+        """The flow temperature the valve curve implies for `indoor_target` (#398): the plant's
+        own behind a single-zone valve, at zero wind; else `flow_setpoint` on both floors' loss."""
         p = self.params
+        if not p.two_zone_enabled and p.mixing_valve_mode in mixing_valve.THROTTLING_MODES:
+            u = self.effective_heat_loss_coefficient(p.heat_loss_coefficient)
+            return _valve_flow_set(p, indoor_target, outdoor_temp, u, _valve_ua(p))
         heat_loss = self.effective_heat_loss_coefficient(
             p.upper_floor_heat_loss
         ) + self.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
@@ -4153,9 +4309,7 @@ class ThermalModel:
             # are uniform across it); a direct caller gets them computed as
             # the scalar branch does.
             valve_row = 0.0
-            if (p.mixing_valve_mode or mixing_valve.MODE_NONE) in (
-                mixing_valve.THROTTLING_MODES
-            ):
+            if p.mixing_valve_mode in mixing_valve.THROTTLING_MODES:
                 if ua_valve is None:
                     ua_valve = (
                         p.max_electrical_power * p.cop_nominal_floored

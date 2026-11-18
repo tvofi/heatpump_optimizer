@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_fit_stored_values GUARD_OFF 3c5b8376",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        elif isinstance(value, selector.NumberSelector):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`elif False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
+}

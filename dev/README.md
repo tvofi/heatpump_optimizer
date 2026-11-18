@@ -74,14 +74,14 @@ round adds its own directory rather than rewriting an earlier one.
 | `CLAUDE.md` | repository root | the index: names every policy file, the obligation each carries, and the role or dimension it binds |
 | `AGENTS.md` | repository root | the harness-neutral entry point; it defers to `CLAUDE.md` and states no policy of its own |
 | `tools/audit/seat/INSTRUMENTS.md` | `tools/audit/seat/` | the operator's guide to the seat instruments: what each does and which refusal saves you (usage, not policy) |
-| role contracts | `dev/governance/roles/` | one contract per role: `COMMON.md` (the finder's contract), `fixer.md`, `fix-review.md`, `designer.md`, `design-review.md`, `verifier.md`, `judge.md`, `root-cause.md`, `orchestrator.md`, `nudge.md` |
+| role contracts | `dev/governance/roles/` | one contract per role: `COMMON.md` (the finder's contract), `fixer.md`, `fix-review.md`, `designer.md`, `design-review.md`, `verifier.md`, `judge.md`, `root-cause.md`, `orchestrator.md` |
 | rules | `dev/governance/rules/` | the canonical rule files; `.claude/rules/` is generated from them by `node tools/policy/rules_sync.mjs`, never edited by hand |
 | dimension briefs | `dev/governance/dimensions/` | each in the owner's words: what the dimension measures and how |
 | decisions | `dev/governance/decisions/` | the ADRs: the identity split, the merge boundary, verdict authorship, the design seats |
 | audit contract | `dev/audit/README.md` | the harness contract, the evidence layout, and the instruments a judge still re-runs |
 | suite manual | `tests/README.md` | what each gate script pins, how the scoped gate selects, and why a test that re-implements a production formula pins nothing |
 | architecture | `docs/architecture.md` | the integration's own shape: the Home Assistant boundary, the pure core and the learners |
-| living handover | `dev/programme/HANDOVER.md` | durable state and corrections to the record; volatile state goes on issue #201 |
+| living handover | `dev/programme/HANDOVER.md` | durable state and corrections to the record; volatile state goes on issue #3394 |
 | prose caps | `dev/governance/config/policy_budgets.json` | one-sided caps on the policy corpus |
 
 `node tools/policy/rules_sync.mjs --check` refuses drift between the canonical
@@ -116,9 +116,11 @@ train → merge → record → stamp. The order is the orchestrator's contract,
    fixer's. A head that moved under the review is a blocked verdict.
 5. **Train and merge.** `tools/audit/seat/merge_train.py` lands verdicted pull
    requests in order at a pitch, and stops at the first refusal.
-6. **Record.** The pull request's row is `dev/programme/delivery/<N>.md`, written
-   at each merge, not at session end; `tools/audit/seat/record_row.py` drives
-   the record-autofix job that rows a merge no branch rowed.
+6. **Record.** The record is the pull-request list and #3394:
+   `tools/audit/seat/postmerge.py` posts one #3394 line per merge. No seat
+   writes a per-PR row; `tools/audit/seat/record_row.py` drives the
+   record-autofix job that rows each merge, which the stamp reads
+   (`dev/governance/rules/delivery-status-tracking.md`).
 7. **Stamp.** `tools/release/stamp.py` assigns the version after the merge. A
    branch never touches `VERSION`, the manifest version, or the
    `RELEASE_NOTES.md` heading.
@@ -191,8 +193,7 @@ The ruleset is the owner's. `tools/ci/ruleset_cutover.py` is the instrument
 that cut its required contexts over to `gate`: it saves a rollback copy, PUTs
 the ruleset's six writable keys, refuses with the difference where either half
 of the read-back fails, and `--rollback` PUTs the saved copy back.
-`dev/governance/roles/nudge.md` section 4 is the rule for reading it: the live
-ruleset every turn, never a remembered list.
+Read it live each time, never from a remembered list.
 
 ### The workflow files
 
@@ -342,7 +343,6 @@ flowchart TB
     train -->|"writes"| pr
     train -->|"runs"| post
     post -->|"runs"| rsync
-    post -->|"runs"| docs
     post -->|"writes"| ledger
     rsync -->|"runs"| redit
     hb -->|"writes"| hbref
@@ -360,7 +360,7 @@ cites any file but that script.
 | orchestrator | runs | fixer, reviewer and design seats | `tools/audit/seat/instruments/cloud_dispatch.py.md`: `or fire the standing trigger` |
 | orchestrator | runs | tick_loop.sh | `tools/audit/seat/instruments/tick_loop.sh.md`: `in place of a seat looping the tick` |
 | orchestrator | runs | beat_jobs.py | `tools/audit/seat/instruments/beatd.py.md`: `until a supervisor unit is applied it runs under` |
-| orchestrator | runs | merge_train.py | `dev/governance/roles/nudge.md`: `tools/audit/seat/merge_train.py run` |
+| orchestrator | runs | merge_train.py | `tools/audit/seat/instruments/merge_train.py.md`: `queued PRs merge through` |
 | orchestrator | runs | heartbeat.sh --watch | `tools/audit/seat/instruments/heartbeat.sh.md`: `the owner schedules a cloud task` |
 | orchestrator | writes | relay hold list | `tools/audit/seat/cloud_relay.sh`: `only the orchestrator writes or edits it` |
 | cloud_dispatch.py | writes | dispatch ref | `tools/audit/seat/cloud_dispatch.py`: `"push", "-q", "origin", f"{commit}:refs/heads/{ref}"` |
@@ -397,7 +397,6 @@ cites any file but that script.
 | merge_train.py | writes | pull request | `tools/audit/seat/merge_train.py`: `["gh", "pr", "ready", str(pr), "--repo", t.repo]` |
 | merge_train.py | runs | postmerge.py | `tools/audit/seat/merge_train.py`: `tool("postmerge"), str(pr), "--repo"` |
 | postmerge.py | runs | roster_sync.py | `tools/audit/seat/postmerge.py`: `/roster_sync.py", "--repo", repo, "--apply"` |
-| postmerge.py | runs | state_docs.py | `tools/audit/seat/postmerge.py`: `/state_docs.py", "--repo", repo, "--push"` |
 | postmerge.py | writes | obligations ledger | `tools/audit/seat/postmerge.py`: `"open", "postmerge-owed"` |
 | roster_sync.py | runs | roster_edit.py | `tools/audit/seat/roster_sync.py`: `roster_edit.write_roster(` |
 | heartbeat.sh --once | writes | heartbeat ref | `tools/audit/seat/heartbeat.sh`: `"$c:refs/heads/$REF"` |

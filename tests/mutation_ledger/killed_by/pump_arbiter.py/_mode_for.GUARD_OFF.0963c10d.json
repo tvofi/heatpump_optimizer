@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_mode_for GUARD_OFF 0963c10d",
+  "killed_by": "tests/features.py",
+  "old": "    if duty == \"idle\" or pump_mode.capability(getattr(mode_state, \"state\", None)).cooling:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

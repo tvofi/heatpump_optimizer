@@ -7,8 +7,7 @@ METRIC, over the same window as merge_census.py (2026-09-09T09:37:08Z ..
                                 runs whose names are governance jobs
                                 (every job in .github/workflows/governance.yml
                                 -- policy-docs, env-matrix, wave-script,
-                                pr-contract, record, delivery-status,
-                                delivery-status-publish -- plus `briefs` in
+                                pr-contract, record -- plus `briefs` in
                                 tests.yml) at the merged head. Median and mean.
   gate_seconds_per_merge        the same sum over every other non-skipped check
                                 run at that head -- the code gate.
@@ -61,7 +60,7 @@ import d11lib as L  # noqa: E402
 # workflows are gone, `gate-sweep.yml`'s job replaces them, and a check run is
 # named `<unit> / <job>` (`bare` strips the unit), so GOV stays keyed by job id.
 GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
-       "delivery-status", "delivery-status-publish", "briefs",
+       "briefs",
        "instrument-self-tests", "budget-raise-gate", "sweep"}
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
 W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)

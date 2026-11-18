@@ -28,6 +28,12 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 2
+    # The two pins tests/typing_budgets.json records and tests/typing_ruler.py
+    # enforces: moving either is a deliberate re-record of the typing census
+    # (#504), never a bot bump (#3483 moved homeassistant-stubs past the pin).
+    ignore:
+      - dependency-name: "homeassistant-stubs"
+      - dependency-name: "mypy"
     groups:
       pip:
         patterns: ["*"]

@@ -19,11 +19,13 @@ if [ "${1:-}" = "--self-test" ]; then
   FAILS=0; N=0; st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
   # shellcheck source=../../../tests/throwaway_git.sh
   . "$SH/../../../tests/throwaway_git.sh"
-  mkcopy() { mkdir -p "$W/$1/audit/seat" "$W/$1/pr"; cp "$SH/ref_privacy.py" "$W/$1/audit/seat/"
-    if [ "$2" = real ]; then cp "$SELF" "$W/$1/audit/seat/body_push.sh"; else sed '/# mut:keep$/s/.*/    :/' "$SELF" > "$W/$1/audit/seat/body_push.sh"; fi
+  mkcopy() { mkdir -p "$W/$1/audit/seat" "$W/$1/pr"; cp "$SH/ref_privacy.py" "$SH/pr_args.sh" "$W/$1/audit/seat/"
+    case $2 in real) cp "$SELF" "$W/$1/audit/seat/body_push.sh";; bpbase) sed '/# mut:bpbase$/s/.*/    :/' "$SELF" > "$W/$1/audit/seat/body_push.sh";;
+      *) sed '/# mut:keep$/s/.*/    :/' "$SELF" > "$W/$1/audit/seat/body_push.sh";; esac
     printf '#!/bin/bash\n[ "$1" = --body-check ] && [ -f "$FLAGS/lint" ] && { echo lint-stub-refuses; exit 1; }\nexit 0\n' > "$W/$1/pr/prepr.sh"
-    printf 'import os\nopen(os.environ["FLAGS"] + "/refreshed", "w").close()\n' > "$W/$1/pr/figure_block.py"; }
-  mkcopy t real; mkcopy m mutant
+    printf 'import os, sys\nopen(os.environ["FLAGS"] + "/refreshed", "w").close()\nopen(os.environ["FLAGS"] + "/figbase", "a").write(sys.argv[sys.argv.index("--base") + 1] + "\\n")\n' > "$W/$1/pr/figure_block.py"; }
+  mkcopy t real; mkcopy m mutant; mkcopy b bpbase
+  mkdir -p "$W/bin"; printf '#!/bin/sh\ncase "$*" in api*pulls?state*) cat "$W/prn" ;; api*pulls/*) cat "$W/pullbase" ;; *) exit 99 ;; esac\n' > "$W/bin/gh"; chmod +x "$W/bin/gh"; : > "$W/prn"
   printf '#!/bin/bash\nexit 0\n' > "$W/packer"; printf '#!/bin/bash\n[ -f "$FLAGS/packet" ] && exit 1\nexit 0\n' > "$W/packer"
   printf '#!/bin/bash\n[ -f "$FLAGS/landed" ] && exit 1\nexit 0\n' > "$W/landed"; chmod +x "$W/packer" "$W/landed"
   throwaway_git_init "$W/o.git" -q --bare; throwaway_git_init "$W/repo" -q
@@ -31,16 +33,16 @@ if [ "${1:-}" = "--self-test" ]; then
   printf 'import os, sys\nsys.exit(1 if os.path.exists(os.environ["FLAGS"] + "/pred") else 0)\n' > "$W/repo/tools/pr/ci_predict.py"
   ( cd "$W/repo" && throwaway_git_env && echo a > a && git add . && git commit -qm code && git remote add origin "$W/o.git" \
     && git push -q origin HEAD:refs/heads/main && git fetch -q origin && git push -q origin HEAD:refs/heads/handoff/t ) >/dev/null 2>&1
-  printf 'the body\n' > "$W/body.md"
   # A hook that refuses any push to handoff-wip/, installed for the failed-keep arm only.
   printf '#!/bin/sh\nwhile read o n r; do case $r in refs/heads/handoff-wip/*) exit 1;; esac; done\n' > "$W/hook"; chmod +x "$W/hook"
   run() { # copy -> rc ; FLAGS names the refusal switches, out in $W/out
-    ( cd "$W/repo" && throwaway_git_env && FLAGS="$W/flags" HPO_HANDOFF_PACKER="$W/packer" HPO_HANDOFF_LANDED="$W/landed" \
+    ( cd "$W/repo" && throwaway_git_env && PATH="$W/bin:$PATH" W="$W" FLAGS="$W/flags" HPO_HANDOFF_PACKER="$W/packer" HPO_HANDOFF_LANDED="$W/landed" \
         bash "$W/$1/audit/seat/body_push.sh" t "$W/body.md" > "$W/out" 2>&1 ); }
   keepsha() { git -C "$W/o.git" rev-parse -q --verify refs/heads/handoff-wip/t-body 2>/dev/null || echo none; }
   drop() { git -C "$W/o.git" update-ref -d refs/heads/handoff-wip/t-body 2>/dev/null; rm -rf "$W/flags"; mkdir -p "$W/flags"; }
   drop
   CODE=$(git -C "$W/repo" rev-parse HEAD)
+  printf '## Head\n\n%s\n\n## Other\n\nthe body\n' "$CODE" > "$W/body.md"; BODYTXT=$(cat "$W/body.md")
   for arm in pred lint packet landed; do
     drop; : > "$W/flags/$arm"; run t; rc=$?
     want=1; [ "$arm" != landed ] || want=4  # CARRY-LANDED alone is exit 4, so the relay can fold it
@@ -48,7 +50,7 @@ if [ "${1:-}" = "--self-test" ]; then
     tok=$(echo "$arm" | tr a-z A-Z); case $arm in pred) tok=PREDICTOR;; lint) tok=BODY-LINT;; packet) tok=REVIEW-PACKET;; landed) tok=CARRY-LANDED;; esac
     st "$(grep -c "^body_push: REFUSED $tok\$" "$W/out")" 1 "... and the output names the refusal REFUSED $tok"
     k=$(keepsha)
-    st "$(git -C "$W/o.git" show "$k:BODY.md" 2>/dev/null)" "the body" "... and the refused body is kept at handoff-wip/t-body"
+    st "$(git -C "$W/o.git" show "$k:BODY.md" 2>/dev/null)" "$BODYTXT" "... and the refused body is kept at handoff-wip/t-body"
     st "$(grep -c "^body_push: refused body kept at handoff-wip/t-body $k\$" "$W/out")" 1 "... and the keep line names the ref and sha"
     st "$(git -C "$W/o.git" rev-list --count "$k" 2>/dev/null)" 1 "... as a parentless commit"
     st "$(git -C "$W/repo" merge-base --is-ancestor "$k" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the kept body is not in the code head's ancestry"
@@ -64,11 +66,37 @@ if [ "${1:-}" = "--self-test" ]; then
   drop; : > "$W/flags/lint"; run t; st "$(keepsha | grep -c .)" 1 "a refusal is kept before the healthy run"
   rm -rf "$W/flags"; mkdir -p "$W/flags"; run t; rc=$?
   st "$rc" 0 "the healthy run pushes"
-  st "$(git -C "$W/o.git" show handoff-body/t:BODY.md 2>/dev/null)" "the body" "... to handoff-body/t"
+  st "$(git -C "$W/o.git" show handoff-body/t:BODY.md 2>/dev/null)" "$BODYTXT" "... to handoff-body/t"
   st "$(keepsha)" none "... and the keep ref is gone"
   st "$([ -f "$W/flags/refreshed" ] && echo ran || echo no)" ran "the seat-side figure-block refresh ran"
   drop; run m; st "$([ -f "$W/flags/refreshed" ] && echo ran || echo no)" no "MUTANT refresh deleted: the arm above would fail"
   st "$(git -C "$W/repo" merge-base --is-ancestor "$(git -C "$W/o.git" rev-parse handoff-body/t)" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the published body is not in the code head's ancestry"
+  # R11-HOTFIX-FIGURE-BLOCK-BASE: the refresh takes the open pull request's recorded base.sha. A commit no branch
+  # holds stands for a base other than origin/main's tip (precondition asserted); the null control records equal bases.
+  MAINTIP=$(git -C "$W/repo" rev-parse origin/main); OLDBASE=$(cd "$W/repo" && throwaway_git_env && git commit-tree "$MAINTIP^{tree}" -m oldbase)
+  st "$([ "$OLDBASE" != "$MAINTIP" ] && echo differ || echo same)" differ "precondition: the stub's recorded base is not origin/main's tip"
+  figbase() { drop; run "${1:-t}"; rc=$?; tail -n 1 "$W/flags/figbase" 2>/dev/null || echo none; }
+  printf '%s\n' "$OLDBASE" > "$W/pullbase"; echo 5 > "$W/prn"
+  st "$(figbase)" origin/main "no fix/t on origin (no pull request yet): the refresh renders against origin/main"
+  git -C "$W/repo" push -q origin HEAD:refs/heads/fix/t
+  st "$(figbase)" "$OLDBASE" "a pull request exists: the refresh renders against its recorded base.sha, not origin/main"
+  printf '%s\n' "$MAINTIP" > "$W/pullbase"
+  st "$(figbase)" "$MAINTIP" "  null control: equal bases render the one sha, as before"
+  printf '%s\n' "$OLDBASE" > "$W/pullbase"
+  st "$(figbase b)" origin/main "  MUTANT mut:bpbase (its line deleted): the refresh falls back to origin/main, so the arm above would fail"
+  : > "$W/pullbase"; drop; git -C "$W/o.git" update-ref -d refs/heads/handoff-body/t; run t; rc=$?
+  st "$rc$([ -f "$W/flags/refreshed" ] && echo ran || echo no)" 1no "an unreadable recorded base refuses before the refresh"
+  st "$(git -C "$W/o.git" rev-parse -q --verify refs/heads/handoff-body/t 2>/dev/null || echo none)" none "... and pushes nothing"
+  : > "$W/prn"; printf '%s\n' "$OLDBASE" > "$W/pullbase"
+  st "$(figbase)" origin/main "fix/t on origin but no open pull request: origin/main"
+  git -C "$W/repo" push -q origin :refs/heads/fix/t; git -C "$W/o.git" update-ref -d refs/heads/handoff-body/t
+  # head-stale: a body whose ## Head names another sha is refused and nothing is pushed; the fresh one (null) passes.
+  OTHER=$(printf '%040d' 7); drop; git -C "$W/o.git" update-ref -d refs/heads/handoff-body/t
+  printf '## Head\n\n%s\n\n## Other\n\n%s\n' "$OTHER" "$CODE" > "$W/body.md"; run t; rc=$?
+  st "$rc$(grep -c "^body_push: REFUSE head-stale: ## Head does not name the handoff's code sha $CODE; it names $OTHER\$" "$W/out")" 11 "REFUSE head-stale: a stale ## Head is refused, naming both shas"
+  st "$(git -C "$W/o.git" rev-parse -q --verify refs/heads/handoff-body/t 2>/dev/null || echo none)" none "... and nothing is pushed to handoff-body/t"
+  printf '## Head\n\n%s\n' "$CODE" > "$W/body.md"; drop; run t; rc=$?
+  st "$rc$(grep -c head-stale "$W/out")" 00 "(null) a ## Head naming the code sha passes the head check"
   echo "body_push self-test: $N checks, $FAILS failed"; [ "$FAILS" = 0 ]; exit $?
 fi
 TOPIC=${1:?topic}; BODY=${2:?body file}; NOTE=${3:-}
@@ -139,6 +167,8 @@ fi
 # means a result (probe, design, verdict), which is no PR body. A handoff/<topic>
 # that is not this checkout's HEAD names a head the open will not run on.
 HERE=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=pr_args.sh
+. "$HERE/pr_args.sh"  # pr_recorded_base
 HREF=$(git ls-remote origin "refs/heads/handoff/$TOPIC") || { echo "body_push: could not read handoff/$TOPIC from origin" >&2; exit 1; }
 HREF=$(printf '%s\n' "$HREF" | awk 'NF { print $1; exit }')
 if [ -n "$HREF" ]; then
@@ -151,16 +181,36 @@ if [ -n "$HREF" ]; then
     echo "body_push: a commit of handoff/$TOPIC fails the push guard (above); re-author it, push the code again, then the body" >&2
     exit 1
   }
+  # After the identity guard, which outranks it (ref_privacy's self-test pins that order):
+  # a body's ## Head is a claim about what was measured: refused, never rewritten, when it does not name this code sha.
+  HEADSEC=$(awk '/^## Head[[:space:]]*$/ { f = 1; next } /^## / { f = 0 } f' "$BODY")
+  case $HEADSEC in *"$HREF"*) ;; *)
+    NAMED=$(printf '%s\n' "$HEADSEC" | grep -oE '[0-9a-f]{40}' | head -1 || true)
+    echo "body_push: REFUSE head-stale: ## Head does not name the handoff's code sha $HREF; it names ${NAMED:-none}" >&2
+    keep_refused
+    exit 1 ;;
+  esac
   # The `mutation` red an unpinned site makes is derived, so it is written into
   # `## Red checks` before the lint, not refused at the open (P67).
   (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")
   # The seat-side writer re-renders every registered figure block at the code head with no
   # agent turn (card 7 option C); pr-contract only verifies. A refusal aborts the push (set -e).
-  (cd "$ROOT" && python3 -I "$HERE/../../pr/figure_block.py" refresh "$ABS") # mut:keep
+  # Its base is the one pr-contract verifies with: the open pull request's recorded base.sha (update_pr.sh,
+  # open_pr.sh's p2 take it), origin/main only where no pull request exists yet, which will record origin/main
+  # as it stands (open_pr.sh's p1). Origin holding fix/<topic> is how a pull request is known to exist; one
+  # whose recorded base cannot be read refuses, with nothing pushed.
   # The red-check arm reads the pull request's head ref over the network, so it
   # is asked for only when origin holds fix/<topic> (a first handoff has none).
-  PRB=""
-  [ -z "$(git ls-remote origin "refs/heads/fix/$TOPIC" 2>/dev/null)" ] || PRB="--pr-branch fix/$TOPIC"
+  PRB=""; FB=origin/main
+  if [ -n "$(git ls-remote origin "refs/heads/fix/$TOPIC" 2>/dev/null)" ]; then
+    PRB="--pr-branch fix/$TOPIC"
+    PRN=$(gh api "repos/tvofi/heatpump_optimizer/pulls?state=open&head=tvofi:fix/$TOPIC" --jq '.[0].number // empty') \
+      || { echo "body_push: REFUSE: the pull requests of fix/$TOPIC could not be listed, so the base its figure block is verified against is unknown" >&2; keep_refused; exit 1; }
+    if [ -n "$PRN" ]; then
+      FB=$(pr_recorded_base tvofi/heatpump_optimizer "$PRN") || { echo "body_push: REFUSE: the recorded base.sha of #$PRN could not be read, the base pr-contract verifies the figure block against" >&2; keep_refused; exit 1; }  # mut:bpbase
+    fi
+  fi
+  (cd "$ROOT" && python3 -I "$HERE/../../pr/figure_block.py" refresh "$ABS" --base "$FB") # mut:keep
   # shellcheck disable=SC2086 # PRB is empty or exactly two words
   if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" $PRB 2>&1); then
     printf '%s\n' "$LINT" >&2

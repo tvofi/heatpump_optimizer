@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._apportion_by_steady_demand BOOLOP c2a57544",
-  "old": "        assert weather.wind_speeds is not None and weather.precipitation is not None",
-  "reason": "Equivalent on every reachable input (BOOLOP, `and` -> `or` in a type-narrowing assert). The mutant differs from the head only when exactly one of `weather.wind_speeds` and `weather.precipitation` is None. `_apportion_by_steady_demand` has one caller, `HeatPumpOptimizer._compute_baseline_power`, which opens with the identical assertion `assert wind_speeds is not None and precipitation is not None` on the same WeatherSeries before it reaches the call (behind `mixing_valve.is_throttling`), so a series with either field None is refused there, under both the head and the mutant, and never reaches this line; with both fields set the two assertions pass alike. The line exists for the type checker's narrowing inside the method. Measured: the site survived every driver whose closure holds optimizer.py in the R10-HOTFIX-SAV-ESTIMATE pin drive (`mutation-autofix`, run 42024722714, which named it a survivor), and no driver can kill it without calling the private method with a series its only caller refuses.",
-  "verdict": "equivalent"
-}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:realizable RETURN_DEL 7069a02a",
+  "killed_by": "tests/features.py",
+  "old": "    return bool(np.all((q <= 0.0) | (q >= floor_kw(floor) - _SLACK)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

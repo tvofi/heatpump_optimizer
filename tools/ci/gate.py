@@ -63,8 +63,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
-from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title,  # noqa: E402,F401
-                     run_jobs, title, workset)
+from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title, prior_jobs,  # noqa: E402,F401
+                     run_jobs, standing, title, workset)
 
 PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet")}      # B3
 # The push-only job that is graded on its own and never fails the gate: a red
@@ -207,6 +207,9 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         if r is me and any((r["jobs"].get(f"{unit} / {n}") or ("",))[0] != "completed" for n in names):
             return "~", r["id"]
         return max(((r.get("starts") or {}).get(f"{unit} / {n}") or "" for n in names), default=""), r["id"]
+    # One standing view per run for busy() and the source read alike (GATE-BUSY-REQUEUED-NEEDS):
+    # a gate the overlay released judges the re-running run's need where busy() read it.
+    others = [{**r, **dict(zip(("jobs", "starts"), standing(r)))} for r in others]
     for unit, names in required.items():
         src = None
         for r in sorted(others + [me], key=lambda r: fresh(r, names), reverse=True):
@@ -270,9 +273,13 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     for r in runs:
         if r["id"] != ctx["run_id"]:
             st: dict = {}
-            api["runs_at_head"].append({"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
-                                        "starts": st, "jobs": {} if r["status"] == "action_required"
-                                        else run_jobs(get, repo, r["id"], st)})
+            row = {"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
+                   "attempt": r.get("run_attempt"), "run_started_at": r.get("run_started_at"),
+                   "starts": st, "jobs": {} if r["status"] == "action_required"
+                   else run_jobs(get, repo, r["id"], st)}
+            if r["status"] not in ("completed", "action_required"):     # only an unfinished run is busy()'s to judge
+                row["prior"] = prior_jobs(get, repo, row)
+            api["runs_at_head"].append(row)
     return api
 
 
@@ -289,6 +296,29 @@ def machinery_line(jobs: dict, owed) -> str:
     other non-required jobs). It changes no verdict."""
     rest = [f"{k}={v[1] or v[0]}" for k, v in sorted(jobs.items()) if k not in owed]
     return "machinery (report-only, never gating): " + (", ".join(rest) or "no other job listed")
+
+
+#: The jobs that grade the process and never the product (owner ruling 2026-11-13, card P1). `status` is
+#: their one reader: the product jobs of an event class are its REQUIRED less this tuple, computed, never listed.
+MACHINERY_JOBS = ("tests / arch-instrument", "tests / briefs", "tests / closures", "governance / policy-docs",
+                  "governance / wave-script", "governance / env-matrix", "governance / instrument-self-tests")
+GREEN, RED, UNREAD = "green", "red", "unread"
+
+
+def status(jobs: dict, cls: str) -> tuple[str, str]:
+    """(PRODUCT, MACHINERY) of one run's latest jobs (`run_jobs`' shape) under event class `cls`, each
+    green, red or unread. It reads nothing and moves no `gate` conclusion. Red: a member that concluded
+    anything but success or cancelled, a skipped required member included (`gate`'s own rule). Unread: no
+    red, and a member absent, unfinished or cancelled; it never reads green. A skipped member `cls` does
+    not require (instrument-self-tests, when its scope chose nothing) is not applicable: the verdict is
+    over the members that ran, and unread when none did."""
+    def verdict(names) -> str:
+        ran = [jobs.get(n) for n in names
+               if n in REQUIRED[cls] or (jobs.get(n) or ("", ""))[1] != "skipped"]
+        if any(j is not None and j[0] == "completed" and j[1] not in ("success", "cancelled") for j in ran):
+            return RED
+        return GREEN if ran and all(j is not None and j[1] == "success" for j in ran) else UNREAD
+    return verdict([n for n in REQUIRED[cls] if n not in MACHINERY_JOBS]), verdict(MACHINERY_JOBS)
 
 
 def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=time.sleep,
@@ -452,6 +482,41 @@ def self_test() -> int:
     cov_red = [dict(j, conclusion="failure") if j["name"] == "tests / coverage-ratchet" else j for j in ratchet_red]
     check("a push with coverage-ratchet red still fails", judge(pctx, pclaim, fake(cov_red), cc)[0],
           "FAIL tests / coverage-ratchet: failure (this run)")
+    # R11-PRE-TOOLCHAIN-PIN: the pair of verdicts of one run. `gate`'s own conclusion is judged above and never moves.
+    pj = {x: ("completed", "success") for x in (*REQUIRED["push"], "governance / instrument-self-tests",
+                                                "tests / ci-ratchet")}
+
+    def st(cls="push", drop=(), **over):
+        named = {next(x for x in pj if x.split(" / ", 1)[1] == k.replace("_", "-") or x == k): v for k, v in over.items()}
+        return status({k: v for k, v in {**pj, **named}.items() if k not in drop}, cls)
+    red_job, running, cancelled, skipped = (("completed", "failure"), ("in_progress", None), ("completed", "cancelled"),
+                                            ("completed", "skipped"))
+    check("null: a push run with every job green reads PRODUCT green, MACHINERY green", st(), (GREEN, GREEN))
+    check("a push run red only in tests / closures reads PRODUCT green, MACHINERY red", st(closures=red_job), (GREEN, RED))
+    check("null: a push run red in tests / fast (3.14) reads PRODUCT red, MACHINERY green",
+          st(**{"tests / fast (3.14)": red_job}), (RED, GREEN))
+    check("a member absent, unfinished or cancelled is unread, never green, in either verdict",
+          [st(drop=("tests / typing",)), st(typing=running), st(typing=cancelled),
+           st(drop=("tests / briefs",)), st(briefs=running), st(briefs=cancelled)],
+          [(UNREAD, GREEN)] * 3 + [(GREEN, UNREAD)] * 3)
+    check("a red member beside an unread one is red: a concluded failure is known",
+          (st(typing=cancelled, browser=red_job), st(briefs=running, closures=red_job)), ((RED, GREEN), (GREEN, RED)))
+    check("a skipped required member is red, product or machinery (the gate's own 4.2 rule)",
+          (st(browser=skipped), st(briefs=skipped)), ((RED, GREEN), (GREEN, RED)))
+    check("a skipped instrument-self-tests (its scope chose nothing) is not applicable: MACHINERY over the rest",
+          (st(instrument_self_tests=skipped), st(instrument_self_tests=skipped, briefs=red_job)),
+          ((GREEN, GREEN), (GREEN, RED)))
+    check("null: an instrument-self-tests that ran red, absent or unfinished is read",
+          [st(instrument_self_tests=red_job)[1], st(drop=("governance / instrument-self-tests",))[1],
+           st(instrument_self_tests=running)[1]], [RED, UNREAD, UNREAD])
+    check("ci-ratchet is in neither verdict (advisory on push, owner 2026-11-11)", st(ci_ratchet=red_job), (GREEN, GREEN))
+    for cls, names in sorted(REQUIRED.items()):
+        allj = {x: ("completed", "success") for x in (*names, *MACHINERY_JOBS)}
+        moved = {x: [i for i, v in enumerate(status({**allj, x: red_job}, cls)) if v == RED] for x in allj}
+        check(f"{cls}: every required name reddens exactly one verdict, a machinery job MACHINERY and the rest PRODUCT",
+              {x: m for x, m in moved.items() if m != [1 if x in MACHINERY_JOBS else 0]}, {})
+    check("the machinery tuple names push-required jobs and the one self-tests lane prelude gates, nothing else",
+          [x for x in MACHINERY_JOBS if x not in REQUIRED["push"]], ["governance / instrument-self-tests"])
     check("on a pull request the notes stay one line per job, no machinery line",
           [x for x in judge(ctx, claim, fake(green + ratchet_red[-1:]), cc)[2] if x.startswith("machinery")], [])
     red = [dict(j, conclusion="failure") if j["name"] == "tests / closures" else j for j in green]
@@ -972,6 +1037,116 @@ def self_test() -> int:
     check("refresh re-runs a completed green gate, never one at the cap, never its own run",
           (rc, posted), (0, [f"repos/{repo}/actions/jobs/9/rerun"]))
     check("refresh at a fork head is a notice", refresh(ctx, fake(lp=fork), None)[0], 0)
+    # GATE-BUSY-REQUEUED-NEEDS: a gate re-run re-queues its skipped needs; the run is then busy() to
+    # every other gate until they finish. The constructed two-attempt fixture (attempt 1 every need
+    # concluded, attempt 2 `pr-contract / pr-contract` queued) is read through read_api().
+    rq = json.loads((HERE / "fixtures" / "gate_requeued_needs_runs.json").read_text())
+    rq_id = rq["run"]["id"]
+    me_id = rq_id + 1                       # the higher id: a started gate beside it is not excused by busy()'s tie-break
+    rq_ctx = {**ctx, "run_id": me_id}
+
+    def requeue_world(attempt=2, prior=None, status=200, listing=None):
+        reads = []
+
+        def get(path, params=None):
+            if path.endswith("/pulls/7"):
+                return 200, {}, pull
+            if path.endswith("ci.yml/runs"):
+                return 200, {}, {"workflow_runs": [{"id": me_id, "display_title": "x", "status": "in_progress", "run_attempt": 1},
+                                                   {**rq["run"], "run_attempt": attempt}]}
+            if path.endswith(f"/runs/{me_id}/jobs"):
+                return 200, {}, {"jobs": green}
+            if path.endswith(f"/runs/{rq_id}/jobs"):
+                return 200, {}, {"jobs": listing or rq["attempts"]["2"]}
+            if "/attempts/" in path:
+                reads.append(path)
+                return status, {}, {"jobs": prior or rq["attempts"]["1"]}
+            raise AssertionError(path)
+        return get, reads
+
+    def requeue_busy(**kw):
+        import contextlib
+        import io
+        get, reads = requeue_world(**kw)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            api = read_api(rq_ctx, claim, True, get)
+        return busy(rq_ctx, api["runs_at_head"]), len(reads), err.getvalue()
+    got = requeue_busy()
+    check("requeued needs: a run whose only unfinished job is its re-queued need, finished in attempt 1, is not "
+          "busy; one extra read", got[:2], ([], 1))
+    got = requeue_busy(attempt=1)
+    check("requeued needs null: a single-attempt run makes no extra read, and its unfinished need keeps it busy",
+          got[:2], ([rq_id], 0))
+    pend = [dict(j, status="queued", conclusion=None) if j["name"] == "pr-contract / pr-contract" else j
+            for j in rq["attempts"]["1"]]
+    got = requeue_busy(prior=pend)
+    check("requeued needs null: a need unfinished in the previous attempt too is still busy()", got[:2], ([rq_id], 1))
+    got = requeue_busy(status=404)
+    check("requeued needs: an unreadable previous attempt keeps today's reading and logs why",
+          (got[0], got[1], "unread" in got[2] and "HTTP 404" in got[2]), ([rq_id], 1, True))
+    got = requeue_busy(listing=rq["attempts"]["1"])
+    check("requeued needs null: an attempt-2 run with every need finished makes no extra read",
+          got[:2], ([], 0))
+    got = requeue_busy(prior=[j for j in rq["attempts"]["1"] if j["name"] != "pr-contract / pr-contract"])
+    check("requeued needs null: a need the previous attempt never listed stays busy", got[:2], ([rq_id], 1))
+    # Repair round (review blocked at 868f8a72): the overlay's domain is the run's OWN gate re-run, and
+    # gate()'s source read takes the same standing view as busy(). A need is read from the previous
+    # attempt only when (R1) the run is past attempt 1, (R2) the latest attempt did not re-run the
+    # prelude (a re-run-all did: its prelude started at or after run_started_at), (R3) the need is
+    # owed and listed unfinished, and (R4) its previous attempt concluded success or skipped; a
+    # failed, cancelled or timed-out need is what "re-run failed jobs" re-queues, a new source.
+    MUT, PRC = "tests / mutation", "pr-contract / pr-contract"
+    a1 = {j["name"]: j for j in rq["attempts"]["1"]}
+    queued = {"status": "queued", "conclusion": None, "started_at": None}
+
+    def shape(was=None, now=None):
+        return ([dict(j, **(was or {}).get(j["name"], {})) for j in rq["attempts"]["1"]],
+                [dict(j, **(now or {}).get(j["name"], {})) for j in rq["attempts"]["2"]])
+    p1, l2 = shape({MUT: {"conclusion": "failure"}, "gate": {"conclusion": "failure"}},
+                   {MUT: queued, "gate": queued, PRC: a1[PRC]})
+    check("requeued needs, re-run failed jobs: a unit that failed in attempt 1 and is queued again keeps the run "
+          "busy (the reviewer's attack shape)", requeue_busy(prior=p1, listing=l2)[:2], ([rq_id], 1))
+    p1, l2 = shape({MUT: {"conclusion": "cancelled"}}, {MUT: queued})
+    check("requeued needs, re-run failed jobs: a unit cancelled in attempt 1 and queued again keeps the run busy",
+          requeue_busy(prior=p1, listing=l2)[:2], ([rq_id], 1))
+    p1, l2 = shape({MUT: {"conclusion": "failure"}}, {MUT: queued})
+    check("requeued needs, re-run failed jobs beside the re-queued need: the failed unit still holds the run busy",
+          requeue_busy(prior=p1, listing=[dict(j, **queued) if j["name"] == PRC else j for j in l2])[:2], ([rq_id], 1))
+    rerun_all = [dict(j, started_at="2026-11-11T14:09:00Z") if j["status"] == "completed" else j
+                 for j in rq["attempts"]["2"]]
+    check("requeued needs, re-run all: the prelude re-ran in this attempt, so a queued need is a new source: busy, "
+          "no extra read", requeue_busy(listing=rerun_all)[:2], ([rq_id], 0))
+    check("requeued needs, re-run all: a prelude still queued in this attempt: busy, no extra read",
+          requeue_busy(listing=[dict(j, **queued) if j["name"] == "prelude" else j for j in rerun_all])[:2],
+          ([rq_id], 0))
+    p1, _ = shape({PRC: {"conclusion": "skipped"}})
+    check("requeued needs: a need the previous attempt skipped (C3, the gate re-run's documented re-queue) is not "
+          "busy", requeue_busy(prior=p1)[:2], ([], 1))
+    no_start = {**rq["run"]}
+    no_start.pop("run_started_at")
+    rq_saved, rq["run"] = rq["run"], no_start
+    check("requeued needs null: a run listing no run_started_at keeps today's reading: busy, no extra read",
+          requeue_busy()[:2], ([rq_id], 0))
+    rq["run"] = rq_saved
+    # One-sided (verdict point 2): a gate released by the overlay judges the re-running run's unit from
+    # the same standing source busy() read, never from an older run behind it.
+    get, _ = requeue_world()
+    api = read_api(rq_ctx, claim, True, get)
+    stale = {k: v for k, v in api["runs_at_head"][0]["jobs"].items()}
+    api["runs_at_head"].append({"id": 5, "title": title("code", "7", "main"), "status": "completed",
+                                "jobs": {**{k: ("completed", "success") for k in stale}, PRC: ("completed", "failure")},
+                                "starts": {PRC: "2026-11-11T12:00:00Z"}})
+    check("requeued needs, one source read: the released gate takes the re-running run's standing pr-contract "
+          "(attempt 1 success, started after the older red) as busy() did", gate(rq_ctx, api), (True, []))
+    p1, _ = shape({PRC: {"conclusion": "skipped"}})
+    get, _ = requeue_world(prior=p1)
+    api = read_api(rq_ctx, claim, True, get)
+    api["runs_at_head"].append({"id": 5, "title": title("code", "7", "main"), "status": "completed",
+                                "jobs": {**{k: ("completed", "success") for k in stale}, PRC: ("completed", "failure")},
+                                "starts": {PRC: "2026-11-11T12:00:00Z"}})
+    check("requeued needs, one source read: a need skipped before the re-run is no source there either, so the "
+          "older red stands", gate(rq_ctx, api), (False, ["pr-contract / pr-contract: failure (run 5)"]))
     print(f"gate self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 

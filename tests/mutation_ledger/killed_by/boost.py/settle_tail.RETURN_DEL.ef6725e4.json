@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:settle_tail RETURN_DEL ef6725e4",
+  "killed_by": "tests/features.py",
+  "old": "    return max(_SETTLE_FLOOR, SPACE_SETTLE_TAIL + _SETTLE_TAU * math.log(boosted / _BOOST_WINDOW))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

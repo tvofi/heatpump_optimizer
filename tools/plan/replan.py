@@ -527,6 +527,8 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str,
         sizes_hours alone. An unmeasured size is refused: a hand-written
         duration would be a fabricated measurement, and a KeyError from
         inside the schedule names neither the group nor the roster.
+    A group carrying an owner-stated price (`roster_lib.owner_price`) plans
+    exactly those minutes, before any size lookup.
     Both carry counts are `roster_lib.pending_carries` (`legacy`: the
     roster's cut-over, `roster_lib.read_legacy`): a carry marked implemented,
     moved or dismissed is not work left, and the basis says how many were
@@ -534,6 +536,15 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str,
     """
     n, size, cls = group["group"], group.get("size") or "M", work_class(group)
     stage = (group.get("resume") or {}).get("stage")
+    try:
+        stated = roster_lib.owner_price(group)
+    except roster_lib.SchemaError as e:
+        raise PlanError(f"{e} -- roster {where}")
+    if stated:
+        # The owner's own price: it is not a measurement, so no model, size
+        # or live fraction touches it, and the basis says whose it is.
+        return (stated[0] / 60.0,
+                f"owner-stated {stated[0]:g} min (not measured): {stated[1]}")
     pending = roster_lib.pending_carries(group, legacy or {})
     left = len(group.get("carry") or []) - len(pending)
     left_out = f", {left} marked carries left out" if left else ""
@@ -574,12 +585,14 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str,
     return hours, why
 
 
-#: The measured fields (`tools/plan/size_durations.py`) a plan records and
-#: `--check` requires: the rounds model and the held-stage model.
+#: The fields of `durations.json` a plan records in `generated.model`: the
+#: measured rounds and held-stage models (`tools/plan/size_durations.py`;
+#: `model_refusals` names the ones `--check` requires) and `phase_hours`, the
+#: round phases' durations the plan page prints (`plan_phases.MODEL_TIMED`).
 MODEL_FIELDS = ("first_round_hours", "first_round_by_class_hours", "review_rounds",
                 "review_rounds_by_class", "round_hours", "carry_baseline", "carry_hours",
                 "carry_part_hours", "carries_per_part", "sizes_percentile",
-                "carry_provenance")
+                "carry_provenance", "phase_hours")
 SIZE_ORDER = ("XS", "S", "M", "L", "XL")
 
 
@@ -633,6 +646,37 @@ def selftest_model() -> int:
     def grp(n, size="S", kind="defect", stage="not-started", after=(), **kw):
         return {"group": n, "size": size, "kind": kind, "after": list(after),
                 "resume": {"stage": stage}, **kw}
+
+    # 0. the owner-stated price (R10-HOTFIX-PLAN-OWNER-PRICE): the owner's
+    # minutes, before any size lookup, model, class or live fraction.
+    cite = 'owner-stated price, tvofi 2026-11-12: "Price it at 4h"'
+    priced = dict(owner_price_minutes=240, owner_price_cite=cite)
+    h, why = group_hours(grp("OP", "S", **priced), M, False, "fx")
+    expect("an owner-priced group plans exactly its stated minutes (4 h)", h == 4.0, f"{h} {why}")
+    expect("the basis names the citation and says it is not measured",
+           cite in why and "not measured" in why, why)
+    h, _ = group_hours(grp("OP", "XS", stage="in-progress", **priced), M, True, "fx")
+    expect("a price is not scaled by a live fixer and needs no size in the model",
+           h == 4.0, h)
+    h, _ = group_hours(grp("OP", "S", stage="carries-open", carry=["c"] * 9, **priced),
+                       M, False, "fx")
+    expect("a price outranks the held-carry model", h == 4.0, h)
+    h, _ = group_hours(grp("P", "S"), M, False, "fx")
+    expect("a group without a price still plans 18 h beside a priced one (null control)",
+           h == 18.0, h)
+    for label, bad in (("no citation", dict(owner_price_minutes=240)),
+                       ("a blank citation", dict(owner_price_minutes=240, owner_price_cite=" ")),
+                       ("a citation alone", dict(owner_price_cite=cite)),
+                       ("zero minutes", dict(owner_price_minutes=0, owner_price_cite=cite)),
+                       ("negative minutes", dict(owner_price_minutes=-5, owner_price_cite=cite)),
+                       ("boolean minutes", dict(owner_price_minutes=True, owner_price_cite=cite)),
+                       ("text minutes", dict(owner_price_minutes="240", owner_price_cite=cite))):
+        try:
+            group_hours(grp("OP", "S", **bad), M, False, "fx")
+            refused = False
+        except PlanError as e:
+            refused = "OP" in str(e)
+        expect(f"a price with {label} is refused, naming the group", refused)
 
     # 1. the size model. The old model is refused, the measured one is not.
     old = model_refusals(OLD_MODEL)
@@ -1295,9 +1339,10 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     # Post-closure groups (owner steps after the closing stamp, and what
     # follows them) start once the stamp is cut and every dependency has
     # finished; they hold no slot, join no batch and are in no stamp.
-    post_dur = {}
+    post_dur, post_basis = {}, {}
     for n in post:
-        h, _ = group_hours(G[n], durations, False, roster_path or roster_ref or "<fixture>")
+        h, post_basis[n] = group_hours(G[n], durations, False,
+                                       roster_path or roster_ref or "<fixture>")
         post_dur[n] = max(1, int(round(h * 60)))
     post_start: dict = {}
     post_end: dict = {}
@@ -1373,6 +1418,10 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 "coordinator": touches_coordinator(G[n]), "batch": None,
                 "stamp": None, "after": sorted(deps_post[n]), "done": False,
                 "post_closure": True,
+                # Only an owner-stated price is drawn: a measured basis stays out
+                # of the row it never had.
+                **({"duration_basis": post_basis[n], "owner_priced": True}
+                   if roster_lib.owner_price(G[n]) else {}),
             }
             continue
         if n in held:
@@ -1416,6 +1465,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "tier_reason": tier_why[n],
             "sort_key": plain(priority(n)),
             "duration_basis": basis[n],
+            **({"owner_priced": True} if roster_lib.owner_price(G[n]) else {}),
             "coordinator": coord[n],
             "batch": batch_of[n],
             "stamp": stamp_by_group.get(n),
@@ -1537,6 +1587,58 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                     "batch": s["batch"]} for s in stamps],
     }
     return plan
+
+
+def build_round_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
+                     version: str, roster_ref: str = "", roster_blob: str = "",
+                     roster_path: str = "", *, round_n: int, since_tag: list | None = None,
+                     evidence: dict | None = None, legacy: dict | None = None) -> dict:
+    """`build_plan` over the groups of round `round_n` only, plus the next
+    round's preliminary plan under `next_round` when the roster holds its
+    groups. A round's plan, closure and lanes cover that round's groups
+    (owner, 2026-11-13); a group of a later round is priced apart, from this
+    round's closure. A group of this round cannot wait on one of a later
+    round. `build_plan` itself plans every group it is given."""
+    later = roster_lib.next_round_groups(roster, round_n)
+    if not later:
+        return build_plan(roster, durations, caps, start, version, roster_ref, roster_blob,
+                          roster_path, round_n=round_n, since_tag=since_tag,
+                          evidence=evidence, legacy=legacy)
+    for n, g in groups_of(roster).items():
+        a = next((a for a in g.get("after") or [] if a in later), None)
+        if n not in later and a:
+            raise PlanError(f"{n}: after-edge names a group of a later round: {a}")
+    plan = build_plan(roster_lib.round_roster(roster, round_n), durations, caps, start, version,
+                      roster_ref, roster_blob, roster_path, round_n=round_n,
+                      since_tag=since_tag, evidence=evidence, legacy=legacy)
+    plan["next_round"] = next_round_preview(later, durations, caps, plan, roster_ref,
+                                            roster_blob, roster_path, evidence, legacy)
+    return plan
+
+
+def next_round_preview(later: dict, durations: dict, caps: dict,
+                       plan: dict, roster_ref: str, roster_blob: str, roster_path: str,
+                       evidence: dict | None, legacy: dict | None) -> dict:
+    """The next round's preliminary plan: its groups on the same duration model
+    and caps, starting at `plan`'s closure. Only the nearest later round is
+    scheduled; groups of rounds past it are counted in `beyond`. An
+    `after`-edge to a group of an earlier round is dropped: that round is
+    closed by the time this one starts. A round that cannot be planned is
+    `{"unavailable": reason}`, never an absent tab."""
+    nxt = min(roster_lib.group_round(n) for n in later)
+    mine = {n: g for n, g in later.items() if roster_lib.group_round(n) == nxt}
+    out = {"round": nxt, "preliminary": True, "starts_at": plan["summary"]["closure"],
+           "beyond": len(later) - len(mine)}
+    sub = {"groups": [{**g, "after": [a for a in g.get("after") or [] if a in mine]}
+                      for g in mine.values()]}
+    at = dt.datetime.strptime(plan["summary"]["closure"], "%Y-%m-%dT%H:%M:%SZ")
+    try:
+        out["plan"] = build_plan(sub, durations, caps, at, plan["summary"]["closure_stamp"],
+                                 roster_ref, roster_blob, roster_path, round_n=nxt,
+                                 evidence=evidence, legacy=legacy)
+    except PlanError as exc:
+        out["unavailable"] = str(exc)
+    return out
 
 
 def bump(version: str, n: int) -> str:
@@ -1797,6 +1899,9 @@ def check_plan(plan: dict) -> list:
         bad += model_refusals(plan["generated"]["model"])
     else:
         bad.append("model: the plan records no duration model (generated.model)")
+    nxt = (plan.get("next_round") or {}).get("plan")
+    if nxt:
+        bad += [f"next round {plan['next_round']['round']}: {b}" for b in check_plan(nxt)]
     return bad
 
 
@@ -2407,6 +2512,16 @@ def selftest() -> int:
            pc["groups"]["R10-CATALOG-PR"].get("post_closure") is True
            and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
            and pc["summary"]["post_closure"] == ["R10-CATALOG-PR"], str(pc["groups"]["R10-CATALOG-PR"]))
+    pcp = mk(base_g + [dict(cat, owner_price_minutes=240,
+                            owner_price_cite='tvofi 2026-11-12: "Price it at 4h"')])
+    pg_ = pcp["groups"]["R10-CATALOG-PR"]
+    expect("post-closure: an owner-priced step plans its minutes and its row says "
+           "the price is owner-stated, citing it",
+           pg_["duration_minutes"] == 240 and pg_.get("owner_priced") is True
+           and "Price it at 4h" in pg_.get("duration_basis", ""), str(pg_))
+    expect("post-closure (null): an unpriced step's row carries neither key",
+           "owner_priced" not in pc["groups"]["R10-CATALOG-PR"]
+           and "duration_basis" not in pc["groups"]["R10-CATALOG-PR"])
     expect("post-closure: in no stamp's carries, and summary.closure is the later of the "
            "stamp and the catalog step's finish (tvofi 2026-11-07), which starts no earlier "
            "than the stamp",
@@ -2992,6 +3107,23 @@ def selftest() -> int:
             ("planned-dispatch-cap",
              _m("def check_plan(plan: dict) ", "-> list:"),
              "        if cur >= slots:", "        if False:"),
+            ("owner-price",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             "    if stated:", "    if False:"),
+            ("owner-price-hours",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             "return (stated[0] / 60.0,", "return (stated[0],"),
+            ("owner-price-basis",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m('f"owner-stated {stated[0]:g} min (not measured): ', '{stated[1]}")'),
+             'f"owner-stated {stated[0]:g} min (not measured)")'),
+            ("owner-price-refusal",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             "        stated = roster_lib.owner_price(group)", "        stated = None"),
+            ("owner-price-post-row",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('**({"duration_basis": post_basis[n], ', '"owner_priced": True}'),
+             '**({"duration_basis": post_basis[n]}'),
             ("held-carry-model",
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m('if stage == HELD_STAGE and ', 'durations.get("carries_per_part"):'), "if False:"),
@@ -3387,9 +3519,9 @@ def main(argv=None) -> int:
             args.repo, f"{roster_lib.ROSTERS_DIR}/{src.rsplit('/', 1)[-1]}")
     except roster_lib.RosterNotFound as exc:
         raise PlanError(f"the carry cut-over: {exc}") from exc
-    plan = build_plan(roster, durations, caps, start, version, ref, blob,
-                      roster_path=src, round_n=round_n, since_tag=since_tag, evidence=evidence,
-                      legacy=legacy)
+    plan = build_round_plan(roster, durations, caps, start, version, ref, blob,
+                            roster_path=src, round_n=round_n, since_tag=since_tag,
+                            evidence=evidence, legacy=legacy)
     bad = check_plan(plan)
     if bad:
         print("the model produced a violating plan; refusing to write it", file=sys.stderr)

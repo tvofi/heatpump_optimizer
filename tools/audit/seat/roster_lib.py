@@ -128,6 +128,40 @@ def sizes(durations: dict) -> tuple:
     except (KeyError, TypeError) as e:
         raise SchemaError(f"{DURATIONS} carries no sizes_hours table: {e}")
 
+#: A group's owner-stated price (R10-HOTFIX-PLAN-OWNER-PRICE): minutes the
+#: owner ruled for the group, and the text of the ruling. The planner reads
+#: them (`replan.group_hours`), the editor writes them (`roster_edit set-price`),
+#: and both ask `owner_price_why` -- one definition of a writable price.
+OWNER_PRICE_MINUTES = "owner_price_minutes"
+OWNER_PRICE_CITE = "owner_price_cite"
+
+
+def owner_price_why(minutes, cite) -> str | None:
+    """Why (`minutes`, `cite`) is not an owner-stated price, or None. A price
+    is a positive number of minutes (a bool is no number) beside a non-blank
+    citation text: a price nobody can trace to the owner is a fabricated
+    measurement."""
+    if isinstance(minutes, bool) or not isinstance(minutes, (int, float)) \
+            or not minutes > 0 or minutes == float("inf"):
+        return f"an owner price is a positive number of minutes, not {minutes!r}"
+    if not isinstance(cite, str) or not cite.strip():
+        return "an owner price needs a citation text naming the owner's words"
+    return None
+
+
+def owner_price(group: dict) -> tuple[float, str] | None:
+    """(minutes, citation) of a group's owner-stated price, None when it has
+    none. One field without the other, or an invalid pair, is a SchemaError:
+    a half-written price is never read as no price."""
+    m, c = group.get(OWNER_PRICE_MINUTES), group.get(OWNER_PRICE_CITE)
+    if m is None and c is None:
+        return None
+    why = owner_price_why(m, c)
+    if why:
+        raise SchemaError(f"{group.get('group')}: {why}")
+    return float(m), c.strip()
+
+
 # WHICH ROSTER -- the one owner (R10-TICK b, d). Every seat tool that reads or
 # edits a roster asks `roster_path()`; none carries a path of its own. A round's
 # roster is `dev/programme/rosters/wave-r<N>-groups.json`, the programme-record
@@ -162,6 +196,31 @@ def roster_round(path: str) -> int:
     if not m:
         raise RosterNotFound(f"{path!r} is not a wave-r<N>-groups.json roster")
     return int(m.group(1))
+
+
+_GROUP_ROUND = re.compile(r"\AR(\d+)-")
+
+
+def group_round(name: str) -> int | None:
+    """The round a group id names (`R11-PRE-X` -> 11); None for an id with no
+    round prefix. The one rule by which a group belongs to a round's plan."""
+    m = _GROUP_ROUND.match(name)
+    return int(m.group(1)) if m else None
+
+
+def next_round_groups(roster: dict, round_n: int) -> dict:
+    """{id: entry} of the groups that belong to a round after `round_n`: its
+    pre-finder groups, its intake group, the groups deferred to it. A plan of
+    round `round_n` neither draws nor counts them (owner, 2026-11-13)."""
+    return {n: g for n, g in groups_of(roster).items()
+            if (r := group_round(n)) is not None and r > round_n}
+
+
+def round_roster(roster: dict, round_n: int) -> dict:
+    """`roster` without the groups of a round after `round_n`."""
+    later = next_round_groups(roster, round_n)
+    return {**roster, "groups": [g for g in roster.get("groups", [])
+                                 if g["group"] not in later]}
 
 
 def newest_roster(names) -> str | None:
@@ -353,6 +412,22 @@ def is_open(group: dict) -> bool:
 
 def open_groups(roster: dict) -> dict:
     return {k: g for k, g in groups_of(roster).items() if is_open(g)}
+
+
+def finder_gate(group: dict) -> bool | None:
+    """A group's `gates_finders`: whether the round's finders wait for it
+    (roster_edit set-field writes it); None when it is absent or no boolean."""
+    v = group.get("gates_finders")
+    return v if isinstance(v, bool) else None
+
+
+def architect_groups(roster: dict) -> tuple[list, list]:
+    """(the open groups the finders do not wait for, those of them unmarked).
+    What is still open when the finders finish is P3's input (tvofi,
+    2026-11-15), so an unmarked group is listed, never read as gating: a group
+    read as gating would drop out of the architect's plan unseen."""
+    listed = [k for k, g in open_groups(roster).items() if finder_gate(g) is not True]
+    return listed, [k for k in listed if finder_gate(groups_of(roster)[k]) is None]
 
 
 def unfinished_groups(roster: dict) -> dict:
@@ -662,8 +737,14 @@ def one_line_brief(group: dict, limit: int = 160) -> str:
     """
     text = (group.get("brief") or "").strip()
     # A brief written as a markdown document opens with a heading marker; the
-    # row is plain text, so the marker goes and the lines join.
-    text = re.sub(r"\A\s*#{1,6}[ \t]*", "", text)
+    # row is plain text, so the marker goes, and the heading line is the
+    # description: its next lines are the body, which joined on would run the
+    # title into the first loose line.
+    if re.match(r"\s*#{1,6}[ \t]", text):
+        text = re.sub(r"\A\s*#{1,6}[ \t]*", "", text).split("\n", 1)[0]
+    # An opening list marker ("1. ", "2) ", "- ") is not a sentence end: left
+    # in, the cut below ends the description at the marker.
+    text = re.sub(r"\A\s*(?:\d+[.)]|[-*])[ \t]+", "", text)
     text = re.sub(r"\s*\n\s*", " ", text)
     text = _ATTRIBUTION.sub("", text)
     cut = re.split(r"(?<=\.)\s", text, maxsplit=1)[0]
@@ -772,7 +853,13 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
 #: lists them). `roster_edit.py set-source` writes a word of SOURCES; absent
 #: means the programme's own audit or owner work.
 OUTSIDE = "outside"
-SOURCES = (OUTSIDE,)
+#: `source` values (intake, P268): "outside" is a contribution from outside the
+#: project; "user" an item the owner or an end user submitted (a report or a
+#: request, not a hotfix by itself); "audit" and "programme" are our own.
+SOURCES = (OUTSIDE, "user", "audit", "programme")
+#: the five rules under which `hotfix` may be true (owner rulings, P268).
+HOTFIX_RULES = ("user-production-bug", "owner-called", "fixing-phase-critical",
+                "main-red-required", "merge-deadlock")
 
 
 def is_outside(group: dict) -> bool:
@@ -786,11 +873,152 @@ def is_outside(group: dict) -> bool:
 
 
 def is_hotfix(group: dict) -> bool:
-    """Whether the group is a hotfix: `kind` "bug" (the user-reported finding) or
-    a `HOTFIX` in its name. A hotfix outranks an outside group (owner ruling
-    tvofi 2026-11-07, triage P420: "unless i call the owner one a hotfix")."""
+    """Whether the group is a hotfix: `hotfix` is True, `kind` "bug" (the
+    user-reported finding) or a `HOTFIX` in its name. A hotfix outranks an
+    outside group (owner ruling tvofi 2026-11-07, triage P420: "unless i call
+    the owner one a hotfix"). `set-field hotfix` admits True only under one of
+    HOTFIX_RULES, with its evidence."""
     return isinstance(group, dict) and (
-        group.get("kind") == "bug" or "HOTFIX" in str(group.get("group") or "").upper())
+        group.get("hotfix") is True or group.get("kind") == "bug"
+        or "HOTFIX" in str(group.get("group") or "").upper())
+
+
+def touches_production(group: dict) -> bool:
+    """Class production, or any of the group's files under custom_components/."""
+    if not isinstance(group, dict):
+        return False
+    return ("production" in str(group.get("class") or "").replace(",", " ").split()
+            or any(str(f).startswith("custom_components/") for f in group.get("files") or []))
+
+
+#: The convergence record (decision 0018 sections 2 and 4; process cards P7 and
+#: L1): what found an escape, which dimension owns it, what caused it, its
+#: symptom family, the countermeasure's kind, the group it descends from and
+#: the fix a re-report follows. `roster_edit.py set-field` writes each through
+#: `convergence_why`; `loop_ledger.py` reads them back.
+CONVERGENCE_FIELDS = ("found_by", "owned_by", "caused_by", "family", "cm_kind", "parent", "follows")
+#: `found_by` besides a finder dimension `D<n>` (card P7's list).
+FOUND_BY = ("reviewer", "ci-main", "owner", "outside")
+#: `caused_by.cause` besides a pull request `#<n>` or a roster group (card L1).
+CAUSES = ("external", "original")
+#: `cm_kind`, the countermeasure's kind (card L1's closed vocabulary).
+CM_KINDS = ("delete", "self-heal", "narrow", "widen", "new-refusal", "policy-text")
+_ROOT = Path(__file__).resolve().parents[3]
+_DIM = re.compile(r"\AD\d{1,2}\Z")
+_PR = re.compile(r"\A#[1-9]\d*\Z")
+_RCA_ID = re.compile(r"\A[A-Za-z0-9][\w-]*(?:\.[\w-]+)*\Z")  # a file stem, never a path
+
+
+def _dimension(word, root) -> bool:
+    """A finder dimension: `D<n>` with its brief under dev/governance/dimensions/."""
+    return isinstance(word, str) and bool(_DIM.match(word)) and (root / "dev/governance/dimensions" / f"{word}.md").is_file()
+
+
+def _bug_families(root) -> set:
+    try:
+        return set(json.loads((root / "dev/audit/config/bugclasses.json").read_text()))
+    except (OSError, ValueError, TypeError):
+        return set()
+
+
+def rca_lists(rca, group: dict, root=None) -> bool:
+    """Whether dev/audit/rca/<rca>.md is a root-cause record of `group`: the file
+    exists, and its id is one of the group's own `rca` records (the group is its
+    countermeasure; round 9's rosters hold a bool there, which lists no id) or the
+    group is one of `rca_subjects` of its text (the group is the defect it analyses;
+    a name in the record's body, a status table or a countermeasure line, is not).
+    `root` defaults to the repository at call time."""
+    if not isinstance(rca, str) or not _RCA_ID.match(rca):
+        return False
+    try:
+        text = ((root or _ROOT) / "dev/audit/rca" / f"{rca}.md").read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    me, own = group.get("group"), group.get("rca")
+    return (isinstance(own, list) and rca in own) or me in rca_subjects(text)
+
+
+def rca_subjects(text: str) -> set:
+    r"""The names a root-cause record declares as its subject: the whole tokens
+    (`[\w.-]+` runs, trailing dots and dashes stripped) of its opening block, which
+    is its first paragraph, and the one after it when the first is a one-line `# `
+    title, less any table row. A record states there what it analyses ("This is the root-cause seat for <group>", "beside <group>", a title's
+    "(<group>)"); a group it mentions later is a sibling, a countermeasure or a
+    dispatch-status row, which the record does not analyse (verdict/3657)."""
+    paras = [p for p in re.split(r"\n[ \t]*\n", text.strip()) if p.strip()]
+    title = bool(paras) and paras[0].startswith("# ") and "\n" not in paras[0]
+    block = [ln for p in paras[:2 if title else 1] for ln in p.splitlines() if not ln.lstrip().startswith("|")]
+    return {t.strip(".-") for t in re.findall(r"[\w.-]+", "\n".join(block))}
+
+
+def convergence_why(field: str, value, group: dict, names, root=None) -> "str | None":
+    """Why `value` is no admissible `field` of `group`, else None. `names` is every
+    group name the reader can see (the cause, parent and follows targets).
+    `caused_by` is {cause, rca}: `rca_lists(rca, group)`, so the cause is the
+    root-cause seat's record and never the fixer's (decision 0018 section 2,
+    `injected`), and a defect group with no `rca` of its own takes one once a
+    record under dev/audit/rca/ declares it as its subject (`rca_subjects`). `root` defaults to the repository."""
+    root = root or _ROOT
+    me = group.get("group")
+    if field == "found_by":
+        return None if value in FOUND_BY or _dimension(value, root) else (
+            f"found_by {value!r} is neither a finder dimension D<n> nor one of {', '.join(FOUND_BY)}")
+    if field == "owned_by":
+        return None if value == "none" or _dimension(value, root) else (
+            f"owned_by {value!r} is neither a dimension D<n> nor none")
+    if field == "family":
+        return None if value in _bug_families(root) else (
+            f"family {value!r} is no class of dev/audit/config/bugclasses.json")
+    if field == "cm_kind":
+        return None if value in CM_KINDS else f"cm_kind {value!r} is none of {', '.join(CM_KINDS)}"
+    if field in ("parent", "follows"):
+        return None if value in names and value != me else f"{field} {value!r} is no other roster group"
+    if field != "caused_by":
+        return f"{field!r} is no convergence field"
+    if not isinstance(value, dict) or set(value) != {"cause", "rca"}:
+        return "caused_by must be a JSON object {cause, rca}"
+    cause, rca = value["cause"], value["rca"]
+    if not (cause in CAUSES or (isinstance(cause, str) and _PR.match(cause)) or (cause in names and cause != me)):
+        return f"caused_by cause {cause!r} is no pull request #<n>, other roster group, or one of {', '.join(CAUSES)}"
+    if not rca_lists(rca, group, root):
+        return (f"caused_by rca {rca!r} is no rca record under dev/audit/rca/ that is the group's own"
+                f" or declares {me} its subject")
+    return None
+
+
+def recorded(group: dict, fields, names, root=None) -> bool:
+    """Whether every field of `fields` is present on the group and admissible."""
+    return all(f in group and convergence_why(f, group[f], group, names, root) is None for f in fields)
+
+
+def savings_h(group: dict) -> "float | None":
+    """The group's recorded saving in hours (`savings`), or None when it is absent or not a number."""
+    v = group.get("savings") if isinstance(group, dict) else None
+    return None if isinstance(v, bool) or not isinstance(v, (int, float)) else float(v)
+
+
+def _replan_production(group: dict) -> bool:
+    """Whether replan.py puts the group in one of its PRODUCTION lanes; False when replan is unreadable."""
+    import importlib.util
+    try:
+        path = _ROOT / "tools" / "plan" / "replan.py"
+        spec = importlib.util.spec_from_file_location("replan_lanes_for_roster_lib", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.roster_lane(group) in mod.PRODUCTION
+    except Exception:  # noqa: BLE001 - an unreadable replan is "not production", never a crash
+        return False
+
+
+def group_class(group: dict) -> str:
+    """The group's `class`, or with no class "production" when replan's lane for it is a
+    production lane, else "instrument". A class of several tokens ("owner,P2") is returned as written."""
+    if not isinstance(group, dict):
+        return "instrument"
+    c = group.get("class")
+    if isinstance(c, str) and c:
+        return c
+    return "production" if _replan_production(group) else "instrument"
 
 
 #: dispatch_rank's answers, best first.
@@ -903,6 +1131,41 @@ def critical_path_groups(repo: str, ref: str) -> set[str] | None:
     """
     groups, _ = critical_path_read(repo, ref)
     return groups or None
+
+
+# ------------------------------------------------------------- the writer lease
+#
+# ROSTER-PUSH-LEASE (triage s6-batch233 P706): the beat's roster drain and an
+# out-of-queue writer (carry_fold.py) both push the round's roster branch through
+# `roster_edit.py --push`, each re-applying across a lint window, and with no
+# shared lock each lost the other's races (a fold lost 3 of 3 tries against a
+# 21-op drain). One flock in the beat's state directory makes one writer of
+# record: the drain takes it per op without waiting and yields the rest of its
+# pass while it is held; carry_fold waits for it. flock is released when the
+# holder's process ends, so a killed holder leaves no stale lease.
+WRITER_LEASE = "roster-writer.lease"
+
+
+def writer_lease(state_dir, wait_s: float, sleep=None, clock=None):
+    """An fd holding the exclusive flock on `<state_dir>/roster-writer.lease`,
+    or None when another holder kept it for `wait_s` seconds; `os.close(fd)`
+    releases it."""
+    import fcntl
+    import os
+    import time
+    sleep, clock = sleep or time.sleep, clock or time.monotonic
+    Path(state_dir).mkdir(parents=True, exist_ok=True)
+    fd = os.open(Path(state_dir) / WRITER_LEASE, os.O_RDWR | os.O_CREAT, 0o644)
+    end = clock() + wait_s
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fd
+        except BlockingIOError:
+            if clock() >= end:
+                os.close(fd)
+                return None
+            sleep(1)
 
 
 # ------------------------------------------------------------------ self-test
@@ -1162,6 +1425,82 @@ def _self_test() -> int:
               and dispatch_rank(rk, "O1", set()) == RANK_TOP
               # no group id is RANK_OTHER even where a roster row carries no id and is a hotfix
               and dispatch_rank({"groups": [{"group": None, "kind": "bug"}]}, None, set()) == RANK_OTHER)
+        check("P268 readers: hotfix True and an R10-HOTFIX- name are hotfixes; a source-user request touching only dev/ is not",
+              is_hotfix({"group": "A", "hotfix": True}) and is_hotfix({"group": "R10-HOTFIX-Q"})
+              and not is_hotfix({"group": "B", "source": "user", "files": ["dev/x.md"]}))
+        check("P268 readers: touches_production reads class and custom_components/ files",
+              touches_production({"class": "production"})
+              and touches_production({"files": ["tests/a.py", "custom_components/x/y.py"]})
+              and not touches_production({"class": "instrument", "files": ["dev/a.md"]}))
+        check("P268 readers: savings_h is the number or None (a bool and a string are None)",
+              (savings_h({"savings": 14}), savings_h({}), savings_h({"savings": True}), savings_h({"savings": "9"}))
+              == (14.0, None, None, None))
+        check("P268 readers: group_class is the class when present, lane-derived only when absent",
+              group_class({"group": "X", "class": "instrument", "lane": "CORE"}) == "instrument"
+              and group_class({"group": "X", "class": "production"}) == "production"
+              and group_class({"group": "X"}) == "production"
+              and group_class({"group": "X", "files": ["tools/audit/seat/x.py"]}) == "instrument")
+        # a fixture root, so the vocabulary is read from planted files and never the tree's
+        froot = Path(td) / "vocab"
+        for rel in ("dev/governance/dimensions/D3.md", "dev/governance/dimensions/D8.md",
+                    "dev/governance/dimensions/D12.md", "dev/audit/rca/R10-N-log-flood.md",
+                    "dev/audit/rca/R10-N-staleness.md"):
+            (froot / rel).parent.mkdir(parents=True, exist_ok=True)
+            (froot / rel).write_text("x\n")
+        (froot / "dev/audit/rca/R10-RCA-NAMED.md").write_text("Cause of R10-D, found again in R10-E-2.\n")
+        # A process record (verdict/3657's R10-RCA-TICK-BLIND): its title and opening paragraph
+        # declare R10-S its subject; R10-T is a dispatch-status row and R10-U a later mention.
+        (froot / "dev/audit/rca/R10-RCA-STATUS.md").write_text(
+            "# R10-RCA-STATUS: why the board missed a dispatch\n\nThis is the root-cause seat for R10-S.\n"
+            "| group | state |\n|---|---|\n| R10-T | dispatched |\n\n## 1. Cases\n\n"
+            "| group | state |\n|---|---|\n| R10-T | stalled |\n\nR10-U waited on the same board.\n")
+        (froot / "dev/audit/config").mkdir(parents=True)
+        (froot / "dev/audit/config/bugclasses.json").write_text('{"N-log-flood": {}}')
+        cg = {"group": "R10-C", "rca": ["R10-N-log-flood"]}
+        cn = {"R10-C", "R10-P"}
+        cw = lambda f, v, g=cg: convergence_why(f, v, g, cn, froot)  # noqa: E731
+        check("convergence: each closed word is admitted, and its neighbour refused (null control)",
+              all(cw(f, ok) is None and cw(f, bad) for f, ok, bad in (
+                  ("found_by", "D3", "D99"), ("found_by", "ci-main", "ci"), ("owned_by", "none", "None"),
+                  ("owned_by", "D12", "D1x"), ("family", "N-log-flood", "N-no-such-class"),
+                  ("cm_kind", "new-refusal", "refusal"), ("parent", "R10-P", "R10-C"),
+                  ("follows", "R10-P", "R10-ZZ"))))
+        check("convergence: caused_by needs a root-cause record of the group, so the fixer cannot name it",
+              cw("caused_by", {"cause": "#3520", "rca": "R10-N-log-flood"}) is None
+              and cw("caused_by", {"cause": "R10-P", "rca": "R10-N-log-flood"}) is None
+              and cw("caused_by", {"cause": "original", "rca": "R10-N-log-flood"}) is None
+              and "rca record under" in cw("caused_by", {"cause": "#3520", "rca": "R10-N-staleness"})
+              and "rca record under" in cw("caused_by", {"cause": "#1", "rca": "R10-N-log-flood"}, {"group": "G"})
+              and "no pull request" in cw("caused_by", {"cause": "3520", "rca": "R10-N-log-flood"})
+              and "no pull request" in cw("caused_by", {"cause": "R10-C", "rca": "R10-N-log-flood"})
+              and "{cause, rca}" in cw("caused_by", "#3520")
+              and "no convergence field" in cw("source", "user"))
+        # A defect group with no rca of its own: the record that names it is its root-cause record.
+        check("convergence: caused_by admits a record naming a group with no rca, by whole token only",
+              cw("caused_by", {"cause": "#3520", "rca": "R10-RCA-NAMED"}, {"group": "R10-D"}) is None
+              and cw("caused_by", {"cause": "#3520", "rca": "R10-RCA-NAMED"}, {"group": "R10-E-2"}) is None
+              and all("rca record under" in (cw("caused_by", {"cause": "#3520", "rca": "R10-RCA-NAMED"},
+                                                {"group": n}) or "") for n in ("R10", "R10-E", "R10-D-1", "10-D", "G")))
+        check("convergence: caused_by admits only a group the record declares its subject, never a status row",
+              cw("caused_by", {"cause": "original", "rca": "R10-RCA-STATUS"}, {"group": "R10-S"}) is None
+              and all("rca record under" in (cw("caused_by", {"cause": "original", "rca": "R10-RCA-STATUS"},
+                                                {"group": n}) or "") for n in ("R10-T", "R10-U", "R10-RCA-STATUS-X"))
+              and rca_subjects("Cause of R10-D.\n\nR10-T later.\n") == {"Cause", "of", "R10-D"}
+              and rca_subjects("# R10-A\nCause.\n\nR10-T later.\n") == {"R10-A", "Cause"}
+              and rca_subjects("## R10-A\n\nR10-T later.\n") == {"R10-A"}
+              and rca_subjects("") == set())
+        check("convergence: an own rca id whose record file is missing, or a path for an id, is refused",
+              "rca record under" in cw("caused_by", {"cause": "#3520", "rca": "R10-N-gone"},
+                                       {"group": "R10-C", "rca": ["R10-N-gone"]})
+              and rca_lists("R10-N-log-flood", cg, froot) and not rca_lists("R10-N-gone", {"rca": ["R10-N-gone"]}, froot)
+              and not rca_lists("../rca/R10-N-log-flood", {"rca": ["../rca/R10-N-log-flood"]}, froot)
+              and not rca_lists(None, cg, froot)
+              and not rca_lists("R10-N-log-flood", {"group": "R10-C", "rca": True}, froot)
+              and rca_lists("R10-RCA-NAMED", {"group": "R10-D", "rca": True}, froot))
+        check("convergence: recorded needs every named field present and admissible",
+              recorded({**cg, "found_by": "owner", "owned_by": "none"}, ("found_by", "owned_by"), cn, froot)
+              and not recorded({**cg, "found_by": "owner"}, ("found_by", "owned_by"), cn, froot)
+              and not recorded({**cg, "found_by": "nobody", "owned_by": "none"}, ("found_by", "owned_by"), cn, froot))
         check("is_hotfix: kind bug or HOTFIX in the name only",
               is_hotfix({"group": "X", "kind": "bug"}) and is_hotfix({"group": "r10-hotfix-x"})
               and not is_hotfix({"group": "X"}) and not is_hotfix(None))
@@ -1329,6 +1668,33 @@ def _self_test() -> int:
         check("an override behind an unreadable tree refuses with git's read, "
               "not 'is not a file'",
               "cannot read" in why and "is not a file" not in why, why)
+    import os
+    with tempfile.TemporaryDirectory() as st:
+        held = writer_lease(st, 0)
+        other = writer_lease(st, 0)
+        waits = []
+        late = writer_lease(st, 3, sleep=waits.append, clock=lambda t=iter(range(0, 99)): next(t))
+        check("writer_lease: a held lease refuses a second holder, at once or after its wait",
+              held is not None and other is None and late is None and waits == [1, 1], (other, late, waits))
+        os.close(held)
+        again = writer_lease(st, 0)
+        check("writer_lease: a released lease is taken (null control)", again is not None, again)
+        os.close(again)
+    # gates_finders (R11-PRE-ROUND-CHECK-GATE part 2, tvofi 2026-11-15): every
+    # open group the finders do not wait for is the architect's input when they
+    # finish; an unmarked one is listed and flagged, never read as gating.
+    gr = {"groups": [{"group": "C", "gates_finders": True, "resume": {"stage": "in-progress"}},
+                     {"group": "N", "gates_finders": False, "resume": {"stage": "not-started"}},
+                     {"group": "U", "resume": {"stage": "not-started"}},
+                     {"group": "Y", "gates_finders": "yes", "resume": {"stage": "design"}},
+                     {"group": "D", "gates_finders": False, "resume": {"stage": "done"}},
+                     {"group": "A", "resume": {"stage": "absorbed"}}]}
+    check("finder_gate reads only a boolean", [finder_gate(g) for g in gr["groups"]] == [True, False, None, None, False, None],
+          [finder_gate(g) for g in gr["groups"]])
+    check("architect_groups lists every open group not gating the finders and flags the unmarked",
+          architect_groups(gr) == (["N", "U", "Y"], ["U", "Y"]), architect_groups(gr))
+    check("architect_groups of a roster whose open groups all gate is empty (null control)",
+          architect_groups({"groups": gr["groups"][:1] + gr["groups"][4:]}) == ([], []))
     print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
     for f in fails:
         print("FAIL", f)

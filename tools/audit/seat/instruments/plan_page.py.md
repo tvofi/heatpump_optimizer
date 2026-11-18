@@ -33,3 +33,18 @@
   `plan-beat` row passes from the overlay's `train_log`); `--no-flow` draws no
   flow metrics. Its mutants are in
   `dev/audit/harnesses/r10_outside_intake_p2_mutants.py`.
+- Round phases (R11-PRE-PLAN-RENDER): above the group lanes the page draws
+  the round's phases file, `dev/programme/round<N>/phases.json` (`--phases
+  FILE`, else the checkout's highest-numbered one), through
+  `tools/audit/seat/plan_phases.py`: every playbook phase in the playbook's
+  order on the file's own time axis, with status, started, finished, the
+  planned window and its basis, entry and exit, and the open phases' items. A
+  phase the file omits is drawn not started; a date the file does not carry
+  is a dash. `plan_phases.py --check FILE` lints the file (unknown status or
+  phase, out of order, waiting on nothing named, a non-ISO date, a date on a
+  not-started phase, a finished date on a phase not done, a forecast with no
+  basis: exit 1); an invalid file draws PHASES UNAVAILABLE and leaves the rest
+  of the page standing. `plan_phases.py --phases FILE --html OUT` draws the
+  section alone as a page, for a round with no plan yet. The file is named on
+  the page by its checkout-relative path, never a host path. Its mutants are
+  the `phases-*` entries of `dev/audit/harnesses/r10_plan_page_mutants.py`.

@@ -21,8 +21,9 @@ file is its only writer:
   new.txt        the lines the last changing fold added (empty when it added none);  by fold()
   gone.txt       the lines the last changing fold dropped (empty when it dropped none); by fold()
   new.stamp      touched (the fold's UTC) only when that fold added a line;
-  events.txt     `<utc> HEAD-MOVED #<n> <old12> <new12>` (head-watch) and
-                 `<utc> STUCK ...` (opener) lines, appended once each;
+  events.txt     `<utc> HEAD-MOVED #<n> <old12> <new12>` (head-watch),
+                 `<utc> STUCK ...` (opener) and `<utc> ROSTER-REFUSED ...`
+                 (roster-drain) lines, appended once each;
   heads.tsv      head-watch's last-seen head per open pull request;
   state/         each row's own memory (tick passes, roster marks, holds).
 fold() runs under `flock digest/.lock`. A null pass changes no byte; the wake
@@ -48,8 +49,11 @@ ROWS (the job table's `interval_s` in brackets):
   roster-drain [120] each pending op of `S/roster-drain.queue` through
                      roster_queue.py `run`, one at a time; every `roster:` line
                      it reports goes to the digest and the exact line (text and
-                     occurrence) is marked done in `state/` as soon as it ran,
-                     refused or not: a refusal is never retried, and a pass
+                     occurrence) is remembered in `state/` as soon as it ran,
+                     applied in roster-done.json, refused in roster-refused.json:
+                     a refusal is never retried, appends `ROSTER-REFUSED
+                     #<occurrence> <line>` to events.txt (the job file is
+                     replaced by the next pass that runs an op), and a pass
                      killed mid-queue replays at most the op it was killed in.
                      No op starts past ROSTER_PASS_BUDGET_S into a pass; the
                      rest wait for the next. `hold <tree-path> <op...>` waits
@@ -61,7 +65,10 @@ ROWS (the job table's `interval_s` in brackets):
                      because the worktree is on no origin ref (an earlier
                      refusal's leftover) stays pending under one `roster:
                      CASCADE` line. The lint clone is `S/roster-lint`, the
-                     orchestrator's to provision.
+                     orchestrator's to provision. Each op runs holding
+                     roster_lib's writer lease `S/roster-writer.lease`, taken
+                     without waiting: while an out-of-queue writer (carry_fold)
+                     holds it the pass starts no further op and writes no line.
   plan-beat [1800]   replan.py `--out`, then state_docs.py `--push --mirror
                      --plan`; `plan-beat: PLAN UNAVAILABLE` on a replan failure
                      or state_docs rc 1, `plan-beat: REFUSED` on its rc 2; on
@@ -80,13 +87,21 @@ ROWS (the job table's `interval_s` in brackets):
                      `unheld_skip`); its UNHELD lines.
   pulse [300]        pulse.py into `S/beatd/pulse.txt`; its STOPPED and
                      UNREADABLE lines to the digest.
-  cancel-sweep [600] cancel_superseded.py `sweep --repo R`; failures only.
+  cancel-sweep [600] cancel_superseded.py `sweep --repo R --priority` (+ `--train-state
+                     <train_state>` when the overlay has one); failures only (a
+                     remembered 409 zombie is no failure).
   disk [900]         worktree_gc.sh when `/` has under `disk_floor_gib` free;
                      a line only if still under afterwards.
   opener [300]       open_driver.py `--board` (one pass; its state stays in
                      `S/open-driver/`); its `OWED ... open-refused`,
                      `NEEDS-TITLE`, `STARVED` and `STUCK` lines, STUCK also
                      to events.txt.
+  loop-cwd [900]     the long-lived loops outside the job table, named by the overlay's
+                     `loop_cwd_patterns` (`pgrep -f` patterns): per pid `lsof -a -p <pid> -d cwd
+                     -Fin`, then `stat` of the named path. A differing inode or a path that
+                     does not resolve gives `DEAD <name> pid=<p> cwd gone`; an `lsof` that
+                     returns nothing gives `UNREADABLE`, never DEAD. Inodes, never only the
+                     path: `lsof` keeps the old path and a recreated checkout resolves.
   head-watch [120]   open pull-request heads from the API against heads.tsv.
   audit-dispatch [1800] review_strength.py `--fetch --guardrail`; each arm line
                      that reads `would-trip` gives one `DISPATCH: planted-defect-audit
@@ -100,6 +115,31 @@ ROWS (the job table's `interval_s` in brackets):
                      --cursor state/outside-cursor.json`: its `OUTSIDE` lines
                      (submissions by outside users owed a triage, an answer or
                      a reply this turn), `outside-intake: UNREADABLE` on rc 2.
+  darwin-selftest [900] Darwin hosts only (any other host runs nothing, not even git).
+                     One cycle per origin/main tip (an unchanged tip is skipped):
+                     `prepr.sh --self-test`, then `--self-test` of each script under
+                     tools/audit/seat that selftest_wiring.py reports as both
+                     self-testing and wired in a workflow, as CI runs it (`python3`,
+                     never `-I`). Each pass holds a heavy slot of tests/gate_lock.py
+                     around a detached worktree of the cycle's tip it makes under
+                     `state/` and removes (it writes into no checkout it tests),
+                     starts no self-test past DARWIN_PASS_BUDGET_S, and remembers
+                     what ran in `state/darwin-selftest.json`; the next pass resumes
+                     the same tip however far main has moved, and only a finished
+                     cycle starts the next at the newest tip. A finished cycle writes
+                     one line per red, `darwin-selftest: RED <instrument> <first FAIL
+                     line>`; the digest has none when every one is green. WHY: CI runs the
+                     self-tests on Linux only, so a Darwin-only read (mutant_run.py
+                     listing /proc) was found only when an opener failed. It
+                     detects after the merge; it does not prevent.
+                     A failed slot-take or worktree add is `darwin-selftest: UNREADABLE
+                     <step> rc=N: ...`, runs nothing and leaves the cycle where it was, so
+                     the next pass retries it.
+  cp-owed [300]      owed_watch.py `cp-owed --repo R --fired <fire_ledger> --checkout <repo>`: one
+                     `CP-OWED <arm> <subject>` line per critical-path or outside step past its
+                     grace (owner directive tvofi 2026-11-09, "never let the critical path or
+                     outside PRs slip, ever"); `cp-owed: UNREADABLE` on a non-zero rc, never
+                     its partial lines.
   bottleneck [1800]  bottleneck_check.py `--checkout <repo> --train-log
                      <train_log> --wip-cap <plan_slots> --memory
                      state/bottleneck.json`: its `BOTTLENECK:` and
@@ -107,10 +147,26 @@ ROWS (the job table's `interval_s` in brackets):
                      owner's thresholds, 2026-11-07); a held breach re-prints its
                      first line, so it is new once per trip. A line suggests; the
                      orchestrator decides. `bottleneck: UNREADABLE` on a non-zero rc.
-  scorecard [86400]  scorecard.py `report --dir S/scorecard --train-log <train_log>
+  scorecard [86400]  round_metrics.py `produce --dir S/scorecard --repo <checkout>
+                     --gh-repo <repo>` refreshes the inputs (one REST batch), then
+                     scorecard.py `report --dir S/scorecard --train-log <train_log>
                      [--sweep-record <sweep_record>]` into `S/beatd/scorecard.txt`
-                     (ten report-only lines, none a gate); the digest hears only
-                     `scorecard: UNREADABLE rc=<n>` when the instrument fails.
+                     (report-only lines, none a gate); the digest hears only
+                     `scorecard: UNREADABLE produce rc=<n>` (the report then does not
+                     run, so scorecard.txt keeps its last dated read) or
+                     `scorecard: UNREADABLE rc=<n>` when an instrument fails.
+  toolchain-promote [600] toolchain.py `promote --repo <repo> --dir <checkout>`: moves the
+                     stable tools ref `toolchain/stable` along main to the newest commit
+                     whose push run reads MACHINERY green, and keeps the instrument's
+                     last answer in `S/beatd/toolchain.txt`. A promotion or nothing newer
+                     leaves the digest empty; `PROMOTE-HELD` (the newest three concluded
+                     main runs past the ref machinery red or unread) is the row's line, and
+                     a refusal or failed read is `toolchain-promote: rc=<n>: <why>`.
+  ci-attempt [1800]  one `gh api` read of ci.yml's newest 100 runs: `CI-ATTEMPT: run
+                     <id> at attempt >= CI_ATTEMPT_ALARM on <branch> (#<pr>)` per run
+                     re-attempted that often (R10-RCA-SWEEP-SETTLE-LOOP countermeasure
+                     B: 1089 bot re-attempts on 11-08 were seen about 16 h late); a
+                     run below it is silent; `ci-attempt: UNREADABLE gh rc=<n>`.
 No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
 `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
 file. Every row exits 0 once its lines are written: the digest is the signal,
@@ -132,8 +188,12 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import roster_lib  # noqa: E402  the roster's one-writer lease
+
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake", "bottleneck", "scorecard")
+        "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "cp-owed", "bottleneck",
+        "scorecard", "ci-attempt", "toolchain-promote", "darwin-selftest")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
 #: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
@@ -142,7 +202,7 @@ ROSTER_PASS_BUDGET_S = 450
 #: The board's actionable family (carry 20's list), keyed on the texts
 #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
 FAMILY = re.compile(
-    r"^(?:OWED\b|DISPATCH:|OWNER FLAG:|BLOCKED-UNFIXED:|DESIGN-BUILD:|UNREADABLE:|DESIGN OWED:"
+    r"^(?:OWED\b|DISPATCH:|OWNER FLAG:|BLOCKED-UNFIXED:|DESIGN-BUILD:|UNREADABLE:|DESIGN OWED:|DESIGN-REVIEW OWED:|UNDISPATCHED:|OUTSIDE-CHAIN-IDLE "
     r"|REVIEW OWED:|RECORD-OWED:|REVIEW STALLED:|UNLEVELLED:|APPROVAL-OWED:|MERGE-READY:|main-red "
     r"|main \S+: REQUIRED not green"
     r"|#\d+: (?:RAISE APPROVAL OWED|NOT REVIEWABLE|mergeable state DIRTY|RED unanswered"
@@ -189,8 +249,9 @@ class Ctx:
     """One row's inputs; `run` and `free_gib` are the edges the self-test replaces."""
 
     def __init__(self, state: Path, repo: Path, overlay: Path | None = None, board: Path | None = None,
-                 run=sh, free_gib=None, now: float | None = None):
+                 run=sh, free_gib=None, now: float | None = None, platform: str | None = None):
         self.state, self.repo, self.run, self.clock = state, repo, run, time.monotonic
+        self.platform = sys.platform if platform is None else platform
         self.digest = state / "digest"
         self.now = time.time() if now is None else now
         self.free_gib = free_gib or (lambda: shutil.disk_usage("/").free / 2 ** 30)
@@ -342,6 +403,7 @@ def on_main(ctx: Ctx, path: str) -> bool:
 
 def roster_drain(ctx: Ctx) -> None:
     done = set(ctx.memory("roster-done.json", []))
+    refused = set(ctx.memory("roster-refused.json", []))
     holds = ctx.memory("roster-hold.json", {})
     lines, count, ran, cascade = [], collections.Counter(), False, 0
     # The queue is append-only. Only newline-terminated lines run: a last segment read mid-append waits
@@ -353,13 +415,18 @@ def roster_drain(ctx: Ctx) -> None:
     def save() -> None:  # after every op, not only at the pass's end: a killed pass keeps what it applied
         ctx.remember("roster-queue-lines.json", len(whole), 0)
         ctx.remember("roster-done.json", sorted(done), [])
+        ctx.remember("roster-refused.json", sorted(refused), [])
         ctx.remember("roster-hold.json", holds, {})
     if len(whole) < seen or ctx.memory("roster-shrank.json", False):
         ctx.remember("roster-shrank.json", True, False)  # sticky: the op queued after the clear must not vanish
         return write_job(ctx, "roster-drain", [
             f"roster: QUEUE-SHRANK {len(whole)} terminated line(s) now, {seen} drained before; the queue is "
-            "append-only; nothing ran. Rebaseline by deleting roster-done.json, roster-hold.json, "
-            "roster-queue-lines.json and roster-shrank.json under the digest state"])
+            "append-only; nothing ran. Rebaseline by deleting roster-done.json, roster-refused.json, "
+            "roster-hold.json, roster-queue-lines.json and roster-shrank.json under the digest state"])
+    def refuse(key: str) -> None:  # the job file is replaced by the next pass that runs an op; events.txt is not
+        refused.add(key)
+        n, _, text = key.partition("\t")
+        event(ctx, f"ROSTER-REFUSED #{n} {text}")
     start = ctx.clock()
     for raw in whole:
         text = raw.strip()
@@ -367,14 +434,14 @@ def roster_drain(ctx: Ctx) -> None:
             continue
         count[text] += 1
         key = f"{count[text]}\t{text}"
-        if key in done:
+        if key in done or key in refused:
             continue
         op = text
         if text.startswith("hold "):
             parts = text.split(None, 2)
             if len(parts) < 3:
                 lines.append(f"roster: refused malformed hold line: {text}")
-                done.add(key)
+                refuse(key)
                 continue
             first = holds.setdefault(key, ctx.now)
             if not on_main(ctx, parts[1]):
@@ -384,14 +451,20 @@ def roster_drain(ctx: Ctx) -> None:
             op = parts[2]
         if ctx.clock() - start >= ROSTER_PASS_BUDGET_S:
             break  # beatd kills the pass at timeout_s; this op and the rest run next pass
+        lease = roster_lib.writer_lease(ctx.state, 0)
+        if lease is None:
+            break  # an out-of-queue writer (carry_fold) holds the roster: this op and the rest run next pass
         one, report = ctx.digest / "state" / "roster-one.queue", ctx.digest / "state" / "roster-report.txt"
         atomic(one, op + "\n")
         report.unlink(missing_ok=True)
         ran = True
-        rc, out, err = ctx.py("tools/audit/seat/roster_queue.py", "run", "1", "1", "--mark", "--queue", str(one),
-                              "--report", str(report), "--edit-checkout", str(ctx.repo),
-                              "--worktree", str(ctx.digest / "state" / "roster-wt"),
-                              "--lint-clone", str(ctx.state / "roster-lint"))
+        try:
+            rc, out, err = ctx.py("tools/audit/seat/roster_queue.py", "run", "1", "1", "--mark", "--queue", str(one),
+                                  "--report", str(report), "--edit-checkout", str(ctx.repo),
+                                  "--worktree", str(ctx.digest / "state" / "roster-wt"),
+                                  "--lint-clone", str(ctx.state / "roster-lint"))
+        finally:
+            os.close(lease)
         said = [ln for ln in read(report).splitlines() if ln.startswith("roster: ")]
         mark = read(one).split("\n", 1)[0]  # `--mark` rewrites the exact line `#done <op>` or `#refused <op>`
         if not said and mark == op:  # no report line and no mark: roster_queue attempted nothing
@@ -401,10 +474,14 @@ def roster_drain(ctx: Ctx) -> None:
             cascade += 1  # the worktree an earlier refusal left detached refused it, not the lint gate
             continue
         lines += said or [f"roster: {op} {mark.split()[0]} rc={rc} no report line"]
-        if mark != op or not any("no op attempted" in ln for ln in said):
-            done.add(key)  # applied or refused: never retried past the lint gate
-            holds.pop(key, None)
-            save()
+        if mark == f"#refused {op}":
+            refuse(key)  # never retried past the lint gate, and durable past this pass's digest
+        elif mark != op or not any("no op attempted" in ln for ln in said):
+            done.add(key)  # applied: never re-run
+        else:
+            continue  # roster_queue attempted nothing: retried next pass
+        holds.pop(key, None)
+        save()
     if cascade:
         lines.append(f"roster: CASCADE {cascade} op(s) stay pending: the worktree "
                      f"{ctx.digest / 'state' / 'roster-wt'} is on no origin ref after an earlier refusal; "
@@ -421,7 +498,14 @@ def plan_beat(ctx: Ctx) -> None:
     plan, slots, seats, mirror, repo = got
     # the overlay's plan_coordinator_cap rides to replan.py; absent, replan's own default stands
     cap = ["--coordinator-cap", str(ctx.overlay["plan_coordinator_cap"])] if ctx.overlay.get("plan_coordinator_cap") else []
-    rc, _, err = ctx.py("tools/plan/replan.py", "--out", plan, "--slots", slots, "--seats", seats, *cap)
+    # Liveness by evidence, not the stage word (a stage-word read priced running
+    # groups as not started): the overlay's saved ref listing and in-flight PRs.
+    evidence: list = []
+    for key, flag in (("plan_live_refs", "--live-refs"), ("plan_in_flight", "--in-flight")):
+        if ctx.overlay.get(key):
+            evidence += [flag, str(ctx.overlay[key])]
+    rc, _, err = ctx.py("tools/plan/replan.py", "--out", plan, "--slots", slots, "--seats", seats,
+                        *cap, *evidence)
     if rc != 0:
         last = (err.strip().splitlines() or [""])[-1]
         return write_job(ctx, "plan-beat", [f"plan-beat: PLAN UNAVAILABLE replan rc={rc}: {last}"])
@@ -523,9 +607,14 @@ def cancel_sweep(ctx: Ctx) -> None:
     got = ctx.need("cancel-sweep", "repo")
     if got is None:
         return
-    rc, out, err = ctx.py("tools/pr/cancel_superseded.py", "sweep", "--repo", got[0])
+    extra = ["--priority"]
+    if ctx.overlay.get("train_state"):
+        extra += ["--train-state", str(ctx.overlay["train_state"])]
+    rc, out, err = ctx.py("tools/pr/cancel_superseded.py", "sweep", "--repo", got[0], *extra)
+    # A known zombie (a 409 run, remembered in cancel-zombies.json) prints `zombie <id>` once and is
+    # no failure; only a cancel or re-run that failed, an unreadable answer or a truncation is.
     bad = [ln for ln in out.splitlines()
-           if re.search(r"could not cancel| rc=-?\d+|unreadable|truncated", ln)]
+           if re.search(r"could not (?:cancel|re-run)| rc=-?\d+|unreadable|truncated", ln)]
     if rc != 0:
         bad.append(f"cancel-sweep: rc={rc}: {(err.strip().splitlines() or [''])[-1]}")
     write_job(ctx, "cancel-sweep", bad)
@@ -553,6 +642,29 @@ def opener(ctx: Ctx) -> None:
         if ln.startswith("STUCK "):
             event(ctx, norm(ln))
     write_job(ctx, "opener", lines)
+
+
+def loop_cwd(ctx: Ctx) -> None:
+    got = ctx.need("loop-cwd", "loop_cwd_patterns")
+    if got is None:
+        return
+    pats = ctx.overlay["loop_cwd_patterns"]
+    lines = []
+    for name in (pats if isinstance(pats, list) else [pats]):
+        _, out, _ = ctx.run(["pgrep", "-f", str(name)], ctx.repo, ctx.env)
+        for pid in (p for p in out.split() if p.isdigit() and int(p) != os.getpid()):
+            _, lo, _ = ctx.run(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fin"], ctx.repo, ctx.env)
+            fields = {ln[0]: ln[1:] for ln in lo.splitlines() if ln[:1] in ("i", "n")}
+            if not (fields.get("i", "").isdigit() and fields.get("n")):
+                lines.append(f"loop-cwd: UNREADABLE {name} pid={pid} lsof returned no cwd")
+                continue
+            try:
+                now = os.stat(fields["n"].removesuffix(" (deleted)")).st_ino  # lsof marks a removed cwd; the path may still resolve
+            except OSError:
+                now = None
+            if now != int(fields["i"]):
+                lines.append(f"DEAD {name} pid={pid} cwd gone")
+    write_job(ctx, "loop-cwd", lines)
 
 
 def head_watch(ctx: Ctx) -> None:
@@ -619,6 +731,19 @@ def outside_intake(ctx: Ctx) -> None:
     write_job(ctx, "outside-intake", [why or f"outside-intake: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
 
 
+def cp_owed(ctx: Ctx) -> None:
+    """owed_watch.py cp-owed: one CP-OWED line per critical-path or outside step past its grace."""
+    got = ctx.need("cp-owed", "repo", "fire_ledger")
+    if got is None:
+        return
+    rc, out, err = ctx.py("tools/audit/seat/owed_watch.py", "cp-owed", "--repo", got[0], "--fired", got[1],
+                          "--checkout", str(ctx.repo))
+    if rc != 0:
+        why = next((ln for ln in out.splitlines() if ln.startswith("cp-owed: UNREADABLE")), None)
+        return write_job(ctx, "cp-owed", [why or f"cp-owed: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+    write_job(ctx, "cp-owed", [ln for ln in out.splitlines() if ln.startswith("CP-OWED ")])
+
+
 def bottleneck(ctx: Ctx) -> None:
     """bottleneck_check.py: one line per flow metric past its threshold, held once per trip by its memory."""
     got = ctx.need("bottleneck", "train_log", "plan_slots")
@@ -633,10 +758,15 @@ def bottleneck(ctx: Ctx) -> None:
 
 
 def scorecard(ctx: Ctx) -> None:
-    """scorecard.py report into S/beatd/scorecard.txt; report-only, so the digest hears only of a failed run."""
-    got = ctx.need("scorecard", "train_log")
+    """round_metrics.py produce, then scorecard.py report into S/beatd/scorecard.txt; report-only,
+    so the digest hears only of a failed run."""
+    got = ctx.need("scorecard", "train_log", "repo")
     if got is None:
         return
+    rc, _, err = ctx.py("tools/audit/seat/round_metrics.py", "produce", "--dir", str(ctx.state / "scorecard"),
+                        "--repo", str(ctx.repo), "--gh-repo", got[1])
+    if rc != 0:
+        return write_job(ctx, "scorecard", [f"scorecard: UNREADABLE produce rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
     args = ["report", "--dir", str(ctx.state / "scorecard"), "--train-log", got[0], "--repo", str(ctx.repo)]
     if ctx.overlay.get("sweep_record"):
         args += ["--sweep-record", str(ctx.overlay["sweep_record"])]
@@ -647,10 +777,125 @@ def scorecard(ctx: Ctx) -> None:
     write_job(ctx, "scorecard", [])
 
 
+def toolchain_promote(ctx: Ctx) -> None:
+    """toolchain.py promote; the digest hears a hold, a refusal or a failed read, never a promotion."""
+    got = ctx.need("toolchain-promote", "repo")
+    if got is None:
+        return
+    rc, out, err = ctx.py("tools/audit/seat/toolchain.py", "promote", "--repo", got[0], "--dir", str(ctx.repo))
+    if out.strip():
+        atomic(ctx.state / "beatd" / "toolchain.txt", out)
+    held = [ln for ln in out.splitlines() if ln.startswith("PROMOTE-HELD ")]
+    if rc != 0 and not held:
+        held = [f"toolchain-promote: rc={rc}: {(err.strip().splitlines() or [''])[-1]}"]
+    write_job(ctx, "toolchain-promote", held)
+
+
+#: ci-attempt flags a run at this attempt or more; gate.py's ATTEMPT_CAP (45) is where the hooks stop.
+CI_ATTEMPT_ALARM = 20
+CI_RUN = re.compile(r"(\d+) (\d+) (\S+) ?([\d,]*)")
+
+
+def ci_attempt(ctx: Ctx) -> None:
+    """One line per ci.yml run at attempt CI_ATTEMPT_ALARM or more among the newest 100, named with its PR."""
+    got = ctx.need("ci-attempt", "repo")
+    if got is None:
+        return
+    rc, out, _ = ctx.run(["gh", "api", f"repos/{got[0]}/actions/workflows/ci.yml/runs?per_page=100", "--jq",
+                          '.workflow_runs[] | "\\(.id) \\(.run_attempt) \\(.head_branch) \\([.pull_requests[].number] | join(","))"'],
+                         ctx.repo, ctx.env)
+    if rc != 0:
+        return write_job(ctx, "ci-attempt", [f"ci-attempt: UNREADABLE gh rc={rc}"])
+    lines = []
+    for ln in out.splitlines():
+        m = CI_RUN.fullmatch(ln.strip())
+        if m and int(m[2]) >= CI_ATTEMPT_ALARM:
+            prs = " ".join(f"#{n}" for n in m[4].split(",") if n) or "no pull request"
+            lines.append(f"CI-ATTEMPT: run {m[1]} at attempt >= {CI_ATTEMPT_ALARM} on {m[3]} ({prs})")
+    write_job(ctx, "ci-attempt", lines)
+
+
+DARWIN_SEAT = "audit/seat/"
+DARWIN_LEASE_LABEL = "darwin-selftest"
+#: darwin-selftest starts no self-test past this many seconds into a pass and gives the heavy slot back;
+#: the rest of the tip runs next pass. One whole run measured 80 min on an M1 under other seats' load
+#: (prepr.sh --self-test alone 1104 s), past the row's timeout_s; at most half of it (the self-test pins it).
+DARWIN_PASS_BUDGET_S = 900
+
+
+def first_fail(out: str, err: str, rc: int) -> str:
+    """The first line naming FAIL in the run's output, else its last non-empty line, else the exit code."""
+    lines = [ln.strip() for ln in (out + "\n" + err).splitlines() if ln.strip()]
+    return next((ln for ln in lines if "FAIL" in ln), lines[-1] if lines else f"rc={rc} with no output")
+
+
+def darwin_instruments(wt: Path) -> list[str]:
+    """Paths under tools/ of the seat scripts that self-test and are wired in a workflow, in the worktree under test."""
+    import selftest_wiring
+    wired = selftest_wiring.wired(wt)
+    return [p for p in selftest_wiring.self_testing(wt)
+            if p.startswith(DARWIN_SEAT) and p.endswith((".py", ".sh")) and p in wired]
+
+
+def darwin_selftest(ctx: Ctx) -> None:
+    if ctx.platform != "darwin":
+        return
+    mem = ctx.memory("darwin-selftest.json", {})
+    if mem.get("complete", True):  # no cycle in progress: start one at the newest tip, once per tip
+        rc, tip, err = ctx.run(["git", "-C", str(ctx.repo), "rev-parse", "origin/main"], ctx.repo, ctx.env)
+        tip = tip.strip()
+        if rc != 0 or not re.fullmatch(r"[0-9a-f]{40}", tip):
+            return write_job(ctx, "darwin-selftest",
+                             [f"darwin-selftest: UNREADABLE origin/main rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+        if mem.get("tip") == tip:
+            return
+        mem = {"tip": tip, "done": [], "red": [], "complete": False}
+    tip = mem["tip"]  # a cycle in progress finishes its own tip, however far main has moved
+    gate = [sys.executable, "-I", str(ctx.repo / "tests" / "gate_lock.py")]
+    wt = ctx.digest / "state" / "darwin-selftest-wt"
+    env = {k: v for k, v in ctx.env.items() if k != "HPO_STATE_DIR"}  # a self-test never reaches this digest
+    env["HPO_SLOT_LABEL"] = DARWIN_LEASE_LABEL
+    rc, _, err = ctx.run([*gate, "slot-take", "--label", DARWIN_LEASE_LABEL, "--owner-pid", str(os.getpid())], ctx.repo, env)
+    if rc != 0:  # no lease, no heavy work; the cycle stays where it was, so the next pass retries
+        return write_job(ctx, "darwin-selftest",
+                         [f"darwin-selftest: UNREADABLE slot-take rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+    try:
+        ctx.run(["git", "-C", str(ctx.repo), "worktree", "remove", "--force", str(wt)], ctx.repo, env)  # a killed pass's
+        rc, _, err = ctx.run(["git", "-C", str(ctx.repo), "worktree", "add", "--detach", str(wt), tip], ctx.repo, env)
+        if rc != 0:
+            return write_job(ctx, "darwin-selftest",
+                             [f"darwin-selftest: UNREADABLE worktree rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+        runs = [("tools/pr/prepr.sh", ["bash", "tools/pr/prepr.sh", "--self-test"])]
+        # CI's own interpreter line: `-I` would drop the script's directory from sys.path (3.11+, -P)
+        runs += [(f"tools/{p}", ["python3" if p.endswith(".py") else "bash", f"tools/{p}", "--self-test"])
+                 for p in darwin_instruments(wt)]
+        start = ctx.clock()
+        for name, argv in runs:
+            if name in mem["done"]:
+                continue
+            if ctx.clock() - start >= DARWIN_PASS_BUDGET_S:
+                break  # the slot goes back to other seats; the rest of this tip runs next pass
+            rc, out, err = ctx.run(argv, wt, env)
+            if rc != 0:
+                mem["red"].append(f"darwin-selftest: RED {name} {first_fail(out, err, rc)}")
+            mem["done"].append(name)
+            ctx.remember("darwin-selftest.json", mem)  # after every run: a killed pass keeps what it ran
+        else:
+            mem["complete"] = True
+    finally:
+        ctx.run(["git", "-C", str(ctx.repo), "worktree", "remove", "--force", str(wt)], ctx.repo, env)
+        ctx.run([*gate, "slot-release", "--label", DARWIN_LEASE_LABEL], ctx.repo, env)
+    ctx.remember("darwin-selftest.json", mem)
+    if mem["complete"]:
+        write_job(ctx, "darwin-selftest", mem["red"])
+
+
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
-       "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
-       "outside-intake": outside_intake, "bottleneck": bottleneck, "scorecard": scorecard}
+       "opener": opener, "loop-cwd": loop_cwd, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
+       "outside-intake": outside_intake, "cp-owed": cp_owed, "bottleneck": bottleneck, "scorecard": scorecard,
+       "ci-attempt": ci_attempt, "toolchain-promote": toolchain_promote,
+       "darwin-selftest": darwin_selftest}
 
 
 def main(argv: list[str]) -> int:

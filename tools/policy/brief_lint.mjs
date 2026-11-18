@@ -777,6 +777,10 @@ function checkShape(groups, findings) {
     if (g.after !== undefined && !Array.isArray(g.after)) {
       bad(label, '`after` is present but is not an array')
     }
+    // check_scopes.py --open-cards would read a word here as unmarked.
+    if (g.gates_finders !== undefined && typeof g.gates_finders !== 'boolean') {
+      bad(label, '`gates_finders` is present but is not true or false')
+    }
   })
 }
 
@@ -963,11 +967,19 @@ export function checkCarryShape(file, data, findings, roster) {
 // LEGACY_CONTROL_CAP pins that: the set may only shrink (assertLegacyControl), and a member whose
 // controls now lint clean must leave it.
 const LEGACY_CONTROL_CAP = 14
-const LEGACY_CONTROL_FILES = new Set([
-  'carry-1067.json', 'carry-1336.json', 'carry-1395.json', 'carry-1398.json', 'carry-1412.json',
-  'carry-1454.json', 'carry-1459.json', 'carry-1463.json', 'carry-1644.json', 'carry-1645.json',
-  'carry-1659.json', 'carry-1660.json', 'carry-201.json', 'carry-752.json',
-])
+// The members are data, not source: tools/policy/legacy_control_files.json, which no check pins, so a
+// repair that delists a member is one pull request. The cap stays here. Fail-closed: an unreadable or
+// malformed file yields an empty set, so every listed carry is linted with the control rules.
+const LEGACY_CONTROL_DATA = path.join(HERE, 'legacy_control_files.json')
+function readLegacyControlFiles() {
+  try {
+    const d = JSON.parse(fs.readFileSync(LEGACY_CONTROL_DATA, 'utf8'))
+    return new Set(Array.isArray(d.files) ? d.files.filter((x) => typeof x === 'string') : [])
+  } catch {
+    return new Set()
+  }
+}
+const LEGACY_CONTROL_FILES = readLegacyControlFiles()
 
 export function lintCarryFile(file, { roster, legacy = LEGACY_CONTROL_FILES } = {}) {
   const findings = []
@@ -1232,6 +1244,7 @@ const REQUIRED_SHAPE_DEFECTS = [
   { group: 'no-resume', kind: 'path', needle: 'no_such_probe_file.py' },
   { group: 'no-stage', kind: 'shape', needle: '`resume.stage` is missing or is not a non-empty string' },
   { group: 'after-not-array', kind: 'shape', needle: '`after` is present but is not an array' },
+  { group: 'gates-not-bool', kind: 'shape', needle: '`gates_finders` is present but is not true or false' },
   { group: 'twin', kind: 'shape', needle: 'duplicate group id' },
   { group: 'edge-probe', kind: 'after', needle: "'no-such-group' names no group in this file" },
 ]
@@ -1407,8 +1420,12 @@ function assertCarryControl() {
   }
   const good = carryControlFindings('dev/audit/harnesses/agreement_two_pr.mjs prints the count')
   if (good.length) problems.push(`a control naming an existing harness is refused (null control): ${good[0].message}`)
-  const legacy = carryControlFindings('the FUTURE-STATE section 2 figures', 'carry-201.json')
-  if (legacy.length) problems.push(`a legacy carry file is refused (the narrowing): ${legacy[0].message}`)
+  // The legacy example is read from the set, not named: the set only shrinks, and a
+  // named member that leaves it would turn this narrowing check into a refusal.
+  const member = [...LEGACY_CONTROL_FILES].sort()[0]
+  if (!member) problems.push('the legacy set is empty, so the narrowing is unexercised')
+  const legacy = member ? carryControlFindings('the FUTURE-STATE section 2 figures', member) : []
+  if (legacy.length) problems.push(`a legacy carry file (${member}) is refused (the narrowing): ${legacy[0].message}`)
   if (problems.length) {
     console.log('\nCONTROL VACUOUS: carry control:')
     for (const m of problems) console.log(`  ${m}`)
@@ -1453,6 +1470,17 @@ function assertCarryFixtures() {
 //    covers is refused by lintCarryFile with no roster handed in (a carry at 999999 is not: null control);
 //  - LEGACY_CONTROL_FILES only shrinks: its size is at most LEGACY_CONTROL_CAP, and every member still has a
 //    control error when linted without the exemption (a repaired file must be removed from the set).
+export function staleLegacyMembers(labels, files) {
+  const problems = []
+  for (const label of labels) {
+    const f = files.get(label)
+    if (!f) { problems.push(`${label} is in LEGACY_CONTROL_FILES and in no carry directory: remove it`); continue }
+    const errs = lintCarryFile(f, { roster: new Map(), legacy: new Set() }).filter((x) => x.severity === 'error' && / control/.test(x.group))
+    if (!errs.length) problems.push(`${label}: its controls lint clean without the exemption: remove it from LEGACY_CONTROL_FILES`)
+  }
+  return problems
+}
+
 function assertLegacyControl() {
   const problems = []
   const live = [...rosterIssues(ROSTERS_DIR).keys()][0]
@@ -1472,18 +1500,42 @@ function assertLegacyControl() {
   }
   if (LEGACY_CONTROL_FILES.size > LEGACY_CONTROL_CAP) problems.push(`LEGACY_CONTROL_FILES holds ${LEGACY_CONTROL_FILES.size} files, over its cap ${LEGACY_CONTROL_CAP}: the set only shrinks`)
   const files = new Map(carryFiles().map((f) => [path.posix.basename(f), f]))
-  for (const label of LEGACY_CONTROL_FILES) {
-    const f = files.get(label)
-    if (!f) { problems.push(`${label} is in LEGACY_CONTROL_FILES and in no carry directory: remove it`); continue }
-    const errs = lintCarryFile(f, { roster: new Map(), legacy: new Set() }).filter((x) => x.severity === 'error' && / control/.test(x.group))
-    if (!errs.length) problems.push(`${label}: its controls lint clean without the exemption: remove it from LEGACY_CONTROL_FILES`)
-  }
+  problems.push(...staleLegacyMembers([...LEGACY_CONTROL_FILES], files))
   if (problems.length) {
     console.log('\nLEGACY-CONTROL VACUOUS:')
     for (const m of problems) console.log(`  ${m}`)
     return 1
   }
   console.log('\nLEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption')
+  return 0
+}
+
+// A listed-but-clean file is still refused (the data file's own guard): a carry whose controls lint
+// clean without the exemption is reported by staleLegacyMembers, a carry that still needs it is not
+// (null control), and a check that reports nothing -- the mutant -- is told apart by this arm.
+function assertLegacyListedClean() {
+  const problems = []
+  const clean = path.join(FIXTURES, 'carry-990001.json')
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'legacyclean-'))
+  const bad = path.join(tmp, 'carry-990001.json')
+  const model = JSON.parse(fs.readFileSync(clean, 'utf8'))
+  fs.writeFileSync(bad, JSON.stringify({ ...model, carries: model.carries.map((c) => ({ ...c, control: 'a plain sentence that names no path at all' })) }))
+  const staleOf = (check, f) => check([path.posix.basename(f)], new Map([[path.posix.basename(f), f]]))
+  const mutant = () => []
+  const hit = (check) => staleOf(check, clean).length
+  if (!hit(staleLegacyMembers)) problems.push('a listed carry whose controls lint clean is not refused')
+  try {
+    if (staleOf(staleLegacyMembers, bad).length) problems.push('a listed carry that still needs the exemption is refused (null control)')
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+  if (hit(mutant)) problems.push('the vacuous check is not told apart from the real one')
+  if (problems.length) {
+    console.log('\nLEGACY-LISTED-CLEAN VACUOUS:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log('\nLEGACY-LISTED-CLEAN ok: a listed carry that lints clean is refused, one that needs the exemption is not, and the vacuous check is told apart')
   return 0
 }
 
@@ -1658,6 +1710,7 @@ function main() {
     acceptanceRc += assertCarryFixtures()
     acceptanceRc += assertCarryControl()
     acceptanceRc += assertLegacyControl()
+    acceptanceRc += assertLegacyListedClean()
     acceptanceRc += assertTreeRev()
     acceptanceRc += assertPlaybookFixtures()
   }

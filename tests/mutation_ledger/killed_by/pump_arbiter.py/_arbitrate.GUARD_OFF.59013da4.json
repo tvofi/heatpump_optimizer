@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF 59013da4",
-  "killed_by": "tests/features.py",
-  "old": "        if held.written or held.retry or held.dropped or held.space_before is not None:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

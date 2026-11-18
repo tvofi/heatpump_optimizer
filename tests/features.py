@@ -2423,7 +2423,7 @@ def _r10do_dhw(tank):
         _r9f12_aio.run(coord._update_current_state())
     finally:
         _r9f12_dt.freeze(None)
-    return seen, coord._learner_freeze_reason, coord._legionella.last_cycle
+    return seen, coord._learner_freezes.last, coord._legionella.last_cycle
 
 
 _r10do_tank, _r10do_notank = _r10do_dhw("48.0"), _r10do_dhw(None)
@@ -7063,6 +7063,68 @@ R.check(
     f"NaN and nowhere else",
 )
 
+# A fixed variable costs no simulated row (design note n6): its step is zero,
+# so its row would be x0 again and the division never reads the value. The
+# batch is the free variables' rows, behind x0 itself when the caller asks the
+# batch for f(x0) too; counted on the production symbol, at a bound set that
+# is mostly fixed, the shape a committed mask and a full DHW block produce.
+_gate_rows_seen: list[int] = []
+
+
+_gate_wide_x0 = np.array([1.0, 2.0, 0.0, 4.0, 0.5, 6.0])
+_gate_wide_bounds = [
+    (0.0, 6.0), (2.0, 2.0), (0.0, 0.0), (4.0, 4.0), (0.0, 6.0), (6.0, 6.0),
+]
+
+
+def _gate_wide_batch(mat, *_a):
+    m = np.atleast_2d(np.asarray(mat, dtype=float))
+    _gate_rows_seen.append(m.shape[0])
+    return np.sum((m - np.array([3.0, 1.0, 5.0, 2.0, 0.0, 1.0])) ** 2, axis=1)
+
+
+_gate_wide_f0 = float(_gate_wide_batch(_gate_wide_x0[None, :])[0])
+_gate_rows_seen.clear()
+_gate_wide_grad = _grad_optmod._batch_fd_gradient(
+    _gate_wide_batch, (), _gate_wide_x0, _gate_wide_f0, 1e-4, _gate_wide_bounds,
+)
+_gate_wide_fused = _grad_optmod._batch_fd_gradient(
+    _gate_wide_batch, (), _gate_wide_x0, None, 1e-4, _gate_wide_bounds,
+)
+R.check(
+    "the batched jac simulates one row per free variable, none for a fixed one",
+    _gate_rows_seen == [2, 3],
+    f"batch heights {_gate_rows_seen} for 2 free of 6 variables: [2, 3] is "
+    f"the free rows alone, then the same behind x0; [6, 7] simulates the "
+    f"four fixed variables' copies of x0 as well",
+)
+R.check(
+    "that jac is the full batch's: scipy's estimate where free, 0.0 where fixed",
+    np.array_equal(_gate_wide_grad, _gate_wide_fused)
+    and np.array_equal(
+        _gate_wide_grad[[0, 4]],
+        np.array([
+            (float(_gate_wide_batch(
+                (_gate_wide_x0 + 1e-4 * np.eye(6)[i])[None, :])[0])
+             - _gate_wide_f0)
+            / ((_gate_wide_x0[i] + 1e-4) - _gate_wide_x0[i])
+            for i in (0, 4)
+        ]),
+    )
+    and not np.any(_gate_wide_grad[[1, 2, 3, 5]]),
+    f"gradient {_gate_wide_grad}, fused {_gate_wide_fused}",
+)
+_gate_rows_seen.clear()
+_gate_all_fixed = _grad_optmod._batch_fd_gradient(
+    _gate_wide_batch, (), _gate_wide_x0, _gate_wide_f0, 1e-4,
+    [(float(v), float(v)) for v in _gate_wide_x0],
+)
+R.check(
+    "with every variable fixed and f(x0) supplied, no batch is simulated",
+    _gate_rows_seen == [] and np.array_equal(_gate_all_fixed, np.zeros(6)),
+    f"batch heights {_gate_rows_seen}, gradient {_gate_all_fixed}",
+)
+
 from scipy.optimize._numdiff import approx_derivative as _gate_approx
 
 R.check(
@@ -7263,7 +7325,7 @@ def _check_batch_cost_948(label, cap):
     # objective_batch call on the 6-row matrix above.
     with _count_entries_948(
         (_PvOpt, "_comfort_terms"),
-        (_grad_optmod, "cycling_penalty"),
+        (_grad_optmod.runs, "start_count"),
         (_grad_optmod, "peak_cost_smooth"),
         (_PvModel, "simulate_trajectory"),
         (_PvModel, "simulate_trajectory_batch"),
@@ -7280,7 +7342,7 @@ def _check_batch_cost_948(label, cap):
     R.check(
         f"and without the per-row grid-term helpers: {label}",
         cyc == 0 and peak == 0,
-        f"cycling_penalty entered {cyc} times, peak_cost_smooth {peak} times "
+        f"runs.start_count entered {cyc} times, peak_cost_smooth {peak} times "
         f"(the solver's capacity term is the smooth surrogate since #1210; "
         f"the exact peak_cost is billed/published only and never batched)",
     )
@@ -7348,7 +7410,7 @@ _check_batch_cost_948(
 )
 
 # The batch twins under their own branch grids, one level below the
-# objective: every arm peak_cost and cycling_penalty branch on, priced per
+# objective: every arm peak_cost and the start count branch on, priced per
 # row against the scalar function on the same plan. Rule: row b of the
 # batch result must equal the scalar function on row b's plan, exactly,
 # for every (offset, window length, factors) arm -- separated peaks, the
@@ -7360,9 +7422,9 @@ _check_batch_cost_948(
 # it); the extra checks below pin that the two scalars agree everywhere
 # the plateau gate does not fire.
 from heatpump_optimizer.tariff import peak_cost_batch as _pcb948
-from heatpump_optimizer.optimizer import (
-    cycling_penalty as _cyc948,
-    cycling_penalty_batch as _cpb948,
+from heatpump_optimizer.runs import (
+    start_count as _cyc948,
+    start_count_batch as _cpb948,
 )
 
 _rows948 = np.vstack([
@@ -7427,11 +7489,13 @@ R.check(
 _cyc_bad948 = [
     _b948
     for _b948 in range(_rows948.shape[0])
-    if _cpb948(_rows948[_b948 : _b948 + 1], 2.0, 6.0)[0]
-    != _cyc948(_rows948[_b948], 2.0, 6.0)
+    for _run948 in (False, True)
+    if _cpb948(_rows948[_b948 : _b948 + 1], 2.0, _run948)[0]
+    != _cyc948(_rows948[_b948], 2.0, _run948)
 ]
 R.check(
-    "cycling_penalty_batch is cycling_penalty on every row, bit for bit",
+    "runs.start_count_batch is runs.start_count on every row, bit for bit, "
+    "from a stopped and from a running compressor",
     not _cyc_bad948,
     f"divergent rows: {_cyc_bad948}",
 )
@@ -8355,7 +8419,6 @@ class _CopGate:
         )
         self._cop_scale = 1.0
         self._cop_samples = 0
-        self._cop_ratio_ewma = None
         self._measured_cop = _CopRecord()
         self._immersion_active = False
         # #1067: the supply/return learner the reference curve consults.
@@ -9015,57 +9078,42 @@ _ok, _detail = _from_dict_survives(
 )
 R.check("StartCounter.from_dict swallows inf lifetime", _ok, _detail)
 
-# The streak is what makes "START_HYSTERESIS_SAMPLES consecutive samples"
-# true. A sample that AGREES with the state already held is not part of an
-# edge, so it must reset the streak: otherwise a steady running signal keeps
-# the streak alive across agreeing samples and the next real edge is
-# confirmed on fewer samples than the promise. Drive a steady above-threshold
-# signal while the counter already believes it is running.
-from heatpump_optimizer.const import START_HYSTERESIS_SAMPLES as _FUZZ_HYST
+# R10-START-COUNTER-EDGES re-points the streak checks to what replaced the
+# streak. A start is an edge to running from a last known class of stopped:
+# a steady running signal, folded as many confirmed True edges as you like
+# into a counter that already believes it runs, books nothing.
+from heatpump_optimizer.wear import EdgeTracker as _FuzzEdges
 
-_steady = _FuzzStarts()
-_steady.running = True
-_steady_confirmed = 0
-for _i in range(_FUZZ_HYST + 2):
-    if _steady.observe(NOW + timedelta(minutes=_i), 2.0, 1.0, False):
-        _steady_confirmed += 1
+_steady = _FuzzStarts.from_dict({"running": True})
+_steady_confirmed = sum(len(_steady.fold(NOW + timedelta(minutes=_i), True)) for _i in range(4))
 R.check(
-    "a steady running signal restarts the streak and confirms no start",
-    _steady_confirmed == 0 and _steady._streak == 0 and _steady.lifetime == 0,
-    f"confirmed {_steady_confirmed}, streak {_steady._streak}, "
-    f"lifetime {_steady.lifetime}",
+    "a steady running signal confirms no start",
+    _steady_confirmed == 0 and _steady.lifetime == 0 and _steady.running,
+    f"confirmed {_steady_confirmed}, lifetime {_steady.lifetime}",
 )
 
-# The check above cannot fail on the reset: there `above == self.running`
-# holds from the very first sample, so `_streak` never leaves 0 and the
-# reset line is dead weight in it. The reset shows itself only when the
-# streak is ALIVE as the agreeing sample arrives. Walk above -> below ->
-# above: sample 1 starts a streak of 1, sample 2 agrees with the held False
-# state, and sample 3 is the second "above" -- but NON-consecutive, so it
-# must start a fresh streak of 1, not confirm. Measured: intact -> streak
-# 1 -> 0 -> 1, no confirmation (lifetime 0); with `self._streak = 0`
-# deleted -> streak 1 -> 1, sample 3 confirms a start (running True,
-# lifetime 1).
-_noncon = _FuzzStarts()
-_noncon_first = _noncon.observe(NOW, 2.0, 1.0, False)
-_noncon_streak_first = _noncon._streak
-_noncon_agree = _noncon.observe(NOW + timedelta(minutes=1), 0.0, 1.0, False)
-_noncon_streak_agree = _noncon._streak
-_noncon_third = _noncon.observe(NOW + timedelta(minutes=2), 2.0, 1.0, False)
+# The debounce is the tracker's: a changed class must hold EDGE_DEBOUNCE_S,
+# and a reading that agrees with the settled class clears the pending
+# change, so above -> below -> above inside the debounce is no edge. Null
+# control: the same walk with the third reading held past the debounce
+# confirms exactly one edge to running.
+_noncon = _FuzzEdges(settled=False)
+_noncon_edges = [
+    _noncon.note(NOW + timedelta(seconds=_s), _v)
+    for _s, _v in ((0, True), (10, False), (20, True), (40, True))
+]
+_noncon_held = _FuzzEdges(settled=False)
+_noncon_held_edges = [
+    _noncon_held.note(NOW + timedelta(seconds=_s), _v) for _s, _v in ((0, True), (40, True))
+]
 R.check(
-    "above->below->above: the agreeing sample resets the streak, no start",
-    not _noncon_first
-    and _noncon_streak_first == 1
-    and not _noncon_agree
-    and _noncon_streak_agree == 0
-    and not _noncon_third
-    and _noncon._streak == 1
-    and not _noncon.running
-    and _noncon.lifetime == 0,
-    f"confirmed ({_noncon_first!r},{_noncon_agree!r},{_noncon_third!r}), "
-    f"streak {_noncon_streak_first}->{_noncon_streak_agree}->{_noncon._streak}, "
-    f"running {_noncon.running}, lifetime {_noncon.lifetime}",
+    "above->below->above: the agreeing reading clears the pending change, no edge inside the debounce",
+    _noncon_edges == [None, None, None, None] and _noncon.settled is False
+    and _noncon.pending == (True, NOW + timedelta(seconds=20))
+    and _noncon_held_edges == [None, (NOW, True)],
+    f"{_noncon_edges} {_noncon.pending} {_noncon_held_edges}",
 )
+
 _ok, _detail = _from_dict_survives(
     lambda: _FuzzAcc.from_dict({"lead_counts": {"1.0": float("inf")}})
 )
@@ -11234,12 +11282,14 @@ _ua_sz = (
     _p_sz.max_electrical_power * _p_sz.cop_nominal_floored
     / _p_sz.emitter_design_delta_t_floored
 )
-_fs_sz = _mv.flow_setpoint(
-    target_temp=23.0, outdoor_temp=-5.0,
-    heat_loss_coefficient=_m_sz.effective_heat_loss_coefficient(
-        _p_sz.heat_loss_coefficient, 0.0, 0.0
-    ),
-    emitter_ua=_ua_sz,
+# The plant's own curve (R11-VALVE-REFERENCE: the slab in series, the gains
+# offset), read rather than re-derived: this check pins the energy balance.
+from heatpump_optimizer.thermal_model import _valve_flow_set as _vfs_sz  # noqa: E402
+
+_fs_sz = _vfs_sz(
+    _p_sz, None, -5.0,
+    _m_sz.effective_heat_loss_coefficient(_p_sz.heat_loss_coefficient, 0.0, 0.0),
+    _ua_sz,
 )
 _q_sz = _mv.emitter_delivery(mix_temp=min(50.0, _fs_sz), zone_temp=25.0, ua=_ua_sz)
 _stand_sz = _p_sz.buffer_tank_heat_loss_coefficient * (50.0 - 20.0)
@@ -11380,7 +11430,9 @@ def _zoned_store_capabilities(two_zone):
     _on, _off = ThermalModel(_zp), ThermalModel(_zq)
     _valved = _on.simulate_step(_zs(22.0, 60.0), 4.0, -5.0, dt_hours=0.25)
     _bare = _off.simulate_step(_zs(22.0, 60.0), 4.0, -5.0, dt_hours=0.25)
-    _on.simulate_step(_zs(25.0, 69.5), 5.0, -5.0, dt_hours=0.25)
+    # The cap arm's slab sits near the single-zone curve (31.2 C here since
+    # R11-VALVE-REFERENCE), so the draw stays below what the pump puts in.
+    _on.simulate_step(_zs(30.0, 69.5), 5.0, -5.0, dt_hours=0.25)
     _zopt = _StoreOpt(ThermalModel(_zp), _StoreCfg(
         horizon_hours=24, time_step_minutes=15,
         target_temp=21.0, min_temp=17.0, max_temp=23.0,
@@ -12100,12 +12152,20 @@ def _cg_rounds(moving):
     return runs
 
 
-_cg_still = _cg_rounds(False) if _ct_p is not None else []
+# The converging arm runs under a raised cap, so its rounds end because the
+# plan stopped moving, never because the cap ran out: on this fixture the
+# first exchange settles on its fourth build (R11-VALVE-REFERENCE's curve).
+_cg_round_cap = _optmod._COMBI_EXCHANGE_ROUNDS
+_optmod._COMBI_EXCHANGE_ROUNDS = 8
+try:
+    _cg_still = _cg_rounds(False) if _ct_p is not None else []
+finally:
+    _optmod._COMBI_EXCHANGE_ROUNDS = _cg_round_cap
 _cg_moving = _cg_rounds(True) if _ct_p is not None else []
 R.check(
-    "combi flux exchange: a plan that stops moving ends the rounds before the cap; one still "
+    "combi flux exchange: a plan that stops moving ends the rounds before a raised cap; one still "
     "moving is published after exactly four plan builds",
-    bool(_cg_still) and all(0 < n < 4 for n in _cg_still)
+    _cg_round_cap == 4 and bool(_cg_still) and all(0 < n < 8 for n in _cg_still)
     and bool(_cg_moving) and all(n == 4 for n in _cg_moving),
     f"builds per exchange: converging {_cg_still}, moving {_cg_moving}",
 )
@@ -14035,7 +14095,7 @@ from datetime import timedelta as _timedelta
 import homeassistant.util.dt as _lz_dt
 
 
-def _two_zone_learner(*, lower_entity=None, ratio=1.0):
+def _two_zone_learner(*, lower_entity=None, ratio=1.0, **extra):
     cfg = {
         "tibber_token": "x",
         "weather_entity": "weather.home",
@@ -14048,6 +14108,7 @@ def _two_zone_learner(*, lower_entity=None, ratio=1.0):
     }
     if lower_entity:
         cfg["lower_floor_temp_entity"] = lower_entity
+    cfg.update(extra)
     c = _Coord(_FakeHass({}), _FakeEntry(data=cfg))
     c._apply_lower_floor_loss_ratio(ratio)
     return c
@@ -14177,8 +14238,8 @@ _ext._external_heat_active = True
 _r_ext, _n_ext = _drive_lower(_ext, observed_lower=19.6)
 R.check(
     "external heat freezes the split learner too",
-    _n_ext == 0 and _ext._learner_freeze_reason == "external_heat_source",
-    f"{_n_ext} samples, reason {_ext._learner_freeze_reason}",
+    _n_ext == 0 and _ext._learner_freezes.last == "external_heat_source",
+    f"{_n_ext} samples, reason {_ext._learner_freezes.last}",
 )
 
 # The learned value has to survive a restart, or it re-converges from scratch
@@ -14481,6 +14542,7 @@ from heatpump_optimizer.coordinator import (  # noqa: E402
     async_factory_reset as _fr_reset,
 )
 from heatpump_optimizer.wood_fuel import wood_furnace_on as _fr_wood  # noqa: E402
+from heatpump_optimizer import duty_switch as _fr_ds  # noqa: E402
 
 R.section("A factory reset returns settings, learners or both to their defaults")
 
@@ -14501,6 +14563,8 @@ _FR_LISTED = {
     "topology_positions", "ecl110_command_topic", "ecl110_displace_set_topic",
     "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "heat_curve_target_kind",
     "modbus_prefill_prefix", "main_fuse_amperes", "main_fuse_phases",
+    # #3616: an entity list, kept as wiring; its name ends in _entities, not _entity.
+    "room_temperature_entities",
 }
 #: Every key a ``CONF_`` constant names (a tuple names several: the weekday
 #: hot-water windows), and Home Assistant's own ``name``.
@@ -14539,11 +14603,30 @@ def _fr_learn(c):
     c._accuracy.lead_sigma[1.0], c._accuracy.lead_counts[1.0] = 0.3, 12
     c._price_learner.model.shapes[0][3] = 1.2
     c._dhw_learner.draw_stats.fold(_fr_dt.now(), "06:00-09:00", 2.5)
+    _fr_ds_learn(c)
     _aio.run(c._async_save_thermal_learning())
     _aio.run(c._dhw_learner.async_save_profile())
     _aio.run(c._dhw_learner.async_save_draws())
     _aio.run(c._async_save_accuracy())
     _aio.run(c._async_save_price_model())
+
+
+def _fr_ds_learn(c):
+    """A duty-switch record latched usable, in memory and on disk, as the arbiter's pass leaves it."""
+    rec = _fr_ds.record_for(c)
+    day = _fr_dt.now().date()
+    d = rec.learner.directions["dhw_space"]
+    d.k, d.stopped, d.usable, d.off_s, d.first_day, d.last_day = 6.0, 6, True, [480.0], day, day + timedelta(days=1)
+    rec.loaded = True
+    _aio.run(rec.store.async_save(rec.learner.stored_record()))
+
+
+def _fr_ds_read(c):
+    """(dhw->space usable, its weight) of the coordinator's record once loaded, as the first pass loads it."""
+    rec = _fr_ds.record_for(c)
+    _aio.run(_fr_ds._load(rec))
+    d = rec.learner.directions["dhw_space"]
+    return d.usable, d.n
 
 
 def _fr_disk(entry_id):
@@ -14674,7 +14757,7 @@ _FR_FACTS = {
         "snow_accum_last", "last_heavy_snow", "freq_fallback", "updated_at",
     },
     "accuracy": {"peaks", "mode"},
-    "dhw_profile": set(), "dhw_draws": set(), "price_model": set(),
+    "dhw_profile": set(), "dhw_draws": set(), "price_model": set(), "duty_switch": set(),
 }
 _fr_l_setup = _fr_l_before["at_setup"]
 _fr_learned_keys = sorted((n, k) for n, facts in _FR_FACTS.items()
@@ -15047,7 +15130,7 @@ _FR_STORES = {
     "dhw_legionella": "kept: the last disinfection, a safety fact",
     "notifier": "kept: which notices were sent",
     "pump_duty": "kept: what was last written to the pump",
-    "duty_switch": "kept: what duty switches did to this pump's compressor, observed facts",
+    "duty_switch": "voided: the learned stop estimate and its latch, the in-memory learner with it",
     "debug": "kept: a diagnostics collection",
     "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
 }
@@ -15059,6 +15142,24 @@ for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")
             for _fr_arg in _fr_n.args:
                 if isinstance(_fr_arg, _fr_ast.JoinedStr):
                     _fr_found.add(_fr_arg.values[-1].value.lstrip("_"))
+# The duty-switch record (ruling on carry item 3c666f5b, 2026-11-12): voided like every other
+# learned estimate, and the learner the entry is set up with again holds none of it.
+_fr_ds_before, _fr_ds_entry, _fr_ds_hass, _fr_ds_old = _fr_case("learners", "fr_dsw")
+_fr_ds_hass2 = FakeHass({})
+_fr_ds_entry2 = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_dsw_restart")
+_fr_ds_c2 = _aio.run(_fr_boot(_fr_ds_hass2, _fr_ds_entry2))
+_fr_learn(_fr_ds_c2)
+_fr_ds_restarted = _aio.run(_fr_boot(_fr_ds_hass2, _fr_ds_entry2))
+R.check(
+    "a learners reset leaves no stored duty-switch estimate and no latch, and the learner the entry is set up with "
+    "reads none; null control, a plain restart keeps the stored record, its weight and its latch",
+    "duty_switch" in _fr_ds_before["disk"] and _fr_ds_before["disk"]["duty_switch"]["directions"]["dhw_space"]["usable"]
+    and "duty_switch" not in _fr_ds_before["at_setup"] and "duty_switch" not in _fr_disk("fr_dsw")
+    and _fr_ds_read(_fr_ds_entry.runtime_data) == (False, 0.0)
+    and _fr_ds_read(_fr_ds_restarted) == (True, 6.0) and "duty_switch" in _fr_disk("fr_dsw_restart"),
+    f"before {sorted(_fr_ds_before['disk'])}, at setup {sorted(_fr_ds_before['at_setup'])}, "
+    f"after {_fr_ds_read(_fr_ds_entry.runtime_data)}, restarted {_fr_ds_read(_fr_ds_restarted)}",
+)
 R.check(
     "every store the integration persists has a factory-reset disposition",
     _fr_found == set(_FR_STORES) and len(_fr_found) >= 15,
@@ -19244,8 +19345,11 @@ def _t2_coord(states=None, **extra):
 
 
 def _listeners(coord):
+    # The guard's own registrations: the running signal (R10-START-COUNTER-EDGES)
+    # listens on the heat pump's meter from construction, before this setup runs.
+    before = list(getattr(coord.hass, "state_listeners", []))
     _asyncio.run(coord._async_setup_peak_guard())
-    return getattr(coord.hass, "state_listeners", [])
+    return [entry for entry in getattr(coord.hass, "state_listeners", []) if entry not in before]
 
 _c = _t2_coord(
     peak_guard_enabled=True,
@@ -19312,7 +19416,7 @@ R.check(
 _published = []
 async def _rec_ecl(**kw):
     _published.append(kw)
-async def _rec_plan(reason="optimizer"):
+async def _rec_plan(reason="optimizer", heat_pump_on=None):
     _published.append({"reason": reason})
 _c.async_publish_ecl110_command = _rec_ecl
 _c.async_publish_current_action = _rec_plan
@@ -19526,7 +19630,7 @@ _adv_calls = []
 def _advisor_coord(payload_extra=None, **cfg):
     c = _t2_coord(main_fuse_amperes=20.0, main_fuse_phases=3, **cfg)
 
-    async def _fake_simulate(overrides, limited=True, base=None):
+    async def _fake_simulate(overrides, limited=True, base=None, steady=False):
         _adv_calls.append(overrides)
         return {
             "overrides": overrides,
@@ -19534,7 +19638,8 @@ def _advisor_coord(payload_extra=None, **cfg):
             "power_cap_breach_c": 0.0,
             "projected_peak_kw": 4.0,
             "monthly_cost_delta": -35.0,
-            "monthly_settled_cost_delta": 12.0,
+            "monthly_settled_cost_delta": 7.0,
+            "monthly_steady_cost_delta": 12.0,
             "baseline_min_room_temperature": 20.6,
             "min_room_temperature": 20.6,
             **(payload_extra or {}),
@@ -19545,8 +19650,9 @@ def _advisor_coord(payload_extra=None, **cfg):
 
 _adv_calls.clear()
 _cad = _advisor_coord()
-_cad._simulation_cache = {"marker": "card"}
-_cad._last_simulation = None
+from heatpump_optimizer import whatif as _whatif_mod
+_whatif_mod.state_for(_cad).answer = {"marker": "card"}
+_whatif_mod.state_for(_cad).last_at = None
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 _adv = _cad._fuse_advisor
 R.check(
@@ -19565,8 +19671,8 @@ R.check(
 )
 R.check(
     "the card's simulate cache survives an advisor run untouched",
-    _cad._simulation_cache == {"marker": "card"}
-    and _cad._last_simulation is None,
+    _whatif_mod.state_for(_cad).answer == {"marker": "card"}
+    and _whatif_mod.state_for(_cad).last_at is None,
 )
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 R.check(
@@ -20820,7 +20926,7 @@ _feed_residual(_cv, -0.4, 4, _T4 + timedelta(hours=8))
 R.check(
     "while frozen, cold residuals feed the detector but never the model",
     _cv._house_heat_loss_scale == _scale_frozen
-    and _cv._learner_freeze_reason == "ventilation",
+    and _cv._learner_freezes.last == "ventilation",
     "an afternoon of airing out must not teach a phantom heat loss",
 )
 # The four frozen feeds above kept accumulating up to the 1.8 cap, so
@@ -24447,42 +24553,35 @@ import re as _re6
 from heatpump_optimizer import diagnosis as diagnosis_mod
 from heatpump_optimizer import narrative as narrative_mod
 from heatpump_optimizer.const import COP_HEALTH_THRESHOLD
+from heatpump_optimizer import running_signal
 from heatpump_optimizer.wear import StartCounter, wear_price_per_start
 
 _T6 = datetime(2026, 3, 28, 12, 0, tzinfo=UTC)
 
 # --- #55 the start counter -------------------------------------------------------
-_sc = StartCounter()
-_thr = 0.5
+# R10-START-COUNTER-EDGES: the counter folds confirmed edges of the running
+# signal; the debounce that a noisy reading must clear is EdgeTracker's
+# (pinned above, "above->below->above"), so these drive the fold itself.
+_sc = StartCounter.from_dict(None)
 R.check(
-    "one noisy sample above the threshold books nothing",
-    not _sc.observe(_T6, 2.0, _thr, False) and _sc.lifetime == 0,
-    "two-sample hysteresis: a single meter glitch is not a start",
+    "an edge to running from stopped books one start at the edge's own time",
+    _sc.fold(_T6, True) == [_T6] and _sc.lifetime == 1 and _sc.running,
 )
 R.check(
-    "the second consecutive sample confirms the start",
-    _sc.observe(_T6, 2.0, _thr, False) and _sc.lifetime == 1 and _sc.running,
+    "a falling edge books no start",
+    _sc.fold(_T6, False) == [] and _sc.lifetime == 1 and not _sc.running,
 )
 R.check(
-    "a falling edge needs two samples too, and books no start",
-    not _sc.observe(_T6, 0.0, _thr, False)
-    and not _sc.observe(_T6, 0.0, _thr, False)
-    and _sc.lifetime == 1
-    and not _sc.running,
+    "no signal (an outage, or the element on the meter) is not a transition: the last "
+    "known class holds through it, so stopped -> None -> stopped -> None books nothing",
+    _sc.fold(_T6, None) == [] and _sc.fold(_T6, False) == [] and _sc.fold(_T6, None) == []
+    and _sc.lifetime == 1 and not _sc.running,
+    "#11's classifier owns resistive draw; the meter reads no signal while it runs",
 )
-_sc.observe(_T6, 2.0, _thr, False)  # half an edge...
 R.check(
-    "the immersion element freezes the machine and resets the streak",
-    not _sc.observe(_T6, 2.0, _thr, True)  # ...the element cuts in
-    and not _sc.observe(_T6, 2.0, _thr, False)  # half an edge again
-    and _sc.lifetime == 1,
-    "#11's classifier owns resistive draw; half-edges must not combine "
-    "across an immersion event",
-)
-_sc.observe(_T6, 2.0, _thr, False)
-R.check(
-    "after the element drops out a full clean edge counts again",
-    _sc.lifetime == 2 and _sc.month_count("2026-03") == 2,
+    "a start under the element counts once, at the edge that ends the no-signal stretch",
+    _sc.fold(_T6, True) == [_T6] and _sc.fold(_T6, None) == [] and _sc.fold(_T6, True) == []
+    and _sc.lifetime == 2 and _sc.month_count("2026-03") == 2,
 )
 _sc2 = StartCounter.from_dict(_sc.as_dict())
 R.check(
@@ -24506,9 +24605,11 @@ R.check(
 _cw = _t2_coord(
     compressor_replacement_cost=50000.0, compressor_rated_starts=100000
 )
-_cw._measured_power = 3.0
-_cw._observe_compressor_start(_T6)
-_cw._observe_compressor_start(_T6)
+_cw._start_counter.restore(None)
+for _cw_hear in running_signal.signal_for(_cw).subscribers:
+    _cw_hear((_T6, True))
+for _cw_tick in running_signal.signal_for(_cw).ticks * 2:  # a meter's rise counts at its second refresh (S7)
+    _cw_tick(True)
 R.check(
     "a confirmed start books its wear price on the ledger's wear line",
     _cw._start_counter.lifetime == 1
@@ -26111,7 +26212,7 @@ R.check(
 _ctile = _t2_coord()
 
 
-async def _fake_sim(overrides, limited=True, base=None):
+async def _fake_sim(overrides, limited=True, base=None, steady=False):
     return {
         "monthly_cost_delta": -42.0,
         "monthly_held_cost_delta": -40.0,
@@ -26133,7 +26234,7 @@ R.check(
     "one solve refreshes exactly one tile, in rotation",
     list(price_tiles.book(_ctile2)) == ["target_minus_1"]
     and _ctile2._insight_view()["price_tiles"]["target_minus_1"]["monthly_cost_delta"] == -40.0
-    and price_tiles._CURSORS.get(_ctile2, 0) == 1,
+    and price_tiles.rotation(_ctile2).cursor == 1,
 )
 
 
@@ -26145,7 +26246,7 @@ R.check(
 _ctile2_limited_seen = {}
 
 
-async def _fake_sim_route(overrides, limited=True, base=None):
+async def _fake_sim_route(overrides, limited=True, base=None, steady=False):
     _ctile2_limited_seen["limited"] = limited
     return {"rate_limited": False}
 
@@ -26156,7 +26257,7 @@ R.check(
     "#1753: the tile solves through the user-limit-free path, so its turn "
     "is always spent",
     _ctile2_limited_seen.get("limited") is False
-    and price_tiles._CURSORS.get(_ctile2, 0) == 2,
+    and price_tiles.rotation(_ctile2).cursor == 2,
     str(_ctile2_limited_seen),
 )
 R.check(
@@ -26333,12 +26434,12 @@ R.check(
 _ctile3 = _t2_coord(price_tiles_enabled=True)
 _marker3 = {"marker": True}
 _stamp3 = datetime(2026, 3, 1, tzinfo=UTC)
-_ctile3._simulation_cache = _marker3
-_ctile3._last_simulation = _stamp3
+_coord_mod.whatif.state_for(_ctile3).answer = _marker3
+_coord_mod.whatif.state_for(_ctile3).last_at = _stamp3
 _ctile3_route = {}
 
 
-async def _fake_sim_poison(overrides, limited=True, _c=_ctile3, base=None):
+async def _fake_sim_poison(overrides, limited=True, _c=_ctile3, base=None, steady=False):
     _ctile3_route["limited"] = limited
     return {
         "monthly_cost_delta": -1.0,
@@ -26353,8 +26454,8 @@ _asyncio.run(_ctile3._maybe_refresh_price_tile(_solve_record_now(_ctile3)))
 R.check(
     "#1753: the tile takes the limited=False path -- no borrow to restore",
     _ctile3_route.get("limited") is False
-    and _ctile3._simulation_cache is _marker3
-    and _ctile3._last_simulation == _stamp3
+    and _coord_mod.whatif.state_for(_ctile3).answer is _marker3
+    and _coord_mod.whatif.state_for(_ctile3).last_at == _stamp3
     and price_tiles.book(_ctile3),
     f"route={_ctile3_route}",
 )
@@ -26375,7 +26476,7 @@ R.check(
 _ctile4 = _t2_coord(price_tiles_enabled=True)
 
 
-async def _fake_sim_err(overrides, limited=True, base=None):
+async def _fake_sim_err(overrides, limited=True, base=None, steady=False):
     return {"error": "boom", "rate_limited": False}
 
 
@@ -26383,7 +26484,7 @@ _ctile4.async_simulate = _fake_sim_err
 _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
-    price_tiles._CURSORS.get(_ctile4, 0) == 1 and not price_tiles.book(_ctile4),
+    price_tiles.rotation(_ctile4).cursor == 1 and not price_tiles.book(_ctile4),
 )
 
 # Turning the flag off retires the published tiles too.
@@ -26458,14 +26559,18 @@ R.check(
     "the crashing month on every cycle forever",
 )
 
-# The debounce streak dies with the meter: two noise spikes separated by
-# an outage are not two CONSECUTIVE samples.
-_sc8 = StartCounter()
-_sc8.observe(_T6, 2.0, 0.5, False)
-_sc8.observe(_T6, None, 0.5, False)
+# The debounce dies with the meter (R10-START-COUNTER-EDGES re-points this
+# from the streak): two noise spikes separated by an outage are one pending
+# change each, never one held change.
+_sc8 = running_signal.Signal(reader=lambda: (None, _sc8_kw[0], 0.5, False))
+_sc8_counter = StartCounter.from_dict(None)
+running_signal.subscribe(_sc8, lambda edge: _sc8_counter.fold(*edge))
+for _sc8_s, _sc8_kw in ((0, [2.0]), (20, [None]), (40, [2.0]), (60, [2.0])):
+    running_signal.note(_sc8, _T6 + timedelta(seconds=_sc8_s))
 R.check(
-    "a meter outage resets the hysteresis streak",
-    not _sc8.observe(_T6, 2.0, 0.5, False) and _sc8.lifetime == 0,
+    "a meter outage resets the debounce",
+    _sc8_counter.lifetime == 0 and _sc8.tracker.pending == (True, _T6 + timedelta(seconds=40)),
+    f"{_sc8_counter.lifetime} {_sc8.tracker.pending}",
 )
 
 # The day book keeps its signs and its baseline honest: a negative-price
@@ -27662,6 +27767,45 @@ R.check(
     f"(solve, hub): config False -> {_dd_off!r}, default -> {_dd_default!r}",
 )
 
+# R10-DUTY-SWITCH-PLANNER-PRICE: and the duty-switch learner's read for the
+# planner, by the same copy.
+from heatpump_optimizer import duty_switch as _dsp_push_ds  # noqa: E402
+
+
+def _dsp_pushed(learner):
+    hass = FakeHass()
+    _seed_prices(hass)
+    entry = FakeEntry(data={**_LC_DATA}, entry_id="dsp_push")
+    _asyncio.run(_ha_setup_entry(_integ, hass, entry))
+    coord = entry.runtime_data
+    coord._prices = list(_svc_crash_coord._prices)
+    never = coord._solve_hubs(4, banded=True)[0]
+    _dsp_push_ds.record_for(coord).learner = learner
+    return never, coord._solve_hubs(4, banded=True)[0], coord._opt_config
+
+
+_dsp_push_d = _dsp_push_ds.Direction
+_dsp_push_day = datetime(2026, 11, 10, tzinfo=UTC).date()
+_dsp_push_l = _dsp_push_ds.DutySwitchLearner({
+    "dhw_space": _dsp_push_d(k=3.0, kept_w=1.0, first_day=_dsp_push_day, last_day=_dsp_push_day,
+                             usable=True, off_s=[400.0, 501.0, 620.0, 700.0]),
+    "space_dhw": _dsp_push_d(k=2.0, kept_w=2.0, first_day=_dsp_push_day, last_day=_dsp_push_day, usable=True),
+})
+_dsp_cfg_never, _dsp_cfg_read, _dsp_cfg_hub = _dsp_pushed(_dsp_push_l)
+R.check(
+    "the coordinator passes the learner's read to the solve's configuration "
+    "copy: zeros on a pump never arbitrated, both pairs once latched, and the "
+    "configured hub keeps its zeros",
+    (_dsp_cfg_never.duty_switch_stop_probability, _dsp_cfg_never.duty_switch_off_seconds)
+    == ((0.0, 0.0), (0.0, 0.0))
+    and (_dsp_cfg_read.duty_switch_stop_probability, _dsp_cfg_read.duty_switch_off_seconds)
+    == ((0.75, 0.5), (560.5, 0.0))
+    and _dsp_cfg_hub.duty_switch_stop_probability == (0.0, 0.0)
+    and _dsp_cfg_hub.duty_switch_off_seconds == (0.0, 0.0),
+    f"never {_dsp_cfg_never.duty_switch_stop_probability}, read "
+    f"{_dsp_cfg_read.duty_switch_stop_probability} {_dsp_cfg_read.duty_switch_off_seconds}",
+)
+
 _svc_sim_hass = FakeHass()
 _seed_prices(_svc_sim_hass)  # #924
 _svc_sim_entry = FakeEntry(data=_LC_DATA, entry_id="sim_pump")
@@ -27696,8 +27840,8 @@ async def _svc_ok_run():
     return None
 
 
-async def _svc_ok_simulate(overrides):
-    return {"status": "ok"}
+async def _svc_ok_simulate(overrides, steady=False):
+    return {"status": "ok", "steady": steady}
 
 
 async def _svc_ok_restore():
@@ -27714,9 +27858,10 @@ R.check(
 _svc_coord.async_simulate = _svc_ok_simulate
 _svc_out = _svc_call(_svc_hass, "simulate_plan", {"target_temp": 21.0})
 R.check(
-    "simulate_plan returns its response when the what-if ran",
+    "simulate_plan returns its response when the what-if ran, and asks for the "
+    "steady figure (#2257): without that argument the panel shows no money",
     _svc_out[0] == "returned"
-    and _svc_out[1] == {"results": {_svc_entry.entry_id: {"status": "ok"}}},
+    and _svc_out[1] == {"results": {_svc_entry.entry_id: {"status": "ok", "steady": True}}},
     f"{_svc_out}",
 )
 _svc_coord.async_restore_learned_snapshot = _svc_ok_restore
@@ -28163,7 +28308,7 @@ R.check(
 _g_pub: list[str] = []
 
 
-async def _g_rec(reason="optimizer"):
+async def _g_rec(reason="optimizer", heat_pump_on=None):
     _g_pub.append(reason)
 
 
@@ -31450,11 +31595,11 @@ async def _whatif_scratch_params():
 
     real_opt.__init__ = _spy_opt_init
     try:
-        coord._last_simulation = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         payload = await coord.async_simulate({"target_temp": 20.5})
         # A second what-if on the parameter side of the override table, so
         # both override loops are pinned, not just the config one.
-        coord._last_simulation = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         await coord.async_simulate({"max_temp": 21.5})
     finally:
         real_model.__init__ = real_init
@@ -31523,7 +31668,7 @@ async def _whatif_scratch_config():
 
     real_opt.__init__ = _spy_init
     try:
-        coord._last_simulation = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         await coord.async_simulate({"target_temp": 20.5})
     finally:
         real_opt.__init__ = real_init
@@ -31568,7 +31713,7 @@ async def _whatif_solves(*, fails: bool) -> int:
             raise RuntimeError("probe: the shadow solve failed")
         return await real(*args, **kwargs)
 
-    coord._last_simulation = None
+    _coord_mod.whatif.state_for(coord).last_at = None
     _coord_mod._await_optimize = _shadow
     dt_util.freeze(dt_util.now())
     try:
@@ -31592,6 +31737,970 @@ R.check(
     "above about the failing arm and not about the call loop (#1448)",
     _whatif_ok_solves == 1,
     f"{_WHATIF_CALLS} succeeding calls started {_whatif_ok_solves} solves",
+)
+
+R.section("#2257 — the what-if's steady-start estimator")
+
+# The what-if's monthly money came from the plan's spend from the measured
+# house, which carries the one-off coast (a cooler schedule) or heat-up (a
+# warmer one) the change starts with; a month multiplied it by every horizon.
+# The steady figure carries neither: a schedule change is priced by what a
+# thermostat holding each schedule draws over a day of the day's mean weather,
+# at the day's mean price (one solve); any other change by both plans solved
+# again from a start held at each one's own schedule. The rows below run at
+# one frozen instant, so the three starts of a row differ in the start alone.
+import copy as _st_copy  # noqa: E402
+import math as _st_math  # noqa: E402
+from dataclasses import replace as _st_replace  # noqa: E402
+from types import SimpleNamespace as _st_ns  # noqa: E402
+
+import heatpump_optimizer.coordinator as _st_cmod  # noqa: E402
+import heatpump_optimizer.optimizer as _st_omod  # noqa: E402
+import heatpump_optimizer.thermal_model as _st_tmod  # noqa: E402
+from heatpump_optimizer import whatif as _st_whatif  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _StModel,
+    ThermalParameters as _StParams,
+    ThermalState as _StState,
+)
+from homeassistant.util import dt as _st_dt  # noqa: E402
+from profiles import house as _st_house, weather as _st_weather  # noqa: E402
+
+#: Where the live house starts: at the target, coasted, pre-heated (room,
+#: slab). The finder harness's ``r10_advisor_degree.STARTS``.
+_ST_STARTS = ((21.0, 22.0), (20.4, 21.3), (21.7, 23.0))
+_ST_KEY = _st_whatif.STEADY_KEY
+
+
+class _StSeams:
+    """Both await seams of ``coordinator``, counted; the pair's seam can be
+    made to raise, and the process worker to be unavailable."""
+
+    def __init__(self, pair_error=None, worker_error=None):
+        self.optimize, self.off_loop, self.built = [], [], []
+        self._pair_error, self._worker_error = pair_error, worker_error
+        self._real = (_st_cmod._await_optimize, _st_cmod._await_off_loop,
+                      _st_cmod._await_process, _st_cmod._warm_seeded,
+                      _st_cmod.SolveRecord.optimizer)
+
+    def __enter__(self):
+        real_opt, real_off, real_proc, real_seed, real_rec = self._real
+
+        async def _opt(hass, optimizer, inputs):
+            self.optimize.append((optimizer, inputs))
+            return await real_opt(hass, optimizer, inputs)
+
+        async def _off(hass, fn, *args):
+            if fn is _st_cmod.optimize_in_process:
+                self.off_loop.append(args)
+                if self._pair_error is not None:
+                    raise self._pair_error
+            return await real_off(hass, fn, *args)
+
+        async def _proc(hass, fn, *args):
+            if self._worker_error is not None:
+                raise self._worker_error
+            return await real_proc(hass, fn, *args)
+
+        def _seed(coord, optimizer):
+            self.built.append(optimizer)
+            return real_seed(coord, optimizer)
+
+        def _rec(record):
+            made = real_rec(record)
+            self.built.append(made)
+            return made
+
+        _st_cmod._await_optimize, _st_cmod._await_off_loop = _opt, _off
+        _st_cmod._await_process, _st_cmod._warm_seeded = _proc, _seed
+        _st_cmod.SolveRecord.optimizer = _rec
+        return self
+
+    def __exit__(self, *exc):
+        (_st_cmod._await_optimize, _st_cmod._await_off_loop, _st_cmod._await_process,
+         _st_cmod._warm_seeded, _st_cmod.SolveRecord.optimizer) = self._real
+
+    def counts(self):
+        return len(self.optimize), len(self.off_loop)
+
+
+async def _st_coord(start=None, extra=None):
+    """A solved coordinator whose live house starts at ``start``."""
+    coord = _solve_coord()
+    if extra:
+        with_config(coord, extra)
+    if start is not None:
+        live = getattr(coord, "_ctx", coord)._current_state
+        live.room_temperature = live.upper_floor_temperature = live.lower_floor_temperature = start[0]
+        live.slab_temperature = start[1]
+    coord._fuse_advisor_at = _st_dt.now()  # the seeding solve runs no advisor
+    await coord.async_run_optimization()
+    return coord
+
+
+async def _st_ask(coord, overrides, **kwargs):
+    """One user what-if with a free slot."""
+    _st_whatif.state_for(coord).last_at = None
+    return await coord.async_simulate(dict(overrides), **kwargs)
+
+
+async def _st_rows():
+    """Per ask, its figures at the three starts: (steady, plan, held)."""
+    rows = {}
+    for start in _ST_STARTS:
+        coord = await _st_coord(start)
+        record = _solve_record_now(coord)
+        asks = price_tiles.specs(record.config, record.params.max_electrical_power)
+        for name, overrides in asks:
+            answer = await _st_ask(coord, overrides, steady=True)
+            rows.setdefault(name, []).append((
+                answer.get(_ST_KEY), answer.get("monthly_cost_delta"),
+                answer.get("monthly_held_cost_delta")))
+    return rows
+
+
+_st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
+try:
+    _st_rows_seen = _asyncio.run(_st_rows())
+finally:
+    _st_dt.freeze(None)
+_st_spread = {
+    name: [max(col) - min(col) if all(v is not None for v in col) else None
+           for col in zip(*figs)]
+    for name, figs in _st_rows_seen.items()
+}
+R.check(
+    "#2257: the what-if's steady figure does not move with where the live house "
+    "starts, on either degree and under the cap",
+    all(s[0] is not None and s[0] <= 1e-9 for s in _st_spread.values()),
+    f"spread by start (steady, plan, held) {_st_spread!r} rows {_st_rows_seen!r}",
+)
+R.check(
+    "the perturbation reaches the answer: the plan's own figure moves with the "
+    "start on every row, so a flat steady figure is the estimator's and not a "
+    "start that was never applied",
+    all(s[1] is not None and s[1] > 1.0 for s in _st_spread.values()),
+    f"spread by start (steady, plan, held) {_st_spread!r}",
+)
+R.check(
+    "the null control: the held figure's spread is 0.00 on every row",
+    all(s[2] is not None and s[2] <= 1e-9 for s in _st_spread.values()),
+    f"spread by start (steady, plan, held) {_st_spread!r}",
+)
+R.check(
+    "#2257: under the steady figure a degree warmer costs and a degree cooler "
+    "saves at every start, with the held figure's sign",
+    all(f[0] is not None and f[0] < 0.0 and f[2] < 0.0 for f in _st_rows_seen["target_minus_1"])
+    and all(f[0] is not None and f[0] > 0.0 and f[2] > 0.0 for f in _st_rows_seen["target_plus_1"]),
+    repr({k: v for k, v in _st_rows_seen.items() if k != "power_cap_75"}),
+)
+R.check(
+    "#2257: a cap never reads a saving under the steady figure (below -1: the "
+    "solver's own noise sits inside that)",
+    all(f[0] is not None and f[0] >= -1.0 for f in _st_rows_seen["power_cap_75"]),
+    repr(_st_rows_seen["power_cap_75"]),
+)
+
+# The figure itself, on numbers: spend plus the heat left unstored plus the
+# what-if's spend outside its solve, what-if less live, scaled to a month.
+_st_plain = price_tiles.monthly_deltas(
+    _st_ns(predicted_cost=10.0, baseline_cost=20.0, deferred_energy_cost=1.0),
+    _st_ns(predicted_cost=12.0, baseline_cost=21.0, deferred_energy_cost=3.0), 0.5, 24.0)
+_st_with = price_tiles.monthly_deltas(
+    _st_ns(predicted_cost=10.0, baseline_cost=20.0, deferred_energy_cost=1.0),
+    _st_ns(predicted_cost=12.0, baseline_cost=21.0, deferred_energy_cost=3.0), 0.5, 24.0,
+    steady=(_st_ns(predicted_cost=7.0, deferred_energy_cost=0.25),
+            _st_ns(predicted_cost=8.0, deferred_energy_cost=1.0)))
+R.check(
+    "the steady figure is the held pair's spend plus deferred plus the what-if's "
+    "outside spend, what-if less live, per month; without a pair the key is absent",
+    _ST_KEY not in _st_plain
+    and _st_with[_ST_KEY] == round((8.0 + 1.0 + 0.5 - 7.0 - 0.25) * 30.4, 2)
+    and {k: v for k, v in _st_with.items() if k != _ST_KEY} == _st_plain,
+    f"{_st_plain!r} {_st_with!r}",
+)
+R.check(
+    "a cap tile reads the steady figure and nothing else: an answer without it "
+    "is no figure, never the settled one; a degree tile still reads the held one",
+    price_tiles.monthly_figure({"power_cap_kw": 3.0}, {"monthly_settled_cost_delta": -4.0,
+                                                       "monthly_cost_delta": -9.0}) is None
+    and price_tiles.monthly_figure({"power_cap_kw": 3.0}, {_ST_KEY: 6.5}) == 6.5
+    and price_tiles.monthly_figure({"target_temp": 20.0}, {_ST_KEY: 6.5, "monthly_held_cost_delta": -50.0}) == -50.0,
+    "monthly_figure fell back, or a degree tile left the held figure",
+)
+
+
+# -- The held start, on the optimizer -------------------------------------
+def _st_optimizer(two_tank=False, **config):
+    cfg = _st_house(two_zone=two_tank, dhw=False)
+    if two_tank:
+        cfg = {**cfg, "mixing_valve_mode": "manual"}
+    params = _StParams.from_config(cfg)
+    params.dhw_enabled = False
+    if two_tank:
+        # The layout is what makes an install two-tank; a config key of the
+        # property's name sets nothing, which the precondition check reads.
+        params.topology_layout = _st_tmod.TOPOLOGY_TWO_TANK_4WAY
+    return _st_omod.HeatPumpOptimizer(_StModel(params), _st_omod.OptimizationConfig(
+        horizon_hours=24, time_step_minutes=15, target_temp=21.0,
+        min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+        comfort_temp_day=21.0, comfort_temp_night=19.5, **config))
+
+
+def _st_held_solve(opt, start, start_time, held=True, tanks=None, cap=None):
+    """One solve; what its settlement saw: the start it planned from, the
+    start gap it booked, its step-0 target and the state the cap repair got."""
+    n = opt.config.n_steps
+    ot, wi, ra, so = (a[:n] for a in _st_weather("winter_mild", start_time))
+    state = _StState(
+        room_temperature=start[0], slab_temperature=start[1], outdoor_temperature=float(ot[0]),
+        upper_floor_temperature=start[0], lower_floor_temperature=start[0],
+        dhw_temperature=52.0, dhw_hours_since_legionella=20.0, **(tanks or {"buffer_tank_temperature": 40.0}))
+    seen = {"measured": _st_replace(state), "gaps": [], "starts": [], "targets": [], "repair": []}
+    real_gap, real_repair = opt._start_gap_cost, opt._repair_throttled_buffer_caps
+
+    def _gap(initial_state, weather, comfort_targets, *a, **k):
+        out = real_gap(initial_state, weather, comfort_targets, *a, **k)
+        seen["gaps"].append(out)
+        seen["starts"].append(_st_replace(initial_state))
+        seen["targets"].append(_st_omod._baseline_target(comfort_targets, 0, opt.config.target_temp))
+        return out
+
+    def _repair(weather, initial_state, *a, **k):
+        seen["repair"].append(_st_replace(initial_state))
+        return real_repair(weather, initial_state, *a, **k)
+
+    opt._start_gap_cost, opt._repair_throttled_buffer_caps = _gap, _repair
+    inputs = solve_inputs(
+        initial_state=state, prices=0.9 + 0.4 * np.sin(np.arange(n) * 2.0 * np.pi / n), outdoor_temps=ot,
+        wind_speeds=wi, precipitation=ra, solar_radiation=so, start_time=start_time,
+        power_caps_extra=None if cap is None else np.full(n, cap))
+    opt.optimize(inputs=_st_replace(inputs, held_start=held))
+    seen["buffer_seed"] = opt._initial_buffer_temp
+    return seen
+
+
+# A Saturday night: the step-0 target is the weekend night's, which is neither
+# ``target_temp`` nor the weekday night's, so a held start that read either
+# would leave a start gap.
+_ST_SAT = datetime(2026, 1, 17, 0, 0)
+_ST_WED = datetime(2026, 1, 14, 12, 0)
+_st_held_cases = {
+    "weekday noon": ({}, _ST_WED),
+    "weekday night": ({}, _ST_WED.replace(hour=0)),
+    "weekend night override": ({"comfort_temp_day_weekend": 22.5, "comfort_temp_night_weekend": 18.0}, _ST_SAT),
+}
+_st_held_seen = {
+    (label, start): _st_held_solve(_st_optimizer(**config), start, when)
+    for label, (config, when) in _st_held_cases.items() for start in _ST_STARTS
+}
+R.check(
+    "#2257: a held-start solve books no start gap, at every start, on the "
+    "weekday schedule and under a weekend override",
+    all(s["gaps"] and all(abs(g) <= 1e-9 for g in s["gaps"]) for s in _st_held_seen.values()),
+    repr({k: v["gaps"] for k, v in _st_held_seen.items()}),
+)
+R.check(
+    "and it plans from every zone at its own step-0 target, the solve's "
+    "comfort_targets and never target_temp",
+    all(
+        {st.room_temperature, st.upper_floor_temperature, st.lower_floor_temperature} == {target}
+        for s in _st_held_seen.values() for st, target in zip(s["starts"], s["targets"])
+    )
+    and {s["targets"][0] for (label, _), s in _st_held_seen.items() if label == "weekend night override"} == {18.0}
+    and {s["targets"][0] for (label, _), s in _st_held_seen.items() if label == "weekday night"} == {19.5},
+    repr({k: (v["targets"][:1], [(s.room_temperature, s.slab_temperature) for s in v["starts"][:1]])
+          for k, v in _st_held_seen.items()}),
+)
+_st_measured_seen = _st_held_solve(_st_optimizer(), _ST_STARTS[1], _ST_WED, held=False)
+R.check(
+    "the null control: without the flag the solve plans from the house as "
+    "measured and books the start gap it always did",
+    all(st == _st_measured_seen["measured"] for st in _st_measured_seen["starts"])
+    and any(abs(g) > 1e-6 for g in _st_measured_seen["gaps"]),
+    repr(_st_measured_seen["gaps"]),
+)
+
+# -- The path of the two extra solves -------------------------------------
+async def _st_path():
+    out = {}
+    coord = await _st_coord()
+    plan = coord._optimization_result
+    schedule = np.asarray(plan.power_schedule, dtype=float).copy()
+    held = _st_whatif.state_for(coord)
+    with _StSeams() as seams:
+        first = await _st_ask(coord, {"min_temp": 18.5}, steady=True)
+        out["first"] = seams.counts()
+        measured = seams.optimize[0][0]
+        pair = [args[0] for args in seams.off_loop]
+        out["instances"] = (
+            len(pair) == 2 and pair[0] is not pair[1]
+            and all(o is not measured for o in pair)
+            and all(o is not b for o in pair for b in seams.built)
+            and all(args[1].held_start for args in seams.off_loop)
+            and not seams.optimize[0][1].held_start
+        )
+        # The live side reads nothing the what-if overrides.
+        out["live_config"] = (pair[0].config.min_temp, pair[1].config.min_temp)
+        out["plan_kept"] = (
+            coord._optimization_result is plan
+            and np.array_equal(np.asarray(plan.power_schedule, dtype=float), schedule)
+        )
+        kept = held.live_steady
+        out["memo"] = kept is not None and kept[0] is plan
+        await _st_ask(coord, {"min_temp": 18.0}, steady=True)
+        out["second"] = tuple(b - a for a, b in zip(out["first"], seams.counts()))
+        out["memo_same"] = held.live_steady is not None and held.live_steady[2] is kept[2]
+        # The same plan from another measured start: the kept live side was
+        # solved from a house whose tanks (which a held start keeps) may
+        # differ, so the start is in the key and the live side is solved again.
+        before = seams.counts()
+        live = getattr(coord, "_ctx", coord)._current_state
+        live.buffer_tank_temperature = (live.buffer_tank_temperature or 40.0) + 5.0
+        await _st_ask(coord, {"min_temp": 18.0}, steady=True)
+        out["moved_start"] = tuple(b - a for a, b in zip(before, seams.counts()))
+        # A new plan, same instant and start: identity of the plan, not equality.
+        await coord.async_run_optimization()
+        before = seams.counts()
+        await _st_ask(coord, {"min_temp": 18.0}, steady=True)
+        out["new_plan"] = tuple(b - a for a, b in zip(before, seams.counts()))
+        # The limiter: five steady calls, one what-if's solves.
+        before = seams.counts()
+        held.last_at = None
+        for _ in range(_WHATIF_CALLS):
+            last = await coord.async_simulate({"min_temp": 18.2}, steady=True)
+        out["limited"] = tuple(b - a for a, b in zip(before, seams.counts()))
+        out["limited_answer"] = (bool(last.get("rate_limited")), _ST_KEY in last)
+        # Without the flag: one solve, no key (every caller that passes nothing).
+        before = seams.counts()
+        plain = await _st_ask(coord, {"target_temp": 20.0})
+        out["plain"] = (tuple(b - a for a, b in zip(before, seams.counts())), _ST_KEY in plain)
+    out["first_key"] = first.get(_ST_KEY)
+    return out
+
+
+_st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
+try:
+    _st_path_seen = _asyncio.run(_st_path())
+finally:
+    _st_dt.freeze(None)
+R.check(
+    "#2257: a steady what-if that moves no comfort target is three solves against "
+    "a plan it has not priced before (one measured, two held) and two after, the "
+    "live side kept",
+    _st_path_seen["first"] == (1, 2) and _st_path_seen["second"] == (1, 1)
+    and _st_path_seen["memo"] and _st_path_seen["memo_same"],
+    repr(_st_path_seen),
+)
+R.check(
+    "each held solve runs on an optimizer of its own that has solved nothing: "
+    "not the measured what-if's, not a record's, not a warm-seeded one",
+    _st_path_seen["instances"] and _st_path_seen["live_config"] == (19.0, 18.5),
+    repr(_st_path_seen),
+)
+R.check(
+    "the steady pair never becomes the plan: _optimization_result is the same "
+    "object with the same schedule after it",
+    _st_path_seen["plan_kept"],
+    repr(_st_path_seen),
+)
+R.check(
+    "the kept live side is reused only against the same plan object from an "
+    "equal measured start: a moved tank or a re-solve solves it again",
+    _st_path_seen["moved_start"] == (1, 2) and _st_path_seen["new_plan"] == (1, 2),
+    repr(_st_path_seen),
+)
+R.check(
+    "the user's slot is spent once: five steady calls start one what-if's "
+    "solves and the rest are answered from the cache, figure included (#1448)",
+    _st_path_seen["limited"][0] == 1 and _st_path_seen["limited"][1] <= 2
+    and _st_path_seen["limited_answer"] == (True, True),
+    repr(_st_path_seen),
+)
+R.check(
+    "a caller that does not ask for the steady figure pays one solve and gets "
+    "no key",
+    _st_path_seen["plain"] == ((1, 0), False),
+    repr(_st_path_seen),
+)
+
+
+async def _st_failures():
+    out = {}
+    # The worker unavailable: the measured solve bumps the #783 streak once;
+    # the pair degrades to the executor without touching it.
+    coord = await _st_coord()
+    entry_id = coord.entry.entry_id
+    with _StSeams(worker_error=_st_cmod.ProcessWorkerUnavailable("probe: no worker")) as seams:
+        before = _st_cmod._worker_fallback_streak(coord.hass, entry_id)
+        answer = await _st_ask(coord, {"min_temp": 18.5}, steady=True)
+        out["streak"] = _st_cmod._worker_fallback_streak(coord.hass, entry_id) - before
+        out["unavailable_answer"] = (seams.counts(), _ST_KEY in answer, answer.get("error"))
+    _st_cmod._clear_worker_fallback(coord.hass, entry_id)
+    # The pair times out: the answer stands without the figure, nothing kept.
+    coord = await _st_coord(extra={"main_fuse_amperes": 20, "main_fuse_phases": 3})
+    record = _solve_record_now(coord)
+    cap = price_tiles.specs(record.config, record.params.max_electrical_power)[2][1]
+    # The seeding solve's own background callers may have kept a live side.
+    _st_whatif.state_for(coord).live_steady = None
+    with _StSeams(pair_error=_st_cmod.ProcessWorkerTimeout("probe: no reply")) as seams:
+        answer = await _st_ask(coord, cap, steady=True)
+        out["timeout"] = (
+            seams.counts(), "monthly_cost_delta" in answer, _ST_KEY in answer, answer.get("error"),
+            price_tiles.monthly_figure(cap, answer), _st_whatif.state_for(coord).live_steady,
+        )
+        coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        await coord._maybe_run_fuse_advisor(record)
+        out["fuse_failed"] = dict(coord._fuse_advisor)
+    # And healthy: the fuse advisor's money is the answer's steady key.
+    answers = []
+    real = coord.async_simulate
+
+    async def _spy(overrides, **kwargs):
+        answers.append((kwargs, await real(overrides, **kwargs)))
+        return answers[-1][1]
+
+    coord.async_simulate = _spy
+    try:
+        coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        await coord._maybe_run_fuse_advisor(record)
+    finally:
+        del coord.async_simulate
+    out["fuse_ok"] = (dict(coord._fuse_advisor), answers)
+    return out
+
+
+_st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
+try:
+    _st_fail_seen = _asyncio.run(_st_failures())
+finally:
+    _st_dt.freeze(None)
+R.check(
+    "#783: with the process worker unavailable one steady what-if bumps the "
+    "fallback streak by exactly one, the measured solve's; the pair falls to "
+    "the executor outside the streak and still answers",
+    _st_fail_seen["streak"] == 1 and _st_fail_seen["unavailable_answer"] == ((1, 2), True, None),
+    repr((_st_fail_seen["streak"], _st_fail_seen["unavailable_answer"])),
+)
+R.check(
+    "#2257: a steady pair that times out leaves the answer standing without "
+    "the figure: no key, no error, no cap-tile figure, nothing kept",
+    _st_fail_seen["timeout"] == ((1, 1), True, False, None, None, None),
+    repr(_st_fail_seen["timeout"]),
+)
+R.check(
+    "and the fuse advisor then publishes its verdict with no money, never the "
+    "settled figure",
+    "candidate_kw" in _st_fail_seen["fuse_failed"]
+    and "cost_delta_sek_month" in _st_fail_seen["fuse_failed"]
+    and _st_fail_seen["fuse_failed"]["cost_delta_sek_month"] is None,
+    repr(_st_fail_seen["fuse_failed"]),
+)
+_st_fuse, _st_fuse_answers = _st_fail_seen["fuse_ok"]
+R.check(
+    "the fuse advisor asks for the steady figure on the background path and "
+    "publishes it as its money",
+    len(_st_fuse_answers) == 1
+    and _st_fuse_answers[0][0].get("steady") is True and _st_fuse_answers[0][0].get("limited") is False
+    and isinstance(_st_fuse_answers[0][1].get(_ST_KEY), float)
+    and _st_fuse.get("cost_delta_sek_month") == _st_fuse_answers[0][1][_ST_KEY],
+    repr((_st_fuse, [(k, a.get(_ST_KEY), a.get("monthly_settled_cost_delta")) for k, a in _st_fuse_answers])),
+)
+
+
+async def _st_tiles():
+    """A rotation of the three tiles and the fuse advisor after one solve:
+    (measured, held) solves per caller, and what each tile recorded."""
+    coord = await _st_coord(extra={
+        "price_tiles_enabled": True, "main_fuse_amperes": 20, "main_fuse_phases": 3})
+    price_tiles.book(coord).clear()
+    record = _solve_record_now(coord)
+    names = [name for name, _ in price_tiles.specs(record.config, record.params.max_electrical_power)]
+    out = {}
+    with _StSeams() as seams:
+        # A coordinator's first rotation (#2257): its cap turn starts the
+        # tile's clock and solves nothing.
+        before = seams.counts()
+        for _ in names:
+            await coord._maybe_refresh_price_tile(record)
+        out["clock_first"] = (tuple(b - a for a, b in zip(before, seams.counts())), sorted(price_tiles.book(coord)))
+        price_tiles.book(coord).clear()
+        price_tiles.rotation(coord).steady_taken -= timedelta(hours=6)
+        # The rotation position is whatever the seeding solve left it at.
+        for _ in names:
+            before, had = seams.counts(), {k: len(v.get("days", [])) for k, v in price_tiles.book(coord).items()}
+            await coord._maybe_refresh_price_tile(record)
+            name = next(k for k, v in price_tiles.book(coord).items() if len(v.get("days", [])) != had.get(k, 0)
+                        or k not in had)
+            out[name] = tuple(b - a for a, b in zip(before, seams.counts()))
+        before = seams.counts()
+        coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        await coord._maybe_run_fuse_advisor(record)
+        out["fuse"] = tuple(b - a for a, b in zip(before, seams.counts()))
+        user = _st_whatif.state_for(coord)
+        out["user_untouched"] = (user.last_at, dict(user.answer))
+        # The cap tile's clock (#2257), six hours stated here and not read
+        # off the constant: a whole rotation more at each age of its last
+        # refresh, the three slots' solves summed.
+        start, clock = _st_dt.now(), timedelta(hours=6)
+        for label, age in (("same_instant", timedelta(0)), ("inside", clock - timedelta(seconds=1)),
+                           ("at", clock)):
+            _st_dt.freeze(start + age)
+            before, stamp = seams.counts(), price_tiles.book(coord)["power_cap_75"]["computed_at"]
+            for _ in names:
+                await coord._maybe_refresh_price_tile(record)
+            out["clock_" + label] = (tuple(b - a for a, b in zip(before, seams.counts())),
+                                     price_tiles.book(coord)["power_cap_75"]["computed_at"] != stamp)
+        # A turn stamped ahead of the reading clock, on a rotation of its own.
+        turn, cap = price_tiles.Rotation(), [("power_cap_75", {"power_cap_kw": 1.0})]
+        out["clock_behind"] = [price_tiles.take(turn, cap, start + age) is not None for age in (
+            timedelta(0), -timedelta(seconds=1), timedelta(0))]
+    return out
+
+
+_st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
+try:
+    _st_tiles_seen = _asyncio.run(_st_tiles())
+finally:
+    _st_dt.freeze(None)
+R.check(
+    "a tile rotation: each degree tile is one solve and no held one, the cap "
+    "tile one and the held pair",
+    _st_tiles_seen.get("target_minus_1") == (1, 0) and _st_tiles_seen.get("target_plus_1") == (1, 0)
+    and _st_tiles_seen.get("power_cap_75") == (1, 2),
+    repr(_st_tiles_seen),
+)
+R.check(
+    "#2257: the cap tile's steady pair is off the per-solve path: a "
+    "coordinator's first rotation solves the two degree tiles and starts the "
+    "cap tile's clock, and so does a rotation inside the clock, the cap tile "
+    "standing; at the clock the slot solves its three again; a clock read "
+    "behind the last turn is no age, so that turn is taken, and the next one "
+    "a second later is not",
+    [_st_tiles_seen.get("clock_" + k) for k in ("first", "same_instant", "inside", "at", "behind")]
+    == [((2, 0), ["target_minus_1", "target_plus_1"]), ((2, 0), False), ((2, 0), False), ((3, 2), True),
+        [False, True, False]],
+    repr({k: v for k, v in _st_tiles_seen.items() if k.startswith("clock_")}),
+)
+R.check(
+    "the fuse advisor after the cap tile on the same record shares its live "
+    "side: one measured solve and one held",
+    _st_tiles_seen["fuse"] == (1, 1),
+    repr(_st_tiles_seen),
+)
+R.check(
+    "#1753: the background callers' steady pairs leave the user's slot and "
+    "cached answer alone",
+    _st_tiles_seen["user_untouched"] == (None, {}),
+    repr(_st_tiles_seen["user_untouched"]),
+)
+
+
+# -- The schedule branch ---------------------------------------------------
+# An ask that moves a comfort target is priced by the thermostat's day energy
+# on both sides, at the what-if's instant on the what-if's arrays. Three
+# things rode in every earlier shape and are perturbed here: the plan's age
+# (the what-if asked one and two steps after the solve), tomorrow's weather
+# (4 K milder, so the horizon holds two different days) and the start hour.
+_ST_WANT = {
+    "target_minus_1": -1, "target_plus_1": 1, "panel_comfort_plus_half": 1,
+    "panel_comfort_minus_half": -1, "panel_daystart_earlier": 1, "panel_daystart_later": -1,
+    "panel_dayend_later": 1, "panel_dayend_earlier": -1,
+}
+
+
+def _st_asks(record):
+    """The carrier harness's asks: the tiles, the panel's six schedule asks and
+    the three that move no target (zero, cap, hot water alone)."""
+    c = record.config
+    day = c.comfort_temp_day if c.comfort_temp_day is not None else c.target_temp
+    return [("panel_zero", {"target_temp": c.target_temp})] + list(
+        price_tiles.specs(c, record.params.max_electrical_power)) + [
+        ("panel_comfort_plus_half", {"target_temp": c.target_temp + 0.5, "comfort_temp_day": day + 0.5}),
+        ("panel_comfort_minus_half", {"target_temp": c.target_temp - 0.5, "comfort_temp_day": day - 0.5}),
+        ("panel_daystart_earlier", {"day_start_hour": c.day_start_hour - 1}),
+        ("panel_daystart_later", {"day_start_hour": c.day_start_hour + 1}),
+        ("panel_dayend_later", {"day_end_hour": c.day_end_hour + 1}),
+        ("panel_dayend_earlier", {"day_end_hour": c.day_end_hour - 1}),
+        ("panel_hotwater_only", {"dhw_min_temperature": float(record.params.dhw_min_temp) + 2.0}),
+    ]
+
+
+async def _st_aged(age, asks=None, step=4.0, extra=None):
+    """Per ask (figure, measured solves, held solves, error), the what-if asked
+    ``age`` quarter-hours after the solve, the day after it ``step`` K milder."""
+    coord = _solve_coord()
+    if extra:
+        with_config(coord, extra)
+    day0 = _st_dt.now().date()
+    for row in coord._weather_forecast:
+        if _st_dt.parse_datetime(row["datetime"]).date() > day0:
+            row["temperature"] = -5.0 + step
+    coord._fuse_advisor_at = _st_dt.now()
+    await coord.async_run_optimization()
+    _st_dt.freeze(_st_dt.now() + timedelta(minutes=15 * age))
+    record = _solve_record_now(coord)
+    out = {}
+    with _StSeams() as seams:
+        for name, overrides in (asks(record) if asks else _st_asks(record)):
+            before = seams.counts()
+            answer = await _st_ask(coord, overrides, steady=True)
+            out[name] = (answer.get(_ST_KEY), *(b - a for a, b in zip(before, seams.counts())), answer.get("error"),
+                         answer.get(price_tiles.SHIFTED_KEY, "absent"))
+    return out
+
+
+def _st_at(hour, age, **kwargs):
+    _st_dt.freeze(_st_dt.now().replace(hour=hour, minute=7, second=0, microsecond=0))
+    try:
+        return _asyncio.run(_st_aged(age, **kwargs))
+    finally:
+        _st_dt.freeze(None)
+
+
+# 07 is where the horizon's own weather read a day-window ask against itself.
+_st_cells = {(hour, age): _st_at(hour, age) for hour in (7, 19) for age in (0, 1, 2)}
+_st_sched = {(cell, name): row for cell, rows in _st_cells.items() for name, row in rows.items() if name in _ST_WANT}
+R.check(
+    "#2257: each schedule ask (two tile degrees, six panel asks) reads strictly on "
+    "its own side of 0, with the plan 0, 1 and 2 steps old and tomorrow 4 K milder",
+    len(_st_sched) == 48
+    and all(row[0] is not None and row[0] * _ST_WANT[name] > 0.0 for (_, name), row in _st_sched.items()),
+    repr({k: v[0] for k, v in _st_sched.items() if v[0] is None or v[0] * _ST_WANT[k[1]] <= 0.0}),
+)
+R.check(
+    "and costs one solve: no held pair is solved for a schedule ask",
+    all(row[1:3] == (1, 0) for row in _st_sched.values()),
+    repr({k: v[1:3] for k, v in _st_sched.items() if v[1:3] != (1, 0)}),
+)
+R.check(
+    "the zero ask reads exactly 0.0 at every age, on the pair (its targets are "
+    "the live ones): identical inputs, not a cancellation",
+    all(rows["panel_zero"][0] == 0.0 and rows["panel_zero"][1:3] == (1, 2) for rows in _st_cells.values()),
+    repr({k: v["panel_zero"] for k, v in _st_cells.items()}),
+)
+R.check(
+    "a cap and a hot-water ask move no target and read the pair, the live side "
+    "kept from the zero ask (one held solve each); the cap never reads a saving",
+    all(rows[name][1:3] == (1, 1) and rows[name][0] is not None
+        for rows in _st_cells.values() for name in ("power_cap_75", "panel_hotwater_only"))
+    and all(rows["power_cap_75"][0] >= -1.0 for rows in _st_cells.values()),
+    repr({k: (v["power_cap_75"], v["panel_hotwater_only"]) for k, v in _st_cells.items()}),
+)
+R.check(
+    "each schedule ask's figure is one figure across the plan's age: the three "
+    "ages of an hour sit within 1.0 a month of one another",
+    all(
+        max(_st_cells[(hour, age)][name][0] for age in (0, 1, 2))
+        - min(_st_cells[(hour, age)][name][0] for age in (0, 1, 2)) <= 1.0
+        for hour in (7, 19) for name in _ST_WANT
+    ),
+    repr({(hour, name): [_st_cells[(hour, age)][name][0] for age in (0, 1, 2)] for hour in (7, 19) for name in _ST_WANT}),
+)
+
+# The branch is taken on the targets, element by element: no threshold.
+_st_small = _st_at(7, 1, asks=lambda record: [
+    ("hundredth", {"comfort_temp_day": (record.config.comfort_temp_day or record.config.target_temp) + 0.01}),
+    ("weight", {"comfort_weight": record.config.comfort_weight + 1.0}),
+])
+R.check(
+    "a hundredth of a kelvin on the day comfort is a schedule ask: one solve, "
+    "a figure above 0; an ask that moves no target (the weight) takes the pair",
+    _st_small["hundredth"][1:3] == (1, 0) and _st_small["hundredth"][0] is not None
+    and _st_small["hundredth"][0] > 0.0 and _st_small["weight"][1:3] == (1, 2),
+    repr(_st_small),
+)
+
+# -- reference_day, on the optimizer ---------------------------------------
+def _st_reference(hours=24, dhw=False, start=_ST_STARTS[0], when=_ST_WED, max_kw=None, day=21.0, **config):
+    """A solve and reference_day on a second optimizer from the same inputs:
+    what the solve's own thermostat pass was handed, and both answers."""
+    def build():
+        cfg = _st_house(two_zone=False, dhw=dhw)
+        params = _StParams.from_config(cfg)
+        params.dhw_enabled = dhw
+        if max_kw is not None:
+            params.max_electrical_power = max_kw
+        return _st_omod.HeatPumpOptimizer(_StModel(params), _st_omod.OptimizationConfig(
+            horizon_hours=hours, time_step_minutes=15, target_temp=day,
+            min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+            comfort_temp_day=day, comfort_temp_night=19.5, **config))
+
+    solver, fresh = build(), build()
+    n = solver.config.n_steps
+    ot, wi, ra, so = (a[:n] for a in _st_weather("winter_mild", when))
+    state = _StState(
+        room_temperature=start[0], slab_temperature=start[1], outdoor_temperature=float(ot[0]),
+        upper_floor_temperature=start[0], lower_floor_temperature=start[0],
+        dhw_temperature=52.0, dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0)
+    inputs = solve_inputs(
+        initial_state=state, prices=0.9 + 0.4 * np.sin(np.arange(n) * 2.0 * np.pi / n), outdoor_temps=ot,
+        wind_speeds=wi, precipitation=ra, solar_radiation=so, start_time=when)
+    handed = []
+    real = solver._compute_baseline_power
+
+    def _spy(weather, initial_state, dt, comfort_targets=None, start=None):
+        handed.append((weather, comfort_targets, start))
+        return real(weather, initial_state, dt, comfort_targets, start)
+
+    solver._compute_baseline_power = _spy
+    result = solver.optimize(inputs=inputs)
+    return {"handed": handed, "result": result, "day": fresh.reference_day(inputs),
+            "again": fresh.reference_day(inputs), "inputs": inputs, "fresh": fresh, "n": n}
+
+
+_st_ref = {dhw: _st_reference(dhw=dhw) for dhw in (False, True)}
+R.check(
+    "#2257: reference_day's setpoints open with the ones the solve's own thermostat "
+    "pass was handed and run a week of days, with and without hot water, from an "
+    "optimizer that has solved nothing; its energy is finite, positive and the "
+    "same when asked again",
+    all(
+        r["handed"] and r["day"][0][:96] == np.asarray(r["handed"][0][1], dtype=float)[:96].tolist()
+        and len(r["day"][0]) == 7 * 96 and _st_math.isfinite(r["day"][1]) and r["day"][1] > 0.0 and r["day"] == r["again"]
+        for r in _st_ref.values()
+    ),
+    repr({k: (len(v["handed"]), v["day"][1]) for k, v in _st_ref.items()}),
+)
+R.check(
+    "no solve passes the reference a start: the optional argument stays None on "
+    "every thermostat pass of both paths, so baseline_cost keeps its held start",
+    all(all(h[2] is None for h in r["handed"]) for r in _st_ref.values()),
+    repr({k: [h[2] is None for h in v["handed"]] for k, v in _st_ref.items()}),
+)
+_st_ref_starts = [_st_reference(start=start)["day"] for start in _ST_STARTS]
+R.check(
+    "the day energy does not move with the measured house: three starts, one "
+    "figure (the reference starts held, then where its own first pass ended)",
+    len({d[1] for d in _st_ref_starts}) == 1,
+    repr([d[1] for d in _st_ref_starts]),
+)
+_st_ref_fresh = _st_ref[False]["fresh"]
+_st_ref_w = _st_omod._day_mean_weather(_st_omod._horizon_weather(_st_ref[False]["inputs"].forecast, 96), 96)
+_st_ref_targets = np.asarray(_st_ref[False]["day"][0][:96])
+_st_ref_one = _st_ref_fresh._compute_baseline_power(_st_ref_w, _st_ref[False]["inputs"].state, 0.25, _st_ref_targets)
+R.check(
+    "the energy is the second pass's, at the day's mean weather: one pass from "
+    "the held start reads another number (the perturbation), a second from "
+    "where it ended reads the week's own (no weekend temperatures: seven equal "
+    "days), and every series of that weather is flat",
+    abs(float(np.sum(_st_ref_one[0])) * 0.25 - _st_ref[False]["day"][1]) > 1e-6
+    and abs(float(np.sum(_st_ref_fresh._compute_baseline_power(
+        _st_ref_w, _st_ref[False]["inputs"].state, 0.25, _st_ref_targets, start=_st_ref_one[1])[0])) * 0.25
+        - _st_ref[False]["day"][1]) < 1e-9
+    and all(np.ptp(a) == 0.0 for a in (
+        _st_ref_w.outdoor_temps, _st_ref_w.wind_speeds, _st_ref_w.precipitation, _st_ref_w.solar_radiation))
+    and float(_st_ref_w.outdoor_temps[0]) == float(np.mean(_st_ref[False]["inputs"].forecast.outdoor_temps[:96])),
+    repr((float(np.sum(_st_ref_one[0])) * 0.25, _st_ref[False]["day"][1])),
+)
+_st_ref_short = _st_reference(hours=12)
+R.check(
+    "a horizon under a day prices no day: the energy is nan, the setpoints the "
+    "horizon's own",
+    _st_math.isnan(_st_ref_short["day"][1]) and len(_st_ref_short["day"][0]) == 7 * 48,
+    repr((_st_ref_short["day"][1], len(_st_ref_short["day"][0]))),
+)
+# The horizon is the shortest of the prices, the outdoor series and the
+# configured steps, and the day never longer than 24 h of it.
+_st_ref_cut = _st_ref_fresh.reference_day(_st_replace(
+    _st_ref[False]["inputs"], forecast=_st_replace(
+        _st_ref[False]["inputs"].forecast,
+        outdoor_temps=_st_ref[False]["inputs"].forecast.outdoor_temps[:48])))
+_st_ref_long = _st_reference(hours=48)
+# Every series two days long (the fixture's weather is one day's, repeated).
+_st_ref_two = _st_ref_long["fresh"].reference_day(_st_replace(
+    _st_ref_long["inputs"], forecast=_st_replace(
+        _st_ref_long["inputs"].forecast, **{
+            k: np.resize(getattr(_st_ref_long["inputs"].forecast, k), 192)
+            for k in ("prices", "outdoor_temps", "wind_speeds", "precipitation", "solar_radiation")})))
+R.check(
+    "#2257: an outdoor series under a day prices no day although the prices "
+    "cover one (the energy is nan, the setpoints the series' own length), and a "
+    "two-day horizon prices one day of 96 steps, the one-day horizon's energy",
+    _st_math.isnan(_st_ref_cut[1]) and len(_st_ref_cut[0]) == 7 * 48
+    and _st_ref_long["n"] == 192 and len(_st_ref_two[0]) == 7 * 96
+    and abs(_st_ref_two[1] - _st_ref[False]["day"][1]) < 1e-9,
+    repr((_st_ref_cut[1], len(_st_ref_cut[0]), _st_ref_long["n"], len(_st_ref_two[0]),
+          _st_ref_two[1], _st_ref[False]["day"][1])),
+)
+
+
+def _st_hw(n=4, **series):
+    """_horizon_weather over a four-step forecast carrying ``series``."""
+    return _st_omod._horizon_weather(
+        _st_omod.ForecastSeries(prices=np.ones(6), outdoor_temps=np.zeros(6), **series), n)
+
+
+_st_hw_short = _st_hw(humidity=np.array([50.0, 60.0])).humidity
+_st_hw_long = _st_hw(humidity=np.array([50.0, 60.0, 70.0, 80.0, 90.0, 95.0])).humidity
+_st_hw_heat = _st_hw(external_heat_kw=np.array([0.0, 1.5])).external_heat_kw
+R.check(
+    "the horizon's weather, as every solve and reference_day read it: a short "
+    "humidity series is padded with nan to the horizon and a long one cut to "
+    "it, an all-nan one and none at all are None; free heat is padded with 0, "
+    "and all-zero free heat is None",
+    _st_hw_short is not None and len(_st_hw_short) == 4
+    and _st_hw_short[:2].tolist() == [50.0, 60.0] and bool(np.all(np.isnan(_st_hw_short[2:])))
+    and _st_hw_long is not None and _st_hw_long.tolist() == [50.0, 60.0, 70.0, 80.0]
+    and _st_hw(humidity=np.full(4, np.nan)).humidity is None
+    and _st_hw().humidity is None
+    and _st_hw_heat is not None and _st_hw_heat.tolist() == [0.0, 1.5, 0.0, 0.0]
+    and _st_hw(external_heat_kw=np.zeros(4)).external_heat_kw is None
+    and _st_hw().external_heat_kw is None,
+    repr((_st_hw_short, _st_hw_long, _st_hw_heat)),
+)
+
+
+async def _st_user_band():
+    """The ``banded`` each ``_solve_hubs`` call of one user what-if was handed."""
+    coord = await _st_coord()
+    handed, real = [], coord._solve_hubs
+
+    def _spy(n_steps, *, banded, band=None):
+        handed.append(banded)
+        return real(n_steps, banded=banded, band=band)
+
+    coord._solve_hubs = _spy
+    answer = await _st_ask(coord, {"min_temp": 18.5})
+    return handed, "error" in answer
+
+
+_st_user_band_seen = _asyncio.run(_st_user_band())
+R.check(
+    "#1795: the card's what-if on a house that is not away reads the hubs "
+    "unbanded: economy's and an open window's widened floor are not in its price",
+    _st_user_band_seen[0] == [False] and not _st_user_band_seen[1],
+    repr(_st_user_band_seen),
+)
+# The weekday. With weekend temperatures a schedule holds other setpoints from
+# Friday night on: one day's energy moved with the day the what-if was asked
+# on, and a weekend ask moved no setpoint on a Monday and left the branch.
+_ST_WEEKEND = {"comfort_temp_day_weekend": 22.0, "comfort_temp_night_weekend": 20.0}
+_st_week = [_st_reference(when=_ST_WED + timedelta(days=d), **_ST_WEEKEND)["day"] for d in range(7)]
+_st_week_null = [_st_reference(when=_ST_WED + timedelta(days=d))["day"] for d in range(7)]
+_st_week_ask = [
+    _st_reference(when=_ST_WED + timedelta(days=d), **{**_ST_WEEKEND, "comfort_temp_day_weekend": 23.0})["day"]
+    for d in range(7)
+]
+R.check(
+    "#2257: with weekend temperatures the day energy is the week's average day, "
+    "one figure whichever weekday asks (to 1e-9: the seven days are summed in "
+    "the order they come), above the same house's without them; the null, no "
+    "weekend temperatures, is one figure too and every day of its week holds "
+    "the first day's setpoints",
+    max(d[1] for d in _st_week) - min(d[1] for d in _st_week) < 1e-9
+    and len({d[1] for d in _st_week_null}) == 1 and _st_week[0][1] > _st_week_null[0][1] + 0.1
+    and all(d[0][k * 96:(k + 1) * 96] == d[0][:96] for d in _st_week_null for k in range(7))
+    and len({tuple(_st_week[0][0][k * 96:(k + 1) * 96]) for k in range(7)}) > 1,
+    repr(([d[1] for d in _st_week], _st_week_null[0][1])),
+)
+R.check(
+    "#2257: a weekend ask moves a setpoint on every weekday it is asked on, a "
+    "Monday included, and its energy is one figure above the unasked week's: "
+    "the branch and the figure read the week, never the day asked on",
+    all(a[0] != b[0] and a[1] > b[1] + 0.01 for a, b in zip(_st_week_ask, _st_week))
+    and max(d[1] for d in _st_week_ask) - min(d[1] for d in _st_week_ask) < 1e-9,
+    repr([d[1] for d in _st_week_ask]),
+)
+R.check(
+    "the schedule figure, on numbers: the energy difference at the mean price, "
+    "scaled from a day to the horizon, plus the outside spend, per month; an "
+    "energy that is not finite gives no key",
+    price_tiles.schedule_figure(10.0, 12.0, 0.5, 0.25, 24.0)[_ST_KEY] == round((2.0 * 0.5 + 0.25) * 30.4, 2)
+    and price_tiles.schedule_figure(10.0, 12.0, 0.5, 0.25, 48.0)[_ST_KEY] == round((2.0 * 0.5 * 2.0 + 0.25) * 15.2, 2)
+    and price_tiles.schedule_figure(12.0, 10.0, 0.5, 0.0, 24.0)[_ST_KEY] == round(-1.0 * 30.4, 2)
+    and price_tiles.schedule_figure(_st_math.nan, 12.0, 0.5, 0.0, 24.0) == {}
+    and price_tiles.schedule_figure(10.0, _st_math.nan, 0.5, 0.0, 24.0) == {},
+    "schedule_figure",
+)
+R.check(
+    "#2257: the same energy difference once more at the plan's own average "
+    "purchase price, under its own key; a price that is nan, zero or negative "
+    "leaves the key None, and the mean-price figure is the same either way",
+    price_tiles.schedule_figure(10.0, 12.0, 0.5, 0.25, 24.0, 0.2)
+    == {_ST_KEY: round((2.0 * 0.5 + 0.25) * 30.4, 2), price_tiles.SHIFTED_KEY: round((2.0 * 0.2 + 0.25) * 30.4, 2)}
+    and all(
+        price_tiles.schedule_figure(10.0, 12.0, 0.5, 0.25, 24.0, bad)
+        == {_ST_KEY: round((2.0 * 0.5 + 0.25) * 30.4, 2), price_tiles.SHIFTED_KEY: None}
+        for bad in (_st_math.nan, 0.0, -0.3, _st_math.inf)
+    )
+    and price_tiles.realised_price(_st_ns(predicted_cost=6.0, power_schedule=[2.0, 4.0], dhw_power_schedule=[2.0]), 0.25) == 3.0
+    and price_tiles.realised_price(_st_ns(predicted_cost=6.0, power_schedule=[2.0, 4.0], dhw_power_schedule=None), 0.5) == 2.0
+    and _st_math.isnan(price_tiles.realised_price(_st_ns(predicted_cost=0.0, power_schedule=[0.0], dhw_power_schedule=None), 0.25)),
+    "schedule_figure shifted",
+)
+R.check(
+    "every schedule answer carries that second figure, on the ask's side of 0 and "
+    "strictly smaller than the mean-price one on this sawtooth (the plan buys below "
+    "the mean); an answer priced by the pair has no such key",
+    all(isinstance(row[4], float) and row[4] * _ST_WANT[name] > 0.0 and abs(row[4]) < abs(row[0])
+        for (_, name), row in _st_sched.items())
+    and all(rows[name][4] == "absent" for rows in _st_cells.values()
+            for name in ("panel_zero", "power_cap_75", "panel_hotwater_only")),
+    repr({k: (v[0], v[4]) for k, v in _st_sched.items()}),
+)
+# An energy tie: a thermostat held at the pump's maximum both ways draws the
+# same day under either schedule. That is still a schedule ask, and its figure
+# says what is true of that thermostat (0.0); a branch taken on the energies
+# would hand it to the pair, whose money reads such an ask against its sign.
+_st_tie_days = [_st_reference(max_kw=0.3, day=day)["day"] for day in (21.0, 21.5)]
+R.check(
+    "#2257: with the pump's maximum under the held demand the day energy ties "
+    "across two schedules whose setpoints differ (the pump's maximum, all day)",
+    _st_tie_days[0][0] != _st_tie_days[1][0] and _st_tie_days[0][1] == _st_tie_days[1][1]
+    and abs(_st_tie_days[0][1] - 0.3 * 24.0) < 1e-9,
+    repr([d[1] for d in _st_tie_days]),
+)
+_st_tie_sides = [_st_ns(reference_day=lambda inputs, d=d: d) for d in _st_tie_days]
+R.check(
+    "and the branch is taken on the setpoints, never the energies: the tie is a "
+    "schedule ask, equal setpoints with unequal energies are not",
+    _st_whatif.schedule_days((_st_tie_sides[0], None), (_st_tie_sides[1], None))
+    == (_st_tie_days[0][1], _st_tie_days[1][1])
+    and _st_whatif.schedule_days(
+        (_st_ns(reference_day=lambda inputs: ([21.0], 5.0)), None),
+        (_st_ns(reference_day=lambda inputs: ([21.0], 6.0)), None)) is None
+    and _st_whatif.schedule_days(
+        (_st_ns(reference_day=lambda inputs: ([21.0, 19.5], 5.0)), None),
+        (_st_ns(reference_day=lambda inputs: ([21.0, 19.51], 6.0)), None)) == (5.0, 6.0),
+    "schedule_days",
+)
+
+
+async def _st_nan_day(energy=_st_math.nan):
+    """A schedule ask whose day energy is ``energy`` on both sides: with nan,
+    no key, no pair, no fallback; with a tie, 0.0 on one solve."""
+    coord = await _st_coord()
+    real = _st_omod.HeatPumpOptimizer.reference_day
+    _st_omod.HeatPumpOptimizer.reference_day = lambda self, inputs: (real(self, inputs)[0], energy)
+    try:
+        with _StSeams() as seams:
+            record = _solve_record_now(coord)
+            cooler = price_tiles.specs(record.config, record.params.max_electrical_power)[0][1]
+            answer = await _st_ask(coord, cooler, steady=True)
+            return (seams.counts(), _ST_KEY in answer, "monthly_held_cost_delta" in answer, answer.get("error"),
+                    answer.get(_ST_KEY))
+    finally:
+        _st_omod.HeatPumpOptimizer.reference_day = real
+
+
+_st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
+try:
+    _st_nan_seen = _asyncio.run(_st_nan_day())
+    _st_tie_seen = _asyncio.run(_st_nan_day(7.2))
+finally:
+    _st_dt.freeze(None)
+R.check(
+    "#2257: a schedule ask with no day energy answers without the steady key, on "
+    "one solve: never the pair's money, never the held or the plan's figure",
+    _st_nan_seen == ((1, 0), False, True, None, None),
+    repr(_st_nan_seen),
+)
+R.check(
+    "#2257: a schedule ask whose two day energies tie reads 0.0 on one solve, "
+    "never the pair's money",
+    _st_tie_seen == ((1, 0), True, True, None, 0.0),
+    repr(_st_tie_seen),
 )
 
 R.section("v5.1.3 — an unusable sensor freezes the learners, not just a quiet one")
@@ -31689,8 +32798,8 @@ R.check(
 )
 R.check(
     "and nothing reports a freeze reason on that run",
-    _lf_ok._learner_freeze_reason is None,
-    f"got {_lf_ok._learner_freeze_reason!r}",
+    _lf_ok._learner_freezes.last is None,
+    f"got {_lf_ok._learner_freezes.last!r}",
 )
 
 for _lf_cond in ("stale", "unavailable", "missing_entity", "not_numeric"):
@@ -31708,8 +32817,8 @@ for _lf_cond in ("stale", "unavailable", "missing_entity", "not_numeric"):
     )
     R.check(
         f"and the freeze reason names both the condition and the key ({_lf_cond})",
-        _lf_c._learner_freeze_reason == f"{_lf_cond}:indoor_temp_entity",
-        f"got {_lf_c._learner_freeze_reason!r}",
+        _lf_c._learner_freezes.last == f"{_lf_cond}:indoor_temp_entity",
+        f"got {_lf_c._learner_freezes.last!r}",
     )
 
 # The three other consumers of the same predicate, checked on a coordinator
@@ -32868,7 +33977,7 @@ R.check(
     "a defrost interval teaches the heat-loss learner nothing",
     _df_house._house_heat_loss_scale == 1.0
     and _df_house._house_heat_loss_samples == 0
-    and _df_house._learner_freeze_reason == "defrosting",
+    and _df_house._learner_freezes.last == "defrosting",
     f"scale {_df_house._house_heat_loss_scale:.4f}, "
     f"{_df_house._house_heat_loss_samples} samples: a defrost pulls heat back "
     "out of the circuit, so folding it walks the persisted scale one way",
@@ -33779,7 +34888,7 @@ def _fl_model1_gate(outdoor, supply_phys, mapped):
     gate.as_measured = True
     gate._measured_power = measured
     # A persistent ratio, not a blip: the tracking gate judges against it.
-    gate._cop_ratio_ewma = measured / commanded
+    gate._measured_cop.ratio_ewma = measured / commanded
     if mapped:
         gate._flow_bias.observe_temps(supply_phys, supply_phys - 5.0)
     gate._learn_measured_cop()
@@ -34196,7 +35305,7 @@ def _g3_credit(supply_phys):
     c_plan = gate._thermal_model.compute_cop(-3.0)
     ct = max(bare.compute_cop(-3.0) * bare.flow_lift_factor(-3.0, supply_phys), 1.0)
     gate._measured_power = 3.0 * c_plan / ct
-    gate._cop_ratio_ewma = gate._measured_power / 3.0
+    gate._measured_cop.ratio_ewma = gate._measured_power / 3.0
     gate._flow_bias.observe_temps(supply_phys, supply_phys - 5.0)
     reference = gate._cop_reference_curve()[0]  # before the fold moves the scale
     gate._learn_measured_cop()
@@ -34553,7 +35662,7 @@ def _g4_plan(config, simulate=None):
     try:
         _asyncio.run(coord.async_run_optimization())
         if simulate is not None:
-            coord._last_simulation = None
+            _coord_mod.whatif.state_for(coord).last_at = None
             _asyncio.run(coord.async_simulate(simulate))
     finally:
         _coord_mod._await_optimize = real
@@ -34992,7 +36101,7 @@ def _qw_plan(config, simulate=None):
     try:
         _asyncio.run(coord.async_run_optimization())
         if simulate is not None:
-            coord._last_simulation = None
+            _coord_mod.whatif.state_for(coord).last_at = None
             _asyncio.run(coord.async_simulate(simulate))
     finally:
         _coord_mod._await_optimize = real
@@ -35520,7 +36629,7 @@ R.check(
 )
 R.check(
     "and nothing reports a freeze",
-    _psd_none._learner_freeze_reason is None
+    _psd_none._learner_freezes.last is None
     and _psd_none._learning_frozen("indoor_temp_entity") is None,
 )
 
@@ -35544,8 +36653,8 @@ R.check(
 )
 R.check(
     "and the reason names the pump, not a sensor",
-    _psd_offline._learner_freeze_reason == pump_signals.FREEZE_OFFLINE,
-    f"got {_psd_offline._learner_freeze_reason!r}",
+    _psd_offline._learner_freezes.last == pump_signals.FREEZE_OFFLINE,
+    f"got {_psd_offline._learner_freezes.last!r}",
 )
 R.check(
     "the freeze is plant-wide: it does not depend on which key is asked about",
@@ -35563,7 +36672,7 @@ _psd_online = _psd_drive(
 R.check(
     "an online pump learns exactly as an unconfigured one does",
     _psd_online._house_heat_loss_scale == _psd_none._house_heat_loss_scale
-    and _psd_online._learner_freeze_reason is None,
+    and _psd_online._learner_freezes.last is None,
     f"{_psd_online._house_heat_loss_scale:.6f} vs "
     f"{_psd_none._house_heat_loss_scale:.6f}",
 )
@@ -35576,7 +36685,7 @@ _psd_lan = _psd_drive(
 )
 R.check(
     "an unavailable online entity does not freeze on its own",
-    _psd_lan._learner_freeze_reason is None
+    _psd_lan._learner_freezes.last is None
     and _psd_lan._house_heat_loss_samples > 50,
     "in LAN mode the pump's own power and temperature entities go unavailable "
     "with it, and v5.1.3's per-key rule freezes on those; freezing again here "
@@ -35591,9 +36700,9 @@ _psd_fault = _psd_drive(
 R.check(
     "a fault freezes the learners",
     _psd_fault._house_heat_loss_samples == 0
-    and _psd_fault._learner_freeze_reason == pump_signals.FREEZE_FAULT,
+    and _psd_fault._learner_freezes.last == pump_signals.FREEZE_FAULT,
     f"{_psd_fault._house_heat_loss_samples} samples, "
-    f"reason {_psd_fault._learner_freeze_reason!r}",
+    f"reason {_psd_fault._learner_freezes.last!r}",
 )
 _psd_view = _psd_fault._input_health_view()
 R.check(
@@ -35617,9 +36726,9 @@ _psd_cool = _psd_drive(
 R.check(
     "a cooling pump freezes the learners",
     _psd_cool._house_heat_loss_samples == 0
-    and _psd_cool._learner_freeze_reason == pump_signals.FREEZE_COOLING,
+    and _psd_cool._learner_freezes.last == pump_signals.FREEZE_COOLING,
     f"{_psd_cool._house_heat_loss_samples} samples, "
-    f"reason {_psd_cool._learner_freeze_reason!r}",
+    f"reason {_psd_cool._learner_freezes.last!r}",
 )
 R.check(
     "and it suppresses BOTH channels of the plan",
@@ -35649,7 +36758,7 @@ _psd_heat = _psd_drive(
 R.check(
     "the pump's normal winter mode changes nothing at all",
     _psd_heat._house_heat_loss_scale == _psd_none._house_heat_loss_scale
-    and _psd_heat._learner_freeze_reason is None
+    and _psd_heat._learner_freezes.last is None
     and not _psd_heat._pump_signals.space_blocked
     and not _psd_heat._pump_signals.dhw_blocked,
 )
@@ -38216,7 +39325,7 @@ R.check(
 
 R.section("v5.3.0 review 2 — the what-if and the fuse advisor see the block")
 
-_wf_src = inspect.getsource(_Coord.async_simulate)
+_wf_src = inspect.getsource(_Coord._whatif_solve)
 R.check(
     "the shadow solve inherits the block, like every other input it inherits",
     "space_blocked=self._pump_signals.space_blocked" in _wf_src
@@ -39013,17 +40122,17 @@ _pt_all = _PtCfg(comfort_temp_night_weekend=18.0, holiday_comfort_day=20.0,
 R.check(
     "#2257: every level a degree moves is one the what-if applies to its scratch config",
     set(dict(price_tiles.specs(_pt_all, 6.0))["target_plus_1"])
-    == {k for k, _ in _coord_mod._SIM_OVERRIDE_CONFIG_CASTS} - {"min_temp", "max_temp", "comfort_weight",
+    == {k for k, _ in _coord_mod.whatif.OVERRIDE_CONFIG_CASTS} - {"min_temp", "max_temp", "comfort_weight",
                                                                 "day_start_hour", "day_end_hour"},
     "a level the what-if drops would leave that part of the schedule unmoved",
 )
 R.check(
-    "#2257: a degree tile reads the held figure, the cap tile the plan's settled one",
+    "#2257: a degree tile reads the held figure, the cap tile the steady one and never the settled",
     price_tiles.monthly_figure(_pt_specs["target_plus_1"],
                        {"monthly_cost_delta": -9.0, "monthly_held_cost_delta": 30.0}) == 30.0
     and price_tiles.monthly_figure(_pt_specs["power_cap_75"],
                            {"monthly_cost_delta": -40.0, "monthly_held_cost_delta": 0.0,
-                            "monthly_settled_cost_delta": 4.0}) == 4.0
+                            "monthly_settled_cost_delta": 4.0, "monthly_steady_cost_delta": 6.0}) == 6.0
     and price_tiles.monthly_figure(_pt_specs["target_plus_1"], {"monthly_cost_delta": 1.0}) is None,
 )
 _pt_day0 = _pt_date(2026, 1, 1)
@@ -39116,7 +40225,9 @@ async def _pt_degree_at_seam(room):
     record = _solve_record_now(coord)
     out = {}
     for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power):
-        answer = await coord.async_simulate(dict(overrides), limited=False, base=record)
+        # As the tile rotation asks: the steady figure for the cap alone.
+        answer = await coord.async_simulate(
+            dict(overrides), limited=False, base=record, steady="power_cap_kw" in overrides)
         out[name] = (price_tiles.monthly_figure(overrides, answer), answer.get("monthly_cost_delta"))
     return out
 
@@ -39154,16 +40265,17 @@ R.check(
     f"held {_pt_held}; the plan's single-solve figures {_pt_plan}",
 )
 # A cap keeps the schedule, so the cap tile (and the fuse advisor) read the
-# plan's spend with the heat it left unstored bought back. Unsettled, the
-# figure moves with where the house starts; settled, a coasted and a
-# pre-heated house part it by less (r10_advisor_residue.py whatif sizes both).
+# steady pair: both plans from held starts, the heat each left unstored bought
+# back. The plan's own figure moves with where the house starts; the steady
+# one parts a coasted and a pre-heated house by less (r10_advisor_residue.py
+# whatif sizes both).
 _pt_cap = {k: v["power_cap_75"] for k, v in _pt_seams.items()}
 R.check(
-    "#2257: the cap tile reads the settled figure, which the house's start moves less than the plan's",
+    "#2257: the cap tile reads the steady figure, which the house's start moves less than the plan's",
     all(_pt_cap[k][0] is not None for k in _pt_cap)
     and all(abs(_pt_cap[(h, 19.0)][0] - _pt_cap[(h, 23.0)][0])
             < abs(_pt_cap[(h, 19.0)][1] - _pt_cap[(h, 23.0)][1]) for h in (3, 15)),
-    f"(settled, plan) by (hour, room): {_pt_cap}",
+    f"(steady, plan) by (hour, room): {_pt_cap}",
 )
 
 
@@ -40963,6 +42075,90 @@ R.check(
     and _et_quiet_entry.options.get("silent_mode_power_fraction") == 0.7,
     f"raised {_et_quiet_applied!r}, stored {dict(_et_quiet_entry.options)}",
 )
+# An explicit 1.0 is a value, not "the call left it alone": it resets a
+# stored lower fraction to the default (carry 56724b85). The null control is
+# the same call without the field, which keeps the stored one.
+_et_frac_low = _et_call(
+    _et_quiet_hass, "apply_schedule", {"silent_mode_power_fraction": 0.6},
+)
+_et_frac_absent = _et_call(
+    _et_quiet_hass, "apply_schedule", {"quiet_silent_windows": "22:00-06:00"},
+)
+_et_frac_kept = _et_quiet_entry.options.get("silent_mode_power_fraction")
+R.check(
+    "apply_schedule without the fraction keeps a stored 0.6",
+    _et_frac_low is None and _et_frac_absent is None and _et_frac_kept == 0.6,
+    f"raised {_et_frac_low!r}/{_et_frac_absent!r}, stored {_et_frac_kept!r}",
+)
+_et_frac_reset = _et_call(
+    _et_quiet_hass, "apply_schedule", {"silent_mode_power_fraction": 1.0},
+)
+R.check(
+    "apply_schedule with an explicit 1.0 resets a stored 0.6 to 1.0",
+    _et_frac_reset is None
+    and _et_quiet_entry.options.get("silent_mode_power_fraction") == 1.0,
+    f"raised {_et_frac_reset!r}, stored "
+    f"{_et_quiet_entry.options.get('silent_mode_power_fraction')!r}",
+)
+# The same rule at the fraction's two sibling folds, so a what-if previews
+# what the save stores and a parameter write's live config equals the options
+# it persists: simulate_plan's `overridden_config` and set_thermal_parameters'
+# `apply_config_keys`. Each with its absent-field null control.
+from heatpump_optimizer import quiet_windows as _et_qw  # noqa: E402
+
+_et_frac_stored = {"silent_mode_power_fraction": 0.6}
+_et_frac_live = dict(_et_frac_stored)
+_et_qw.apply_config_keys(_et_frac_live, {"silent_mode_power_fraction": 1.0})
+_et_frac_live_absent = dict(_et_frac_stored)
+_et_qw.apply_config_keys(_et_frac_live_absent, {"quiet_off_windows": ""})
+_et_frac_folds = {
+    "simulate 1.0": _et_qw.overridden_config(
+        _et_frac_stored, {"silent_mode_power_fraction": 1.0}
+    ).get("silent_mode_power_fraction"),
+    "simulate absent": _et_qw.overridden_config(
+        _et_frac_stored, {"quiet_off_windows": ""}
+    ).get("silent_mode_power_fraction"),
+    "live 1.0": _et_frac_live.get("silent_mode_power_fraction"),
+    "live absent": _et_frac_live_absent.get("silent_mode_power_fraction"),
+}
+R.check(
+    "the what-if and live-config folds apply an explicit 1.0 over a stored 0.6 and keep it when absent",
+    _et_frac_folds == {
+        "simulate 1.0": 1.0, "simulate absent": 0.6,
+        "live 1.0": 1.0, "live absent": 0.6,
+    },
+    f"{_et_frac_folds}",
+)
+# set_thermal_parameters' disinfection temperature stops at the 70 °C hard
+# maximum (`ThermalParameters.dhw_hard_max_temp`) that caps every cycle, the
+# config flow's own top (carry bde9263f); 70 itself is the null control.
+
+
+def _et_leg_call(temp_c):
+    """set_thermal_parameters with one disinfection temperature; what it raised."""
+    try:
+        return _et_call(
+            _et_quiet_hass, "set_thermal_parameters",
+            {"dhw_legionella_temperature": temp_c},
+        )
+    except _ger_vol.Invalid as err:
+        return err
+
+
+_et_leg_71 = _et_leg_call(71)
+_et_leg_70 = _et_leg_call(70)
+R.check(
+    "set_thermal_parameters refuses a 71 °C disinfection temperature and accepts 70",
+    isinstance(_et_leg_71, _ger_vol.Invalid) and _et_leg_70 is None,
+    f"71 raised {_et_leg_71!r}; 70 raised {_et_leg_70!r}",
+)
+_et_leg_55 = _et_leg_call(55)
+_et_leg_54 = _et_leg_call(54)
+R.check(
+    "set_thermal_parameters accepts a 55 °C disinfection temperature and refuses 54",
+    _et_leg_55 is None and isinstance(_et_leg_54, _ger_vol.Invalid),
+    f"55 raised {_et_leg_55!r}; 54 raised {_et_leg_54!r}",
+)
 _et_quiet_set = _et_call(
     _et_quiet_hass,
     "set_thermal_parameters",
@@ -42601,6 +43797,147 @@ R.check(
     _unloaded and _ghc_writes(_gl) == [-3, 0]
     and _ghc_restore.diagnostics(_gl.entry)["restores"] == 1,
     "ok=%r writes=%r" % (_unloaded, _ghc_writes(_gl)),
+)
+
+# The off rule reaches the MQTT arm (owner ruling under mandate 6715477401,
+# 2026-11-11): no actuator arm leaves the pump displaced. What stands on each
+# ECL110 topic -- its last publish, retained or not -- is displace 0 after
+# MODE_OFF and after unload, through the same restore hook as the entity arm.
+import json as _gm_json  # noqa: E402
+
+
+def _gm_standing(coord):
+    """Each topic's last displace and retain flag; the entity arm's last write."""
+    stand = {}
+    for dom, svc, d in coord.hass.services.calls:
+        if dom == "mqtt":
+            body = d["payload"] if d["topic"] == "ecl/set" else _gm_json.loads(d["payload"])["command"]["displace"]
+            stand[d["topic"]] = (int(body), d["retain"])
+        elif svc == "set_value":
+            stand["entity"] = d["value"]
+    return stand
+
+
+_gm = {}
+for _gm_retain in (False, True):
+    for _gm_path in ("mode_off", "unload"):
+        _gmc = _ghc_coord(entry_id=f"ghc_mqtt_{_gm_retain}_{_gm_path}", ecl110_displace_set_topic="ecl/set",
+                          ecl110_command_topic="ecl/cmd", ecl110_mqtt_retain=_gm_retain)
+        _ghc_pub(_gmc, -3.0)
+        if _gm_path == "mode_off":
+            _asyncio.run(_gmc.async_set_mode(_ghc_off, refresh=False))
+        else:
+            _gmc.entry.runtime_data = _gmc
+            _asyncio.run(_ghc_unload(_gmc.hass, _gmc.entry))
+        _gm[_gm_retain, _gm_path] = _gm_standing(_gmc)
+R.check(
+    "MODE_OFF and unload leave displace 0 standing on both ECL110 topics, retain on and off",
+    all(s == {"ecl/set": (0, r), "ecl/cmd": (0, r), "entity": 0} for (r, _), s in _gm.items()),
+    repr(_gm),
+)
+_gm_neutral = [_gm_json.loads(d["payload"]) for dom, _, d in _gmc.hass.services.calls
+               if dom == "mqtt" and d["topic"] == "ecl/cmd"][-1]
+R.check(
+    "the legacy neutral body releases supply: heat_pump_on true, displace 0, reason off_restore",
+    _gm_neutral["command"] == {"type": "ecl110_control", "heat_pump_on": True, "displace": 0}
+    and _gm_neutral["reason"] == "off_restore",
+    repr(_gm_neutral),
+)
+_gmt = _ghc_coord(entity=None, entry_id="ghc_mqtt_none")
+R.check(
+    "publish_ecl110_topics with no topic configured publishes nothing and reports success",
+    _asyncio.run(_ghc.publish_ecl110_topics(_gmt.hass, None, None, 1, False, 0, {})) is True
+    and _ghc_mqtt(_gmt) == [],
+    repr(_ghc_mqtt(_gmt)),
+)
+_gmn = _ghc_coord(entity=None, entry_id="ghc_mqtt_never", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmn.async_set_mode(_ghc_off, refresh=False))
+_gmx = _ghc_coord(entity=None, entry_id="ghc_mqtt_once", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmx, 2.0)
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "an MQTT arm never published is not restored; one published is restored once, not per off",
+    _ghc_mqtt(_gmn) == [] and _ghc_mqtt(_gmx) == [("ecl/set", "2"), ("ecl/set", "0")]
+    and _ghc_restore.diagnostics(_gmx.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "%r %r %r" % (_ghc_mqtt(_gmn), _ghc_mqtt(_gmx), _ghc_restore.diagnostics(_gmx.entry)),
+)
+
+# A topic refusing the neutral is a failed restore: latched, still armed, so the
+# next off or unload tries again; either topic's refusal counts.
+_gm_fail = {}
+for _gm_bad in ("ecl/set", "ecl/cmd"):
+    _gmf = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_refused_{_gm_bad}", ecl110_displace_set_topic="ecl/set",
+                      ecl110_command_topic="ecl/cmd")
+    _ghc_pub(_gmf, 2.0)
+    _gmf_call = _gmf.hass.services.async_call
+
+    async def _gmf_refuse(domain, service, data, *a, _bad=_gm_bad, _call=_gmf_call, **k):
+        if domain == "mqtt" and data.get("topic") == _bad:
+            raise RuntimeError("broker gone")
+        return await _call(domain, service, data, *a, **k)
+
+    _gmf.hass.services.async_call = _gmf_refuse
+    _asyncio.run(_gmf.async_set_mode(_ghc_off, refresh=False))
+    _gm_fail[_gm_bad] = _ghc_restore.diagnostics(_gmf.entry)
+R.check(
+    "a topic refusing the neutral leaves the MQTT arm armed and counts no restore",
+    all(d["armed"] == [_ghc.MQTT_CONSUMER] and d["restores"] == 0 for d in _gm_fail.values()),
+    repr(_gm_fail),
+)
+
+# Topics cleared after the arm: the entity is no longer the optimizer's to write,
+# so the restore disarms it unwritten and counts nothing (off_restore's rule for
+# a consumer no longer configured).
+_gmc_armed = _ghc_coord(entity=None, entry_id="ghc_mqtt_cleared", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmc_armed, 2.0)
+_gmc_bare = _ghc_coord(entity=None, entry_id="ghc_mqtt_bare")
+_asyncio.run(_ghc_restore.async_restore(_gmc_armed.hass, _gmc_armed.entry, _gmc_bare.effective_config, "unload"))
+R.check(
+    "an MQTT arm whose topics were cleared is disarmed unwritten, no restore counted",
+    _ghc_mqtt(_gmc_armed) == [("ecl/set", "2")]
+    and _ghc_restore.diagnostics(_gmc_armed.entry) == {"armed": [], "restores": 0, "last_restore": None},
+    "%r %r" % (_ghc_mqtt(_gmc_armed), _ghc_restore.diagnostics(_gmc_armed.entry)),
+)
+
+# Carry 30ec8edf (2): the legacy payload's heat_pump_on is the cycle's own
+# switch write. A cycle landing a step late is ``cycle_supply`` answering the
+# landing step's command against the action's; the null control is the same
+# cycle inside its step, where the two agree.
+from heatpump_optimizer import pump_arbiter as _gm_arb  # noqa: E402
+from heatpump_optimizer.const import MODE_COMFORT as _gm_comfort  # noqa: E402
+
+
+def _gm_cycle(late):
+    """(the switch writes, the legacy payload's heat_pump_on) of one _apply_action."""
+    coord = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_cycle_{late}", ecl110_command_topic="ecl/cmd")
+    coord._mode = _gm_comfort
+    coord._current_action = {"mode": "comfort", "heat_pump_on": False, "displace_value": 2.0}
+    switch = []
+
+    async def _record(on):
+        switch.append(on)
+
+    coord._write_supply = _record
+    real = _gm_arb.cycle_supply
+    if late:
+        _gm_arb.cycle_supply = lambda _inp, _boosts, on, now=None: not on
+    try:
+        _asyncio.run(coord._apply_action())
+    finally:
+        _gm_arb.cycle_supply = real
+    return switch, [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(coord)]
+
+
+_gm_inside, _gm_late = _gm_cycle(False), _gm_cycle(True)
+_gmd = _ghc_coord(entity=None, entry_id="ghc_mqtt_default_on", ecl110_command_topic="ecl/cmd")
+_gmd._mode, _gmd._current_action = _gm_comfort, {"mode": "comfort", "displace_value": 1.0}
+_asyncio.run(_gmd.async_publish_current_action())
+_gm_default = [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(_gmd)]
+R.check(
+    "the legacy payload's heat_pump_on is the switch's write, inside its step and a step late; no write and no key: off",
+    _gm_inside == ([False], [False]) and _gm_late == ([True], [True]) and _gm_default == [False],
+    "inside=%r late=%r default=%r" % (_gm_inside, _gm_late, _gm_default),
 )
 
 # A crash: the write was armed and persisted, the process died unrestored. The
@@ -44396,7 +45733,7 @@ from heatpump_optimizer.diagnosis import diagnose_record as _g3_diagnose
 from heatpump_optimizer.optimizer import optimize_in_process as _g3_opt_job
 
 _g3_run = inspect.getsource(Coord.async_run_optimization)
-_g3_sim = inspect.getsource(Coord.async_simulate)
+_g3_sim = inspect.getsource(Coord.async_simulate) + inspect.getsource(Coord._whatif_solve)
 _g3_diag = inspect.getsource(Coord.async_diagnose_interval)
 R.check(
     "async_run_optimization submits a picklable job, not a lambda",
@@ -46177,19 +47514,60 @@ _sb_row = _sb_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
 _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
-    _sb_meta == {"sum": float(_SB_NOW), "count": 1} and _sb_row["old_basis"] is False
+    # The literal is the persisted stamp this release writes: a bump is deliberate.
+    _sb_meta == {"sum": 4.0, "count": 1} and _SB_NOW == 4 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
-# The stamp is a persisted value: a v2 store already on disk holds the literal
-# 1.0 this release writes, and that month must keep reading as current.
+# The stamp is a persisted value: a v2 store on disk holds the literal 1.0 that
+# v7.1.15 wrote under the reference spread by steady demand, which R10-SAV-
+# VALUATION-RESIDUE removed. Such a month mixes two references once it books on.
 _sb_disk = _sb_copy.deepcopy(_sb_led.as_dict())
 _sb_disk["months"]["2026-02"]["meta"][_SB_META] = {"sum": 1.0, "count": 1}
-_sb_disk_row = _SavLedger.from_dict(_sb_disk).savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+_sb_disk_led = _SavLedger.from_dict(_sb_disk)
+_sb_disk_led.observe_spot_and_settle_savings(_SavDT(2026, 2, 9, 4, 0), 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+_sb_disk_row = _sb_disk_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
 R.check(
-    "a month a v2 store holds stamped 1 reads on the current reference",
-    _sb_disk_row["old_basis"] is False and _sb_disk_row["savings_sek"] is not None,
-    repr(_sb_disk_row),
+    "a month stamped 1, the spread reference, states no saving after the change",
+    _sb_disk_row["old_basis"] is True and _sb_disk_row["savings_sek"] is None
+    and _sb_disk_row["savings_pct"] is None and _sb_disk_row["baseline_sek"] is not None
+    and _sb_disk_led.months["2026-02"]["meta"][_SB_META] == {"sum": 1.0, "count": 1},
+    repr((_sb_disk_row, _sb_disk_led.months["2026-02"]["meta"])),
+)
+# A stamp 2.0 is what v7.1.17 wrote, before pull request 3587 held a valve-limited
+# two-zone reference at the valve top: a month it opened mixes two references
+# once it books on under this code. A stamp 3.0 held a single-zone valved house
+# short of its setpoint, before R11-VALVE-REFERENCE's curve reached it. A stamp
+# 4.0, this release's, keeps its saving.
+_sb_by_stamp = {}
+for _sb_stamp in (2.0, 3.0, 4.0):
+    _sb_s = _sb_copy.deepcopy(_sb_led.as_dict())
+    _sb_s["months"]["2026-02"]["meta"][_SB_META] = {"sum": _sb_stamp, "count": 1}
+    _sb_s_led = _SavLedger.from_dict(_sb_s)
+    _sb_s_led.observe_spot_and_settle_savings(_SavDT(2026, 2, 9, 4, 0), 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+    _sb_by_stamp[_sb_stamp] = (_sb_s_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0], _sb_s_led.months["2026-02"]["meta"][_SB_META])
+_sb_v2_row, _sb_v2_meta = _sb_by_stamp[2.0]
+R.check(
+    "a month stamped 2, booked before the valve-top reference, states no saving after the change",
+    _sb_v2_row["old_basis"] is True and _sb_v2_row["savings_sek"] is None
+    and _sb_v2_row["savings_pct"] is None and _sb_v2_row["baseline_sek"] is not None
+    and _sb_v2_row["actual_sek"] is not None and _sb_v2_meta == {"sum": 2.0, "count": 1},
+    repr(_sb_by_stamp[2.0]),
+)
+_sb_v3_row, _sb_v3_meta = _sb_by_stamp[3.0]
+R.check(
+    "a month stamped 3, booked before the single-zone valve reached its setpoint, states no saving after the change",
+    _sb_v3_row["old_basis"] is True and _sb_v3_row["savings_sek"] is None
+    and _sb_v3_row["savings_pct"] is None and _sb_v3_row["baseline_sek"] is not None
+    and _sb_v3_row["actual_sek"] is not None and _sb_v3_meta == {"sum": 3.0, "count": 1},
+    repr(_sb_by_stamp[3.0]),
+)
+_sb_v4_row, _sb_v4_meta = _sb_by_stamp[4.0]
+R.check(
+    "a month stamped 4, the reference in force, keeps stating its saving as it books on",
+    _sb_v4_row["old_basis"] is False and _sb_v4_row["savings_sek"] is not None
+    and _sb_v4_row["savings_pct"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
+    repr(_sb_by_stamp[4.0]),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
@@ -46256,10 +47634,197 @@ R.check(
     _sb_bare.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]["old_basis"] is True,
     repr(_sb_bare.months),
 )
+# R11-VALVE-REFERENCE (carry 2): the booked reference, pinned. A digest of
+# `_compute_baseline_power`'s day (power to 1e-6 kW, its end room and tank) on
+# three installs at two outdoor levels with a sinusoid on them: the owner's
+# two-zone replay install with its manual valve, a single-zone house behind a
+# manual valve on one tank, and the same house with no valve. A diff that moves
+# the booked reference fails here until it re-records the digest and bumps
+# `REFERENCE_BASIS` and the stamp literal above with it.
+def _vr_one_tank():
+    from profiles import house as _vr_house
+
+    _vr_p = ThermalParameters.from_config(_vr_house(dhw=False))
+    _vr_p.dhw_enabled = False
+    _vr_p.mixing_valve_mode = "manual"
+    _vr_p.wood_tank_configured, _vr_p.wood_tank_volume = True, 500.0
+    return _vr_p
+
+
+def _vr_reference_digests():
+    import hashlib
+
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer as _VrOpt
+    from heatpump_optimizer.optimizer import OptimizationConfig as _VrCfg
+    from heatpump_optimizer.thermal_model import WeatherSeries as _VrWeather
+    from profiles import house as _vr_house, replay_install as _vr_replay
+
+    _vr_n = 96
+    _vr_installs = {
+        "install": ThermalParameters.from_config(_vr_replay()),
+        "one-tank": _vr_one_tank(),
+        "no valve": ThermalParameters.from_config(_vr_house(dhw=False)),
+    }
+    _vr_out = {}
+    for _vr_name, _vr_p in _vr_installs.items():
+        for _vr_outdoor in (5.0, -15.0):
+            _vr_model = ThermalModel(_vr_p)
+            _vr_opt = _VrOpt(_vr_model, _VrCfg(horizon_hours=24, time_step_minutes=15, target_temp=21.0))
+            _vr_w = _VrWeather(
+                outdoor_temps=_vr_outdoor + 3.0 * np.sin(2.0 * np.pi * np.arange(_vr_n) / _vr_n),
+                wind_speeds=np.full(_vr_n, 3.0), precipitation=np.zeros(_vr_n),
+                solar_radiation=np.zeros(_vr_n))
+            _vr_start = ThermalState(
+                room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_vr_outdoor,
+                upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+            _vr_power, _vr_end = _vr_opt._compute_baseline_power(
+                _vr_w, _vr_start, 0.25, np.full(_vr_n, 21.0))
+            _vr_text = ";".join(f"{float(v) + 0.0:.6f}" for v in _vr_power) + (
+                f"|{_vr_end.room_temperature + 0.0:.6f}|{_vr_end.buffer_tank_temperature + 0.0:.6f}")
+            _vr_out[f"{_vr_name} {_vr_outdoor:+.0f}"] = hashlib.sha256(_vr_text.encode()).hexdigest()[:16]
+    return _vr_out
+
+
+_vr_digests = _vr_reference_digests()
+R.check(
+    "the booked reference reproduces its recorded digest on every pinned install "
+    "(a change re-records it and bumps REFERENCE_BASIS)",
+    _vr_digests == {
+        "install +5": "2f088060f8fe63dd",
+        "install -15": "35cc1d0d71a4414b",
+        "one-tank +5": "ba516c4bb8328b78",
+        "one-tank -15": "cb3e0ea30949c952",
+        "no valve +5": "514d1532f1b30760",
+        "no valve -15": "0e396b7d1cc59e1a",
+    },
+    repr(_vr_digests),
+)
+# R11-VALVE-REFERENCE (carries 0, 1): a single-zone valve feeds the slab, which
+# reaches the room through `slab_heat_transfer` in series, and the house's own
+# gains offset part of its loss. The curve holds its target only with both in
+# it, and a thermostat behind that valve then reaches its setpoint.
+def _vr_single_zone_holds():
+    from heatpump_optimizer.optimizer import _thermostat_held_state as _vr_held
+    from heatpump_optimizer.thermal_model import WeatherSeries as _VrWeather
+
+    _vr_p = _vr_one_tank()
+    _vr_model = ThermalModel(_vr_p)
+    _vr_out = {}
+    for _vr_outdoor in (5.0, -5.0, -15.0):
+        _vr_start = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_vr_outdoor,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _vr_w = _VrWeather(
+            outdoor_temps=np.full(96, _vr_outdoor), wind_speeds=np.full(96, 3.0),
+            precipitation=np.zeros(96), solar_radiation=np.zeros(96))
+        _vr_h = _vr_held(_vr_model, _vr_start, _vr_w, 21.0)
+        _vr_s = _vr_h
+        for _ in range(960):
+            _vr_s = _vr_model.simulate_step(
+                _vr_s, _vr_p.max_electrical_power, _vr_outdoor, 3.0, 0.0, 0.0, 0.25)
+        _vr_out[_vr_outdoor] = (_vr_h.room_temperature, _vr_s.room_temperature)
+    return _vr_p.mixing_valve_target or _vr_p.comfort_ceiling, _vr_out
+
+
+_vr_target, _vr_holds = _vr_single_zone_holds()
+R.check(
+    "single-zone valve: the plant at its pump, settled, holds the curve's own target within 0.02 K",
+    all(abs(_vr_plant - _vr_target) < 0.02 for _, _vr_plant in _vr_holds.values()),
+    f"target {_vr_target}: " + ", ".join(
+        f"{o:+.0f} C {pl:.3f}" for o, (_, pl) in _vr_holds.items()),
+)
+R.check(
+    "single-zone valve: a thermostat set to 21 C holds 21 C behind it",
+    all(abs(_vr_room - 21.0) < 1e-3 for _vr_room, _ in _vr_holds.values()),
+    ", ".join(f"{o:+.0f} C {r:.4f}" for o, (r, _) in _vr_holds.items()),
+)
+
+
+def _vr_curve_agrees():
+    from heatpump_optimizer.thermal_model import _valve_flow_set, _valve_ua
+
+    _vr_cases = {
+        "one-tank": _vr_one_tank(),
+        "defaults": ThermalParameters(mixing_valve_mode="manual"),
+        "floors apart": ThermalParameters(
+            mixing_valve_mode="manual", upper_floor_heat_loss=0.12, lower_floor_heat_loss=0.09),
+    }
+    _vr_out = {}
+    for _vr_name, _vr_p in _vr_cases.items():
+        _vr_model = ThermalModel(_vr_p)
+        _vr_u = _vr_model.effective_heat_loss_coefficient(_vr_p.heat_loss_coefficient, 0.0, 0.0)
+        for _vr_outdoor in (5.0, -5.0, -15.0):
+            _vr_out[(_vr_name, _vr_outdoor)] = (
+                _vr_model.flow_target_for_indoor(21.0, _vr_outdoor),
+                _valve_flow_set(_vr_p, 21.0, _vr_outdoor, _vr_u, _valve_ua(_vr_p)))
+    return _vr_out
+
+
+_vr_agree = _vr_curve_agrees()
+R.check(
+    "single-zone valve: the curve the model reports is the plant's own, at zero wind and rain",
+    all(_vr_rep == _vr_plant for _vr_rep, _vr_plant in _vr_agree.values()),
+    repr(_vr_agree),
+)
+
+
+
+def _vr_mild_curve():
+    from heatpump_optimizer.thermal_model import _valve_flow_set, _valve_ua
+
+    _vr_p = _vr_one_tank()
+    _vr_u = ThermalModel(_vr_p).effective_heat_loss_coefficient(_vr_p.heat_loss_coefficient, 0.0, 0.0)
+    return _vr_p.internal_gains, _vr_u * 0.5, _valve_flow_set(_vr_p, 21.0, 20.5, _vr_u, _valve_ua(_vr_p))
+
+
+_vr_gains, _vr_loss, _vr_mild = _vr_mild_curve()
+R.check(
+    "single-zone valve: where the house's gains cover its loss the curve sits at its target, never below",
+    _vr_gains > _vr_loss and _vr_mild == 21.0,
+    f"gains {_vr_gains:.3f} kW, loss {_vr_loss:.4f} kW, curve {_vr_mild!r} C",
+)
+
+
+def _vr_direct_curve():
+    from heatpump_optimizer import mixing_valve as _vr_mv
+    from profiles import house as _vr_house
+
+    _vr_cfg = dict(flow_curve_cop_enabled=True, heat_pump_max_power=3.0,
+                   upper_floor_heat_loss=0.2, lower_floor_heat_loss=0.2)
+    _vr_p = ThermalParameters.from_config(_vr_house(**_vr_cfg))
+    _vr_p.flow_curve_bias = 5.0
+    _vr_model = ThermalModel(_vr_p)
+    # The new curve is reached only behind a throttling valve, and the price
+    # path reads a curve only with `flow_curve_cop`: `from_config` is what keeps
+    # the two apart, so a throttling mode must turn the priced curve off.
+    _vr_coupled = all(
+        ThermalParameters.from_config(_vr_house(mixing_valve_mode=_vr_mode, **_vr_cfg)).flow_curve_cop
+        is (not _vr_mv.is_throttling(_vr_mode))
+        for _vr_mode in (_vr_mv.MODE_NONE, *sorted(_vr_mv.THROTTLING_MODES)))
+    return _vr_p.flow_curve_cop, _vr_coupled, [
+        (_vr_model.flow_target_for_indoor(21.0, _vr_o), _vr_model.curve_flow_temp(_vr_o))
+        for _vr_o in (5.0, -5.0, -15.0)]
+
+
+_vr_priced, _vr_coupled, _vr_direct = _vr_direct_curve()
+R.check(
+    "no valve: the priced flow curve of a single-zone direct plant is unchanged, bit for bit",
+    _vr_priced is True and _vr_coupled is True and _vr_direct == [
+        (30.142857142857146, 35.142857142857146),
+        (35.85714285714286, 40.85714285714286),
+        (41.57142857142857, 46.57142857142857),
+    ],
+    repr((_vr_priced, _vr_coupled, _vr_direct)),
+)
 # R10-HOTFIX-SAV-ESTIMATE: the settlement books step 0 of a plan re-made every
 # interval, so behind a valve the first step must not be the stores' transient.
-# At one outdoor the steady demand is flat, so a sound step 0 IS the horizon mean;
+# At one outdoor the steady demand is flat, so a sound step 0 is the horizon mean;
 # spread across starts is no acceptance (all-zero first steps have spread 0).
+# The reference is booked as simulated from its held state (R10-SAV-VALUATION-
+# RESIDUE carry 15), so the bound is 1e-3, not exact: two zones held at one
+# temperature drift apart over the day by 1.6e-4 of the mean here (carry 9's
+# open seam), where a transient reads 0 or an overshoot of whole units.
 def _sb_first_steps(two_zone, wood_probe, valve="manual"):
     import numpy as _np
     from profiles import house as _h
@@ -46295,7 +47860,7 @@ for _sb_name, _sb_args in (
     _sb_ratios = {k: float(v[0] / v.mean()) if v.mean() > 0 else 0.0 for k, v in _sb_arms.items()}
     R.check(
         f"behind a valve with {_sb_name}, the thermostat's first step is its horizon mean, not 0 or an overshoot",
-        all(abs(r - 1.0) < 1e-9 for r in _sb_ratios.values()),
+        all(abs(r - 1.0) < 1e-3 for r in _sb_ratios.values()),
         repr(_sb_ratios),
     )
     R.check(
@@ -47078,9 +48643,7 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
 
 # Behind a valve, at zero demand (a warm, sunny step: the steady demand at
 # target is negative, clamped to 0). The held tank keeps its measured
-# temperature, since no temperature delivers a need of nothing; and a horizon
-# with no steady demand anywhere has no shape to spread its energy by, so the
-# simulated schedule stands as simulated.
+# temperature, since no temperature delivers a need of nothing.
 _hz_ws = _HbWSeries(
     outdoor_temps=np.full(4, 30.0), wind_speeds=np.zeros(4),
     precipitation=np.zeros(4), solar_radiation=np.full(4, 800.0),
@@ -47094,25 +48657,17 @@ _hz_held = _hb_held_state(_hz_opt.model, _HbState(
     room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=30.0,
     upper_floor_temperature=21.0, lower_floor_temperature=21.0, buffer_tank_temperature=37.5,
 ), _hz_ws, 21.0)
-_hz_sim = np.array([1.0, 2.0, 0.5, 0.0])
-try:
-    _hz_spread = _hz_opt._apportion_by_steady_demand(_hz_sim, _hz_ws, [21.0] * 4)
-except ZeroDivisionError as _hz_exc:
-    _hz_spread = _hz_exc
 R.check(
-    "behind a valve at zero demand the held tank keeps its measured temperature, "
-    "and a horizon with no steady demand keeps its simulated schedule",
-    _hz_held.buffer_tank_temperature == 37.5
-    and isinstance(_hz_spread, np.ndarray) and np.array_equal(_hz_spread, _hz_sim),
-    repr((_hz_held.buffer_tank_temperature, _hz_spread)),
+    "behind a valve at zero demand the held tank keeps its measured temperature",
+    _hz_held.buffer_tank_temperature == 37.5,
+    repr(_hz_held.buffer_tank_temperature),
 )
 
-# Behind a valve the reference spreads its energy by steady demand, and on a
-# small pump in a cold night with a sunny day the plain spread asked more than
-# the pump has (measured 1.23x on this house; R10-SAV-COMFORT carry fc24128d).
-# The spread holds such a step at the pump and gives its excess to the others
-# by the same demand, keeping the horizon's energy; the solve is seeded from
-# that reference unclamped, so every start lies inside its bounds.
+# Behind a valve, on a small pump in a cold night with a sunny day, a reference
+# spread by steady demand once asked more than the pump has (measured 1.23x on
+# this house; R10-SAV-COMFORT carry fc24128d). The thermostat's own steps are
+# capped at the pump, and the solve is seeded from that reference unclamped, so
+# every start lies inside its bounds.
 from heatpump_optimizer import optimizer as _hz_omod
 
 _hz_n = 96
@@ -47139,16 +48694,6 @@ def _hz_spy_ms(objective, starts, bounds, **kw):
 
 _hz_baselines = []
 _hz_orig_bp = _HbOpt._compute_baseline_power
-_hz_spreads = []
-_hz_orig_ap = _HbOpt._apportion_by_steady_demand
-
-
-def _hz_spy_ap(self, simulated, *a, **kw):
-    out = _hz_orig_ap(self, simulated, *a, **kw)
-    _hz_spreads.append((np.array(simulated, float), np.array(out, float)))
-    return out
-
-
 def _hz_spy_bp(self, *a, **kw):
     out = _hz_orig_bp(self, *a, **kw)
     _hz_baselines.append(float(np.max(out[0])))
@@ -47157,7 +48702,6 @@ def _hz_spy_bp(self, *a, **kw):
 
 _hz_omod._multi_start_minimize = _hz_spy_ms
 _HbOpt._compute_baseline_power = _hz_spy_bp
-_HbOpt._apportion_by_steady_demand = _hz_spy_ap
 try:
     _hz_copt.optimize(inputs=solve_inputs(
         initial_state=_HbState(
@@ -47173,7 +48717,6 @@ try:
 finally:
     _hz_omod._multi_start_minimize = _hz_orig_ms
     _HbOpt._compute_baseline_power = _hz_orig_bp
-    _HbOpt._apportion_by_steady_demand = _hz_orig_ap
 _hz_pmax = float(_hz_cpar.max_electrical_power)
 R.check(
     "behind a valve, the reference seeds the space solve only inside its bounds",
@@ -47181,74 +48724,42 @@ R.check(
     f"worst excess over a bound {max(_hz_seen, default=None)!r}",
 )
 R.check(
-    "behind a valve, the spread reference holds a step at the pump, never past it, "
-    "and keeps the simulated horizon's energy",
-    bool(_hz_spreads)
-    and all(float(np.max(o)) <= _hz_pmax + 1e-12 for _, o in _hz_spreads)
-    and all(abs(float(np.sum(o)) - float(np.sum(s))) < 1e-9 for s, o in _hz_spreads)
-    and any(int(np.sum(o >= _hz_pmax - 1e-12)) >= 2 for _, o in _hz_spreads)
-    and max(_hz_baselines, default=0.0) <= _hz_pmax + 1e-12,
-    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}; "
-    f"steps at the pump {[int(np.sum(o >= _hz_pmax - 1e-12)) for _, o in _hz_spreads]}",
+    "behind a valve, the reference reaches the pump and never passes it",
+    bool(_hz_baselines)
+    and abs(max(_hz_baselines) - _hz_pmax) <= 1e-12,
+    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}",
 )
-# Under the pump the spread keeps the demand's shape. Four steps, the last one
-# a -30 C step whose plain share of 0.8 pump-steps each would pass the pump:
-# it is held at the pump, and the other three share the rest as the same
-# multiple of their steady demand at target (read from the production helper).
-_hz_mws = _HbWSeries(
-    outdoor_temps=np.array([5.0, 0.0, -5.0, -30.0]), wind_speeds=np.zeros(4),
-    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+
+# Behind a valve the booked reference holds the state it starts from: the held
+# state's census (dev/audit/harnesses/r10_sav_held_capacity_census.py) reads a
+# first-step store change of 0, so step 0 is the thermostat's holding power,
+# not a store transient to re-spread. The day's weather varies, so a reference
+# re-spread by steady demand books step 0 off the holding power (R10-SAV-
+# VALUATION-RESIDUE carry 15: +11.11 kWh_th stored over the valve arm).
+_hv_ws = _HbWSeries(
+    outdoor_temps=np.full(_hz_n, -5.0) + np.where(_hz_day, 8.0, 0.0),
+    wind_speeds=np.zeros(_hz_n), precipitation=np.zeros(_hz_n),
+    solar_radiation=np.where(_hz_day, 400.0, 0.0),
 )
-_hz_mcap = float(_hz_par.max_electrical_power)
-_hz_msim = np.full(4, 0.8 * _hz_mcap)
-_hz_mout = _hz_opt._apportion_by_steady_demand(_hz_msim, _hz_mws, [21.0] * 4)
-_hz_mdem = np.array([_hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0)
-                     for t in _hz_mws.outdoor_temps])
-_hz_mr = _hz_mout[:3] / _hz_mdem[:3]
-# A horizon demanding little (under 1 kW summed) still has a shape: three
-# zero-demand steps and one mild one put all the energy on the mild one.
-_hz_lo = 21.0 - (_hz_par.internal_gains + 0.2) / _hz_par.heat_loss_coefficient
-_hz_lws = _HbWSeries(
-    outdoor_temps=np.array([30.0, 30.0, 30.0, _hz_lo]), wind_speeds=np.zeros(4),
-    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+_hv_start = _HbState(
+    room_temperature=19.5, slab_temperature=21.0, outdoor_temperature=-5.0,
+    upper_floor_temperature=19.5, lower_floor_temperature=19.5, buffer_tank_temperature=45.0,
 )
-_hz_ldem = [max(0.0, _hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0))
-            for t in _hz_lws.outdoor_temps]
-_hz_lout = _hz_opt._apportion_by_steady_demand(np.array([0.1, 0.2, 0.05, 0.0]), _hz_lws, [21.0] * 4)
-R.check(
-    "behind a valve, a horizon with a small steady demand spreads by it, not by the simulation",
-    0.0 < sum(_hz_ldem) < 1.0 and _hz_ldem[:3] == [0.0, 0.0, 0.0]
-    and np.allclose(_hz_lout, [0.0, 0.0, 0.0, 0.35], atol=1e-12),
-    f"demand {_hz_ldem!r} spread {_hz_lout!r}",
-)
-# A step whose share lands exactly at the pump is at it, not past it: three
-# zero-demand steps and one cold one, the horizon's energy one pump-step, keep
-# the spread (all of it on the cold step) rather than handing the horizon back
-# to the simulation, as a step held with no demand left to share would.
-_hz_eout = _hz_opt._apportion_by_steady_demand(
-    np.full(4, 0.25 * _hz_mcap), _HbWSeries(
-        outdoor_temps=np.array([30.0, 30.0, 30.0, -5.0]), wind_speeds=np.zeros(4),
-        precipitation=np.zeros(4), solar_radiation=np.zeros(4),
-    ), [21.0] * 4,
+_hv_power, _ = _hz_opt._compute_baseline_power(_hv_ws, _hv_start, 0.25, np.full(_hz_n, 21.0))
+_hv_held = _hb_held_state(_hz_opt.model, _hv_start, _hv_ws, 21.0)
+_hv_next = _hz_opt.model.simulate_step(
+    _hv_held, float(_hv_power[0]), -5.0, 0.0, 0.0, 0.0, dt_hours=0.25,
 )
 R.check(
-    "behind a valve, a step spread exactly to the pump keeps the spread",
-    _hz_eout.tolist() == [0.0, 0.0, 0.0, _hz_mcap],
-    repr(_hz_eout),
-)
-R.check(
-    "precondition: the cold step's plain share of the horizon passes the pump",
-    bool(np.all(_hz_mdem > 0.0))
-    and float(np.sum(_hz_msim)) * _hz_mdem[3] / float(np.sum(_hz_mdem)) > _hz_mcap,
-    repr(_hz_mdem),
-)
-R.check(
-    "behind a valve, a step spread past the pump is held there and the uncapped steps "
-    "share the rest by their steady demand",
-    _hz_mout[3] == _hz_mcap and float(np.max(_hz_mout[:3])) < _hz_mcap
-    and abs(float(np.sum(_hz_mout)) - float(np.sum(_hz_msim))) < 1e-9
-    and float(np.ptp(_hz_mr)) <= 1e-12 * float(np.max(_hz_mr)),
-    repr(_hz_mout),
+    "behind a valve, the booked reference's first step holds its held state",
+    0.0 < float(_hv_power[0]) < float(_hz_par.max_electrical_power)
+    and abs(_hv_next.room_temperature - _hv_held.room_temperature) < 1e-6
+    and abs(_hv_next.slab_temperature - _hv_held.slab_temperature) < 1e-6
+    and abs(_hv_next.buffer_tank_temperature - _hv_held.buffer_tank_temperature) < 1e-6,
+    f"power {float(_hv_power[0])!r}; room {_hv_held.room_temperature!r} -> "
+    f"{_hv_next.room_temperature!r}, slab {_hv_held.slab_temperature!r} -> "
+    f"{_hv_next.slab_temperature!r}, tank {_hv_held.buffer_tank_temperature!r} -> "
+    f"{_hv_next.buffer_tank_temperature!r}",
 )
 
 # The start's settlement, at its limits (#2255, #2492). A pre-heated start
@@ -48223,7 +49734,7 @@ _g9_live = _WfOR(
     dhw_temp_trajectory=[50.0] * 5,
 )
 _g9_coord._optimization_result = _g9_live
-_g9_coord._last_simulation = None
+_coord_mod.whatif.state_for(_g9_coord).last_at = None
 _g9_captured = []
 _g9_real_await = _coord_mod._await_optimize
 
@@ -48273,7 +49784,7 @@ R.check(
     repr(_g9_coord._config.get("wood_type")),
 )
 
-_g9_coord._last_simulation = None
+_coord_mod.whatif.state_for(_g9_coord).last_at = None
 _g9_zero = _asyncio.run(
     _g9_coord.async_simulate(
         {"wood_slots": [{**_g9_slot, "liters": 0.0}]}
@@ -48288,7 +49799,7 @@ R.check(
 
 _g9_bare = _solve_coord()
 _g9_bare._optimization_result = _g9_live
-_g9_bare._last_simulation = None
+_coord_mod.whatif.state_for(_g9_bare).last_at = None
 _g9_unready = _asyncio.run(
     _g9_bare.async_simulate({"wood_slots": [_g9_slot]})
 )
@@ -50061,10 +51572,10 @@ finally:
     dt_util.freeze(None)
 R.check(
     "a frozen learner records why it froze and learns nothing",
-    _t2_buf_frozen._learner_freeze_reason == "external_heat_source"
+    _t2_buf_frozen._learner_freezes.last == "external_heat_source"
     and _t2_buf_frozen._buffer_cooling_samples == 0
     and _t2_buf_frozen._buffer_cooling_rate == _T2_RATE0,
-    f"reason {_t2_buf_frozen._learner_freeze_reason!r} "
+    f"reason {_t2_buf_frozen._learner_freezes.last!r} "
     f"samples {_t2_buf_frozen._buffer_cooling_samples}",
 )
 R.check(
@@ -51073,14 +52584,14 @@ R.check(
     "with a visible reason instead of fitting the 21.0 C default",
     _t2_hl_no_indoor._house_heat_loss_samples == 0
     and _t2_hl_no_indoor._house_heat_loss_scale == 1.0
-    and _t2_hl_no_indoor._learner_freeze_reason
+    and _t2_hl_no_indoor._learner_freezes.last
     == "not_configured:indoor_temp_entity"
     and _t2_no_indoor_view["learner_freeze_reason"]
     == "not_configured:indoor_temp_entity"
     and _t2_no_indoor_view["learners_frozen"] is True,
     f"samples {_t2_hl_no_indoor._house_heat_loss_samples} scale "
     f"{_t2_hl_no_indoor._house_heat_loss_scale!r} reason "
-    f"{_t2_hl_no_indoor._learner_freeze_reason!r} view {_t2_no_indoor_view!r}",
+    f"{_t2_hl_no_indoor._learner_freezes.last!r} view {_t2_no_indoor_view!r}",
 )
 _t2_hl_indoor_ok = _t2_house(observed=20.9)
 _t2_drive(_t2_hl_indoor_ok, "_async_learn_house_heat_loss")
@@ -51088,9 +52599,9 @@ R.check(
     "#2508 null control: a configured indoor entity still learns, and its "
     "unconfigured power slot does not freeze it",
     _t2_hl_indoor_ok._house_heat_loss_samples == 1
-    and _t2_hl_indoor_ok._learner_freeze_reason is None,
+    and _t2_hl_indoor_ok._learner_freezes.last is None,
     f"samples {_t2_hl_indoor_ok._house_heat_loss_samples} reason "
-    f"{_t2_hl_indoor_ok._learner_freeze_reason!r}",
+    f"{_t2_hl_indoor_ok._learner_freezes.last!r}",
 )
 # The freeze enters `_replay_gate` as its raw reason, so the cycle also
 # leaves no heat-counter span clean; the configured house is the control.
@@ -51125,7 +52636,7 @@ R.check(
     "(its observable is the lower zone's own sensor)",
     _t2_lo_no_indoor._lower_floor_loss_samples == 1,
     f"samples {_t2_lo_no_indoor._lower_floor_loss_samples} reason "
-    f"{_t2_lo_no_indoor._learner_freeze_reason!r}",
+    f"{_t2_lo_no_indoor._learner_freezes.last!r}",
 )
 
 # #2508's other room readers: #16's lead-time accuracy and #2's curve-comfort
@@ -52387,7 +53898,7 @@ def _t3_tile(answer, **config):
     """Run one tile refresh against a stubbed simulation."""
     c = _t3_coord(price_tiles_enabled=True, **config)
 
-    async def simulate(overrides, limited=True, base=None):
+    async def simulate(overrides, limited=True, base=None, steady=False):
         if isinstance(answer, Exception):
             raise answer
         return answer
@@ -52399,10 +53910,10 @@ def _t3_tile(answer, **config):
 _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
 R.check(
     "a spec that raises advances the cursor, so it cannot block the other tiles",
-    price_tiles._CURSORS.get(_t3_tile_boom, 0) == 1
+    price_tiles.rotation(_t3_tile_boom).cursor == 1
     and dict(price_tiles.book(_t3_tile_boom)) == {}
     and _t3_tile_boom._t3_escaped is None,
-    f"cursor {price_tiles._CURSORS.get(_t3_tile_boom, 0)} tiles "
+    f"cursor {price_tiles.rotation(_t3_tile_boom).cursor} tiles "
     f"{dict(price_tiles.book(_t3_tile_boom))!r} -- leaving the cursor put would "
     "retry the same failing spec every solve and the other two would never "
     "be computed again",
@@ -52416,13 +53927,13 @@ _t3_tile_good = _t3_tile(
 )
 R.check(
     "an errored answer advances the cursor but publishes nothing; a good one publishes",
-    price_tiles._CURSORS.get(_t3_tile_error, 0) == 1
+    price_tiles.rotation(_t3_tile_error).cursor == 1
     and dict(price_tiles.book(_t3_tile_error)) == {}
-    and price_tiles._CURSORS.get(_t3_tile_good, 0) == 1
+    and price_tiles.rotation(_t3_tile_good).cursor == 1
     and sorted(price_tiles.book(_t3_tile_good)) == ["target_minus_1"],
-    f"errored -> cursor {price_tiles._CURSORS.get(_t3_tile_error, 0)}, tiles "
+    f"errored -> cursor {price_tiles.rotation(_t3_tile_error).cursor}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_error))!r}; good -> cursor "
-    f"{price_tiles._CURSORS.get(_t3_tile_good, 0)}, tiles "
+    f"{price_tiles.rotation(_t3_tile_good).cursor}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_good))!r}",
 )
 _t3_tile_off = _t3_coord(price_tiles_enabled=False)
@@ -54541,7 +56052,7 @@ def _t5_solved():
 def _t5_sim(overrides, coord=None):
     """One what-if against a solved plan, with the rate limiter cleared."""
     c = coord if coord is not None else _t5_solved()
-    c._last_simulation = None
+    _coord_mod.whatif.state_for(c).last_at = None
     dt_util.freeze(_T5_NOW)
     try:
         _t5_drive(c, "async_simulate", overrides)
@@ -54570,8 +56081,8 @@ R.check(
     "solving here would put a second job in the pool behind the real one",
 )
 _t5_sim_limited = _t5_coord()
-_t5_sim_limited._last_simulation = _T5_NOW
-_t5_sim_limited._simulation_cache = {"monthly_cost_delta": 1.0}
+_coord_mod.whatif.state_for(_t5_sim_limited).last_at = _T5_NOW
+_coord_mod.whatif.state_for(_t5_sim_limited).answer = {"monthly_cost_delta": 1.0}
 dt_util.freeze(_T5_NOW)
 try:
     _t5_drive(_t5_sim_limited, "async_simulate", {})
@@ -55848,7 +57359,7 @@ from heatpump_optimizer.snapshots import SnapshotRing as _G8Ring  # noqa: E402
 from heatpump_optimizer.comfort_learning import ComfortLearner as _G8Learner  # noqa: E402
 from heatpump_optimizer.dhw_draws import DrawStats as _G8Draws  # noqa: E402
 from heatpump_optimizer.dhw_draws import labels_for as _g8_labels  # noqa: E402
-from heatpump_optimizer.const import START_HYSTERESIS_SAMPLES as _G8_HYST  # noqa: E402
+from heatpump_optimizer.wear import EdgeTracker as _G8Edges, compressor_running as _g8_class  # noqa: E402
 
 _G8_T0 = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
 
@@ -55862,56 +57373,46 @@ def _g8_call(fn, *args, **kwargs):
 
 
 # -- wear.StartCounter: a meter outage is not a state transition -----------
-# `observe` is a two-sample edge detector. The three uncovered lines are the
-# two refusals that reset the streak and the month eviction, and the first two
-# matter for the same reason: half an edge seen before a meter gap and half
-# seen after it are not two CONSECUTIVE samples, and counting them as one edge
-# invents a compressor start that never happened.
-def _g8_starts(samples, *, threshold=1.0):
-    """Feed `(kw, immersion)` samples in order; return (counter, starts)."""
-    counter = _G8Starts()
-    fired = []
-    for i, (kw, imm) in enumerate(samples):
-        fired.append(
-            counter.observe(_G8_T0 + timedelta(minutes=5 * i), kw, threshold, imm)
-        )
+# R10-START-COUNTER-EDGES re-points these from the retired two-sample streak to
+# the edge path that replaced it: readings through compressor_running and the
+# EdgeTracker's debounce, edges folded into the counter. Half an edge seen
+# before a meter gap and half seen after it must not combine into one edge:
+# that would invent a compressor start that never happened. The element on
+# the meter is the same case, since the meter source reads no signal then.
+def _g8_starts(readings, *, threshold=1.0):
+    """Feed `(seconds, kw)` readings in order; return (counter, starts)."""
+    counter, tracker, fired = _G8Starts.from_dict(None), _G8Edges(settled=False), []
+    for second, kw in readings:
+        edge = tracker.note(_G8_T0 + timedelta(seconds=second), _g8_class(None, kw, threshold, False))
+        fired.append(counter.fold(*edge) if edge else [])
     return counter, fired
 
 
-_g8_run = [(2.0, False)] * _G8_HYST
-_g8_clean, _g8_clean_fired = _g8_starts(_g8_run)
-_g8_gap, _g8_gap_fired = _g8_starts(
-    [(2.0, False), (None, False)] + _g8_run
-)
-_g8_imm, _g8_imm_fired = _g8_starts(
-    [(2.0, False), (2.0, True)] + _g8_run
-)
+_g8_clean, _g8_clean_fired = _g8_starts([(0, 2.0), (40, 2.0)])
+_g8_gap, _g8_gap_fired = _g8_starts([(0, 2.0), (10, None), (35, 2.0), (50, 2.0)])
+_g8_imm, _g8_imm_fired = _g8_starts([(0, 2.0), (10, None), (35, 2.0), (50, 2.0), (70, 2.0)])
 R.check(
-    "a confirmed start needs consecutive samples, and a meter outage breaks the run",
-    any(_g8_clean_fired)
+    "a confirmed start needs its class held through the debounce, and a meter outage breaks the run",
+    _g8_clean_fired == [[], [_G8_T0]]
     and _g8_clean.lifetime == 1
-    and _g8_gap.lifetime == 1
-    and _g8_gap_fired[0] is False
-    and _g8_gap_fired[1] is False,
+    and _g8_gap.lifetime == 0
+    and _g8_gap_fired == [[], [], [], []],
     f"clean {_g8_clean_fired!r} -> lifetime {_g8_clean.lifetime}; across a "
     f"None reading {_g8_gap_fired!r} -> lifetime {_g8_gap.lifetime}. Without "
-    "the reset, the sample before the gap and the one after it combine into "
+    "the reset, the reading before the gap and the one after it combine into "
     "an edge, and the wear counter bills a start the compressor never made",
 )
 R.check(
-    "and the immersion element freezes the detector rather than clamping it",
-    _g8_imm.lifetime == 1 and _g8_imm_fired[1] is False,
-    f"with the element active mid-run {_g8_imm_fired!r} -> lifetime "
-    f"{_g8_imm.lifetime} -- while it runs the meter reads compressor plus "
-    "resistive, so neither edge direction can be trusted and half an edge "
-    "observed on each side of it must not combine",
+    "and the element's no-signal stretch restarts the debounce rather than bridging it",
+    _g8_imm.lifetime == 1 and _g8_imm_fired[-1] == [_G8_T0 + timedelta(seconds=35)],
+    f"with the element read as no signal mid-run {_g8_imm_fired!r} -> lifetime "
+    f"{_g8_imm.lifetime}: the start dates from the first reading after it",
 )
-_g8_keep = _G8Starts()
+_g8_keep = _G8Starts.from_dict(None)
 for _i in range(30):
     _g8_keep.months[f"20{24 + _i // 12:02d}-{_i % 12 + 1:02d}"] = _i + 1
 _g8_keep_before = len(_g8_keep.months)
-for _i in range(_G8_HYST):
-    _g8_keep.observe(_G8_T0 + timedelta(minutes=5 * _i), 2.0, 1.0, False)
+_g8_keep.fold(_G8_T0, True)
 R.check(
     "the month map is evicted oldest-first when a start pushes it over the cap",
     len(_g8_keep.months) <= 24
@@ -62151,7 +63652,9 @@ def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,), saturday=Fals
     learner.async_save_draws = _save_draws
     module = _sys.modules[type(learner).__module__]
     real_dt = module.dt_util
-    start = dt_util.now().replace(hour=start_hm[0], minute=start_hm[1], second=0)
+    # Monday 2026-11-09, never today: the weekday booking must not depend on the day the suite runs.
+    start = dt_util.now().replace(
+        year=2026, month=11, day=9, hour=start_hm[0], minute=start_hm[1], second=0)
     if saturday:
         start += timedelta(days=(5 - start.weekday()) % 7)
     clock = [start]
@@ -62874,7 +64377,7 @@ _pa_bound = _PaCoord(_PA_TUYA, duties="ssss", flow=False)
 def _pa_bound_target(low):
     _pa_bound.hass.states.get("number.water_set").attributes = {"min": low, "max": 63}
     return _pa._space_target(
-        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space")
+        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space", boosted=False)
 
 
 _pa_bound_at = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE)
@@ -63280,17 +64783,131 @@ for _pa_gb_mode in ("boost", "comfort"):
     _pa_gb[_pa_gb_mode]._mode = _pa_gb_mode
     _pa_run(_pa_gb[_pa_gb_mode], 1)
 R.check(
-    "the global boost mode writes Heating + DHW and the heating flow; comfort keeps the baseline's hold",
+    "the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 "
+    "(R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's hold",
     ("select", "select_option", "Heating + DHW") in _pa_gb["boost"].writes()
-    and ("number", "set_value", 55.0) in _pa_gb["boost"].writes()
+    and ("number", "set_value", 63.0) in _pa_gb["boost"].writes()
     and ("number", "set_value", 35.0) in _pa_gb["comfort"].writes(),
     f"{_pa_gb['boost'].writes()} / {_pa_gb['comfort'].writes()}",
 )
+
+
+# R10-HOTFIX-BOOST-FLOW-CEILING (tvofi, 2026-11-13: a space boost wrote 41,
+# then 43, not his maximum; "set at the maximum value"): a boost replaces the
+# plan's power for the space channel (boost.overlay), so it writes the
+# set-point entity's own maximum on every step, a partial one included,
+# capped by a stored flow_heat_c and the controller's upper-limit sensor. An
+# entity whose maximum does not read, or reads above FLOW_HEAT_C_MAX, keeps
+# the planned level. The band is ready here (max_electrical_power set), which
+# the idle-plan check above never needed.
+def _pa_boost_level(duties, kw, how=None, power_meter=False, entity_max=60, option=None, limit=None, unit="flow"):
+    """The space writes of one pass on a plan booking ``kw`` on its space steps, band 0.4-2.0 kW.
+
+    ``how``: None, ``"channel"`` (Boost Space Heating) or ``"mode"`` (the global boost mode).
+    ``entity_max``: the set-point entity's ``max`` attribute, None for none.
+    """
+    coord = _PaCoord(_PA_TUYA, duties=duties)
+    attrs = {"min": 25} if entity_max is None else {"min": 25, "max": entity_max}
+    coord.hass.states.set("number.water_set", FakeState("40", attributes=attrs))
+    coord._optimization_result.power_schedule = [kw if c == "s" else 0.0 for c in duties]
+    coord._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None,
+                                  min_electrical_power=0.4, max_electrical_power=2.0)
+    extra = {"space_setpoint_unit": unit}
+    if option is not None:
+        extra["flow_heat_c"] = option
+    if limit is not None:
+        extra["space_setpoint_high_limit_entity"] = "sensor.hp_high_limit"
+        coord.hass.states.set("sensor.hp_high_limit", FakeState(str(limit), unit="°C"))
+    if power_meter:
+        extra.update({"heat_pump_power_entity": "sensor.hp_power", "space_setpoint_power_feedback": True})
+    with_config(coord, extra)
+    if how == "channel":
+        boost_mod.held_for(coord).set("space", True, _PA_T0)
+    elif how == "mode":
+        coord._mode = "boost"
+    _pa_run(coord, 1)
+    return coord, [v for d, _sv, v in coord.writes() if d == "number" and v != 48.0]
+
+
+def _pa_bl(how, **kw):
+    return _pa_boost_level("ss", 1.0, how, **kw)[1]
+
+
+_pa_bl_rows = {
+    name: {how: _pa_bl(how, **kw) for how in (None, "channel", "mode")}
+    for name, kw in {
+        "max 55": {"entity_max": 55},
+        "max 60": {"entity_max": 60},
+        "max 70, the bound": {"entity_max": 70},
+        "max 60, stored 50": {"entity_max": 60, "option": 50},
+        "max 60, stored default 55": {"entity_max": 60, "option": 55},
+        "max 60, limit 52": {"entity_max": 60, "limit": 52},
+        "max 60, limit at the gate": {"entity_max": 60, "limit": 25},
+        "max 90": {"entity_max": 90},
+        "no max": {"entity_max": None},
+        "return, max 45": {"entity_max": 45, "unit": "return"},
+    }.items()
+}
+_pa_bl_idle = {how: _pa_boost_level("--", 0.0, how)[1] for how in (None, "channel", "mode")}
+_pa_bl_top = {how: _pa_boost_level("ss", 2.0, how)[1] for how in (None, "channel", "mode")}
+_pa_bl_want = {"max 55": 55, "max 60": 60, "max 70, the bound": 70, "max 60, stored 50": 50, "max 60, stored default 55": 60,
+               "max 60, limit 52": 52,
+               "max 60, limit at the gate": 60, "return, max 45": 45}
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's "
+    "own maximum on a step the plan books at a partial 1.0 kW of a 0.4-2.0 kW band (55 for 55, 60 for 60, "
+    "70 for 70, FLOW_HEAT_C_MAX itself, "
+    "45 for a return target's 45, unmoved), capped by a flow_heat_c set off its default (50, never the "
+    "default 55, which an untouched page reads as) and the controller's "
+    "upper-limit sensor (52), never by a limit at the 25 degC gate, which leaves no heating value; controls: "
+    "the same step with no boost writes its partial value, below each of them, and an entity maximum of 90 "
+    "or none leaves a boost on that partial value",
+    all(_pa_bl_rows[name]["channel"] == [want] and _pa_bl_rows[name]["mode"] == [want]
+        and len(_pa_bl_rows[name][None]) == 1 and _pa_bl_rows[name][None][0] < want
+        for name, want in _pa_bl_want.items())
+    and all(_pa_bl_rows[name]["channel"] == _pa_bl_rows[name]["mode"] == _pa_bl_rows[name][None]
+            and len(_pa_bl_rows[name][None]) == 1 and _pa_bl_rows[name][None][0] < 55
+            for name in ("max 90", "no max")),
+    f"{_pa_bl_rows=}",
+)
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's "
+    "maximum, 60; null control: with no boost a band-top step writes the heating flow, 55, and an idle "
+    "one the gate, 25",
+    _pa_bl_idle == {None: [25], "channel": [60], "mode": [60]}
+    and _pa_bl_top == {None: [55], "channel": [60], "mode": [60]},
+    f"{_pa_bl_idle=} {_pa_bl_top=}",
+)
+from heatpump_optimizer import config_flow as _pa_cf  # noqa: E402
+from heatpump_optimizer.const import FLOW_HEAT_C_MAX as _PA_FLOW_HEAT_C_MAX  # noqa: E402
+
+_pa_bl_offer = [row.widget.config for row in _pa_cf._OPTION_FIELDS if row.key == "flow_heat_c"]
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: the heating ceiling the options offer is 30 to FLOW_HEAT_C_MAX, "
+    "70 degC, the range docs/configuration.md states and the bound above which a boost does not drive "
+    "an entity's maximum; null control: a maximum of 90 is above it",
+    [(c["min"], c["max"]) for c in _pa_bl_offer] == [(30, _PA_FLOW_HEAT_C_MAX)] and _PA_FLOW_HEAT_C_MAX == 70.0
+    and 90 > _PA_FLOW_HEAT_C_MAX,
+    f"{_pa_bl_offer=}",
+)
+_pa_bl_fb, _ = _pa_boost_level("ss", 1.0, "channel", power_meter=True)
+_pa_bl_fb_on = _pa._feedback_on(_pa_bl_fb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
+                                boost_mod.held_for(_pa_bl_fb))
+_pa_bl_nb, _ = _pa_boost_level("ss", 1.0, None, power_meter=True)
+_pa_bl_nb_on = _pa._feedback_on(_pa_bl_nb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
+                                boost_mod.held_for(_pa_bl_nb))
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: the power-feedback loop stays off during a space boost; "
+    "null control: on the same partial step with no boost it is on",
+    _pa_bl_fb_on is False and _pa_bl_nb_on is True,
+    f"{_pa_bl_fb_on=} {_pa_bl_nb_on=}",
+)
 R.check(
     "a boost writes its own single duty where the pump offers it, Heating + DHW "
-    "where it does not or the other duty is due too, and nothing while off",
+    "where it does not or the other duty is due too, and nothing while off; a space boost "
+    "writes the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING)",
     ("select", "select_option", "Heating") in _pa_sb["tuya"].writes()
-    and ("number", "set_value", 55.0) in _pa_sb["tuya"].writes()
+    and ("number", "set_value", 63.0) in _pa_sb["tuya"].writes()
     and all(w[2] != "Heating + DHW" for w in _pa_sb["tuya"].writes())
     and ("select", "select_option", "Heat + DHW") in _pa_sb["modbus"].writes()
     and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwstep"].writes()
@@ -63470,14 +65087,124 @@ def _pa_upgraded(reading):
 
 _pa_up, _pa_up_first, _pa_up_sent = _pa_upgraded("30")
 _pa_up_n, _pa_up_n_first, _pa_up_n_sent = _pa_upgraded("31")
+# Re-pinned by R10-HOTFIX-FLOW-SETPOINT-STUCK: this check pinned "the write
+# waits", which on an upgrade held every space write, boosts included, until a
+# person set the controller. The own write is still never the baseline; the
+# baseline row's hold (35 degC: the curve's 34.2 under the rated hold) is.
 R.check(
     "R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as "
-    "the baseline, and the write waits; null control: a reading of the person's own is captured, "
-    "written over, and restored on off",
-    _pa_up_first == [] and _pa_up_sent == 0 and _pa_space(_pa_up) == []
+    "the baseline: the baseline row's 35 is, and the write is sent; null control: a reading of the "
+    "person's own is captured, written over, and restored on off",
+    _pa_up_first == [25.0] and _pa_up_sent == 1 and _pa_space(_pa_up) == [35.0]
     and _pa_up_n_first == [25.0] and _pa_up_n_sent == 1 and _pa_space(_pa_up_n) == [31.0],
     f"{_pa_up_first=} {_pa_up_sent=} {_pa_up.writes()=} / {_pa_up_n_first=} {_pa_up_n_sent=} "
     f"{_pa_up_n.writes()=}",
+)
+
+
+# R10-HOTFIX-FLOW-SETPOINT-STUCK (tvofi, 2026-11-13, a Rotenso on v7.1.15 held
+# at 25 degC through a boost): from any persisted arbiter state, a space step
+# or a boost under Control writes the space set-point within one pass. The
+# states: a record equal to the reading with no baseline armed, in memory and
+# loaded from the pre-#3404 store shape (an upgrade, then a restart).
+def _pa_stuck(duties, record, boost=False, stored=False):
+    """The space writes of one pass at minute 1; ``record`` the persisted last write or None."""
+    coord = _PaCoord(_PA_TUYA, duties=duties)
+    coord.device("number.water_set", "25")
+    at = _PA_T0 - timedelta(hours=1)
+    if record is not None and stored:
+        _pa_aio.run(_pa._store(coord).async_save({"written": {"space_setpoint": [record, at.isoformat()]}}))
+    elif record is not None:
+        held = _pa.state_for(coord)
+        held.loaded = True
+        held.written["space_setpoint"] = (record, at)
+    if boost:
+        boost_mod.held_for(coord).set("space", True, _PA_T0)
+    _pa_run(coord, 1)
+    return _pa_space(coord)
+
+
+_pa_stuck_rows = {
+    (duties, boost, stored): _pa_stuck(duties, 25.0, boost, stored)
+    for duties, boost in (("-", True), ("s", False)) for stored in (False, True)
+}
+_pa_stuck_null = {(duties, boost): _pa_stuck(duties, None, boost) for duties, boost in (("-", True), ("s", False))}
+R.check(
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step writes the entity's 63 maximum "
+    "(R10-HOTFIX-BOOST-FLOW-CEILING), and a space step the 55 degC ceiling, in one pass from a persisted "
+    "own write of 25 equal to the reading with no baseline armed, in memory and loaded from the store; "
+    "null control: the same passes with no record write the same",
+    all(v == ([63.0] if key[1] else [55.0]) for key, v in _pa_stuck_rows.items())
+    and _pa_stuck_null == {("-", True): [63.0], ("s", False): [55.0]},
+    f"{_pa_stuck_rows=} {_pa_stuck_null=}",
+)
+
+
+def _pa_stuck_off(hand=None):
+    """Off after the released write from a persisted own 25: what the restore writes.
+
+    ``hand``: a value the person sets at the controller before the pass.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="ssss")
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (25.0, _PA_T0 - timedelta(hours=1))
+    coord.device("number.water_set", "25" if hand is None else hand)
+    _pa_settled(coord, 1)
+    return _pa_turn_off(coord), _pa_space(coord)
+
+
+
+
+def _pa_stuck_cycle():
+    """A stuck install (own 25 persisted, reading 25, nothing armed) turned Off and On again.
+
+    Returns what the Off restored, the space writes after On, and what a later Off restores.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="ssss")
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (25.0, _PA_T0 - timedelta(hours=1))
+    coord.device("number.water_set", "25")
+    first = _pa_turn_off(coord)
+    coord._mode = _PA_AUTO
+    coord.hass.services.calls.clear()
+    _pa_settled(coord, 46)
+    coord.hass.services.calls.clear()
+    _pa_run(coord, 47)
+    on = _pa.state_for(coord).written.get("space_setpoint", (None,))[0]
+    coord.hass.services.calls.clear()
+    return first, on, _pa_turn_off(coord), _pa_space(coord)
+
+
+def _pa_dropped_over(written, dropped):
+    """The space writes of three passes from a written record over a dropped own 25, reading 25."""
+    coord = _PaCoord(_PA_TUYA, duties="ssss")
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (written, _PA_T0 - timedelta(hours=1))
+    held.dropped["space_setpoint"] = dropped
+    coord.device("number.water_set", "25")
+    for minute in (1, 2, 3):
+        _pa_settled(coord, minute)
+    return float(coord.hass.states.get("number.water_set").state)
+
+
+R.check(
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK (R10-RCA-SETPOINT-LATCH-DEADLOCK (b)): a stuck install turned Off "
+    "(nothing armed, nothing restored) and On writes 55 at once, and a later Off restores the baseline "
+    "row's 35, never the 25 the optimizer left; (c): a written 55 over a dropped own 25 with the entity "
+    "reading 25 reaches 55; null control: a dropped 40 that is not the reading reaches 55 too",
+    _pa_stuck_cycle() == (0, 55.0, 1, [35.0])
+    and _pa_dropped_over(55.0, 25.0) == 55.0 and _pa_dropped_over(55.0, 40.0) == 55.0,
+    f"{_pa_stuck_cycle()=} {_pa_dropped_over(55.0, 25.0)=} {_pa_dropped_over(55.0, 40.0)=}",
+)
+R.check(
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds "
+    "restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is "
+    "restored as set",
+    _pa_stuck_off() == (1, [35.0]) and _pa_stuck_off("40") == (1, [40.0]),
+    f"{_pa_stuck_off()=} {_pa_stuck_off('40')=}",
 )
 
 
@@ -63629,13 +65356,17 @@ def _pa_restored_twice(via):
     _pa_run(again, 0)
     _pa_run(again, 30)
     again.hass.services.calls.clear()
-    return _pa_turn_off(again)
+    return _pa_turn_off(again), _pa_space(again)
 
 
+# The restored value, not only the count: since R10-HOTFIX-FLOW-SETPOINT-STUCK
+# an own write left on the record no longer refuses the arm but substitutes
+# the baseline row's 35, so only the value tells a record the restore dropped
+# (and saved) from one it kept.
 R.check(
     "R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, "
-    "a restart captures it again and the next off restores it",
-    _pa_restored_twice("unload") == 1 and _pa_restored_twice("off") == 1,
+    "a restart captures it again and the next off restores it, 25, not the baseline row's 35",
+    _pa_restored_twice("unload") == (1, [25.0]) and _pa_restored_twice("off") == (1, [25.0]),
     f"{_pa_restored_twice('unload')=} {_pa_restored_twice('off')=}",
 )
 _pa_subs = _PaCoord(_PA_TUYA)
@@ -65962,7 +67693,8 @@ _P5_DISPOSED = {
     # #2261: the COP fold's tail. _fold_measured_cop consults the freeze, and
     # a heat counter's span folds only when that consult passed on every cycle
     # of the span (_async_learn_heat_span); the two below it are fed only here.
-    "_fold_cop_evidence": "the COP fold's tail; both callers gate it on the freeze",
+    "_fold_cop_evidence": "the COP fold's tail; both callers gate it on the freeze, "
+    "_fold_measured_cop's release of held intervals included",
     "_fold_capacity_envelope": "fed only from _fold_cop_evidence's gated tail",
     "_observe_cop_health": "fed only from _fold_cop_evidence's gated tail",
     "_init_frequency": "construction",
@@ -66148,6 +67880,12 @@ _P6_READ_ONLY = {
         "heat_pump_dhw_booster_entity", "heat_pump_fault_entity",
         "heat_pump_online_entity",
     )},
+    **{key: "the pump's own start hysteresis, read_temperature_delta_k reads it" for key in (
+        hp_const.CONF_SPACE_HYSTERESIS_ENTITY, hp_const.CONF_DHW_HYSTERESIS_ENTITY,
+    )},
+    # #3616: room thermostats' attributes are read by inputs.read_room; phase 1
+    # writes no room thermostat.
+    hp_const.CONF_ROOM_TEMPERATURE_ENTITIES: "room thermostats inputs.read_room reads",
 }
 
 
@@ -67631,9 +69369,9 @@ import sys as _f22_sys  # noqa: E402
 
 from heatpump_optimizer import thermal_model as _f22_tm  # noqa: E402
 from heatpump_optimizer.dhw_planner import _DHW_MIN_RUN_CHUNK as _F22_CHUNK  # noqa: E402
-from heatpump_optimizer.optimizer import (  # noqa: E402
-    cycling_penalty as _f22_cyc,
-    cycling_penalty_batch as _f22_cyc_batch,
+from heatpump_optimizer.runs import (  # noqa: E402
+    start_count as _f22_cyc,
+    start_count_batch as _f22_cyc_batch,
 )
 
 
@@ -67684,14 +69422,14 @@ for _f22_two in (False, True):
 for _f22_rows in (2, 97):
     _f22_pm = np.random.default_rng(3).uniform(0.0, 6.0, size=(_f22_rows, 96))
     _f22_cost[("cycling", None, _f22_rows)] = _f22_calls(
-        _f22_cyc_batch, _f22_pm, 2.0, 6.0
+        _f22_cyc_batch, _f22_pm, 2.0, True
     )[0]
 _f22_growth = {
     k[:2]: (_f22_cost[k[:2] + (97,)], _f22_cost[k[:2] + (2,)])
     for k in _f22_cost if k[2] == 2
 }
 R.check(
-    "R9-F2.2 D9-s1-01/RC-sw1: the batched comfort terms and cycling penalty "
+    "R9-F2.2 D9-s1-01/RC-sw1: the batched comfort terms and start count "
     "make the same calls for 97 rows as for 2 (no per-row interpreter loop)",
     all(big == small for big, small in _f22_growth.values()),
     f"(97-row calls, 2-row calls) per twin: {_f22_growth}",
@@ -67730,34 +69468,17 @@ for _f22_two in (False, True):
         _f22_pm[0] = 3.0
         for _f22_order in ("C", "F"):
             _f22_pmo = np.asarray(_f22_pm, order=_f22_order)
-            _f22_got = _f22_cyc_batch(_f22_pmo, 2.0, 6.0)
-            for _f22_b in range(_f22_pmo.shape[0]):
-                if (np.float64(_f22_got[_f22_b]).tobytes()
-                        != np.float64(_f22_cyc(np.array(_f22_pmo[_f22_b]), 2.0, 6.0)).tobytes()):
-                    _f22_bad.append(("cycling", _f22_n, _f22_order, _f22_b))
+            for _f22_run in (False, True):
+                _f22_got = _f22_cyc_batch(_f22_pmo, 2.0, _f22_run)
+                for _f22_b in range(_f22_pmo.shape[0]):
+                    if (np.float64(_f22_got[_f22_b]).tobytes()
+                            != np.float64(_f22_cyc(np.array(_f22_pmo[_f22_b]), 2.0, _f22_run)).tobytes()):
+                        _f22_bad.append(("starts", _f22_n, _f22_order, _f22_run, _f22_b))
 R.check(
-    "R9-F2.2: every batched comfort and cycling row is its scalar twin byte "
+    "R9-F2.2: every batched comfort and start-count row is its scalar twin byte "
     "for byte, C- and Fortran-order, widths 1 to 192 including the production 96",
     not _f22_bad,
     f"first divergences: {_f22_bad[:4]}",
-)
-# The scalar twins' own value is unchanged by the fix: each is the sum numpy
-# gives a fresh 1-D array, which is what they returned before (null control
-# for the rows above agreeing only with each other).
-# Twenty-five schedules per width, because one reordered addition changes the
-# last bit of only some sums.
-_f22_ref_bad = []
-for _f22_n in (1, 5, 7, 8, 9, 95, 96, 97, 128, 129, 192):
-    for _f22_seed in range(25):
-        _f22_x = np.random.default_rng((_f22_n, _f22_seed)).uniform(0.0, 6.0, size=_f22_n)
-        _f22_want = 2.0 * float(np.sum(np.abs(np.diff(_f22_x)))) / (2.0 * 6.0) if _f22_n > 1 else 0.0
-        if np.float64(_f22_cyc(_f22_x, 2.0, 6.0)).tobytes() != np.float64(_f22_want).tobytes():
-            _f22_ref_bad.append((_f22_n, _f22_seed))
-R.check(
-    "R9-F2.2: the scalar cycling penalty is still numpy's own sum of the "
-    "swings, to the byte",
-    not _f22_ref_bad,
-    f"(width, seed) that moved: {_f22_ref_bad[:6]} of {len(_f22_ref_bad)}",
 )
 
 
@@ -69101,7 +70822,7 @@ R.check(
 # actuated house 17.2 K*h below the trajectory the plan was priced on. The plan
 # side now reads the plan's own running rule -- the floor the solve's bounds
 # already assume, a sub-floor step being duty cycling WITHIN the step, and the
-# floor count_compressor_starts already counts -- and the meter side keeps its
+# floor the plan's start count already counts -- and the meter side keeps its
 # threshold behind a name that says it reads a meter.
 #
 # This PR's P4 arm (D0-s2-02, #1664) widens no seed set and tightens no
@@ -69117,8 +70838,8 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _f24_Opt,
     OptimizationConfig as _f24_Cfg,
     OptimizationResult as _f24_Res,
-    count_compressor_starts as _f24_starts,
 )
+from heatpump_optimizer.runs import edge_count as _f24_starts  # noqa: E402
 from heatpump_optimizer.thermal_model import (  # noqa: E402
     ThermalModel as _f24_Model,
     ThermalParameters as _f24_Params,
@@ -69637,8 +71358,8 @@ R.check(
 # simulations made while it runs, and every one must read zero. That reaches
 # a third such site the day one is written, where a check keyed on the two
 # fixed here would not. The census asserts its own preconditions -- one solve
-# that runs the continuation, the relaxed candidate and the multi-start's
-# own runs, each seen at least once -- so a solve that stopped reaching a
+# that runs the continuation, the committed candidates' re-solves and the
+# multi-start's own runs, each seen at least once -- so a solve that stopped reaching a
 # kind refuses instead of passing on an empty population. Positive control:
 # the same solve with ``_lbfgsb_run`` taking ``f`` from the scalar objective
 # reads nonzero, so the meter sees a scalar evaluation when one is made.
@@ -69700,9 +71421,17 @@ def _r10s_solve(run=None):
         lower_floor_temperature=21.0, slab_temperature=22.0,
         outdoor_temperature=float(out[0]),
     )
-    runs, live = [], []
+    runs, live, committing = [], [], []
     real_sm = _r10s_optmod._scoped_minimize
     real_traj = _r10s_Model.simulate_trajectory
+    real_commit = _r10s_optmod._commit_runs
+
+    def commit(*a, **k):
+        committing.append(True)
+        try:
+            return real_commit(*a, **k)
+        finally:
+            committing.pop()
 
     def traj(self, *a, **k):
         for rec in live:
@@ -69713,7 +71442,7 @@ def _r10s_solve(run=None):
         rec = {
             "jac": kw.get("jac") is not None, "scalar": 0,
             "kind": ("continuation" if opt._floor_l1_scale != 1.0
-                     else "relaxed" if opt._levels_relaxed else "multi-start"),
+                     else "committed" if committing else "multi-start"),
         }
         runs.append(rec)
         live.append(rec)
@@ -69723,6 +71452,7 @@ def _r10s_solve(run=None):
             live.remove(rec)
 
     with _r10s_mock.patch.object(_r10s_optmod, "_scoped_minimize", sm), \
+            _r10s_mock.patch.object(_r10s_optmod, "_commit_runs", commit), \
             _r10s_mock.patch.object(_r10s_Model, "simulate_trajectory", traj), \
             (_r10s_mock.patch.object(_r10s_optmod, "_lbfgsb_run", run, create=True)
              if run is not None else _r10s_ctx.nullcontext()):
@@ -69753,10 +71483,10 @@ _r10s_ref = _r10s_census(_r10s_ref_runs)
 print(f"RESULT r10_solver_runs fused={_r10s_got} scalar_valued={_r10s_ref}")
 R.check(
     "R10-SOLVER D9-s1-01 (census precondition): the metered solve runs the "
-    "continuation, the relaxed candidate and the multi-start's own runs on "
-    "the batched jac",
+    "continuation, the committed candidates' re-solves and the multi-start's "
+    "own runs on the batched jac",
     all(_r10s_got.get(k, (0, 0))[0] > 0
-        for k in ("continuation", "relaxed", "multi-start")),
+        for k in ("continuation", "committed", "multi-start")),
     f"(supplied-jac runs, scalar simulations) per kind: {_r10s_got}",
 )
 R.check(
@@ -69769,7 +71499,7 @@ R.check(
     "R10-SOLVER D9-s1-01 (positive control): the scalar-valued form of the "
     "same runs is seen by the meter",
     _r10s_ref.get("continuation", (0, 0))[1] > 0
-    and _r10s_ref.get("relaxed", (0, 0))[1] > 0,
+    and _r10s_ref.get("committed", (0, 0))[1] > 0,
     f"(supplied-jac runs, scalar simulations) per kind: {_r10s_ref}",
 )
 R.check(
@@ -70468,10 +72198,10 @@ def _r9egb9_borrow_arm(borrower, kind):
         with_config(coord, {_r9egb9_const.CONF_PRICE_TILES_ENABLED: False})
         coord._fuse_advisor_at = _r9egb9_dt.now()
         await coord.async_run_optimization()
-        coord._last_simulation = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         u0 = await coord.async_simulate({"target_temp": 20.0})
-        coord._last_simulation = coord._last_simulation - timedelta(seconds=10)
-        u0_stamp = coord._last_simulation
+        _coord_mod.whatif.state_for(coord).last_at = _coord_mod.whatif.state_for(coord).last_at - timedelta(seconds=10)
+        u0_stamp = _coord_mod.whatif.state_for(coord).last_at
         if borrower == "tile":
             with_config(coord, {_r9egb9_const.CONF_PRICE_TILES_ENABLED: True})
             call = _f25_partial(
@@ -70490,20 +72220,20 @@ def _r9egb9_borrow_arm(borrower, kind):
             if kind == "b":
                 # The window has now been open past the 3 s limiter (S2 held
                 # it 3.2 s of real time; the stamp is the same knob).
-                coord._last_simulation = coord._last_simulation - timedelta(seconds=4)
+                _coord_mod.whatif.state_for(coord).last_at = _coord_mod.whatif.state_for(coord).last_at - timedelta(seconds=4)
             u1 = await coord.async_simulate({"target_temp": 22.0})
-            u1_stamp = coord._last_simulation
+            u1_stamp = _coord_mod.whatif.state_for(coord).last_at
             out["U1"] = _r9egb9_ov(u1)
             _R9EGB9Gate.release.set()
             await task
             _R9EGB9Gate.disarm()
             # The unconditional restore is the defect: it reverts the cache
             # to U0's answer and the stamp to U0's slot.
-            out["stamp_is_u1"] = coord._last_simulation == u1_stamp
+            out["stamp_is_u1"] = _coord_mod.whatif.state_for(coord).last_at == u1_stamp
         out["cache_target"] = (
-            coord._simulation_cache.get("overrides") or {}
+            _coord_mod.whatif.state_for(coord).answer.get("overrides") or {}
         ).get("target_temp")
-        out["stamp_is_u0"] = coord._last_simulation == u0_stamp
+        out["stamp_is_u0"] = _coord_mod.whatif.state_for(coord).last_at == u0_stamp
         return out
 
     with _r9egb9_mock.patch.object(_r9egb9_cmod, "_await_optimize", _r9egb9_transport):
@@ -71361,7 +73091,7 @@ def _r9egb1_whatifs():
 
     async def _go():
         reason = await coord.async_run_optimization()
-        coord._last_simulation = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         card = await coord.async_simulate({})
         return reason, card
 
@@ -71429,7 +73159,7 @@ def _r9egb1_fresh():
         with_config(coord, {_r9egb1_const.CONF_PEAK_TARIFF_PRICE: 90.0})
         _r9egb1_fl.hourly_profile = list(_r9egb1_s2)
         now = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
-        coord._last_simulation = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         card = await coord.async_simulate({})
         return reason, card, now
 
@@ -73158,7 +74888,7 @@ R.check(
 
 # The objective scores the rounded levels a clamped install ships, so it is
 # flat between 0 and p_min and a start descending into that band stalls
-# there. The relaxed candidate (``_relaxed_starts``) is the fix; the
+# there. Descending on the relaxed objective (``_descent_pair``) is the fix; the
 # control arm is the same solve with it removed, which is the mutant. A
 # synthetic 750 L tank with no valve, space-only and with hot water, so both
 # solve paths carry the tank's state without the store credit. The valve was
@@ -73179,6 +74909,8 @@ R.check(
 # basin. In the hot-water cells space ships projected against the DHW plan
 # (#3289, ``project_space_against``): before that, two cells shipped space
 # plus DHW above their 5.5 kW p_max; the checks' predicates hold either way.
+from types import SimpleNamespace as _SpNS  # noqa: E402
+
 import heatpump_optimizer.optimizer as _sp_opt_mod  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _SpOpt,
@@ -73203,13 +74935,16 @@ def _sp_solve(prices, dhw, loss, relaxed=True, out_mean=2.0):
     params.min_electrical_power, params.max_electrical_power = 1.5, 5.5
     params.dhw_enabled, params.house_heat_loss_scale = dhw, loss
     opt = _SpOpt(_SpTM(params), _SpCfg(clamp_planned_levels=True))
-    kept = _sp_opt_mod._relaxed_starts
+    # The control arm removes the relaxed descent: the multi-start returns its
+    # first start as it stands, and the candidate stage commits that.
+    kept = _sp_opt_mod._multi_start_minimize
     if not relaxed:
-        _sp_opt_mod._relaxed_starts = lambda _opt, *a: a[-2]
+        _sp_opt_mod._multi_start_minimize = lambda _objective, starts, _bounds, **_kw: _SpNS(
+            x=np.asarray(starts[0], float), success=True)
     try:
         result = _sp_run(opt, prices, out_mean)
     finally:
-        _sp_opt_mod._relaxed_starts = kept
+        _sp_opt_mod._multi_start_minimize = kept
     return np.asarray(result.power_schedule, float), float(result.objective_value)
 
 
@@ -73276,45 +75011,31 @@ R.check(
     f"{({k: (round(f[1], 3), round(c[1], 3)) for k, (f, c) in _sp_flat.items()})}",
 )
 
-# The two helpers at the edges the solves above do not reach: an install that
-# can duty-cycle, a start index past the last (the warm pass), and the flag the
-# relaxed run scores under. A quadratic stands in for the objective.
-_sp_clamped = _SpOpt(_SpTM(_SpTP()), _SpCfg(clamp_planned_levels=True))
-_sp_free = _SpOpt(_SpTM(_SpTP()), _SpCfg(clamp_planned_levels=False))
-_sp_rounded_seen = []
+# Which pair a solve descends on: the relaxed one where it plans runs (a start
+# has a price, or the install cannot duty-cycle), else the objects handed in.
+# A recorder stands in for the objective and reports the keyword it was given.
+def _sp_seen(*_args, descent=None):
+    return descent
 
 
-def _sp_quad(x, *_args):
-    _sp_rounded_seen.append(_sp_opt_mod._scores_rounded(_sp_clamped))
-    return float(np.sum((np.asarray(x, float) - 1.0) ** 2))
-
-
-def _sp_quad_batch(rows, *_args):
-    return np.array([_sp_quad(row) for row in np.atleast_2d(rows)])
-
-
-_SP_BOUNDS = [(0.0, 2.0)] * 3
-_sp_moved = _sp_opt_mod._relaxed_starts(
-    _sp_clamped, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 0, (), [np.zeros(3)], 50,
-)
+_sp_pairs = {
+    (cost, clamp): _sp_opt_mod._descent_pair(
+        _SpOpt(_SpTM(_SpTP()), _SpCfg(clamp_planned_levels=clamp, cycling_cost=cost)),
+        _sp_seen, _sp_seen)
+    for cost in (0.0, 0.25) for clamp in (False, True)
+}
 R.check(
-    "a clamped install gains one candidate, refined while the objective scores the "
-    "duty-cycle reading, and rounds again after",
-    len(_sp_moved) == 2 and np.allclose(_sp_moved[1], 1.0, atol=1e-3)
-    and _sp_rounded_seen and not any(_sp_rounded_seen)
-    and _sp_opt_mod._scores_rounded(_sp_clamped) is True,
-    f"{len(_sp_moved)} {_sp_moved[-1]} seen {set(_sp_rounded_seen)}",
-)
-R.check(
-    "an install that can duty-cycle gains none and never scores rounded; a start past "
-    "the last (the warm pass) adds none",
-    len(_sp_opt_mod._relaxed_starts(
-        _sp_free, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 0, (), [np.zeros(3)], 50,
-    )) == 1
-    and _sp_opt_mod._scores_rounded(_sp_free) is False
-    and len(_sp_opt_mod._relaxed_starts(
-        _sp_clamped, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 1, (), [np.zeros(3)], 50,
-    )) == 1,
+    "a solve descends on the relaxed pair where a start has a price or the install "
+    "cannot duty-cycle, each alone and both; with neither it descends on the objects "
+    "it was handed",
+    [(k, pair[0](None), pair[1](None)) for k, pair in sorted(_sp_pairs.items())]
+    == [((0.0, False), None, None), ((0.0, True), "relaxed", "relaxed"),
+        ((0.25, False), "relaxed", "relaxed"), ((0.25, True), "relaxed", "relaxed")]
+    and _sp_pairs[(0.0, False)] == (_sp_seen, _sp_seen)
+    and _sp_opt_mod._descent_pair(
+        _SpOpt(_SpTM(_SpTP()), _SpCfg(cycling_cost=0.25)), _sp_seen, _sp_seen, _sp_opt_mod._UNPRICED,
+    )[0](None) == "unpriced",
+    f"{({k: (pair[0](None), pair[1](None)) for k, pair in _sp_pairs.items()})}",
 )
 
 R.section("#1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519")
@@ -73606,26 +75327,33 @@ R.check(
     f"samples per draw {_cf_run} (the 4.2 kW floor gave 0 each)",
 )
 # A draw departing from its ask by more than 15 % before the meter has shown
-# whether the draw follows the ask folds only where base would have: both
-# clear the nameplate third. On 14 kW (4.2 kW) a 2.0 kW ask drawn at 2.6 kW
-# waits for evidence; on 4 kW (1.2 kW) base folded it and so does the head.
-def _cf_depart(p_max):
+# whether the draw follows the ask is HELD while that evidence is pending (a
+# window still filling), whatever the nameplate: a 2.0 kW ask drawn at 2.6 kW
+# waits on 14 kW (third 4.2 kW) and on 4 kW (third 1.2 kW), where base folded
+# it at once. Where the evidence is unobtainable (no window) base's rule
+# stands: refused under the nameplate third on 14 kW, folded on 4 kW.
+def _cf_depart(p_max, window=True):
     coord = _cf_coord(p_max=p_max)
     coord._current_action = {"power": 2.0, "dhw_power": 0.0}
     coord._measured_power = 2.6
     coord._current_state.outdoor_temperature = 8.0
-    coord._cop_ratio_ewma = 1.3  # a persistent ratio, past the tracking gate
-    coord._learn_measured_cop(coord._accuracy.draw)
+    coord._measured_cop.ratio_ewma = 1.3  # a persistent ratio, past the tracking gate
+    coord._learn_measured_cop(coord._accuracy.draw if window else None)
     return coord
 
 
 _cf_wait, _cf_base = _cf_depart(14.0), _cf_depart(4.0)
+_cf_wait0, _cf_base0 = _cf_depart(14.0, window=False), _cf_depart(4.0, window=False)
 R.check(
-    "with no draw evidence a departure folds only past the nameplate third: "
-    "it waits for evidence on 14 kW and folds on 4 kW, as base",
-    _cf_wait._cop_samples == 0 and _cf_last(_cf_wait, "refusal") == "awaiting_draw_evidence"
-    and _cf_base._cop_samples == 1,
-    f"{_cf_wait._cop_samples} ({_cf_last(_cf_wait, 'refusal')}) / {_cf_base._cop_samples}",
+    "while draw evidence is pending a departure is held on any nameplate, and "
+    "reads as awaiting it; with no window base's rule stands (14 kW refuses, "
+    "4 kW folds) and nothing is held",
+    [(c._cop_samples, _cf_last(c, "refusal"), len(c._measured_cop.held)) for c in (_cf_wait, _cf_base)]
+    == [(0, "awaiting_draw_evidence", 1)] * 2
+    and (_cf_wait0._cop_samples, _cf_last(_cf_wait0, "refusal"), len(_cf_wait0._measured_cop.held))
+    == (0, "awaiting_draw_evidence", 0)
+    and (_cf_base0._cop_samples, _cf_last(_cf_base0, "refusal"), len(_cf_base0._measured_cop.held)) == (1, None, 0),
+    f"{[(c._cop_samples, _cf_last(c, 'refusal'), len(c._measured_cop.held)) for c in (_cf_wait, _cf_base, _cf_wait0, _cf_base0)]}",
 )
 # Idle (controller and crankcase heater) and standby (circulation pump at or
 # under thermal_model.on_threshold_kw, half the modulation floor) are what
@@ -73857,10 +75585,12 @@ _cf_flat = _cf_feed(_cf_pairs((1.5,), (2.2,)))
 _cf_mt = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (1.9, 2.2, 2.55)))
 _cf_sh = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (0, 0, 0), 288), true=0.7)
 R.check(
-    "a draw that ignores the ask (varying or flat) is refused as off-ask; a "
-    "matched draw and a 0.7 shift on a draw that follows its ask still teach",
-    abs(_cf_sm._cop_scale - 1.0) < 0.1 and _cf_flat._cop_scale == 1.0
-    and _cf_last(_cf_flat, "refusal") == "awaiting_draw_evidence"
+    "a draw that ignores a varying ask is refused as off-ask, and under a "
+    "flat ask it folds nothing while the heat-ask probe is pending (the scale "
+    "at 1.000 or one of its two dither levels, 0.9325 and 1.0724); a matched "
+    "draw and a 0.7 shift on a draw that follows its ask still teach",
+    abs(_cf_sm._cop_scale - 1.0) < 0.1 and round(_cf_flat._cop_scale, 4) in (0.9325, 1.0, 1.0724)
+    and (_cf_flat._cop_samples, _cf_last(_cf_flat, "refusal")) == (0, "awaiting_draw_evidence")
     and _cf_last(_cf_sm, "refusal") in ("draw_off_ask", "tracking_gate")
     and _cf_mt._cop_samples == 96 and abs(_cf_mt._cop_scale - 1.0) < 1e-9
     and abs(_cf_sh._cop_scale - 0.7) < 0.02,
@@ -73949,6 +75679,17 @@ from heatpump_optimizer.accuracy import (  # noqa: E402
     COP_REFUSED_TRACKING as _cf_TRACK, MeasuredCop as _cf_MC,
 )
 
+from heatpump_optimizer.accuracy import CopInterval as _cf_CI  # noqa: E402
+from datetime import datetime as _cf_dt, timedelta as _cf_td, timezone as _cf_tz  # noqa: E402
+
+_CF_T0 = _cf_dt(2026, 1, 10, 12, 0, tzinfo=_cf_tz.utc)
+
+
+def _cf_row(asked, drawn, scale=1.0, at=_CF_T0):
+    """One interval as the ratio gates read it (space curve, modelled COP 3.0)."""
+    return _cf_CI(asked, drawn, (3.0, False, None), scale, at)
+
+
 _cf_both = ThermalParameters(max_electrical_power=14.0, min_electrical_power=1.0)
 _cf_bar = _cf_both.flow_lift_power_floor_kw  # 0.8, exactly
 R.check(
@@ -73969,24 +75710,24 @@ R.check(
 R.check(
     "the tracking gate divides by the clamped walking ratio: a zero ewma is a "
     "refusal, not a crash",
-    _cf_MC.judge_ratio(0.5, 0.0, 5.0, _cf_both, None) == _cf_TRACK,
-    f"{_cf_MC.judge_ratio(0.5, 0.0, 5.0, _cf_both, None)}",
+    _cf_MC().judge_ratio(0.0, _cf_row(5.0, 2.5), _cf_both, None) == _cf_TRACK,
+    f"{_cf_MC().judge_ratio(0.0, _cf_row(5.0, 2.5), _cf_both, None)}",
 )
 # 1.5 / 5.0 is the double 0.3 exactly, so this ratio sits on the gate, not off it.
 R.check(
     "the tracking gate is exclusive: a ratio exactly at it is on the walking "
     "ratio (6.5 against 5.0 is 0.3 of it)",
-    _cf_MC.judge_ratio(6.5, 5.0, 5.0, _cf_both, None) is None,
-    f"{_cf_MC.judge_ratio(6.5, 5.0, 5.0, _cf_both, None)}",
+    _cf_MC().judge_ratio(5.0, _cf_row(5.0, 32.5), _cf_both, None) is None,
+    f"{_cf_MC().judge_ratio(5.0, _cf_row(5.0, 32.5), _cf_both, None)}",
 )
 R.check(
     "without draw evidence the nameplate bar is on both the ask and the drawn "
     "figure: a 5.0 kW ask metering 4.0 kW waits for evidence, one metering 4.5 "
     "kW folds (0.3 x 14 is 4.2 exactly)",
-    _cf_MC.judge_ratio(0.8, 1.0, 5.0, _cf_both, None) == _cf_NOEV
-    and _cf_MC.judge_ratio(0.9, 1.0, 5.0, _cf_both, None) is None,
-    f"{_cf_MC.judge_ratio(0.8, 1.0, 5.0, _cf_both, None)} / "
-    f"{_cf_MC.judge_ratio(0.9, 1.0, 5.0, _cf_both, None)}",
+    _cf_MC().judge_ratio(1.0, _cf_row(5.0, 4.0), _cf_both, None) == _cf_NOEV
+    and _cf_MC().judge_ratio(1.0, _cf_row(5.0, 4.5), _cf_both, None) is None,
+    f"{_cf_MC().judge_ratio(1.0, _cf_row(5.0, 4.0), _cf_both, None)} / "
+    f"{_cf_MC().judge_ratio(1.0, _cf_row(5.0, 4.5), _cf_both, None)}",
 )
 R.check(
     "the store's 0.1 bar is exclusive and a non-finite tank temperature drops "
@@ -74024,12 +75765,13 @@ R.check(
     _cf_drm.follows_ask(_cf_window(_cf_span)) is True,
     f"{_cf_drm.follows_ask(_cf_window(_cf_span))}",
 )
-# 24 asks at 1.0 drawn at 1.0, 24 at 2.0 drawn at sqrt(2): the log-log slope is
-# the double 0.5 exactly, which is FOLLOW_SLOPE_MIN.
-_cf_half = [(1.0, 1.0)] * 24 + [(2.0, 2 ** 0.5)] * 24
+# 24 asks at 1.0 drawn at 1.0, 24 at 1.5625 drawn at 1.25: the log-log slope
+# is the double 0.5 exactly, which is FOLLOW_SLOPE_MIN, and the level moves by
+# 1.5625 ** 0.5 across the span, the double 1.25 exactly, DISAGREE_FACTOR.
+_cf_half = [(1.0, 1.0)] * 24 + [(1.5625, 1.25)] * 24
 R.check(
-    "a draw whose log-log slope is exactly 0.5 follows the ask (the slope bound "
-    "is `>=`, not `>`)",
+    "a draw whose log-log slope is exactly 0.5, and whose level moves by "
+    "exactly 1.25 across the span, follows the ask (both bounds inclusive)",
     _cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0))) is True,
     f"{_cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0)))}",
 )
@@ -74048,6 +75790,1507 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
+R.section("R10-COP-LEARNER-DRAW-FLOOR: the floor capped by the run-asked draw, and hold-then-replay")
+
+# Carry 84e73ec4. A modulation floor configured above what the pump draws
+# while running (3.0 kW on a pump that runs at 1.8) put the duty floor (2.4 kW)
+# above every draw. The floor the COP fold, the flow-lift fold and the
+# diagnostics read is now draw_range.power_floor_kw: the configured figure
+# capped by the low end of the draws metered under a RUN ask (an ask at or
+# above the configured minimum), never under on_threshold_kw. Every expected
+# figure below is the design note's, a literal, not the rule re-run.
+from heatpump_optimizer import accuracy as _df_acc  # noqa: E402
+
+_df_p3 = ThermalParameters(max_electrical_power=14.0, min_electrical_power=3.0)
+_df_bar3 = _df_p3.flow_lift_power_floor_kw  # the configured floor: 0.8 x 3.0, the double 2.4000000000000004
+_df_asks = _cf_pairs((3.0, 3.5, 4.0, 4.5, 5.0), (0,), 60)
+
+
+def _df_win(pairs, cfg=(3.0, 14.0)):
+    """A window of (asked, drawn) pairs under the configured (min, max)."""
+    return _cf_win_cfg(pairs, cfg)
+
+
+def _df_led(factor, n=60):
+    return _df_win([(a, factor * a) for a, _ in _df_asks[:n]])
+
+
+_df_floor = _cf_drm.power_floor_kw
+R.check(
+    "a pump metered running at 0.6 x its ask on an overstated 3.0 kW minimum "
+    "has its floor capped at that draw's low end, 1.8 kW (configured 2.4)",
+    abs(_df_floor(_df_led(0.6), _df_p3) - 1.8) < 1e-9 and abs(_df_bar3 - 2.4) < 1e-12,
+    f"{_df_floor(_df_led(0.6), _df_p3)!r}",
+)
+R.check(
+    "(a) the cap never raises the floor: draws equal to, or 1.5 x, the ask "
+    "leave the configured 2.4 kW, bit for bit",
+    _df_floor(_df_led(1.0), _df_p3) == _df_bar3 and _df_floor(_df_led(1.5), _df_p3) == _df_bar3,
+    f"{_df_floor(_df_led(1.0), _df_p3)!r} / {_df_floor(_df_led(1.5), _df_p3)!r}",
+)
+R.check(
+    "(b) the floor never goes under on_threshold_kw: a low end of 0.9 kW "
+    "reads 1.5 kW, half the 3.0 kW minimum",
+    _df_floor(_df_led(0.3), _df_p3) == 1.5,
+    f"{_df_floor(_df_led(0.3), _df_p3)!r}",
+)
+R.check(
+    "(c) no window, an empty one, and one of 47 run-asked pairs leave the "
+    "configured floor bit for bit; the 48th caps it",
+    _df_floor(None, _df_p3) == _df_bar3 and _df_floor(_cf_drm.DrawRange(), _df_p3) == _df_bar3
+    and _df_floor(_df_led(0.6, 47), _df_p3) == _df_bar3
+    and abs(_df_floor(_df_led(0.6, 48), _df_p3) - 1.8) < 1e-9,
+    f"47: {_df_floor(_df_led(0.6, 47), _df_p3)!r}, 48: {_df_floor(_df_led(0.6, 48), _df_p3)!r}",
+)
+# 48 run-asked pairs drawing 2.0 kW (8 of them asked exactly the minimum),
+# beside 100 intervals asked 2.9 kW -- under the minimum, a duty-cycle average
+# -- that metered 0.6 kW. Counted, the 0.6 kW draws would be the low end and
+# the floor would fall to the 1.5 kW threshold.
+_df_mixed = _df_win([(3.0, 2.0)] * 8 + [(4.0, 2.0)] * 40 + [(2.9, 0.6)] * 100)
+_df_sub = _df_win([(2.9, 0.6)] * 60)
+R.check(
+    "(d) a draw under an ask below the configured minimum never moves the "
+    "floor: alone it leaves 2.4 kW, beside 48 run-asked draws of 2.0 kW the "
+    "floor is 2.0, and an ask exactly at the minimum is a run ask",
+    _df_floor(_df_sub, _df_p3) == _df_bar3 and _df_floor(_df_mixed, _df_p3) == 2.0,
+    f"{_df_floor(_df_sub, _df_p3)!r} / {_df_floor(_df_mixed, _df_p3)!r}",
+)
+_df_p2 = ThermalParameters(max_electrical_power=14.0, min_electrical_power=2.0)
+_df_pmax = ThermalParameters(max_electrical_power=10.0, min_electrical_power=3.0)
+_df_moved = _df_led(0.6)
+_df_moved.observe(2.0, 2.0, 2.0, 14.0)
+R.check(
+    "(e) a window keyed to another configured range caps nothing: a changed "
+    "minimum or maximum reads its own configured floor at once, and the next "
+    "sample drops the old window",
+    _df_floor(_df_led(0.6), _df_p2) == 1.6 and _df_floor(_df_led(0.6), _df_pmax) == _df_bar3
+    and len(_df_moved.samples) == 1 and _df_floor(_df_moved, _df_p2) == 1.6,
+    f"{_df_floor(_df_led(0.6), _df_p2)!r} / {_df_floor(_df_led(0.6), _df_pmax)!r} / {len(_df_moved.samples)}",
+)
+_df_p0 = ThermalParameters(max_electrical_power=14.0, min_electrical_power=0.0)
+_df_w0 = _df_win([(a, 0.5) for a, _ in _cf_pairs((1.0, 1.5, 2.0), (0,), 60)], (0.0, 14.0))
+R.check(
+    "(f) with no modulation floor configured the nameplate third stands "
+    "uncapped, whatever the window metered (60 pairs drawing 0.5 kW)",
+    _df_floor(_df_w0, _df_p0) == _df_p0.nameplate_power_floor_kw
+    and abs(_df_p0.nameplate_power_floor_kw - 4.2) < 1e-12 and len(_df_w0._run_asked()) == 60,
+    f"{_df_floor(_df_w0, _df_p0)!r} over {len(_df_w0._run_asked())} run-asked pairs",
+)
+R.check(
+    "judge_floor reads the capped floor on the window it is handed: 2.0 kW "
+    "is refused without the window and folds with it, 1.7 kW is under the cap",
+    _cf_MC.judge_floor(2.0, 2.0, _df_p3) == _cf_DUTY
+    and _cf_MC.judge_floor(2.0, 2.0, _df_p3, _df_led(0.6)) is None
+    and _cf_MC.judge_floor(2.0, 1.7, _df_p3, _df_led(0.6)) == _cf_DUTY,
+)
+# One window object, three readers: the cycle's COP fold, the flow-lift fold
+# and the diagnostics, on a real coordinator with the overstated minimum.
+def _df_coord3(warm):
+    coord = _cf_coord(p_min=3.0)
+    if warm:
+        coord._accuracy.draw = _df_led(0.6)
+    coord._current_action = {"power": 2.0, "dhw_power": 0.0}
+    coord._measured_power = 2.0
+    coord._current_state.outdoor_temperature = 8.0
+    coord._learn_measured_cop(coord._accuracy.draw)
+    coord._flow_bias.observe_temps(35.0, 30.0)
+    _fold_flow_lift(coord, _T6)
+    view = _cf_diag._coordinator_snapshot(coord)["cop_learner"]
+    return coord._cop_samples, coord._flow_bias.samples, view["power_floor_kw"], view["last_refusal"]
+
+
+R.check(
+    "a 2.0 kW interval on a 3.0 kW minimum folds its COP and its flow lift "
+    "once the window has metered the pump running at 1.8 kW, and the "
+    "diagnostics name that floor; with an empty window all three read 2.4 kW",
+    _df_coord3(True) == (1, 1, 1.8, None) and _df_coord3(False) == (0, 0, 2.4, "duty_floor"),
+    f"warm {_df_coord3(True)} / empty {_df_coord3(False)}",
+)
+
+
+# The flow-lift fold's floor is exclusive, like the COP fold's (judge_floor):
+# a plan asking exactly the floor is running, a nanowatt under it is not. At
+# both ends of the floor's range -- the window's own low end (warm, the cap)
+# and the configured figure (an empty window) -- with the floor read from
+# draw_range.power_floor_kw itself, so the ask is the very double compared.
+def _df_fl_at(warm, under_kw):
+    coord = _cf_coord(p_min=3.0)
+    if warm:
+        coord._accuracy.draw = _df_led(0.6)
+    floor = _df_floor(coord._accuracy.draw, coord._thermal_params)
+    coord._current_action = {"power": floor - under_kw, "dhw_power": 0.0}
+    coord._current_state.outdoor_temperature = 8.0
+    coord._flow_bias.observe_temps(35.0, 30.0)
+    _fold_flow_lift(coord, _T6)
+    return round(floor, 9), coord._flow_bias.samples
+
+
+_df_fl_edge = [_df_fl_at(w, u) for w in (True, False) for u in (0.0, 1e-9)]
+R.check(
+    "the flow-lift fold takes an ask exactly at the floor and refuses one a "
+    "nanowatt under it, on the window's cap (1.8 kW) and on the configured "
+    "figure (2.4 kW)",
+    _df_fl_edge == [(1.8, 1), (1.8, 0), (2.4, 1), (2.4, 0)],
+    f"{_df_fl_edge}",
+)
+# The span close judges the floor only with no power entity, and with no
+# power entity nothing is metered per cycle: the window it is handed is empty.
+_df_nopower = _cf_coord(p_min=3.0)
+_df_nopower._current_action = {"power": 4.0, "dhw_power": 0.0}
+_df_nopower._measured_power = None
+for _ in range(60):
+    _cf_drm.fold(_df_nopower._accuracy.draw, _df_nopower._measured_power, _df_nopower._commanded_split(),
+                 _df_nopower._thermal_params, frozen=False, distorted=False, defrost=False)
+R.check(
+    "with no power reading the running-draw window stays empty, so the span "
+    "close's floor is the configured one",
+    len(_df_nopower._accuracy.draw.samples) == 0
+    and _df_floor(_df_nopower._accuracy.draw, _df_nopower._thermal_params) == _df_bar3,
+    f"{len(_df_nopower._accuracy.draw.samples)} samples",
+)
+
+# Carry 35931f4b. draw_range.ask_evidence: the evidence, or whether to wait
+# for it. Counts are the literals the rule claims (48 pairs, a 336 window).
+_df_ev = _cf_drm.ask_evidence
+_df_selfset = _df_win([(a, 2.2) for a, _ in _df_asks[:48]])
+_df_flat = _df_win([(4.0, 2.4)] * 48)
+_df_full_sub = _df_win([(2.9, 2.0)] * 336)
+_df_tenth = _df_win([(3.2 if i % 10 == 0 else 2.9, 2.0) for i in range(336)])
+R.check(
+    "ask_evidence: follows and does-not-follow on 48 run-asked pairs whose "
+    "asks span; pending on an empty window and on 47 pairs",
+    (_df_ev(_df_led(0.6, 48)), _df_ev(_df_selfset), _df_ev(_cf_drm.DrawRange()), _df_ev(_df_led(0.6, 47)))
+    == ("follows", "does_not_follow", "pending", "pending"),
+    f"{(_df_ev(_df_led(0.6, 48)), _df_ev(_df_selfset), _df_ev(_cf_drm.DrawRange()), _df_ev(_df_led(0.6, 47)))}",
+)
+R.check(
+    "ask_evidence is unobtainable with no window, on asks that never moved, "
+    "and on a full window (336) holding 0 or 34 run-asked pairs; one sample "
+    "short of full it is still pending",
+    (_df_ev(None), _df_ev(_df_flat), _df_ev(_df_full_sub), _df_ev(_df_tenth),
+     _df_ev(_df_win([(2.9, 2.0)] * 335)))
+    == ("unobtainable",) * 4 + ("pending",)
+    and len(_df_full_sub._run_asked()) == 0 and len(_df_tenth._run_asked()) == 34,
+    f"{(_df_ev(None), _df_ev(_df_flat), _df_ev(_df_full_sub), _df_ev(_df_tenth))} "
+    f"{len(_df_tenth._run_asked())} pairs",
+)
+R.check(
+    "follows_ask is that state as a tri-state: None for both waiting states",
+    [_cf_drm.follows_ask(w) for w in (_df_led(0.6, 48), _df_selfset, _df_flat, _df_full_sub, _cf_drm.DrawRange(), None)]
+    == [True, False, None, None, None, None],
+)
+
+# R10-DRAW-MAP-EVIDENCE (b). One install's run-asked window, its shape
+# reproduced synthetically (no row of it): 90 pairs on a 0.5..4.0 kW range,
+# asks piled at the 0.5 kW floor and thinning to 3.9 kW, drawn 1.75 x ask**0.7
+# with a +15/-13/0 % ripple -- log-log slope 0.70, drawn summed over asked
+# 1.70, asks spanning 3.86 (90th over 10th percentile). The slope passed, so a
+# departure read as an efficiency shift; but no one shift describes it: the
+# fitted draw is 2.1 x the ask at the low end of the span and 1.4 x at the top.
+# The level judgement reads that ratio at both ends of the span. Nulls: the
+# same asks drawn 1.70 x their ask with the same ripple (one shift, the same
+# level) still follow; asks drawn within the COP tolerance of themselves
+# still follow; draws that ignore the ask still fail, on the slope.
+_dm_asks = ([0.5] * 46 + [0.55 + 0.4 * i / 23 for i in range(24)] + [1.05 + 0.4 * i / 8 for i in range(9)]
+            + [1.6, 1.9, 2.2, 2.4, 2.9] + [3.1 + 0.8 * i / 5 for i in range(6)])
+_dm_ripple = [(1.15, 0.87, 1.0)[i % 3] for i in range(len(_dm_asks))]
+
+
+def _dm_win(drawn):
+    return _cf_win_cfg([(a, drawn(a) * r) for a, r in zip(_dm_asks, _dm_ripple)], (0.5, 4.0))
+
+
+_dm_shape = _dm_win(lambda a: 1.75 * a ** 0.7)
+_dm_states = tuple(_df_ev(w) for w in (
+    _dm_shape, _dm_win(lambda a: 1.70 * a), _dm_win(lambda a: 1.0 * a), _dm_win(lambda a: 2.2),
+))
+R.check(
+    "the measured shape (slope 0.70, drawn 2.1 x the ask at the low end of the "
+    "span and 1.4 x at the top) does not follow its ask; one 1.70 x shift and a "
+    "draw within tolerance of its ask follow, a self-set draw still does not",
+    _dm_states == ("does_not_follow", "follows", "follows", "does_not_follow")
+    and len(_dm_shape._run_asked()) == 90,
+    f"{_dm_states}",
+)
+# Each half of the judgement on a window only it refuses: asks spanning 1.2
+# (under DISAGREE_FACTOR) drawn 2.2 kW flat move the level by 1.2 alone, so
+# only the slope refuses them; a draw growing as the square of asks spanning
+# 1.5 has slope 2, so only the level refuses it (its level moves by 1.5 the
+# other way round).
+_dm_halves = (_df_ev(_cf_win_cfg([(1.0, 2.2), (1.2, 2.2)] * 24, (1.0, 14.0))),
+              _df_ev(_cf_win_cfg([(1.0, 1.0), (1.5, 2.25)] * 24, (1.0, 14.0))))
+R.check(
+    "a flat draw over asks spanning 1.2 fails on the slope, a square-law draw "
+    "over asks spanning 1.5 fails on the level",
+    _dm_halves == ("does_not_follow", "does_not_follow"),
+    f"{_dm_halves}",
+)
+
+# MeasuredCop.judge_ratio holds a departure only while the evidence is
+# pending. 5.0 kW asked: 6.0 drawn is a 20 % departure, 5.5 is inside the
+# 15 % tolerance; both clear 14 kW's nameplate third (4.2 kW).
+def _df_judge(window, drawn=6.0, ewma=1.2, asked=5.0):
+    cop = _cf_MC()
+    return cop.judge_ratio(ewma, _cf_row(asked, drawn), _cf_both, window), len(cop.held)
+
+
+_df_pend1 = _cf_drm.DrawRange()
+R.check(
+    "a departure is held, and reads as awaiting evidence, only while the "
+    "evidence is pending: it folds on follows, is off-ask on does-not-follow, "
+    "and takes base's rule with nothing held where there is no window; where "
+    "the window's evidence is unobtainable the heat-ask probe takes it, and "
+    "while that is pending the interval is held, as any other awaiting evidence",
+    _df_judge(_df_pend1) == (_cf_NOEV, 1)
+    and _df_judge(_cf_window(_cf_lit48)) == (None, 0)
+    and _df_judge(_cf_window([(a, 2.2) for a, _ in _cf_lit48])) == ("draw_off_ask", 0)
+    and _df_judge(None) == (None, 0) and _df_judge(_cf_window([(2.0, 2.6)] * 48)) == (_cf_NOEV, 1)
+    and _df_judge(None, drawn=4.0, ewma=0.8) == (_cf_NOEV, 0),
+    f"{_df_judge(_df_pend1)} / {_df_judge(_cf_window(_cf_lit48))} / {_df_judge(None)} / "
+    f"{_df_judge(_cf_window([(2.0, 2.6)] * 48))} / "
+    f"{_df_judge(None, drawn=4.0, ewma=0.8)}",
+)
+# Evidence that the draw follows the ask folds a departure on any nameplate:
+# 2.0 kW asked and 2.6 drawn (30 % off, both under 14 kW's 4.2 kW third) is
+# the interval base refused for want of evidence. The 5.0 kW departure above
+# clears the third, so base's rule folds it too and cannot tell the arms apart.
+def _df_small(window):
+    """Through the cycle: that interval on a 14 kW coordinator, judged on ``window``."""
+    coord = _cf_coord()
+    coord._current_action = {"power": 2.0, "dhw_power": 0.0}
+    coord._measured_power = 2.6
+    coord._current_state.outdoor_temperature = 8.0
+    coord._measured_cop.ratio_ewma = 1.3  # a persistent ratio, past the tracking gate
+    coord._learn_measured_cop(window)
+    return coord._cop_samples, _cf_last(coord, "refusal")
+
+
+R.check(
+    "once the meter shows the draw follows the ask, a departure under the "
+    "nameplate third teaches: 2.0 kW drawing 2.6 on 14 kW folds and is not "
+    "held, where the same interval with no window is refused for want of "
+    "evidence (control)",
+    _df_judge(_cf_window(_cf_lit48), drawn=2.6, ewma=1.3, asked=2.0) == (None, 0)
+    and _df_judge(None, drawn=2.6, ewma=1.3, asked=2.0) == (_cf_NOEV, 0)
+    and _df_small(_cf_window(_cf_lit48)) == (1, None) and _df_small(None) == (0, _cf_NOEV),
+    f"judge {_df_judge(_cf_window(_cf_lit48), drawn=2.6, ewma=1.3, asked=2.0)} / "
+    f"{_df_judge(None, drawn=2.6, ewma=1.3, asked=2.0)}; cycle "
+    f"{_df_small(_cf_window(_cf_lit48))} / {_df_small(None)}",
+)
+R.check(
+    "an interval inside the ask tolerance, or one the tracking gate refuses, "
+    "is never held",
+    _df_judge(_df_pend1, drawn=5.5) == (None, 0) and _df_judge(_df_pend1, ewma=0.5) == (_cf_TRACK, 0),
+    f"{_df_judge(_df_pend1, drawn=5.5)} / {_df_judge(_df_pend1, ewma=0.5)}",
+)
+R.check(
+    "an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a "
+    "huge ratio for the tracking gate to refuse, not a ZeroDivisionError",
+    _cf_row(0.0, 0.5).ratio == 500000.0 and _cf_row(2.0, 2.5).ratio == 1.25
+    and _cf_MC().judge_ratio(1.0, _cf_row(0.0, 0.5), _cf_both, None) == _cf_TRACK,
+)
+R.check(
+    "walk_ratio hands back the value before the interval (1.0 the first "
+    "time) and walks a tenth of the way",
+    (lambda c: (c.walk_ratio(2.0), c.ratio_ewma, c.walk_ratio(2.0)))(_cf_MC()) == (1.0, 1.1, 1.1),
+)
+
+# MeasuredCop.release, the one way out of the hold. Two rows on 14 kW: one
+# base folds (5.0 asked, 6.0 drawn), one it refuses (2.0 asked, 2.6 drawn,
+# under the 4.2 kW third).
+_DF_BIG, _DF_SMALL = (5.0, 6.0), (2.0, 2.6)
+
+
+def _df_held(*pairs_at):
+    cop = _cf_MC()
+    cop.held.extend(_cf_row(a, d, at=at) for (a, d), at in pairs_at)
+    return cop
+
+
+def _df_release(window, now, *pairs_at):
+    cop = _df_held(*pairs_at)
+    out = cop.release(window, _cf_both, now)
+    return [(r.asked_kw, r.drawn_kw) for r in out], len(cop.held)
+
+
+_df_two = ((_DF_SMALL, _CF_T0), (_DF_BIG, _CF_T0))
+_df_hour = _CF_T0 + _cf_td(hours=1)
+R.check(
+    "release: evidence empties the hold -- every row, oldest first, where the "
+    "draw follows the ask; none where it does not",
+    _df_release(_cf_window(_cf_lit48), _df_hour, *_df_two) == ([_DF_SMALL, _DF_BIG], 0)
+    and _df_release(_cf_window([(a, 2.2) for a, _ in _cf_lit48]), _df_hour, *_df_two) == ([], 0),
+    f"{_df_release(_cf_window(_cf_lit48), _df_hour, *_df_two)} / "
+    f"{_df_release(_cf_window([(a, 2.2) for a, _ in _cf_lit48]), _df_hour, *_df_two)}",
+)
+R.check(
+    "release: with no window the hold empties by base's rule -- the row "
+    "clearing the nameplate third folds, the other is dropped; where the "
+    "window's evidence is unobtainable and the heat-ask probe is pending, "
+    "both rows wait and nothing folds",
+    _df_release(None, _df_hour, *_df_two) == ([_DF_BIG], 0)
+    and _df_release(_cf_window([(2.0, 2.6)] * 48), _df_hour, *_df_two) == ([], 2),
+    f"{_df_release(None, _df_hour, *_df_two)} / {_df_release(_cf_window([(2.0, 2.6)] * 48), _df_hour, *_df_two)}",
+)
+_df_week = _CF_T0 + _cf_td(days=7)
+R.check(
+    "release: while the evidence is pending a row waits a week and no longer "
+    "-- at 7 days exactly both wait, a second later both leave by base's rule",
+    _df_release(_cf_drm.DrawRange(), _df_week, *_df_two) == ([], 2)
+    and _df_release(_cf_drm.DrawRange(), _df_week + _cf_td(seconds=1), *_df_two) == ([_DF_BIG], 0),
+    f"{_df_release(_cf_drm.DrawRange(), _df_week, *_df_two)} / "
+    f"{_df_release(_cf_drm.DrawRange(), _df_week + _cf_td(seconds=1), *_df_two)}",
+)
+_df_unob48 = _cf_window([(2.0, 2.6)] * 48)
+R.check(
+    "release: no fold lands on a pending heat-ask probe however long it "
+    "lasts -- under unobtainable evidence both rows wait at 7 days exactly, "
+    "and a second later both are dropped, the one base's rule folds included",
+    _df_release(_df_unob48, _df_week, *_df_two) == ([], 2)
+    and _df_release(_df_unob48, _df_week + _cf_td(seconds=1), *_df_two) == ([], 0)
+    and _df_release(_df_unob48, _CF_T0 - _cf_td(seconds=1), *_df_two) == ([], 0),
+    f"{_df_release(_df_unob48, _df_week, *_df_two)} / {_df_release(_df_unob48, _df_week + _cf_td(seconds=1), *_df_two)}",
+)
+R.check(
+    "release: a row stamped ahead of the clock has no knowable age and does "
+    "not wait on it -- it leaves by base's rule; one a second old waits",
+    _df_release(_cf_drm.DrawRange(), _CF_T0 - _cf_td(seconds=1), (_DF_BIG, _CF_T0), (_DF_SMALL, _CF_T0))
+    == ([_DF_BIG], 0)
+    and _df_release(_cf_drm.DrawRange(), _CF_T0 + _cf_td(seconds=1), (_DF_BIG, _CF_T0)) == ([], 1),
+)
+# The wait is inclusive at age zero: a row released on the instant it was
+# stamped (a replayed cycle, a clock that did not advance) has a known age,
+# 0 s, and waits like any other; only a stamp AHEAD of the clock is unknowable.
+R.check(
+    "release: a row stamped at the clock itself is zero seconds old and "
+    "waits; a microsecond ahead of the clock it leaves by base's rule",
+    _df_release(_cf_drm.DrawRange(), _CF_T0, (_DF_BIG, _CF_T0)) == ([], 1)
+    and _df_release(_cf_drm.DrawRange(), _CF_T0 - _cf_td(microseconds=1), (_DF_BIG, _CF_T0)) == ([_DF_BIG], 0),
+    f"{_df_release(_cf_drm.DrawRange(), _CF_T0, (_DF_BIG, _CF_T0))} / "
+    f"{_df_release(_cf_drm.DrawRange(), _CF_T0 - _cf_td(microseconds=1), (_DF_BIG, _CF_T0))}",
+)
+# A hot-water season adds no running sample, so the window never grows: only
+# the mixed ages decide, row by row, and the younger keeps waiting.
+_df_ages = ((_DF_BIG, _CF_T0), (_DF_BIG, _CF_T0 + _cf_td(days=3)))
+R.check(
+    "release: with a window that does not grow, each row leaves on its own "
+    "week -- at day 8 the older folds and the 3-day-younger waits",
+    _df_release(_cf_drm.DrawRange(), _CF_T0 + _cf_td(days=8), *_df_ages) == ([_DF_BIG], 1),
+    f"{_df_release(_cf_drm.DrawRange(), _CF_T0 + _cf_td(days=8), *_df_ages)}",
+)
+# Base's rule is inclusive at the nameplate third: an ask exactly on it,
+# drawing twice that, folds; a nanowatt under it is refused. (The ratio is the
+# double 2.0, so the smaller of ask and draw is the ask itself.)
+_df_third = _cf_both.nameplate_power_floor_kw
+R.check(
+    "base's rule folds a departure whose ask sits exactly on the nameplate "
+    "third and refuses one just under it",
+    _df_release(None, _df_hour, ((_df_third, 2.0 * _df_third), _CF_T0)) == ([(_df_third, 2.0 * _df_third)], 0)
+    and _df_release(None, _df_hour, ((_df_third - 1e-9, 2.0 * _df_third), _CF_T0)) == ([], 0),
+    f"third {_df_third!r}",
+)
+# 337 pending rows: the hold keeps 336 (draw_range.WINDOW), and the oldest
+# leaves by base's rule -- folded if base folded it, dropped if not.
+_df_over_big = _df_release(_cf_drm.DrawRange(), _df_hour, (_DF_BIG, _CF_T0), *[(_DF_SMALL, _CF_T0)] * 336)
+_df_over_small = _df_release(_cf_drm.DrawRange(), _df_hour, (_DF_SMALL, _CF_T0), *[(_DF_BIG, _CF_T0)] * 336)
+R.check(
+    "release: the hold is bounded at 336 rows; the row pushed out is judged "
+    "by base's rule, not lost and not folded unjudged (336 rows push none out)",
+    _df_over_big == ([_DF_BIG], 336) and _df_over_small == ([], 336)
+    and _df_release(_cf_drm.DrawRange(), _df_hour, *[(_DF_BIG, _CF_T0)] * 336) == ([], 336),
+    f"{_df_over_big[0]}, {_df_over_big[1]} / {_df_over_small}",
+)
+
+# Through the cycle. A held interval folds against the scale it was read at:
+# asked 2.0 kW at scale 0.9 and drawing 2.5 says the scale is 0.72. Released
+# after the live scale has reached 0.72, it must leave the scale where it is;
+# read against the live scale it would say 0.576 and pull the scale down, and
+# read against 1.0 it would say 0.8 and push it up.
+def _df_cycle(coord, asked, drawn, window):
+    coord._current_action = {"power": asked, "dhw_power": 0.0}
+    coord._measured_power = drawn
+    coord._current_state.outdoor_temperature = 8.0
+    coord._learn_measured_cop(window)
+
+
+def _df_hold_one():
+    coord = _cf_coord()
+    coord._apply_cop_scale(0.9)
+    coord._measured_cop.ratio_ewma = 1.25
+    _df_cycle(coord, 2.0, 2.5, _cf_drm.DrawRange())
+    return coord
+
+
+_df_rp = _df_hold_one()
+_df_rp_held = (len(_df_rp._measured_cop.held), _df_rp._measured_cop.held[0].cop_scale, _df_rp._cop_samples)
+_df_rp._apply_cop_scale(0.72)
+_df_cycle(_df_rp, 0.3, 0.3, _cf_window(_cf_lit48))  # this interval is under the duty floor
+R.check(
+    "a released interval folds against the scale it was read at, and the "
+    "interval that released it keeps its own refusal",
+    _df_rp_held == (1, 0.9, 0) and _df_rp._cop_samples == 1 and abs(_df_rp._cop_scale - 0.72) < 1e-9
+    and _cf_last(_df_rp, "refusal") == "duty_floor" and len(_df_rp._measured_cop.held) == 0,
+    f"held {_df_rp_held}; after release {_df_rp._cop_samples} sample(s), scale {_df_rp._cop_scale!r}, "
+    f"refusal {_cf_last(_df_rp, 'refusal')}",
+)
+# The other half of what a held interval carries: the curve its own cycle was
+# judged against. With the operating mode observed, a plan split evenly
+# between space and hot water is a blend no single curve prices, and a blended
+# interval never trains the scale. Each way round, the held interval's own
+# cycle decides, not the cycle that releases it. (Without a heat reading the
+# folded scale is the ask over the draw whatever the modelled COP, so a
+# refused curve is the one difference a reference can make to a replay.)
+def _df_split_cycle(coord, space_kw, dhw_kw, drawn, window):
+    coord._pump_signals = dataclasses.replace(coord._pump_signals, mode_observed=True)
+    coord._current_action = {"power": space_kw, "dhw_power": dhw_kw}
+    coord._measured_power = drawn
+    coord._current_state.outdoor_temperature = 8.0
+    coord._learn_measured_cop(window)
+    return coord._cop_samples, len(coord._measured_cop.held), _cf_last(coord, "refusal")
+
+
+def _df_hold_then_release(held_split, release_split, release_drawn):
+    coord = _cf_coord()
+    coord._measured_cop.ratio_ewma = 1.25
+    held = _df_split_cycle(coord, *held_split, 2.5, _cf_drm.DrawRange())
+    return held, _df_split_cycle(coord, *release_split, release_drawn, _cf_window(_cf_lit48))
+
+
+_df_ref_space = _df_hold_then_release((2.0, 0.0), (1.0, 1.0), 2.0)
+_df_ref_blend = _df_hold_then_release((1.0, 1.0), (0.3, 0.0), 0.3)
+R.check(
+    "a released interval is judged against the curve of the cycle it was read "
+    "on: one read on a space cycle folds when a blended cycle releases it, and "
+    "one read on a blended cycle trains nothing when a space cycle releases it",
+    _df_ref_space == ((0, 1, _cf_NOEV), (1, 0, "blended_duty"))
+    and _df_ref_blend == ((0, 1, _cf_NOEV), (0, 0, "duty_floor")),
+    f"space then blend {_df_ref_space} / blend then space {_df_ref_blend}",
+)
+# A release sits behind the learner's freeze gate and its missing-reading
+# guard: a cycle the learners are frozen on, or one with no power reading,
+# moves no scale and lets nothing out, whatever the evidence says; the next
+# live cycle releases.
+_df_frz = _df_hold_one()
+_df_frz_live = _df_frz._learning_frozen
+_df_frz._learning_frozen = lambda *entities, **_kw: "stale_inputs"
+_df_cycle(_df_frz, 2.0, 2.0, _cf_window(_cf_lit48))
+_df_frz_then = (_df_frz._cop_samples, len(_df_frz._measured_cop.held), _cf_last(_df_frz, "refusal"))
+_df_frz._learning_frozen = _df_frz_live
+_df_frz._current_action = {"power": 2.0, "dhw_power": 0.0}
+_df_frz._measured_power = None
+_df_frz._learn_measured_cop(_cf_window(_cf_lit48))
+_df_frz_nopower = (_df_frz._cop_samples, len(_df_frz._measured_cop.held), _cf_last(_df_frz, "refusal"))
+_df_cycle(_df_frz, 0.3, 0.3, _cf_window(_cf_lit48))
+R.check(
+    "a frozen cycle and one with no power reading release nothing and fold "
+    "nothing; the next live cycle releases the held interval",
+    _df_frz_then == (0, 1, "learners_frozen") and _df_frz_nopower == (0, 1, "no_measured_power")
+    and (_df_frz._cop_samples, len(_df_frz._measured_cop.held)) == (1, 0),
+    f"frozen {_df_frz_then}; no power {_df_frz_nopower}; live "
+    f"{(_df_frz._cop_samples, len(_df_frz._measured_cop.held))}",
+)
+# A replayed interval trains the scale alone. The fold's tail reads THIS
+# cycle's draw, command and outdoor bucket for the capacity envelope, none of
+# which is the held interval's: a near-nameplate live fold feeds the envelope
+# (control), the same evidence replayed feeds nothing.
+def _df_envelope(read_scale):
+    c = _t2_coord(capacity_curve_enabled=True, heat_pump_power_entity="sensor.hp_power")
+    c._current_state.outdoor_temperature = 8.0
+    c._current_action = {"power": 4.9}
+    c._measured_power = 4.6
+    code = c._fold_cop_evidence(4.9, 4.6, None, (3.0, False, None), *([] if read_scale is None else [read_scale]))
+    return code, c._cop_samples, bool(c._capacity_envelope)
+
+
+R.check(
+    "a replayed interval folds the scale and not the capacity envelope; the "
+    "same evidence folded live feeds the envelope (control)",
+    _df_envelope(1.0) == (None, 1, False) and _df_envelope(None) == (None, 1, True),
+    f"replay {_df_envelope(1.0)} / live {_df_envelope(None)}",
+)
+_df_view = _cf_coord()
+_df_view._measured_cop.ratio_ewma = 1.25
+_df_cycle(_df_view, 2.0, 2.5, _df_view._accuracy.draw)
+R.check(
+    "the diagnostics publish the floor to the watt: a 1.2345 kW minimum's "
+    "0.9876 kW floor reads 0.988",
+    _df_acc.diagnostics_view(_cf_MC(), ThermalParameters(max_electrical_power=14.0, min_electrical_power=1.2345), None)
+    ["power_floor_kw"] == 0.988,
+)
+R.check(
+    "the diagnostics count the held intervals beside the evidence they wait on",
+    (lambda v: (v["held_intervals"], v["draw_follows_ask"], v["last_refusal"]))(
+        _cf_diag._coordinator_snapshot(_df_view)["cop_learner"]) == (1, None, "awaiting_draw_evidence")
+    and _cf_diag._coordinator_snapshot(_cf_coord())["cop_learner"]["held_intervals"] == 0,
+    f"{_cf_diag._coordinator_snapshot(_df_view)['cop_learner']}",
+)
+
+
+def _df_feed(pairs, p_max=14.0, p_min=1.0, true=None, warm=()):
+    """The cycle's order on a real coordinator; returns it and the largest fold count seen."""
+    coord = _cf_coord(p_max=p_max, p_min=p_min)
+    for asked, drawn in warm:
+        coord._accuracy.draw.observe(drawn, asked, p_min, p_max)
+    for asked, drawn in pairs:
+        if true:
+            drawn = asked * coord._cop_scale / true
+        coord._current_action = {"power": asked, "dhw_power": 0.0}
+        coord._measured_power = drawn
+        coord._current_state.outdoor_temperature = 8.0
+        _cf_drm.fold(coord._accuracy.draw, drawn, coord._commanded_split(), coord._thermal_params,
+                     frozen=False, distorted=False, defrost=False)
+        coord._learn_measured_cop(coord._accuracy.draw)
+    return coord
+
+
+# The carry's install: 4 kW nameplate, asks 1.0-2.0 kW, the pump drawing
+# 1.9-2.55 kW whatever it is asked; the model's COP is right, so the right
+# scale is 1.0. Base folded each departure clearing the 1.2 kW third until the
+# evidence arrived (29 folds, scale 0.789). Held instead, they are dropped
+# when the window says the draw does not follow.
+_df_self = _df_feed(_cf_pairs((1.0, 1.25, 1.5, 1.75, 2.0), (1.9, 2.2, 2.55)), p_max=4.0)
+R.check(
+    "a pump that sets its own power folds no departure while the evidence is "
+    "pending: on 4 kW the scale stays within 0.02 of 1.0 (base: 0.789) and "
+    "the hold is empty once the evidence has dropped it",
+    abs(_df_self._cop_scale - 1.0) < 0.02 and _df_self._cop_samples < 10
+    and len(_df_self._measured_cop.held) == 0 and _cf_drm.follows_ask(_df_self._accuracy.draw) is False,
+    f"{_df_self._cop_samples}/96, scale {_df_self._cop_scale:.3f}, held {len(_df_self._measured_cop.held)}",
+)
+# A heat-led pump whose true COP scale is 0.7: every interval is a departure
+# until the scale has learned it. Base refused the first 47 (under the 4.2 kW
+# third, no evidence) and lost them; held, they fold when the evidence comes.
+_df_true = _df_feed(_cf_pairs((1.9, 2.2, 2.55), (0,), 288), true=0.7)
+R.check(
+    "a pump whose draw follows its ask loses no held interval: more than 280 "
+    "of 288 fold (base: 241), none twice, and the scale reaches 0.7",
+    280 < _df_true._cop_samples <= 288 and abs(_df_true._cop_scale - 0.7) < 0.02
+    and len(_df_true._measured_cop.held) == 0,
+    f"{_df_true._cop_samples}/288, scale {_df_true._cop_scale:.3f}",
+)
+# Evidence that never arrives: 2.6 kW asked under a 3.0 kW minimum, 3.2 drawn,
+# on a 4 kW nameplate (third 1.2 kW: base folds every one). Behind a full
+# window of such asks the evidence is unobtainable and each folds at its own
+# tick; behind one 48 samples short of full each is held until the window
+# fills, and then folds. 96 intervals, 96 folds, either way.
+_df_never = [(2.6, 3.2)] * 96
+_df_h_full = _df_feed(_df_never, p_max=4.0, p_min=3.0, warm=_df_never[:1] * 336)
+_df_h_fill = _df_feed(_df_never, p_max=4.0, p_min=3.0, warm=_df_never[:1] * 288)
+_df_h_part = _df_feed(_df_never[:40], p_max=4.0, p_min=3.0, warm=_df_never[:1] * 288)
+# R11-OUTSIDE-SELF-SETTING-PUMP: a fixed 3.2 kW draw under a flat 2.6 kW ask
+# is a pump setting its own power, which the heat-ask probe now judges (base:
+# 96/96 at 0.582 and 0.650); the control is its heat-led twin of true 0.8.
+# The probe folds nothing while it is pending (owner decision 2 of the
+# round-3 design note): every admitted interval is held, and folds once the
+# verdict reads follows. The probe takes 50 rows (2 before its first pair, 24
+# pairs), so the window filling at the 48th leaves the 96th two rows short.
+_df_h_led_full = _df_feed(_df_never, p_max=4.0, p_min=3.0, true=0.8, warm=_df_never[:1] * 336)
+_df_h_led_fill = _df_feed(_df_never, p_max=4.0, p_min=3.0, true=0.8, warm=_df_never[:1] * 288)
+_df_h_led_long = _df_feed(_df_never * 2, p_max=4.0, p_min=3.0, true=0.8, warm=_df_never[:1] * 288)
+_df_h_fill_long = _df_feed(_df_never * 2, p_max=4.0, p_min=3.0, warm=_df_never[:1] * 288)
+
+
+def _df_h_end(coord):
+    return coord._cop_samples, round(coord._cop_scale, 4), coord._measured_cop.scale_response, len(coord._measured_cop.held)
+
+
+R.check(
+    "(h) with a window that never reaches evidence the heat ask is probed, "
+    "nothing folds while that is pending, and no interval is lost once it "
+    "reads follows: a heat-led pump of true 0.8 folds 96 of 96 behind a full "
+    "window; behind one that fills at the 48th it is still pending at the "
+    "96th, all 96 held, inside the dither band, and over 192 it folds 192; 40 "
+    "intervals into the filling one, all 40 are still held; the fixed 3.2 kW "
+    "draw folds nothing and ends does_not_follow at the configured scale",
+    _df_h_end(_df_h_led_full)[::2] == (96, "follows") and abs(_df_h_led_full._cop_scale - 0.8) < 0.02
+    and _df_h_end(_df_h_led_long)[::2] == (192, "follows") and abs(_df_h_led_long._cop_scale - 0.8) < 0.005
+    and _df_h_end(_df_h_led_fill)[0::2] == (0, "pending") and _df_h_end(_df_h_led_fill)[1] in (0.9325, 1.0, 1.0724)
+    and len(_df_h_led_fill._measured_cop.held) == 96
+    and (_df_h_part._cop_samples, len(_df_h_part._measured_cop.held)) == (0, 40)
+    and [_df_h_end(c) for c in (_df_h_full, _df_h_fill_long)] == [(0, 1.0, "does_not_follow", 0)] * 2
+    and _df_h_end(_df_h_fill)[0::2] == (0, "pending"),
+    f"heat-led full {_df_h_end(_df_h_led_full)}; filling {_df_h_end(_df_h_led_fill)}; filling x192 "
+    f"{_df_h_end(_df_h_led_long)}; part {_df_h_part._cop_samples} folded, {len(_df_h_part._measured_cop.held)} held; "
+    f"fixed 3.2 kW {[_df_h_end(c) for c in (_df_h_full, _df_h_fill, _df_h_fill_long)]}",
+)
+
+
+# The save cadence: a release folds several intervals in one cycle, so the
+# count can step over a multiple of ten; the store is written on the crossing.
+def _df_saves(before, held):
+    coord = _cf_coord()
+    coord._cop_samples = before
+    coord._measured_cop.held.extend(_cf_row(2.0, 2.0) for _ in range(held))
+    coord._accuracy.draw = _cf_window(_cf_lit48)
+    coord._current_action = {"power": 0.3, "dhw_power": 0.0}  # the interval itself is under the floor
+    coord._measured_power = 0.3
+    coord._current_state.outdoor_temperature = 8.0
+    saves = []
+
+    async def _none(*_a, **_k):
+        return None
+
+    async def _save():
+        saves.append(coord._cop_samples)
+
+    coord._close_fabric_interval = lambda: None
+    coord._async_learn_lower_floor_loss = _none
+    coord._async_learn_house_heat_loss = _none
+    coord._async_save_thermal_learning = _save
+    _aio.run(coord._async_learn_interval(coord._current_state, slab_unsensed=False))
+    return saves
+
+
+R.check(
+    "a release that steps the fold count over a multiple of ten saves the "
+    "learning (7 + 5 -> 12); one landing on it saves (9 + 1); one that "
+    "crosses none does not (10 + 3, 3 + 0)",
+    (_df_saves(7, 5), _df_saves(9, 1), _df_saves(10, 3), _df_saves(3, 0)) == ([12], [10], [], []),
+    f"{(_df_saves(7, 5), _df_saves(9, 1), _df_saves(10, 3), _df_saves(3, 0))}",
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("R11-OUTSIDE-SELF-SETTING-PUMP: the COP scale judged on the heat ask where the window's evidence is unobtainable")
+
+# Owner ruling D4 (tvofi, 2026-11-15): a pump that sets its own power, under
+# flat asks that never span draw_range.FOLLOW_ASK_SPAN, walked the scale to a
+# clamp at the base -- the window's evidence turns unobtainable and every
+# interval folded scale x ask / draw. Where that evidence is unobtainable, a
+# window exists and the install measures no heat, MeasuredCop judges whether
+# the draw follows the HEAT ask (ask x the scale it was read at), whose span
+# the scale's own moves supply. Each expected figure is the design note's
+# (design/R11-OUTSIDE-SELF-SETTING-PUMP), a literal, not the rule re-run.
+_ss_ASK = _df_acc.ASK_PENDING, _df_acc.ASK_FOLLOWS, _df_acc.ASK_IGNORED
+
+
+def _ss_flat(n, drawn=None, seed=7):
+    """``n`` flat asks of 1.5 kW +-2 %, each beside a draw of ``drawn`` kW
+    +-3 % (a pump setting its own power), or of the ask (None)."""
+    rng = _random.Random(seed)
+    out = []
+    for _ in range(n):
+        ask = 1.5 * rng.uniform(0.98, 1.02)
+        out.append((ask, ask if drawn is None else drawn * rng.uniform(0.97, 1.03)))
+    return out
+
+
+def _ss_coord(scale0=None, **extra):
+    cfg = dict(_L5_CFG, heat_pump_max_power=4.0, heat_pump_min_power=1.0, **extra)
+    coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+    if scale0 is not None:
+        coord._apply_cop_scale(scale0)
+    return coord
+
+
+def _ss_step(coord, asked, drawn, window=None):
+    """One cycle in the cycle's order: the running-draw fold, then the learner."""
+    coord._current_action = {"power": asked, "dhw_power": 0.0}
+    coord._measured_power = drawn
+    coord._current_state.outdoor_temperature = 8.0
+    if window is None:
+        window = coord._accuracy.draw
+        _cf_drm.fold(window, drawn, coord._commanded_split(), coord._thermal_params,
+                     frozen=False, distorted=False, defrost=False)
+    coord._learn_measured_cop(window)
+
+
+def _ss_feed(coord, pairs, true=None, until=None):
+    """Feed ``pairs``; ``true``: a heat-led pump's draw; ``until``: stop after
+    the cycle on which the verdict first reads that state. Returns the coordinator."""
+    for asked, drawn in pairs:
+        _ss_step(coord, asked, asked * coord._cop_scale / true if true else drawn)
+        if until is not None and coord._measured_cop.scale_response == until:
+            break
+    return coord
+
+
+def _ss_end(coord):
+    return round(coord._cop_scale, 3), coord._measured_cop.scale_response, _cf_last(coord, "refusal")
+
+
+_ss_beyond = _ss_feed(_ss_coord(), _ss_flat(672, 2.2))
+_ss_within = [_ss_feed(_ss_coord(), _ss_flat(672, kw)) for kw in (1.6, 1.4)]
+R.check(
+    "(n) a pump drawing 2.2 kW whatever is asked, under flat asks of 1.5 kW, "
+    "ends at the configured scale and then reads draw_off_ask (base: 0.500); "
+    "so do 1.6 and 1.4 kW, within the ask tolerance (base: 0.500 and 1.600)",
+    _ss_end(_ss_beyond) == (1.0, _df_acc.ASK_IGNORED, "draw_off_ask")
+    and [_ss_end(c) for c in _ss_within] == [(1.0, _df_acc.ASK_IGNORED, "draw_off_ask")] * 2,
+    f"2.2 {_ss_end(_ss_beyond)}; 1.6/1.4 {[_ss_end(c) for c in _ss_within]}",
+)
+_ss_cfg09 = _ss_feed(_ss_coord(cop_scale=0.9), _ss_flat(672, 2.2))
+R.check(
+    "(n) the restore target is the configured scale, not the default and not "
+    "the walked one: configured 0.9, the same pump ends at 0.9",
+    _ss_end(_ss_cfg09)[:2] == (0.9, _df_acc.ASK_IGNORED),
+    f"{_ss_end(_ss_cfg09)}",
+)
+_ss_led = _ss_feed(_ss_coord(), _ss_flat(672), true=0.8)
+R.check(
+    "(m) a heat-led pump of true scale 0.8 under the same flat asks latches "
+    "follows and loses no interval: 672 of 672 fold, scale 0.800",
+    _ss_end(_ss_led)[:2] == (0.8, _df_acc.ASK_FOLLOWS) and _ss_led._cop_samples == 672,
+    f"{_ss_led._cop_samples}/672 {_ss_end(_ss_led)}",
+)
+
+
+# (s) Fix review 1 of #3662: the heat ask moves only as the scale folds the
+# draw, so its levels split the probe's rows by time, and a draw swinging on
+# its own over the window (a weather front's 64-96 cycles) read as following
+# on levels: the scale walked to 0.500 (follows) exactly as at base.
+import math as _ss_math  # noqa: E402
+
+
+def _ss_swing(n, kw, parts, seed, phase=0.0):
+    """Flat asks as ``_ss_flat``; a draw of ``kw`` x (1 + sum a sin(2 pi t / p + phase)) +-3 %."""
+    rng = _random.Random(seed)
+    out = []
+    for t in range(n):
+        ask = 1.5 * rng.uniform(0.98, 1.02)
+        swing = 1 + sum(a * _ss_math.sin(2 * _ss_math.pi * t / p + phase) for a, p in parts)
+        out.append((ask, kw * swing * rng.uniform(0.97, 1.03)))
+    return out
+
+
+_ss_swings = {
+    f"{name}_s{seed}": _ss_end(_ss_feed(_ss_coord(), _ss_swing(200, 2.2, parts, seed, phase)))
+    for name, parts, phase in (
+        ("0.15_p64", [(0.15, 64)], 0.0), ("0.3_p96", [(0.3, 96)], 0.0),
+        ("mix_pi", [(0.1, 48), (0.2, 240)], _ss_math.pi),
+    )
+    for seed in (1, 2)
+}
+R.check(
+    "(s) a pump drawing 2.2 kW +-15 % over 64 cycles, +-30 % over 96, or a "
+    "daily plus five-day swing at phase pi, whatever is asked, ends at the "
+    "configured scale reading does_not_follow over 200 cycles, seeds 1-2 "
+    "(head 1134fe3655: 0.500, follows)",
+    set(_ss_swings.values()) == {(1.0, _df_acc.ASK_IGNORED, "draw_off_ask")},
+    f"{_ss_swings}",
+)
+
+
+def _ss_led_weather(true, n=400):
+    """A heat-led pump whose true scale swings +-15 % over 64 cycles (the
+    weather moving its COP), its meter +-3 %: the draw is the heat ask over it."""
+    coord = _ss_coord()
+    for t, (asked, noise) in enumerate(_ss_swing(n, 1.0, [], 3)):
+        cop = true * (1 + 0.15 * _ss_math.sin(2 * _ss_math.pi * t / 64))
+        _ss_step(coord, asked, asked * coord._cop_scale / cop * noise)
+    return _ss_end(coord)[:2]
+
+
+_ss_led_wx = {true: _ss_led_weather(true) for true in (0.68, 0.8)}
+R.check(
+    "(s) a heat-led pump whose true scale swings +-15 % over 64 cycles still "
+    "latches follows and ends within 15 % of its mean true scale (0.68 and 0.8)",
+    all(v[1] == _df_acc.ASK_FOLLOWS and abs(v[0] - t) <= 0.15 * t for t, v in _ss_led_wx.items()),
+    f"{_ss_led_wx}",
+)
+
+
+# (k) Any state but unobtainable is base's: the same rows judged with the
+# probe admissible (no measured heat) and not (measured heat) read alike,
+# and the probe stays empty -- pending (an empty window), follows and ignored.
+def _ss_twin(window, rows, ewma=1.0):
+    out = []
+    for heat in (False, True):
+        rec = _cf_MC()
+        got = [rec.judge_ratio(ewma, r, _cf_both, window, measured_heat=heat) for r in rows]
+        got.append([x.drawn_kw for x in rec.release(window, _cf_both, _df_hour, measured_heat=heat)])
+        out.append((got, rec.probe.dither.rows, rec.probe.base, rec.scale_response))
+    return out
+
+
+_ss_rows = [_cf_row(2.0, d) for d in (2.0, 2.1, 2.5, 2.6, 1.6)]
+_ss_states = {
+    "pending": _cf_drm.DrawRange(), "follows": _cf_window(_cf_lit48), "ignored": _df_self._accuracy.draw,
+}
+_ss_k = {k: _ss_twin(w, _ss_rows) for k, w in _ss_states.items()}
+R.check(
+    "(k) under pending, follows and ignored evidence the probe admits nothing "
+    "and every judgement and release matches the measured-heat twin's",
+    [_cf_drm.ask_evidence(w) for w in _ss_states.values()] == ["pending", "follows", "does_not_follow"]
+    and all(a == b and a[1:] == (0, None, "pending") for a, b in _ss_k.values()),
+    f"{_ss_k}",
+)
+# (l) No window, or measured heat, keeps base's rule and probes nothing,
+# under the unobtainable evidence the flat run left behind.
+_ss_unob = _ss_beyond._accuracy.draw
+_ss_flat_rows = [_cf_row(a, d) for a, d in _ss_flat(60, 2.2)]
+
+
+def _ss_base_rule(window, heat):
+    rec = _cf_MC()
+    got = [rec.judge_ratio(1.47, r, _cf_both, window, measured_heat=heat) for r in _ss_flat_rows]
+    return got, rec.probe.dither.rows, rec.probe.base, rec.scale_response
+
+
+R.check(
+    "(l) with measured heat, or with no window, 60 flat departures under the "
+    "4.67 kW third of 14 kW each read base's rule, awaiting_draw_evidence, and "
+    "the probe stays empty and pending",
+    _cf_drm.ask_evidence(_ss_unob) == "unobtainable"
+    and _ss_base_rule(_ss_unob, True) == _ss_base_rule(None, False)
+    == ([_cf_NOEV] * 60, 0, None, "pending"),
+    f"{_ss_base_rule(_ss_unob, True)[1:]} / {_ss_base_rule(None, False)[1:]}",
+)
+_ss_heat = _ss_feed(_ss_coord(heat_pump_thermal_power_entity="sensor.heat"), _ss_flat(672, 2.2))
+R.check(
+    "(l) an install with a thermal power entity reading no heat probes "
+    "nothing: 672 flat cycles read no_heat_reading and the verdict stays pending",
+    (_ss_heat._measured_cop.probe.dither.rows, _ss_heat._measured_cop.probe.base, _ss_heat._measured_cop.scale_response, _cf_last(_ss_heat, "refusal"))
+    == (0, None, "pending", "no_heat_reading") and _ss_heat._cop_scale == 1.0,
+    f"{(_ss_heat._measured_cop.probe.dither.rows, _ss_heat._measured_cop.probe.base, _ss_heat._measured_cop.scale_response, _cf_last(_ss_heat, 'refusal'))}",
+)
+# (o) The restore moves the scale only on an unfrozen cycle: stopped on the
+# cycle judge_ratio latched ignored, the scale is still a dither level and the
+# restore is due; a frozen cycle leaves both; the next live one restores.
+_ss_o = _ss_feed(_ss_coord(), _ss_flat(672, 2.2), until=_df_acc.ASK_IGNORED)
+_ss_o_latched = (round(_ss_o._cop_scale, 4) in (0.9325, 1.0724), _ss_o._measured_cop.probe.restore_due)
+_ss_o_live = _ss_o._learning_frozen
+_ss_o._learning_frozen = lambda *entities, **_kw: "stale_inputs"
+_ss_step(_ss_o, 1.5, 2.2)
+_ss_o_frozen = (round(_ss_o._cop_scale, 4) in (0.9325, 1.0724), _ss_o._measured_cop.probe.restore_due, _cf_last(_ss_o, "refusal"))
+_ss_o._learning_frozen = _ss_o_live
+_ss_step(_ss_o, 1.5, 2.2)
+R.check(
+    "(o) a latched ignored restores the configured scale on the next unfrozen "
+    "cycle only: a frozen cycle keeps the dither level and the restore due",
+    _ss_o_latched == (True, True) and _ss_o_frozen == (True, True, "learners_frozen")
+    and (_ss_o._cop_scale, _ss_o._measured_cop.probe.restore_due, _cf_last(_ss_o, "refusal")) == (1.0, False, "draw_off_ask"),
+    f"latched {_ss_o_latched}; frozen {_ss_o_frozen}; live {_ss_end(_ss_o)}",
+)
+# (p) A verdict leaves only by a reset, and a reload keeps it; a reload
+# between the latch and the restore it owes keeps the restore (design
+# verdict item a62de31a): a stored ignored loads with the restore due.
+_ss_p = _ss_feed(_ss_coord(), _ss_flat(672, 2.2), until=_df_acc.ASK_IGNORED)
+_ss_p_walked = round(_ss_p._cop_scale, 4)
+_ss_p._measured_cop = _cf_MC.from_dict(_ss_p._measured_cop.as_dict())
+_ss_p_loaded = (_ss_p._measured_cop.scale_response, _ss_p._measured_cop.probe.restore_due)
+_ss_step(_ss_p, 1.5, 2.2)
+R.check(
+    "(p) a reload between the latch and the next cycle keeps ignored and the "
+    "restore it owes: the next cycle restores the configured scale",
+    _ss_p_walked in (0.9325, 1.0724) and _ss_p_loaded == (_df_acc.ASK_IGNORED, True) and _ss_end(_ss_p)[:2] == (1.0, _df_acc.ASK_IGNORED),
+    f"level {_ss_p_walked}; loaded {_ss_p_loaded}; after {_ss_end(_ss_p)}",
+)
+_ss_follows = _cf_MC.from_dict(_ss_led._measured_cop.as_dict())
+_ss_feed(_ss_p, _ss_flat(200, 2.2, seed=8))
+_ss_p_kept = _ss_end(_ss_p)
+# A reset (the window's evidence governing again) on a cycle whose restore is
+# due still restores (verdict item 8d483cf3): the reset clears the verdict, not the debt.
+_ss_r = _ss_feed(_ss_coord(), _ss_flat(672, 2.2), until=_df_acc.ASK_IGNORED)
+_ss_step(_ss_r, 0.3, 0.3, window=_cf_window(_cf_lit48))
+R.check(
+    "(p) the verdict holds over 200 more flat cycles; a heat-led follows "
+    "reloads as follows with no restore; a reset by a window with evidence "
+    "clears the verdict and the probe, and a restore already due is still paid",
+    _ss_p_kept == (1.0, _df_acc.ASK_IGNORED, "draw_off_ask")
+    and (_ss_follows.scale_response, _ss_follows.probe.restore_due) == (_df_acc.ASK_FOLLOWS, False)
+    and (_ss_r._cop_scale, _ss_r._measured_cop.scale_response, _ss_r._measured_cop.probe.dither.rows) == (1.0, "pending", 0),
+    f"kept {_ss_p_kept}; follows {(_ss_follows.scale_response, _ss_follows.probe.restore_due)}; reset "
+    f"{(_ss_r._cop_scale, _ss_r._measured_cop.scale_response, _ss_r._measured_cop.probe.dither.rows)}",
+)
+# (q) An unreadable stored verdict keeps the measured COP; a stored verdict
+# on a record with no COP (every admitted install: it measures no heat) loads.
+_ss_q_rec = {"cop": 3.1, "curve_dhw": False, "dhw_temp": None, "at": None}
+_ss_q = [_cf_MC.from_dict(dict(_ss_q_rec, scale_response=v)) for v in ("garbage", 7, None, ["does_not_follow"], "pending")]
+_ss_q_none = _cf_MC.from_dict({"cop": None, "curve_dhw": False, "dhw_temp": None, "at": None, "scale_response": "does_not_follow"})
+R.check(
+    "(q) an unreadable or absent stored verdict loads pending beside the "
+    "measured COP; a verdict beside no COP loads, its restore due",
+    [(q.cop, q.scale_response, q.probe.restore_due) for q in _ss_q] == [(3.1, "pending", False)] * 5
+    and _cf_MC.from_dict(_ss_q_rec).scale_response == "pending"
+    and (_ss_q_none.cop, _ss_q_none.scale_response, _ss_q_none.probe.restore_due) == (None, "does_not_follow", True),
+    f"{[(q.cop, q.scale_response) for q in _ss_q]} / {(_ss_q_none.cop, _ss_q_none.scale_response)}",
+)
+# (r) A pending row aged out by base's rule seeds nothing: the reset reads the
+# state first, so a row leaving a pending hold is never admitted.
+_ss_r_rec = _cf_MC()
+_ss_r_rec.held.extend([_cf_row(2.0, 2.6)] * 3)
+_ss_r_out = _ss_r_rec.release(_cf_drm.DrawRange(), _cf_both, _CF_T0 + _cf_td(days=8))
+R.check(
+    "(r) rows aged out of a pending hold leave by base's rule and seed no probe row",
+    (len(_ss_r_out), _ss_r_rec.probe.dither.rows, _ss_r_rec.probe.base, _ss_r_rec.scale_response) == (0, 0, None, "pending"),
+    f"{(len(_ss_r_out), _ss_r_rec.probe.dither.rows, _ss_r_rec.probe.base, _ss_r_rec.scale_response)}",
+)
+# (s) Remedy A (tvofi, 2026-11-16): a probe whose first row was read at a
+# clamp re-seeds from the configured scale, once per reset. A heat-led pump of
+# true 0.68 stuck at 0.500 -- whose 1.1 kW draw base never folds -- reaches it.
+_ss_s = _ss_feed(_ss_coord(scale0=0.5), _ss_flat(672), true=0.68)
+_ss_s_rec = _cf_MC()
+_ss_s_unob = _ss_beyond._accuracy.draw
+_ss_s_seen = []
+for _ss_s_round in range(2):
+    for _ss_s_try in range(2):
+        _ss_s_rec.judge_ratio(1.0, _cf_row(1.5, 1.5, scale=0.5), _cf_both, _ss_s_unob)
+        _ss_s_owed = _ss_s_rec.owed_scale(lambda: 0.9, _df_hour)
+        _ss_s_seen.append((_ss_s_rec.probe.dither.rows, _ss_s_rec.probe.base, None if _ss_s_owed is None else round(_ss_s_owed, 4)))
+    _ss_s_rec.release(_cf_window(_cf_lit48), _cf_both, _df_hour)  # a reset
+R.check(
+    "(s) a probe whose first row is read at the clamp owes the configured "
+    "scale (0.9) and takes it as its base, once: the next row is read and the "
+    "dither starts from 0.9 (levels 0.8393 and 0.9651); a reset re-arms it; "
+    "true 0.68 from a persisted 0.500 reaches 0.680",
+    [x[:2] for x in _ss_s_seen] == [(0, 0.9), (1, 0.9)] * 2 and [x[2] for x in _ss_s_seen[::2]] == [0.9, 0.9]
+    and all(x[2] in (0.8393, 0.9651) for x in _ss_s_seen[1::2]) and _ss_end(_ss_s)[:2] == (0.68, _df_acc.ASK_FOLLOWS),
+    f"{_ss_s_seen}; {_ss_s._cop_samples}/672 {_ss_end(_ss_s)}",
+)
+# A release under unobtainable evidence is decided by the verdict: every row
+# folds under follows, none under ignored, and while it is pending each waits
+# (owner decision 2: nothing folds on a pending verdict).
+def _ss_release(response):
+    rec = _cf_MC(probe=_df_acc.ScaleProbe(response=response))
+    rec.held.extend([_cf_row(5.0, 6.0), _cf_row(2.0, 2.6)])
+    return [r.drawn_kw for r in rec.release(_ss_unob, _cf_both, _df_hour)], len(rec.held)
+
+
+R.check(
+    "a release under unobtainable evidence folds every held row once the draw "
+    "follows the heat ask and drops them where it ignores it; while the "
+    "verdict is pending both wait",
+    (_ss_release("does_not_follow"), _ss_release("follows"), _ss_release("pending")) == (([], 0), ([6.0, 2.6], 0), ([], 2)),
+    f"{(_ss_release('does_not_follow'), _ss_release('follows'), _ss_release('pending'))}",
+)
+
+
+# ---- The round-3 design (design/R11-OUTSIDE-SELF-SETTING-PUMP at 0acbbc8b91):
+# a randomized dither of the scale, no fold while the verdict is pending.
+# Figures are the note's and the owner's three decisions, as literals:
+# FOLLOW_ASK_SPAN 1.15, so the levels of base 1.0 are 0.9325 and 1.0724;
+# 24 pairs (MIN_SAMPLES 48 rows); the cap WINDOW 336; the horizon 7 days.
+_ss_SD = _df_acc.ScaleDither
+# 0.5361902647381804 and 1.492007693184502 are the bases whose centred level lands on a clamp to the bit.
+_ss_lv_at = (1.0, 0.54, 0.53, 0.5, 1.49, 1.5, 1.6, 0.5361902647381804, 1.492007693184502)
+R.check(
+    "the dither's two levels are one FOLLOW_ASK_SPAN apart, centred on the "
+    "base; where a centred level would pass a clamp (0.5, 1.6) they are the "
+    "base and one full step to the open side, the clamps themselves included; "
+    "a centred level exactly on a clamp is still centred",
+    [tuple(round(x, 4) for x in _ss_SD.levels(b)) for b in _ss_lv_at]
+    == [(0.9325, 1.0724), (0.5036, 0.5791), (0.53, 0.6095), (0.5, 0.575), (1.3894, 1.5978), (1.3043, 1.5), (1.3913, 1.6),
+        (0.5, 0.575), (1.3913, 1.6)],
+    f"{[tuple(round(x, 4) for x in _ss_SD.levels(b)) for b in _ss_lv_at]}",
+)
+
+
+# The coin is seeded (``DITHER_SEED``), so a probe re-measures alike: the
+# order of the first twelve pairs of a fresh dither, H for the high level first.
+_ss_coin = _ss_SD()
+_ss_coin_seq = "".join("H" if _ss_coin.step(1.0, True) > 1.0 else "L" for _ in range(24))
+R.check(
+    "a fresh dither hands out the same levels on every run: its first twelve "
+    "pairs lead high six times, then low, high, high, high, high, low",
+    _ss_coin_seq == "HLHLHLHLHLHLLHLHLHLHLHHL",
+    f"{_ss_coin_seq}",
+)
+
+
+def _ss_verdict(contrasts):
+    return _ss_SD(contrasts=list(contrasts)).verdict()
+
+
+_ss_v_cases = (
+    [1.0] * 23, [0.0] * 23, [1.0] * 24, [0.0] * 24, [0.5] * 24,
+    [0.4, 1.6] * 12, [0.0, 2.0] * 12, [-0.6, 0.6] * 12, [-1.0, 1.0] * 12,
+    [0.45, 1.05] * 12, [-0.05, 0.55] * 12, [0.5 - 1e-9] * 24,
+    # 36 pairs whose mean plus 3 standard errors is 0.5 to the bit (mean 13/32, deviation 3/16, 3 * 3/16 / 6 = 3/32).
+    [-0.6875] + [0.4375] * 35, [-0.6875] + [0.4375] * 34 + [0.4376],
+)
+R.check(
+    "the verdict waits for 24 pairs, then reads follows where the mean "
+    "contrast less 3 standard errors reaches 0.5 and ignored where the mean "
+    "plus 3 does not pass it, each bound inclusive, and pending between: "
+    "means 1.0 and 0.0 at 23 pairs and at 24; 0.5 flat; 1.0 +-0.6 against "
+    "+-1.0; 0.0 +-0.6 against +-1.0; 0.75 +-0.3, 0.25 +-0.3; a hair under "
+    "0.5; and a mean plus 3 standard errors of exactly 0.5 against a hair over",
+    [_ss_verdict(c) for c in _ss_v_cases]
+    == ["pending", "pending", "follows", "does_not_follow", "follows",
+        "follows", "pending", "does_not_follow", "pending", "follows", "does_not_follow", "does_not_follow",
+        "does_not_follow", "pending"],
+    f"{[_ss_verdict(c) for c in _ss_v_cases]}",
+)
+
+
+def _ss_cycle(rec, scale, asked, drawn, at, window=None, configured=1.0):
+    """One cycle on a bare MeasuredCop, in the order ``_fold_measured_cop``
+    runs it: the release, the scale owed, the judgement (its ratio inside the
+    tracking gate). Returns the scale in force after it."""
+    row = _cf_row(asked, drawn, scale=scale, at=at)
+    window = _ss_unob if window is None else window
+    rec.folded = getattr(rec, "folded", []) + [len(rec.release(window, _cf_both, at))]
+    owed = rec.owed_scale(lambda: configured, at)
+    rec.refusal = rec.judge_ratio(row.ratio, row, _cf_both, window)
+    return scale if owed is None else owed
+
+
+def _ss_bare(pump, n, skip=None, rec=None, scale=1.0, t0=0):
+    """``n`` cycles of ``pump(scale, tick) -> (asked, drawn)``: per cycle the
+    scale in force after it, the verdict and the refusal. ``skip(tick)`` names
+    a cycle that never reaches the learner's tail: its refusal, and no call."""
+    rec = _cf_MC() if rec is None else rec
+    out = []
+    for tick in range(t0, t0 + n):
+        if skip is not None and (code := skip(tick)):
+            rec.refusal = code
+        else:
+            scale = _ss_cycle(rec, scale, *pump(scale, tick), _CF_T0 + _cf_td(minutes=30 * tick))
+        out.append((round(scale, 4), rec.scale_response, rec.refusal))
+    return rec, out
+
+
+def _ss_led_pump(true):
+    return lambda scale, tick: (1.5, 1.5 * scale / true)
+
+
+def _ss_selfset(scale, tick):
+    return 1.5, 2.2 * (1.0 + 0.02 * ((tick * 7) % 5 - 2))
+
+
+def _ss_anti(scale, tick):
+    return 1.5, 2.2 / scale
+
+
+def _ss_repriced(scale, tick):
+    return 1.2 / scale, 1.2 / 0.8  # the plan asks 1.2 kW of heat; the pump's true scale is 0.8
+
+
+_ss_b_led, _ss_b_led_out = _ss_bare(_ss_led_pump(0.8), 54)
+_ss_b_runs = max(len(list(g)) for _k, g in _cf_it.groupby(x[0] for x in _ss_b_led_out[1:49]))
+R.check(
+    "a draw that follows the heat ask: the first row sets the base, the dither "
+    "runs from the second cycle at both levels in runs of at most two cycles, "
+    "the 24th pair's second row is the 50th and latches follows; the 51st "
+    "cycle returns to the base, and the 52nd releases the 51 rows held "
+    "meanwhile and is the first to fold its own",
+    [x[0] for x in _ss_b_led_out[:1]] == [1.0] and {x[0] for x in _ss_b_led_out[1:49]} == {0.9325, 1.0724}
+    and _ss_b_runs == 2 and [x[1] for x in _ss_b_led_out[47:51]] == ["pending", "pending", "follows", "follows"]
+    and [x[0] for x in _ss_b_led_out[50:]] == [1.0] * 4
+    and [x[2] for x in _ss_b_led_out] == [_cf_NOEV] * 51 + [None] * 3
+    and _ss_b_led.folded == [0] * 51 + [51, 0, 0] and len(_ss_b_led.held) == 0,
+    f"runs {_ss_b_runs}; released {_ss_b_led.folded[49:]}; {_ss_b_led_out[46:]}",
+)
+_ss_b_self, _ss_b_self_out = _ss_bare(_ss_selfset, 53)
+_ss_b_self07 = _ss_bare(_ss_selfset, 53, scale=0.7)[1]
+R.check(
+    "a draw that varies on its own and ignores the heat ask latches "
+    "does_not_follow on the 50th row and is owed the configured scale on the "
+    "51st cycle, from a base of 1.0 and from a walked 0.7 alike; no row "
+    "folds, and the 50 held are dropped",
+    [x[1] for x in _ss_b_self_out[48:51]] == ["pending", "does_not_follow", "does_not_follow"]
+    and _ss_b_self_out[50][0] == 1.0 and _ss_b_self07[49][0] in (0.6528, 0.7507) and _ss_b_self07[50][0] == 1.0
+    and {x[2] for x in _ss_b_self_out} == {_cf_NOEV, "draw_off_ask"} and {x[2] for x in _ss_b_self07[:49]} == {_cf_NOEV}
+    and set(_ss_b_self.folded) == {0} and len(_ss_b_self.held) == 0,
+    f"{_ss_b_self_out[47:]} / {_ss_b_self07[47:]}",
+)
+# The contrast is signed by the coin: a draw answering the scale backwards
+# (drawn over the scale) reads -1 a pair, never follows.
+_ss_b_signs = [[round(c, 9) for c in _ss_bare(pump, 49)[0].probe.dither.contrasts] for pump in (_ss_anti, _ss_led_pump(0.8))]
+R.check(
+    "a draw moving against the scale reads does_not_follow at the 50th row; "
+    "its 23 contrasts by the 49th were each -1, the follower's each +1",
+    _ss_bare(_ss_anti, 53)[1][49][1] == "does_not_follow" and _ss_b_signs == [[-1.0] * 23, [1.0] * 23],
+    f"{_ss_bare(_ss_anti, 53)[1][48:51]}; {[sorted(set(x)) for x in _ss_b_signs]}",
+)
+# A plan that re-prices its ask against the dithered scale keeps the heat ask
+# flat: no pair shows a step, every pair is void, and the probe stays pending
+# (design verdict item 1b98ae3f) until the cap parks it.
+_ss_b_rep, _ss_b_rep_out = _ss_bare(_ss_repriced, 335)
+_ss_b_rep_335 = (_ss_b_rep.probe.dither.rows, len(_ss_b_rep.probe.dither.contrasts), _ss_b_rep.probe.parked_at, _ss_b_rep.scale_response)
+_ss_b_rep_lvl = _ss_bare(_ss_repriced, 1, rec=_ss_b_rep, scale=_ss_b_rep_out[-1][0], t0=335)[1][0][0]
+_ss_b_park_at = _CF_T0 + _cf_td(minutes=30 * 335)
+_ss_b_rep_336 = (_ss_b_rep.probe.dither.rows, _ss_b_rep.probe.parked_at == _ss_b_park_at, _ss_b_rep.scale_response, _ss_b_rep.probe.base)
+_ss_b_parked = _ss_bare(_ss_repriced, 40, rec=_ss_b_rep, scale=_ss_b_rep_lvl, t0=336)[1]
+R.check(
+    "a re-priced plan (the heat ask flat under the dither) builds no contrast "
+    "and never reads does_not_follow; at 335 rows the probe still runs, the "
+    "336th parks it: the next cycle returns to the base and stays there, "
+    "pending, reading nothing and folding nothing",
+    _ss_b_rep_335 == (335, 0, None, "pending") and _ss_b_rep_336 == (0, True, "pending", 1.0)
+    and _ss_b_rep_lvl in (0.9325, 1.0724) and set(_ss_b_parked) == {(1.0, "pending", _cf_NOEV)} and _ss_b_rep.probe.dither.rows == 0,
+    f"335: {_ss_b_rep_335}; 336: {_ss_b_rep_336} at {_ss_b_rep_lvl}; parked {sorted(set(_ss_b_parked))}",
+)
+
+
+def _ss_rearm(after):
+    """A probe parked at ``_CF_T0`` under a follower, 6 cycles from ``after``
+    later: whether it is still parked, the rows read, the first cycle's scale,
+    and whether the dither ran from the third."""
+    rec, scale, seen = _cf_MC(probe=_df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0, level=1.0)), 1.0, []
+    for tick in range(6):
+        scale = _ss_cycle(rec, scale, 1.5, 1.5 * scale / 0.8, _CF_T0 + after + _cf_td(minutes=30 * tick))
+        seen.append(round(scale, 4))
+    return rec.probe.parked_at is not None, rec.probe.dither.rows, seen[0], set(seen[2:]) <= {0.9325, 1.0724}
+
+
+_ss_rearm_at = (_cf_td(days=7) - _cf_td(hours=3), _cf_td(days=7, seconds=1) - _cf_td(hours=2.5), _cf_td(days=7, seconds=1), -_cf_td(hours=1))
+R.check(
+    "a parked probe re-arms after COP_HOLD_HORIZON_S and no sooner: 6 cycles "
+    "whose last is at 7 days less 30 minutes stay at the base and read "
+    "nothing, and so do 5 when the 6th is one second past 7 days (that one "
+    "reads a row); from one second past it, or from a clock an hour behind "
+    "the park (an unknowable wait), the first cycle is at the base and the "
+    "dither runs from the third",
+    [_ss_rearm(a) for a in _ss_rearm_at] == [(True, 0, 1.0, False), (False, 1, 1.0, False), (False, 6, 1.0, True), (False, 6, 1.0, True)],
+    f"{[_ss_rearm(a) for a in _ss_rearm_at]}",
+)
+# The park's two bounds, at their own instants: a clock reading the park
+# itself (0 s waited) and one exactly COP_HOLD_HORIZON_S later both keep it.
+_ss_park_at = (_cf_td(0), _cf_td(seconds=_df_acc.COP_HOLD_HORIZON_S), _cf_td(seconds=_df_acc.COP_HOLD_HORIZON_S + 1))
+
+
+def _ss_park_edge(after):
+    probe = _df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0)
+    owed = probe.owed_scale(lambda: 1.0, _CF_T0 + after, read=False)
+    return owed, probe.parked_at is not None
+
+
+R.check(
+    "a parked probe still holds its base on the instant it parked and on the "
+    "instant COP_HOLD_HORIZON_S has passed, both bounds inclusive; one second "
+    "later it re-arms",
+    [_ss_park_edge(a) for a in _ss_park_at] == [(1.0, True), (1.0, True), (1.0, False)],
+    f"{[_ss_park_edge(a) for a in _ss_park_at]}",
+)
+_ss_edge_scales = (_df_acc.COP_SCALE_MIN, _df_acc.COP_SCALE_MAX, 0.5001, 1.5999)
+
+
+def _ss_first_at(scale):
+    """A fresh probe's first row read at ``scale``: the clamp test is strict at both ends."""
+    probe = _df_acc.ScaleProbe()
+    verdict = probe.admit(_cf_row(1.5, 1.5, scale=scale, at=_CF_T0))
+    return verdict, probe.base, probe.restore_due, probe.reseeded
+
+
+R.check(
+    "a probe's first row read exactly at COP_SCALE_MIN or COP_SCALE_MAX "
+    "keeps no base and makes the restore due; one a hair inside either "
+    "clamp becomes the base",
+    [_ss_first_at(s) for s in _ss_edge_scales]
+    == [("pending", None, True, True)] * 2 + [("pending", 0.5001, False, False), ("pending", 1.5999, False, False)],
+    f"{[_ss_first_at(s) for s in _ss_edge_scales]}",
+)
+
+
+def _ss_restore_to(configured):
+    probe = _df_acc.ScaleProbe(restore_due=True)
+    return probe.owed_scale(lambda: configured, _CF_T0), probe.base
+
+
+R.check(
+    "a due restore owes the configured scale clamped to [COP_SCALE_MIN, "
+    "COP_SCALE_MAX], and a pending probe takes the clamped value as its base: "
+    "2.0 is owed as 1.6, 0.3 as 0.5, 0.9 as itself",
+    [_ss_restore_to(c) for c in (2.0, 0.3, 0.9)] == [(1.6, 1.6), (0.5, 0.5), (0.9, 0.9)],
+    f"{[_ss_restore_to(c) for c in (2.0, 0.3, 0.9)]}",
+)
+
+
+def _ss_no_base():
+    """A probe with no base, no restore and nothing owed, a row read since the last step."""
+    probe = _df_acc.ScaleProbe(dither=_ss_SD(admitted=True))
+    try:
+        return probe.owed_scale(lambda: 1.0, _CF_T0), probe.dither.reading, probe.dither.ahead
+    except Exception as err:  # noqa: BLE001 -- a mutant's failure is its reading
+        return type(err).__name__
+
+
+R.check(
+    "where no probe runs (no base, no restore, nothing owed) the probe owes "
+    "no scale and starts no dither, even after a row was read",
+    _ss_no_base() == (None, None, None),
+    f"{_ss_no_base()}",
+)
+
+
+def _ss_take_under(reading):
+    """Rows taken under one ``reading``: two (heat asks 2.0 then 1.5 kW) under
+    a first-of-pair reading, one under a second-of-pair reading."""
+    sd = _ss_SD(reading=reading)
+    try:
+        for asked in ((2.0, 1.5) if not reading[1] else (1.5,)):
+            sd.take(_cf_row(asked, asked, scale=1.0, at=_CF_T0))
+    except Exception as err:  # noqa: BLE001 -- a mutant's failure is its reading
+        return type(err).__name__
+    return sd.contrasts, sd.rows
+
+
+R.check(
+    "two rows taken under one first-of-pair reading make no pair and add no "
+    "contrast, and a second-of-pair row whose first was never taken adds none",
+    [_ss_take_under(r) for r in ((1, False), (1, True))] == [([], 2), ([], 1)],
+    f"{[_ss_take_under(r) for r in ((1, False), (1, True))]}",
+)
+# A pair is two consecutive admitted rows: a frozen cycle, one with no power
+# reading, or one refused under the duty floor between them voids it. Two
+# admitted rows, then one such cycle, over and over: no pair ever completes.
+_ss_b_gap = [
+    _ss_bare(_ss_led_pump(0.8), 150, skip=lambda tick, code=code: code if tick % 3 == 2 else None)
+    for code in ("learners_frozen", "no_measured_power")
+]
+
+
+def _ss_floor_gap(n, every=3):
+    """As ``_ss_bare`` on a follower, every third (``every``) cycle refused ahead of the
+    judgement (the duty floor's place): the release and the owed scale run, no row is read."""
+    rec, scale, seen = _cf_MC(), 1.0, []
+    for tick in range(n):
+        at = _CF_T0 + _cf_td(minutes=30 * tick)
+        if tick % every == every - 1:
+            rec.release(_ss_unob, _cf_both, at)
+            owed = rec.owed_scale(lambda: 1.0, at)
+            scale, rec.refusal = scale if owed is None else owed, "duty_floor"
+        else:
+            scale = _ss_cycle(rec, scale, 1.5, 1.5 * scale / 0.8, at)
+        seen.append((round(scale, 4), rec.scale_response, rec.refusal))
+    return rec, seen
+
+
+_ss_b_gap.append(_ss_floor_gap(150))
+_ss_b_gap_end = [(len(rec.probe.dither.contrasts), rec.scale_response, rec.probe.dither.rows) for rec, _o in _ss_b_gap]
+R.check(
+    "two admitted rows then a frozen cycle, an unread one, or one refused "
+    "under the duty floor, repeated over 150 cycles: no pair completes and "
+    "the verdict stays pending on 100 rows, where the same follower "
+    "uninterrupted latches at the 50th; the scale is at the base on the cycle "
+    "after each frozen or unread one, and for a floor refusal on the cycle "
+    "after it (the refused cycle itself still set a dither level)",
+    _ss_b_gap_end == [(0, "pending", 100)] * 3
+    and all({o[t][0] for t in range(3, 150, 3)} == {1.0} for _r, o in _ss_b_gap)
+    and {_ss_b_gap[2][1][t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724}
+    and all({o[t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724} for _r, o in _ss_b_gap[:2]),
+    f"{_ss_b_gap_end}; {[o[:9] for _r, o in _ss_b_gap]}",
+)
+# Three admitted rows then a floor refusal: the pair's first row is read, its
+# second is not, and the row after the gap ran at the next pair's level -- half
+# the time a full step from the first. It must not complete that pair.
+_ss_b_gap4 = _ss_floor_gap(400, every=4)[0]
+R.check(
+    "a pair whose second row was refused is void, not stretched to the row "
+    "after the gap: three admitted rows then a floor refusal, over 400 "
+    "cycles, completes no pair on 300 rows",
+    (len(_ss_b_gap4.probe.dither.contrasts), _ss_b_gap4.scale_response, _ss_b_gap4.probe.dither.rows) == (0, "pending", 300),
+    f"{(len(_ss_b_gap4.probe.dither.contrasts), _ss_b_gap4.scale_response, _ss_b_gap4.probe.dither.rows)}",
+)
+
+
+# On the coordinator. A trace of (scale, folds, verdict) per cycle.
+def _ss_trace(coord, pairs, true=None, reprice=None):
+    out = []
+    for asked, drawn in pairs:
+        if reprice is not None:
+            asked, drawn = reprice / coord._cop_scale, reprice / true
+        elif true is not None:
+            drawn = asked * coord._cop_scale / true
+        _ss_step(coord, asked, drawn)
+        out.append((round(coord._cop_scale, 4), coord._cop_samples, coord._measured_cop.scale_response))
+    return out
+
+
+_ss_t_led = _ss_trace(_ss_coord(), _ss_flat(140), true=0.8)
+_ss_t_pend = [x for x in _ss_t_led if x[2] == "pending"]
+R.check(
+    "no fold lands while the verdict is pending: a heat-led pump of true 0.8 "
+    "folds nothing through its 96 pending cycles (47 while the window fills, "
+    "49 probed), its scale at 1.0 or a dither level throughout; the 97th "
+    "latches follows, the 98th returns to 1.0, and the 99th folds all 99, "
+    "from 1.0 to within 0.01 of 0.8",
+    len(_ss_t_pend) == 96 and {x[1] for x in _ss_t_pend} == {0} and {x[0] for x in _ss_t_pend} == {1.0, 0.9325, 1.0724}
+    and _ss_t_led[96][1:] == (0, "follows") and _ss_t_led[97][:2] == (1.0, 0)
+    and _ss_t_led[98][1] == 99 and abs(_ss_t_led[98][0] - 0.8) < 0.01,
+    f"{len(_ss_t_pend)} pending; {sorted({x[:2] for x in _ss_t_pend})}; then {_ss_t_led[95:100]}",
+)
+# Null control 1 of the design note: the dither's amplitude forced to zero.
+# The verdict comes from the instrument, so without it nothing reads follows.
+_ss_levels = _ss_SD.levels
+_ss_SD.levels = staticmethod(lambda base: (base, base))
+try:
+    _ss_null = [_ss_trace(_ss_coord(), _ss_flat(300, kw), true=true)[-1] for kw, true in ((None, 0.8), (2.2, None))]
+finally:
+    _ss_SD.levels = staticmethod(_ss_levels)
+R.check(
+    "with the dither's amplitude forced to zero neither a heat-led pump of "
+    "true 0.8 nor a 2.2 kW self-setting one latches anything over 300 cycles: "
+    "pending, nothing folded, the scale 1.0",
+    _ss_null == [(1.0, 0, "pending")] * 2 and _ss_SD.levels(1.0) != (1.0, 1.0),
+    f"{_ss_null}",
+)
+# A restart mid-probe: the stored COP scale is whatever level the cycle of the
+# save ran, so the record carries the probe's base and the first cycle after
+# the load returns to it. Without the key the level would become the base.
+def _ss_reload(lose):
+    coord = _ss_coord()
+    _ss_trace(coord, _ss_flat(70), true=0.8)
+    level, stored = round(coord._cop_scale, 4), coord._measured_cop.as_dict()
+    if lose:
+        stored.pop("scale_base")
+    coord._measured_cop = _cf_MC.from_dict(stored)
+    _ss_step(coord, 1.5, 1.5 * coord._cop_scale / 0.8)
+    after = round(coord._cop_scale, 4)
+    for _ in range(5):  # the reload dropped the walking ratio: the tracking gate admits a row again within five
+        _ss_step(coord, 1.5, 1.5 * coord._cop_scale / 0.8)
+    return level, stored.get("scale_base"), after, coord._measured_cop.probe.base, coord._measured_cop.scale_response
+
+
+R.check(
+    "a reload mid-probe returns to the base: 70 cycles in, the scale is a "
+    "dither level and the record stores base 1.0; reloaded, the next cycle "
+    "runs at 1.0, still pending. With the key lost the level stays and "
+    "becomes the base",
+    _ss_reload(False)[0] in (0.9325, 1.0724) and _ss_reload(False)[1:] == (1.0, 1.0, 1.0, "pending")
+    and _ss_reload(True)[1] is None and _ss_reload(True)[2] == _ss_reload(True)[0] == round(_ss_reload(True)[3], 4),
+    f"{_ss_reload(False)} / lost {_ss_reload(True)}",
+)
+_ss_q_base = [
+    _cf_MC.from_dict({"cop": None, "scale_response": r, "scale_base": b}).probe.base
+    for r, b in (("pending", 0.9), ("pending", 0.5), ("pending", 1.6), (None, 0.9), ("pending", 0.49), ("pending", 1.61),
+                 ("pending", "x"), ("pending", True), ("pending", float("nan")), ("pending", None),
+                 ("follows", 0.9), ("does_not_follow", 0.9))
+]
+R.check(
+    "a stored base loads beside a pending or absent verdict where the clamps "
+    "admit it (0.5 and 1.6 included); out of them, unreadable, or beside a "
+    "latched verdict, none loads; a record that is no mapping loads none",
+    _ss_q_base == [0.9, 0.5, 1.6, 0.9] + [None] * 8 and _cf_MC.from_dict(None).probe.base is None
+    and _cf_MC.from_dict({"cop": 3.1, "curve_dhw": False, "dhw_temp": None, "at": None, "scale_base": 0.9}).cop == 3.1
+    and _cf_MC(probe=_df_acc.ScaleProbe(base=0.9)).as_dict()["scale_base"] == 0.9 and _cf_MC().as_dict()["scale_base"] is None,
+    f"{_ss_q_base}",
+)
+# Mid-probe cycles that admit no row (design verdict items 76b936b7, 5bb6a355).
+def _ss_mid():
+    coord = _ss_coord()
+    _ss_trace(coord, _ss_flat(70), true=0.8)
+    return coord
+
+
+def _ss_seen(coord):
+    return round(coord._cop_scale, 4), coord._cop_samples, coord._measured_cop.scale_response, coord._measured_cop.probe.base, _cf_last(coord, "refusal")
+
+
+# Pump off: the ask and the draw under the duty floor, three cycles running.
+_ss_idle = _ss_mid()
+_ss_idle_seen = []
+for _ss_i in range(3):
+    _ss_step(_ss_idle, 0.3, 0.3, window=_ss_idle._accuracy.draw)
+    _ss_idle_seen.append(_ss_seen(_ss_idle))
+_ss_idle_back = _ss_trace(_ss_idle, _ss_flat(4), true=0.8)
+R.check(
+    "mid-probe, a pump that goes off: the first idle cycle still runs the "
+    "level set before its refusal was known, every later one is at the base, "
+    "and the dither resumes on the second cycle after rows return",
+    _ss_idle_seen[0][0] in (0.9325, 1.0724) and [x[0] for x in _ss_idle_seen[1:]] == [1.0, 1.0]
+    and {x[1:] for x in _ss_idle_seen} == {(0, "pending", 1.0, "duty_floor")}
+    and [x[0] for x in _ss_idle_back[:1]] == [1.0] and {x[0] for x in _ss_idle_back[1:]} <= {0.9325, 1.0724},
+    f"{_ss_idle_seen}; back {_ss_idle_back}",
+)
+# A frozen cycle moves no scale (the owed scale sits past the freeze gate),
+# so it keeps the level; the next unfrozen cycle returns to the base.
+_ss_frz = _ss_mid()
+_ss_frz_level = round(_ss_frz._cop_scale, 4)
+_ss_frz_live = _ss_frz._learning_frozen
+_ss_frz._learning_frozen = lambda *entities, **_kw: "stale_inputs"
+_ss_step(_ss_frz, 1.5, 1.5 * _ss_frz._cop_scale / 0.8)
+_ss_frz_during = _ss_seen(_ss_frz)
+_ss_frz._learning_frozen = _ss_frz_live
+_ss_step(_ss_frz, 1.5, 1.5 * _ss_frz._cop_scale / 0.8)
+R.check(
+    "mid-probe, a frozen cycle keeps the dither level and the next unfrozen "
+    "one returns to the base, still pending, nothing folded",
+    _ss_frz_level in (0.9325, 1.0724) and _ss_frz_during == (_ss_frz_level, 0, "pending", 1.0, "learners_frozen")
+    and _ss_seen(_ss_frz) == (1.0, 0, "pending", 1.0, _cf_NOEV),
+    f"level {_ss_frz_level}; frozen {_ss_frz_during}; after {_ss_seen(_ss_frz)}",
+)
+# A reset mid-probe: the window's evidence governs again (asks that span).
+# The scale returns to the base in that same cycle, and that cycle's interval,
+# read under the dither level, is held; the next cycle folds the hold (the 70
+# before, and that one, each against the scale it was read under) and its own.
+_ss_rst = _ss_mid()
+_ss_rst_level = round(_ss_rst._cop_scale, 4)
+_ss_step(_ss_rst, 1.5, 1.5 * _ss_rst._cop_scale / 0.8, window=_cf_window(_cf_lit48))
+_ss_rst_cycle = _ss_seen(_ss_rst)
+_ss_step(_ss_rst, 1.5, 1.5 * _ss_rst._cop_scale / 0.8, window=_cf_window(_cf_lit48))
+R.check(
+    "a reset mid-probe returns the scale to the base in the same cycle and "
+    "folds nothing in it; the next cycle folds the 71 held and its own, from "
+    "1.0 to within 0.03 of 0.8",
+    _ss_rst_level in (0.9325, 1.0724) and _ss_rst_cycle == (1.0, 0, "pending", None, _cf_NOEV)
+    and len(_ss_rst._measured_cop.held) == 0
+    and _ss_rst._cop_samples == 72 and abs(_ss_rst._cop_scale - 0.8) < 0.03 and _ss_rst._measured_cop.refusal is None,
+    f"level {_ss_rst_level}; reset cycle {_ss_rst_cycle}; next {_ss_seen(_ss_rst)}",
+)
+# At a clamp: a configured scale of 0.5 is probed between 0.5 and 0.575 and
+# never under it; a heat-led pump of true 0.6 there still reaches 0.6.
+_ss_clamp = _ss_trace(_ss_coord(cop_scale=0.5), _ss_flat(672), true=0.6)
+R.check(
+    "the dither never passes a clamp: configured at 0.5, the pending scales "
+    "are 0.5 and 0.575 alone, and a heat-led pump of true 0.6 latches follows "
+    "and ends at 0.600",
+    {x[0] for x in _ss_clamp if x[2] == "pending"} == {0.5, 0.575} and _ss_clamp[-1][::2] == (0.6, "follows"),
+    f"{sorted({x[0] for x in _ss_clamp if x[2] == 'pending'})}; {_ss_clamp[-1]}",
+)
+# Through the coordinator, a plan re-pricing its ask against the scale (1.2 kW
+# of heat; the pump's true scale 0.8): never does_not_follow, nothing folded.
+_ss_rep = _ss_trace(_ss_coord(), _ss_flat(672), true=0.8, reprice=1.2)
+R.check(
+    "a plan that re-prices its ask against the dithered scale never reads "
+    "does_not_follow over 672 cycles and folds nothing",
+    {x[2] for x in _ss_rep} == {"pending"} and _ss_rep[-1][1] == 0,
+    f"{sorted({x[2] for x in _ss_rep})}; {_ss_rep[-1]}; scales {sorted({x[0] for x in _ss_rep})}",
+)
+# The ratio refusal is logged where it is decided (moved from the
+# coordinator): a refusal logs its code, a fold logs nothing.
+import logging as _ss_logging  # noqa: E402
+
+
+class _SsLog(_ss_logging.Handler):
+    def __init__(self):
+        super().__init__(_ss_logging.DEBUG)
+        self.lines = []
+
+    def emit(self, record):
+        self.lines.append(record.getMessage())
+
+
+_ss_log, _ss_lg = _SsLog(), _ss_logging.getLogger(_df_acc.__name__)
+_ss_lg.addHandler(_ss_log)
+_ss_lv = _ss_lg.level
+_ss_lg.setLevel(_ss_logging.DEBUG)
+_cf_MC().judge_ratio(1.0, _cf_row(2.0, 2.0), _cf_both, None)
+_ss_log_fold = list(_ss_log.lines)
+_cf_MC().judge_ratio(0.0, _cf_row(5.0, 2.5), _cf_both, None)
+_ss_lg.removeHandler(_ss_log)
+_ss_lg.setLevel(_ss_lv)
+R.check(
+    "judge_ratio logs a refusal with its code and the interval, and a fold not at all",
+    _ss_log_fold == [] and len(_ss_log.lines) == 1 and _ss_log.lines[0].startswith("Skipping COP sample (tracking_gate)"),
+    f"{_ss_log.lines}",
+)
+# Measured heat drops a due restore (departure 2 of the body): an install
+# that gained a thermal power entity after a stored does_not_follow keeps the
+# scale its heat-measured folds left, here 0.7, through a cycle with no reading.
+_ss_gain = _ss_coord(scale0=0.7, heat_pump_thermal_power_entity="sensor.heat")
+_ss_gain._measured_cop = _cf_MC.from_dict({"cop": None, "scale_response": "does_not_follow"})
+_ss_gain_loaded = _ss_gain._measured_cop.probe.restore_due
+_ss_step(_ss_gain, 1.5, 2.2, window=_ss_unob)
+R.check(
+    "measured heat drops a restore a stored does_not_follow made due: the "
+    "scale stays 0.7, and the verdict resets",
+    _ss_gain_loaded is True
+    and (round(_ss_gain._cop_scale, 3), _ss_gain._measured_cop.probe.restore_due, _ss_gain._measured_cop.scale_response)
+    == (0.7, False, "pending"),
+    f"{(_ss_gain._cop_scale, _ss_gain._measured_cop.probe.restore_due, _ss_gain._measured_cop.scale_response)}",
+)
+R.check(
+    "the diagnostics publish the verdict beside the window's evidence",
+    _cf_diag._coordinator_snapshot(_ss_beyond)["cop_learner"]["scale_response"] == "does_not_follow"
+    and _cf_diag._coordinator_snapshot(_cf_coord())["cop_learner"]["scale_response"] == "pending",
+    f"{_cf_diag._coordinator_snapshot(_ss_beyond)['cop_learner']}",
+)
+
+
+# ---------------------------------------------------------------------------
 R.section("R10-COP-GATE (#2262): COP observability, the latch's time, and the draw pairing")
 
 # Without a heat reading the ratio of draw to ask is a COP only while the draw
@@ -74061,7 +77304,7 @@ from heatpump_optimizer import accuracy as _cg_acc  # noqa: E402
 def _cg_fold_near_ask(window_pairs, n=12):
     coord = _cf_coord()
     coord._accuracy.draw = _cf_window(window_pairs)
-    coord._cop_ratio_ewma = 1.0
+    coord._measured_cop.ratio_ewma = 1.0
     for _ in range(n):
         coord._current_action = {"power": 2.1, "dhw_power": 0.0}
         coord._measured_power = 2.2  # 4.8 % over the ask: inside the tolerance
@@ -79477,7 +82720,7 @@ async def _ls_tile_cancel():
     specs = price_tiles.specs(record.config, record.params.max_electrical_power)
     seen = []
 
-    async def _sim(overrides, limited=True, base=None):
+    async def _sim(overrides, limited=True, base=None, steady=False):
         seen.append(overrides)
         if len(seen) == 1:
             raise _ls_aio.CancelledError
@@ -79847,13 +83090,13 @@ R.check(
     and _tp_un_lf._t2_escaped is None
     and abs((_tp_un_lf_seen["kwargs"].get("measured_heat_kw") or 0.0) - 4.2) < 1e-9
     and _tp_unk._house_heat_loss_samples == 0
-    and _tp_unk._learner_freeze_reason is not None
+    and _tp_unk._learner_freezes.last is not None
     and _fm_un._house_heat_loss_samples == 0
-    and _fm_un._learner_freeze_reason == _PP_FREEZE,
+    and _fm_un._learner_freezes.last == _PP_FREEZE,
     f"house {_tp_un_seen['kwargs'].get('measured_heat_kw')!r} samples "
     f"{_tp_un._house_heat_loss_samples}; lower "
     f"{_tp_un_lf_seen['kwargs'].get('measured_heat_kw')!r}; unreadable "
-    f"{_tp_unk._learner_freeze_reason!r}; flow meter {_fm_un._learner_freeze_reason!r}",
+    f"{_tp_unk._learner_freezes.last!r}; flow meter {_fm_un._learner_freezes.last!r}",
 )
 _tp_met_seen, _tp_met_c = _tp_replay(_HOUSE_LEARNER)
 _tp_stale_seen, _tp_stale = _tp_replay(_HOUSE_LEARNER, heat_age_min=45)
@@ -79863,9 +83106,9 @@ R.check(
     abs((_tp_met_seen["kwargs"].get("measured_heat_kw") or 0.0) - 4.2) < 1e-9
     and _tp_met_c._house_heat_loss_samples == 1
     and _tp_stale._house_heat_loss_samples == 0
-    and str(_tp_stale._learner_freeze_reason).endswith(_TP_KEY),
+    and str(_tp_stale._learner_freezes.last).endswith(_TP_KEY),
     f"{_tp_met_seen['kwargs'].get('measured_heat_kw')!r} "
-    f"stale {_tp_stale._learner_freeze_reason!r}",
+    f"stale {_tp_stale._learner_freezes.last!r}",
 )
 
 
@@ -79998,9 +83241,9 @@ def _cv_room_air(latch):
     out = {}
     b = _t2_coord(buffer_tank_temp_entity="sensor.buffer")
     b._vent_cusum.tripped = latch
-    b._learner_freeze_reason = None
+    b._learner_freezes.clear()
     _asyncio.run(b._async_learn_buffer_cooling(40.0))
-    out["buffer"] = b._learner_freeze_reason
+    out["buffer"] = b._learner_freezes.last
     d = _t2_coord(heat_pump_power_entity="sensor.hp_power")
     d._vent_cusum.tripped = latch
     d._measured_power = 2.0
@@ -80024,7 +83267,7 @@ def _cv_room_air(latch):
         h._vent_cusum.tripped = latch
         before = (h._house_heat_loss_samples, h._thermal_params)
         _t2_drive(h, method)
-        out[name] = (h._learner_freeze_reason, (h._house_heat_loss_samples, h._thermal_params) == before)
+        out[name] = (h._learner_freezes.last, (h._house_heat_loss_samples, h._thermal_params) == before)
     f = _t2_coord()
     f._vent_cusum.tripped = latch
     f._current_action = {"power": 2.0, "dhw_power": 0.0}
@@ -80999,9 +84242,11 @@ R.check(
 # known-COP plant exactly, and with heat equal to the model's COP times the
 # electricity (the null) the scale holds. ``power``: the install maps a power
 # entity, or only the two counters (#2854 round 4).
-def _he_cop_span(heat_per_elec, elec_kw=2.0, energy=True, cycles=3, power=True):
+def _he_cop_span(heat_per_elec, elec_kw=2.0, energy=True, cycles=3, power=True, draw=None, **cfg):
     c = _t2_coord(**({"heat_pump_power_entity": "sensor.hp_power"} if power else {}),
-                  **({"heat_pump_energy_entity": "sensor.e"} if energy else {}), **{_HE_KEY: "sensor.he"})
+                  **({"heat_pump_energy_entity": "sensor.e"} if energy else {}), **{_HE_KEY: "sensor.he"}, **cfg)
+    if draw is not None:
+        c._accuracy.draw = draw  # the running-draw window as the store restored it
     c._current_state.outdoor_temperature = 8.0
     c._current_action = {"power": elec_kw}
     c._measured_power = elec_kw if power else None
@@ -81092,6 +84337,23 @@ R.check(
     f"low samples {_he_nop_low._cop_samples} refusal {_he_nop_low._measured_cop.refusal} "
     f"refusals {_he_nop_low_ref}",
 )
+# R10-COP-LEARNER-DRAW-FLOOR: that floor is the one the cycle's fold reads,
+# ``draw_range.power_floor_kw`` on the install's own running-draw window. An
+# install that metered its pump running at 1.8 kW under an overstated 3.0 kW
+# minimum, and then dropped its power entity, keeps the window in the store:
+# its 2.0 kW span folds. With an empty window the configured 2.4 kW refuses it.
+_HE_MIN3 = {"heat_pump_max_power": 14.0, "heat_pump_min_power": 3.0}
+_he_nop_warm, _he_nop_warm_ref, _ = _he_cop_span(3.7, power=False, draw=_df_led(0.6), **_HE_MIN3)
+_he_nop_cold, _he_nop_cold_ref, _ = _he_cop_span(3.7, power=False, **_HE_MIN3)
+R.check(
+    "the span close judges the duty floor capped by the stored running-draw "
+    "window: on a 3.0 kW minimum a 2.0 kW span folds once the window has "
+    "metered the pump running at 1.8 kW, and is refused with an empty window",
+    _he_nop_warm._cop_samples == 1 and _he_nop_warm_ref[-1] is None
+    and _he_nop_cold._cop_samples == 0 and _he_nop_cold_ref[-1] == _HE_FLOOR,
+    f"warm samples {_he_nop_warm._cop_samples} {_he_nop_warm_ref}; "
+    f"empty samples {_he_nop_cold._cop_samples} {_he_nop_cold_ref}",
+)
 
 # Point B: one gated cycle refuses that learner's span, and only that one's.
 _he_sp = _he.HeatEnergyMeter()
@@ -81127,6 +84389,550 @@ R.check(
                   "ventilation": False, _PP_FREEZE: True}
     and _he_cm._replay_gate(_he_gate_c, None, None, None)[1] is False,
     f"{_he_gates}",
+)
+
+
+# #1935 follow-up (R10-OUTSIDE-LEARNER-ROBUSTNESS-P2): a space boost owes the
+# settling tail ``settle_tail`` prices on the boosted time summed since the
+# learners were last free (scaled by R10-OUTSIDE-LEARNER-ROBUSTNESS-P3, owner
+# ruling 2026-11-12); the sum is persisted.
+def _bt_state(ran, *, cancel=True):
+    st = boost_mod.BoostState()
+    st.set(boost_mod.CHANNEL_SPACE, True, NOW)
+    if cancel:
+        st.set(boost_mod.CHANNEL_SPACE, False, NOW + ran)
+    else:
+        st.expire(NOW + ran)
+    return st
+
+
+_bt_click, _bt_full = _bt_state(timedelta(seconds=38)), _bt_state(timedelta(hours=3), cancel=False)
+_bt_nested = _bt_state(timedelta(hours=2), cancel=False)
+_bt_nested.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=3))
+_bt_nested.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=3, seconds=38))
+R.check(
+    "a 38 s boost cancelled owes the floor tail from its end and sums its 38 s; a window "
+    "run to its end settles 12 h from that end (null control); a click inside a long "
+    "tail adds to it, so the full tail runs again from the click's end",
+    _bt_click.space_settle_until == NOW + timedelta(seconds=38) + timedelta(hours=1.5)
+    and _bt_click.space_boosted == timedelta(seconds=38)
+    and _bt_full.space_settle_until == NOW + timedelta(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_nested.space_settle_until == NOW + timedelta(hours=3, seconds=38) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_click.space_settle_until} {_bt_full.space_settle_until} {_bt_nested.space_settle_until}",
+)
+_bt_restored = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+boost_mod._restore_settle(_bt_restored, {
+    "space_settle": {"until": (NOW + timedelta(hours=9)).isoformat()},
+    "space": {"until": (NOW + timedelta(hours=1)).isoformat(), "since": (NOW - timedelta(hours=1)).isoformat()},
+}, NOW)
+_bt_down = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_down, {"space": {"until": (NOW - timedelta(hours=1)).isoformat(),
+                                               "since": (NOW - timedelta(hours=3)).isoformat()}}, NOW)
+_bt_spent = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_spent, {"space_settle": {"until": (NOW - timedelta(minutes=1)).isoformat()}}, NOW)
+R.check(
+    "a restart restores a running settling tail and the live overlay's start, an "
+    "overlay that ended while Home Assistant was down owes its tail; a spent tail "
+    "is not restored (null control)",
+    _bt_restored.space_settle_until == NOW + timedelta(hours=9)
+    and _bt_restored.space_since == NOW - timedelta(hours=1)
+    and _bt_down.space_settle_until == NOW - timedelta(hours=1) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_down.space_since is None  # a start is held only while its overlay is live
+    and _bt_spent.space_settle_until is None,
+    f"{_bt_restored} {_bt_down} {_bt_spent}",
+)
+_bt_store = _he_store._tries().get("boost", {})
+_bt_hdom = _bt_store.get("space_settle", {}).get("boosted_h", {}).get("")
+R.check(
+    "the boost store declares the settling tail's lead past the overlay's two hours, and a "
+    "boosted sum of any length from zero, or unknown; a negative one is out of its domain",
+    getattr(_bt_store.get("space_settle", {}).get("until", {}).get(""), "ahead_h", None)
+    == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS
+    and [_he_store.in_domain(_bt_hdom, v) for v in (0.0, 0.5, None, -0.1)] == [True, True, True, False],
+    f"{_bt_store.get('space_settle')}",
+)
+
+
+# R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (a): boosts add up. Three 20-minute presses
+# back to back, each cancelled, added the heat of one hour-long boost: the sum
+# records one hour and the tail runs from the last end, so they owe no less
+# than one boost of their summed length; a mode boost and an overlay back to
+# back add up the same way. Null control: one 20-minute press alone sums 20.
+def _bt_series(spans, gap=timedelta(minutes=1)):
+    st, at = boost_mod.BoostState(), NOW
+    for surface, ran in spans:
+        if surface == "mode":
+            st.note_mode(True, at)
+            st.note_mode(False, at + ran)
+        else:
+            st.set(boost_mod.CHANNEL_SPACE, True, at)
+            st.set(boost_mod.CHANNEL_SPACE, False, at + ran)
+        at = at + ran + gap
+    return st, at - gap
+
+
+_bt_20 = timedelta(minutes=20)
+_bt_three, _bt_three_end = _bt_series([("space", _bt_20)] * 3)
+_bt_mixed, _bt_mixed_end = _bt_series([("mode", timedelta(minutes=30)), ("space", timedelta(minutes=30))])
+_bt_one, _bt_one_end = _bt_series([("space", _bt_20)])
+R.check(
+    "short boosts back to back owe no less than one boost of their summed length, "
+    "over both surfaces; one short boost alone sums only itself (null control)",
+    _bt_three.space_settle_until == _bt_three_end + boost_mod.settle_tail(timedelta(hours=1))
+    and _bt_three.space_boosted == 3 * _bt_20
+    and _bt_mixed.space_settle_until == _bt_mixed_end + boost_mod.settle_tail(timedelta(hours=1))
+    and _bt_mixed.space_boosted == timedelta(hours=1)
+    and _bt_one.space_settle_until == _bt_one_end + boost_mod.settle_tail(_bt_20)
+    and boost_mod.settle_tail(_bt_20) < boost_mod.settle_tail(timedelta(hours=1))
+    and _bt_one.space_boosted == _bt_20,
+    f"{_bt_three} {_bt_mixed} {_bt_one}",
+)
+
+
+# (a) The sum clears only once a tail ran out with no boost live: a short press
+# after the series' tail is spent sums only itself (null control for a sum
+# that never clears); a press inside the tail adds to it.
+_bt_after, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_spent_at = _bt_after.space_settle_until
+_bt_after.expire(_bt_spent_at + timedelta(minutes=1))
+_bt_after.set(boost_mod.CHANNEL_SPACE, True, _bt_spent_at + timedelta(minutes=1))
+_bt_after.set(boost_mod.CHANNEL_SPACE, False, _bt_spent_at + timedelta(minutes=21))
+_bt_inside, _bt_inside_end = _bt_series([("space", _bt_20)] * 3)
+_bt_inside.set(boost_mod.CHANNEL_SPACE, True, _bt_inside_end + timedelta(hours=1))
+_bt_inside.set(boost_mod.CHANNEL_SPACE, False, _bt_inside_end + timedelta(hours=1, minutes=20))
+R.check(
+    "the boosted sum clears once its tail ran out with nothing live, and not before",
+    _bt_after.space_settle_until == _bt_spent_at + timedelta(minutes=21) + boost_mod.settle_tail(_bt_20)
+    and _bt_after.space_boosted == _bt_20
+    and _bt_inside.space_boosted == 4 * _bt_20
+    and _bt_inside.space_settle_until
+    == _bt_inside_end + timedelta(hours=1, minutes=20) + boost_mod.settle_tail(4 * _bt_20),
+    f"{_bt_after} {_bt_inside}",
+)
+
+# (a) Each surface clears a spent sum by itself, with no other call between: an
+# expiry alone (a cycle with no press), a press alone and a mode entered alone,
+# each after the series' tail ran out. Null control: the sum before any of
+# them is the series' hour.
+def _bt_spent_series():
+    st, _ = _bt_series([("space", _bt_20)] * 3)
+    return st, st.space_settle_until + timedelta(minutes=1)
+
+
+_bt_ex, _bt_ex_at = _bt_spent_series()
+_bt_ex_before = _bt_ex.space_boosted
+_bt_ex.expire(_bt_ex_at)
+_bt_pr, _bt_pr_at = _bt_spent_series()
+_bt_pr.set(boost_mod.CHANNEL_SPACE, True, _bt_pr_at)
+_bt_pr.set(boost_mod.CHANNEL_SPACE, False, _bt_pr_at + _bt_20)
+_bt_md, _bt_md_at = _bt_spent_series()
+_bt_md.note_mode(True, _bt_md_at)
+_bt_md.note_mode(False, _bt_md_at + _bt_20)
+R.check(
+    "a spent sum clears on an expiry alone, on a press alone and on a mode entered alone",
+    _bt_ex_before == timedelta(hours=1)
+    and _bt_ex.space_boosted == timedelta(0) and _bt_ex.space_settle_until is None
+    and _bt_pr.space_boosted == _bt_20 and _bt_md.space_boosted == _bt_20,
+    f"{_bt_ex} {_bt_pr} {_bt_md}",
+)
+
+# (d) The mode's start is not persisted: a mode restored as boost has no start,
+# so leaving it makes the sum unknown (fail closed) and owes the full tail.
+# Null control: a mode entered in this run and left after 30 minutes sums 30.
+_bt_mode_restored = boost_mod.BoostState()
+_bt_mode_restored.note_mode(False, NOW)
+_bt_mode_seen = boost_mod.BoostState()
+_bt_mode_seen.note_mode(True, NOW - timedelta(minutes=30))
+_bt_mode_seen.note_mode(False, NOW)
+R.check(
+    "a boost mode restored with no start leaves an unknown sum when left; one seen to "
+    "start sums its own length and owes its tail; the unknown one owes the full tail",
+    _bt_mode_restored.space_settle_until == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mode_restored.space_boosted is None
+    and _bt_mode_seen.space_settle_until == NOW + boost_mod.settle_tail(timedelta(minutes=30))
+    and boost_mod.settle_tail(timedelta(minutes=30)) < boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mode_seen.space_boosted == timedelta(minutes=30),
+    f"{_bt_mode_restored} {_bt_mode_seen}",
+)
+
+# The boosted sum survives a restart with its tail; an unreadable sum reads
+# as unknown. Null control: a store main wrote (no tail, no start) restores the
+# live overlay with an unseen start.
+_bt_rs = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_rs, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                    "boosted_h": 1.0}}, NOW)
+_bt_rs.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_rs.set(boost_mod.CHANNEL_SPACE, False, NOW + _bt_20)
+_bt_rbad = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_rbad, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                      "boosted_h": "x"}}, NOW)
+_bt_main = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+boost_mod._restore_settle(_bt_main, {"space": {"until": (NOW + timedelta(hours=1)).isoformat()}}, NOW)
+R.check(
+    "a restart keeps the boosted sum with the tail; an unreadable sum is unknown; "
+    "a store main wrote restores with no start and no tail",
+    _bt_rs.space_boosted == timedelta(hours=1) + _bt_20
+    and _bt_rs.space_settle_until == NOW + _bt_20 + boost_mod.settle_tail(timedelta(hours=1) + _bt_20)
+    and _bt_rbad.space_boosted is None
+    and _bt_main.space_since is None and _bt_main.space_settle_until is None,
+    f"{_bt_rs} {_bt_rbad} {_bt_main}",
+)
+
+# Null control: an install that never boosted, or only blocked, persists the
+# payload main persists; one with a tail adds only the tail record and the start.
+_bt_never = boost_mod.BoostState(blocked={boost_mod.CHANNEL_DHW: NOW + timedelta(hours=1)})
+_bt_live = boost_mod.BoostState()
+_bt_live.set(boost_mod.CHANNEL_SPACE, True, NOW)
+R.check(
+    "a boost store from an install that never boosted is main's payload, field for field",
+    boost_mod._store_payload(boost_mod.BoostState()) == {}
+    and boost_mod._store_payload(_bt_never) == {"block_dhw": {"until": (NOW + timedelta(hours=1)).isoformat()}}
+    and boost_mod._store_payload(_bt_live) == {"space": {"until": (NOW + timedelta(hours=2)).isoformat(),
+                                                   "since": NOW.isoformat()}}
+    and set(boost_mod._store_payload(_bt_click)) == {"space_settle"},
+    f"{boost_mod._store_payload(_bt_never)} {boost_mod._store_payload(_bt_live)} {boost_mod._store_payload(_bt_click)}",
+)
+
+# (f) A tail further ahead than its declared look-ahead (a clock stepped back)
+# is bounded by the store to that look-ahead, not trusted; one inside it loads
+# unchanged. Null control: the same stamp under the overlay's own field is held
+# to the store's two-hour lead.
+_bt_bound = NOW + boost_mod._MAX_LEAD
+_bt_far = (NOW + timedelta(hours=30)).isoformat()
+_bt_near = (NOW + timedelta(hours=11)).isoformat()
+_bt_loaded = _he_store._bound_instants(
+    {"space_settle": {"until": _bt_far}, "space": {"until": _bt_far}},
+    _bt_bound, "boost", None, [], (), _he_store._tries()["boost"])
+_bt_kept = _he_store._bound_instants(
+    {"space_settle": {"until": _bt_near}}, _bt_bound, "boost", None, [], (), _he_store._tries()["boost"])
+R.check(
+    "a persisted tail past its declared look-ahead is bounded to it; one inside loads unchanged",
+    _bt_loaded["space_settle"]["until"]
+    == (_bt_bound + timedelta(hours=_fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS)).isoformat()
+    and _bt_loaded["space"]["until"] == _bt_bound.isoformat()
+    and _bt_kept["space_settle"]["until"] == _bt_near,
+    f"{_bt_loaded} {_bt_kept}",
+)
+
+# (f) Both directions of the boost store, through ``restore`` itself at
+# ``BOOST_STORE_VERSION`` unchanged: this build's payload (tail, boosted sum,
+# start) read by main's loader -- ``restore`` without ``_restore_settle``, the
+# only line this part added to it -- keeps main's overlay and block, and a
+# payload main wrote restores here with the overlay and no tail. Null control:
+# the same payload through this build's own loader also restores the tail.
+import asyncio as _bt_asyncio  # noqa: E402
+
+
+class _BtCoord:
+    pass
+
+
+class _BtStore:
+    def __init__(self, payload):
+        self.payload = payload
+
+    async def async_load(self):
+        return self.payload
+
+
+def _bt_load(payload, *, main_loader):
+    coord, saved = _BtCoord(), (boost_mod._store, boost_mod._restore_settle)
+    boost_mod._store = lambda _coord: _BtStore(payload)
+    if main_loader:
+        boost_mod._restore_settle = lambda *_a: None
+    try:
+        _bt_asyncio.run(boost_mod.restore(coord))
+    finally:
+        boost_mod._store, boost_mod._restore_settle = saved
+    return boost_mod.held_for(coord)
+
+
+_bt_now = dt_util.now()
+_bt_ours = boost_mod.BoostState()
+_bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(hours=3))
+_bt_ours.set(boost_mod.CHANNEL_SPACE, False, _bt_now - timedelta(hours=2))
+_bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(minutes=5))
+_bt_ours.blocked[boost_mod.CHANNEL_DHW] = _bt_now + timedelta(hours=1)
+_bt_ours_payload = boost_mod._store_payload(_bt_ours)
+_bt_down_main = _bt_load(_bt_ours_payload, main_loader=True)
+_bt_up = _bt_load({"space": {"until": (_bt_now + timedelta(hours=1)).isoformat()}}, main_loader=False)
+_bt_same = _bt_load(_bt_ours_payload, main_loader=False)
+R.check(
+    "a boost store this build wrote loads in main's loader with main's overlay and block; "
+    "one main wrote loads here with no tail; this build's loader keeps the tail (null control)",
+    set(_bt_ours_payload) == {"space", "block_dhw", "space_settle"}
+    and _bt_down_main.until == _bt_ours.until and _bt_down_main.blocked == _bt_ours.blocked
+    and _bt_down_main.space_settle_until is None
+    and set(_bt_up.until) == {boost_mod.CHANNEL_SPACE} and _bt_up.space_settle_until is None
+    and _bt_up.space_since is None
+    and _bt_same.space_settle_until == _bt_ours.space_settle_until
+    and _bt_same.space_since == _bt_ours.space_since
+    and _bt_same.space_boosted == timedelta(hours=1),
+    f"{_bt_ours_payload} {_bt_down_main} {_bt_up} {_bt_same}",
+)
+
+# (e) ``heat_loss_refit`` waits ``SPACE_SETTLE_TAIL`` after the last
+# boost-tagged pair (a pair carries no boost length), and no boost length,
+# cancelled or expired, owes more than that tail from its end: the refit never
+# reads evidence the interval learners refused. The tail grows with the length
+# and is the full tail from the window's length on. Null control: every
+# expired boost (the whole window) owes exactly the full tail.
+_bt_window_min = int(60 * boost_mod.BOOST_HOURS)
+_bt_lengths = list(range(1, 2 * _bt_window_min, 7))
+_bt_sweep = [
+    _bt_state(timedelta(minutes=m), cancel=m < _bt_window_min).space_settle_until
+    - (NOW + timedelta(minutes=min(m, _bt_window_min)))
+    for m in _bt_lengths
+]
+R.check(
+    "no boost length owes more than the tail the refit waits; the tail grows with the "
+    "length, from the 1.5 h floor, and an expired window owes the full tail",
+    max(_bt_sweep) == boost_mod.SPACE_SETTLE_TAIL and _bt_sweep == sorted(_bt_sweep)
+    and _bt_sweep[0] == timedelta(hours=1.5)
+    and {t for m, t in zip(_bt_lengths, _bt_sweep) if m >= _bt_window_min} == {boost_mod.SPACE_SETTLE_TAIL}
+    and len(set(_bt_sweep)) > 2,
+    f"{sorted(set(_bt_sweep))}",
+)
+
+# Owner ruling 2026-11-12 (R10-OUTSIDE-LEARNER-ROBUSTNESS-P3): the contributor's
+# scaled tail, ``12 h + 6 h * ln(boosted / 2 h)`` with a 1.5 h floor, the
+# literal values (a test re-deriving the formula would pin nothing).
+_bt_tails = {m: boost_mod.settle_tail(None if m is None else timedelta(minutes=m)).total_seconds() / 3600
+             for m in (None, 0, 10, 30, 60, 90, 120, 180)}
+R.check(
+    "the scaled tail: floor 1.5 h to 10 min, 3.68 h at 30 min, 7.84 h at 60 min, "
+    "10.27 h at 90 min, 12 h from the window's 2 h on and for an unknown length",
+    {m: round(v, 2) for m, v in _bt_tails.items()}
+    == {None: 12.0, 0: 1.5, 10: 1.5, 30: 3.68, 60: 7.84, 90: 10.27, 120: 12.0, 180: 12.0},
+    f"{_bt_tails}",
+)
+
+# Null control: the order of the freeze reasons in ``_learning_frozen`` is main's.
+import ast as _bt_ast  # noqa: E402
+import inspect as _bt_inspect  # noqa: E402
+import textwrap as _bt_tw  # noqa: E402
+_bt_returns = [
+    _bt_ast.unparse(n.value) for n in sorted(_bt_ast.walk(_bt_ast.parse(_bt_tw.dedent(_bt_inspect.getsource(
+        _he_cm.HeatPumpOptimizerCoordinator._learning_frozen)))), key=lambda n: getattr(n, "lineno", 0))
+    if isinstance(n, _bt_ast.Return)
+]
+R.check(
+    "the freeze reasons keep main's order, the boost's after ventilation and before the tail freeze",
+    _bt_returns == ["'external_heat_source'", "signals.freeze_reason", "'defrosting'",
+                    "f'{reading.problem}:{key}'", "'ventilation'", "boost.FREEZE_REASON",
+                    "_tail_freeze(self)"],
+    f"{_bt_returns}",
+)
+
+# Fix review (blocked 594238bf), X1: a press in the tail's last two hours keeps
+# the overlay live past the tail's end, and the sum is not cleared while it is
+# live, so that press adds to it. Null control: ``_bt_after`` above, the same
+# press after the tail ran out, sums only itself.
+_bt_x1, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_x1_tail = _bt_x1.space_settle_until
+_bt_x1.set(boost_mod.CHANNEL_SPACE, True, _bt_x1_tail - timedelta(hours=1))
+_bt_x1.expire(_bt_x1_tail + timedelta(minutes=30))
+_bt_x1_mid = (_bt_x1.space_settle_until, _bt_x1.space_boosted)
+_bt_x1.set(boost_mod.CHANNEL_SPACE, False, _bt_x1_tail + timedelta(minutes=50))
+# X2: the same over the mode surface, a mode held past an earlier overlay's tail.
+_bt_x2 = boost_mod.BoostState()
+_bt_x2.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_x2.set(boost_mod.CHANNEL_SPACE, False, NOW + _bt_20)
+_bt_x2.note_mode(True, NOW + timedelta(minutes=21))
+_bt_x2.expire(NOW + timedelta(hours=13))
+_bt_x2.note_mode(False, NOW + timedelta(hours=14))
+R.check(
+    "the boosted sum is not cleared while an overlay or the mode is live past an earlier "
+    "boost's tail, so the live boost adds to it, over both surfaces",
+    _bt_x1_mid == (_bt_x1_tail, 3 * _bt_20)
+    and _bt_x1.space_boosted == 3 * _bt_20 + timedelta(minutes=110)
+    and _bt_x1.space_settle_until == _bt_x1_tail + timedelta(minutes=50) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_x2.space_boosted == _bt_20 + timedelta(hours=14) - timedelta(minutes=21)
+    and _bt_x2.space_settle_until == NOW + timedelta(hours=14) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_x1_mid} {_bt_x1} {_bt_x2}",
+)
+
+# X3: a press that finds the overlay live extends it and keeps its start, so the
+# sum counts the whole boost. X13: entering the mode clears a spent sum, as a
+# press does. Null control: a single press sums its own length (``_bt_one``).
+_bt_x3 = boost_mod.BoostState()
+_bt_x3.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_x3.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=1))
+_bt_x3.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=2))
+_bt_x13, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_x13_spent = _bt_x13.space_settle_until
+_bt_x13.note_mode(True, _bt_x13_spent + timedelta(hours=1))
+_bt_x13.note_mode(False, _bt_x13_spent + timedelta(hours=1, minutes=30))
+R.check(
+    "an extended overlay sums from its first press; the mode entered after a spent tail "
+    "sums only itself",
+    _bt_x3.space_boosted == timedelta(hours=2) and _bt_x3.space_since == NOW
+    and _bt_x13.space_boosted == timedelta(minutes=30),
+    f"{_bt_x3} {_bt_x13}",
+)
+
+# X7: ``settle`` never shortens a running tail (an end stamped before a clock
+# step back); a later end lengthens it, even by half a second (null control).
+# The sum starts at a full window, so both settles owe the full tail and the
+# half second is the only difference between the two ends (P3's scaled tail).
+_bt_x7 = boost_mod.BoostState(space_settle_until=NOW + boost_mod.SPACE_SETTLE_TAIL,
+                              space_boosted=timedelta(hours=2))
+_bt_x7.settle(NOW - timedelta(hours=1), NOW - timedelta(hours=2))
+_bt_x7_kept = _bt_x7.space_settle_until
+_bt_x7.settle(NOW + timedelta(milliseconds=500), NOW)
+R.check(
+    "a settle ending before the running tail's end leaves it; one ending later moves it",
+    _bt_x7_kept == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_x7.space_settle_until == NOW + timedelta(milliseconds=500) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_x7_kept} {_bt_x7}",
+)
+
+# X11: the store does not hold ``boosted_h`` to its domain on load, so the
+# restore does: a negative, NaN or infinite sum is unknown; zero and a sum under
+# one hour restore as stored (null controls).
+def _bt_hours(raw):
+    st = boost_mod.BoostState()
+    boost_mod._restore_settle(st, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                    "boosted_h": raw}}, NOW)
+    return st.space_boosted
+
+
+R.check(
+    "a restored boosted sum outside [0, inf) is unknown; 0 and 0.5 h restore as stored",
+    [_bt_hours(h) for h in (-1.0, float("nan"), float("inf"), True, 0.0, 0.5)]
+    == [None, None, None, None, timedelta(0), timedelta(minutes=30)],
+    f"{[_bt_hours(h) for h in (-1.0, float('nan'), float('inf'), True, 0.0, 0.5)]}",
+)
+
+# X4 and X5: the two saves of a tail. Leaving the boost mode saves the tail it
+# starts (``note_mode_change``); a cycle whose expiry starts a tail saves it
+# (``apply``). Null controls: entering the mode, a change between two other
+# modes and a cycle that changes nothing schedule no save.
+_bt_saved = []
+_bt_sched = boost_mod._schedule_persist
+boost_mod._schedule_persist = _bt_saved.append
+try:
+    _bt_mc = _BtCoord()
+    boost_mod.note_mode_change(_bt_mc, _fb_const.MODE_AUTO, boost_mod.MODE_BOOST, NOW)
+    _bt_enter = list(_bt_saved)
+    boost_mod.note_mode_change(_bt_mc, _fb_const.MODE_AUTO, _fb_const.MODE_ECONOMY, NOW)
+    _bt_other = list(_bt_saved)
+    boost_mod.note_mode_change(_bt_mc, boost_mod.MODE_BOOST, _fb_const.MODE_AUTO, NOW + timedelta(hours=1))
+    _bt_left = list(_bt_saved)
+    _bt_left_payload = boost_mod._store_payload(boost_mod.held_for(_bt_mc))
+    _bt_saved.clear()
+    _bt_ac = _BlockFloorCoord(None)
+    _bt_ac_now = dt_util.now()
+    boost_mod.held_for(_bt_ac).set(boost_mod.CHANNEL_SPACE, True, _bt_ac_now - timedelta(hours=3))
+    boost_mod.apply(_bt_ac, boost_mod.BoostOverlay(6.0, 24.0, 8.0))
+    _bt_cycle = list(_bt_saved)
+    _bt_cycle_payload = boost_mod._store_payload(boost_mod.held_for(_bt_ac))
+    boost_mod.apply(_bt_ac, boost_mod.BoostOverlay(6.0, 24.0, 8.0))
+    _bt_quiet = _bt_saved[len(_bt_cycle):]
+finally:
+    boost_mod._schedule_persist = _bt_sched
+R.check(
+    "leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save "
+    "carrying the tail and its sum; entering the mode, another mode change and a quiet "
+    "cycle schedule none",
+    _bt_enter == [] and _bt_other == [] and _bt_left == [_bt_mc]
+    and _bt_left_payload.get("space_settle", {}).get("boosted_h") == 1.0
+    and _bt_cycle == [_bt_ac] and _bt_quiet == []
+    and _bt_cycle_payload.get("space_settle", {}).get("boosted_h") == 2.0,
+    f"{_bt_enter} {_bt_other} {_bt_left} {_bt_left_payload} {_bt_cycle} {_bt_quiet} {_bt_cycle_payload}",
+)
+
+# The fixer's own pass over every added line: the tail runs out at its own
+# instant, not a second either side (a press at the instant sums only itself, a
+# press half a second before adds to the series); a spent tail is cleared by the
+# expiry itself, so a quiet install stores main's payload again; a press that
+# finds the tail spent clears the sum without an expiry first; leaving the mode
+# frees the sum to clear.
+_bt_at, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_at.set(boost_mod.CHANNEL_SPACE, True, _bt_at.space_settle_until)
+_bt_before, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_before.set(boost_mod.CHANNEL_SPACE, True, _bt_before.space_settle_until - timedelta(milliseconds=500))
+_bt_before.set(boost_mod.CHANNEL_SPACE, False, _bt_before.space_settle_until + timedelta(minutes=10))
+_bt_quiet_st, _ = _bt_series([("space", _bt_20)])
+_bt_quiet_st.expire(_bt_quiet_st.space_settle_until + timedelta(minutes=1))
+_bt_noexp, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_noexp_at = _bt_noexp.space_settle_until + timedelta(minutes=1)
+_bt_noexp.set(boost_mod.CHANNEL_SPACE, True, _bt_noexp_at)
+_bt_noexp.set(boost_mod.CHANNEL_SPACE, False, _bt_noexp_at + _bt_20)
+_bt_modeleft, _bt_modeleft_end = _bt_series([("mode", timedelta(minutes=30))])
+_bt_modeleft.expire(_bt_modeleft.space_settle_until + timedelta(minutes=1))
+R.check(
+    "the tail runs out at its own instant; a spent tail clears on expiry and a quiet install "
+    "stores main's payload; a press after a spent tail sums only itself; a left mode lets "
+    "its sum clear",
+    _bt_at.space_boosted == timedelta(0)
+    and _bt_before.space_boosted == 3 * _bt_20 + timedelta(minutes=10, milliseconds=500)
+    and (_bt_quiet_st.space_settle_until, _bt_quiet_st.space_boosted) == (None, timedelta(0))
+    and boost_mod._store_payload(_bt_quiet_st) == {}
+    and _bt_noexp.space_boosted == _bt_20
+    and (_bt_modeleft.mode_since, _bt_modeleft.space_settle_until) == (None, None),
+    f"{_bt_at} {_bt_before} {_bt_quiet_st} {_bt_noexp} {_bt_modeleft}",
+)
+
+# Restore at the boundaries: a tail ending at the restart's instant is spent,
+# and an overlay that ended more than a tail before the restart owes nothing.
+# Null control: ``_bt_down`` above, ended an hour before, owes its tail.
+_bt_r_now = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_r_now, {"space_settle": {"until": NOW.isoformat(), "boosted_h": 1.0}}, NOW)
+_bt_r_old = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_r_old, {"space": {"until": (NOW - timedelta(hours=13)).isoformat(),
+                                                "since": (NOW - timedelta(hours=14)).isoformat()}}, NOW)
+R.check(
+    "a restored tail ending now is spent; an overlay ended over a tail before the restart owes none",
+    (_bt_r_now.space_settle_until, _bt_r_now.space_boosted) == (None, timedelta(0))
+    and (_bt_r_old.space_settle_until, _bt_r_old.space_boosted) == (None, timedelta(0)),
+    f"{_bt_r_now} {_bt_r_old}",
+)
+
+# ``persist`` saves ``_store_payload`` through the boost store's own key and
+# version. Null control: the payload saved is the one a quiet state builds.
+_bt_saves = []
+
+
+class _BtSaveStore:
+    def __init__(self, real):
+        self.real = real
+
+    async def async_save(self, data):
+        _bt_saves.append((self.real._key, self.real._version, data))
+
+
+_bt_pc = _BtCoord()
+_bt_pc.hass, _bt_pc.entry = FakeHass(), type("_BtEntry", (), {"entry_id": "bt"})()
+boost_mod.held_for(_bt_pc).settle(NOW, NOW - _bt_20)
+_bt_real_store = boost_mod._store
+boost_mod._store = lambda c: _BtSaveStore(_bt_real_store(c))
+try:
+    _bt_asyncio.run(boost_mod.persist(_bt_pc))
+finally:
+    boost_mod._store = _bt_real_store
+R.check(
+    "persist saves the store payload under the boost store's key and version",
+    _bt_saves == [(f"{boost_mod.DOMAIN}_bt_boost", boost_mod.BOOST_STORE_VERSION,
+                   boost_mod._store_payload(boost_mod.held_for(_bt_pc)))]
+    and "space_settle" in _bt_saves[0][2],
+    f"{_bt_saves}",
+)
+
+# The coordinator's mode change reaches ``note_mode_change``: leaving the boost
+# mode through ``async_set_mode`` starts the tail and sums the mode's time.
+# Null control: entering it starts no tail.
+_bt_cc = _sr_coord()
+_bt_asyncio.run(_bt_cc.async_set_mode(boost_mod.MODE_BOOST, refresh=False))
+_bt_cc_in = (boost_mod.held_for(_bt_cc).mode_since is not None, boost_mod.held_for(_bt_cc).space_settle_until)
+_bt_asyncio.run(_bt_cc.async_set_mode(_fb_const.MODE_AUTO, refresh=False))
+_bt_cc_held = boost_mod.held_for(_bt_cc)
+R.check(
+    "async_set_mode into the boost mode marks its start, and out of it starts the tail",
+    _bt_cc_in == (True, None)
+    and _bt_cc_held.mode_since is None and _bt_cc_held.space_settle_until is not None
+    and _bt_cc_held.space_boosted is not None,
+    f"{_bt_cc_in} {_bt_cc_held}",
 )
 
 
@@ -81757,7 +85563,7 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
     hass = FakeHass({
-        "switch.hp": FakeState("off", last_updated=_SA_T0),
+        "switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1)),
         "sensor.hp_power": FakeState("0.0", unit="kW", last_updated=_SA_T0),
     })
     coord = Coord(hass, FakeEntry(data={
@@ -81788,8 +85594,11 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
             for domain, service, _data in hass.services.calls:
                 if domain == "switch":
                     writes.append((m, service))
-                    hass.states.set("switch.hp", FakeState(
-                        "on" if service == "turn_on" else "off", last_updated=now))
+                    # A write that leaves the state keeps last_changed, as
+                    # StateMachine.async_set does (the supply gate reads it).
+                    new = "on" if service == "turn_on" else "off"
+                    if hass.states.get("switch.hp").state != new:
+                        hass.states.set("switch.hp", FakeState(new, last_updated=now))
             hass.services.calls.clear()
             on = hass.states.get("switch.hp").state == "on"
             hass.states.set("sensor.hp_power", FakeState("1.5" if on else "0.0", unit="kW", last_updated=now))
@@ -81850,7 +85659,7 @@ async def _sa_guarded(guard=None):
     ticks, dropped = [], []
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: dropped.append(fn)))[1]
-    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
     switch = {} if guard == "no_switch" else {"heat_pump_switch_entity": "switch.hp"}
     coord = Coord(hass, FakeEntry(data={**_LC_DATA, **switch, "pump_duty_mode": "observe"}))
     coord._mode = "auto"
@@ -82043,6 +85852,226 @@ R.check(
     _sa_mid["07:15"] == ["turn_on"],
     f"{_sa_mid}",
 )
+# #3420 part E (Bankaifan): a switch-on writes the step's mode first. A pass
+# writes nothing while the switch reads off, so the mode followed the
+# switch-on by up to a tick and a Luxtronik started in the last duty. The
+# cycle and the step tick both switch through ``write_supply``. Each null
+# control is the same run with ``_lead_mode`` replaced by a no-op (today's
+# order): where the lead owes nothing, the service calls and their order are
+# identical; where it owes the mode, the no-op run has no mode before the switch.
+from heatpump_optimizer import duty_switch as _mb_ds
+from dataclasses import replace as _mb_replace
+
+
+async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via="cycle",
+                  select="Heating", fail=False, cut=False, optimizer="auto", space=False,
+                  disinfect=False, since=-60, after=0):
+    """Ordered (domain, service) calls of one switch write, through the real coordinator.
+
+    The plan is "-d": idle at 05:45, hot water only at 06:00 (``space``:
+    heating only, which a cut-off holds and hot water is exempt from). ``via`` cycle
+    runs ``_apply_action`` at 06:00; tick runs the cycle at 05:45 (OFF) and
+    the step tick at 06:00; direct calls ``write_supply(..., True)`` alone at
+    06:00 with the optimizer in ``optimizer`` (``released``: auto, the
+    entry unloaded). ``cut``: an early cut-off at
+    05:58 holds the switch-on (MIN_OFF). Also returns the contexts the
+    learner was told of, and the options the select was sent. ``disinfect``:
+    the pass reads a held disinfection. ``since``: minutes from 06:00 at which
+    the switch took its state (an hour back by default, so no minimum run or
+    pause holds the write; -2 holds a switch-on until 06:08). ``after``: the
+    step ticks then fire each minute to 06:00 + ``after``, and a fifth value
+    maps each such minute to its ordered calls.
+    """
+    ticks, told = [], []
+    armed, noted, owed = _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    _mb_ds.note_mode_write = lambda rec, when, old, new, ctx: (told.append((rec, ctx)), noted(rec, when, old, new, ctx))
+    if not lead:
+        async def _none(_coord, _on):
+            return None
+        _sa_pa._lead_mode = _none
+    hass = FakeHass({
+        "switch.hp": FakeState(switch, last_updated=_SA_T0 + timedelta(minutes=since)),
+        "select.pump_mode": FakeState(select, attributes={"options": list(_PA_TUYA)}),
+    })
+    if fail:
+        async def _refuse(call):
+            raise RuntimeError("select refused")
+        hass.services.async_register("select", "select_option", _refuse)
+    data = {**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": duty}
+    if mode_entity:
+        data["heat_pump_mode_entity"] = "select.pump_mode"
+    coord = Coord(hass, FakeEntry(data=data, entry_id=f"mb{next(_PA_IDS)}"))  # a fresh store each run
+    coord._mode = "auto"
+    if disinfect:
+        _mb_inputs = coord.arbiter_inputs
+        coord.arbiter_inputs = lambda: _mb_replace(_mb_inputs(), disinfecting=True)
+    t0 = _SA_T0 - timedelta(minutes=15)
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[t0, _SA_T0], power_schedule=[0.0, 1.5 if space else 0.0],
+        dhw_power_schedule=[0.0, 0.0 if space else 2.0],
+        optimal_setpoints=[21.0, 21.0],
+    )
+    try:
+        if via == "tick":
+            _sa_dt.freeze(t0)
+            coord._last_optimization = t0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": False, "power": 0.0})
+            await coord._apply_action()
+            hass.states.set("switch.hp", FakeState(switch, last_updated=t0))
+        hass.services.calls.clear()
+        _sa_dt.freeze(_SA_T0)
+        if cut:
+            _sa_ec.state_for(coord).cut_at = _SA_T0 - timedelta(minutes=2)
+        if via == "direct":
+            coord._mode = "auto" if optimizer == "released" else optimizer
+            coord._entry_released = optimizer == "released"
+            await _sa_pa.write_supply(coord, "switch.hp", True)
+        elif via == "tick":
+            for tick in list(ticks):
+                await tick(_SA_T0)
+        else:
+            coord._last_optimization = _SA_T0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 2.0})
+            await coord._apply_action()
+        calls = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        options = [data["option"] for d, _s, data in hass.services.calls if d == "select"]
+        later = {}
+        for minute in range(1, after + 1):
+            hass.services.calls.clear()
+            _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+            for tick in list(ticks):
+                await tick(_SA_T0 + timedelta(minutes=minute))
+            later[minute] = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        return (calls, told, options, _sa_pa.state_for(coord).loaded) + ((later,) if after else ())
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode = armed, noted, owed
+
+
+_mb_on = {via: _asyncio.run(_mb_run(via=via)) for via in ("cycle", "tick")}
+_mb_off = {via: _asyncio.run(_mb_run(lead=False, via=via)) for via in ("cycle", "tick")}
+R.check(
+    "a cycle that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["cycle"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['cycle'][0]}",
+)
+R.check(
+    "a step tick that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["tick"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['tick'][0]}",
+)
+R.check(
+    "null control: without the lead the same cycle and tick switch on with no mode before it",
+    all(_mb_off[via][0] == [("switch", "turn_on")] for via in ("cycle", "tick")),
+    f"{ {via: _mb_off[via][0] for via in _mb_off} }",
+)
+_mb_ctx = [ctx for _rec, ctx in _mb_on["cycle"][1]]
+R.check(
+    "the mode written ahead of a switch-on is reported with the supply off, opening no learner episode",
+    len(_mb_ctx) == 1 and _mb_ctx[0].void_cause() == "supply_off"
+    and _mb_on["cycle"][1][0][0].learner.episode is None,
+    f"{_mb_ctx}",
+)
+R.check(
+    "null control: the same context with the supply on is not voided by the supply",
+    bool(_mb_ctx) and _mb_replace(_mb_ctx[0], supply_on=True).void_cause() != "supply_off",
+    f"{_mb_ctx}",
+)
+_mb_fail = _asyncio.run(_mb_run(fail=True))
+R.check(
+    "a mode write that fails ahead of a switch-on holds nothing: the switch follows in the same write",
+    _mb_fail[0] == [("select", "select_option"), ("switch", "turn_on")] and _mb_fail[1] == [],
+    f"{_mb_fail}",
+)
+# The lead sits behind the cycle's gate (``_write_supply``): a switch-on the
+# gate holds back writes no mode either, so a held supply-on never leaves a
+# mode written ahead of a switch that does not follow.
+_mb_cut = _asyncio.run(_mb_run(cut=True, space=True))[0]
+_mb_uncut = _asyncio.run(_mb_run(space=True))[0]
+R.check(
+    "a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut == [("switch", "turn_off")],
+    f"{_mb_cut}",
+)
+R.check(
+    "null control: the same heating step with no cut on record writes the mode, then the switch",
+    _mb_uncut == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_uncut}",
+)
+# The same rows with the minimum pause engaged (``supply_hold.hold_supply``,
+# the switch off since 05:58): the hold sits ahead of ``write_supply`` in
+# ``_write_supply``, so a held switch-on writes no mode, and the step tick's
+# retry runs through the same gate, so the switch-on that lands at 06:08
+# writes the mode immediately before the switch, on that tick and no other.
+_mb_cut_held = _asyncio.run(_mb_run(cut=True, space=True, since=-2))[0]
+_mb_held = _asyncio.run(_mb_run(space=True, since=-2, after=12))
+R.check(
+    "with the minimum pause engaged too, a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut_held == [("switch", "turn_off")],
+    f"{_mb_cut_held}",
+)
+R.check(
+    "a cycle switch-on the minimum pause holds back writes no mode and no switch",
+    _mb_held[0] == [],
+    f"{_mb_held[0]}",
+)
+R.check(
+    "a switch-on held on one tick and landing on a later one writes the mode immediately before the switch on that later tick",
+    {m: c for m, c in _mb_held[4].items() if c} == {8: [("select", "select_option"), ("switch", "turn_on")]},
+    f"{_mb_held[4]}",
+)
+_mb_direct = {
+    (sw, opt): _asyncio.run(_mb_run(via="direct", switch=sw, optimizer=opt))[0]
+    for sw, opt in (("off", "auto"), ("on", "auto"), ("off", "off"), ("off", "released"))
+}
+R.check(
+    "write_supply with the switch already on, the optimizer off or the entry released writes the switch alone",
+    all(_mb_direct[k] == [("switch", "turn_on")] for k in (("on", "auto"), ("off", "off"), ("off", "released"))),
+    f"{_mb_direct}",
+)
+R.check(
+    "null control: write_supply with the switch off and the optimizer on writes the mode first",
+    _mb_direct[("off", "auto")] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_direct}",
+)
+# The lead loads the persisted record before its write, as a pass does, so
+# the pass's own load cannot overwrite the record of the mode just written.
+_mb_loaded = {duty: _asyncio.run(_mb_run(via="direct", duty=duty))[3] for duty in ("control", "observe")}
+R.check(
+    "a lead write loads the persisted record before it writes",
+    _mb_loaded["control"] is True,
+    f"{_mb_loaded}",
+)
+R.check(
+    "null control: write_supply on duty mode observe loads nothing",
+    _mb_loaded["observe"] is False,
+    f"{_mb_loaded}",
+)
+_mb_dis = {dis: _asyncio.run(_mb_run(via="direct", space=True, disinfect=dis))[2] for dis in (True, False)}
+R.check(
+    "the mode written ahead of a switch-on for a heating step under a held disinfection is Heating + DHW",
+    _mb_dis[True] == ["Heating + DHW"],
+    f"{_mb_dis}",
+)
+R.check(
+    "null control: the same heating step with no disinfection leads with Heating",
+    _mb_dis[False] == ["Heating"],
+    f"{_mb_dis}",
+)
+_mb_nulls = {
+    "no mode entity": {"mode_entity": False},
+    "duty mode observe": {"duty": "observe"},
+    "supply already on": {"switch": "on", "select": "Heating"},
+}
+for _mb_name, _mb_kw in _mb_nulls.items():
+    _mb_with = {via: _asyncio.run(_mb_run(via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    _mb_without = {via: _asyncio.run(_mb_run(lead=False, via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    R.check(
+        f"null control, {_mb_name}: the service calls and their order are today's",
+        _mb_with == _mb_without and any(("switch", "turn_on") in c for c in _mb_with.values()),
+        f"with {_mb_with}; without {_mb_without}",
+    )
 # The pump_duty record's held slots are declared, every one the arbiter can
 # write: the silent switch (D15 L5) and the GCHV night registers (#1913).
 _sa_record = {"written": {
@@ -82183,8 +86212,477 @@ for _ms_name, _ms_kw, _ms_want in (
     )
 
 
+R.section("supply switch: minimum run and pause, restart")
+# A re-solve, a cycle or a step tick inside a step must neither stop the
+# compressor minutes after it started nor start it minutes after it stopped
+# (``supply_hold.hold_supply``): the gate holds the write back and the step
+# tick writes it once MIN_RUN / MIN_PAUSE has passed. Both are measured on the
+# switch's own ``last_changed``, whoever moved it. The real coordinator writes;
+# each tick fires every minute.
+import importlib
+import logging
+
+_sh = importlib.import_module(_sa_pa.__package__ + ".supply_hold")
+_sh_coord_mod = importlib.import_module(_sa_pa.__package__ + ".coordinator")
+
+_sh_off = lambda _held, _inputs, _boosts, value, now=None: value  # main: no gate
+
+
+async def _ms_run(duties, switch, events, until=20, off_at=None, entity="switch.hp",
+                  plan=True, sysid=False, gate=True, every=False):
+    """Switch writes by minute from 06:00 for a plan of ``duties`` (``s`` on).
+
+    ``switch`` is the switch's state and since-minute at 06:00 (negative is
+    before); ``events`` maps a minute to the action the cycle adopts there;
+    at ``off_at`` the optimizer is switched off. ``plan=False`` runs with no
+    plan, ``sysid`` under system identification, ``gate=False`` with main's
+    write (no gate); ``every`` returns every service call, not only the
+    switch's, and the learners' freeze reason at the end.
+    """
+    ticks = []
+    armed, real = _sa_pa.async_track_time_interval, _sh_coord_mod.supply_hold.hold_supply
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    if not gate:
+        _sh_coord_mod.supply_hold.hold_supply = _sh_off
+    domain = entity.split(".", 1)[0] if entity else None
+    hass = FakeHass({} if not entity else {entity: FakeState(switch[0], last_updated=_SA_T0 + timedelta(minutes=switch[1]))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": entity, "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
+        dhw_power_schedule=[0.0] * len(duties), optimal_setpoints=[21.0] * len(duties)) if plan else None
+    writes, frozen = [], None
+    try:
+        for m in range(until + 1):
+            now = _SA_T0 + timedelta(minutes=m)
+            _sa_dt.freeze(now)
+            coord._last_optimization = now
+            coord._mode = "off" if off_at is not None and m >= off_at else coord._mode
+            if m in events:
+                _sa_boost.adopt_plan(coord, {"heat_pump_on": events[m], "power": 1.5 * events[m]})
+                if sysid:
+                    coord._current_action = {**coord._current_action, "mode": "system_identification"}
+                if plan:
+                    coord._optimization_result.power_schedule[m // 15] = 1.5 * events[m]
+                await coord._apply_action()
+            for tick in ([] if m in events else list(ticks)):
+                await tick(now)
+            for d, service, data in hass.services.calls:
+                if every:
+                    writes.append((m, d, service, dict(data)))
+                if d == domain and data.get("entity_id") == entity:
+                    writes.append((m, service)) if not every else None
+                    on = service == "turn_on"
+                    new = ("heat" if on else "off") if domain == "climate" else ("on" if on else "off")
+                    if hass.states.get(entity).state != new:  # async_set keeps last_changed
+                        hass.states.set(entity, FakeState(new, last_updated=now))
+            hass.services.calls.clear()
+        frozen = _sh_coord_mod._tail_freeze(coord)
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+        _sh_coord_mod.supply_hold.hold_supply = real
+    return (writes, frozen) if every else writes
+
+
+# The cycle at 06:00 switches on; a re-solve at 06:03 turns the step off.
+_ms_short = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
+_ms_long = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 12: False}, until=14))
+R.check(
+    "a re-solve three minutes into a run does not switch the supply off; the step tick does at MIN_RUN",
+    _ms_short == [(0, "turn_on"), (10, "turn_off")],
+    f"{_ms_short}",
+)
+_ms_off = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, off_at=5))
+R.check(
+    "a write held back is not retried once the optimizer is switched off",
+    _ms_off == [(0, "turn_on")],
+    f"{_ms_off}",
+)
+R.check(
+    "null control: the same re-solve twelve minutes into the run switches it off at once",
+    _ms_long == [(0, "turn_on"), (12, "turn_off")],
+    f"{_ms_long}",
+)
+# A re-solve at 06:12 switches the run off; one at 06:15 turns the next step on.
+_ms_pause = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 15: True}, until=25))
+_ms_rest = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 23: True}, until=25))
+R.check(
+    "a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE",
+    _ms_pause == [(0, "turn_on"), (12, "turn_off"), (22, "turn_on")],
+    f"{_ms_pause}",
+)
+R.check(
+    "null control: the same re-solve eleven minutes into the pause switches it on at once",
+    _ms_rest == [(0, "turn_on"), (12, "turn_off"), (23, "turn_on")],
+    f"{_ms_rest}",
+)
+# One clock: a run or a pause the gate did not write (a boost, a fixed mode,
+# the user, the cut-off) is measured on the switch's own stamp like one it
+# wrote. The switch reads on, or off, since 05:57.
+_ms_user_run = _asyncio.run(_ms_run("--", ("on", -3), {0: False}, until=12))
+_ms_user_pause = _asyncio.run(_ms_run("ss", ("off", -3), {0: True}, until=12))
+R.check(
+    "a run someone else started three minutes ago is held on until MIN_RUN of the switch's own stamp",
+    _ms_user_run == [(7, "turn_off")],
+    f"{_ms_user_run}",
+)
+R.check(
+    "a pause someone else started three minutes ago is held off until MIN_PAUSE of the switch's own stamp",
+    _ms_user_pause == [(7, "turn_on")],
+    f"{_ms_user_pause}",
+)
+# A restart of Home Assistant stamps the switch at the restart (the
+# ``StateMachine.async_set`` contract in tests/ha_contract.py): the pump reads
+# as a run started then and is held on for MIN_RUN. A reload of the
+# integration keeps the stamp: an hour-old run is switched off at once.
+_ms_boot = _asyncio.run(_ms_run("--", ("on", 0), {0: False}, until=12))
+_ms_reload = _asyncio.run(_ms_run("--", ("on", -60), {0: False}, until=12))
+R.check(
+    "after a Home Assistant restart a supply found on is held for MIN_RUN of its restart stamp, then switched off",
+    _ms_boot == [(10, "turn_off")],
+    f"{_ms_boot}",
+)
+R.check(
+    "null control: after a reload an hour-old run is switched off at once",
+    _ms_reload == [(0, "turn_off")],
+    f"{_ms_reload}",
+)
+# A held write the plan gives no command for (no plan) is retried with the
+# action's own value at the minimum, not dropped until the next cycle.
+_ms_noplan = _asyncio.run(_ms_run("--", ("on", -3), {0: False}, until=12, plan=False))
+R.check(
+    "with no plan, an OFF held three minutes into a run lands at MIN_RUN",
+    _ms_noplan == [(7, "turn_off")],
+    f"{_ms_noplan}",
+)
+# System identification passes the gate: a step-response edge is not delayed.
+_ms_sysid = _asyncio.run(_ms_run("ss", ("on", -3), {0: False}, until=12, sysid=True))
+R.check(
+    "system identification: an OFF three minutes into a run is written at once",
+    _ms_sysid == [(0, "turn_off")],
+    f"{_ms_sysid}",
+)
+# A climate target reads heat / off; its run is held like a switch's.
+_ms_clim = _asyncio.run(_ms_run("--", ("heat", -3), {0: False}, until=12, entity="climate.hp"))
+_ms_clim_old = _asyncio.run(_ms_run("--", ("heat", -60), {0: False}, until=12, entity="climate.hp"))
+R.check(
+    "a climate target reading heat three minutes is held on until MIN_RUN",
+    _ms_clim == [(7, "turn_off")],
+    f"{_ms_clim}",
+)
+R.check(
+    "null control: a climate target heating an hour is switched off at once",
+    _ms_clim_old == [(0, "turn_off")],
+    f"{_ms_clim_old}",
+)
+# The learners: an interval with a held write ran other than the plan, so
+# ``_learning_frozen`` names it (``supply_hold.FREEZE_HELD``); the null
+# control is the same run with no write held.
+_ms_fz_held = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, every=True))[1]
+_ms_fz_free = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 12: False}, until=14, every=True))[1]
+R.check(
+    "an interval in which the gate held a write freezes the learners with the supply_held reason",
+    _ms_fz_held == _sh.FREEZE_HELD,
+    f"{_ms_fz_held!r}",
+)
+R.check(
+    "null control: the same interval with no write held does not",
+    _ms_fz_free != _sh.FREEZE_HELD,
+    f"{_ms_fz_free!r}",
+)
+# Null control, owed: with every write on a step boundary and no restart, the
+# service calls and their order are identical to main's (the gate off); an
+# install with no supply switch is untouched by the gate.
+for _ms_name, _ms_args, _ms_kw in (
+    ("writes on step boundaries", ("s-s-", ("off", -60), {0: True, 15: False, 30: True, 45: False}), {"until": 59}),
+    ("a plan the step tick moves", ("s-ss", ("off", -60), {0: True}), {"until": 59}),
+    ("no supply switch", ("s-s-", ("off", -60), {0: True, 3: False, 15: False, 31: True}), {"until": 40, "entity": None}),
+):
+    _ms_a = _asyncio.run(_ms_run(*_ms_args, every=True, **_ms_kw))[0]
+    _ms_b = _asyncio.run(_ms_run(*_ms_args, every=True, gate=False, **_ms_kw))[0]
+    R.check(
+        f"null control: {_ms_name}, the gate issues main's service calls in main's order",
+        _ms_a == _ms_b and (_ms_kw.get("entity", 1) is None or _ms_a),
+        f"{_ms_a} != {_ms_b}",
+    )
+
+
+# Rule three: an ON that starts a run the plan ends within MIN_RUN is skipped,
+# except on a hot-water step whose tank is below its minimum or under a
+# disinfection hold (``supply_hold.tank_reason``, the early cut-off's own).
+def _sh_inputs(minute, *, dhw=False, cold=False, disinfecting=False, state="off", nodhw=False):
+    hass = FakeHass({"switch.hp": FakeState(state, last_updated=_SA_T0 - timedelta(hours=1))})
+    plan = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)],
+        power_schedule=[0.0 if dhw else 1.5, 0.0], dhw_power_schedule=[1.5 if dhw else 0.0, 0.0])
+    return lambda: _sa_pa.ArbiterInputs(
+        hass=hass, config={"heat_pump_switch_entity": "switch.hp"}, mode="auto", plan=plan,
+        plan_stale=False, entry_released=False,
+        state=SimpleNamespace(dhw_temperature=40.0 if cold == "edge" else 35.0 if cold else 50.0),
+        thermal=None, params=SimpleNamespace(dhw_min_temp=40.0) if nodhw else SimpleNamespace(dhw_enabled=True, dhw_min_temp=40.0),
+        action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=disinfecting)
+
+
+_sh_none = SimpleNamespace(active=lambda _c, _n: False)
+
+
+def _sh_start(minute, **kw):
+    held = _sa_pa.ArbiterState()
+    got = _sh.hold_supply(held, _sh_inputs(minute, **kw), _sh_none, True, _SA_T0 + timedelta(minutes=minute))
+    return got, held.supply_held
+
+
+for _ms_name, _ms_min, _ms_kw, _ms_want in (
+    ("a space step, ON at minute 7 before an OFF step", 7, {}, (None, True)),
+    ("null control: the same ON at minute 5, MIN_RUN before the boundary", 5, {}, (True, False)),
+    ("a hot-water step with the tank warm", 7, {"dhw": True}, (None, True)),
+    ("a hot-water step with the tank below its minimum", 7, {"dhw": True, "cold": True}, (True, False)),
+    ("a hot-water step under a disinfection hold", 7, {"dhw": True, "disinfecting": True}, (True, False)),
+    ("a space step with the tank below its minimum", 7, {"cold": True}, (None, True)),
+    ("null control: the switch already on", 7, {"state": "on"}, (True, False)),
+    ("an unreadable switch", 7, {"state": "unavailable"}, (True, False)),
+    ("a hot-water step with the tank exactly at its minimum (not below)", 7, {"dhw": True, "cold": "edge"}, (None, True)),
+    ("a cold tank on params with no dhw_enabled field is not exempt", 7, {"dhw": True, "cold": True, "nodhw": True}, (None, True)),
+):
+    _ms_got = _sh_start(_ms_min, **_ms_kw)
+    R.check(f"rule three: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# A write of None (cooling, both channels blocked) is passed and marks nothing
+# held, even on a run three minutes old.
+_sh_nheld = _sa_pa.ArbiterState()
+_sh_nin = _sh_inputs(7, state="on")
+_sh_nin().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
+_sh_ngot = (_sh.hold_supply(_sh_nheld, _sh_nin, _sh_none, None, _SA_T0 + timedelta(minutes=7)), _sh_nheld.supply_held, _sh_nheld.held_until)
+R.check("a write of None passes and marks nothing held", _sh_ngot == (None, False, None), f"{_sh_ngot}")
+
+
+# A held write whose command is gone (the optimizer switched off) is dropped
+# by the step tick, flag and all; the null control keeps it in a plan mode.
+async def _sh_tick(mode):
+    held = _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    inp = _sh_inputs(3, state="on")()
+    inp = _sa_pa.ArbiterInputs(**{**vars(inp), "mode": mode, "plan": None, "action": {"heat_pump_on": False}})
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return wrote, held.supply_held
+
+
+for _ms_name, _ms_mode, _ms_want in (
+    ("the optimizer switched off: no write, the hold dropped", "off", ([], False)),
+    ("null control: a plan mode with no plan retries the action's OFF", "auto", ([False], True)),
+):
+    _ms_got = _asyncio.run(_sh_tick(_ms_mode))
+    R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# An unreadable switch passes an OFF the gate would hold on a readable one;
+# a stamp ahead of the clock is an unknown age and holds nothing (#775).
+def _sh_stop(state, minutes_ago):
+    held = _sa_pa.ArbiterState()
+    inputs = _sh_inputs(7, state=state)
+    inputs().hass.states.set("switch.hp", FakeState(state, last_updated=_SA_T0 + timedelta(minutes=7 - minutes_ago)))
+    got = _sh.hold_supply(held, inputs, _sh_none, False, _SA_T0 + timedelta(minutes=7))
+    return got, held.supply_held
+
+
+for _ms_name, _ms_args, _ms_want in (
+    ("an OFF to a switch reading unavailable passes", ("unavailable", 3), (False, False)),
+    ("an OFF to a switch reading unknown passes", ("unknown", 3), (False, False)),
+    ("an OFF to a switch stamped ahead of the clock passes", ("on", -3), (False, False)),
+    ("null control: an OFF to a switch on three minutes is held", ("on", 3), (None, True)),
+    ("an OFF to a switch stamped this instant is held (age 0, not unknown)", ("on", 0), (None, True)),
+):
+    _ms_got = _sh_stop(*_ms_args)
+    R.check(f"stop: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# The learners' freeze spans two plan intervals from the last held write,
+# fixed at the hold from its config; a config with no interval reads the default
+# interval, and nothing held reads nothing.
+def _sh_fz_hold(config):
+    held, inputs = _sa_pa.ArbiterState(), _sh_inputs(7, state="on")
+    inputs().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
+    inp = _sa_pa.ArbiterInputs(**{**vars(inputs()), "config": config})
+    _sh.hold_supply(held, lambda: inp, _sh_none, False, _SA_T0 + timedelta(minutes=7))
+    return held
+
+
+_sh_fz = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp", "optimization_interval": 30})
+_sh_fz_dflt = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp"})
+_SH_FZ_AT = _SA_T0 + timedelta(minutes=7)
+for _ms_name, _ms_got, _ms_want in (
+    ("nothing held reads nothing", _sh.freeze_reason(_sa_pa.ArbiterState(), _SA_T0), None),
+    ("a write held 59 minutes ago on a 30-minute interval is frozen", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=59)), _sh.FREEZE_HELD),
+    ("null control: 60 minutes ago is not", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=60)), None),
+    ("a config with no interval reads the default", _sh_fz_dflt.held_until - _SH_FZ_AT, 2 * timedelta(minutes=_sa_pa.EntryConfig.from_mapping({}).optimization_interval)),
+):
+    R.check(f"freeze_reason: {_ms_name}", _ms_got == _ms_want, f"{_ms_got!r}")
+
+
+# A held write is not logged as the blocked-mode skip it is not.
+class _ShLog(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.seen = []
+
+    def emit(self, record):
+        self.seen.append(record.getMessage())
+
+
+_sh_log, _sh_level = _ShLog(), _sh_coord_mod._LOGGER.level
+_sh_coord_mod._LOGGER.addHandler(_sh_log)
+_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+try:
+    _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
+finally:
+    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
+    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+_sh_skips = [m for m in _sh_log.seen if m.startswith("Not switching")]
+R.check(
+    "a held OFF is not logged as the cooling or blocked-mode skip",
+    _sh_skips == [],
+    f"{_sh_skips}",
+)
+
+
+
+async def _sh_blocked_write():
+    hass = FakeHass({"switch.hp": FakeState("on", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "space_blocked": True, "dhw_blocked": True})
+    _sa_dt.freeze(_SA_T0)
+    try:
+        await coord._write_supply(False)
+    finally:
+        _sa_dt.freeze(None)
+    return [c for c in hass.services.calls if c[0] == "switch"]
+
+
+_sh_log.seen.clear()
+_sh_coord_mod._LOGGER.addHandler(_sh_log)
+_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+try:
+    _sh_bcalls = _asyncio.run(_sh_blocked_write())
+finally:
+    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
+    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+_sh_bskips = [m for m in _sh_log.seen if m.startswith("Not switching")]
+R.check(
+    "null control: an OFF both blocked channels skip writes nothing and is logged as the skip",
+    _sh_bcalls == [] and len(_sh_bskips) == 1,
+    f"{_sh_bcalls} {_sh_bskips}",
+)
+
+
+# Which writes the gate holds, one input changed at a time against a held
+# write: the plan modes and the boosts (``supply_hold._passes``), rule
+# three's window one tick inside it and its hot-water exemption on a "both"
+# step (``_ends_soon``), and the step tick's retry where the cycle would
+# write nothing (``supply_tick``, ``_action_supply``).
+def _sh_at(minute, value, since_min, state, mode="auto", boosts=None):
+    held = _sa_pa.ArbiterState()
+    base = _sh_inputs(minute, state=state)()
+    base.hass.states.set("switch.hp", FakeState(state, last_updated=_SA_T0 + timedelta(minutes=since_min)))
+    inp = _sa_pa.ArbiterInputs(**{**vars(base), "mode": mode})
+    got = _sh.hold_supply(held, lambda: inp, boosts or _sh_none, value, _SA_T0 + timedelta(minutes=minute))
+    return got, held.supply_held
+
+
+def _sh_both(cold):
+    held = _sa_pa.ArbiterState()
+    inp = _sh_inputs(7, dhw=True, cold=cold)()
+    inp.plan.power_schedule[0] = 1.5
+    got = _sh.hold_supply(held, lambda: inp, _sh_none, True, _SA_T0 + timedelta(minutes=7))
+    return got, held.supply_held, _sa_pa.step_duty(inp.plan, _SA_T0 + timedelta(minutes=7))
+
+
+_sh_boost_mod = importlib.import_module(_sa_pa.__package__ + ".boost")
+_sh_boost = lambda ch: SimpleNamespace(active=lambda c, _n: c == ch)  # noqa: E731
+for _ms_name, _ms_got, _ms_want in (
+    ("economy is a plan mode: an OFF three minutes into a run is held", _sh_at(12, False, 9, "on", mode="economy"), (None, True)),
+    ("a fixed mode (comfort) passes an OFF three minutes into a run", _sh_at(12, False, 9, "on", mode="comfort"), (False, False)),
+    ("a live space boost passes an ON three minutes into a pause", _sh_at(2, True, -1, "off", boosts=_sh_boost(_sh_boost_mod.CHANNEL_SPACE)), (True, False)),
+    ("a live DHW boost passes an ON three minutes into a pause", _sh_at(2, True, -1, "off", boosts=_sh_boost(_sh_boost_mod.CHANNEL_DHW)), (True, False)),
+    ("null control: no boost holds that ON", _sh_at(2, True, -1, "off"), (None, True)),
+    ("rule three: an ON at minute 6, one tick inside MIN_RUN of an OFF step, is skipped", _sh_start(6), (None, True)),
+    ("rule three: a both step with the tank below its minimum is exempt", _sh_both(True), (True, False, "both")),
+    ("rule three: null control: a both step with the tank warm is skipped", _sh_both(False), (None, True, "both")),
+):
+    R.check(f"which writes are held: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+async def _sh_tick_over(**over):
+    held = _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    inp = _sh_inputs(3, state="on")()
+    inp = _sa_pa.ArbiterInputs(**{**vars(inp), "plan": None, "action": {"heat_pump_on": False}, **over})
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return wrote, held.supply_held
+
+
+for _ms_name, _ms_over, _ms_want in (
+    ("the entry released: no write, the hold dropped", {"entry_released": True}, ([], False)),
+    ("a stale plan: no write, the hold dropped", {"plan_stale": True}, ([], False)),
+    ("economy with no plan retries the action's OFF", {"mode": "economy"}, ([False], True)),
+):
+    _ms_got = _asyncio.run(_sh_tick_over(**_ms_over))
+    R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# An install with no power switch: the gate reads no switch. Upstream's
+# ``StateMachine.get`` lowers a missed entity id, so ``get(None)`` raises
+# (tests/ha_contract.py, "StateMachine.get(None) raises"); FakeStates returns
+# None, so this install's states read as upstream's do.
+class _ShUpstreamStates:
+    def __init__(self, states):
+        self._states = dict(states)
+
+    def get(self, entity_id):
+        return self._states.get(entity_id) or self._states.get(entity_id.lower())
+
+    def set(self, entity_id, state):
+        self._states[entity_id] = state
+
+
+async def _sh_no_switch():
+    hass = FakeHass({})
+    hass.states = _ShUpstreamStates({})
+    coord = Coord(hass, FakeEntry(data=dict(_LC_DATA)))
+    coord._mode = "auto"
+    _sa_dt.freeze(_SA_T0 + timedelta(minutes=3))
+    try:
+        await coord._write_supply(True)
+        await coord._write_supply(False)
+    finally:
+        _sa_dt.freeze(None)
+    return [c for c in hass.services.calls if c[0] == "switch"], _sa_pa.state_for(coord).supply_held
+
+
+try:
+    _sh_ns = _asyncio.run(_sh_no_switch())
+except Exception as _sh_err:  # noqa: BLE001 -- the check reports what raised
+    _sh_ns = repr(_sh_err)
+R.check("an install with no power switch: the gate writes and holds nothing, and raises nothing",
+        _sh_ns == ([], False), f"{_sh_ns}")
+
+
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
+from heatpump_optimizer import duty_legs as _ds_legs  # noqa: E402
 from heatpump_optimizer import wear as _ds_wear  # noqa: E402
+from heatpump_optimizer import running_signal as _ds_rs  # noqa: E402
+from heatpump_optimizer.entry_config import EntryConfig as _DsConfig  # noqa: E402
 from heatpump_optimizer import pump_mode as _ds_pm  # noqa: E402
 import json  # noqa: E402
 from pathlib import Path as _DsPath  # noqa: E402
@@ -82193,7 +86691,8 @@ from harness import FakeCoordinator as _DsFakeCoord, FakeEntry as _DsFakeEntry  
 R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
 # A hot water -> heating mode write while the compressor runs stops it on some
 # pumps (Bankaifan, pull request 3420). Part A observes, estimates, persists
-# and publishes; nothing reads the estimate. The learner is driven directly
+# and publishes; the planner's read of it is R10-DUTY-SWITCH-PLANNER-PRICE's
+# section. The learner is driven directly
 # with the install's own table, then through ``pump_arbiter.apply`` and the
 # listener ``duty_switch`` arms.
 _DS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
@@ -82579,21 +87078,56 @@ R.check(
     and (_ds_days.span_days, _ds_days.first_day) == (4, _ds_day.date()),
     f"{_ds_halved} {_ds_stamped}",
 )
+_ds_third = _ds_mod.DutySwitchLearner(
+    {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}).published(_ds_day)
 R.check(
-    "k and n publish to two places and the median to one; a direction holding only a void publishes a span of no day",
-    (_ds_fine_pub["duty_switch_dhw_space_k"], _ds_fine_pub["duty_switch_dhw_space_n"],
+    "p publishes to two places, n as whole episodes (down, never up) and the median to one place; a direction "
+    "holding only a void publishes a span of no day",
+    (_ds_fine_pub["duty_switch_dhw_space_p"], _ds_fine_pub["duty_switch_dhw_space_n"],
      _ds_fine_pub["duty_switch_dhw_space_median_off_s"], _ds_fine_pub["duty_switch_space_dhw_span_days"])
-    == (1.0, 3.0, 100.2, 0)
-    and _ds_mod.DutySwitchLearner(
-        {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}
-    ).published(_ds_day)["duty_switch_dhw_space_k"] == 0.33,
-    f"{_ds_fine_pub}",
+    == (0.33, 3.0, 100.2, 0)
+    and (_ds_third["duty_switch_dhw_space_p"], _ds_third["duty_switch_dhw_space_n"]) == (0.5, 0.0)
+    and "duty_switch_dhw_space_k" not in _ds_fine_pub,
+    f"{_ds_fine_pub} {_ds_third}",
 )
 R.check(
-    "the published k and n are aged to the reading's time, the tallies are not",
-    [(pub["duty_switch_dhw_space_k"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
-     for pub in _ds_old_pub] == [(3.0, 7.0, 3), (1.5, 3.5, 3)],
+    "the published n is aged to the reading's time, p and the tallies are not",
+    [(pub["duty_switch_dhw_space_p"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
+     for pub in _ds_old_pub] == [(0.43, 7.0, 3), (0.43, 3.0, 3)],
     f"{_ds_old_pub}",
+)
+# Carry c7d068a1 (reviewer's probe attr_churn): age alone moved the attributes. A day of quarter-hour reads of
+# six stops an hour apart, from six hours on: nothing moves; null control, the decayed weight to two places
+# that the attributes published before moves within the same reads, so the reads do span a decay.
+_ds_churn = _ds_mod.DutySwitchLearner()
+for _ds_i in range(6):
+    _ds_churn.directions["dhw_space"].book(_ds_day + timedelta(hours=_ds_i), True, 60.0)
+_ds_reads = [_ds_day + timedelta(hours=6, minutes=15 * _ds_i) for _ds_i in range(96)]
+_ds_churn_pubs = [_ds_churn.published(t) for t in _ds_reads]
+_ds_churn_raw = [round(_ds_churn.directions["dhw_space"].weights(t)[1], 2) for t in _ds_reads]
+_ds_churn_month = {_ds_churn.published(_ds_day + timedelta(hours=6 + 6 * _ds_i))["duty_switch_dhw_space_n"]
+                   for _ds_i in range(4 * 60)}
+R.check(
+    "age alone moves no published attribute within a day, and moves n only a whole episode at a time; null "
+    "control, the decayed weight read to two places moves within the same day's reads",
+    sum(a != b for a, b in zip(_ds_churn_pubs, _ds_churn_pubs[1:])) == 0
+    and sum(a != b for a, b in zip(_ds_churn_raw, _ds_churn_raw[1:])) > 0
+    and _ds_churn_month == {5.0, 4.0, 3.0, 2.0, 1.0, 0.0},
+    f"{_ds_churn_pubs[0]} {sorted(_ds_churn_month)}",
+)
+# Carry ef5d3875 (reviewer's probe fifth_episode): N_ON is a decayed weight, not a count of episodes. Five
+# stops ten hours apart weigh under N_ON and leave the direction off; the sixth switches it on. Control: the
+# check above, where a stop taking an undecayed n from 4 to 5 switches it on.
+_ds_spread = _DS_D()
+_ds_spread_on = []
+for _ds_i in range(6):
+    _ds_spread.book(_ds_day + timedelta(hours=10 * _ds_i), True, 60.0)
+    _ds_spread_on.append(_ds_spread.usable)
+R.check(
+    "N_ON is a weight: five stops ten hours apart, spanning two days, stay off at a weight under five; a sixth "
+    "switches the direction on",
+    _ds_spread_on == [False] * 5 + [True] and _ds_mod.N_ON == 5.0,
+    f"{_ds_spread_on} {_ds_spread}",
 )
 
 # Restart: the dict round trip, the strict load, the cap.
@@ -82699,6 +87233,10 @@ class _DsArb:
 
     def arbiter_inputs(self):
         self.passes += 1
+        # R10-START-COUNTER-EDGES: the coordinator attaches the running signal, the arbiter only
+        # subscribes to it. Attached here, at the first pass's frozen clock, the timing the
+        # duty-switch checks below were written against (the arbiter attached at its first pass).
+        self.signal()
         return _sa_pa.ArbiterInputs(
             hass=self.hass, config=self._config, mode=self.mode, plan=self.plan, plan_stale=False,
             entry_released=False, state=SimpleNamespace(
@@ -82706,6 +87244,16 @@ class _DsArb:
             thermal=SimpleNamespace(params=self.params), params=self.params,
             action=self.action, measured_power_kw=None, disinfecting=self.disinfecting,
             defrosting=self.defrosting)
+
+
+def _ds_signal(self):
+    """The coordinator's attach of the running signal, over this surface's frequency source."""
+    _ds_rs.attach(_ds_rs.signal_for(self), *_ds_rs.source(self.hass, _DsConfig.from_mapping(self._config), lambda: self.params,
+                                       lambda kw: False))
+    return _ds_rs.signal_for(self)
+
+
+_DsArb.signal = _ds_signal
 
 
 def _ds_fire(c, value):
@@ -83038,20 +87586,24 @@ R.check(
 _ds_twice = _DsArb()
 _ds_twice_rec = _ds_mod.record_for(_ds_twice)
 for _ds_i in range(2):
-    _ds_mod.attach(_ds_twice_rec, *_sa_pa._running_signal(_ds_twice.arbiter_inputs()))
+    _ds_twice.signal()
+    _ds_mod.attach(_ds_twice_rec)
 _ds_deaf = _DsArb({"compressor_freq_sensor": None})
-_ds_mod.attach(_ds_mod.record_for(_ds_deaf), *_sa_pa._running_signal(_ds_deaf.arbiter_inputs()))
+_ds_deaf.signal()
+_ds_mod.attach(_ds_mod.record_for(_ds_deaf))
 _ds_never = _DsArb({"pump_duty_mode": "off"})
 _asyncio.run(_sa_pa.apply(_ds_never, _DS_T0))
-_ds_mod.record_for(_ds_never).tracker.settled = True
+_ds_mod.record_for(_ds_never).signal.tracker.settled = True
 _asyncio.run(_sa_pa.apply(_ds_never, _DS_T0))
 R.check(
-    "the listener is armed once however often the arbiter attaches, and not at all with no signal entity; "
-    "duty mode off on a pump never arbitrated, or never attached, raises nothing and forgets nothing",
+    "the listener is armed once however often it is attached, and the record heard once however often the "
+    "arbiter subscribes; not at all with no signal entity; duty mode off on a pump never arbitrated, or never "
+    "attached, raises nothing and forgets nothing",
     sum("sensor.freq" in ids for ids, _a in _ds_twice.hass.state_listeners) == 1
-    and (_ds_mod.record_for(_ds_deaf).unsub, _ds_mod.record_for(_ds_deaf).reader) == (None, None)
+    and _ds_twice_rec.signal.subscribers == [_ds_twice_rec.feed]
+    and (_ds_mod.record_for(_ds_deaf).signal.unsub, _ds_mod.record_for(_ds_deaf).signal.reader) == (None, None)
     and not getattr(_ds_deaf.hass, "state_listeners", [])
-    and _ds_mod.record_for(_ds_never).tracker.settled is True,
+    and _ds_mod.record_for(_ds_never).signal.tracker.settled is True,
 )
 # Duty mode off with an episode open: the episode is dropped uncounted, not
 # left to be judged against a signal nobody listens to.
@@ -83060,29 +87612,33 @@ _ds_open_before = _ds_mod.record_for(_ds_open_c).learner.episode
 _ds_open_c._config = {**_ds_open_c._config, "pump_duty_mode": "off"}
 _asyncio.run(_sa_pa.apply(_ds_open_c, _DS_T0 + timedelta(minutes=9)))
 R.check(
-    "detaching with an episode open drops it uncounted and forgets the running class",
+    "detaching with an episode open drops it uncounted and stops hearing the edges; the running class is "
+    "the running signal's and outlives the arbiter (R10-START-COUNTER-EDGES)",
     _ds_open_before is not None and _ds_open_before.direction == "dhw_space"
     and _ds_mod.record_for(_ds_open_c).learner.episode is None
-    and _ds_mod.record_for(_ds_open_c).tracker == _ds_wear.EdgeTracker() and _ds_open_row == (0, 0, 0, 0, [])
+    and _ds_mod.record_for(_ds_open_c).signal.subscribers == []
+    and _ds_mod.record_for(_ds_open_c).signal.tracker.settled is True and _ds_open_row == (0, 0, 0, 0, [])
     and _ds_mod.record_for(_ds_open_c).learner.directions["dhw_space"].void == 0,
     f"{_ds_open_before}",
 )
-_ds_reader = _sa_pa._running_signal(_ds_c.arbiter_inputs())
+_ds_reader = _ds_rs.source(_ds_c.hass, _DsConfig.from_mapping(_ds_c._config), lambda: _ds_c.params, lambda kw: False)
 _ds_words = []
 for _ds_word in ("unavailable", "unknown", "abc", "", "0", "0.5", "1", "40"):
     _ds_c.hass.states.set("sensor.freq", FakeState(_ds_word))
     _ds_words.append(_ds_run(*_ds_reader[1]()))
 _ds_meter = _DsArb({"compressor_freq_sensor": None, "heat_pump_power_entity": "sensor.kw"})
 _ds_meter.hass.states.set("sensor.kw", FakeState("0.4", unit="kW"))
-_ds_meter_reader = _sa_pa._running_signal(_ds_meter.arbiter_inputs())
+_ds_meter_reader = _ds_rs.source(_ds_meter.hass, _DsConfig.from_mapping(_ds_meter._config), lambda: _ds_meter.params,
+                                 lambda kw: False)
 _ds_meter_low = _ds_run(*_ds_meter_reader[1]())
 _ds_meter.hass.states.set("sensor.kw", FakeState("0.6", unit="kW"))
 R.check(
-    "the arbiter's reader: unavailable, unknown and non-numeric frequency states are no signal; without a "
+    "the running signal's reader: unavailable, unknown and non-numeric frequency states are no signal; without a "
     "frequency sensor the meter reads against on_threshold_kw; with neither nothing is listened to",
     _ds_reader[0] == "sensor.freq" and _ds_words == [None, None, None, None, False, False, True, True]
     and _ds_meter_reader[0] == "sensor.kw" and (_ds_meter_low, _ds_run(*_ds_meter_reader[1]())) == (False, True)
-    and _sa_pa._running_signal(_DsArb({"compressor_freq_sensor": None}).arbiter_inputs())[0] is None,
+    and _ds_rs.source(FakeHass({}), _DsConfig.from_mapping({"compressor_freq_sensor": None}), lambda: None,
+                      lambda kw: False)[0] is None,
     f"{_ds_words} {_ds_meter_low}",
 )
 _ds_quiet = _DsArb()
@@ -83091,12 +87647,15 @@ _ds_quiet_passes = _ds_quiet.passes
 for _ds_word in ("0", "40", "0", "unavailable", "40"):
     _ds_fire(_ds_quiet, _ds_word)
 _ds_quiet._config = {**_ds_quiet._config, "pump_duty_mode": "off"}
-_ds_armed = _ds_mod.record_for(_ds_quiet).unsub is not None
+_ds_quiet_rec = _ds_mod.record_for(_ds_quiet)
+_ds_armed = _ds_quiet_rec.feed in _ds_quiet_rec.signal.subscribers
 _asyncio.run(_sa_pa.apply(_ds_quiet, _DS_T0 + timedelta(minutes=2)))
 R.check(
-    "the listener is the learner's own and triggers no arbiter pass; duty mode off detaches it",
-    _ds_armed and _ds_quiet.passes == _ds_quiet_passes + 1 and _ds_mod.record_for(_ds_quiet).unsub is None
-    and not any("sensor.freq" in ids for ids, _a in getattr(_ds_quiet.hass, "state_listeners", [])),
+    "the running signal's listener triggers no arbiter pass; duty mode off unsubscribes the learner and "
+    "leaves the listener, which the start counter hears in every mode (R10-START-COUNTER-EDGES)",
+    _ds_armed and _ds_quiet.passes == _ds_quiet_passes + 1
+    and _ds_quiet_rec.feed not in _ds_quiet_rec.signal.subscribers
+    and any("sensor.freq" in ids for ids, _a in getattr(_ds_quiet.hass, "state_listeners", [])),
     f"{_ds_quiet.passes=} {_ds_quiet_passes=}",
 )
 def _ds_shape(learner):
@@ -83131,7 +87690,7 @@ class _DsNoDisk:
 _ds_late_rec.store = _DsNoDisk()
 _asyncio.run(_ds_mod.note_pass(_ds_late_rec, _DS_T0, _ds_mod.SwitchContext()))
 _ds_late_rec.store = _ds_late_store
-_ds_late_rec.tracker.settled = True
+_ds_late_rec.signal.tracker.settled = True
 _ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 _ds_late_before = (_ds_late_rec.loaded, _ds_late_rec.learner.episode)
 _asyncio.run(_ds_mod.note_pass(_ds_late_rec, _DS_T0, _ds_ctx(_DS_T0)))
@@ -83150,10 +87709,10 @@ _ds_late_rec.loaded = True
 _sa_pa._report_write(_ds_late_rec, _sa_boost.held_for(_ds_late), _ds_late_held, _ds_late.arbiter_inputs(), "space_setpoint", (30.0, _DS_T0), _DS_T0, None)
 _ds_slot_kept = _ds_late_rec.learner.episode is not None
 _sa_pa._report_write(_ds_late_rec, _sa_boost.held_for(_ds_late), _ds_late_held, _ds_late.arbiter_inputs(), "mode", None, _DS_T0, None)
-_ds_late_rec.tracker.pending = (False, _DS_T0)
+_ds_late_rec.signal.tracker.pending = (False, _DS_T0)
 _ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 _ds_pending_open = _ds_late_rec.learner.episode
-_ds_late_rec.tracker.pending = None
+_ds_late_rec.signal.tracker.pending = None
 _ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 R.check(
     "a set-point write reports nothing to the learner and a mode write does; a pending change of the "
@@ -83164,8 +87723,9 @@ R.check(
 )
 
 
-# Null controls (design.md, evidence 5 and 6): nothing reads the estimate, so
-# an empty learner and one saturated at p = 1 give the same commands.
+# Null controls (design.md, evidence 5 and 6; the group's brief): below the
+# evidence threshold, and on an install where no switch stops the compressor,
+# the split and every written command are today's.
 def _ds_saturated():
     return _ds_saturated_at(None)
 
@@ -83183,21 +87743,229 @@ def _ds_commands(learner, freq, plan=None):
     return calls, split, rec.learner.directions["dhw_space"].usable
 
 
+def _ds_learner(**rows):
+    """A learner whose named directions hold ``(k, kept weight, usable, off seconds)``, over two days."""
+    l = _ds_mod.DutySwitchLearner()
+    for name, (k, kept_w, usable, off_s) in rows.items():
+        d = l.directions[name]
+        d.k, d.kept_w, d.usable, d.off_s = k, kept_w, usable, list(off_s)
+        d.first_day, d.last_day = _ds_day.date(), _ds_day.date() + timedelta(days=1)
+    return l
+
+
+#: Under the evidence threshold at p = 1, and an install whose every switch was kept.
+_DS_BELOW = {d: (_ds_mod.N_ON - 0.1, 0.0, False, [900.0]) for d in _ds_mod.DIRECTIONS}
+_DS_NO_STOP = {d: (0.0, _ds_mod.N_CAP, False, []) for d in _ds_mod.DIRECTIONS}
 _ds_plain = _ds_commands(_ds_mod.DutySwitchLearner(), {})
+_ds_nulls = [_ds_commands(_ds_learner(**rows), {}) for rows in (_DS_BELOW, _DS_NO_STOP)]
 _ds_full = _ds_commands(_ds_saturated(), {})
 R.check(
-    "null control, an install where no switch stops the compressor: the split order and every written "
-    "command are identical between an empty learner and one saturated at p = 1",
-    _ds_plain[:2] == _ds_full[:2] and _ds_plain[0] != [] and _ds_plain[1] == "d" * 8 + "s" * 7
-    and _ds_full[2] and not _ds_plain[2],
-    f"{_ds_plain[1]} {_ds_full[1]}",
+    "null control, an empty learner, one under the evidence threshold at p = 1 and one from an install where no "
+    "switch stops the compressor: the split order and every written command are today's, hot water first for its "
+    "share; and a latched learner does change the split (the controls are not vacuous)",
+    all(run[:2] == _ds_plain[:2] for run in _ds_nulls) and _ds_plain[0] != [] and _ds_plain[1] == "d" * 8 + "s" * 7
+    and _ds_full[1] == "d" * 15 and _ds_full[2] and not _ds_plain[2],
+    f"{_ds_plain[1]} {[run[1] for run in _ds_nulls]} {_ds_full[1]}",
 )
 _ds_plain_stop = _ds_commands(_ds_mod.DutySwitchLearner(), {8.25: "0", 16.5: "35"})
-_ds_full_stop = _ds_commands(_ds_saturated(), {8.25: "0", 16.5: "35"})
+_ds_nulls_stop = [_ds_commands(_ds_learner(**rows), {8.25: "0", 16.5: "35"}) for rows in (_DS_BELOW, _DS_NO_STOP)]
 R.check(
-    "and so are they on the install whose switch does stop it: part A changes no write at either end of its evidence",
-    _ds_plain_stop[:2] == _ds_full_stop[:2] == _ds_plain[:2],
-    f"{_ds_plain_stop[1]} {_ds_full_stop[1]}",
+    "and so are they on the install whose switch does stop it, while no direction is latched",
+    all(run[:2] == _ds_plain_stop[:2] == _ds_plain[:2] for run in _ds_nulls_stop),
+    f"{_ds_plain_stop[1]} {[run[1] for run in _ds_nulls_stop]}",
+)
+
+
+# Part B (the group's ruling on rule c): the arbiter's split of a both step reads
+# the learner's latches through ``duty_switch.both_step_duty``.
+def _ds_split(learner, plan=None, minutes=range(15), between=None, c=None):
+    """The duty ``_share`` serves at each minute of ``minutes``; ``between(c, minute)`` runs before each read."""
+    if c is None:
+        c = _DsArb()
+        rec = _ds_mod.record_for(c)
+        rec.learner, rec.loaded = learner, True
+    c.plan = plan or c.plan
+    out = ""
+    for m in minutes:
+        if between is not None:
+            between(c, m)
+        out += str(_sa_pa._share(c, c.arbiter_inputs(), "both", _DS_T0 + timedelta(minutes=m)))[0]
+    return out
+
+
+_DS_TODAY, _DS_SPACE_FIRST, _DS_WHOLE = "d" * 8 + "s" * 7, "s" * 8 + "d" * 7, "d" * 15
+_DS_ON = (6.0, 0.0, True, [900.0])
+_ds_next_dhw, _ds_next_idle = _ds_plan((0, 1.0, 1.0), (900, 0.0, 1.0)), _ds_plan((0, 1.0, 1.0), (900, 0.0, 0.0))
+_ds_orders = {
+    "only hot water to space": _ds_split(_ds_learner(dhw_space=_DS_ON)),
+    "only space to hot water": _ds_split(_ds_learner(space_dhw=_DS_ON)),
+    "both": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON)),
+    "none": _ds_split(_ds_mod.DutySwitchLearner()),
+}
+R.check(
+    "where only hot water to space is usable the both step serves space first for its share; with only space to "
+    "hot water, or neither, hot water goes first as today",
+    _ds_orders["only hot water to space"] == _DS_SPACE_FIRST
+    and _ds_orders["only space to hot water"] == _ds_orders["none"] == _DS_TODAY,
+    str(_ds_orders),
+)
+_ds_wholes = {
+    "next serves space": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON)),
+    "next serves hot water": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), _ds_next_dhw),
+    "next idle": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), _ds_next_idle),
+    "off 151 s": _ds_split(_ds_learner(dhw_space=(6.0, 0.0, True, [151.0]), space_dhw=_DS_ON)),
+    "off 150 s": _ds_split(_ds_learner(dhw_space=(6.0, 0.0, True, [150.0]), space_dhw=_DS_ON)),
+    "censored": _ds_split(_ds_learner(dhw_space=(6.0, 0.0, True, []), space_dhw=_DS_ON)),
+}
+R.check(
+    "the first duty keeps the whole step only when the switch into the second is usable, the second share (7.5 min) "
+    "is shorter than SPLIT_MIN_MINUTES plus that direction's median off time, and the plan's next step serves the "
+    "second duty; a next step serving the first duty or idle, an off time on the bound (150 s), or no off time "
+    "split as today",
+    _ds_wholes["next serves space"] == _ds_wholes["off 151 s"] == _DS_WHOLE
+    and _ds_wholes["next serves hot water"] == _ds_wholes["next idle"] == _ds_wholes["off 150 s"]
+    == _ds_wholes["censored"] == _DS_TODAY
+    and _ds_legs.SPLIT_MIN_MINUTES + 150.0 / 60.0 == 7.5,
+    str(_ds_wholes),
+)
+
+
+def _ds_resolve(c, m):
+    """At minute 4 a re-solve moves the next step to hot water and the learner unlatches."""
+    if m == 4:
+        c.plan = _ds_next_dhw
+        _ds_mod.record_for(c).learner = _ds_mod.DutySwitchLearner()
+
+
+_ds_latch_c = _DsArb()
+_ds_latch_rec = _ds_mod.record_for(_ds_latch_c)
+_ds_latch_rec.learner, _ds_latch_rec.loaded = _ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), True
+_ds_latched_run = _ds_split(None, between=_ds_resolve, c=_ds_latch_c)
+_ds_next_start = _ds_split(None, _ds_plan((900, 1.0, 1.0), (1800, 0.0, 1.0)), range(15, 30), c=_ds_latch_c)
+R.check(
+    "the split is latched per step: a re-solve moving the next step off the second duty and an unlatched learner "
+    "inside the step leave it whole; the next both step decides afresh",
+    _ds_latched_run == _DS_WHOLE and _ds_next_start == _DS_TODAY
+    and _ds_latch_rec.order is not None and _ds_latch_rec.order[0] == _DS_T0 + timedelta(minutes=15),
+    f"{_ds_latched_run} {_ds_next_start}",
+)
+_ds_unloaded_c = _DsArb()
+_ds_unloaded_rec = _ds_mod.record_for(_ds_unloaded_c)
+_ds_unloaded_rec.learner = _ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON)
+_ds_unloaded = _ds_split(None, c=_ds_unloaded_c)
+R.check(
+    "a record whose store is not read yet splits as today and latches nothing; null control, the same learner "
+    "loaded keeps the whole step",
+    _ds_unloaded == _DS_TODAY and _ds_unloaded_rec.order is None and _ds_wholes["next serves space"] == _DS_WHOLE,
+    f"{_ds_unloaded} {_ds_unloaded_rec.order}",
+)
+_ds_censored = _ds_learner(dhw_space=(6.0, 0.0, True, []), space_dhw=_DS_ON)
+_ds_cens_rule = _ds_censored.split()
+_ds_edges = (_ds_split(_ds_mod.DutySwitchLearner(), minutes=(7.5 - 1 / 60, 7.5)), _ds_cens_rule,
+             [leg for leg, _m in _ds_legs.both_step_legs(5.01, 9.99, 15.0, _ds_cens_rule, "space")],
+             [leg for leg, _m in _ds_legs.both_step_legs(5.01, 9.99, 15.0, (_ds_cens_rule[0], _ds_cens_rule[1] + 0.02),
+                                                         "space")])
+R.check(
+    "on the bounds: hot water's share ends at its own instant, a second later than one second before it; and a "
+    "direction whose every off time was censored adds no off time to the whole-step bound (5.01 min second share "
+    "split, under a 5.02 min minimum whole)",
+    _ds_edges == ("ds", ("dhw", 0.0), ["dhw", "space"], ["dhw"]),
+    str(_ds_edges),
+)
+# One leg rule (R10-DUTY-SWITCH-PLANNER-PRICE carry c3ad1545): the planner's
+# leg_ends, under the rule the learner's pairs give, reads the legs the
+# arbiter serves, for every order and whole-step case above.
+_DS_LEG = {"d": _ds_legs.DHW, "s": _ds_legs.SPACE}
+_ds_agree_cases = {
+    "space first": (_ds_learner(dhw_space=_DS_ON), 1.0, 0.0),
+    "today": (_ds_mod.DutySwitchLearner(), 1.0, 0.0),
+    "whole, next serves space": (_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), 1.0, 0.0),
+    "split, next serves hot water": (_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), 0.0, 1.0),
+    "split, off on the bound": (_ds_learner(dhw_space=(6.0, 0.0, True, [150.0]), space_dhw=_DS_ON), 1.0, 0.0),
+}
+
+
+def _ds_agree(learner, s_next, d_next, rule=None):
+    served = _ds_split(learner, _ds_plan((0, 1.0, 1.0), (900, s_next, d_next)))
+    first, last, _two = _ds_legs.leg_ends([1.0, s_next], [1.0, d_next],
+                                          rule=learner.split() if rule is None else rule)
+    return (_DS_LEG[served[0]], _DS_LEG[served[-1]]) == (int(first[0]), int(last[0])), served
+
+
+_ds_agreed = {name: _ds_agree(*case) for name, case in _ds_agree_cases.items()}
+_ds_agree_null = _ds_agree(*_ds_agree_cases["space first"], rule=_ds_legs.DEFAULT_RULE)
+R.check(
+    "planner and arbiter read one leg rule: leg_ends under the learner's split gives the first and last leg the "
+    "arbiter serves in each order and whole-step case; control, the planner on the default rule disagrees where "
+    "space goes first",
+    all(ok for ok, _served in _ds_agreed.values()) and not _ds_agree_null[0]
+    and {name: served for name, (_ok, served) in _ds_agreed.items()} == {
+        "space first": _DS_SPACE_FIRST, "today": _DS_TODAY, "whole, next serves space": _DS_WHOLE,
+        "split, next serves hot water": _DS_TODAY, "split, off on the bound": _DS_TODAY},
+    f"{_ds_agreed} {_ds_agree_null}",
+)
+_ds_latch_off = _ds_split(_ds_mod.DutySwitchLearner(), _ds_next_dhw)
+R.check(
+    "null control of the latch: the re-solved plan and learner read from the step's start split as today",
+    _ds_latch_off == _DS_TODAY,
+    _ds_latch_off,
+)
+
+
+def _ds_delivery(learner, plan):
+    """(room, tank) kW-minutes served over a both step and the one after it, against the plan's."""
+    served = {"s": 0.0, "d": 0.0}
+    for i, duty in enumerate(_ds_split(learner, plan) + "".join(
+            str(_sa_pa.step_duty(plan, _DS_T0 + timedelta(minutes=m)))[0] for m in range(15, 30))):
+        step = i // 15
+        served[duty] += plan.power_schedule[step] + plan.dhw_power_schedule[step]
+    planned = (sum(plan.power_schedule[:2]) * 15.0, sum(plan.dhw_power_schedule[:2]) * 15.0)
+    return (served["s"], served["d"]), planned
+
+
+_ds_moved = _ds_delivery(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), _ds_plan((0, 1.0, 1.0), (900, 1.5, 0.0)))
+_ds_kept = _ds_delivery(_ds_mod.DutySwitchLearner(), _ds_plan((0, 1.0, 1.0), (900, 1.5, 0.0)))
+R.check(
+    "with the whole-step rule active the room and tank delivery summed over the denied step and the next equals "
+    "the plan's, the next step serving the denied duty whole; and so does today's split",
+    sum(_ds_moved[0]) == sum(_ds_moved[1]) and _ds_moved[0][0] == 1.5 * 15.0
+    and sum(_ds_kept[0]) == sum(_ds_kept[1]),
+    f"{_ds_moved} {_ds_kept}",
+)
+_ds_span_gone = _ds_learner(dhw_space=(0.3, 0.0, False, [900.0]), space_dhw=(0.3, 0.0, False, [900.0]))
+for _ds_d in _ds_span_gone.directions.values():
+    _ds_d.first_day = _ds_d.last_day = None
+    _ds_d.stopped = 9
+_ds_rates = [_ds_split(_ds_learner(dhw_space=(n, 0.0, True, [900.0]))) for n in (_ds_mod.N_ON, _ds_mod.N_CAP)]
+R.check(
+    "the split reads the latches and nothing published: span_days 0 beside non-zero tallies splits as today, and "
+    "two latched learners whose evidence weighs 5 and 10 (a unit gating fewer switches) split alike",
+    _ds_split(_ds_span_gone) == _DS_TODAY and _ds_span_gone.published(_ds_day)["duty_switch_dhw_space_span_days"] == 0
+    and _ds_rates == [_DS_SPACE_FIRST] * 2,
+    f"{_ds_split(_ds_span_gone)} {_ds_rates}",
+)
+_ds_capped = _DS_D()
+for _ds_i in range(40):
+    _ds_capped.book(_ds_day + timedelta(days=_ds_i // 20, minutes=_ds_i), True, 600.0)
+_ds_cap_last = _ds_day + timedelta(days=1, minutes=39)
+_ds_old = _DS_D(k=40.0, decayed_at=_ds_cap_last, first_day=_ds_day.date(), last_day=_ds_cap_last.date(), usable=True)
+
+
+def _ds_held_after(d, days):
+    d = _DS_D(**{f: getattr(d, f) for f in ("k", "kept_w", "decayed_at", "first_day", "last_day", "usable")})
+    d.decay(_ds_cap_last)  # the pass after the last booking
+    d.decay(_ds_cap_last + timedelta(days=days))
+    return d.usable
+
+
+R.check(
+    "n has a ceiling: forty stops over two days hold n at N_CAP with p unchanged, so with no further episode a "
+    "latched direction unlatches just past two half-lives and is re-tested; a record stored over the cap is held "
+    "to it by the next pass alike; null control, a day before that it is still latched",
+    abs(_ds_capped.n - _ds_mod.N_CAP) < 1e-9 and _ds_capped.p == 1.0 and _ds_capped.usable
+    and not _ds_held_after(_ds_capped, 28.05) and _ds_held_after(_ds_capped, 27.0)
+    and not _ds_held_after(_ds_old, 28.05) and _ds_held_after(_ds_old, 27.0),
+    f"n {_ds_capped.n} p {_ds_capped.p} {[_ds_held_after(d, x) for d in (_ds_capped, _ds_old) for x in (27.0, 28.05)]}",
 )
 # Flat prices: ``tests/golden/flat_prices.json``'s scenario is solved here
 # (its floats are not compared with the recording, which only a canonical BLAS
@@ -83218,37 +87986,50 @@ def _ds_flat_plan(i):
 
 
 _ds_flat_runs = [[_ds_commands(l, {}, _ds_flat_plan(i))[:2] for i in _ds_flat_both]
-                 for l in (_ds_mod.DutySwitchLearner(), _ds_saturated())]
+                 for l in (_ds_mod.DutySwitchLearner(), _ds_learner(**_DS_BELOW), _ds_learner(**_DS_NO_STOP))]
 R.check(
     "null control, a flat-price day: each both step of the flat scenario's plan is split and written "
-    "identically under an empty and a saturated learner",
-    len(set(_ds_flat["prices"])) == 1 and _ds_flat_both != [] and _ds_flat_runs[0] == _ds_flat_runs[1]
+    "identically under an empty learner, one under the evidence threshold and one where no switch stops",
+    len(set(_ds_flat["prices"])) == 1 and _ds_flat_both != [] and _ds_flat_runs[0] == _ds_flat_runs[1] == _ds_flat_runs[2]
     and all(calls != [] for calls, _split in _ds_flat_runs[0]),
-    f"{[split for _c, split in _ds_flat_runs[0]]} {[split for _c, split in _ds_flat_runs[1]]}",
+    f"{[[split for _c, split in run] for run in _ds_flat_runs]}",
 )
-# Both controls hold by construction: only the arbiter (which reports) and the
-# sensor (which publishes) name the module, and neither reads the estimate.
+# Only the arbiter (which reports and reads the split), the sensor (which
+# publishes) and the coordinator (whose factory reset voids the store, and which
+# hands the planner's read to a solve's configuration, R10-DUTY-SWITCH-PLANNER-PRICE,
+# and the settled running class to a solve's inputs, R11-OUTSIDE-HONEST-STARTS-RUNS)
+# name the module; arbiter and planner read the estimate through one leg rule.
 _ds_pkg = _DsPath("custom_components/heatpump_optimizer")
 _ds_readers = sorted(
     p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
         isinstance(n, _ds_ast.ImportFrom) and (n.module == "duty_switch" or any(a.name == "duty_switch" for a in n.names))
         for n in _ds_ast.walk(_ds_ast.parse(p.read_text()))))
 _ds_uses = sorted({
-    n.attr for name in ("pump_arbiter.py", "sensor.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
+    n.attr for name in ("pump_arbiter.py", "sensor.py", "coordinator.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
     if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch"})
+_ds_plan_uses = sorted(
+    n.attr for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "coordinator.py").read_text()))
+    if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch")
 _ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
            if isinstance(n, _ds_ast.ImportFrom) and n.level == 1} | {
     a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
     if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
+_ds_rs_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "running_signal.py").read_text()))
+              if isinstance(n, _ds_ast.ImportFrom) and n.level == 1}
 R.check(
-    "only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and "
-    "never a read of the estimate; the module imports neither of them; the pure half of wear stays pure",
-    _ds_readers == ["pump_arbiter.py", "sensor.py"]
-    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
+    "only the arbiter, the sensor and the coordinator name duty_switch, through its report, attach, publish and "
+    "store calls, and the estimate is read only by the arbiter's split and, once in the coordinator, the planner's "
+    "read, beside the running class a solve starts from; the module imports none of them, and the running "
+    "signal it hears imports none of them nor it; the pure half of wear stays pure",
+    _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
+    and sorted(set(_ds_plan_uses)) == ["planner_fields", "record_for", "running_now"]
+    and _ds_uses == ["STOP_WINDOW_S", "SwitchContext", "attach", "both_step_duty", "detach",
+                     "note_mode_write", "note_pass", "planner_fields", "record_for", "running_now",
                      "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
+    and not _ds_rs_own & {"duty_switch", "pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
-    f"{_ds_readers} {_ds_uses} {_ds_own}",
+    f"{_ds_readers} {_ds_uses} {_ds_plan_uses} {_ds_own} {_ds_rs_own}",
 )
 # Published on the compressor-starts sensor, beside the counter, off the payload.
 from heatpump_optimizer import sensor as _ds_sensor  # noqa: E402
@@ -83258,10 +88039,10 @@ _ds_attrs0 = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_st
 _ds_mod._RECORDS[_ds_pub] = _ds_mod._Record(None, None, learner=_ds_tab)
 _ds_attrs = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
 _DS_KEYS = {f"duty_switch_{d}_{k}" for d in _ds_mod.DIRECTIONS
-            for k in ("k", "n", "stopped", "kept", "void", "censored", "span_days")}
+            for k in ("p", "n", "stopped", "kept", "void", "censored", "span_days")}
 R.check(
     "the starts sensor's attributes are the counter's alone until a direction has an observation; then, per "
-    "direction, only k, n, stopped, kept, void, censored, span days and (once one exists) the median off "
+    "direction, only p, n, stopped, kept, void, censored, span days and (once one exists) the median off "
     "seconds, all numeric",
     set(_ds_attrs0) == {"lifetime", "month"}
     and set(_ds_attrs) == {"lifetime", "month"} | _DS_KEYS | {"duty_switch_dhw_space_median_off_s"}
@@ -83304,13 +88085,14 @@ def _ds_wrapped(readings, writes_at=0.0, defrost_from=None, before=(), fresh=Fal
     rec = _ds_mod._Record(None, _DsSaves())
     rec.loaded = True
     hz = [readings[0][1]]
-    rec.reader = lambda: (hz[0], None, None, True)
+    rec.signal.reader = lambda: (hz[0], None, None, True)
+    _ds_mod.attach(rec)
     if not fresh:
-        _ds_mod.note_signal(rec, _DS_T0 - timedelta(minutes=10))
+        _ds_rs.note(rec.signal, _DS_T0 - timedelta(minutes=10))
         _asyncio.run(_ds_mod.note_pass(rec, _DS_T0 - timedelta(minutes=5), _ds_ctx(None)))
     for lead, value in before:
         hz[0] = value
-        _ds_mod.note_signal(rec, _DS_T0 - timedelta(seconds=lead))
+        _ds_rs.note(rec.signal, _DS_T0 - timedelta(seconds=lead))
     ctx = _ds_ctx(_DS_T0)
     _ds_mod.note_mode_write(rec, _DS_T0 + timedelta(seconds=writes_at), _DS_DHW, _DS_HEAT, ctx)
     opened = rec.learner.episode is not None
@@ -83320,7 +88102,7 @@ def _ds_wrapped(readings, writes_at=0.0, defrost_from=None, before=(), fresh=Fal
         for at, value in readings[1:]:
             if at == mark:
                 hz[0] = value
-                _ds_mod.note_signal(rec, when)
+                _ds_rs.note(rec.signal, when)
         if mark % 15 == 0:
             defrost = defrost_from is not None and mark >= defrost_from
             _asyncio.run(_ds_mod.note_pass(rec, when, _ds_ctx(_DS_T0, defrosting=True) if defrost else ctx))
@@ -83329,7 +88111,7 @@ def _ds_wrapped(readings, writes_at=0.0, defrost_from=None, before=(), fresh=Fal
 
 
 # A stop read in the window's last debounce is still pending at the pass on the window's end.
-_DS_LATE_STOP = _ds_mod.STOP_WINDOW_S - _ds_mod.wear.EDGE_DEBOUNCE_S / 2.0
+_DS_LATE_STOP = _ds_mod.STOP_WINDOW_S - _ds_wear.EDGE_DEBOUNCE_S / 2.0
 R.check(
     "through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on "
     "the window's end keeps the episode open and books the stop once confirmed; null control, with no stop "
@@ -83366,12 +88148,11 @@ R.check(
     _ds_wrapped([(0, 0.0)], before=[(_DS_START_LEAD, 50.0)]) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 0.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)]) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, [])
-    and 0.0 < _DS_START_LEAD < _ds_mod.wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
+    and 0.0 < _DS_START_LEAD < _ds_wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
     f"{_ds_wrapped([(0, 0.0)], before=[(_DS_START_LEAD, 50.0)])} "
     f"{_ds_wrapped([(0, 0.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
 )
 # Home Assistant 2025.2 runs Python 3.13, which evaluates the arbiter's annotations at import; 3.14 defers them.
-from heatpump_optimizer import pump_arbiter as _ds_pa  # noqa: E402
 import typing as _ds_typing  # noqa: E402
 
 
@@ -83387,9 +88168,9 @@ def _ds_unbound(reader: "_DsNoSuchReader") -> None:  # noqa: F821
     """A seam annotated with a name no module binds: the null control of the check below."""
 
 
-_ds_seams = _ds_hints(_ds_pa._running_signal, _ds_mod.attach)
+_ds_seams = _ds_hints(_ds_rs.source, _ds_rs.attach)
 R.check(
-    "the reader's annotations resolve, as Python 3.13 resolves the arbiter's at import: _running_signal returns "
+    "the reader's annotations resolve, as Python 3.13 resolves the module's at import: running_signal.source returns "
     "and attach takes the one reader type; null control, a seam annotated with a name no module binds does not "
     "resolve",
     isinstance(_ds_seams, tuple)
@@ -83406,13 +88187,13 @@ R.check(
     _ds_wrapped([(0, 50.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 50.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, [])
-    and 0.0 < _DS_START_LEAD < _ds_mod.wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
+    and 0.0 < _DS_START_LEAD < _ds_wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
     f"{_ds_wrapped([(0, 50.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True)} "
     f"{_ds_wrapped([(0, 50.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True)} "
     f"{_ds_wrapped([(0, 50.0)])}",
 )
 # A stop read 60 s after the write is confirmed by the pass one debounce later, on a clean context.
-_DS_CONFIRM_AT = 60 + _ds_mod.wear.EDGE_DEBOUNCE_S
+_DS_CONFIRM_AT = 60 + _ds_wear.EDGE_DEBOUNCE_S
 R.check(
     "through duty_switch.note_pass, a stop is void-checked on the context of the pass that confirms it: a "
     "defrost that first reads on the pass after the confirming one does not void it, and the stop is booked; "
@@ -84341,12 +89122,17 @@ R.check(
     list(_cpd_warm) == [3.0, 3.0, 2.0, 0.0] and list(_cpd_warm_null) == [3.0, 2.5, 1.0, 0.0],
     f"{list(_cpd_warm)} {list(_cpd_warm_null)}",
 )
-# Carry 6: every source and reason code has its user string in strings.json,
-# en and sv, under the entity's state_attributes, so no raw code is shown.
+# Carry 6: every source and reason code has its user string in strings.json
+# and every shipped catalogue, under the entity's state_attributes, so no raw
+# code is shown.
 _cpd_codes = {
     "pump_max_power_source": {"configured", "ceiling_probe"},
     "pump_max_power_reason": {"plan_writes_power", "awaiting_probe", "lapsed",
                               "not_below_configured", "measured_below_configured"},
+    # R11-OUTSIDE-HONEST-METERED-FLOOR: the bottom end's codes, each reached
+    # by its fixture in that group's block (the reached-set check there).
+    "pump_min_power_source": {"configured", "metered"},
+    "pump_min_power_reason": {"plan_writes_power", "awaiting", "unexceeded", "cycled", "measured"},
 }
 _cpd_tr_missing = []
 for _cpd_name in ("strings.json", *SHIPPED_CATALOGUES):
@@ -85735,6 +90521,238 @@ R.check(
 )
 
 
+# --- R10-SAV-VALUATION-RESIDUE: the reference held where its valve curve can hold it ---
+from profiles import house as _svh_house  # noqa: E402
+from heatpump_optimizer.optimizer import _thermostat_held_state as _svh_held  # noqa: E402
+from heatpump_optimizer.thermal_model import WeatherSeries as _SVH_WS  # noqa: E402
+
+_SVH_VALVE = {"mixing_valve_mode": "manual", "mixing_valve_target": 21.0,
+              "buffer_tank_volume": 750.0, "buffer_max_temperature": 56.0,
+              "heat_pump_max_power": 4.0}
+
+
+def _svh_case(two_zone, outdoor, **over):
+    """The held state, the stored-heat change of its first reference step, the step's room."""
+    p = _SVR_PARAMS.from_config(_svh_house(two_zone=two_zone, dhw=False, **{**_SVH_VALVE, **over}))
+    model = _SVR_MODEL(p)
+    opt = _SVR_OPT(model, _SVR_CFG(horizon_hours=1, time_step_minutes=15, target_temp=21.0))
+    w = _SVH_WS(outdoor_temps=np.array([outdoor]), wind_speeds=np.zeros(1),
+                precipitation=np.zeros(1), solar_radiation=np.zeros(1))
+    start = _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=outdoor,
+                       upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+                       buffer_tank_temperature=30.0)
+    held = _svh_held(model, start, w, 21.0)
+    # A one-step horizon books the simulated step itself (nothing to apportion).
+    power = float(opt._compute_baseline_power(w, start, 0.25)[0][0])
+    nxt = model.simulate_step(held, power, outdoor, 0.0, 0.0, 0.0, 0.25)
+    return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), nxt
+
+
+# -10 and -15 C sag far on two zones; at 14 C the two-zone house falls just short
+# of the target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
+# A single-zone curve holds its target through the slab (R11-VALVE-REFERENCE), so
+# its held room is the setpoint at every row.
+_svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0, 14.0, 16.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the "
+    "setpoint, the thermostat reference starts where that curve holds the "
+    "house -- its first booked step draws no stored heat (the held 21 C "
+    "drew it every step, booked as unpaid reference heat); both zonings, "
+    "from a deep shortfall to a mild day the curve holds; a single-zone curve "
+    "holds the setpoint itself",
+    all(abs(ds) < 0.02 for h, ds, _ in _svh_rows.values())
+    and all(_svh_rows[(True, t)][0].room_temperature < 21.0 - 0.1 for t in (-10.0, -15.0))
+    and all(abs(_svh_rows[(False, t)][0].room_temperature - 21.0) < 1e-3
+            for t in (-10.0, -15.0, 14.0, 16.0)),
+    {k: (round(h.room_temperature, 3), round(ds, 4)) for k, (h, ds, _) in _svh_rows.items()},
+)
+# Null control: a curve that holds the setpoint keeps the held state at target.
+_svh_ok = {tz: _svh_case(tz, -10.0, mixing_valve_target=40.0) for tz in (True, False)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: null control -- a valve curve able to hold "
+    "the setpoint leaves the held state's zones at the target",
+    all(h.room_temperature == 21.0 and h.upper_floor_temperature == 21.0
+        and h.lower_floor_temperature == 21.0 for h, _, _ in _svh_ok.values()),
+    {tz: round(h.room_temperature, 4) for tz, (h, _, _) in _svh_ok.items()},
+)
+
+# The pump's capacity is the held state's other bound, valved or not: at -25 C
+# a 4 kW pump cannot hold 21 C (the held 21 C drew ~1.07 kWh_th of stored
+# heat per booked step), a 9 kW one can.
+_SVH_CAP = {"buffer_tank_volume": 750.0, "buffer_max_temperature": 56.0}
+
+
+def _svh_cap(two_zone, valved, hp):
+    cfg = {**_SVH_CAP, "heat_pump_max_power": hp}
+    if valved:
+        cfg.update(mixing_valve_mode="manual", mixing_valve_target=40.0)
+    p = _SVR_PARAMS.from_config(_svh_house(two_zone=two_zone, dhw=False, **cfg))
+    model = _SVR_MODEL(p)
+    opt = _SVR_OPT(model, _SVR_CFG(horizon_hours=1, time_step_minutes=15, target_temp=21.0))
+    w = _SVH_WS(outdoor_temps=np.array([-25.0]), wind_speeds=np.zeros(1),
+                precipitation=np.zeros(1), solar_radiation=np.zeros(1),
+                humidity=np.array([85.0]))
+    start = _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=-25.0,
+                       upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+                       buffer_tank_temperature=30.0)
+    held = _svh_held(model, start, w, 21.0)
+    power = float(opt._compute_baseline_power(w, start, 0.25)[0][0])
+    nxt = model.simulate_step(held, power, -25.0, 0.0, 0.0, 0.0, 0.25)
+    return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), power
+
+
+_svh_caps = {(tz, v, hp): _svh_cap(tz, v, hp)
+             for tz in (True, False) for v in (True, False) for hp in (4.0, 9.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: a pump too small to hold the setpoint starts "
+    "the reference where its capacity holds the house, valved or not -- the "
+    "first booked step runs at max power and draws no stored heat",
+    all(abs(ds) < 0.02 for h, ds, _ in _svh_caps.values())
+    and all(_svh_caps[(tz, v, 4.0)][0].room_temperature < 21.0 - 0.1
+            for tz in (True, False) for v in (True, False)),
+    {k: (round(h.room_temperature, 3), round(ds, 4), round(pw, 3))
+     for k, (h, ds, pw) in _svh_caps.items()},
+)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: null control -- a pump able to hold the "
+    "setpoint leaves the held state's zones at the target, valved or not",
+    all(_svh_caps[(tz, v, 9.0)][0].room_temperature == 21.0
+        for tz in (True, False) for v in (True, False)),
+    {k: round(h.room_temperature, 4) for k, (h, _, _) in _svh_caps.items() if k[2] == 9.0},
+)
+
+# A warm day under a pump too small for the tank's standing loss: unreachable
+# needs no zone heat there, so the held zones stay at the target, never above.
+_svh_warm_p = _SVR_PARAMS.from_config(_svh_house(
+    two_zone=True, dhw=False, buffer_tank_volume=2000.0, heat_pump_max_power=0.01))
+_svh_warm = _svh_held(
+    _SVR_MODEL(_svh_warm_p),
+    _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=25.0,
+               upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+               buffer_tank_temperature=80.0),
+    _SVH_WS(outdoor_temps=np.array([25.0]), wind_speeds=np.zeros(1),
+            precipitation=np.zeros(1), solar_radiation=np.zeros(1)), 21.0)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: outdoors above the target, a pump unable to "
+    "cover the tank's standing loss leaves the held zones at the target, not "
+    "at the outdoor temperature",
+    _svh_warm.room_temperature == 21.0,
+    round(_svh_warm.room_temperature, 4),
+)
+
+# The reference has no wood: a modelled wood tank is emptied in the held state.
+_svh_wood_p = _SVR_PARAMS.from_config(_svh_house(
+    two_zone=True, dhw=False, wood_tank_top_entity="sensor.w", **_SVH_VALVE))
+_svh_wood = _svh_held(
+    _SVR_MODEL(_svh_wood_p),
+    _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=-10.0,
+               upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+               buffer_tank_temperature=30.0, wood_tank_temperature=80.0),
+    _SVH_WS(outdoor_temps=np.array([-10.0]), wind_speeds=np.zeros(1),
+            precipitation=np.zeros(1), solar_radiation=np.zeros(1)), 21.0)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: a modelled wood tank holds no heat in the "
+    "thermostat reference's held state, whatever was measured in it",
+    _svh_wood_p.two_tank_modelled and _svh_wood.wood_tank_temperature == 0.0,
+    (_svh_wood_p.two_tank_modelled, _svh_wood.wood_tank_temperature),
+)
+
+# At zero demand (a warm day, two zones: each zone's need floors at exactly
+# 0.0) the valve-held tank keeps its measured temperature.
+_svh_idle = _svh_held(
+    _SVR_MODEL(_SVR_PARAMS.from_config(_svh_house(two_zone=True, dhw=False, **_SVH_VALVE))),
+    _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=25.0,
+               upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+               buffer_tank_temperature=30.0),
+    _SVH_WS(outdoor_temps=np.array([25.0]), wind_speeds=np.zeros(1),
+            precipitation=np.zeros(1), solar_radiation=np.zeros(1)), 21.0)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: behind a valve at zero demand the held tank "
+    "keeps its measured temperature and the zones the target",
+    _svh_idle.buffer_tank_temperature == 30.0 and _svh_idle.room_temperature == 21.0,
+    (_svh_idle.buffer_tank_temperature, _svh_idle.room_temperature),
+)
+
+# Carry 9: on an install's own parameters (the owner replay's entry: two
+# zones, valve ``manual`` at 21 C, a 4 kW pump) the curve cannot hold 21 C,
+# and the plant at its pump settles with the floors apart -- radiators above,
+# slab-fed floor below. The held state is that ceiling, floor by floor, so a
+# thermostat's day starts and ends there: a held state with the floors forced
+# level sat below it and the day's reference warmed to it, booking the warming.
+from profiles import replay_install as _c9_install  # noqa: E402
+
+
+def _c9_case(outdoor, **over):
+    """The held state, the plant at its pump for three days from it, the reference's day's end."""
+    model = _SVR_MODEL(_SVR_PARAMS.from_config(_c9_install(**over)))
+    opt = _SVR_OPT(model, _SVR_CFG(horizon_hours=24, time_step_minutes=15, target_temp=21.0))
+    n = 96
+    w = _SVH_WS(outdoor_temps=np.full(n, outdoor), wind_speeds=np.full(n, 3.0),
+                precipitation=np.zeros(n), solar_radiation=np.zeros(n))
+    start = _SVR_STATE(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=outdoor,
+                       upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                       buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+    held = _svh_held(model, start, w, 21.0)
+    plant = held
+    for _ in range(3 * n):
+        plant = model.simulate_step(plant, model.params.max_electrical_power, outdoor, 3.0, 0.0, 0.0, 0.25)
+    end = opt._compute_baseline_power(w, start, 0.25, np.full(n, 21.0))[1]
+    return held, plant, end
+
+
+def _c9_zones(s):
+    return (s.room_temperature, s.upper_floor_temperature, s.lower_floor_temperature)
+
+
+# The last row caps the tank at 25 C, under the curve's top at -15 C: there
+# the cap, not the curve, is the most each circuit sees.
+_c9_rows = {**{t: _c9_case(t) for t in (5.0, -5.0, -15.0)},
+            "-15, cap 25": _c9_case(-15.0, buffer_max_temperature=25.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve "
+    "cannot hold the setpoint, the thermostat reference's held state is the "
+    "plant's own ceiling floor by floor (the pump driving it for three days "
+    "moves no floor 0.02 K), and its day ends where it started",
+    all(max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(pl))) < 0.02
+        and max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(e))) < 0.02
+        and h.room_temperature < 21.0 - 0.1
+        for h, pl, e in _c9_rows.values()),
+    {t: tuple(tuple(round(v, 3) for v in _c9_zones(s)) for s in row) for t, row in _c9_rows.items()},
+)
+_c9_off = {t: _c9_case(t, mixing_valve_mode="none")[0] for t in (5.0, -15.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE Carry 9: null control -- the same install with "
+    "the valve off holds the setpoint, both floors at 21.0",
+    all(_c9_zones(h) == (21.0, 21.0, 21.0) for h in _c9_off.values()),
+    {t: _c9_zones(h) for t, h in _c9_off.items()},
+)
+
+# Where the plant's ceiling is not the bound the held state keeps the level
+# floors part 1 bisects: a 1 kW pump cannot make the curve's top draw at
+# -15 C, and under 300 W/m2 of sun a 3 C curve's top sits below the warmed
+# upper floor, so its radiators draw nothing (an affine solve would cool it).
+def _c9_fallback(outdoor, solar, **over):
+    model = _SVR_MODEL(_SVR_PARAMS.from_config(_c9_install(**over)))
+    return _svh_held(
+        model,
+        _SVR_STATE(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=outdoor,
+                   upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                   buffer_tank_temperature=40.0, wood_tank_temperature=20.0),
+        _SVH_WS(outdoor_temps=np.array([outdoor]), wind_speeds=np.full(1, 3.0),
+                precipitation=np.zeros(1), solar_radiation=np.array([solar])), 21.0)
+
+
+_c9_fb = {"pump 1 kW": _c9_fallback(-15.0, 0.0, heat_pump_max_power=1.0),
+          "curve 3 C, sun": _c9_fallback(-5.0, 300.0, mixing_valve_target=3.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE Carry 9: a pump too small for the curve's top "
+    "draw, or a curve top below a sunlit floor, holds the floors level below "
+    "the target, never at the valve's ceiling",
+    all(h.upper_floor_temperature == h.lower_floor_temperature == h.room_temperature < 21.0 - 0.1
+        for h in _c9_fb.values()),
+    {k: _c9_zones(h) for k, h in _c9_fb.items()},
+)
+
 # --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
 # note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
 # a water set-point under Pump duty control was inlet + lift, re-anchored on
@@ -86633,7 +91651,7 @@ R.check(
 import asyncio as _fb_aio  # noqa: E402
 
 
-def _fb_own(moves, wrote=True):
+def _fb_own(moves, wrote=True, arm=True):
     coord = _FbCoord()
     held = _fb_pa.state_for(coord)
     if wrote:
@@ -86641,23 +91659,35 @@ def _fb_own(moves, wrote=True):
         held.feedback = _fb_running(3600, 0)
     for target in moves:
         _fb_pa._note_sent(held, held.feedback, target, 26.4)
-    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET, _FB_NOW)) if arm else None
     return sent, coord, held
 
 
+def _fb_baseline(coord):
+    """The space baseline the off restore holds, or None when unarmed."""
+    armed = _fb_aio.run(_pa_or.async_armed_entry(coord.hass, coord.entry, _fb_pa.CONSUMER))
+    return None if armed is None else armed["value"]
+
+
+# Re-pinned by R10-HOTFIX-FLOW-SETPOINT-STUCK: the own write is no longer
+# refused, which held the write; the baseline row's 30.0 (the rated 35 in
+# return terms, under the 32 ceiling) is captured in its place.
 _fb_own_one, _fb_own_two, _fb_own_none = _fb_own([25.8]), _fb_own([25.8, 25.6]), _fb_own([], wrote=False)
 _fb_rs_coord, _fb_rs_held = _fb_own([25.8])[1:]
 _fb_rs_coord.entry.runtime_data = _fb_rs_coord
 _fb_pa._space_restored(_fb_rs_coord.entry, _FB_SET, 26.0)
 R.check(
     "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8): a loop move's "
-    "dropped record still refuses the optimizer's own 26.0 as an unarmed key's baseline, "
-    "after one move and after two with no write between; a restore ends the run; an "
-    "arbiter that never wrote captures it",
-    _fb_own_one[0] is False and _fb_own_two[0] is False and _fb_own_two[2].feedback.prev_c == 26.0
-    and _fb_rs_held.feedback is None and _fb_own_none[0] is True,
-    f"one {_fb_own_one[0]}, two {_fb_own_two[0]} (prev {_fb_own_two[2].feedback.prev_c}), "
-    f"restored run {_fb_rs_held.feedback}, never wrote {_fb_own_none[0]}",
+    "dropped record still keeps the optimizer's own 26.0 from an unarmed key's baseline, "
+    "after one move and after two with no write between, and the write is sent; a restore "
+    "ends the run; an arbiter that never wrote captures it",
+    _fb_own_one[0] is True and _fb_baseline(_fb_own_one[1]) == 30.0
+    and _fb_own_two[0] is True and _fb_baseline(_fb_own_two[1]) == 30.0
+    and _fb_own_two[2].feedback.prev_c == 26.0
+    and _fb_rs_held.feedback is None and _fb_own_none[0] is True and _fb_baseline(_fb_own_none[1]) == 26.0,
+    f"one {_fb_own_one[0]} {_fb_baseline(_fb_own_one[1])}, two {_fb_own_two[0]} {_fb_baseline(_fb_own_two[1])} "
+    f"(prev {_fb_own_two[2].feedback.prev_c}), restored run {_fb_rs_held.feedback}, "
+    f"never wrote {_fb_own_none[0]} {_fb_baseline(_fb_own_none[1])}",
 )
 # Round 2 of Carry 8 (#3404's verdict at 4a5abf4a): the loop run ends on
 # paths that are neither a write nor a restore -- a pass off the loop
@@ -86670,12 +91700,12 @@ R.check(
 
 
 def _fb_own_after(end):
-    sent, coord, held = _fb_own([25.8])
+    _sent, coord, held = _fb_own([25.8], arm=False)
     end(coord, held)
     held = _fb_pa.state_for(coord)  # a restart's is a fresh state
     run = held.feedback
-    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
-    return sent, None if run is None else run.prev_c, after
+    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET, _FB_NOW))
+    return _fb_baseline(coord), None if run is None else run.prev_c, after
 
 
 def _fb_end_stale(coord, held):
@@ -86705,29 +91735,32 @@ _fb_own_ends = {
 print("CARRY8-RUN-ENDS", _fb_own_ends)
 R.check(
     "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): the "
-    "own-write refusal survives every end of the loop run while the dropped write is "
-    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart",
-    all(sent is False and prev is None and after is False for sent, prev, after in _fb_own_ends.values()),
-    f"(before, run prev_c after, after) {_fb_own_ends}",
+    "own-write fact survives every end of the loop run while the dropped write is "
+    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart: "
+    "the arm after it sends the write and captures 30.0, not the own 26.0",
+    all(after is True and prev is None and baseline == 30.0 for baseline, prev, after in _fb_own_ends.values()),
+    f"(baseline, run prev_c after, after) {_fb_own_ends}",
 )
 # Where the fact stops mattering or ends: once the person moves the
 # controller (25.0) the arm captures and the write lands, after which the
 # armed key never consults it -- the controller reading 26.0 again with the
-# record gone is not refused; a restore (_space_restored) and a release (Off
-# forgets the record, even one that is only the dropped write) end it, and
-# a stored value the arbiter could not have written is not loaded.
+# record gone is not refused; a restore (_space_restored) ends it, and a
+# stored value the arbiter could not have written is not loaded. Re-pinned by
+# R10-HOTFIX-FLOW-SETPOINT-STUCK: Off with no restore no longer ends it (the
+# entity still reads the optimizer's number, and the arm after On must not
+# take it as the person's), and a written record becomes the dropped one.
 # Control: before each, the fact is held.
-_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8])
+_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8], arm=False)
 _fb_wr_before = dict(_fb_wr_held.dropped)
 _fb_wr_coord.hass.states.set(_FB_SET, FakeState("25.0", attributes={"min": 15, "max": 45, "step": 0.1}))
 _fb_aio.run(_fb_pa._write(_fb_wr_coord, _fb_wr_coord.arbiter_inputs(), "space_setpoint", 25.8, _FB_NOW))
 _fb_wr_written = _fb_wr_held.written.pop("space_setpoint", (None,))[0]
 _fb_wr_coord.hass.states.set(_FB_SET, FakeState("26.0", attributes={"min": 15, "max": 45, "step": 0.1}))
-_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET))
+_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET, _FB_NOW))
 _fb_junk = _FbCoord()
 _fb_aio.run(_fb_pa._store(_fb_junk).async_save({"written": {}, "dropped": {"space_setpoint": "26.0 degC"}}))
 _fb_aio.run(_fb_pa._load(_fb_junk))
-_fb_off_coord, _fb_off_held = _fb_own([25.8])[1:]
+_fb_off_coord, _fb_off_held = _fb_own([25.8], arm=False)[1:]
 _fb_off_held.written.clear()
 _fb_off_before = dict(_fb_off_held.dropped)
 _fb_off_coord._mode = _PA_OFF
@@ -86735,11 +91768,11 @@ _fb_aio.run(_fb_pa._arbitrate(_fb_off_coord, _fb_off_held, _fb_off_coord.arbiter
                               _fb_pa.DUTY_CONTROL, _FB_NOW))
 R.check(
     "R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write is not consulted "
-    "once a write lands on the armed key, and ends when a restore writes the baseline or "
-    "Off releases the pump",
+    "once a write lands on the armed key, and ends when a restore writes the baseline; "
+    "Off with nothing restored keeps it",
     _fb_wr_before == {"space_setpoint": 26.0} and _fb_wr_written == 25.8 and _fb_wr_after is True
     and _fb_rs_held.dropped == {}
-    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {}
+    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {"space_setpoint": 26.0}
     and _fb_pa.state_for(_fb_junk).dropped == {},
     f"write {_fb_wr_before}, wrote {_fb_wr_written}, armed after {_fb_wr_after}, "
     f"restore {_fb_rs_held.dropped}, off {_fb_off_before} -> {_fb_off_held.dropped}, "
@@ -86763,5 +91796,5087 @@ R.check(
     f"cut {None if _fb_floor_run is None else _fb_floor_run.cut_lo_c}, under {_fb_under}, "
     f"issues {_fb_floor['issues'][:3]}",
 )
+
+# R10-OUTSIDE-LEARNER-ROBUSTNESS-P3: the frozen learner phase takes the answer the
+# learners obey, with its end from BoostState; the refusal reasons go to DEBUG.
+import logging as _p3_logging
+from datetime import timedelta as _p3_td
+
+from heatpump_optimizer import learner_progress as _p3_lp
+
+_p3_inp = _p3_lp.LearnerInputs(True, 5, lambda n: n >= 50, None, "colder", None)
+_p3_off = _p3_lp.LearnerInputs(False, 5, None, None, None, None)
+_p3_plain = _p3_lp.learner_progress(_p3_inp)
+_p3_end = NOW + _p3_td(hours=14)
+_p3_boost = _p3_lp.learner_progress(_p3_inp, ("boost_space", _p3_end))
+R.check(
+    "P3 null control: with nothing holding the learners the payload is main's -- no frozen_until "
+    "key, the weather wait still shown; held by the boost it is frozen, the reason in waiting_for, "
+    "the end a key of that phase alone; off outranks frozen",
+    _p3_plain["phase"] == "waiting" and "frozen_until" not in _p3_plain
+    and _p3_lp.learner_progress(_p3_inp, None) == _p3_plain
+    and _p3_boost["phase"] == "frozen" and _p3_boost["waiting_for"] == "boost_space"
+    and _p3_boost["frozen_until"] == _p3_end.isoformat()
+    and _p3_lp.learner_progress(_p3_inp, ("boost_space", None))["frozen_until"] is None
+    and _p3_lp.learner_progress(_p3_off, ("boost_space", _p3_end))["phase"] == "off"
+    and "frozen_until" not in _p3_lp.learner_progress(_p3_off, ("boost_space", _p3_end)),
+    f"{_p3_plain} {_p3_boost}",
+)
+_p3_census = {
+    "boost_space": True, "ventilation": True, "stale:power_entity": True, "unavailable:indoor_temp_entity": True,
+    "early_cutoff": False, "unmetered_power": False, "not_configured:indoor_temp_entity": False,
+    "stale:dhw_temp_entity": True, "unavailable:buffer_tank_temp_entity": True,
+    "pump_offline": False, "pump_fault": False, "pump_cooling": False,
+    "external_heat_source": False, "defrosting": False, None: False,
+}
+R.check(
+    "P3 census: the boost, an open window and an unusable reading pause the learner that "
+    "recorded it; the early cut-off, unmetered power, an unread room and the pump's own states "
+    "keep its count",
+    {k: _p3_lp.pauses(k) for k in _p3_census} == _p3_census
+    and all(_p3_lp.learner_progress(_p3_inp, (k, None)) == _p3_plain for k, v in _p3_census.items() if k and not v),
+    str({k: _p3_lp.pauses(k) for k in _p3_census}),
+)
+_p3_h = boost_mod.BoostState()
+_p3_none = _p3_h.freeze_end()
+_p3_h.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_p3_live = _p3_h.freeze_end()
+_p3_h.set(boost_mod.CHANNEL_SPACE, False, NOW + _p3_td(minutes=10))
+_p3_cancel = _p3_h.freeze_end()
+_p3_h.set(boost_mod.CHANNEL_SPACE, True, NOW + _p3_td(minutes=20))
+_p3_press = _p3_h.freeze_end()
+R.check(
+    "P3 end: none with no boost; a live overlay ends its window plus the tail its whole "
+    "window owes; a cancel after 10 min moves it earlier (the 1.5 h floor from the cancel); "
+    "a second press moves it later again, to the new window's end plus the summed tail",
+    _p3_none is None
+    and _p3_live == NOW + _p3_td(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
+    and _p3_cancel == NOW + _p3_td(minutes=10) + _p3_td(hours=1.5) < _p3_live
+    and _p3_press == NOW + _p3_td(minutes=20, hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL > _p3_cancel,
+    f"{_p3_none} {_p3_live} {_p3_cancel} {_p3_press}",
+)
+class _P3Coord:
+    mode = "auto"
+_p3_c = _P3Coord()
+_p3_mode = type("C", (), {"mode": boost_mod.MODE_BOOST})()
+# Both hold a running tail, so only the global mode can make the end unknown.
+boost_mod.held_for(_p3_c).space_settle_until = NOW + _p3_td(hours=5)
+boost_mod.held_for(_p3_mode).space_settle_until = NOW + _p3_td(hours=5)
+R.check(
+    "P3 one source: another reason has no boost end; the global boost mode has none either, "
+    "though a tail is running; the same tail outside the mode is the end; the mode is a live boost",
+    boost_mod.learning_freeze(_p3_c, None) is None
+    and boost_mod.learning_freeze(_p3_c, "stale:power_entity") == ("stale:power_entity", None)
+    and boost_mod.learning_freeze(_p3_mode, boost_mod.FREEZE_REASON) == (boost_mod.FREEZE_REASON, None)
+    and boost_mod.learning_freeze(_p3_c, boost_mod.FREEZE_REASON) == (boost_mod.FREEZE_REASON, NOW + _p3_td(hours=5))
+    and boost_mod.space_boost_active(_p3_mode, NOW) is True and boost_mod.space_boost_active(_p3_c, NOW) is False,
+    "",
+)
+# The census of who a probe problem pauses, driven through the learners and the
+# payload builder (``_learning_view``): every probe the input watchdog ages
+# (``INPUT_MAX_AGE_MINUTES``), made unusable alone, through the lower, house and
+# buffer learners in ``_async_learn_interval``'s order. The design, stated here
+# and not read from the code under test: the house learner freezes on the room,
+# the outdoor and the thermal-power probes, and the solar aperture and the gains
+# fold behind its gate; the lower learner freezes on those and its own probe.
+# Every other pair keeps its count.
+from heatpump_optimizer import const as _p3_const  # noqa: E402
+from heatpump_optimizer.const import INPUT_MAX_AGE_MINUTES as _p3_probes  # noqa: E402
+from heatpump_optimizer.inputs import InputReading as _p3_IR  # noqa: E402
+
+_p3_fabric = {_p3_const.CONF_INDOOR_TEMP_ENTITY, _p3_const.CONF_OUTDOOR_TEMP_ENTITY, _p3_const.CONF_THERMAL_POWER_ENTITY}
+_p3_design = {
+    "house": _p3_fabric, "solar": _p3_fabric, "gains": _p3_fabric,
+    "lower": _p3_fabric | {_p3_const.CONF_LOWER_FLOOR_TEMP_ENTITY},
+}
+
+
+def _p3_card(problem_key):
+    c = _two_zone_learner(
+        lower_entity="sensor.lower", solar_aperture_learning_enabled=True, internal_gains_learning_enabled=True)
+    if problem_key is not None:
+        c._input_health = _NS(readings={problem_key: _p3_IR(
+            key=problem_key, entity_id="sensor.p3", value=1.0, problem="stale")})
+    interval = c._close_fabric_interval()
+    _asyncio.run(c._async_learn_lower_floor_loss(interval))
+    _asyncio.run(c._async_learn_house_heat_loss(interval))
+    _asyncio.run(c._async_learn_buffer_cooling(40.0))
+    _p3_records[problem_key] = dict(c._learner_freezes)
+    return {k: v["phase"] for k, v in c._learning_view()["learner_progress"].items()}
+
+
+_p3_records = {}
+_p3_null = _p3_card(None)
+_p3_seen = {k: _p3_card(k) for k in _p3_probes}
+_p3_bad = {
+    (k, name): phase for k, phases in _p3_seen.items() for name, phase in phases.items()
+    if (phase == "frozen") != (k in _p3_design[name])
+}
+R.check(
+    "P3 census, driven: a probe problem pauses on the card exactly the learners that freeze on "
+    "that probe -- a lower-floor probe pauses the lower learner alone, the room, outdoor and "
+    "thermal-power probes pause all four, every other probe none; the census drives every aged "
+    "probe, every card learner is on, and with no problem none is paused",
+    not _p3_bad
+    and set(_p3_null) == set(_p3_design) == set(_p3_lp.HELD_BY)
+    and "frozen" not in _p3_null.values() and "off" not in _p3_null.values()
+    and set().union(*_p3_design.values()) <= set(_p3_probes)
+    and len(_p3_seen) == len(_p3_probes) > len(set().union(*_p3_design.values())),
+    f"mismatched {_p3_bad}; null {_p3_null}",
+)
+# The same driven runs, read at the record: the buffer learner records its own
+# probe under its own name, and the sensor publishes it, though no card learner
+# reads it; with no problem nothing is recorded (null control).
+_p3_buf_key = _p3_const.CONF_BUFFER_TANK_TEMP_ENTITY
+R.check(
+    "P3 census, driven: a stale buffer probe is recorded by the buffer learner under its own name "
+    "and published as the freeze reason; with no problem no learner records anything",
+    _p3_records[_p3_buf_key].get("buffer") == f"stale:{_p3_buf_key}"
+    and _p3_records[_p3_buf_key].get("house") is None and _p3_records[_p3_buf_key].get("lower") is None
+    and _p3_records[None] == {},
+    f"{_p3_records[_p3_buf_key]} null {_p3_records[None]}",
+)
+_p3_rec = _p3_lp.FreezeRecord()
+_p3_rec.note_freeze("house", "stale:indoor_temp_entity")
+_p3_rec.note_freeze("lower", "stale:lower_floor_temp_entity")
+_p3_rec.note_freeze("house", "boost_space")
+_p3_dhw = _two_zone_learner(lower_entity="sensor.lower")
+_p3_dhw._learner_freezes.note_freeze("dhw", "stale:dhw_temp_entity")
+_p3_dhw._learner_freezes.note_freeze("buffer", "boost_space")
+R.check(
+    "P3 one record per learner: the sensor's learner_freeze_reason is the reason recorded last "
+    "this cycle, a learner recording again moving to the end; a reason only the hot-water or "
+    "buffer learner recorded pauses no card learner, though it is the one the sensor publishes",
+    _p3_rec.last == "boost_space" and list(_p3_rec) == ["lower", "house"]
+    and _p3_lp.FreezeRecord().last is None
+    and "frozen" not in {v["phase"] for v in _p3_dhw._learning_view()["learner_progress"].values()}
+    and _p3_dhw._learner_freezes.last == "boost_space",
+    f"{dict(_p3_rec)} {dict(_p3_dhw._learner_freezes)}",
+)
+from types import SimpleNamespace as _p3_ns  # noqa: E402
+from heatpump_optimizer import heat_energy as _p3_he  # noqa: E402
+
+
+class _P3Lines(_p3_logging.Handler):
+    def __init__(self):
+        super().__init__(_p3_logging.DEBUG)
+        self.lines = []
+
+    def emit(self, record):
+        self.lines.append(record.getMessage())
+
+
+_p3_he_log, _p3_cap = _p3_logging.getLogger(_p3_he.__name__), _P3Lines()
+_p3_he_was = _p3_he_log.level
+_p3_he_log.addHandler(_p3_cap)
+_p3_he_log.setLevel(_p3_logging.DEBUG)
+try:
+    _p3_no_counter = _p3_he.close_span(_p3_he.HeatEnergyMeter(), {}, (1.0, 0.0), "s", NOW, 3.0, "u", lambda *a: "iv")
+    _p3_quiet = list(_p3_cap.lines)
+    _p3_ev = _p3_he.SpanEvidence(_p3_he.SpanEnergy(NOW, NOW, 1.0, 3.0, 1.0, None), None, "s", NOW,
+                                 {"house": True, "lower": False, "cop": True}, (1.0, 0.0),
+                                 _p3_he.Attribution(1.0, 0.0, True))
+    _p3_he.close_span(_p3_ns(settle=lambda *_a: _p3_ev, refusal=None), {}, (1.0, 0.0), "s", NOW, 3.0, "u",
+                      lambda *a: "iv")
+finally:
+    _p3_he_log.removeHandler(_p3_cap)
+    _p3_he_log.setLevel(_p3_he_was)
+R.check(
+    "P3 null control: an install with no heat counter closes no span and logs no span line at "
+    "DEBUG; a span the counter closed logs one line, its refusal and the learners it reaches",
+    _p3_no_counter == _p3_he.NO_SPAN and _p3_quiet == []
+    and len(_p3_cap.lines) == 1 and _p3_cap.lines[0].startswith("Heat counter span 1.00 h")
+    and _p3_cap.lines[0].endswith("house refused, lower refused"),
+    f"{_p3_quiet} {_p3_cap.lines}",
+)
+class _P3Boom:
+    def __repr__(self): raise AssertionError("formatted with DEBUG off")
+    __str__ = __repr__
+_p3_log = _p3_logging.getLogger(_p3_lp.__name__)
+_p3_was = _p3_log.level
+_p3_log.setLevel(_p3_logging.WARNING)
+try:
+    _p3_off_ok = _p3_lp.log_skip(True, "house heat loss", "frozen (%s)", _P3Boom()) is True
+except AssertionError:  # formatted with DEBUG off: the check below goes red
+    _p3_off_ok = False
+finally:
+    _p3_log.setLevel(_p3_was)
+R.check(
+    "P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off "
+    "nothing is formatted and the gate's value is returned unchanged",
+    _p3_off_ok and _p3_lp.log_skip(False, "x", "y") is False,
+    "",
+)
+# The counter's two DEBUG lines at both ends of the level. DEBUG on: a span the
+# meter refused logs its refusal once; one with no refusal logs nothing (null
+# control). DEBUG off: ``log_close`` formats nothing, so a value whose
+# formatting raises passes through.
+class _P3BoomFmt:
+    def __format__(self, spec): raise AssertionError("formatted with DEBUG off")
+_p3_cap2 = _P3Lines()
+_p3_he_log.addHandler(_p3_cap2)
+try:
+    _p3_he_log.setLevel(_p3_logging.DEBUG)
+    _p3_refused = _p3_he.close_span(_p3_ns(settle=lambda *_a: None, refusal="unaligned"), {}, (1.0, 0.0), "s",
+                                    NOW, 3.0, "u", lambda *a: "iv")
+    _p3_he.close_span(_p3_ns(settle=lambda *_a: None, refusal=None), {}, (1.0, 0.0), "s", NOW, 3.0, "u",
+                      lambda *a: "iv")
+    _p3_he_log.setLevel(_p3_logging.WARNING)
+    try:
+        _p3_he.log_close(_p3_ns(energy=_p3_ns(hours=_P3BoomFmt()), refusal=None),
+                         _p3_ns(refusal=None, space_kw=_P3BoomFmt(), house=True, lower=False))
+        _p3_close_off_ok = True
+    except AssertionError:  # formatted with DEBUG off: the check below goes red
+        _p3_close_off_ok = False
+finally:
+    _p3_he_log.removeHandler(_p3_cap2)
+    _p3_he_log.setLevel(_p3_he_was)
+R.check(
+    "P3: at DEBUG a span the heat counter refused logs its refusal once and one with no refusal "
+    "logs nothing; with DEBUG off a closed span's line formats nothing",
+    _p3_refused == _p3_he.NO_SPAN and _p3_cap2.lines == ["Heat counter span refused: unaligned"]
+    and _p3_close_off_ok,
+    f"{_p3_cap2.lines} {_p3_close_off_ok}",
+)
+
+
+# R10-OUTSIDE-VALVE-TARGET-LABEL (pull request 3529, Bankaifan, follow-up comment
+# 6840023148): the mixing-valve target is the ROOM temperature the circuit holds. A flow
+# temperature typed there silently drives a combi plan, so a target above the comfort
+# ceiling raises a notice. The solve is not changed: the notice is the whole fix.
+def _vt_dhw_kwh(target):
+    p = _ct_params(mixing_valve_target=target)
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15,
+                                               target_temp=21.0, min_temp=19.0, max_temp=23.0))
+    r = opt.optimize(inputs=solve_inputs(
+        initial_state=ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                                   buffer_tank_temperature=50.0, dhw_temperature=50.0,
+                                   outdoor_temperature=0.0),
+        prices=_CT_PRICES, outdoor_temps=np.full(96, 0.0), wind_speeds=np.zeros(96),
+        precipitation=np.zeros(96), solar_radiation=np.zeros(96),
+        start_time=datetime(2026, 1, 15)))
+    return float(np.sum(r.dhw_power_schedule)) * 0.25, list(r.dhw_power_schedule)
+
+
+_vt_0, _vt_0_sched = _vt_dhw_kwh(0.0)
+_vt_30, _vt_30_sched = _vt_dhw_kwh(30.0)
+_vt_23, _vt_23_sched = _vt_dhw_kwh(23.0)
+R.check(
+    "valve target: on a combi entry a flow temperature typed as the target (30) moves the "
+    "planned hot-water energy against 0, the trap the notice names; null control: the same "
+    "target replans identically (the notice reads the plan, never changes it)",
+    _vt_30_sched != _vt_0_sched and _vt_30_sched == _vt_dhw_kwh(30.0)[1],
+    f"0={_vt_0} 30={_vt_30} 23={_vt_23}",
+)
+
+
+def _vt_issues(target, **extra):
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home",
+           "max_temperature": 23.0, **extra}
+    if target is not None:
+        cfg["mixing_valve_target"] = target
+    c = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=cfg))
+    c._audit_comfort_band()
+    c._audit_comfort_band()
+    return [i for i in getattr(c.hass, "issues", []) if i[1] == "valve_target_above_comfort"]
+
+
+_vt_hot = _vt_issues(30.0)
+R.check(
+    "valve target: a configured target above the comfort ceiling raises one repair, once "
+    "across two cycles, naming the target and the ceiling",
+    len(_vt_hot) == 1
+    and _vt_hot[0][2].get("translation_key") == "valve_target_above_comfort"
+    and _vt_hot[0][2]["translation_placeholders"] == {"target": "30", "ceiling": "23"},
+    str(_vt_hot),
+)
+R.check(
+    "valve target null control: unset, 0, and any target at or under the ceiling raise "
+    "no notice (a deliberate slab charge is not refused, only named when above)",
+    not _vt_issues(None) and not _vt_issues(0.0) and not _vt_issues(21.0)
+    and not _vt_issues(23.0) and not _vt_issues(23.5, max_temperature=24.0),
+    "a plausible target raised a notice",
+)
+
+R.section(
+    "R10-DUTY-SWITCH-PLANNER-PRICE: the planner prices a duty switch that stops "
+    "the compressor (pull request 3420, Bankaifan)"
+)
+
+from types import SimpleNamespace as _DspNS  # noqa: E402
+
+import heatpump_optimizer.optimizer as _dsp_om  # noqa: E402
+from heatpump_optimizer import duty_legs as _dsp_dl, pump_arbiter as _dsp_pa  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _DSP_AUTO  # noqa: E402
+from heatpump_optimizer.dhw_planner import DhwPlanner as _DspPlanner  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _DspOpt,
+    OptimizationConfig as _DspCfg,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _DspTM,
+    ThermalParameters as _DspTP,
+    ThermalState as _DspTS,
+)
+
+_DSP_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_DSP_STEPS = np.arange(96)
+_DSP_PRICES = 1.3 + 0.9 * np.sin(2 * np.pi * (_DSP_STEPS - 30) / 96.0)
+#: Bankaifan's table: every hot water to heating switch stopped the compressor,
+#: none the other way, median off time 501 s (8.2 and 8.5 minutes).
+from heatpump_optimizer import runs as _dsp_runs  # noqa: E402
+
+_DSP_PAIR, _DSP_OFF = (1.0, 0.0), (501.0, 0.0)
+
+
+def _dsp_w(space, dhw, pair, floor=None, p_max=6.0):
+    return _dsp_dl.switch_weight(
+        np.asarray(space, float), np.asarray(dhw, float), pair, p_max, floor
+    )
+
+
+# 1. The finding. Equal draw on both sides of the switch: the boundary is
+# inside a run, so its start share is nothing (the one start of the pair is
+# step 0's, from a stopped pump); the switch weight is p x draw / p_max.
+R.check(
+    "a hot-water step into a heating step at equal draw costs the start term "
+    "nothing at the boundary and weighs p x draw / p_max as a switch",
+    _dsp_runs.start_count(np.array([3.0, 3.0]), 2.0, True) == 0.0
+    and _dsp_runs.start_count(np.array([3.0, 3.0]), 2.0) == 1.0
+    and _dsp_w([0, 3], [3, 0], (0.8, 0.0)) == 0.8 * 3.0 / 6.0,
+    f"{_dsp_runs.start_count(np.array([3.0, 3.0]), 2.0, True)}, {_dsp_w([0, 3], [3, 0], (0.8, 0.0))}",
+)
+R.check(
+    "the stop adds the smaller of the two levels across a boundary",
+    _dsp_w([0, 2], [3, 0], (0.8, 0.0)) == 0.8 * 2.0 / 6.0
+    and _dsp_w([0, 3], [2, 0], (0.8, 0.0)) == 0.8 * 2.0 / 6.0,
+)
+R.check(
+    "an idle step between the two duties is no switch",
+    _dsp_w([0, 0, 3], [3, 0, 0], (0.8, 0.6)) == 0.0,
+)
+R.check(
+    "the reverse order is the other direction: unpriced with a zero there, "
+    "priced by its own probability",
+    _dsp_w([3, 0], [0, 3], (0.8, 0.0)) == 0.0
+    and _dsp_w([3, 0], [0, 3], (0.8, 0.6)) == 0.6 * 3.0 / 6.0,
+)
+R.check(
+    "a two-leg both step alone weighs p x (space + dhw) / p_max: both legs run "
+    "at the step's combined level",
+    _dsp_w([2], [2], (0.8, 0.0)) == 0.8 * 4.0 / 6.0,
+    f"{_dsp_w([2], [2], (0.8, 0.0))}",
+)
+R.check(
+    "a both step followed by heating is one switch, not two: its last leg is "
+    "already heating",
+    _dsp_w([2, 3], [2, 0], (0.8, 0.0)) == 0.8 * 4.0 / 6.0,
+)
+R.check(
+    "null control: a zero pair weighs every one of those plans zero",
+    all(
+        _dsp_w(s, d, (0.0, 0.0)) == 0.0
+        for s, d in (([0, 3], [3, 0]), ([2], [2]), ([3, 0], [0, 3]))
+    ),
+)
+
+
+def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5.5, cyc=0.3):
+    params = _DspTP()
+    params.mixing_valve_mode = "none"
+    params.buffer_tank_volume = 750.0
+    params.min_electrical_power, params.max_electrical_power = p_min, p_max
+    params.dhw_enabled = True
+    cfg = _DspCfg(clamp_planned_levels=clamp, cycling_cost=cyc)
+    if pair is not None:
+        cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = pair, off
+    return _DspOpt(_DspTM(params), cfg)
+
+
+_dsp_term_opt = _dsp_opt((0.8, 0.0), cyc=2.0, p_max=6.0)
+_dsp_term = _dsp_om._switch_cost_fn(_dsp_term_opt)
+_dsp_term_pair = (np.array([0.0, 3.0]), np.array([3.0, 0.0]))
+# Restated in R11-OUTSIDE-HONEST-STARTS-RUNS: the weight above is what the
+# relaxed descent prices (cycles of the combined draw); the true objective
+# weighs the same pair at p_max x the running share, in starts, so a switch
+# between two steps that both run is the probability of one start whatever
+# their level. Until then both read 2.0 x (0.8 x 3.0 / 6.0).
+R.check(
+    "the relaxed descent's term is cycling_cost x that weight and the true "
+    "objective's cycling_cost x the probability of one start, a float for one "
+    "plan and one entry per row for a batch; the unpriced descent has none",
+    _dsp_term(*_dsp_term_pair, _dsp_om._RELAXED) == 2.0 * (0.8 * 3.0 / 6.0)
+    and _dsp_term(np.stack([_dsp_term_pair[0]] * 2), _dsp_term_pair[1], _dsp_om._RELAXED).tolist()
+    == [2.0 * (0.8 * 3.0 / 6.0)] * 2
+    and abs(_dsp_term(*_dsp_term_pair) - 2.0 * 0.8) < 1e-12
+    and _dsp_term(np.stack([_dsp_term_pair[0]] * 2), _dsp_term_pair[1]).tolist()
+    == [_dsp_term(*_dsp_term_pair)] * 2
+    and _dsp_term(*_dsp_term_pair, _dsp_om._UNPRICED) is None,
+    f"{_dsp_term(*_dsp_term_pair, _dsp_om._RELAXED)} {_dsp_term(*_dsp_term_pair)}",
+)
+R.check(
+    "and it is no operand at all with a zero pair, a zero cycling cost or no "
+    "hot-water plan",
+    _dsp_om._switch_cost_fn(_dsp_opt((0.0, 0.0), cyc=2.0))(*_dsp_term_pair) is None
+    and _dsp_om._switch_cost_fn(_dsp_opt((0.8, 0.0), cyc=0.0))(*_dsp_term_pair) is None
+    and _dsp_term(_dsp_term_pair[0], None) is None
+    and _dsp_om._with_switch_cost(1.25, None) == 1.25,
+)
+R.check(
+    "a non-finite, negative, over-one or misshapen learned pair reads as zero",
+    [
+        _dsp_dl.priced_pair(v, 1.0)
+        for v in ((float("nan"), 0.5), (-0.1, 1.5), (0.4,), None, ("x", 0.2), (1.0, 0.0))
+    ]
+    == [(0.0, 0.5), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (1.0, 0.0)]
+    and _dsp_dl.priced_pair((float("inf"), 30.0)) == (0.0, 30.0),
+)
+
+# 2. Leg-rule agreement: drive step_duty, then _share, and compare what the
+# arbiter serves with the legs the leaf reads from the same two draws.
+_DSP_NAMES = {_dsp_dl.IDLE: "idle", _dsp_dl.SPACE: "space", _dsp_dl.DHW: "dhw"}
+
+
+class _DspCoord:
+    """A coordinator with no boost held and a duty-switch record not yet
+    loaded, so ``_share`` serves the default leg rule; it reads nothing else."""
+
+
+_dsp_coord = _DspCoord()
+from heatpump_optimizer import duty_switch as _dsp_ds  # noqa: E402
+_dsp_ds._RECORDS[_dsp_coord] = _dsp_ds._Record(None, None)
+
+
+def _dsp_served(space, dhw, minute, floor):
+    plan = _DspNS(
+        timestamps=[_DSP_T0], power_schedule=[space], dhw_power_schedule=[dhw],
+        optimal_setpoints=[21.0], duty_floor_kw=floor,
+    )
+    now = _DSP_T0 + timedelta(minutes=minute)
+    inp = _DspNS(mode=_DSP_AUTO, disinfecting=False, plan=plan)
+    return _dsp_pa._share(_dsp_coord, inp, _dsp_pa.step_duty(plan, now), now)
+
+
+def _dsp_leg_mismatches(cells, floor):
+    """Cells where the arbiter's serving is not the leaf's legs, and the two-leg count."""
+    bad, two_leg = [], 0
+    for space, dhw in cells:
+        first, last, two = (v[0] for v in _dsp_dl.leg_ends([space], [dhw], floor))
+        served = [_dsp_served(space, dhw, m, floor) for m in (0.0, 4.9, 5.1, 7.4, 9.9, 10.1, 14.9)]
+        two_leg += int(two)
+        ends = (_DSP_NAMES[int(first)], _DSP_NAMES[int(last)])
+        if (
+            (served[0], served[-1]) != ends
+            or not set(served) <= set(ends)
+            or (len(set(served)) == 2) != bool(two)
+        ):
+            bad.append((space, dhw, floor, served, ends, bool(two)))
+    return bad, two_leg
+
+
+_DSP_LEVELS = (0.0, 0.05, 0.1, 0.11, 0.5, 1.0, 1.49, 1.5, 2.0, 3.0, 4.0, 5.5)
+_DSP_CELLS = [(s, d) for s in _DSP_LEVELS for d in _DSP_LEVELS]
+_dsp_grid = {floor: _dsp_leg_mismatches(_DSP_CELLS, floor) for floor in (None, 1.5)}
+R.check(
+    "the leaf's legs are what step_duty and _share serve over the probe grid, "
+    "floor unset and set: idle, one duty, both collapse edges and two legs",
+    not _dsp_grid[None][0] and not _dsp_grid[1.5][0],
+    f"{_dsp_grid[None][0][:3]} {_dsp_grid[1.5][0][:3]}",
+)
+R.check(
+    "and the grid holds what it claims: two-leg cells under both floors, fewer "
+    "with the floor set, and both exact collapse edges (shares of 5 and 10 minutes)",
+    _dsp_grid[None][1] > _dsp_grid[1.5][1] > 0
+    and (2.0, 1.0) in _DSP_CELLS and (1.0, 2.0) in _DSP_CELLS
+    and [bool(_dsp_dl.leg_ends([s], [d])[2][0]) for s, d in ((2.0, 1.0), (1.0, 2.0), (2.0, 0.5), (0.5, 2.0))]
+    == [True, True, False, False],
+    f"{_dsp_grid[None][1]}, {_dsp_grid[1.5][1]}",
+)
+
+
+def _dsp_realised_cells(p_min, p_max):
+    out = []
+    for space, dhw in _DSP_CELLS:
+        s, d = _dsp_om._realize_joint(True, np.array([space]), np.array([dhw]), p_min, p_max)
+        out.append((float(s[0]), float(d[0])))
+    return out
+
+
+_dsp_mod_cells = _dsp_realised_cells(1.5, 5.5)
+_dsp_fix_cells = _dsp_realised_cells(5.5, 5.5)
+_dsp_mod_grid = _dsp_leg_mismatches(_dsp_mod_cells, 1.5)
+_dsp_fix_grid = _dsp_leg_mismatches(_dsp_fix_cells, 5.5)
+R.check(
+    "the same agreement on the levels a clamped install ships: a modulating "
+    "pump keeps two-leg steps, each circuit at or above p_min",
+    not _dsp_mod_grid[0] and _dsp_mod_grid[1] > 0,
+    f"{_dsp_mod_grid[0][:3]}, two-leg {_dsp_mod_grid[1]}",
+)
+R.check(
+    "and on a fixed-speed pump the leaf never returns two legs, while the row "
+    "still holds heating-only and hot-water-only steps",
+    not _dsp_fix_grid[0] and _dsp_fix_grid[1] == 0
+    and {(5.5, 0.0), (0.0, 5.5)} <= set(_dsp_fix_cells),
+    f"{_dsp_fix_grid[0][:3]}, two-leg {_dsp_fix_grid[1]}",
+)
+
+# 3. Scalar against batch, bit for bit per row, the way the cycling term is pinned.
+_dsp_rng = np.random.default_rng(3420)
+_dsp_rows = _dsp_rng.uniform(0.0, 5.5, size=(64, 96))
+_dsp_rows[_dsp_rng.uniform(size=_dsp_rows.shape) < 0.35] = 0.0
+_dsp_tank = np.zeros(96)
+_dsp_tank[[5, 6, 20, 40, 41, 42, 70, 95]] = (4.4, 4.4, 2.0, 1.2, 4.4, 0.6, 3.0, 4.4)
+_dsp_batch_w = {
+    floor: _dsp_dl.switch_weights_batch(_dsp_rows, _dsp_tank, (0.7, 0.4), 5.5, floor)
+    for floor in (None, 1.5)
+}
+_dsp_row_bad = [
+    (floor, b)
+    for floor in (None, 1.5)
+    for b in range(_dsp_rows.shape[0])
+    if _dsp_batch_w[floor][b] != _dsp_dl.switch_weight(_dsp_rows[b], _dsp_tank, (0.7, 0.4), 5.5, floor)
+]
+R.check(
+    "switch_weights_batch is switch_weight on every row, bit for bit, floor "
+    "unset and set",
+    not _dsp_row_bad and len(set(_dsp_batch_w[None].tolist())) > 32,
+    f"divergent rows: {_dsp_row_bad[:5]}",
+)
+_dsp_no_pmax = _dsp_dl.switch_weights_batch(_dsp_rows, _dsp_tank, (0.7, 0.4), 0.0)
+R.check(
+    "a pump with no maximum draw weighs every row zero, one finite entry per "
+    "row and not per step, on the rows the priced pair weighs above",
+    _dsp_no_pmax.shape == (_dsp_rows.shape[0],)
+    and _dsp_rows.shape[0] != _dsp_rows.shape[1]
+    and not _dsp_no_pmax.any()
+    and bool(_dsp_batch_w[None].any()),
+    f"shape {_dsp_no_pmax.shape}",
+)
+
+# Availability: one step charged per block end, on the profile the solve starts from.
+_dsp_blk = np.array([0.0, 3.0, 3.0, 0.0, 0.0, 0.0])
+
+
+def _dsp_charged(start, lost=0.5, floor=None, tank=_dsp_blk):
+    avail = _dsp_dl.availability(np.asarray(start, float), tank, lost, floor)
+    return None if avail is None else (np.flatnonzero(avail < 1.0).tolist(), sorted(set(avail.tolist())))
+
+
+R.check(
+    "a block end charges one step, the one holding the heating leg that "
+    "follows it: the step after the block when heating starts there, not the "
+    "block's last",
+    _dsp_charged([1, 0, 0, 2, 2, 0]) == ([3], [0.5, 1.0]),
+    f"{_dsp_charged([1, 0, 0, 2, 2, 0])}",
+)
+R.check(
+    "the block's own last step when it is a two-leg step, and then not the "
+    "step after",
+    _dsp_charged([0, 0, 2, 2, 0, 0]) == ([2], [0.5, 1.0]),
+    f"{_dsp_charged([0, 0, 2, 2, 0, 0])}",
+)
+R.check(
+    "no vector at all with a zero lost share, with an idle step after the "
+    "block, or with no hot water: the caller makes today's calls",
+    _dsp_charged([1, 0, 0, 2, 2, 0], lost=0.0) is None
+    and _dsp_charged([1, 0, 0, 0, 2, 0]) is None
+    and _dsp_charged([1, 1, 1, 1, 1, 1], tank=np.zeros(6)) is None,
+)
+R.check(
+    "the lost share is p x off seconds over the step, capped at the whole "
+    "step, and only hot water to heating carries one",
+    _dsp_dl.lost_share((1.0, 0.0), (501.0, 0.0)) == 501.0 / 900.0
+    and _dsp_dl.lost_share((0.5, 1.0), (501.0, 900.0)) == 0.5 * 501.0 / 900.0
+    and _dsp_dl.lost_share((1.0, 0.0), (5000.0, 0.0)) == 1.0
+    and _dsp_dl.lost_share((0.0, 1.0), (0.0, 501.0)) == 0.0,
+)
+R.check(
+    "a duty-cycle install carries the lost time on the bound, a clamped one on "
+    "the delivered draw, and neither moves anything with no vector",
+    _dsp_dl.space_headroom(6.0, _dsp_blk, np.array([1, 1, 1, 0.5, 1, 1.0]), None).tolist()
+    == [6.0, 3.0, 3.0, 3.0, 6.0, 6.0]
+    and _dsp_dl.space_headroom(6.0, _dsp_blk, np.array([1, 1, 1, 0.5, 1, 1.0]), 6.0).tolist()
+    == _dsp_dl.space_headroom(6.0, _dsp_blk, None, None).tolist()
+    == [6.0, 3.0, 3.0, 6.0, 6.0, 6.0]
+    and _dsp_dl.delivered_space(
+        np.array([0, 0, 0, 6.0, 6.0, 0]), _dsp_blk, np.array([1, 1, 1, 0.5, 1, 1.0]), 6.0
+    ).tolist() == [0.0, 0.0, 0.0, 3.0, 6.0, 0.0],
+)
+_dsp_same = np.array([0, 0, 0, 6.0, 6.0, 0])
+R.check(
+    "on a duty-cycle install the delivered draw is the shipped array itself",
+    _dsp_dl.delivered_space(_dsp_same, _dsp_blk, np.array([1, 1, 1, 0.5, 1, 1.0]), None)
+    is _dsp_same,
+)
+R.check(
+    "in a charged two-leg step the stop takes its share of the combined level "
+    "from the heating draw, and never below zero",
+    _dsp_dl.delivered_space(
+        np.array([2.0, 0.5]), np.array([2.0, 4.0]), np.array([0.75, 0.5]), 1.5
+    ).tolist() == [1.0, 0.0],
+)
+# Item r16: on a modulating clamped install the charged step is chosen on the
+# levels the start profile ships, so it never holds a heating level under p_min.
+_dsp_mod_opt = _dsp_opt(_DSP_PAIR, _DSP_OFF, clamp=True)
+_dsp_r16_tank = np.zeros(8)
+_dsp_r16_tank[[1, 4]] = 4.4
+_dsp_r16_start = np.array([0.0, 0.0, 1.0, 0.0, 0.0, 3.0, 3.0, 0.0])
+_dsp_r16_avail = _dsp_om._stop_availability(_dsp_mod_opt, _dsp_r16_start, _dsp_r16_tank, 5.5)
+_dsp_r16_ship = _dsp_om._realize_joint(True, _dsp_r16_start, _dsp_r16_tank, 1.5, 5.5)[0]
+R.check(
+    "on a modulating clamped install no charged step ships heating under the "
+    "floor: a start under p_min after a block is charged only once it ships at "
+    "p_min or above",
+    _dsp_r16_avail is not None
+    and bool(np.all(_dsp_r16_ship[_dsp_r16_avail < 1.0] >= 1.5))
+    and np.flatnonzero(_dsp_r16_avail < 1.0).tolist()
+    == [i for i in (2, 5) if _dsp_r16_ship[i] >= 1.5],
+    f"{_dsp_r16_avail}, shipped {_dsp_r16_ship}",
+)
+# The same item on a both step: heating shipped under p_min beside hot water is
+# no leg the arbiter serves, so the stop belongs to the heating step after it.
+_dsp_r16_both = (np.array([0.0, 1.0, 2.5, 0.0]), np.array([0.0, 2.0, 0.0, 0.0]))
+_dsp_r16_both_avail = _dsp_om._stop_availability(_dsp_mod_opt, *_dsp_r16_both, 5.5)
+_dsp_r16_both_ship = _dsp_om._realize_joint(True, *_dsp_r16_both, 1.5, 5.5)[0]
+_dsp_r16_both_dc = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR, _DSP_OFF), *_dsp_r16_both, 5.5)
+# A pair priced both ways keeps hot water first (duty_legs.leg_rule); with no
+# heating after the both step no whole-step merge applies, so a duty-cycle
+# install's both step keeps two legs.
+_DSP_PAIR_BOTH = (1.0, 1.0)
+_dsp_r16_lone = (np.array([0.0, 1.0, 0.0, 0.0]), np.array([0.0, 2.0, 0.0, 0.0]))
+_dsp_r16_lone_dc = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF), *_dsp_r16_lone, 5.5)
+_dsp_r16_lone_cl = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF, clamp=True), *_dsp_r16_lone, 5.5)
+R.check(
+    "on a modulating clamped install heating shipped under p_min beside hot "
+    "water takes no charge: the stop is charged to the heating step after the "
+    "both step, and no charged step ships heating under the floor",
+    _dsp_r16_both_ship.tolist() == [0.0, 1.0, 2.5, 0.0]
+    and _dsp_r16_both_avail is not None
+    and np.flatnonzero(_dsp_r16_both_avail < 1.0).tolist() == [2]
+    and bool(np.all(_dsp_r16_both_ship[_dsp_r16_both_avail < 1.0] >= 1.5)),
+    f"{_dsp_r16_both_avail}, shipped {_dsp_r16_both_ship}",
+)
+R.check(
+    "null control: with no duty floor (a duty-cycle install) and hot water first "
+    "(a pair priced both ways), a both step with no heating after it is charged "
+    "itself, and on the clamped install nothing is, so the floor is what moved "
+    "the charge; under the hot-water-to-heating pair alone the arbiter's leg "
+    "rule serves space first, and the duty-cycle arrays above charge the "
+    "heating step after the both step, as the clamped ones do",
+    _dsp_r16_lone_dc is not None
+    and np.flatnonzero(_dsp_r16_lone_dc < 1.0).tolist() == [1]
+    and _dsp_r16_lone_cl is None
+    and _dsp_r16_both_dc is not None
+    and np.flatnonzero(_dsp_r16_both_dc < 1.0).tolist() == [2],
+    f"{_dsp_r16_lone_dc} {_dsp_r16_lone_cl} {_dsp_r16_both_dc}",
+)
+# The start profile is capped at what hot water leaves and never raised: a step
+# the start leaves idle after a block holds no heating leg to charge.
+_dsp_idle_after = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, -0.4, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]), 5.5
+)
+_dsp_run_after = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, 2.0, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]), 5.5
+)
+R.check(
+    "a start that is idle, or below zero, in the step after a block charges "
+    "nothing; the same block followed by heating charges that step",
+    _dsp_idle_after is None
+    and _dsp_run_after is not None and np.flatnonzero(_dsp_run_after < 1.0).tolist() == [2],
+    f"{_dsp_idle_after}, {_dsp_run_after}",
+)
+# The cap is the reading's own: a start that asks for heating beside hot water
+# at p_max ships none there, so that step holds no heating leg and the idle step
+# after it charges nothing. Beside a block that leaves room the same start is a
+# two-leg step, and charged.
+_dsp_full_blk = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 5.5, 0.0, 0.0]), 5.5
+)
+_dsp_part_blk = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 2.5, 0.0, 0.0]), 5.5
+)
+_dsp_part_blk_sf = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 2.5, 0.0, 0.0]), 5.5
+)
+R.check(
+    "heating asked beside hot water at p_max is no heating leg: nothing is "
+    "charged; beside a block that leaves room the same start is charged there "
+    "(hot water first); served space first, its hot-water leg ends into an "
+    "idle step and nothing is charged",
+    _dsp_full_blk is None
+    and _dsp_part_blk is not None and np.flatnonzero(_dsp_part_blk < 1.0).tolist() == [1]
+    and _dsp_part_blk_sf is None,
+    f"{_dsp_full_blk}, {_dsp_part_blk}, {_dsp_part_blk_sf}",
+)
+# The reading takes the start as it comes: the cap, the running threshold and
+# the clamped projection already read a value under zero as idle and one over
+# p_max as the cap, so clipping the start into [0, p_max] first moves no step
+# of it, on either install kind. The grid holds starts outside the band, and
+# blocks that charge a step, or the comparison would be of nothing.
+import itertools as _dsp_it  # noqa: E402
+
+_DSP_BAND_STARTS = [np.array(s) for s in _dsp_it.product((-0.4, 0.0, 1.0, 3.0, 9.0), repeat=4)]
+_DSP_BAND_TANKS = [np.array(t) for t in ((0.0, 2.5, 0.0, 0.0), (4.4, 0.0, 5.5, 0.0), (0.0, 0.0, 2.0, 2.0))]
+
+
+def _dsp_band_read(clamp, start, tank):
+    avail = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR, _DSP_OFF, clamp=clamp), start, tank, 5.5)
+    return None if avail is None else avail.tolist()
+
+
+_dsp_band_rows = [
+    (_dsp_band_read(clamp, start, tank), _dsp_band_read(clamp, np.clip(start, 0.0, 5.5), tank), start)
+    for clamp in (False, True) for tank in _DSP_BAND_TANKS for start in _DSP_BAND_STARTS
+]
+_dsp_band_moved = [(raw, clipped, start.tolist()) for raw, clipped, start in _dsp_band_rows if raw != clipped]
+R.check(
+    "a start outside [0, p_max] reads as the same start clipped into it, on a "
+    "duty-cycle and on a clamped install; the grid holds starts outside the "
+    "band and readings that charge a step",
+    not _dsp_band_moved
+    and any(raw is not None for raw, _, _ in _dsp_band_rows)
+    and any(raw is None for raw, _, _ in _dsp_band_rows)
+    and sum(bool(np.any((start < 0.0) | (start > 5.5))) for _, _, start in _dsp_band_rows) > len(_dsp_band_rows) // 2,
+    f"{len(_dsp_band_moved)} of {len(_dsp_band_rows)} moved, first {_dsp_band_moved[:1]}",
+)
+R.check(
+    "the bound is what hot water leaves and never under zero: 0.5 kW beside "
+    "5.5 of 6, nothing beside 7, with no vector and with one",
+    _dsp_dl.space_headroom(6.0, np.array([5.5, 7.0]), None, None).tolist() == [0.5, 0.0]
+    and _dsp_dl.space_headroom(6.0, np.array([5.5, 7.0]), np.array([1.0, 0.5]), None).tolist()
+    == [0.5, 0.0],
+)
+R.check(
+    "a pump under 1 kW weighs its switch like any other: p x draw / p_max at "
+    "a maximum draw of 0.5 kW",
+    _dsp_dl.switch_weight(np.array([0.0, 0.4]), np.array([0.4, 0.0]), (1.0, 0.0), 0.5) == 0.8,
+)
+
+
+def _dsp_obj_a(*_a, **_k):
+    return 0.0
+
+
+def _dsp_obj_b(*_a, **_k):
+    return np.zeros(1)
+
+
+_dsp_plain_solve = _dsp_om._with_stop_availability(
+    _dsp_opt(None, None), np.array([0.0, 0.0, 2.0, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]),
+    5.5, _dsp_obj_a, _dsp_obj_b,
+)
+_dsp_vector_solve = _dsp_om._with_stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, 2.0, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]),
+    5.5, _dsp_obj_a, _dsp_obj_b,
+)
+R.check(
+    "with no vector a space solve gets the two objectives it handed in, the "
+    "same objects, and today's bound; with one it gets them bound to the vector",
+    _dsp_plain_solve[1] is _dsp_obj_a and _dsp_plain_solve[2] is _dsp_obj_b
+    and _dsp_plain_solve[0].tolist() == [5.5, 3.5, 5.5, 5.5]
+    and _dsp_vector_solve[1] is not _dsp_obj_a
+    and np.flatnonzero(_dsp_vector_solve[1].keywords["avail"] < 1.0).tolist() == [2]
+    and _dsp_vector_solve[2].keywords["avail"] is _dsp_vector_solve[1].keywords["avail"],
+)
+
+
+def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, out_mean=2.0, **install):
+    """One full ``optimize``; the planner builds, the published simulation's
+    inputs and the objective closures are recorded beside the result."""
+    opt = _dsp_opt(pair, off, **install)
+    seen = _DspNS(
+        builds=[], sims=[], objectives=[], solves=[], solved=[], min_runs=[],
+        energy=[None], vectors=[0], vectors_outside=[0], solving=[0], stages=[], opt=opt,
+    )
+    real_build, real_stage = _DspPlanner._build_dhw_requirements, _dsp_om._commit_runs
+    real_sim, real_objectives = opt.model.simulate_trajectory_with_dhw, opt._solve_objectives
+    real_solve, real_min_run = opt._solve_space, _DspPlanner._apply_dhw_min_run
+
+    real_energy, real_vector = opt._energy_cost_fn, _dsp_om._stop_availability
+
+    def solve_space(*args):
+        seen.solves.append(args)
+        seen.solving[0] += 1
+        try:
+            seen.solved.append(real_solve(*args))
+        finally:
+            seen.solving[0] -= 1
+        return seen.solved[-1]
+
+    def energy_cost_fn(*args):
+        cost_of = real_energy(*args)
+
+        def recorded(power):
+            seen.energy[0] = np.array(power, float)
+            return cost_of(power)
+        return recorded
+
+    def vector(*args):
+        seen.vectors[0] += 1
+        seen.vectors_outside[0] += not seen.solving[0]
+        return real_vector(*args)
+
+    def min_run(self, **kwargs):
+        out = real_min_run(self, **kwargs)
+        seen.min_runs.append((np.array(kwargs["plan"], float), np.array(out, float)))
+        return out
+
+    def build(self, h, **kwargs):
+        out = real_build(self, h, **kwargs)
+        seen.builds.append((kwargs, out, h, self))
+        return out
+
+    def sim(**kwargs):
+        seen.sims.append(kwargs)
+        return real_sim(**kwargs)
+
+    def objectives(h):
+        out = real_objectives(h)
+        seen.objectives.append(out)
+        return out
+
+    def stage(*args):
+        seen.stages.append((args, real_stage(*args)))
+        return seen.stages[-1][1]
+
+    opt.model.simulate_trajectory_with_dhw, opt._solve_objectives = sim, objectives
+    opt._solve_space, opt._energy_cost_fn = solve_space, energy_cost_fn
+    _dsp_om._stop_availability, _dsp_om._commit_runs = vector, stage
+    _DspPlanner._build_dhw_requirements = build
+    _DspPlanner._apply_dhw_min_run = min_run
+    outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (_DSP_STEPS - 50) / 96.0)
+    try:
+        seen.result = opt.optimize(inputs=solve_inputs(
+            initial_state=_DspTS(
+                room_temperature=20.5, upper_floor_temperature=20.5,
+                lower_floor_temperature=20.5, slab_temperature=21.0,
+                outdoor_temperature=float(outdoor[0]),
+                buffer_tank_temperature=30.0, dhw_temperature=45.0,
+                dhw_hours_since_legionella=legionella_h,
+            ),
+            prices=_DSP_PRICES, outdoor_temps=outdoor,
+            start_time=datetime(2026, 1, 10, tzinfo=UTC), dhw_pins=pins,
+        ))
+    finally:
+        _DspPlanner._build_dhw_requirements = real_build
+        _DspPlanner._apply_dhw_min_run = real_min_run
+        _dsp_om._stop_availability, _dsp_om._commit_runs = real_vector, real_stage
+    seen.space = np.asarray(seen.result.power_schedule, float)
+    seen.dhw = np.asarray(seen.result.dhw_power_schedule, float)
+    seen.bans = [k["placement_ban"] for k, *_ in seen.builds if "placement_ban" in k]
+    return seen
+
+
+def _dsp_same_plan(a, b):
+    return (
+        np.array_equal(a.space, b.space) and np.array_equal(a.dhw, b.dhw)
+        and a.result.room_temp_trajectory == b.result.room_temp_trajectory
+        and a.result.objective_value == b.result.objective_value
+        and a.result.predicted_cost == b.result.predicted_cost
+        and a.result.status == b.result.status
+    )
+
+
+# The duty-cycle install's day is 2 K colder since R11-OUTSIDE-HONEST-STARTS-RUNS:
+# with a start priced as a start that install plans runs, and on the 2 degC day
+# the plan it ships makes no priced switch at all (the mild day of the two
+# descents below), so the checks of a charged step and of the banned candidate
+# had nothing to read there.
+_DSP_INSTALLS = {
+    "duty-cycle": dict(clamp=False, out_mean=0.0),
+    "modulating clamped": dict(clamp=True),
+    "fixed-speed": dict(clamp=True, p_min=5.5),
+}
+_dsp_base = {name: _dsp_solve(None, **kw) for name, kw in _DSP_INSTALLS.items()}
+_dsp_priced = {name: _dsp_solve(_DSP_PAIR, _DSP_OFF, **kw) for name, kw in _DSP_INSTALLS.items()}
+
+# 4. Null controls, each a full optimize whose arrays are compared equal with
+# the plan a config that never heard of the fields returns.
+_DSP_NULLS = {
+    "an empty learner (zero pair, no off time)": ((0.0, 0.0), (0.0, 0.0)),
+    "a learner under its on-threshold (zero pair, an off time stored)": ((0.0, 0.0), (501.0, 0.0)),
+    "a learned pair that is not a probability": ((float("nan"), 1.7), (501.0, 501.0)),
+}
+_dsp_null_bad = []
+for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
+    for _dsp_label, (_dsp_p, _dsp_o) in _DSP_NULLS.items():
+        _dsp_null = _dsp_solve(_dsp_p, _dsp_o, **_dsp_kw)
+        if (
+            not _dsp_same_plan(_dsp_null, _dsp_base[_dsp_name])
+            or _dsp_null.bans or _dsp_null.opt._space_avail is not None
+            or len(_dsp_null.builds) != len(_dsp_base[_dsp_name].builds)
+        ):
+            _dsp_null_bad.append((_dsp_name, _dsp_label))
+R.check(
+    "null controls: an empty learner, one under its threshold and a pair that "
+    "is no probability each leave the plan identical on all three install "
+    "classes, with no availability vector, no banned build and the planner "
+    "called as often",
+    not _dsp_null_bad,
+    f"{_dsp_null_bad}",
+)
+_dsp_free = _dsp_solve(_DSP_PAIR, (0.0, 0.0), cyc=0.0)
+R.check(
+    "null control: a stopping switch with no measured off time on an install "
+    "that prices no cycle moves nothing either",
+    _dsp_same_plan(_dsp_free, _dsp_solve(None, cyc=0.0)) and not _dsp_free.bans,
+)
+R.check(
+    "and the nulls have something to detect: with the contributor's pair the "
+    "plan moves on every install class",
+    all(not _dsp_same_plan(_dsp_priced[n], _dsp_base[n]) for n in _DSP_INSTALLS),
+    f"{[n for n in _DSP_INSTALLS if _dsp_same_plan(_dsp_priced[n], _dsp_base[n])]}",
+)
+
+
+# 5. Acceptance, on the contributor's table.
+def _dsp_plan_weight(seen, name, starts=False):
+    """A plan's summed switch weight: at the combined draw, as the relaxed
+    descent prices it, or in starts, as the true objective does."""
+    kw = {"clamp": False, "p_min": 1.5, **_DSP_INSTALLS[name]}
+    return _dsp_dl.switch_weight(
+        seen.space, seen.dhw, _DSP_PAIR, 5.5, kw["p_min"] if kw["clamp"] else None,
+        level=5.5 * _dsp_runs.running_share(seen.space + seen.dhw, kw["p_min"]) if starts else None,
+    )
+
+
+def _dsp_old_under_new(name):
+    """The unpriced plan's score under the priced solve's own objective, held
+    to the bound the stops it makes leave it.
+
+    Restated in R11-OUTSIDE-HONEST-STARTS-RUNS: on a duty-cycle install the
+    bound, not the objective, carries a stop's lost running time
+    (``duty_legs.space_headroom``), so the plan as solved without the pair
+    was scored with heat its own stop does not let it deliver (3.36 kW in a
+    step the stop leaves 2.44 kW). On a clamped install the bound is
+    ``p_max - dhw`` and the clip moves nothing.
+    """
+    old, new = _dsp_base[name], _dsp_priced[name]
+    avail = _dsp_om._stop_availability(new.opt, old.space, old.dhw, 5.5)
+    bound = _dsp_dl.space_headroom(5.5, old.dhw, avail, _dsp_om._duty_floor(new.opt))
+    return float(new.objectives[-1][1](np.minimum(old.space, bound), old.dhw, None, avail))
+
+
+_dsp_accept = {
+    name: (
+        _dsp_plan_weight(_dsp_base[name], name), _dsp_plan_weight(_dsp_priced[name], name),
+        _dsp_old_under_new(name), float(_dsp_priced[name].result.objective_value),
+    )
+    for name in ("duty-cycle", "modulating clamped")
+}
+# Restated in R11-OUTSIDE-HONEST-STARTS-RUNS. The true objective weighs a
+# switch in starts, the probability of one start whatever the level, so a
+# priced solve no longer buys a lower weight by lowering the level at a
+# switch it keeps. On the duty-cycle install it still carries no more
+# switches in the objective's own unit, and its weight at the combined draw,
+# which its relaxed descent prices, still falls.
+#
+# On the clamped install no order of the two plans' weights is asked
+# (``tests/README.md``, "A knife-edge optimizer comparison must be measured
+# across BLAS kernels"). That order raced two independent multi-start
+# descents, and nothing in the stage holds it: under one of four OpenBLAS
+# kernels the unpriced solve lands on a one-switch plan and the priced solve
+# on a two-switch plan the priced objective scores lower, the switches' price
+# included. What the stage does hold is asked in its place, inside the priced
+# solve alone, where the basin both sides start from is the same: each
+# candidate stage returns a plan that scores, in the scope it ships in, no
+# higher than the projection of the relaxed plan the stage was handed, scored
+# as the stage scores it (in the scope of a solve started from it, held to
+# that scope's bound), so a switch the priced plan keeps is one its own
+# objective was charged for; and the plan that publishes is one a stage
+# returned, at that score.
+_dsp_accept_starts = {
+    name: (_dsp_plan_weight(_dsp_base[name], name, True), _dsp_plan_weight(_dsp_priced[name], name, True))
+    for name in _dsp_accept
+}
+
+
+def _dsp_stage_scores(seen):
+    """Per candidate-stage call of one solve: the score of the plan the stage
+    returned in the scope it returned, the score of the first relaxed plan's
+    projection in the scope of a solve started from it, and whether the
+    returned plan is the one that ships."""
+    out, kept = [], seen.opt._space_avail
+    try:
+        for (opt, _h, scope, relaxed, dhw, _maxiter, *rest), (plan, shipped) in seen.stages:
+            args = () if dhw is None else (dhw,)
+            _, hi, _, cycled = _dsp_om._stage_box(opt, scope[0], dhw)
+            first = _dsp_om._projection(opt, relaxed[0], dhw, hi, cycled)
+            own = rest[0](first) if rest and rest[0] is not None else scope
+            first = np.clip(first, *_dsp_om._stage_box(opt, own[0], dhw)[:2])
+            out.append((
+                float(shipped[1](plan, *args)), float(own[1](first, *args)),
+                bool(np.array_equal(plan, seen.space)),
+            ))
+    finally:
+        seen.opt._space_avail = kept
+    return out
+
+
+_dsp_stage = {name: _dsp_stage_scores(_dsp_priced[name]) for name in _dsp_accept}
+R.check(
+    "acceptance: priced on the contributor's table the duty-cycle plan carries "
+    "no higher a switch weight in starts and a lower one at the combined draw, "
+    "and the unpriced plan of both installs carries a switch to price",
+    all(old_w > 0 for old_w, _ in _dsp_accept_starts.values())
+    and _dsp_accept_starts["duty-cycle"][1] <= _dsp_accept_starts["duty-cycle"][0] + 1e-9
+    and _dsp_accept["duty-cycle"][1] < _dsp_accept["duty-cycle"][0],
+    f"{_dsp_accept} {_dsp_accept_starts}",
+)
+R.check(
+    "acceptance: on both installs every candidate stage of the priced solve "
+    "returns a plan that scores no higher under the priced objective of the "
+    "scope it ships in than the projection of the relaxed plan it was handed, "
+    "and strictly lower in at least one call; the plan that publishes is one a "
+    "stage returned, at that score",
+    all(
+        calls and all(got <= first + 1e-9 for got, first, _ in calls)
+        and any(got < first - 0.01 for got, first, _ in calls)
+        and [got for got, _, ships in calls if ships]
+        == [float(_dsp_priced[name].result.objective_value)]
+        for name, calls in _dsp_stage.items()
+    ),
+    f"{_dsp_stage} {({n: float(_dsp_priced[n].result.objective_value) for n in _dsp_stage})}",
+)
+R.check(
+    "at no higher cost under the plan's own objective: the new plan scores no "
+    "higher than the old plan does under the priced objective",
+    all(new_s <= old_s + 1e-9 for _, _, old_s, new_s in _dsp_accept.values()),
+    f"{_dsp_accept}",
+)
+R.check(
+    "the published objective of a priced plan is its closure's value on the "
+    "arrays that ship, with the vector the solve scored with",
+    all(
+        float(s.objectives[-1][1](s.space, s.dhw, None, s.opt._space_avail))
+        == float(s.result.objective_value)
+        for s in _dsp_priced.values()
+    ),
+)
+_dsp_dc = _dsp_priced["duty-cycle"]
+_dsp_dc_avail = _dsp_dc.opt._space_avail
+R.check(
+    "on the duty-cycle install the solved heating in every charged step is at "
+    "most avail x p_max - dhw, and a charged step exists",
+    _dsp_dc_avail is not None and bool(np.any(_dsp_dc_avail < 1.0))
+    and bool(np.all(
+        _dsp_dc.space <= np.maximum(0.0, _dsp_dc_avail * 5.5 - _dsp_dc.dhw) + 1e-9
+    )),
+    f"{None if _dsp_dc_avail is None else np.flatnonzero(_dsp_dc_avail < 1.0).tolist()}",
+)
+R.check(
+    "and there the simulation is fed the shipped schedule itself: the bound "
+    "carried the lost time",
+    np.array_equal(_dsp_dc.sims[-1]["space_power_schedule"], _dsp_dc.space),
+)
+
+# 9. A fixed-speed install: the level cannot carry the lost time.
+_dsp_fx, _dsp_fx0 = _dsp_priced["fixed-speed"], _dsp_base["fixed-speed"]
+_dsp_fx_avail = _dsp_fx.opt._space_avail
+_dsp_fx_charged = [] if _dsp_fx_avail is None else np.flatnonzero(_dsp_fx_avail < 1.0).tolist()
+_dsp_fx_total = _dsp_fx.space + _dsp_fx.dhw
+#: The charged steps the solve kept its heating leg on. Where it moved the leg
+#: off one, that block end's lost time is uncharged (its pair is still
+#: priced): the design's stated residual, at most one step's share per block end.
+_dsp_fx_live = [i for i in _dsp_fx_charged if _dsp_fx.space[i] > 0]
+R.check(
+    "fixed-speed: every shipped total is 0 or p_max and the plan's duty floor "
+    "is p_min, with a hot-water block followed by a charged heating step",
+    bool(np.all((_dsp_fx_total == 0.0) | (_dsp_fx_total == 5.5)))
+    and _dsp_fx.result.duty_floor_kw == 5.5
+    and bool(_dsp_fx_live)
+    and all(_dsp_fx.dhw[i - 1] == 5.5 and _dsp_fx.space[i] == 5.5 for i in _dsp_fx_live),
+    f"charged {_dsp_fx_charged}, live {_dsp_fx_live}",
+)
+R.check(
+    "fixed-speed: step_duty inside a charged step returns space, and the leaf "
+    "weighs the block end into it p x 1 from the result's own schedules and floor",
+    all(
+        _dsp_pa.step_duty(_dsp_fx.result, _dsp_fx.result.timestamps[i] + timedelta(minutes=7))
+        == "space"
+        and _dsp_dl.switch_weight(
+            _dsp_fx.space[i - 1 : i + 1], _dsp_fx.dhw[i - 1 : i + 1], _DSP_PAIR, 5.5,
+            _dsp_fx.result.duty_floor_kw,
+        ) == 1.0
+        for i in _dsp_fx_live
+    ),
+)
+_dsp_fx_sim = _dsp_fx.sims[-1]
+_dsp_fx_fed = np.asarray(_dsp_fx_sim["space_power_schedule"], float)
+_dsp_fx_expect = _dsp_fx.space.copy()
+_dsp_fx_expect[_dsp_fx_live] = (1.0 - 501.0 / 900.0) * 5.5
+_dsp_fx_at_level = _dsp_fx.opt.model.simulate_trajectory_with_dhw(
+    **{**_dsp_fx_sim, "space_power_schedule": _dsp_fx.space, "end_state": []}
+)
+_dsp_fx_at_avail = _dsp_fx.opt.model.simulate_trajectory_with_dhw(
+    **{**_dsp_fx_sim, "space_power_schedule": _dsp_fx_expect, "end_state": []}
+)
+R.check(
+    "fixed-speed: the published room trajectory is the simulation at "
+    "avail x p_max in the charged steps that hold heating and at the shipped "
+    "level everywhere else, and differs from the one at p_max",
+    np.array_equal(_dsp_fx_fed, _dsp_fx_expect)
+    and list(_dsp_fx_at_avail[0]) == list(_dsp_fx.result.room_temp_trajectory)
+    and list(_dsp_fx_at_level[0]) != list(_dsp_fx.result.room_temp_trajectory),
+    f"fed {_dsp_fx_fed[_dsp_fx_charged]}, live {_dsp_fx_live}",
+)
+R.check(
+    "fixed-speed: the published start count is runs.edge_count on the "
+    "shipped total, unchanged by the pairs on the same arrays",
+    _dsp_fx.result.compressor_starts == _dsp_runs.edge_count(_dsp_fx_total)
+    and _dsp_base["fixed-speed"].result.compressor_starts
+    == _dsp_runs.edge_count(_dsp_fx0.space + _dsp_fx0.dhw),
+    f"{_dsp_fx.result.compressor_starts}",
+)
+R.check(
+    "fixed-speed null control: with a zero pair the simulation is fed the "
+    "shipped schedule and no vector exists",
+    np.array_equal(_dsp_fx0.sims[-1]["space_power_schedule"], _dsp_fx0.space)
+    and _dsp_fx0.opt._space_avail is None,
+)
+
+# 6. The banned candidate: its channel, its ban, its guard.
+R.check(
+    "a priced plan with a priced switch tries exactly one more hot-water plan, "
+    "the first build's own arguments plus the ban, and no unpriced solve "
+    "builds one",
+    all(
+        len(s.bans) == 1
+        and sorted(s.builds[-1][0]) == sorted([*s.builds[0][0], "placement_ban"])
+        and np.array_equal(
+            s.bans[0],
+            _dsp_dl.switch_ban(
+                _dsp_om._realize_joint(
+                    s.opt.config.clamp_planned_levels, s.solves[-1][1], s.solves[0][0],
+                    s.opt.model.params.min_electrical_power, 5.5,
+                )[0],
+                _DSP_PAIR, _dsp_om._duty_floor(s.opt), _dsp_om._leg_rule(s.opt),
+            ),
+        )
+        for s in _dsp_priced.values()
+    )
+    and not any(s.bans for s in _dsp_base.values()),
+    f"{[(n, len(s.bans), len(s.builds), len(s.solves)) for n, s in _dsp_priced.items()]}",
+)
+_DSP_SF = _dsp_dl.leg_rule((1.0, 0.0), (501.0, 0.0))
+_dsp_sf_ban = _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), None, _DSP_SF).tolist()
+_dsp_sf_w = (_dsp_dl.switch_weight(np.array([1.0]), np.array([1.0]), (1.0, 0.0), 6.0),
+             _dsp_dl.switch_weight(np.array([1.0]), np.array([1.0]), (1.0, 0.0), 6.0, None, _DSP_SF))
+_dsp_sf_avail = (_dsp_dl.availability(np.array([1.0, 0.0]), np.array([1.0, 0.0]), 0.5),
+                 _dsp_dl.availability(np.array([1.0, 0.0]), np.array([1.0, 0.0]), 0.5, None, _DSP_SF))
+R.check(
+    "one leg rule in the leaf: a hot-water-to-heating pair alone serves space first "
+    "(leg_rule), so its ban is only the step before heating, a two-leg step's inside "
+    "switch is heating to hot water and weighs nothing, and the step is not charged; "
+    "control, the default rule bans the heating step too, weighs and charges it",
+    _DSP_SF == ("space", None)
+    and _dsp_sf_ban == [False, True, False, False, False]
+    and _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), None).tolist()
+    == [False, True, True, False, False]
+    and _dsp_sf_w == (2.0 / 6.0, 0.0)
+    and _dsp_sf_avail[0] is not None and _dsp_sf_avail[0].tolist() == [0.5, 1.0] and _dsp_sf_avail[1] is None,
+    f"{_DSP_SF} {_dsp_sf_ban} {_dsp_sf_w} {_dsp_sf_avail}",
+)
+R.check(
+    "the ban is the steps heating runs in or runs in next, for hot water to "
+    "heating, and mirrors onto the previous step for the other direction",
+    _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), None).tolist()
+    == [False, True, True, False, False]
+    and _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (0.0, 1.0), None).tolist()
+    == [False, False, True, True, False]
+    and not _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), 3.0).any(),
+)
+_dsp_ban_writes = [
+    (name, np.flatnonzero(out[0].schedule[kwargs["placement_ban"]] > 0).tolist())
+    for name, s in _dsp_priced.items()
+    for kwargs, out, *_ in s.builds
+    if "placement_ban" in kwargs
+]
+_dsp_min_run_moves = [
+    int(np.sum(before != after))
+    for s in _dsp_priced.values()
+    for (kwargs, *_), (before, after) in zip(s.builds, s.min_runs)
+    if "placement_ban" in kwargs
+]
+R.check(
+    "the ban holds: the candidate's schedule is zero on every banned step, on "
+    "builds whose min-run stage rewrote the plan",
+    all(not steps for _, steps in _dsp_ban_writes)
+    and len(_dsp_min_run_moves) == 3 and all(n > 0 for n in _dsp_min_run_moves),
+    f"{_dsp_ban_writes}, min-run rewrote {_dsp_min_run_moves} steps",
+)
+
+# The channel: a due disinfection, no Off window, a manual force-on pin.
+_dsp_pin = np.full(96, np.nan)
+_dsp_pin[12] = 1.0
+_dsp_leg = _dsp_solve(None, legionella_h=200.0, pins=_dsp_pin)
+_dsp_leg_kw, (_dsp_leg_plan, _dsp_leg_req), _dsp_leg_h, _dsp_leg_planner = _dsp_leg.builds[0]
+_dsp_leg_ban = np.zeros(96, dtype=bool)
+_dsp_leg_ban[:16] = True
+_dsp_by_ban = _dsp_leg_planner._build_dhw_requirements(
+    _dsp_leg_h, **_dsp_leg_kw, placement_ban=_dsp_leg_ban
+)
+_dsp_by_off = _dsp_leg_planner._build_dhw_requirements(
+    _dsp_leg_h, **{**_dsp_leg_kw, "off_steps": _dsp_leg_ban}
+)
+_dsp_by_none = _dsp_leg_planner._build_dhw_requirements(
+    _dsp_leg_h, **_dsp_leg_kw, placement_ban=None
+)
+R.check(
+    "the ban's channel: with a disinfection due inside it and no Off window, a "
+    "banned build returns the same legionella_step and the same requirement, "
+    "and a manual force-on pin inside the ban survives",
+    _dsp_leg_plan.legionella_due and _dsp_leg_plan.legionella_step is not None
+    and bool(_dsp_leg_ban[_dsp_leg_plan.legionella_step])
+    and _dsp_by_ban[0].legionella_step == _dsp_leg_plan.legionella_step
+    and np.array_equal(_dsp_by_ban[1], _dsp_leg_req)
+    and _dsp_by_ban[0].schedule[12] > 0
+    and not np.any(np.delete(_dsp_by_ban[0].schedule[:16], 12) > 0),
+    f"step {_dsp_by_ban[0].legionella_step} vs {_dsp_leg_plan.legionella_step}, "
+    f"banned {np.flatnonzero(_dsp_by_ban[0].schedule[:16] > 0).tolist()}",
+)
+R.check(
+    "and the check tells the two doors apart: the same mask through off_steps "
+    "moves the disinfection step and zeroes the pinned step",
+    _dsp_by_off[0].legionella_step != _dsp_leg_plan.legionella_step
+    and _dsp_by_off[0].schedule[12] == 0,
+    f"step {_dsp_by_off[0].legionella_step}",
+)
+R.check(
+    "null control: a build with no ban is the build the solve made",
+    np.array_equal(_dsp_by_none[0].schedule, _dsp_leg_plan.schedule)
+    and np.array_equal(_dsp_by_none[1], _dsp_leg_req)
+    and _dsp_by_none[0].legionella_step == _dsp_leg_plan.legionella_step,
+)
+
+# The guard, on that disinfection fixture: heating right after the run-up
+# makes a priced switch, the ban then forbids the run-up steps, and the banned
+# candidate cannot hold the requirement the planner returns beside it.
+_dsp_g_opt = _dsp_opt(_DSP_PAIR, _DSP_OFF)
+_dsp_g_step = int(_dsp_leg_plan.legionella_step)
+_dsp_g_space = np.zeros(96)
+_dsp_g_space[_dsp_g_step + 1 : _dsp_g_step + 3] = 3.0
+_dsp_g_dhw = np.asarray(_dsp_leg_plan.schedule, float)
+_dsp_g_incumbent = (_dsp_g_space, _dsp_g_dhw, "optimal")
+_dsp_g_avail = np.ones(96)
+_dsp_g_calls = []
+
+
+def _dsp_g_solve(score):
+    def solve_space(dhw_plan, warm_start):
+        _dsp_g_calls.append(np.array(dhw_plan, float))
+        _dsp_g_opt._space_avail = None
+        return np.asarray(warm_start, float) * 0.5, "candidate", score
+    return solve_space
+
+
+def _dsp_g_run(score, shortfall=None, requirement=True):
+    """One candidate pass; returns what it returned and what it left behind."""
+    _dsp_g_opt._dhw_requirement = _dsp_leg_req if requirement else None
+    _dsp_g_opt._space_avail = _dsp_g_avail
+    del _dsp_g_calls[:]
+    planner = _dsp_leg_planner
+    if shortfall is not None:
+        planner = _DspNS(
+            _build_dhw_requirements=_dsp_leg_planner._build_dhw_requirements,
+            _dhw_coil_wood_forecast=_dsp_leg_planner._dhw_coil_wood_forecast,
+            _dhw_shortfall=shortfall,
+        )
+    out = _dsp_om._avoid_priced_switches(
+        _dsp_g_opt, _dsp_leg_h, planner, _dsp_g_solve(score),
+        lambda *a: 0.0, 5.5, _dsp_g_incumbent,
+    )
+    return out, _dsp_g_opt._dhw_requirement, _dsp_g_opt._space_avail, len(_dsp_g_calls)
+
+
+_dsp_g_ban = _dsp_dl.switch_ban(_dsp_g_space, _DSP_PAIR, None)
+_dsp_g_short = _dsp_g_run(-1e9)
+R.check(
+    "the guard's fixture is the one it names: the incumbent holds a priced "
+    "switch after the disinfection run-up and the ban forbids the run-up step",
+    _dsp_dl.switch_weight(_dsp_g_space, _dsp_g_dhw, _DSP_PAIR, 5.5) > 0
+    and bool(_dsp_g_ban[_dsp_g_step]) and _dsp_g_dhw[_dsp_g_step] > 0,
+)
+R.check(
+    "a banned candidate that scores lower but falls short of its returned "
+    "requirement where the incumbent holds its own is refused before any "
+    "solve, and the incumbent's requirement and availability stay in place",
+    _dsp_g_short[0] is _dsp_g_incumbent and _dsp_g_short[1] is _dsp_leg_req
+    and _dsp_g_short[2] is _dsp_g_avail and _dsp_g_short[3] == 0,
+    f"{_dsp_g_short[3]} solves, incumbent kept {_dsp_g_short[0] is _dsp_g_incumbent}",
+)
+_dsp_g_held = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+R.check(
+    "control: the same candidate with the shortfall reading zero is adopted on "
+    "its lower score, with the requirement returned beside it",
+    _dsp_g_held[0] is not _dsp_g_incumbent and _dsp_g_held[0][2] == "candidate"
+    and _dsp_g_held[1] is not _dsp_leg_req and _dsp_g_held[3] == 1
+    and not np.any(_dsp_g_held[0][1][_dsp_g_ban & ~(np.nan_to_num(_dsp_pin) >= 0.5)] > 0),
+    f"{_dsp_g_held[3]} solves",
+)
+_dsp_g_dear = _dsp_g_run(1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+R.check(
+    "a candidate that does not score lower is refused after its solve, and the "
+    "incumbent's requirement and availability are put back",
+    _dsp_g_dear[0] is _dsp_g_incumbent and _dsp_g_dear[1] is _dsp_leg_req
+    and _dsp_g_dear[2] is _dsp_g_avail and _dsp_g_dear[3] == 1,
+)
+_dsp_g_bare = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None), requirement=False)
+R.check(
+    "an incumbent with no requirement to hold a candidate to gets no candidate: "
+    "the pass the control adopts from returns the incumbent without a solve",
+    _dsp_g_bare[0] is _dsp_g_incumbent and _dsp_g_bare[1] is None
+    and _dsp_g_bare[2] is _dsp_g_avail and _dsp_g_bare[3] == 0,
+    f"{_dsp_g_bare[3]} solves, incumbent kept {_dsp_g_bare[0] is _dsp_g_incumbent}",
+)
+
+
+def _dsp_g_raises(*_a):
+    raise RuntimeError("the planner's tank walk failed")
+
+
+_dsp_g_broke = _dsp_g_run(-1e9, shortfall=_dsp_g_raises)
+R.check(
+    "a candidate pass that raises is skipped: the incumbent, its requirement "
+    "and its availability stand, and nothing is solved",
+    _dsp_g_broke[0] is _dsp_g_incumbent and _dsp_g_broke[1] is _dsp_leg_req
+    and _dsp_g_broke[2] is _dsp_g_avail and _dsp_g_broke[3] == 0,
+)
+_dsp_g_real_build = _dsp_om._dhw_build
+_dsp_om._dhw_build = lambda *a, **k: (_dsp_leg_plan, _dsp_leg_req)
+try:
+    _dsp_g_on_ban = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+finally:
+    _dsp_om._dhw_build = _dsp_g_real_build
+R.check(
+    "a candidate with hot water on a banned step no pin forces on is refused "
+    "before any solve",
+    _dsp_g_on_ban[0] is _dsp_g_incumbent and _dsp_g_on_ban[3] == 0
+    and _dsp_g_on_ban[1] is _dsp_leg_req,
+)
+# The pin rule is the planner's own (``_apply_dhw_pins``): a pin of 0.5 forces on.
+_dsp_g_pins = _dsp_leg_h.dhw_pins
+_dsp_g_half = np.full(96, np.nan)
+_dsp_g_half[_dsp_g_ban & (np.asarray(_dsp_leg_plan.schedule, float) > 0)] = 0.5
+_dsp_om._dhw_build = lambda *a, **k: (_dsp_leg_plan, _dsp_leg_req)
+try:
+    object.__setattr__(_dsp_leg_h, "dhw_pins", _dsp_g_half)
+    _dsp_g_half_on = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+finally:
+    object.__setattr__(_dsp_leg_h, "dhw_pins", _dsp_g_pins)
+    _dsp_om._dhw_build = _dsp_g_real_build
+R.check(
+    "the same candidate with each of those steps pinned at 0.5, which the "
+    "planner's pin rule forces on, is solved and adopted on its lower score",
+    int(np.sum(_dsp_g_half == 0.5)) > 0
+    and _dsp_g_half_on[3] == 1 and _dsp_g_half_on[0][2] == "candidate"
+    and _dsp_g_half_on[0][1] is _dsp_leg_plan.schedule,
+    f"{_dsp_g_half_on[3]} solve(s), {int(np.sum(_dsp_g_half == 0.5))} pinned step(s)",
+)
+_dsp_g_trickle = np.asarray(_dsp_leg_plan.schedule, float).copy()
+_dsp_g_trickle[_dsp_g_ban] = np.where(_dsp_g_trickle[_dsp_g_ban] > 0, 0.8, 0.0)
+_dsp_om._dhw_build = lambda *a, **k: (
+    _DspNS(schedule=_dsp_g_trickle, draw_rates=_dsp_leg_plan.draw_rates), _dsp_leg_req
+)
+try:
+    _dsp_g_low_on_ban = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+finally:
+    _dsp_om._dhw_build = _dsp_g_real_build
+R.check(
+    "any hot water on a banned step refuses the candidate, 0.8 kW as much as "
+    "a full block",
+    bool(np.any(_dsp_g_trickle[_dsp_g_ban] == 0.8))
+    and _dsp_g_low_on_ban[0] is _dsp_g_incumbent and _dsp_g_low_on_ban[3] == 0,
+    f"{_dsp_g_low_on_ban[3]} solve(s)",
+)
+_dsp_g_tie = _dsp_g_run(-1e-9, shortfall=lambda *a: (None, np.zeros(96), None))
+R.check(
+    "a candidate lower by exactly the 1e-9 margin, and so by no more than "
+    "it, is a tie: refused after its solve, as _co_optimize refuses its own",
+    _dsp_g_tie[0] is _dsp_g_incumbent and _dsp_g_tie[3] == 1
+    and _dsp_g_tie[1] is _dsp_leg_req and _dsp_g_tie[2] is _dsp_g_avail,
+    f"{_dsp_g_tie[3]} solve(s)",
+)
+_dsp_g_walks = []
+
+
+def _dsp_g_walk(temps, schedule, *rest):
+    """A tank walk short at step 5 until that step is excused."""
+    _dsp_g_walks.append(temps)
+    return "walked", np.zeros(96), (None if rest[-1] else 5)
+
+
+_dsp_g_run(-1e9, shortfall=_dsp_g_walk)
+R.check(
+    "the incumbent's tank is walked once: the read past its excused step is "
+    "handed the first walk's temperatures",
+    _dsp_g_walks[:2] == [None, "walked"],
+    f"{_dsp_g_walks}",
+)
+R.check(
+    "a configuration that never heard of the learner holds a zero pair in "
+    "both fields, and an optimizer that has solved nothing holds no vector",
+    _DspCfg().duty_switch_stop_probability == (0.0, 0.0)
+    and _DspCfg().duty_switch_off_seconds == (0.0, 0.0)
+    and _dsp_opt(None, None)._space_avail is None,
+)
+_dsp_g_opt.config.duty_switch_stop_probability = (0.0, 0.0)
+_dsp_g_unpriced = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+_dsp_g_opt.config.duty_switch_stop_probability = _DSP_PAIR
+R.check(
+    "null control: with a zero pair the pass returns the incumbent without a "
+    "build or a solve",
+    _dsp_g_unpriced[0] is _dsp_g_incumbent and _dsp_g_unpriced[3] == 0,
+)
+
+# 8. The term's edges. Hot water under a third of p_max puts both collapse
+# edges of a both step inside the bounds; warm starts sit two finite-difference
+# steps either side of each, and one at the running threshold.
+_dsp_e = _dsp_solve(_DSP_PAIR, (0.0, 0.0))
+_dsp_e0 = _dsp_solve((0.0, 0.0), (501.0, 0.0))
+_dsp_e_plain = _dsp_solve(None)  # the same day as the two above, not the install table's
+_dsp_e_tank = np.zeros(96)
+_dsp_e_tank[[40, 41]] = 1.5
+_DSP_EPS = 2.0 * _dsp_om._LBFGSB_FD_EPS
+
+
+def _dsp_e_start(step, level):
+    start = np.full(96, 2.0)
+    start[step] = level
+    return start
+
+
+_DSP_E_STARTS = {
+    "under the lower collapse edge": _dsp_e_start(40, 0.75 - _DSP_EPS),
+    "over the lower collapse edge": _dsp_e_start(40, 0.75 + _DSP_EPS),
+    "under the upper collapse edge": _dsp_e_start(41, 3.0 - _DSP_EPS),
+    "over the upper collapse edge": _dsp_e_start(41, 3.0 + _DSP_EPS),
+    "at the running threshold": _dsp_e_start(42, 0.1 + _DSP_EPS),
+}
+
+
+def _dsp_e_solve(seen, start):
+    args = seen.solves[0]
+    power, status, score = seen.opt._solve_space(_dsp_e_tank, start, *args[2:])
+    return power, status, score, float(args[8](start, _dsp_e_tank))
+
+
+_dsp_e_runs = {
+    label: (_dsp_e_solve(_dsp_e, start), _dsp_e_solve(_dsp_e0, start), _dsp_e_solve(_dsp_e_plain, start))
+    for label, start in _DSP_E_STARTS.items()
+}
+R.check(
+    "the edge fixture is the one it names: 1.5 kW of hot water under a third "
+    "of p_max, and the starts straddle a change in the legs",
+    1.5 < 5.5 / 3.0
+    and [bool(_dsp_dl.leg_ends(s, _dsp_e_tank)[2][i]) for s, i in (
+        (_DSP_E_STARTS["under the lower collapse edge"], 40),
+        (_DSP_E_STARTS["over the lower collapse edge"], 40),
+        (_DSP_E_STARTS["under the upper collapse edge"], 41),
+        (_DSP_E_STARTS["over the upper collapse edge"], 41),
+    )] == [False, True, True, False],
+)
+R.check(
+    "from each edge start the priced solve returns a score no higher than its "
+    "start's, with a solver status no worse than the same start solved unpriced",
+    all(
+        priced[2] <= priced[3] + 1e-9 and (priced[1] == null[1] or priced[1] == "optimal")
+        for priced, null, _ in _dsp_e_runs.values()
+    ),
+    f"{[(k, round(p[3] - p[2], 4), p[1], n[1]) for k, (p, n, _) in _dsp_e_runs.items()]}",
+)
+R.check(
+    "null control: with a zero pair the same starts return the arrays of a "
+    "config that never heard of the fields",
+    all(
+        np.array_equal(null[0], plain[0]) and null[1:] == plain[1:]
+        for _, null, plain in _dsp_e_runs.values()
+    ),
+)
+
+# Item r14, restated in R11-OUTSIDE-HONEST-STARTS-RUNS: no objective rounds
+# the space level any more (what the true objective scores is a committed
+# plan), so a descent and the true objective both charge the vector on the
+# level as it stands, with the clamped reading. What still differs is the
+# tank: the true objective scores hot water as a clamped install ships it,
+# projected, and a descent leaves it as planned. Until then the true
+# objective rounded 0.7 kW of space to 1.5 and a relaxed start did not.
+_dsp_rx_opt = _dsp_opt(_DSP_PAIR, _DSP_OFF, clamp=True)
+_dsp_rx_args = (np.array([0.7, 3.0]), np.array([0.7, 0.0]), np.array([0.5, 0.5]))
+_dsp_rx_rounded = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args)
+_dsp_rx_relaxed = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args, _dsp_om._RELAXED)
+R.check(
+    "a descent and the true objective both charge a vector on the space level "
+    "as it stands; the true objective reads the tank as it ships, projected, "
+    "and a descent as planned",
+    _dsp_rx_relaxed[0].tolist() == _dsp_rx_rounded[0].tolist() == [0.7, 3.0]
+    and _dsp_rx_relaxed[1].tolist() == [0.7, 0.0] and _dsp_rx_rounded[1].tolist() == [1.5, 0.0]
+    and _dsp_rx_relaxed[2].tolist() == [0.0, 1.5] and _dsp_rx_rounded[2].tolist() == [0.0, 1.5]
+    and _dsp_om._shipped_and_received(_dsp_rx_opt, _dsp_rx_args[0], np.zeros(2), _dsp_rx_args[2])[2].tolist()
+    == [0.35, 1.5],
+    f"{_dsp_rx_relaxed}, {_dsp_rx_rounded}",
+)
+_dsp_rx_plain = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args[:2], None)
+R.check(
+    "and with no vector the received draw is the shipped array itself",
+    _dsp_rx_plain[2] is _dsp_rx_plain[0],
+)
+
+# What reads the shipped level and what reads the delivered draw, on a
+# modulating clamped install that prices no cycle (so nothing steers the plan
+# off its charged steps) and on the fixed-speed plan above.
+R.check(
+    "the plan's duty floor reaches the switch weight: heating under the floor "
+    "after a block is no leg and no switch",
+    _dsp_w([0, 1.0], [3, 0], (0.8, 0.0)) == 0.8 * 1.0 / 6.0
+    and _dsp_w([0, 1.0], [3, 0], (0.8, 0.0), floor=1.5) == 0.0,
+)
+R.check(
+    "at the exact minute the hot-water share ends the arbiter serves heating "
+    "(a strict <, as before the rule moved)",
+    [_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)] == ["dhw", "space", "space"],
+    f"{[_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)]}",
+)
+# A clamped install prices no start only with the clamped default patched to
+# zero (R11-OUTSIDE-HONEST-STARTS-RUNS-P3), as the two references below.
+from unittest import mock as _dsp_mock  # noqa: E402
+
+with _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _dsp_mc = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, cyc=0.0)
+_dsp_mc_avail = _dsp_mc.opt._space_avail
+_dsp_mc_fed = np.asarray(_dsp_mc.sims[-1]["space_power_schedule"], float)
+_dsp_mc_live = (
+    [] if _dsp_mc_avail is None
+    else [i for i in np.flatnonzero(_dsp_mc_avail < 1.0).tolist() if _dsp_mc.space[i] > 0]
+)
+_dsp_mc_obj, _dsp_mc_batch, _dsp_mc_energy = (_dsp_mc.objectives[-1][i] for i in (1, 2, 3))
+# Restated in R11-OUTSIDE-HONEST-STARTS-RUNS, whose approved design builds the
+# vector from the profile a committed candidate's re-solve starts from: a
+# candidate makes its own switches, and the lost running time of a switch
+# belongs to the plan that makes it. So a space solve builds one vector for its
+# start and one per candidate it scores, and the plan that ships carries the
+# one it was scored with. Until then: one per space solve, built from the
+# solve's start, "not the vector the final plan would rebuild". Kept: the
+# simulation is fed through the adopted vector, and none is built at
+# publication.
+R.check(
+    "modulating clamped: the simulation is fed the delivered draw of the "
+    "vector the adopted plan was scored with, whose charged steps hold "
+    "heating in that plan",
+    bool(_dsp_mc_live)
+    and np.array_equal(
+        _dsp_mc_fed, _dsp_dl.delivered_space(_dsp_mc.space, _dsp_mc.dhw, _dsp_mc_avail, 1.5)
+    )
+    and not np.array_equal(_dsp_mc_fed, _dsp_mc.space),
+    f"live {_dsp_mc_live}",
+)
+R.check(
+    "a vector is built inside a space solve, at least one per solve, and never "
+    "at publication, on every priced solve above",
+    all(s.vectors[0] >= len(s.solves) > 0 and s.vectors_outside[0] == 0
+        for s in [*_dsp_priced.values(), _dsp_mc]),
+    f"{[(s.vectors[0], s.vectors_outside[0], len(s.solves)) for s in [*_dsp_priced.values(), _dsp_mc]]}",
+)
+R.check(
+    "modulating clamped (item r15): the achieved objective is the closure on "
+    "the shipped arrays with that vector, not on the delivered draw, which "
+    "would charge the lost time twice",
+    bool(_dsp_mc_live)
+    and float(_dsp_mc_obj(_dsp_mc.space, _dsp_mc.dhw, None, _dsp_mc_avail))
+    == float(_dsp_mc.result.objective_value)
+    != float(_dsp_mc_obj(_dsp_mc_fed, _dsp_mc.dhw, None, _dsp_mc_avail))
+    and float(_dsp_mc_obj(_dsp_mc.space, _dsp_mc.dhw)) != float(_dsp_mc.result.objective_value),
+)
+R.check(
+    "modulating clamped: the predicted cost is the energy of the delivered "
+    "draw, not of the shipped level",
+    bool(_dsp_mc_live)
+    and float(_dsp_mc.result.predicted_cost) == float(_dsp_mc_energy(_dsp_mc_fed + _dsp_mc.dhw))
+    != float(_dsp_mc_energy(_dsp_mc.space + _dsp_mc.dhw)),
+)
+_dsp_mc_scalar = float(_dsp_mc_obj(_dsp_mc.space, _dsp_mc.dhw, None, _dsp_mc_avail))
+_dsp_mc_scalar_energy = _dsp_mc.energy[0]
+_dsp_mc_rows = float(
+    _dsp_mc_batch(np.stack([_dsp_mc.space, _dsp_mc.space]), _dsp_mc.dhw, None, _dsp_mc_avail)[1]
+)
+_dsp_mc_batch_energy = _dsp_mc.energy[0]
+R.check(
+    "the scalar and the batch objective both price the energy of the "
+    "delivered draw plus hot water, and agree bit for bit with a vector",
+    np.array_equal(_dsp_mc_scalar_energy, _dsp_mc_fed + _dsp_mc.dhw)
+    and np.array_equal(_dsp_mc_batch_energy[1], _dsp_mc_fed + _dsp_mc.dhw)
+    and _dsp_mc_rows == _dsp_mc_scalar,
+    f"{_dsp_mc_rows} vs {_dsp_mc_scalar}",
+)
+# The switch term reads the shipped level: on the fixed-speed plan the
+# delivered draw of a charged step is under the floor and would be no leg.
+# The unpriced reference is clamped at a start price of zero, which since
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 only a clamped default patched to zero
+# reaches (a clamped install configured at zero plans at the default).
+with _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _dsp_fx_free = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, p_min=5.5, cyc=0.0)
+_dsp_fx_obj, _dsp_fx_batch = _dsp_fx.objectives[-1][1], _dsp_fx.objectives[-1][2]
+_dsp_fx_score = float(_dsp_fx_obj(_dsp_fx.space, _dsp_fx.dhw, None, _dsp_fx_avail))
+_dsp_fx_level_terms = _dsp_fx.opt.config.price_weight * (
+    0.3 * _dsp_runs.start_count(_dsp_fx_total, 5.5)
+    + 0.3 * _dsp_dl.switch_weight(
+        _dsp_fx.space, _dsp_fx.dhw, _DSP_PAIR, 5.5, 5.5,
+        level=5.5 * _dsp_runs.running_share(_dsp_fx_total, 5.5))
+)
+_dsp_fx_unpriced = float(
+    _dsp_fx_free.objectives[-1][1](_dsp_fx.space, _dsp_fx.dhw, None, _dsp_fx_avail)
+)
+R.check(
+    "fixed-speed: what pricing a start adds to a plan's score is cycling_cost x "
+    "(the start count plus the switch weight at p_max x the running share)",
+    _dsp_dl.switch_weight(_dsp_fx.space, _dsp_fx.dhw, _DSP_PAIR, 5.5, 5.5) > 0
+    and abs(_dsp_fx_score - _dsp_fx_unpriced - _dsp_fx_level_terms) < 1e-9,
+    f"{_dsp_fx_score - _dsp_fx_unpriced} vs {_dsp_fx_level_terms}",
+)
+R.check(
+    "fixed-speed: the batch objective is the scalar one bit for bit with a "
+    "priced pair and a vector",
+    float(
+        _dsp_fx_batch(np.stack([_dsp_fx.space, _dsp_fx.space]), _dsp_fx.dhw, None, _dsp_fx_avail)[1]
+    ) == _dsp_fx_score,
+)
+_dsp_quiet = _dsp_solve(_DSP_PAIR, _DSP_OFF, legionella_h=200.0)
+R.check(
+    "a priced install whose plan holds no priced switch builds no candidate",
+    _dsp_dl.switch_weight(_dsp_quiet.space, _dsp_quiet.dhw, _DSP_PAIR, 5.5) == 0.0
+    and not _dsp_quiet.bans and len(_dsp_quiet.builds) == 1,
+    f"{len(_dsp_quiet.bans)} banned build(s) of {len(_dsp_quiet.builds)}",
+)
+# _co_optimize's own candidate: refused, it leaves the incumbent's vector.
+_dsp_co = _dsp_base["fixed-speed"]
+_dsp_co_calls = []
+
+
+def _dsp_co_solve(dhw_plan, warm_start):
+    _dsp_co_calls.append(1)
+    _dsp_co.opt._space_avail = None
+    return np.asarray(warm_start, float), "candidate", 0.0
+
+
+_dsp_co_kept = _dsp_co.opt._space_avail = np.ones(96)
+# The incumbent handed in asks for the whole compressor in every step, so the
+# re-plan differs from the first hot-water plan whatever the fixture's own
+# space plan is (R11-OUTSIDE-HONEST-STARTS-RUNS: the committed plan of this
+# install no longer presses a step the re-plan moves).
+_dsp_co_out = _dsp_co.opt._co_optimize(
+    _dsp_co.builds[0][2],
+    space_power=np.full(96, 5.5),
+    dhw_power=np.asarray(_dsp_co.builds[0][1][0].schedule, float),
+    status="first", best_score=-1e9, solve_space=_dsp_co_solve, p_max=5.5,
+    planner=_dsp_co.builds[0][3],
+)
+R.check(
+    "a refused co-optimisation candidate leaves the vector its incumbent was "
+    "scored with",
+    len(_dsp_co_calls) == 1 and _dsp_co_out[2] == "first"
+    and _dsp_co.opt._space_avail is _dsp_co_kept,
+    f"{len(_dsp_co_calls)} candidate solve(s), status {_dsp_co_out[2]}",
+)
+# _co_optimize's headroom is the charged bound: on a duty-cycle install heating
+# solved hard against avail x p_max - dhw wanted more than it could have, so
+# the step is pinned and hot water is re-planned against a full compressor.
+_dsp_hr_dhw = np.zeros(96)
+_dsp_hr_dhw[40] = 2.0
+_dsp_hr_avail = np.ones(96)
+_dsp_hr_avail[40] = 1.0 - _dsp_dl.lost_share(_DSP_PAIR, _DSP_OFF)
+_dsp_hr_at_bound = np.zeros(96)
+_dsp_hr_at_bound[40] = _dsp_hr_avail[40] * 5.5 - 2.0
+_dsp_hr_at_bound[41] = 2.0
+_dsp_hr_at_plain = _dsp_hr_at_bound.copy()
+_dsp_hr_at_plain[40] = 5.5 - 2.0
+
+
+def _dsp_hr_demand(space, avail, **install):
+    """The space demand ``_co_optimize`` hands its replan, ``None`` when it builds none."""
+    opt = _dsp_opt(_DSP_PAIR, _DSP_OFF, **install)
+    opt._space_avail = avail
+    seen = []
+
+    def build(h, **kw):
+        seen.append(np.asarray(kw["space_demand"], float))
+        return _DspNS(schedule=_dsp_hr_dhw.copy()), None
+
+    opt._co_optimize(
+        _dsp_co.builds[0][2], space_power=space, dhw_power=_dsp_hr_dhw,
+        status="first", best_score=0.0, solve_space=_dsp_g_raises, p_max=5.5,
+        planner=_DspNS(
+            _dhw_coil_wood_forecast=lambda *a: None, _build_dhw_requirements=build
+        ),
+    )
+    return seen[0] if seen else None
+
+
+_dsp_hr_pinned = _dsp_hr_demand(_dsp_hr_at_bound, _dsp_hr_avail)
+R.check(
+    "the co-optimisation reads the charged bound: on a duty-cycle install "
+    "heating at avail x p_max - dhw in a charged step is pinned, and the "
+    "replan is built against a full compressor there and nowhere else",
+    _dsp_hr_at_bound[40] < 5.5 - 2.0 - 1e-3
+    and _dsp_hr_pinned is not None
+    and np.flatnonzero(_dsp_hr_pinned == 5.5).tolist() == [40]
+    and _dsp_hr_pinned[41] == 2.0,
+    f"{None if _dsp_hr_pinned is None else np.flatnonzero(_dsp_hr_pinned == 5.5).tolist()}",
+)
+R.check(
+    "null controls: the same heating with no vector, or with the vector on a "
+    "clamped install whose bound carries no lost time, is under its bound and "
+    "builds no replan; at the uncharged bound each of the two builds one",
+    _dsp_hr_demand(_dsp_hr_at_bound, None) is None
+    and _dsp_hr_demand(_dsp_hr_at_bound, _dsp_hr_avail, clamp=True) is None
+    and _dsp_hr_demand(_dsp_hr_at_plain, None) is not None
+    and _dsp_hr_demand(_dsp_hr_at_plain, _dsp_hr_avail, clamp=True) is not None,
+)
+
+# The candidate pass is not for a combi store, whose hot-water plan is a
+# feasibility repair scored with no buffer flux: nothing is built or solved.
+import heatpump_optimizer.mixing_valve as _dsp_mv  # noqa: E402
+
+
+def _dsp_combi_pass(combi):
+    """What the candidate pass asks of its planner on a store-buffer install."""
+    params = _DspTP(
+        buffer_tank_volume=504.0, mixing_valve_mode=_dsp_mv.MODE_SMART_WRITE,
+        dhw_enabled=True, dhw_tank_volume=200.0, dhw_combi_tank_enabled=combi,
+    )
+    params.min_electrical_power, params.max_electrical_power = 1.5, 5.5
+    cfg = _DspCfg(cycling_cost=0.3)
+    cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = _DSP_PAIR, _DSP_OFF
+    opt = _DspOpt(_DspTM(params), cfg)
+    opt._dhw_requirement, opt._space_avail = _dsp_leg_req, _dsp_g_avail
+    asked = []
+
+    def build(h, **kw):
+        asked.append(kw.get("placement_ban"))
+        raise RuntimeError("the fixture's build")
+
+    out = _dsp_om._avoid_priced_switches(
+        opt, _dsp_leg_h,
+        _DspNS(_dhw_coil_wood_forecast=lambda *a: asked.append(None), _build_dhw_requirements=build),
+        _dsp_g_raises, lambda *a: 0.0, 5.5, _dsp_g_incumbent,
+    )
+    return opt.model.params.dhw_store.combi, out, asked, opt
+
+
+_dsp_combi_on, _dsp_combi_off = _dsp_combi_pass(True), _dsp_combi_pass(False)
+R.check(
+    "on a combi store the candidate pass asks its planner nothing and returns "
+    "the incumbent, its requirement and its availability in place, on an "
+    "incumbent holding a priced switch",
+    _dsp_combi_on[0] is True and _dsp_combi_on[1] is _dsp_g_incumbent
+    and _dsp_combi_on[2] == []
+    and _dsp_combi_on[3]._dhw_requirement is _dsp_leg_req
+    and _dsp_combi_on[3]._space_avail is _dsp_g_avail,
+    f"combi {_dsp_combi_on[0]}, {len(_dsp_combi_on[2])} planner call(s)",
+)
+R.check(
+    "null control: the same install with the store's hot water in its own "
+    "tank reaches the banned build",
+    _dsp_combi_off[0] is False and _dsp_combi_off[1] is _dsp_g_incumbent
+    and len(_dsp_combi_off[2]) == 2 and _dsp_combi_off[2][1] is not None,
+    f"combi {_dsp_combi_off[0]}, {len(_dsp_combi_off[2])} planner call(s)",
+)
+
+
+# 7. The learner's side: the bound on the decayed count, and the read the
+# planner prices by. Everything below needs the predecessor's module.
+import json  # noqa: E402
+
+from heatpump_optimizer import duty_switch as _dsp_ds, pump_mode as _dsp_pm  # noqa: E402
+
+_DSP_DAY = datetime(2026, 11, 10, tzinfo=UTC)
+
+
+def _dsp_stop(learner, at, off_s):
+    """One hot water to heating switch at ``at`` that stops the compressor 19 s
+    later, void-checked on the next pass, restarting after ``off_s``."""
+    ctx = _dsp_ds.SwitchContext(
+        mode_written_at=at, last_write_at=at, inlet_c=44.2, water_setpoint_c=32.0,
+        target_demand=True, plan_stays=True)
+    learner.mode_write(at, _dsp_pm.MODE_DHW, _dsp_pm.MODE_HEAT, True, ctx)
+    learner.edge(at + timedelta(seconds=19), False)
+    learner.note_pass(at + timedelta(seconds=60), ctx, False)
+    learner.edge(at + timedelta(seconds=19 + off_s), True)
+
+
+def _dsp_dir(k, kept_w, usable=True, off_s=()):
+    return _dsp_ds.Direction(k=k, kept_w=kept_w, decayed_at=_DSP_DAY, first_day=_DSP_DAY.date(),
+                 last_day=_DSP_DAY.date() + timedelta(days=1), usable=usable, off_s=list(off_s))
+
+
+def _dsp_kept(count, days=0):
+    """A direction latched at the cap on stops alone, then ``count`` kept
+    episodes at one instant, then aged ``days``; and the largest n it held."""
+    d = _dsp_dir(_dsp_ds.N_CAP, 0.0)
+    held = d.n
+    for _ in range(count):
+        d.book(_DSP_DAY, False, None)
+        held = max(held, d.n)
+    d.decay(_DSP_DAY + timedelta(days=days))
+    return d, held
+
+
+_dsp_fill = _dsp_ds.Direction()
+_dsp_fill_n = []
+for _dsp_i in range(40):
+    _dsp_fill.book(_DSP_DAY + timedelta(hours=_dsp_i), _dsp_i % 3 != 0, 501.0)
+    _dsp_fill_n.append(_dsp_fill.n)
+R.check(
+    "the decayed count is held at the cap, twice the on-threshold: forty "
+    "bookings an hour apart end on it and none leaves it above (to 1e-9, the "
+    "rounding of two scaled addends)",
+    _dsp_ds.N_CAP == 10.0 == 2 * _dsp_ds.N_ON
+    and max(_dsp_fill_n) <= _dsp_ds.N_CAP + 1e-9 and abs(_dsp_fill_n[-1] - _dsp_ds.N_CAP) < 0.05
+    and _dsp_fill_n[8] < _dsp_ds.N_CAP - 0.5,
+    f"largest n {max(_dsp_fill_n)!r}, last {_dsp_fill_n[-1]!r}, after nine {_dsp_fill_n[8]!r}",
+)
+_dsp_mix = _dsp_dir(6.0, 4.0)
+_dsp_mix.book(_DSP_DAY, True, None)
+R.check(
+    "the cap scales both counts alike: a stop booked on six of ten leaves "
+    "p at seven of eleven",
+    abs(_dsp_mix.p - 7.0 / 11.0) < 1e-12 and abs(_dsp_mix.n - _dsp_ds.N_CAP) < 1e-9,
+    f"p={_dsp_mix.p!r} n={_dsp_mix.n!r}",
+)
+_dsp_k12, _dsp_k12_held = _dsp_kept(12)
+_dsp_k13, _dsp_k13_held = _dsp_kept(13)
+R.check(
+    "from p = 1 at the cap the latch holds after twelve kept episodes and "
+    "drops at the thirteenth, each multiplying p by 10/11",
+    _dsp_k12.usable and not _dsp_k13.usable
+    and abs(_dsp_k12.p - (10.0 / 11.0) ** 12) < 1e-9 and abs(_dsp_k13.p - (10.0 / 11.0) ** 13) < 1e-9
+    and max(_dsp_k12_held, _dsp_k13_held) <= _dsp_ds.N_CAP + 1e-9,
+    f"p after 12 {_dsp_k12.p!r} usable={_dsp_k12.usable}; after 13 {_dsp_k13.p!r} usable={_dsp_k13.usable}",
+)
+R.check(
+    "with no episodes a capped direction is latched at 28 days and not the day after",
+    _dsp_kept(0, 28)[0].usable and not _dsp_kept(0, 29)[0].usable,
+    f"n at 28 days {_dsp_kept(0, 28)[0].n!r}, at 29 {_dsp_kept(0, 29)[0].n!r}",
+)
+_dsp_over = _dsp_dir(4.0 * _dsp_ds.N_CAP, 0.0)
+_dsp_over.decay(_DSP_DAY)
+_dsp_over_n0 = _dsp_over.n
+_dsp_over.decay(_DSP_DAY + timedelta(days=29))
+_dsp_over_ctl = _dsp_dir(_dsp_ds.N_CAP, 0.0)
+_dsp_over_ctl.decay(_DSP_DAY + timedelta(days=28))
+R.check(
+    "the cap is held on decay as well as at booking: a record stored at four "
+    "times the cap is held to it by the first pass, p unchanged, and is off a "
+    "day past the 28 a capped direction stays latched (control: that capped "
+    "direction is still latched at 28 days)",
+    abs(_dsp_over_n0 - _dsp_ds.N_CAP) < 1e-9 and _dsp_over.p == 1.0
+    and not _dsp_over.usable and _dsp_over_ctl.usable,
+    f"n after the first pass {_dsp_over_n0!r}, after 29 days {_dsp_over.n!r} "
+    f"usable={_dsp_over.usable}; control usable={_dsp_over_ctl.usable}",
+)
+_dsp_rt = _dsp_ds.DutySwitchLearner({"dhw_space": _dsp_k12, "space_dhw": _dsp_fill})
+_dsp_rt_back = _dsp_ds.DutySwitchLearner.from_record(json.loads(json.dumps(_dsp_rt.stored_record())))
+R.check(
+    "a capped record round-trips through its stored form",
+    _dsp_rt_back.directions == _dsp_rt.directions and _dsp_rt_back.directions["dhw_space"].usable,
+    f"{_dsp_rt_back.directions}",
+)
+
+# The read: both pairs in the leaf's order, zeros unless the stored latch is on.
+_dsp_table = _dsp_ds.DutySwitchLearner()
+for _dsp_i in range(6):
+    _dsp_stop(_dsp_table, _DSP_DAY + timedelta(hours=7 * _dsp_i), 501)
+R.check(
+    "six stopping switches over two days, each off 501 s, latch the direction "
+    "and the planner reads the acceptance fixture's pairs from the learner",
+    _dsp_table.directions["dhw_space"].usable
+    and _dsp_table.planner_pairs() == (_DSP_PAIR, _DSP_OFF),
+    f"{_dsp_table.planner_pairs()} against {(_DSP_PAIR, _DSP_OFF)}",
+)
+_DSP_LEARNERS = {
+    "an empty learner": _dsp_ds.DutySwitchLearner(),
+    "a learner under its on-threshold, off times stored": _dsp_ds.DutySwitchLearner(
+        {"dhw_space": _dsp_dir(4.0, 0.0, usable=False, off_s=[501.0, 492.0]), "space_dhw": _dsp_ds.Direction()}),
+    "an install whose every switch was kept": _dsp_ds.DutySwitchLearner(
+        {"dhw_space": _dsp_dir(0.0, 10.0, usable=False), "space_dhw": _dsp_dir(0.0, 10.0, usable=False)}),
+}
+R.check(
+    "the read returns zeros while a direction is unlatched, its off times with it",
+    all(l.planner_pairs() == ((0.0, 0.0), (0.0, 0.0)) for l in _DSP_LEARNERS.values()),
+    f"{ {n: l.planner_pairs() for n, l in _DSP_LEARNERS.items()} }",
+)
+_dsp_two = _dsp_ds.DutySwitchLearner({
+    "dhw_space": _dsp_dir(3.0, 1.0, off_s=[400.0, 501.0, 620.0, 700.0]),
+    "space_dhw": _dsp_dir(2.0, 2.0),
+})
+R.check(
+    "a latched direction reads its own p and median off time in its own slot, "
+    "hot water to heating first, and no off time while every stop's was censored",
+    _dsp_two.planner_pairs() == ((0.75, 0.5), (560.5, 0.0)),
+    f"{_dsp_two.planner_pairs()}",
+)
+
+# 4, the learner arm: each null state's read, handed to a full optimize.
+_dsp_arm_bad = []
+for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
+    for _dsp_label, _dsp_l in _DSP_LEARNERS.items():
+        _dsp_null = _dsp_solve(*_dsp_l.planner_pairs(), **_dsp_kw)
+        if (
+            not _dsp_same_plan(_dsp_null, _dsp_base[_dsp_name])
+            or _dsp_null.bans or _dsp_null.opt._space_avail is not None
+            or len(_dsp_null.builds) != len(_dsp_base[_dsp_name].builds)
+        ):
+            _dsp_arm_bad.append((_dsp_name, _dsp_label))
+R.check(
+    "null controls from learner state: an empty learner, one under its "
+    "on-threshold and an install whose every switch was kept each read a plan "
+    "identical to today's on all three install classes",
+    not _dsp_arm_bad,
+    f"{_dsp_arm_bad}",
+)
+R.check(
+    "and that arm has something to detect: the latched learner's read returns "
+    "the priced plan on every install class",
+    all(_dsp_same_plan(_dsp_solve(*_dsp_table.planner_pairs(), **kw), _dsp_priced[n])
+        for n, kw in _DSP_INSTALLS.items()),
+)
+
+
+# R11-OUTSIDE-HONEST-STARTS-RUNS, the descents of a solve that prices a stop.
+# The relaxed descent weighs a switch at the combined draw and the true
+# objective in starts, so the descent that avoids a switch can commit to a
+# plan the true objective scores above the one that kept it. Such a solve
+# therefore descends twice, with the switch operand and as a solve that
+# prices no stop would, and the true objective judges the candidates of both.
+# Two duty-cycle days, one where each descent supplies the plan that ships:
+# the cells "duty-cycle price phase 30 outdoor 2.0" (mild) and "... outdoor
+# -4.0" (cold) that dev/audit/harnesses/r11_honest_starts_runs.py's
+# descents mode prints, both and each descent alone (design verdict r2).
+# The scores are of one non-convex solve per arm (``fixer.md`` step 15): the
+# margins measured on x86_64 are 0.07 and 0.39, the checks ask for 0.01.
+_dsp_real_plans, _dsp_real_term = _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn
+_dsp_descents = []
+
+
+def _dsp_arm(arm, **kw):
+    """One priced duty-cycle solve with an arm of the two descents removed."""
+    def plans(*args):
+        res, relaxed = _dsp_real_plans(*args)
+        _dsp_descents.append(len(relaxed))
+        return res, {"operand": relaxed[:1], "unpriced": relaxed[-1:]}.get(arm, relaxed)
+
+    def term(opt):
+        inner = _dsp_real_term(opt)
+        return lambda space, dhw, descent=None: (
+            None if descent == _dsp_om._RELAXED else inner(space, dhw, descent))
+
+    _dsp_om._relaxed_plans = plans
+    if arm == "no operand":
+        _dsp_om._switch_cost_fn = term
+    try:
+        return float(_dsp_solve(_DSP_PAIR, _DSP_OFF, **kw).result.objective_value)
+    finally:
+        _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn = _dsp_real_plans, _dsp_real_term
+
+
+_dsp_days = {
+    day: {arm: _dsp_arm(arm, **kw) for arm in ("both", "operand", "unpriced", "no operand")}
+    for day, kw in (("mild", {}), ("cold", {"out_mean": -4.0}))
+}
+R.check(
+    "a solve that prices a stop commits both descents and ships the lower: on "
+    "the mild day (duty-cycle, price phase 30, 2 degC) the unpriced descent's "
+    "plan, which the operand's descent alone scores above; on the cold day "
+    "(the same at -4 degC) the operand's, which the unpriced descent alone scores above",
+    _dsp_days["mild"]["both"] <= _dsp_days["mild"]["unpriced"] + 1e-9
+    and _dsp_days["mild"]["both"] < _dsp_days["mild"]["operand"] - 0.01
+    and _dsp_days["cold"]["both"] <= _dsp_days["cold"]["operand"] + 1e-9
+    and _dsp_days["cold"]["both"] < _dsp_days["cold"]["unpriced"] - 0.01,
+    f"{_dsp_days}",
+)
+R.check(
+    "the relaxed descent still leaves a priced switch: with the switch operand "
+    "taken out of the relaxed closure the cold day's plan scores higher on the "
+    "true objective",
+    _dsp_days["cold"]["both"] < _dsp_days["cold"]["no operand"] - 0.01,
+    f"{_dsp_days['cold']}",
+)
+_dsp_descents.clear()
+_dsp_real_min = _dsp_om._multi_start_minimize
+_dsp_caps, _dsp_call_caps = [], []
+
+
+def _dsp_counted_plans(*args):
+    """The real relaxed plans, their count and the caps their multi-starts ran under."""
+    seen = len(_dsp_caps)
+    out = _dsp_real_plans(*args)
+    _dsp_descents.append(len(out[1]))
+    _dsp_call_caps.append(tuple(_dsp_caps[seen:]))
+    return out
+
+
+def _dsp_capped_min(*args, **kw):
+    _dsp_caps.append(kw.get("maxiter"))
+    return _dsp_real_min(*args, **kw)
+
+
+_dsp_om._relaxed_plans, _dsp_om._multi_start_minimize = _dsp_counted_plans, _dsp_capped_min
+try:
+    _dsp_once = [_dsp_solve(*pairs, **kw) for pairs, kw in (
+        ((None,), {}), (((0.0, 0.0), (0.0, 0.0)), {}), ((_DSP_PAIR, _DSP_OFF), {"cyc": 0.0}))]
+    _dsp_once_n, _dsp_twice_n = set(_dsp_descents), None
+    _dsp_descents.clear()
+    _dsp_call_caps.clear()
+    _dsp_solve(_DSP_PAIR, _DSP_OFF)
+    _dsp_twice_n = set(_dsp_descents)
+finally:
+    _dsp_om._relaxed_plans, _dsp_om._multi_start_minimize = _dsp_real_plans, _dsp_real_min
+R.check(
+    "null control: with no pair, an empty learner or no priced cycle every space "
+    "solve descends once, and the empty learner's plan is the plan of a config "
+    "that never heard of the pair; with the contributor's pair it descends twice",
+    _dsp_once_n == {1} and _dsp_twice_n == {2} and _dsp_same_plan(_dsp_once[0], _dsp_once[1]),
+    f"{_dsp_once_n} {_dsp_twice_n}",
+)
+# The second descent is one more multi-start and no more than that: it runs
+# under the cap the first was handed, read off the two calls of each space
+# solve of the pair's own solve (no cap is restated here).
+R.check(
+    "a space solve that descends twice hands both multi-starts the same "
+    "iteration cap",
+    bool(_dsp_call_caps)
+    and all(len(c) == 2 and c[0] is not None and c[0] == c[1] for c in _dsp_call_caps),
+    f"caps per space solve {_dsp_call_caps}",
+)
+
+
+# The plan a space solve adopts publishes with the vector of the scope the
+# stage scored it in, not the last one built: the stage is stood in for by one
+# that hands back a marked vector.
+_dsp_marked = np.full(96, 0.5)
+_dsp_real_commit = _dsp_om._commit_runs
+_dsp_om._commit_runs = lambda _opt, _h, scope, relaxed, *_rest: (relaxed[0], (*scope[:3], _dsp_marked))
+try:
+    _dsp_e.opt._solve_space(*_dsp_e.solves[0])
+finally:
+    _dsp_om._commit_runs = _dsp_real_commit
+R.check(
+    "the plan a space solve adopts publishes with the vector of the scope it "
+    "was scored in",
+    _dsp_e.opt._space_avail is _dsp_marked,
+)
+
+# The commit's tie break, read at the stage beside a hot-water charge (design
+# note round 3, test 3 and item a3). On an install that prices no start, at a
+# zero price, no mask buys anything, so every band's mask is the relaxed
+# plan's own runs and each candidate of the stage is that plan. Corpus: 60
+# realizable plans of 24 steps, one charge each, from a stopped and a running
+# compressor. At a flat price the same plans get another candidate. A
+# clamped install prices no start only with the clamped default patched to
+# zero (R11-OUTSIDE-HONEST-STARTS-RUNS-P3).
+_dsp_tie_rng = np.random.default_rng(3602)
+_dsp_tie_opt = _dsp_opt(clamp=True, cyc=0.0)
+_dsp_tie_moved = {"zero price": 0, "flat price": 0}
+_dsp_tie_zero = _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0)
+_dsp_tie_zero.start()
+for _dsp_tie_i in range(60):
+    _dsp_tie_space = np.where(_dsp_tie_rng.random(24) < 0.5, 0.0, _dsp_tie_rng.uniform(1.5, 3.0, 24))
+    _dsp_tie_dhw = np.zeros(24)
+    _dsp_tie_dhw[int(_dsp_tie_rng.integers(0, 24))] = 2.5
+    _dsp_tie_space[_dsp_tie_dhw > 0.0] = 0.0
+    for _dsp_tie_name, _dsp_tie_price in (("zero price", 0.0), ("flat price", 0.2)):
+        _dsp_tie_moved[_dsp_tie_name] += not all(
+            np.array_equal(c, _dsp_tie_space) for c in _dsp_om._run_plans(
+                _dsp_tie_opt,
+                _DspNS(prices=np.full(24, _dsp_tie_price), dt=0.25, compressor_running=bool(_dsp_tie_i % 2)),
+                _dsp_tie_space, _dsp_tie_dhw, np.zeros(24), 5.5 - _dsp_tie_dhw, np.zeros(24, dtype=bool)))
+_dsp_tie_zero.stop()
+R.check(
+    "beside a hot-water charge, at a zero price on an install that prices no "
+    "start, every candidate of the stage is the realizable relaxed plan itself; "
+    "at a flat price the same plans get another",
+    _dsp_tie_moved == {"zero price": 0, "flat price": 60},
+    f"{_dsp_tie_moved}",
+)
+
+
+# ===========================================================================
+# R11-OUTSIDE-HONEST-STARTS-RUNS (pull request 3529, Bankaifan): a start is
+# priced as one start, and an engaged solve ships runs the pump can run.
+# ===========================================================================
+R.section("R11-OUTSIDE-HONEST-STARTS-RUNS: the start count and committed runs")
+from dataclasses import replace as _hsr_replace  # noqa: E402
+from types import SimpleNamespace as _HsrNS  # noqa: E402
+
+import heatpump_optimizer.optimizer as _hsr_om  # noqa: E402
+from heatpump_optimizer import duty_legs as _hsr_dl  # noqa: E402
+from heatpump_optimizer import duty_switch as _hsr_ds  # noqa: E402
+from heatpump_optimizer import early_cutoff as _hsr_ec  # noqa: E402
+from heatpump_optimizer import runs as _hsr_runs  # noqa: E402
+from heatpump_optimizer import supply_hold as _hsr_sh  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    MIN_RUNNING_DRAW_KW as _HSR_RUNS_AT,
+    ThermalModel as _HsrTM,
+    ThermalParameters as _HsrTP,
+    ThermalState as _HsrTS,
+)
+
+_hsr_count, _hsr_edges = _hsr_runs.start_count, _hsr_runs.edge_count
+
+# 1. The count. Generated plans whose every step is off or at the floor or
+# above: the count is the integer number of off-to-on edges, from a stopped
+# and from a running compressor. Corpus: 400 plans, widths 1 to 96.
+_hsr_rng = np.random.default_rng(3529)
+_hsr_int_bad = []
+for _hsr_i in range(400):
+    _hsr_n = int(_hsr_rng.integers(1, 97))
+    _hsr_f = float(_hsr_rng.choice([0.0, 0.53, 1.1, 5.5]))
+    _hsr_q = np.where(
+        _hsr_rng.random(_hsr_n) < 0.5, 0.0,
+        _hsr_rng.uniform(max(_hsr_f, 0.11), 5.5 + 1e-12, _hsr_n),
+    )
+    for _hsr_run in (False, True):
+        if _hsr_count(_hsr_q, _hsr_f, _hsr_run) != _hsr_edges(_hsr_q, _hsr_run):
+            _hsr_int_bad.append((_hsr_i, _hsr_run))
+R.check(
+    "on a plan whose steps are all off or at the floor or above, the start count "
+    "is the integer number of off-to-on edges, from a stopped and a running compressor",
+    not _hsr_int_bad,
+    f"{_hsr_int_bad[:5]} of {len(_hsr_int_bad)}",
+)
+R.check(
+    "a constant level under the floor is counted as the starts it is, and a level "
+    "change inside a run is none",
+    _hsr_count(np.full(8, 0.55), 1.1) == 1.0 + 7 * 0.5
+    and _hsr_count([2.0, 4.0, 2.0, 5.5], 1.1, True) == 0.0
+    and _hsr_count([2.0, 4.0, 2.0, 5.5], 1.1) == 1.0,
+    f"{_hsr_count(np.full(8, 0.55), 1.1)}",
+)
+R.check(
+    "a start to the floor and a start to the maximum cost the same one start",
+    _hsr_count([0.0, 1.1, 1.1], 1.1) == _hsr_count([0.0, 5.5, 5.5], 1.1) == 1.0,
+)
+R.check(
+    "a running compressor continues free, and pays for a stop and a return; a "
+    "stopped one pays for its first step",
+    _hsr_count([3.0, 3.0, 3.0], 1.1, True) == 0.0
+    and _hsr_count([3.0, 0.0, 3.0], 1.1, True) == 1.0
+    and _hsr_count([3.0, 0.0, 3.0], 1.1) == 2.0
+    and _hsr_edges([3.0, 0.0, 3.0], True) == 1 and _hsr_edges([3.0, 0.0, 3.0]) == 2,
+)
+R.check(
+    "a step needs the compressor by the plan's running rule, not by the floor, "
+    "and leaves its successor the share of a start it did not run",
+    _hsr_count([0.0, 0.2], 1.1) == 1.0
+    and _hsr_count([0.55, 3.0], 1.1, True) == 0.5
+    and _hsr_count([0.0, _HSR_RUNS_AT / 2.0], 1.1) == 0.5,
+    f"{_hsr_count([0.0, 0.2], 1.1)} {_hsr_count([0.55, 3.0], 1.1, True)}",
+)
+R.check(
+    "a configured floor of zero still counts against the plan's running rule",
+    _hsr_runs.floor_kw(0.0) == _HSR_RUNS_AT and _hsr_runs.floor_kw(1.1) == 1.1
+    and _hsr_count([0.0, 0.2, 0.0, 0.05], 0.0) == 1.5
+    and _hsr_runs.realizable([0.0, 0.1, 3.0], 0.0)
+    and not _hsr_runs.realizable([0.0, 0.5, 3.0], 1.1)
+    and _hsr_runs.realizable([0.0, 1.1, 3.0], 1.1),
+    f"{_hsr_count([0.0, 0.2, 0.0, 0.05], 0.0)}",
+)
+
+# 2. Composition with the duty-switch term: weighed at p_max x the running
+# share, a boundary's switch weight and its start share never pass one start.
+_HSR_PMAX = 6.0
+
+
+def _hsr_switch(space, dhw, pair, floor, level_floor=None):
+    """The switch weight in starts (``level_floor`` given) or as today."""
+    space, dhw = np.asarray(space, float), np.asarray(dhw, float)
+    level = None if level_floor is None else _HSR_PMAX * _hsr_runs.running_share(space + dhw, level_floor)
+    return _hsr_dl.switch_weight(space, dhw, pair, _HSR_PMAX, floor, level=level)
+
+
+def _hsr_pair_cost(space, dhw, pair, floor=1.0, running=False):
+    return _hsr_count(np.add(space, dhw), floor, running) + _hsr_switch(space, dhw, pair, None, floor)
+
+
+R.check(
+    "hot water then heating at equal draw with a certain stop costs exactly two "
+    "starts with the steps adjacent, and exactly two with an idle step between",
+    _hsr_pair_cost([0.0, 3.0], [3.0, 0.0], (1.0, 0.0)) == 2.0
+    and _hsr_pair_cost([0.0, 0.0, 3.0], [3.0, 0.0, 0.0], (1.0, 0.0)) == 2.0
+    and _hsr_switch([0.0, 0.0, 3.0], [3.0, 0.0, 0.0], (1.0, 0.0), None, 1.0) == 0.0,
+    f"{_hsr_pair_cost([0.0, 3.0], [3.0, 0.0], (1.0, 0.0))}, "
+    f"{_hsr_pair_cost([0.0, 0.0, 3.0], [3.0, 0.0, 0.0], (1.0, 0.0))}",
+)
+# Grid: 2-step plans, each step one duty, levels from off through the floor to
+# p_max, both orders, three probabilities, duty-cycle and clamped leg reading.
+_HSR_LEVELS = (0.0, 0.05, 0.3, 0.99, 1.0, 2.5, 6.0)
+_hsr_grid_bad, _hsr_grid_n, _hsr_grid_kinds = [], 0, set()
+for _hsr_a in _HSR_LEVELS:
+    for _hsr_b in _HSR_LEVELS:
+        for _hsr_first_dhw in (True, False):
+            for _hsr_p in (0.3, 0.8, 1.0):
+                for _hsr_leg_floor in (None, 1.0):
+                    _hsr_sp = [0.0, _hsr_b] if _hsr_first_dhw else [_hsr_a, 0.0]
+                    _hsr_dh = [_hsr_a, 0.0] if _hsr_first_dhw else [0.0, _hsr_b]
+                    _hsr_share = _hsr_count(np.add(_hsr_sp, _hsr_dh), 1.0, True)
+                    _hsr_w = _hsr_switch(_hsr_sp, _hsr_dh, (_hsr_p, _hsr_p), _hsr_leg_floor, 1.0)
+                    _hsr_grid_n += 1
+                    if _hsr_share + _hsr_w > 1.0 + 1e-12:
+                        _hsr_grid_bad.append((_hsr_sp, _hsr_dh, _hsr_p, _hsr_leg_floor))
+                    if all(level == 0.0 or level >= 1.0 for level in (_hsr_a, _hsr_b)):
+                        # A committed pair: a start, a priced switch, or neither.
+                        _hsr_grid_kinds.add(round((_hsr_share + _hsr_w) / (_hsr_p if _hsr_w else 1.0), 12))
+R.check(
+    "over a grid of boundaries a step's start share plus the switch weight never "
+    "passes one start, and on a committed pair it is a start, the priced switch or nothing",
+    not _hsr_grid_bad and _hsr_grid_n == 588 and _hsr_grid_kinds == {0.0, 1.0},
+    f"{_hsr_grid_bad[:3]} of {len(_hsr_grid_bad)}; n {_hsr_grid_n}; kinds {_hsr_grid_kinds}",
+)
+R.check(
+    "the grid has something to detect: weighed at the combined draw beside the "
+    "start count (the keyword omitted) a boundary passes one start",
+    _hsr_count([0.5, 6.0], 1.0, True) + _hsr_switch([0.0, 6.0], [0.5, 0.0], (1.0, 1.0), None) < 1.0
+    < _hsr_count([0.5, 6.0], 1.0, True) + 1.0 * min(1.0, 6.0) / 1.0
+    and _hsr_switch([0.0, 3.0], [6.0, 0.0], (1.0, 0.0), None, 1.0) == 1.0
+    != _hsr_switch([0.0, 3.0], [6.0, 0.0], (1.0, 0.0), None),
+)
+_hsr_sw_rows = _hsr_rng.uniform(0.0, 3.0, size=(7, 12)) * (_hsr_rng.random((7, 12)) < 0.6)
+_hsr_sw_dhw = np.where(np.arange(12) % 4 == 1, 2.5, 0.0)
+R.check(
+    "with the level keyword omitted switch_weights_batch weighs at the combined "
+    "draw, value for value what the explicit draw gives, and a different level moves it",
+    np.array_equal(
+        _hsr_dl.switch_weights_batch(_hsr_sw_rows, _hsr_sw_dhw, (0.8, 0.6), _HSR_PMAX),
+        _hsr_dl.switch_weights_batch(
+            _hsr_sw_rows, _hsr_sw_dhw, (0.8, 0.6), _HSR_PMAX, level=_hsr_sw_rows + _hsr_sw_dhw),
+    )
+    and float(np.sum(_hsr_dl.switch_weights_batch(_hsr_sw_rows, _hsr_sw_dhw, (0.8, 0.6), _HSR_PMAX))) > 0.0
+    and not np.array_equal(
+        _hsr_dl.switch_weights_batch(_hsr_sw_rows, _hsr_sw_dhw, (0.8, 0.6), _HSR_PMAX),
+        _hsr_dl.switch_weights_batch(
+            _hsr_sw_rows, _hsr_sw_dhw, (0.8, 0.6), _HSR_PMAX,
+            level=_HSR_PMAX * _hsr_runs.running_share(_hsr_sw_rows + _hsr_sw_dhw, 1.0)),
+    ),
+)
+
+# 3. The commit. Generated relaxed plans (300), caps, forced steps, both step
+# widths: every mask's on steps lie in [floor, cap], forced steps are kept, a
+# mask that tracked ends within half a floor step, and at a 5-minute step no
+# unforced run or pause is shorter than the 10-minute minimums.
+
+
+def _hsr_stretches(mask):
+    edges = np.flatnonzero(np.diff(np.r_[False, mask, False]))
+    return list(zip(edges[::2].tolist(), edges[1::2].tolist()))
+
+
+_hsr_commit_bad, _hsr_commit_n, _hsr_tracked_n = [], 0, 0
+for _hsr_i in range(300):
+    _hsr_n = int(_hsr_rng.integers(6, 97))
+    _hsr_f = float(_hsr_rng.choice([0.53, 1.1]))
+    _hsr_dt = float(_hsr_rng.choice([0.25, 1.0 / 12.0]))
+    _hsr_q = np.where(_hsr_rng.random(_hsr_n) < 0.4, 0.0, _hsr_rng.random(_hsr_n) * _hsr_rng.choice([0.4, 1.5, 3.0]))
+    _hsr_caps = np.where(_hsr_rng.random(_hsr_n) < 0.1, 0.3, 3.0)
+    _hsr_forced = np.where(_hsr_rng.random(_hsr_n) < 0.1, _hsr_rng.integers(0, 2, _hsr_n).astype(float), np.nan)
+    _hsr_lengths = (_hsr_runs.steps_at_least(_hsr_runs.MIN_RUN, _hsr_dt),
+                    _hsr_runs.steps_at_least(_hsr_runs.MIN_PAUSE, _hsr_dt))
+    for _hsr_band in _hsr_runs.BANDS:
+        _hsr_mask, _hsr_ok = _hsr_runs.commit(
+            _hsr_q, _hsr_rng.random(_hsr_n) * 0.4, _hsr_f, _hsr_caps, 0.25, _hsr_band,
+            dt=_hsr_dt, running=bool(_hsr_i % 2), forced=_hsr_forced, lengths=_hsr_lengths)
+        _hsr_commit_n += 1
+        _hsr_level = np.minimum(np.maximum(_hsr_q, _hsr_f), _hsr_caps)
+        _hsr_free_on = _hsr_mask & np.isnan(_hsr_forced)
+        _hsr_end = float(np.sum(np.where(_hsr_mask, _hsr_level, 0.0) - _hsr_q) * _hsr_dt)
+        _hsr_short = [
+            (a, z) for keep, least in ((_hsr_mask, _hsr_lengths[0]), (~_hsr_mask, _hsr_lengths[1]))
+            for a, z in _hsr_stretches(keep)
+            if z - a < least and 0 < a and z < _hsr_n
+            and np.all(np.isnan(_hsr_forced[max(a - 1, 0):z + 1]))
+            and np.all(_hsr_caps[max(a - 1, 0):z + 1] >= _hsr_f)
+        ]
+        _hsr_tracked_n += _hsr_ok
+        if (
+            np.any(_hsr_level[_hsr_free_on] < _hsr_f - 1e-12)
+            or np.any(_hsr_mask[_hsr_forced == 0.0]) or not np.all(_hsr_mask[_hsr_forced == 1.0])
+            or (_hsr_ok and abs(_hsr_end) > _hsr_f * _hsr_dt / 2.0 + 1e-9)
+            or _hsr_short
+        ):
+            _hsr_commit_bad.append((_hsr_i, _hsr_band, _hsr_short[:1]))
+R.check(
+    "every committed mask runs its unforced on steps in [floor, cap], keeps every "
+    "forced step, ends within half a floor step where it tracked, and holds the "
+    "run and pause minimums as step counts",
+    not _hsr_commit_bad and _hsr_commit_n == 900 and 0 < _hsr_tracked_n < _hsr_commit_n,
+    f"{_hsr_commit_bad[:3]} of {len(_hsr_commit_bad)}; tracked {_hsr_tracked_n} of {_hsr_commit_n}",
+)
+R.check(
+    "the run and pause minimums are one pair: the supply gate's and the early "
+    "cut-off's are the leaf's own objects, two steps at 5 minutes and one at 15",
+    _hsr_sh.MIN_RUN is _hsr_runs.MIN_RUN and _hsr_sh.MIN_PAUSE is _hsr_runs.MIN_PAUSE
+    and _hsr_ec.MIN_ON is _hsr_runs.MIN_RUN and _hsr_ec.MIN_OFF is _hsr_runs.MIN_PAUSE
+    and _hsr_runs.steps_at_least(_hsr_runs.MIN_RUN, 1.0 / 12.0) == 2
+    and _hsr_runs.steps_at_least(_hsr_runs.MIN_PAUSE, 0.25) == 1,
+)
+_hsr_real = np.array([0.0, 0.0, 1.1, 2.0, 3.0, 0.0, 0.0, 0.0, 1.5, 1.5, 0.0, 0.0])
+_hsr_trickle = np.full(12, 0.55)
+_hsr_flat = np.full(12, 0.2)
+R.check(
+    "on a trickle at half the floor commit runs half the steps at the floor in one "
+    "run: the same energy, never a step raised on its own",
+    all(int(np.sum(m)) == 6 and _hsr_edges(np.where(m, 1.1, 0.0)) == 1 for m in _hsr_runs.candidates(
+        _hsr_trickle, _hsr_flat, 1.1, 3.0, 0.25, dt=0.25))
+    and _hsr_count(_hsr_trickle, 1.1) == 6.5,
+    f"{[m.astype(int).tolist() for m in _hsr_runs.candidates(_hsr_trickle, _hsr_flat, 1.1, 3.0, 0.25, dt=0.25)]}",
+)
+_hsr_far = np.r_[np.full(6, 3.0), np.zeros(6)]
+_hsr_far_mask, _hsr_far_ok = _hsr_runs.commit(
+    _hsr_far, _hsr_flat, 1.1, np.r_[np.zeros(6), np.full(6, 3.0)], 0.25, 2, dt=0.25)
+R.check(
+    "a balance its band cannot hold is penalised and never refused: the mask is a "
+    "best effort that says it did not track, and still buys the energy back",
+    _hsr_far_ok is False and not _hsr_far_mask[:6].any() and _hsr_far_mask[6:].any(),
+    f"{_hsr_far_mask.astype(int).tolist()} tracked {_hsr_far_ok}",
+)
+# On a realizable plan the program is the identity only where nothing can be
+# bought (design note round 3, test 3 and item a3): at a zero price and a zero
+# start price every mask ties and the tie break keeps the plan's own runs.
+# With a price on the steps, or on a start alone, the cheapest mask is another
+# one. Corpus: 300 realizable plans x the three bands, both step widths, from
+# a stopped and a running compressor, one-step lengths.
+_hsr_own_moved = {"nothing priced": 0, "steps priced": 0, "a start priced": 0}
+_hsr_own_n = 0
+for _hsr_i in range(300):
+    _hsr_n = int(_hsr_rng.integers(6, 97))
+    _hsr_f = float(_hsr_rng.choice([0.53, 1.1]))
+    _hsr_dt = float(_hsr_rng.choice([0.25, 1.0 / 12.0]))
+    _hsr_q = np.where(_hsr_rng.random(_hsr_n) < 0.5, 0.0, _hsr_rng.uniform(_hsr_f, 3.0, _hsr_n))
+    for _hsr_band in _hsr_runs.BANDS:
+        _hsr_own_n += 1
+        for _hsr_k, _hsr_p, _hsr_start in (
+            ("nothing priced", 0.0, 0.0), ("steps priced", 0.2, 0.0), ("a start priced", 0.0, 0.25),
+        ):
+            _hsr_own_moved[_hsr_k] += not np.array_equal(
+                _hsr_runs.commit(
+                    _hsr_q, _hsr_p, _hsr_f, 3.0, _hsr_start, _hsr_band,
+                    dt=_hsr_dt, running=bool(_hsr_i % 2))[0],
+                _hsr_q > 0.0)
+R.check(
+    "on a realizable plan commit returns the plan's own runs at a zero price and "
+    "a zero start price, and is not the identity where a step or a start has a price",
+    _hsr_own_n == 900 and _hsr_own_moved["nothing priced"] == 0
+    and _hsr_own_moved["steps priced"] > 0 and _hsr_own_moved["a start priced"] > 0,
+    f"{_hsr_own_moved} of {_hsr_own_n}",
+)
+
+# The leaf's edges and constants, read where no solve enters. Each clause
+# below is the boundary a pin drive left alive under this script: the running
+# rule is strict, an off step is realizable, the float slack counts a level
+# or a cap a hair under the floor as at it and one clearly under as under,
+# and the band constants are the approved design's (BANDS, the balance grid
+# and the out-of-band price: the contributor's spike, pinned as values).
+_hsr_f = _hsr_runs.floor_kw(1.1)
+R.check(
+    "a step at the running rule itself does not run, and one a hair above "
+    "starts the compressor",
+    _hsr_edges(np.array([0.0, _HSR_RUNS_AT, 0.0])) == 0
+    and _hsr_edges(np.array([0.0, _HSR_RUNS_AT + 1e-6])) == 1,
+)
+R.check(
+    "a plan is realizable with an off step and with a level inside the float "
+    "slack under the floor, at the slack's own edge too, and not with a level "
+    "clearly under it",
+    _hsr_runs.realizable(np.array([0.0, _hsr_f]), 1.1)
+    and _hsr_runs.realizable(np.array([_hsr_f - 1e-9]), 1.1)
+    and _hsr_runs.realizable(np.array([_hsr_f - 5e-10]), 1.1)
+    and not _hsr_runs.realizable(np.array([_hsr_f - 1e-6]), 1.1),
+)
+_hsr_cap_masks = [
+    _hsr_runs.commit(np.full(4, 1.1), 1.0, 1.1, _hsr_cap, 0.0, 2, dt=0.25)[0]
+    for _hsr_cap in (_hsr_f - 5e-10, _hsr_f - 1e-9, _hsr_f - 1e-6)
+]
+R.check(
+    "a cap inside the float slack under the floor still runs, at the slack's "
+    "own edge too, and a cap clearly under the floor forces the step off",
+    bool(_hsr_cap_masks[0].all()) and bool(_hsr_cap_masks[1].all()) and not _hsr_cap_masks[2].any(),
+    f"{[m.tolist() for m in _hsr_cap_masks]}",
+)
+R.check(
+    "the commit's bands, its balance grid and its out-of-band price are the "
+    "approved design's values",
+    (_hsr_runs.BANDS, _hsr_runs.QUANTA_PER_STEP, _hsr_runs.OUT_OF_BAND) == ((2, 6, 24), 4, 10.0),
+)
+
+_hsr_long_masks = _hsr_runs.candidates(
+    np.full(200, 0.55), np.r_[np.full(100, 2.0), np.full(100, 1.0)], 1.1, 5.5, 0.0, dt=0.25)
+R.check(
+    "where a band tracks the plan, the candidates are one mask per band and "
+    "no whole-horizon mask: three distinct masks on a trickle whose cheapest "
+    "mask of all is fifty floor steps from the plan",
+    len(_hsr_long_masks) == len(_hsr_runs.BANDS) == 3,
+    f"{len(_hsr_long_masks)} mask(s)",
+)
+
+# The band is held by a price, step by step (the design's mutation target "the
+# out-of-band penalty"), read at the leaf, where no solve and so no BLAS
+# kernel enters. A trickle at half the floor whose cheap steps are all in the
+# second half: the cheapest mask of all runs that half alone and is ten floor
+# steps behind the plan at mid-horizon. Each band's mask stays inside its
+# band and says so, and a wider band buys a cheaper mask.
+_hsr_late_q, _hsr_late_p = np.full(40, 0.55), np.r_[np.full(20, 2.0), np.full(20, 1.0)]
+_hsr_late = {}
+for _hsr_band in _hsr_runs.BANDS:
+    _hsr_m, _hsr_ok = _hsr_runs.commit(_hsr_late_q, _hsr_late_p, 1.1, 5.5, 0.0, _hsr_band, dt=0.25)
+    _hsr_late[_hsr_band] = (
+        _hsr_ok,
+        float(np.max(np.abs(np.cumsum(np.where(_hsr_m, 1.1, 0.0) - _hsr_late_q)))) / 1.1,
+        float(np.sum(_hsr_late_p[_hsr_m])) * 1.1 * 0.25,
+    )
+R.check(
+    "a balance outside its band is paid for at every step: where the cheapest "
+    "mask of all leaves the band, each band's mask stays within its band of the "
+    "plan's energy and reports it tracked, and a wider band buys a cheaper mask",
+    all(ok and far <= band + 1e-9 for band, (ok, far, _) in _hsr_late.items())
+    and _hsr_late[_hsr_runs.BANDS[-1]][1] > _hsr_runs.BANDS[1]
+    and [c for _, _, c in _hsr_late.values()] == sorted({c for _, _, c in _hsr_late.values()}, reverse=True),
+    f"band: (tracked, floor steps from the plan, price paid) {_hsr_late}",
+)
+
+# 4 and 6. The engaged solve. A buffered single-zone house on a mild day, where
+# the relaxed plan trickles under the floor; 15-minute steps, the contributor's
+# two floors (0.53 and 1.1 kW) and wear price (0.25). No private bundle.
+_HSR_STEPS = np.arange(96)
+_HSR_PRICES = 1.3 + 0.9 * np.sin(2 * np.pi * (_HSR_STEPS - 30) / 96.0)
+
+
+def _hsr_opt(cost, clamp, p_min, loss=0.4):
+    params = _HsrTP()
+    params.mixing_valve_mode = "none"
+    params.buffer_tank_volume = 750.0
+    params.min_electrical_power, params.max_electrical_power = p_min, 5.5
+    params.dhw_enabled, params.house_heat_loss_scale = False, loss
+    return _hsr_om.HeatPumpOptimizer(
+        _HsrTM(params), _hsr_om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=cost))
+
+
+def _hsr_solve(cost, clamp, p_min, *, running=False, loss=0.4, out_mean=8.0, room=20.5, raises=False):
+    """One full ``optimize``: the result, the candidate lists the stage scored,
+    the relaxed plans it was handed and the true objective pair."""
+    opt = _hsr_opt(cost, clamp, p_min, loss)
+    seen = _HsrNS(plans=[], first=[], relaxed=[], objectives=[], stages=[], opt=opt)
+    real_plans, real_objectives = _hsr_om._run_plans, opt._solve_objectives
+    real_first, real_stage = _hsr_om._projection, _hsr_om._commit_runs
+
+    def stage(*args):
+        seen.stages.append(args)
+        return real_stage(*args)
+
+    def run_plans(o, h, space, *rest):
+        seen.relaxed.append(np.array(space, float))
+        seen.plans.append(real_plans(o, h, space, *rest))
+        if raises:
+            raise RuntimeError("the stage fails after its candidates are built")
+        return seen.plans[-1]
+
+    def projection(*args):
+        seen.first.append(real_first(*args))
+        return seen.first[-1]
+
+    def objectives(h):
+        seen.objectives.append(real_objectives(h))
+        return seen.objectives[-1]
+
+    _hsr_om._run_plans, opt._solve_objectives = run_plans, objectives
+    _hsr_om._projection, _hsr_om._commit_runs = projection, stage
+    outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (_HSR_STEPS - 50) / 96.0)
+    try:
+        seen.result = opt.optimize(inputs=_hsr_replace(solve_inputs(
+            initial_state=_HsrTS(
+                room_temperature=room, upper_floor_temperature=room,
+                lower_floor_temperature=room, slab_temperature=room + 0.5,
+                outdoor_temperature=float(outdoor[0]),
+                buffer_tank_temperature=30.0, dhw_temperature=50.0,
+            ),
+            prices=_HSR_PRICES, outdoor_temps=outdoor,
+            start_time=datetime(2026, 1, 10, tzinfo=UTC),
+        ), compressor_running=running))
+    finally:
+        _hsr_om._run_plans, _hsr_om._projection = real_plans, real_first
+        _hsr_om._commit_runs = real_stage
+    seen.space = np.asarray(seen.result.power_schedule, float)
+    return seen
+
+
+def _hsr_under(plan, p_min):
+    """Steps that run under the floor."""
+    return int(np.sum((plan > _HSR_RUNS_AT) & (plan < _hsr_runs.floor_kw(p_min) - 1e-9)))
+
+
+_hsr_cells = {
+    (cost, clamp, p_min): _hsr_solve(cost, clamp, p_min)
+    for cost, clamp, p_min in (
+        (0.0, False, 1.1), (0.25, False, 1.1), (0.25, False, 0.53),
+        (0.0, True, 1.1), (0.25, True, 1.1),
+    )
+}
+_hsr_free = _hsr_cells[(0.0, False, 1.1)]
+_hsr_engaged = {k: v for k, v in _hsr_cells.items() if k != (0.0, False, 1.1)}
+R.check(
+    "the fixture has something to commit: the unpriced duty-cycle plan runs steps "
+    "under the floor, and every engaged solve was handed a relaxed plan that does",
+    _hsr_under(_hsr_free.space, 1.1) > 0 and not _hsr_free.plans
+    and all(v.plans and _hsr_under(v.relaxed[-1], k[2]) > 0 for k, v in _hsr_engaged.items()),
+    f"free {_hsr_under(_hsr_free.space, 1.1)}; "
+    f"{({k: _hsr_under(v.relaxed[-1], k[2]) if v.relaxed else None for k, v in _hsr_engaged.items()})}",
+)
+R.check(
+    "acceptance: an engaged plan ships no step between the running rule and the "
+    "floor, on a priced modulating install at both floors and on a clamped one",
+    all(_hsr_under(v.space, k[2]) == 0 for k, v in _hsr_engaged.items()),
+    f"{({k: _hsr_under(v.space, k[2]) for k, v in _hsr_engaged.items()})}",
+)
+
+
+def _hsr_scores(seen):
+    """The true-objective score of the shipped plan and of candidate (1)."""
+    _, objective, _, _ = seen.objectives[-1]
+    return float(objective(seen.space)), float(objective(seen.first[-1]))
+
+
+# The energy half of this acceptance is restated (``tests/README.md``, "A
+# knife-edge optimizer comparison must be measured across BLAS kernels"). It
+# read "within one floor step of the relaxed plan's energy", which no line of
+# the stage holds: a balance outside its band is penalised, never refused,
+# and the levels of the best candidates are re-solved inside their runs.
+# Under three of four OpenBLAS kernels the 1.1 kW cell ships one run where
+# the fourth ships two, almost two floor steps under its relaxed plan, at a
+# lower true objective: the plan a priced start is meant to buy. What the
+# stage does hold is asked in its place, a quantity of one solve: the shipped
+# plan scores no higher on its own objective than the projection of the
+# relaxed plan it was committed from. The energy difference is reported in
+# the detail and asserted nowhere.
+R.check(
+    "acceptance: a priced plan holds no more starts than the unpriced plan of the "
+    "same install by the same count, and scores no higher on its own objective "
+    "than the projection of the relaxed plan it was committed from",
+    all(
+        _hsr_count(v.space, k[2]) <= _hsr_count(_hsr_solve(0.0, False, k[2]).space, k[2]) + 1e-9
+        and _hsr_scores(v)[0] <= _hsr_scores(v)[1] + 1e-12
+        for k, v in _hsr_engaged.items() if k[0] > 0 and not k[1]
+    ),
+    f"starts, scores (shipped, projection), kWh against the relaxed plan: "
+    f"{({k: (round(_hsr_count(v.space, k[2]), 3), tuple(round(x, 4) for x in _hsr_scores(v)), round(float(np.sum(v.space - v.relaxed[-1])) * 0.25, 3)) for k, v in _hsr_engaged.items()})}",
+)
+R.check(
+    "selection: the shipped plan never scores above the projection (candidate 1) "
+    "on the true objective, and where a start has a price it scores strictly lower",
+    all(_hsr_scores(v)[0] <= _hsr_scores(v)[1] + 1e-12 for v in _hsr_engaged.values())
+    and any(_hsr_scores(v)[0] < _hsr_scores(v)[1] - 1e-6 for k, v in _hsr_engaged.items() if k[0] > 0),
+    f"{({k: tuple(round(s, 4) for s in _hsr_scores(v)) for k, v in _hsr_engaged.items()})}",
+)
+# A realizable relaxed plan is a candidate, never a result the stage is held
+# to (design note round 3, test 4): the relaxed descent prices no start, so
+# such a plan carries starts nobody priced. The fixture is the plan the same
+# house ships clamped at a start price of zero, which already runs; since
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 a clamped install plans at the clamped
+# default, so only a default patched to zero reaches that plan. It is handed as
+# the relaxed plan to the stage of the priced solve, in that solve's own scope: the stage
+# ships another plan, with fewer starts, that the scope it ships in scores
+# strictly below the plan handed in. One non-convex stage per arm
+# (``fixer.md`` step 15): the margin measured on x86_64 is 0.70, the check
+# asks for 0.01.
+from unittest import mock as _hsr_mock  # noqa: E402
+
+with _hsr_mock.patch.object(_hsr_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _hsr_zero_clamped = _hsr_solve(0.0, True, 1.1)
+_hsr_ran = _hsr_zero_clamped.space
+_hsr_ran_stage = _hsr_cells[(0.25, False, 1.1)].stages[-1]
+_hsr_ran_shipped, _hsr_ran_scope = _hsr_om._commit_runs(
+    *_hsr_ran_stage[:3], [_hsr_ran], *_hsr_ran_stage[4:])
+_hsr_ran_scores = float(_hsr_ran_scope[1](_hsr_ran)), float(_hsr_ran_scope[1](_hsr_ran_shipped))
+R.check(
+    "selection: a realizable relaxed plan that ships changed scores strictly "
+    "below itself in the scope it ships in, and its start count falls",
+    len(_hsr_cells[(0.25, False, 1.1)].stages) == 1 and _hsr_ran_stage[4] is None
+    and _hsr_runs.realizable(_hsr_ran, 1.1)
+    and not np.array_equal(_hsr_ran_shipped, _hsr_ran)
+    and _hsr_ran_scores[1] < _hsr_ran_scores[0] - 0.01
+    and _hsr_edges(_hsr_ran_shipped) < _hsr_edges(_hsr_ran),
+    f"scores {_hsr_ran_scores}, edges {_hsr_edges(_hsr_ran)} to {_hsr_edges(_hsr_ran_shipped)}",
+)
+_hsr_failed = _hsr_solve(0.25, False, 1.1, raises=True)
+R.check(
+    "selection: a stage that raises ships the projection, and the solve still "
+    "reports its own status",
+    np.array_equal(_hsr_failed.space, _hsr_failed.first[-1])
+    and not np.array_equal(_hsr_failed.space, _hsr_cells[(0.25, False, 1.1)].space)
+    and _hsr_failed.result.status == _hsr_cells[(0.25, False, 1.1)].result.status,
+    f"{_hsr_failed.result.status}",
+)
+R.check(
+    "the true objective prices cycling_cost per start of the shipped plan: the "
+    "published objective of a priced plan less the same plan's unpriced score is "
+    "cycling_cost x its start count",
+    abs(
+        float(_hsr_cells[(0.25, False, 1.1)].result.objective_value)
+        - float(_hsr_free.objectives[-1][1](_hsr_cells[(0.25, False, 1.1)].space))
+        - 0.25 * _hsr_count(_hsr_cells[(0.25, False, 1.1)].space, 1.1)
+    ) < 1e-9
+    and _hsr_count(_hsr_cells[(0.25, False, 1.1)].space, 1.1) >= 1.0,
+    f"{_hsr_cells[(0.25, False, 1.1)].result.objective_value}",
+)
+_hsr_obj, _hsr_obj_batch = _hsr_cells[(0.25, False, 1.1)].objectives[-1][1:3]
+_hsr_rows = np.stack([_hsr_cells[(0.25, False, 1.1)].space, _hsr_free.space, _hsr_trickle.repeat(8)])
+R.check(
+    "the relaxed objective is the true one less the start term, scalar and batch "
+    "bit for bit, and it is the unpriced solve's own objective",
+    all(
+        float(_hsr_obj_batch(_hsr_rows, descent=d)[i]) == float(_hsr_obj(_hsr_rows[i], descent=d))
+        for i in range(3) for d in (None, _hsr_om._RELAXED, _hsr_om._UNPRICED)
+    )
+    and all(
+        float(_hsr_obj(row, descent=_hsr_om._RELAXED)) == float(_hsr_free.objectives[-1][1](row))
+        and abs(float(_hsr_obj(row)) - float(_hsr_obj(row, descent=_hsr_om._RELAXED))
+                - 0.25 * _hsr_count(row, 1.1)) < 1e-9
+        for row in _hsr_rows
+    ),
+)
+
+# The running reading, r[-1]: the same solve from a running compressor ships a
+# plan whose published count is the integer edge count with no start at step 0.
+_hsr_run_on = _hsr_solve(0.25, False, 1.1, running=True, loss=1.0, out_mean=2.0, room=17.5)
+_hsr_run_off = _hsr_solve(0.25, False, 1.1, running=False, loss=1.0, out_mean=2.0, room=17.5)
+_hsr_free_on = _hsr_solve(0.0, False, 1.1, running=True, loss=1.0, out_mean=2.0, room=17.5)
+_hsr_free_off = _hsr_solve(0.0, False, 1.1, running=False, loss=1.0, out_mean=2.0, room=17.5)
+R.check(
+    "the published start count is the edge count of the shipped plan with the "
+    "solve's running reading, on an engaged and an unengaged install alike",
+    all(
+        v.result.compressor_starts == _hsr_edges(v.space, on)
+        for v, on in ((_hsr_run_on, True), (_hsr_run_off, False), (_hsr_free_on, True), (_hsr_free_off, False))
+    )
+    and _hsr_free_on.space[0] > _HSR_RUNS_AT
+    and _hsr_free_on.result.compressor_starts == _hsr_free_off.result.compressor_starts - 1,
+    f"{[v.result.compressor_starts for v in (_hsr_run_on, _hsr_run_off, _hsr_free_on, _hsr_free_off)]}",
+)
+
+# Null controls, each a full optimize twice with the arrays compared equal.
+R.check(
+    "null control, zero cost on a duty-cycle install: the solve never enters the "
+    "candidate stage, and the running reading moves no array of its plan",
+    not _hsr_free_on.plans and not _hsr_free_off.plans
+    and np.array_equal(_hsr_free_on.space, _hsr_free_off.space)
+    and _hsr_free_on.result.objective_value == _hsr_free_off.result.objective_value,
+)
+R.check(
+    "and that control has something to detect: where a start has a price the "
+    "running reading moves the score by the start it saves",
+    _hsr_run_on.result.objective_value != _hsr_run_off.result.objective_value,
+    f"{_hsr_run_on.result.objective_value} vs {_hsr_run_off.result.objective_value}",
+)
+# An unengaged solve ships its relaxed plan as it stands: the stage is the
+# identity, the objective never called. An engaged solve always prices a
+# start (R11-OUTSIDE-HONEST-STARTS-RUNS-P3), so it has no such identity.
+
+
+def _hsr_never(*_args, **_kw):
+    raise AssertionError("the objective is not consulted")
+
+
+_hsr_h = _HsrNS(prices=_hsr_flat, dt=0.25, compressor_running=False)
+_hsr_box = [(0.0, 5.5)] * 12
+
+
+def _hsr_commit(opt, objective, batch, space, maxiter=5):
+    """The stage on one relaxed plan, in a scope with no priced stop: the plan it ships."""
+    return _hsr_om._commit_runs(opt, _hsr_h, (_hsr_box, objective, batch, None), [space], None, maxiter)[0]
+
+
+R.check(
+    "null control: an unengaged solve ships any relaxed plan unchanged, the very array, "
+    "the objective never consulted",
+    _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_trickle) is _hsr_trickle
+    and _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_real) is _hsr_real,
+)
+R.check(
+    "and with a plan that is not realizable the same call ships the projection "
+    "when its objective fails: every step at the floor, as a clamped install shipped before",
+    np.array_equal(
+        _hsr_commit(_hsr_opt(0.0, True, 1.1), _hsr_never, _hsr_never, _hsr_trickle), np.full(12, 1.1)),
+)
+# Identity on a plan that already runs is the stage's, not the program's: the
+# program buys the cheapest mask inside half a floor step of the plan's
+# energy, so it may run a step at the floor where the plan asked for more. The
+# stage keeps the relaxed plan as a candidate, and where no start has a price
+# it is the identity (the null control below).
+R.check(
+    "the stage offers the relaxed plan itself where it already runs, and never "
+    "where a step sits under the floor",
+    any(c is _hsr_real for c in _hsr_om._run_plans(
+        _hsr_opt(0.25, False, 1.1), _HsrNS(prices=_hsr_flat, dt=0.25, compressor_running=False),
+        _hsr_real, np.zeros(12), np.zeros(12), np.full(12, 5.5), np.zeros(12, dtype=bool)))
+    and not any(c is _hsr_trickle for c in _hsr_om._run_plans(
+        _hsr_opt(0.25, False, 1.1), _HsrNS(prices=_hsr_flat, dt=0.25, compressor_running=False),
+        _hsr_trickle, np.zeros(12), np.zeros(12), np.full(12, 5.5), np.zeros(12, dtype=bool))),
+)
+# The candidates of one stage: the projection, the masks, and the relaxed plan
+# where it runs; a pin, an off window and a cap under the floor are held by
+# every one.
+_hsr_lo = np.zeros(12)
+_hsr_lo[3] = 1.1
+_hsr_hi = np.full(12, 5.5)
+_hsr_hi[5], _hsr_hi[7] = 0.0, 0.4
+_hsr_cycled = np.arange(12) == 7
+_hsr_asked = np.clip(_hsr_trickle, _hsr_lo, _hsr_hi)
+_hsr_cands = [
+    _hsr_om._projection(_hsr_opt(0.25, False, 1.1), _hsr_asked, None, _hsr_hi, _hsr_cycled),
+    *_hsr_om._run_plans(_hsr_opt(0.25, False, 1.1), _hsr_h, _hsr_asked, np.zeros(12), _hsr_lo, _hsr_hi, _hsr_cycled),
+]
+_hsr_cands_clamp = _hsr_om._run_plans(
+    _hsr_opt(0.25, True, 1.1), _hsr_h, _hsr_asked, np.zeros(12), _hsr_lo, _hsr_hi, np.zeros(12, dtype=bool))
+R.check(
+    "the stage's candidates hold a forced-on pin, an off window and a cap under "
+    "the floor: on a duty-cycle install the capped step cycles as solved, on a "
+    "clamped one every mask leaves it off",
+    len(_hsr_cands) >= 2
+    and all(c[3] >= 1.1 and c[5] == 0.0 and c[7] == 0.4 for c in _hsr_cands)
+    and all(np.all((c[np.arange(12) != 7] == 0.0) | (c[np.arange(12) != 7] >= 1.1)) for c in _hsr_cands)
+    and _hsr_cands_clamp and all(c[3] >= 1.1 and c[5] == 0.0 and c[7] == 0.0 for c in _hsr_cands_clamp),
+    f"{[c.round(2).tolist() for c in _hsr_cands]}",
+)
+# A run that continues from a running compressor pays no start, in the
+# program and in the masks the stage builds from the horizon's reading. The
+# start price here (5.0) outbids the energy of the plan's opening run (0.55
+# kWh, which unbought costs 0.83 at the end of the band), so that run is
+# kept from a running compressor and dropped from a stopped one.
+_hsr_open = np.array([1.1, 1.1, 0.0, 0.0, 0.0, 0.0])
+_hsr_open_masks = {
+    on: [_hsr_runs.commit(_hsr_open, 0.2, 1.1, 3.0, 5.0, b, dt=0.25, running=on)[0].tolist() for b in _hsr_runs.BANDS]
+    for on in (True, False)
+}
+_hsr_open_plans = {
+    on: [c.tolist() for c in _hsr_om._run_plans(
+        _hsr_opt(5.0, False, 1.1), _HsrNS(prices=np.full(6, 0.2), dt=0.25, compressor_running=on),
+        _hsr_open, np.zeros(6), np.zeros(6), np.full(6, 5.5), np.zeros(6, dtype=bool))[:-1]]
+    for on in (True, False)
+}
+R.check(
+    "a run that continues from a running compressor pays no start: at a start "
+    "price that outbids its energy the plan's opening run is kept from a running "
+    "compressor and dropped from a stopped one, by the program in every band",
+    _hsr_open_masks == {True: [(_hsr_open > 0.0).tolist()] * 3, False: [[False] * 6] * 3},
+    f"{_hsr_open_masks}",
+)
+R.check(
+    "and the stage commits with the horizon's running reading: its masks keep "
+    "that opening run from a running compressor and drop it from a stopped one",
+    _hsr_open_plans == {True: [_hsr_open.tolist()], False: [[0.0] * 6]},
+    f"{_hsr_open_plans}",
+)
+_hsr_box_of = _hsr_om._run_bounds(np.array([0.0, 1.1, 3.0, 0.4]), np.zeros(4), np.array([5.5, 5.5, 5.5, 0.4]), 1.1)
+R.check(
+    "a candidate's levels are re-solved inside its own runs: an off step is held "
+    "shut, an on step bounded at the floor, a step cycled under its cap held as it stands",
+    _hsr_box_of == [(0.0, 0.0), (1.1, 5.5), (1.1, 5.5), (0.4, 0.4)],
+    f"{_hsr_box_of}",
+)
+
+# The running reading: the running signal's settled class with no change
+# pending, else the executing step's planned draw; the record keeps it.
+_hsr_rec = _hsr_ds._Record(None, None)
+_HSR_IDLE, _HSR_HEATS = {"power": 0.0, "dhw_power": 0.0}, {"power": 3.0}
+_hsr_reads = [_hsr_ds.running_now(_hsr_rec, action) for action in (
+    {}, _HSR_IDLE, {"power": _HSR_RUNS_AT}, {"power": 0.11}, _HSR_HEATS, {"power": 0.0, "dhw_power": 2.0})]
+_hsr_rec.signal.tracker.settled = True
+_hsr_rec.signal.tracker.pending = (False, datetime(2026, 1, 1, tzinfo=timezone.utc))
+_hsr_reads.append(_hsr_ds.running_now(_hsr_rec, _HSR_IDLE))  # a change pending: the step
+_hsr_rec.signal.tracker.pending = None
+_hsr_reads += [_hsr_ds.running_now(_hsr_rec, _HSR_IDLE), _hsr_rec.solved_running]  # settled running beats an idle step
+_hsr_rec.signal.tracker.settled = False
+_hsr_reads += [_hsr_ds.running_now(_hsr_rec, _HSR_HEATS), _hsr_rec.solved_running]  # settled stopped beats a planned draw
+_hsr_rec.signal.tracker.settled = None
+_hsr_reads += [_hsr_ds.running_now(_hsr_rec, _HSR_HEATS), _hsr_ds.running_now(_hsr_rec, _HSR_IDLE)]
+R.check(
+    "the running reading is the running signal's settled class where it has "
+    "settled with no change pending, else the executing step's planned draw of "
+    "either circuit by the plan's running rule, and the pump's record keeps the last one",
+    _hsr_reads == [False, False, False, True, True, True, False, True, True, False, False, True, False]
+    and _hsr_ds._Record(None, None).solved_running is False,
+    f"{_hsr_reads}",
+)
+
+# At a 5-minute step ``candidates`` plans no unforced run or pause shorter
+# than the two-step minimums; the same plans committed with one-step lengths
+# do hold such a run or pause, so the lengths are what keeps them out.
+_hsr_len_short = {"candidates": 0, "one-step lengths": 0}
+for _hsr_i in range(60):
+    _hsr_q = np.where(_hsr_rng.random(48) < 0.5, 0.0, _hsr_rng.random(48) * 1.5)
+    _hsr_p = _hsr_rng.random(48) * 0.4
+    _hsr_masks = {
+        "candidates": _hsr_runs.candidates(_hsr_q, _hsr_p, 1.1, 3.0, 0.02, dt=1.0 / 12.0),
+        "one-step lengths": [_hsr_runs.commit(_hsr_q, _hsr_p, 1.1, 3.0, 0.02, b, dt=1.0 / 12.0)[0]
+                             for b in _hsr_runs.BANDS],
+    }
+    for _hsr_k, _hsr_ms in _hsr_masks.items():
+        _hsr_len_short[_hsr_k] += sum(
+            1 for m in _hsr_ms for keep in (m, ~m) for a, z in _hsr_stretches(keep)
+            if z - a < 2 and 0 < a and z < 48
+        )
+R.check(
+    "at a 5-minute step the stage's masks hold no run or pause shorter than the "
+    "10-minute minimums; committed at one-step lengths the same plans do",
+    _hsr_len_short["candidates"] == 0 and _hsr_len_short["one-step lengths"] > 0,
+    f"{_hsr_len_short}",
+)
+
+# Selection on a stand-in objective, the distance to a chosen plan: the stage
+# ships whichever candidate scores lowest, the projection included.
+
+
+def _hsr_toward(target):
+    def objective(x, *_args, **_kw):
+        return float(np.sum((np.asarray(x, float) - target) ** 2))
+
+    def batch(rows, *_args, **_kw):
+        return np.sum((np.atleast_2d(rows) - target) ** 2, axis=1)
+
+    return objective, batch
+
+
+_hsr_sel_opt = _hsr_opt(0.25, False, 1.1)
+_hsr_sel_first = _hsr_om._projection(_hsr_sel_opt, _hsr_trickle, None, np.full(12, 5.5), np.zeros(12, dtype=bool))
+_hsr_sel_masks = _hsr_om._run_plans(
+    _hsr_sel_opt, _hsr_h, _hsr_trickle, np.zeros(12), np.zeros(12), np.full(12, 5.5), np.zeros(12, dtype=bool))
+_hsr_sel = {
+    name: _hsr_commit(_hsr_sel_opt, *_hsr_toward(target), _hsr_trickle, 20)
+    for name, target in (("projection", _hsr_sel_first), ("mask", _hsr_sel_masks[-1]))
+}
+R.check(
+    "selection on a stand-in objective: the stage ships the projection where it "
+    "scores lowest and a committed mask where that does, and the two differ",
+    np.allclose(_hsr_sel["projection"], _hsr_sel_first, atol=1e-6)
+    and np.allclose(_hsr_sel["mask"], _hsr_sel_masks[-1], atol=1e-6)
+    and not np.allclose(_hsr_sel_first, _hsr_sel_masks[-1]),
+    f"{_hsr_sel['projection'].round(3).tolist()} {_hsr_sel['mask'].round(3).tolist()}",
+)
+# The re-solve moves levels inside a candidate's runs: toward a plan that
+# keeps a mask's runs at a higher level, the shipped plan reaches that level
+# on the mask's on steps and stays off on the rest.
+_hsr_sel_high = np.where(_hsr_sel_masks[-1] > 0.0, 2.5, 0.0)
+_hsr_sel_lifted = _hsr_commit(_hsr_sel_opt, *_hsr_toward(_hsr_sel_high), _hsr_trickle, 50)
+R.check(
+    "the best candidates' levels are re-solved inside their own runs: toward the "
+    "same runs at 2.5 kW the shipped plan reaches it, off steps held shut",
+    np.allclose(_hsr_sel_lifted, _hsr_sel_high, atol=1e-3)
+    and not np.allclose(_hsr_sel_masks[-1], _hsr_sel_high),
+    f"{_hsr_sel_lifted.round(3).tolist()}",
+)
+# Several relaxed plans: each is committed on its own and the lowest ships,
+# so a second plan can lower the score and never raise it.
+_hsr_two_obj = _hsr_toward(_hsr_sel_high)
+_hsr_two = {
+    name: _hsr_om._commit_runs(_hsr_sel_opt, _hsr_h, (_hsr_box, *_hsr_two_obj, None), plans, None, 50)[0]
+    for name, plans in (
+        ("far", [np.zeros(12)]), ("far then near", [np.zeros(12), _hsr_trickle]),
+        ("near then far", [_hsr_trickle, np.zeros(12)]),
+    )
+}
+_hsr_two_score = {name: _hsr_two_obj[0](plan) for name, plan in _hsr_two.items()}
+R.check(
+    "each relaxed plan is committed on its own and the lowest score ships: a "
+    "second relaxed plan lowers the score where its runs are the better ones, in "
+    "either order, and never raises it",
+    _hsr_two_score["far then near"] == _hsr_two_score["near then far"] < _hsr_two_score["far"] - 1.0,
+    f"{_hsr_two_score}",
+)
+R.check(
+    "in the full solves the shipped plan scores no higher on the true objective "
+    "than any candidate the stage scored",
+    all(
+        float(v.objectives[-1][1](v.space))
+        <= min(float(v.objectives[-1][1](c)) for c in (v.first[-1], *v.plans[-1])) + 1e-12
+        for v in _hsr_engaged.values()
+    ),
+)
+
+# The coordinator hands the reading to the scheduled solve and keeps it for a
+# solve compared against that plan.
+from harness import FakeEntry as _HsrEntry  # noqa: E402
+from heatpump_optimizer.plan_step import plan_step_start as _hsr_pss  # noqa: E402
+
+_hsr_live = Coord(FakeHass(), _HsrEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}))
+
+
+def _hsr_record_reading(action):
+    _hsr_live._current_action = action
+    now = _hsr_pss(datetime(2026, 1, 10, 12, 0, tzinfo=UTC))
+    read = _hsr_live._solve_record(now, _hsr_live._forecast_arrays(now)).inputs.compressor_running
+    return read, _hsr_ds.record_for(_hsr_live).solved_running
+
+
+_hsr_wired = [
+    _hsr_ds.record_for(_hsr_live).solved_running,
+    _hsr_record_reading({"power": 3.0, "dhw_power": 0.0}),
+    _hsr_record_reading({"power": 0.0, "dhw_power": 2.0}),
+    _hsr_record_reading({}),
+]
+R.check(
+    "the coordinator's scheduled solve reads whether the compressor runs from "
+    "its executing step, either circuit, and keeps the reading; before any "
+    "solve the kept reading is not running",
+    _hsr_wired == [False, (True, True), (True, True), (False, False)],
+    f"{_hsr_wired}",
+)
+import inspect as _hsr_inspect  # noqa: E402
+
+R.check(
+    "the what-if solve takes the reading the live plan was solved with, not a "
+    "fresh one: the two start counts the card compares share r[-1]",
+    "compressor_running=duty_switch.record_for(self).solved_running" in _hsr_inspect.getsource(Coord._whatif_solve)
+    and "compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action)"
+    in _hsr_inspect.getsource(Coord._solve_record),
+)
+
+# What the commit program is told is fixed: a forced-on pin and a step hot
+# water runs in are on, a step with no room at all is off, the rest are free.
+_hsr_forced_seen = []
+_hsr_real_candidates = _hsr_runs.candidates
+
+
+def _hsr_spy(*args, **kwargs):
+    _hsr_forced_seen.append(np.array(kwargs["forced"], float))
+    return _hsr_real_candidates(*args, **kwargs)
+
+
+_hsr_tank = np.zeros(12)
+_hsr_tank[9] = 2.0
+_hsr_runs.candidates = _hsr_spy
+try:
+    _hsr_om._run_plans(
+        _hsr_opt(0.25, False, 1.1), _hsr_h, _hsr_asked, _hsr_tank, _hsr_lo, _hsr_hi, _hsr_cycled)
+finally:
+    _hsr_runs.candidates = _hsr_real_candidates
+_hsr_forced_want = np.full(12, np.nan)
+_hsr_forced_want[[3, 9]], _hsr_forced_want[5] = 1.0, 0.0
+R.check(
+    "the commit program is handed a forced-on pin and a hot-water step as on, "
+    "a step with no room as off, and every other step free",
+    len(_hsr_forced_seen) == 1
+    and np.array_equal(_hsr_forced_seen[0], _hsr_forced_want, equal_nan=True),
+    f"{_hsr_forced_seen}",
+)
+
+# A candidate is held to the bound of its own scope. A stand-in rescope hands
+# every candidate a 2.0 kW ceiling and an objective that wants 3.0 kW: the
+# plan that ships stays under the ceiling, where the relaxed plan's own 3.0 kW
+# would have scored lowest unheld.
+_hsr_own_relaxed = np.where(np.arange(12) < 6, 3.0, 0.0)
+_hsr_own_obj = _hsr_toward(_hsr_own_relaxed)
+_hsr_own_calls = []
+
+
+def _hsr_own_scope(plan):
+    _hsr_own_calls.append(np.array(plan, float))
+    return [(0.0, 2.0)] * 12, *_hsr_own_obj, None
+
+
+_hsr_own, _hsr_own_shipped_scope = _hsr_om._commit_runs(
+    _hsr_sel_opt, _hsr_h, (_hsr_box, *_hsr_own_obj, None), [_hsr_own_relaxed], None, 30, _hsr_own_scope)
+R.check(
+    "each candidate is scored in the scope of a solve started from it and held "
+    "to that scope's bound, and the plan ships with the scope it was scored in",
+    len(_hsr_own_calls) >= 1 and float(_hsr_own.max()) <= 2.0 + 1e-9
+    and np.allclose(_hsr_own[:6], 2.0, atol=1e-3)
+    and _hsr_own_shipped_scope[0] == [(0.0, 2.0)] * 12
+    and float(_hsr_commit(_hsr_sel_opt, *_hsr_own_obj, _hsr_own_relaxed, 30).max()) == 3.0,
+    f"{_hsr_own.round(3).tolist()}",
+)
+
+# The start term's closure: nothing at zero cost and on a descent (no operand
+# is added), cycling_cost x the count otherwise, a float or one entry per row.
+_hsr_term = _hsr_om._start_cost_fn(_hsr_opt(0.25, False, 1.1), False)
+R.check(
+    "the start term is no operand at zero cost or on a descent, and "
+    "cycling_cost x the start count otherwise, scalar and batch",
+    _hsr_om._start_cost_fn(_hsr_opt(0.0, False, 1.1), False)(_hsr_trickle, None) is None
+    and _hsr_term(_hsr_trickle, _hsr_om._RELAXED) is None
+    and _hsr_term(_hsr_trickle, _hsr_om._UNPRICED) is None
+    and _hsr_term(_hsr_trickle, None) == 0.25 * _hsr_count(_hsr_trickle, 1.1)
+    and _hsr_term(np.stack([_hsr_trickle, _hsr_real]), None).tolist()
+    == [0.25 * _hsr_count(_hsr_trickle, 1.1), 0.25 * _hsr_count(_hsr_real, 1.1)]
+    and _hsr_om._start_cost_fn(_hsr_opt(0.25, False, 1.1), True)(_hsr_real, None)
+    == 0.25 * _hsr_count(_hsr_real, 1.1, True),
+)
+
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (owner ruling Q2): a clamped install that
+# prices no start plans at the clamped default start price, 0.1. Without it
+# the grid cell clamped at no price ships 5 starts where the tree before pull
+# request 3602 shipped 2 (dev/audit/harnesses/r11_honest_starts_runs.py,
+# ``grid`` and ``defaults``). The rule: the default replaces a configured
+# price of zero on a clamped install and nothing else. Nulls: a priced install
+# keeps its price below and above the default, an unclamped one keeps zero.
+import inspect as _hsr_inspect  # noqa: E402
+import re as _hsr_re  # noqa: E402
+
+_hsr_sp = {
+    (cost, clamp): getattr(
+        _hsr_om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=cost), "start_price", None)
+    for cost in (0.0, 0.05, 0.25) for clamp in (False, True)
+}
+R.check(
+    "the start price a solve plans with: the configured price, except that a clamped install "
+    "configured at zero plans at the clamped default 0.1; a priced install keeps its own price "
+    "below and above the default, and an unclamped install keeps zero",
+    getattr(_hsr_om, "CLAMPED_DEFAULT_START_PRICE", None) == 0.1
+    and _hsr_sp == {(0.0, False): 0.0, (0.0, True): 0.1, (0.05, False): 0.05,
+                    (0.05, True): 0.05, (0.25, False): 0.25, (0.25, True): 0.25},
+    f"{_hsr_sp}",
+)
+_hsr_at_default = _hsr_solve(0.1, True, 1.1)
+R.check(
+    "failing case: the grid cell clamped at no configured price ships the plan it ships "
+    "configured at the clamped default, with no more than the 2 starts the tree before "
+    "pull request 3602 shipped (5 without the default) and fewer than the same install "
+    "ships with the default patched to zero",
+    np.array_equal(_hsr_cells[(0.0, True, 1.1)].space, _hsr_at_default.space)
+    and _hsr_edges(_hsr_cells[(0.0, True, 1.1)].space) <= 2
+    and _hsr_edges(_hsr_cells[(0.0, True, 1.1)].space) < _hsr_edges(_hsr_zero_clamped.space),
+    f"edges {_hsr_edges(_hsr_cells[(0.0, True, 1.1)].space)}, "
+    f"at the default {_hsr_edges(_hsr_at_default.space)}, "
+    f"default patched to zero {_hsr_edges(_hsr_zero_clamped.space)}",
+)
+_hsr_cost_readers = _hsr_re.findall(r"\.config\.cycling_cost\b", _hsr_inspect.getsource(_hsr_om))
+R.check(
+    "every optimizer reader of the start price reads start_price, never the raw "
+    "configured cycling_cost, which only the property reads",
+    not _hsr_cost_readers,
+    f"{len(_hsr_cost_readers)} raw readers",
+)
+# The humidity guard the two SolveInputs sites share.
+from heatpump_optimizer.coordinator import _humidity_with_data as _hsr_humidity  # noqa: E402
+
+_hsr_rh = np.array([np.nan, 55.0, np.nan])
+R.check(
+    "a solve is handed its humidity series only when it carries data: the very "
+    "array with one finite value, None when empty or all unknown",
+    _hsr_humidity(_hsr_rh) is _hsr_rh
+    and _hsr_humidity(np.array([], dtype=float)) is None
+    and _hsr_humidity(np.full(4, np.nan)) is None,
+)
+
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P2: the four lines of the candidate stage the
+# fix review's mutants left unread, and the two halves of the commit's tie
+# break (owner ruling 2026-11-15: of two equal-cost masks the one that agrees
+# with the relaxed plan ships). Each check below kills one mutant of
+# dev/audit/harnesses/r11_honest_starts_runs_mutants.json, named in its comment.
+#
+# Beside a hot-water charge a committed space step heats only where the
+# relaxed plan asked for half the floor (REV_HEATS_HALF_FLOOR): 0.6 kW of a
+# 1.1 kW floor is raised to the floor, 0.5 and 0.3 kW idle.
+_hsr_p2_opt = _hsr_opt(0.25, False, 1.1)
+_hsr_p2_space = np.zeros(12)
+_hsr_p2_space[8], _hsr_p2_space[9], _hsr_p2_space[10] = 0.6, 0.5, 0.3
+_hsr_p2_tank = np.where((np.arange(12) >= 8) & (np.arange(12) <= 10), 2.0, 0.0)
+_hsr_p2_box = _hsr_om._stage_box(_hsr_p2_opt, [(0.0, 5.5)] * 12, _hsr_p2_tank)
+_hsr_p2_beside = _hsr_om._run_plans(
+    _hsr_p2_opt, _hsr_h, _hsr_p2_space, _hsr_p2_box[2], _hsr_p2_box[0], _hsr_p2_box[1], _hsr_p2_box[3])
+R.check(
+    "beside a hot-water charge a committed space step heats where the relaxed "
+    "plan asked for half the floor or more: 0.6 kW of a 1.1 kW floor runs at "
+    "the floor in every mask, 0.5 and 0.3 kW idle",
+    len(_hsr_p2_beside) >= 1
+    and all(c[8] == 1.1 and c[9] == 0.0 and c[10] == 0.0 for c in _hsr_p2_beside),
+    f"{[c.tolist() for c in _hsr_p2_beside]}",
+)
+# The stage box leaves space the room the tank does not draw
+# (REV_STAGE_BOX_TANK_ROOM): p_max less the tank's plan on a modulating
+# install, less its projection on a clamped one, a pinned floor lowered to
+# what is left; with no tank the box is the scope's own (the null).
+_hsr_p2_dhw = np.zeros(12)
+_hsr_p2_dhw[2], _hsr_p2_dhw[3], _hsr_p2_dhw[4], _hsr_p2_dhw[6] = 2.0, 5.5, 5.0, 0.5
+_hsr_p2_bounds = [(0.0, 5.5)] * 12
+_hsr_p2_bounds[4] = (1.1, 5.5)
+_hsr_p2_room = {
+    name: _hsr_om._stage_box(_hsr_opt(0.25, clamp, 1.1), _hsr_p2_bounds, tank)[:2]
+    for name, clamp, tank in (
+        ("modulating", False, _hsr_p2_dhw), ("clamped", True, _hsr_p2_dhw), ("no tank", False, None))
+}
+R.check(
+    "the stage box caps space at p_max less what the tank draws: 3.5, 0, 0.5 "
+    "and 5.0 kW beside 2.0, 5.5, 5.0 and 0.5 kW of hot water, 4.4 kW beside the "
+    "clamped projection of 0.5 kW, a pinned floor lowered to the room left, and "
+    "the scope's own box with no tank",
+    _hsr_p2_room["modulating"][1][[2, 3, 4, 6]].tolist() == [3.5, 0.0, 0.5, 5.0]
+    and _hsr_p2_room["modulating"][0][4] == 0.5
+    and abs(float(_hsr_p2_room["clamped"][1][6]) - 4.4) < 1e-12
+    and _hsr_p2_room["clamped"][1][[2, 3, 4]].tolist() == [3.5, 0.0, 0.5]
+    and _hsr_p2_room["no tank"][1].tolist() == [5.5] * 12 and _hsr_p2_room["no tank"][0][4] == 1.1,
+    f"{({k: (v[0].tolist(), v[1].tolist()) for k, v in _hsr_p2_room.items()})}",
+)
+# The re-solved candidate is polished once (REV_NO_POLISH): on an objective
+# whose weights differ by 40x across the steps, one L-BFGS-B iteration
+# stops short and the restart from its point moves on. The plan that ships
+# is the restart's, and it scores below the run it restarted from.
+_hsr_p2_weight = np.linspace(1.0, 40.0, 12)
+_hsr_p2_goal = np.where(_hsr_sel_masks[-1] > 0.0, 2.7, 0.0)
+
+
+def _hsr_p2_weighted(x, *_args, **_kw):
+    return float(np.sum(_hsr_p2_weight * (np.asarray(x, float) - _hsr_p2_goal) ** 2))
+
+
+def _hsr_p2_weighted_batch(rows, *_args, **_kw):
+    return np.sum(_hsr_p2_weight * (np.atleast_2d(rows) - _hsr_p2_goal) ** 2, axis=1)
+
+
+_hsr_p2_polished = []
+_hsr_p2_real_restart = _hsr_om._lbfgsb_restart
+
+
+def _hsr_p2_restart(best, objective, *args, **kwargs):
+    out = _hsr_p2_real_restart(best, objective, *args, **kwargs)
+    _hsr_p2_polished.append((float(objective(best.x)), float(objective(out.x)), np.array(out.x, float)))
+    return out
+
+
+_hsr_om._lbfgsb_restart = _hsr_p2_restart
+try:
+    _hsr_p2_shipped = _hsr_commit(_hsr_sel_opt, _hsr_p2_weighted, _hsr_p2_weighted_batch, _hsr_trickle, 1)
+finally:
+    _hsr_om._lbfgsb_restart = _hsr_p2_real_restart
+R.check(
+    "the best re-solved candidate is polished once from its own point: at one "
+    "iteration the plan that ships is the restart's, scoring below the run it "
+    "restarted from",
+    len(_hsr_p2_polished) == 1
+    and np.array_equal(_hsr_p2_shipped, _hsr_p2_polished[0][2])
+    and _hsr_p2_polished[0][1] < _hsr_p2_polished[0][0] - 0.01,
+    f"{[(round(a, 4), round(b, 4)) for a, b, _ in _hsr_p2_polished]}",
+)
+# Two candidates are re-solved, not one (REV_ONE_RESOLVED). Toward this
+# target the best candidate as it stands is a mask, the projection is
+# second, and only the projection's runs reach the 2.0 and 3.0 kW steps the
+# mask holds shut: re-solved, the second candidate ships.
+_hsr_p2_target = np.array([0.0, 0.0, 1.1, 0.0, 1.1, 0.0, 2.0, 0.3, 0.0, 0.0, 3.0, 0.0])
+_hsr_p2_toward = _hsr_toward(_hsr_p2_target)
+_hsr_p2_as_is = [_hsr_p2_toward[0](c) for c in (_hsr_sel_first, *_hsr_sel_masks)]
+_hsr_p2_second = _hsr_commit(_hsr_sel_opt, *_hsr_p2_toward, _hsr_trickle, 50)
+R.check(
+    "the two best candidates are re-solved: where the best as it stands is a "
+    "mask and the projection second, the projection's runs re-solved ship, "
+    "every step on and scoring below the best mask's",
+    _hsr_om._RESOLVED_CANDIDATES == 2
+    and int(np.argmin(_hsr_p2_as_is)) > 0 and sorted(_hsr_p2_as_is)[1] == _hsr_p2_as_is[0]
+    and bool(np.all(_hsr_p2_second >= 1.1 - 1e-9))
+    and _hsr_p2_toward[0](_hsr_p2_second) < min(_hsr_p2_as_is) - 1.0,
+    f"as it stands {[round(s, 3) for s in _hsr_p2_as_is]}; shipped "
+    f"{_hsr_p2_second.round(3).tolist()} scoring {_hsr_p2_toward[0](_hsr_p2_second):.3f}",
+)
+# The tie break's two halves, each pinned alone (owner ruling 2026-11-15,
+# "Keep as built, pin it"). At a flat price two masks of equal cost exist on
+# each plan below; a price 1e-5 lower on the step the shipped mask leaves
+# out ships the other, a price 1e-5 higher keeps it, so the two tie and only
+# the tie break chooses. A design choice: the mask that agrees with the
+# relaxed plan's own on/off reading ships.
+#
+# The half on a step the plan did not ask for (REV3_TIE_NOT_ASKED_SIDE_OFF):
+# both masks pause one step the plan asked for, and the other one also runs
+# step 0, which the plan leaves off.
+_hsr_p2_na = np.array([0.0, 2.2, 0.5, 0.9, 0.9])
+# The half on a step the plan asked for (REV3_TIE_ASKED_SIDE_OFF): neither
+# mask runs a step the plan leaves off, and the other one pauses two steps
+# the plan asked for where this one pauses one.
+_hsr_p2_as = np.array([0.5, 0.5, 0.5, 2.2, 0.9, 0.9])
+
+
+def _hsr_p2_masks(q, step, nudge):
+    """The stage's masks of ``q`` at a flat 0.2 with ``nudge`` on one step."""
+    prices = np.full(q.size, 0.2)
+    prices[step] += nudge
+    return [m.astype(int).tolist() for m in _hsr_runs.candidates(q, prices, 1.1, 3.0, 0.0, dt=0.25)]
+
+
+_hsr_p2_ties = {
+    name: {nudge: _hsr_p2_masks(q, step, nudge) for nudge in (0.0, -1e-5, 1e-5)}
+    for name, q, step in (("not asked", _hsr_p2_na, 0), ("asked", _hsr_p2_as, 3))
+}
+R.check(
+    "at a flat price, of two equal-cost masks that pause as many steps the "
+    "plan asked for, the one that runs no step the plan left off ships",
+    _hsr_p2_ties["not asked"] == {
+        0.0: [[0, 1, 0, 1, 1]], -1e-5: [[1, 0, 1, 1, 1]], 1e-5: [[0, 1, 0, 1, 1]]},
+    f"{_hsr_p2_ties['not asked']}",
+)
+R.check(
+    "at a flat price, of two equal-cost masks that run no step the plan left "
+    "off, the one that pauses fewer steps the plan asked for ships",
+    _hsr_p2_ties["asked"] == {
+        0.0: [[1, 1, 1, 0, 1, 1]], -1e-5: [[0, 0, 1, 1, 1, 1]], 1e-5: [[1, 1, 1, 0, 1, 1]]},
+    f"{_hsr_p2_ties['asked']}",
+)
+
+
+# --- #3616: an implausible slab seed is refused --------------------------------
+R.section("#3616: a floor-return reading far above the room does not seed the slab")
+
+# A heat-pump return on a buffer plant, configured in the floor-return field,
+# reads far warmer than any floor loop: the slab estimate followed it and the
+# plan held 0 kWh of space heating with the room below its comfort band.
+# Closed loop through the production coordinator and solver (the r9f12 rig):
+# room 19.6 C under a 22 C comfort target, 6 C outside, as the reporter's.
+from heatpump_optimizer import slab_seed as _ssg  # noqa: E402
+
+_ssg_start = datetime(2026, 11, 15, 6, 0, tzinfo=UTC)
+
+
+def _ssg_cycles(return_c, cycles=6, mode=None, defrost=None):
+    """Hourly cycles: (slab after each, planned space kWh, issues raised)."""
+    cfg = dict(_r9f12_seed_cfg, comfort_temperature=22.0)
+    live = {"sensor.indoor": ("19.6", "°C"), "sensor.outdoor": ("6.0", "°C")}
+    if return_c is not None:
+        cfg["floor_return_temp_entity"] = "sensor.ret"
+        live["sensor.ret"] = (str(return_c), "°C")
+    if mode is not None:
+        cfg["heat_pump_mode_entity"] = "select.mode"
+        live["select.mode"] = (mode, None)
+    if defrost is not None:
+        cfg["heat_pump_defrost_entity"] = "binary_sensor.defrost"
+        live["binary_sensor.defrost"] = (defrost, None)
+    hass = FakeHass()
+    # The notifier fires an event on a mode or defrost change; this rig's bus
+    # records nothing, so a sink stands in for it.
+    hass.bus.async_fire = lambda *_a, **_k: None
+    entry = _r9f12_entry(data=cfg, entry_id=f"ssg_{return_c}_{mode}_{defrost}")
+    seen = []
+    try:
+        for hour in range(cycles):
+            now = _ssg_start + timedelta(hours=hour)
+            _r9f12_dt.freeze(now)
+            for name, (value, unit) in live.items():
+                hass.states.set(name, FakeState(value, unit=unit) if unit else FakeState(value))
+            _r9f12_seed_prices(hass, now)
+            if hour == 0:
+                _r9f12_aio.run(_r9f12_integ.async_setup_entry(hass, entry))
+                coord = entry.runtime_data
+            _r9f12_aio.run(coord.async_refresh())
+            seen.append(coord._current_state.slab_temperature)
+        kwh = sum(float(p) for p in coord._optimization_result.power_schedule) * 0.25
+    finally:
+        _r9f12_dt.freeze(None)
+    return seen, kwh, {i[1]: i[2] for i in getattr(hass, "issues", [])}
+
+
+_ssg_warm = _ssg_cycles(38.0)
+_ssg_none = _ssg_cycles(None)
+_ssg_ok = _ssg_cycles(26.0)
+R.check(
+    "#3616: a 38 C heat-pump return in the floor-return field no longer plans "
+    "zero space heating for a room below its comfort band",
+    _ssg_warm[1] > 1.0,
+    f"planned {_ssg_warm[1]:.3f} kWh, slab {[round(s, 2) for s in _ssg_warm[0]]}",
+)
+R.check(
+    "and a refused reading leaves the slab to the model exactly as an install "
+    "with no floor-return sensor does",
+    _ssg_warm[0] == _ssg_none[0] and _ssg_warm[1] == _ssg_none[1],
+    f"refused {_ssg_warm[0]} {_ssg_warm[1]} / unconfigured {_ssg_none[0]} {_ssg_none[1]}",
+)
+R.check(
+    "and a repair issue names the sensor and the bound",
+    _ssg_warm[2].get(_ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE, {}).get(
+        "translation_placeholders", {}).get("entity") == "sensor.ret"
+    and _ssg_warm[2][_ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE][
+        "translation_placeholders"]["bound"] == "12",
+    f"{sorted(_ssg_warm[2])}",
+)
+# Null control: a plausible floor-loop reading (6.4 K above the room) still
+# seeds the slab unchanged, converging on the merge's return + 1 K fixed point,
+# raises nothing, and plans heat as before.
+R.check(
+    "null control: a plausible floor-loop return still seeds the slab, to the "
+    "return + 1 K fixed point, and raises no repair",
+    abs(_ssg_ok[0][-1] - 27.0) < 0.05 and _ssg_ok[0] != _ssg_none[0]
+    and _ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE not in _ssg_ok[2],
+    f"slab {[round(s, 2) for s in _ssg_ok[0]]}, issues {sorted(_ssg_ok[2])}",
+)
+# A plausible reading during a hot-water run or a defrost is the pump's own
+# circuit water, not the floor's: it seeds nothing, and raises nothing.
+_ssg_dhw = _ssg_cycles(26.0, mode="DHW (Hot Water)")
+_ssg_dhw_none = _ssg_cycles(None, mode="DHW (Hot Water)")
+_ssg_frost = _ssg_cycles(26.0, defrost="on")
+_ssg_frost_none = _ssg_cycles(None, defrost="on")
+_ssg_both = _ssg_cycles(26.0, mode="Heating + DHW", defrost="off")
+R.check(
+    "a hot-water-only run does not seed the slab from the return",
+    _ssg_dhw[0] == _ssg_dhw_none[0]
+    and _ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE not in _ssg_dhw[2],
+    f"{_ssg_dhw[0]} vs {_ssg_dhw_none[0]}",
+)
+R.check(
+    "nor does a defrost",
+    _ssg_frost[0] == _ssg_frost_none[0],
+    f"{_ssg_frost[0]} vs {_ssg_frost_none[0]}",
+)
+R.check(
+    "control: a heating mode with the defrost flag off seeds as with no signals",
+    _ssg_both[0] == _ssg_ok[0],
+    f"{_ssg_both[0]} vs {_ssg_ok[0]}",
+)
+# The bound at its edge, through the production predicate.
+R.check(
+    "the bound: 12 K above the room is a floor loop, anything warmer is not",
+    not _ssg.above_room(32.0, 20.0) and _ssg.above_room(32.1, 20.0)
+    and _ssg.SLAB_SEED_MAX_ABOVE_ROOM_K == 12.0,
+)
+# The option text states the bound the code applies, in every language.
+import json as _ssg_json  # noqa: E402
+from pathlib import Path as _ssg_Path  # noqa: E402
+
+_ssg_cc = _ssg_Path(_ssg.__file__).parent
+
+
+def _ssg_find(node):
+    """Every ``data_description`` text for the floor-return field, at any depth."""
+    if isinstance(node, dict):
+        text = (node.get("data_description") or {}).get("floor_return_temp_entity")
+        return ([text] if text else []) + [t for v in node.values() for t in _ssg_find(v)]
+    return []
+
+
+_ssg_texts = [
+    t for name in ("strings.json", "translations/en.json", "translations/de.json",
+                   "translations/sv.json")
+    for t in _ssg_find(_ssg_json.loads((_ssg_cc / name).read_text(encoding="utf-8")))
+]
+R.check(
+    "every floor-return option text names the bound the guard applies",
+    len(_ssg_texts) == 12
+    and all(f"{_ssg.SLAB_SEED_MAX_ABOVE_ROOM_K:g} K" in t for t in _ssg_texts),
+    f"{len(_ssg_texts)} texts",
+)
+
+
+
+# --- R10-START-COUNTER-EDGES: the start counter fed from running-signal edges ---
+# Part D of Bankaifan's outside pull request 3420, on the approved design
+# (design/R10-START-COUNTER-EDGES). The counter folds the confirmed edges of
+# running_signal, the one owner of the running signal in every duty mode,
+# instead of sampling the meter once per refresh in _record_accuracy. Every
+# check drives the production coordinator or module over the fake bus; timers
+# are fired by the replay when due, as Home Assistant fires them.
+import asyncio as _sce_aio  # noqa: E402
+
+from harness import FakeEntry as _SceEntry  # noqa: E402
+from homeassistant.util import dt as _sce_dt  # noqa: E402
+from heatpump_optimizer import running_signal as _sce_rs  # noqa: E402
+from heatpump_optimizer.const import DEFAULT_OPTIMIZATION_INTERVAL as _SCE_PERIOD_MIN  # noqa: E402
+from dataclasses import replace as _sce_dc_replace  # noqa: E402
+
+from heatpump_optimizer.thermal_model import immersion_level_kw as _sce_over_kw  # noqa: E402
+from heatpump_optimizer.thermal_model import immersion_over as _sce_io  # noqa: E402
+from heatpump_optimizer.thermal_model import on_threshold_kw as _sce_on_kw  # noqa: E402
+from heatpump_optimizer.wear import EDGE_DEBOUNCE_S as _SCE_DEBOUNCE_S  # noqa: E402
+from heatpump_optimizer.wear import RiseHold as _SceRiseHold  # noqa: E402
+from heatpump_optimizer.wear import StartCounter as _SceStarts  # noqa: E402
+
+R.section("R10-START-COUNTER-EDGES: the start counter fed from running-signal edges")
+
+_SCE_T0 = datetime(2026, 2, 3, 6, 0, tzinfo=UTC)
+_SCE_PERIOD_S = 60 * _SCE_PERIOD_MIN
+
+
+class _SceRig:
+    """A live coordinator over the fake bus, its clock, its due timers and its refreshes."""
+
+    def __init__(self, states, priced=False, **config):
+        _sce_dt.freeze(_SCE_T0)
+        money = {"compressor_replacement_cost": 50000.0, "compressor_rated_starts": 100000} if priced else {}
+        self.c = HeatPumpOptimizerCoordinator(
+            FakeHass(states), _SceEntry(data=dict(_T2_DATA, **money, **config)))
+        self.now, self.armed = _SCE_T0, {}
+        self.saves = 0
+        inner = self.c._schedule_ledger_save
+
+        def counted():
+            self.saves += 1
+            inner()
+        self.c._schedule_ledger_save = counted
+        self._seen()
+
+    def _seen(self):
+        for entry in getattr(self.c.hass, "timers", []):
+            self.armed.setdefault(id(entry), (self.now, entry))
+
+    def at(self, when):
+        """Advance the clock to ``when``, firing each timer due on the way, once."""
+        while True:
+            due = [(armed_at + timedelta(seconds=entry[0]), key, entry) for key, (armed_at, entry)
+                   in self.armed.items() if entry in getattr(self.c.hass, "timers", [])]
+            due = sorted((d for d in due if d[0] <= when), key=lambda d: d[0])
+            if not due:
+                break
+            fire_at, key, entry = due[0]
+            self.now = max(self.now, fire_at)
+            _sce_dt.freeze(self.now)
+            self.c.hass.timers.remove(entry)
+            del self.armed[key]
+            entry[1](self.now)
+            self._seen()
+        self.now = when
+        _sce_dt.freeze(when)
+
+    def set(self, entity, value, when, unit=None):
+        """A state change of ``entity`` at ``when``: the listeners hear it, as the bus delivers it."""
+        self.at(when)
+        old = self.c.hass.states.get(entity)
+        self.c.hass.states.set(entity, FakeState(value, unit=unit))
+        if old is not None and old.state == value:
+            return  # no change, no state_changed event
+        for ids, action in list(getattr(self.c.hass, "state_listeners", [])):
+            if entity in ids:
+                action(SimpleNamespace(data={"new_state": self.c.hass.states.get(entity)}))
+        self._seen()
+
+    def refresh(self, when):
+        self.at(when)
+        _sce_aio.run(self.c._update_current_state())
+        self._seen()
+
+    def load(self, payload):
+        async def _load(_p=payload):
+            return _p
+        self.c._ledger_store.async_load = _load
+        _sce_aio.run(self.c._async_load_ledger())
+
+    @property
+    def counter(self):
+        return self.c._start_counter
+
+
+def _sce_meter_trace(phases, perturb=None, every_s=60, refreshes=True, rig=None):
+    """Replay a meter-only install: ``phases`` is [(minutes, kW)], read every ``every_s``;
+    ``perturb`` (start minute, stop minutes) drops the draw to 0 inside one phase.
+    A refresh runs every default optimization interval. Returns the rig."""
+    rig = rig or _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+    rig.load(None)
+    t, refresh_at = 0, _SCE_PERIOD_S
+    for minutes, kw in phases:
+        for s in range(t, t + minutes * 60, every_s):
+            value = kw
+            if perturb is not None and perturb[0] * 60 <= s < (perturb[0] + perturb[1]) * 60:
+                value = 0.0
+            if refreshes and s >= refresh_at:
+                rig.refresh(_SCE_T0 + timedelta(seconds=refresh_at))
+                refresh_at += _SCE_PERIOD_S
+            rig.set("sensor.kw", f"{value:.1f}", _SCE_T0 + timedelta(seconds=s), unit="kW")
+        t += minutes * 60
+    rig.at(_SCE_T0 + timedelta(seconds=t + 60))
+    return rig
+
+
+# The control trace: every on and off phase spans at least two refresh
+# periods, so the retired sampled path saw each one (two consecutive samples
+# a phase), and no start falls within one period of a month boundary.
+_SCE_ON_KW = 2.0
+_SCE_PHASES = [(90, 0.0), (120, _SCE_ON_KW), (90, 0.0), (150, _SCE_ON_KW), (120, 0.0), (90, _SCE_ON_KW), (60, 0.0)]
+_SCE_ON_PHASES = sum(1 for _m, kw in _SCE_PHASES if kw > 0)
+_sce_control = _sce_meter_trace(_SCE_PHASES)
+# The perturbation: one stop and restart inside one refresh period (5 min off,
+# 40 minutes into the second on phase, between two refreshes).
+_sce_perturbed = _sce_meter_trace(_SCE_PHASES, perturb=(90 + 40, 5))
+R.check(
+    "the control trace (every phase at least two refresh periods long) counts one start per on "
+    "phase; one stop and restart inside one refresh period counts exactly one more",
+    _sce_control.counter.lifetime == _SCE_ON_PHASES
+    and _sce_perturbed.counter.lifetime == _SCE_ON_PHASES + 1
+    and _sce_control.counter.month_count("2026-02") == _SCE_ON_PHASES,
+    f"control {_sce_control.counter.lifetime}, perturbed {_sce_perturbed.counter.lifetime}, "
+    f"on phases {_SCE_ON_PHASES}",
+)
+R.check(
+    "the counted starts are what the cycling cost and the plan never read: the effective "
+    "cycling cost is the same with no start and with every start counted",
+    _SceRig({}, priced=True, wear_autotune_enabled=True).c._effective_cycling_cost()
+    == _sce_meter_trace(_SCE_PHASES, rig=_SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True,
+                        wear_autotune_enabled=True, heat_pump_power_entity="sensor.kw")).c._effective_cycling_cost(),
+)
+
+# Lifecycle: the listener is armed in __init__, before the ledger store is
+# read; an edge confirmed before the read is queued, and the restore replays
+# it over the stored count on every exit of the load.
+def _sce_early(payload, released=False):
+    rig = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True, heat_pump_power_entity="sensor.kw")
+    rig.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=2), unit="kW")
+    for k in (0, 1):  # the meter's rise is held for two refreshes (S7)
+        rig.refresh(_SCE_T0 + timedelta(minutes=3, seconds=k))
+    queued = list(rig.counter.queued or [])
+    if released:
+        rig.c._release_registrations()
+    rig.load(payload)
+    wear = rig.c._ledger.line("2026-02", "wear")
+    return rig, queued, (wear or {}).get("sek", 0.0)
+
+
+_sce_stored, _sce_stored_q, _sce_stored_wear = _sce_early(
+    {"ledger": {"months": {}}, "starts": {"lifetime": 7, "months": {"2026-01": 7}, "running": False}})
+_sce_fresh, _sce_fresh_q, _sce_fresh_wear = _sce_early(None)
+_sce_gone, _sce_gone_q, _sce_gone_wear = _sce_early(
+    {"ledger": {"months": {}}, "starts": {"lifetime": 7, "months": {"2026-01": 7}, "running": False}}, released=True)
+R.check(
+    "an edge confirmed before the ledger load lands survives the restore: on a stored payload it "
+    "adds to the stored count and books its wear, on a fresh install it is the first start, and on a "
+    "load landing after the release it is counted in memory and books and saves nothing",
+    [cls for _t, cls in _sce_stored_q] == [False, True]
+    and (_sce_stored.counter.lifetime, _sce_stored.counter.months) == (8, {"2026-01": 7, "2026-02": 1})
+    and abs(_sce_stored_wear - 0.5) < 1e-9 and _sce_stored.saves == 1
+    and _sce_stored.counter.queued is None
+    and (_sce_fresh.counter.lifetime, abs(_sce_fresh_wear - 0.5) < 1e-9, _sce_fresh.saves) == (1, True, 1)
+    and (_sce_gone.counter.lifetime, _sce_gone_wear, _sce_gone.saves) == (8, 0.0, 0),
+    f"stored {_sce_stored.counter.lifetime} {_sce_stored_wear} {_sce_stored.saves}; fresh "
+    f"{_sce_fresh.counter.lifetime} {_sce_fresh_wear} {_sce_fresh.saves}; released "
+    f"{_sce_gone.counter.lifetime} {_sce_gone_wear} {_sce_gone.saves}",
+)
+
+
+_sce_free = _sce_meter_trace(_SCE_PHASES)
+R.check(
+    "a counted start books money, never energy, and only at a nonzero price: the priced install's wear "
+    "line carries 0 kWh, and the default install (no replacement cost) counts its starts with no wear line",
+    (_sce_stored.c._ledger.line("2026-02", "wear") or {}).get("kwh") == 0.0
+    and _sce_free.counter.lifetime == _SCE_ON_PHASES
+    and "wear" not in _sce_free.c._ledger.months.get("2026-02", {}).get("lines", {}),
+    f"{_sce_stored.c._ledger.line('2026-02', 'wear')} {_sce_free.c._ledger.months.get('2026-02', {}).get('lines')}",
+)
+
+
+class _SceRaises:
+    async def async_load(self):
+        raise RuntimeError("store")
+
+
+_sce_raise = _SceRig({"sensor.kw": FakeState("2.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+for _sce_k in (1, 2):  # the meter's rise is held for two refreshes (S7)
+    _sce_raise.refresh(_SCE_T0 + timedelta(minutes=_sce_k))
+_sce_raise.c._ledger_store = _SceRaises()
+_sce_raise_err = None
+try:
+    _sce_aio.run(_sce_raise.c._async_load_ledger())
+except RuntimeError as err:
+    _sce_raise_err = err
+R.check(
+    "a load that raises still restores the counter and replays the queue",
+    _sce_raise.counter.queued is None and _sce_raise.counter.lifetime == 1,
+    f"{_sce_raise_err!r} {_sce_raise.counter.lifetime} {_sce_raise.counter.queued}",
+)
+_sce_cut = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+_sce_cut.at(_SCE_T0 + timedelta(minutes=1))
+_sce_cut.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=2), unit="kW")
+_sce_cut_armed = len(getattr(_sce_cut.c.hass, "timers", []))
+_sce_cut.c._release_registrations()
+R.check(
+    "the release drops the listener, the timer of a change still pending, the subscribers and their ticks, and a "
+    "second release is harmless; null control, the change was pending with its timer armed",
+    _sce_cut_armed == 1 and not _sce_cut.c.hass.state_listeners and not _sce_cut.c.hass.timers
+    and not _sce_rs.signal_for(_sce_cut.c).subscribers and not _sce_rs.signal_for(_sce_cut.c).ticks
+    and _sce_cut.c._release_registrations() is None,
+    f"{_sce_cut_armed} {_sce_cut.c.hass.timers}",
+)
+
+# A stored payload of the shape the sampled path wrote continues: the
+# lifetime and the months are not reset, and a compressor still running
+# across the upgrade is not counted again.
+_sce_cont = _SceRig({"sensor.kw": FakeState("2.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+_sce_cont.at(_SCE_T0 + timedelta(minutes=1))
+_sce_cont.load({"ledger": {"months": {}}, "starts": {"lifetime": 41, "months": {"2026-02": 5}, "running": True}})
+_sce_cont_kept = (_sce_cont.counter.lifetime, dict(_sce_cont.counter.months))
+_sce_cont.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=10), unit="kW")
+_sce_cont.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=20), unit="kW")
+for _sce_k in (21, 22):  # the meter's rise is held for two refreshes (S7)
+    _sce_cont.refresh(_SCE_T0 + timedelta(minutes=_sce_k))
+R.check(
+    "the stored lifetime and month counts continue across the change: a compressor running "
+    "through the restart is no new start, and the next real start adds one",
+    _sce_cont_kept == (41, {"2026-02": 5})
+    and (_sce_cont.counter.lifetime, _sce_cont.counter.months) == (42, {"2026-02": 6}),
+    f"{_sce_cont_kept} {_sce_cont.counter.lifetime} {_sce_cont.counter.months}",
+)
+
+# Duty mode off (the default): nothing arbitrates, and a frequency sensor that
+# holds 40 Hz fires no further event; the timer confirms the start.
+_sce_hold = _SceRig({"sensor.freq": FakeState("0")}, compressor_freq_sensor="sensor.freq")
+_sce_hold.load(None)
+_sce_hold.set("sensor.freq", "40", _SCE_T0 + timedelta(minutes=5))
+_sce_hold_pending = _sce_rs.running_now(_sce_rs.signal_for(_sce_hold.c))
+_sce_hold_before = _sce_hold.counter.lifetime
+_sce_hold.at(_SCE_T0 + timedelta(minutes=5, seconds=_SCE_DEBOUNCE_S))
+R.check(
+    "in duty mode off a frequency held at 40 Hz with no later event is confirmed by the timer "
+    "at the debounce, and counted from its first reading",
+    _sce_hold.c._ctx._config.pump_duty_mode == "off"
+    and _sce_hold_pending is None and _sce_hold_before == 0
+    and _sce_hold.counter.lifetime == 1
+    and _sce_rs.running_now(_sce_rs.signal_for(_sce_hold.c)) is True
+    and not getattr(_sce_hold.c.hass, "timers", []),
+    f"{_sce_hold_pending} {_sce_hold_before} {_sce_hold.counter.lifetime}",
+)
+
+# The debounce with its timer armed: a meter blip over the on-threshold that
+# reverts before EDGE_DEBOUNCE_S is no start, one that outlasts it is one.
+# Every trace above reads at 60 s or longer, so its timer is always due before
+# the next reading; here the revert lands while the timer is still pending.
+def _sce_blip(seconds):
+    rig = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+    rig.load(None)
+    rig.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=10), unit="kW")
+    rig.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=10, seconds=seconds), unit="kW")
+    rig.at(_SCE_T0 + timedelta(minutes=20))
+    return rig.counter.lifetime, len(getattr(rig.c.hass, "timers", []))
+
+
+_sce_blips = {s: _sce_blip(s) for s in (5, _SCE_DEBOUNCE_S - 1, _SCE_DEBOUNCE_S + 1)}
+R.check(
+    "a meter blip shorter than the debounce counts no start (5 s and one second under it), and one "
+    "second over it counts one; no timer outlives either",
+    _sce_blips == {5: (0, 0), _SCE_DEBOUNCE_S - 1: (0, 0), _SCE_DEBOUNCE_S + 1: (1, 0)},
+    f"{_sce_blips}",
+)
+
+# An unavailable or non-numeric signal counts nothing, and is no transition:
+# running -> unavailable -> running is no start; stopped -> unknown -> running is one.
+_sce_words = _SceRig({"sensor.freq": FakeState("0")}, compressor_freq_sensor="sensor.freq")
+_sce_words.load(None)
+_sce_words_seq = []
+for _sce_i, _sce_word in enumerate(("40", "unavailable", "40", "abc", "", "0", "unknown", "45")):
+    _sce_words.set("sensor.freq", _sce_word, _SCE_T0 + timedelta(minutes=2 * (_sce_i + 1)))
+    _sce_words.at(_SCE_T0 + timedelta(minutes=2 * (_sce_i + 1), seconds=_SCE_DEBOUNCE_S + 1))
+    _sce_words_seq.append((_sce_words.counter.lifetime, _sce_rs.running_now(_sce_rs.signal_for(_sce_words.c))))
+R.check(
+    "an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; "
+    "the last known class holds across it",
+    _sce_words_seq == [(1, True), (1, None), (1, True), (1, None), (1, None), (1, False), (1, None), (2, True)],
+    f"{_sce_words_seq}",
+)
+R.check(
+    "with neither a frequency sensor nor a meter configured nothing is listened to and the read is None",
+    (lambda rig: not getattr(rig.c.hass, "state_listeners", [])
+     and _sce_rs.running_now(_sce_rs.signal_for(rig.c)) is None)(_SceRig({})),
+)
+
+# An install with both: the frequency sensor is the source and the meter is
+# not read (the retired sampled path read the meter on such an install).
+_sce_both = _SceRig({"sensor.freq": FakeState("0"), "sensor.kw": FakeState("0.0", unit="kW")},
+                    compressor_freq_sensor="sensor.freq", heat_pump_power_entity="sensor.kw")
+_sce_both.load(None)
+_sce_both.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=5), unit="kW")
+_sce_both.at(_SCE_T0 + timedelta(minutes=10))
+_sce_both_meter_only = _sce_both.counter.lifetime
+_sce_both.set("sensor.freq", "40", _SCE_T0 + timedelta(minutes=11))
+_sce_both.at(_SCE_T0 + timedelta(minutes=12))
+R.check(
+    "with both a frequency sensor and a meter, the frequency is the source: the meter's rise "
+    "counts nothing, the frequency's counts one",
+    [ids for ids, _a in _sce_both.c.hass.state_listeners] == [["sensor.freq"]]
+    and (_sce_both_meter_only, _sce_both.counter.lifetime) == (0, 1),
+    f"{_sce_both_meter_only} {_sce_both.counter.lifetime}",
+)
+
+# The month and the wear line take the edge's one stamp: a start whose first
+# reading is before midnight at a month's end and whose confirmation is after
+# it is February's, in the count and on the ledger. Both key the configured
+# zone's wall clock, so the midnight is that zone's, not UTC's: a UTC literal
+# lands in March under any zone east of UTC (the nightly Asia/Kolkata lane).
+_sce_mid = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True, heat_pump_power_entity="sensor.kw")
+_sce_mid.load(None)
+_sce_mid_edge = datetime(2026, 2, 28, 23, 59, 50, tzinfo=_sce_dt.DEFAULT_TIME_ZONE)
+_sce_mid.set("sensor.kw", "2.0", _sce_mid_edge, unit="kW")
+for _sce_k in (1, 2):  # the meter's rise is held for two refreshes (S7), released in March
+    _sce_mid.refresh(_sce_mid_edge + timedelta(seconds=_SCE_DEBOUNCE_S + _sce_k))
+R.check(
+    "a start straddling a month boundary is counted and billed in the month of its first reading",
+    _sce_mid.counter.months == {"2026-02": 1}
+    and abs(((_sce_mid.c._ledger.line("2026-02", "wear") or {}).get("sek", 0.0)) - 0.5) < 1e-9
+    and not (_sce_mid.c._ledger.line("2026-03", "wear") or {}).get("sek", 0.0),
+    f"{_sce_mid.counter.months}",
+)
+
+# Immersion (design section 2): a meter-only install at the default interval.
+# The meter reads no signal while the element runs, by the latch or by the
+# reading itself being over (thermal_model.immersion_over).
+def _sce_element_rig():
+    rig = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+    rig.load(None)
+    rig.c._current_action = {**rig.c._current_action, "power": 2.0, "dhw_power": 0.0}
+    params = rig.c._ctx._thermal_params
+    return rig, _sce_on_kw(params), _sce_over_kw(params)
+
+
+def _sce_kw(x):
+    return f"{x:.2f}"
+
+
+# S1: the element cuts in with the compressor off; over from its first reading.
+_sce_s1, _sce_on, _sce_over = _sce_element_rig()
+_sce_s1.set("sensor.kw", _sce_kw(_sce_over + 1.0), _SCE_T0 + timedelta(minutes=1), unit="kW")
+_sce_s1.at(_SCE_T0 + timedelta(minutes=10))
+_sce_s1.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+_sce_s1.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
+_sce_s1_latched = _sce_s1.c._immersion_active
+_sce_s1.set("sensor.kw", "0.0", _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 60), unit="kW")
+_sce_s1.at(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 120))
+# S5: over and back inside one refresh period, never latched.
+_sce_s5, _o, _o = _sce_element_rig()
+_sce_s5.set("sensor.kw", _sce_kw(_sce_over + 1.0), _SCE_T0 + timedelta(minutes=1), unit="kW")
+_sce_s5.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=8), unit="kW")
+_sce_s5.at(_SCE_T0 + timedelta(minutes=10))
+# S3: the compressor runs, the element latches, the compressor stops under it:
+# the element alone reads between the on-threshold and the over level.
+_sce_s3, _o, _o = _sce_element_rig()
+_sce_s3.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=1), unit="kW")
+for _sce_k in (0, 1):  # the meter's rise is held for two refreshes (S7)
+    _sce_s3.refresh(_SCE_T0 + timedelta(minutes=2, seconds=_sce_k))
+_sce_s3_started = _sce_s3.counter.lifetime
+_sce_s3.set("sensor.kw", _sce_kw(_sce_over + 1.0), _SCE_T0 + timedelta(minutes=3), unit="kW")
+_sce_s3.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+_sce_s3.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
+_sce_s3.set("sensor.kw", _sce_kw((_sce_on + _sce_over) / 2), _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 60), unit="kW")
+_sce_s3.at(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 120))
+_sce_s3_read = _sce_rs.running_now(_sce_rs.signal_for(_sce_s3.c))
+# S4: a start under the element counts once, at the release.
+_sce_s4, _o, _o = _sce_element_rig()
+_sce_s4.set("sensor.kw", _sce_kw(_sce_over + 1.0), _SCE_T0 + timedelta(minutes=1), unit="kW")
+_sce_s4.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+_sce_s4.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
+_sce_s4.set("sensor.kw", _sce_kw(_sce_over + 0.5), _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 60), unit="kW")
+_sce_s4.set("sensor.kw", "2.0", _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 120), unit="kW")
+_sce_s4.refresh(_SCE_T0 + timedelta(seconds=3 * _SCE_PERIOD_S))
+for _sce_k in (4, 5, 6):  # the release, then the rise's two refreshes (S7)
+    _sce_s4.refresh(_SCE_T0 + timedelta(seconds=_sce_k * _SCE_PERIOD_S))
+_sce_s4.at(_SCE_T0 + timedelta(seconds=6 * _SCE_PERIOD_S + 120))
+R.check(
+    "the immersion element on a meter-only install: cutting in over the level with the "
+    "compressor off (S1) and over and back inside one refresh period (S5) count no start; a "
+    "compressor stopping under the latched element reads no class rather than running (S3); a "
+    "start under the element counts once, when it releases (S4)",
+    _sce_s1_latched and _sce_s1.counter.lifetime == 0
+    and _sce_s5.counter.lifetime == 0
+    and _sce_s3_started == 1 and _sce_s3.c._immersion_active and _sce_s3_read is None
+    and _sce_s3.counter.lifetime == 1
+    and not _sce_s4.c._immersion_active and _sce_s4.counter.lifetime == 1,
+    f"S1 {_sce_s1_latched} {_sce_s1.counter.lifetime}; S5 {_sce_s5.counter.lifetime}; S3 "
+    f"{_sce_s3_started} {_sce_s3.c._immersion_active} {_sce_s3_read}; S4 "
+    f"{_sce_s4.c._immersion_active} {_sce_s4.counter.lifetime}",
+)
+# The over test reads the frequency source not at all: a frequency install
+# with a meter reading over still counts its start.
+_sce_fq, _o, _sce_fq_over = _sce_element_rig()
+_sce_fq = _SceRig({"sensor.freq": FakeState("0"), "sensor.kw": FakeState(_sce_kw(_sce_fq_over + 1.0), unit="kW")},
+                  compressor_freq_sensor="sensor.freq", heat_pump_power_entity="sensor.kw")
+_sce_fq.load(None)
+_sce_fq.c._current_action = {**_sce_fq.c._current_action, "power": 2.0, "dhw_power": 0.0}
+_sce_fq.c._immersion_active = True
+_sce_fq.set("sensor.freq", "40", _SCE_T0 + timedelta(minutes=1))
+_sce_fq.at(_SCE_T0 + timedelta(minutes=2))
+R.check(
+    "the element rule is the meter source's only: a frequency install under a latched element counts its start",
+    _sce_fq.counter.lifetime == 1,
+)
+
+# The per-refresh re-read: the commanded draw changes at a refresh and fires
+# no meter event. A steady over-level reading the plan did not command reads
+# running; once a refresh brings a command, the same unchanged reading is over.
+_sce_rr, _o, _sce_rr_over = _sce_element_rig()
+_sce_rr.c._current_action = {**_sce_rr.c._current_action, "power": 0.0, "dhw_power": 0.0}
+_sce_rr.set("sensor.kw", _sce_kw(_sce_rr_over + 1.0), _SCE_T0 + timedelta(minutes=1), unit="kW")
+_sce_rr.at(_SCE_T0 + timedelta(minutes=2))
+_sce_rr_before = _sce_rs.running_now(_sce_rs.signal_for(_sce_rr.c))
+_sce_rr.c._current_action = {**_sce_rr.c._current_action, "power": 2.0}
+_sce_rr.refresh(_SCE_T0 + timedelta(minutes=3))
+_sce_rr_pending = _sce_rs.signal_for(_sce_rr.c).tracker.pending
+R.check(
+    "a refresh re-reads the signal against an unchanged meter: the command it brings makes the "
+    "same reading the element's, a change now pending to no class",
+    _sce_rr_before is True and _sce_rr_pending is not None and _sce_rr_pending[0] is None,
+    f"{_sce_rr_before} {_sce_rr_pending}",
+)
+
+# The confirm timer is one per pending change (running_signal._arm_timer): a
+# re-read of the same pending change keeps the timer it holds, and a revert
+# cancels it at once rather than leaving it to fire empty at its due time.
+_sce_one = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+_sce_one.load(None)
+_sce_one.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=10), unit="kW")
+_sce_one_first = list(getattr(_sce_one.c.hass, "timers", []))
+_sce_one.refresh(_SCE_T0 + timedelta(minutes=10, seconds=5))
+_sce_one_kept = list(getattr(_sce_one.c.hass, "timers", []))
+_sce_one.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=10, seconds=10), unit="kW")
+_sce_one_after = list(getattr(_sce_one.c.hass, "timers", []))
+R.check(
+    "the confirm timer is one per pending change: a refresh re-reading the same pending rise keeps "
+    "the timer armed for it, and a revert before the debounce cancels it at once; null control, "
+    "the rise armed exactly one",
+    len(_sce_one_first) == 1 and len(_sce_one_kept) == 1 and _sce_one_kept[0] is _sce_one_first[0]
+    and _sce_rs.signal_for(_sce_one.c).tracker.pending is None and _sce_one_after == [],
+    f"{_sce_one_first} {_sce_one_kept} {_sce_one_after}",
+)
+
+# thermal_model.immersion_over is strict at each of its three bounds: a
+# reading AT the immersion level is not over it, and a rated power or a
+# commanded draw of exactly the 0.1 kW nothing-gauge counts as none. Each
+# row's control is the same row one step past its bound, which is over.
+_sce_io_p = _sce_element_rig()[0].c._ctx._thermal_params
+_sce_io_rated = _sce_dc_replace(_sce_io_p, max_electrical_power=0.1)
+_sce_io_rows = {
+    "at level": _sce_io(_sce_over_kw(_sce_io_p), _sce_io_p, 2.0),
+    "past level": _sce_io(_sce_over_kw(_sce_io_p) + 0.01, _sce_io_p, 2.0),
+    "rated 0.1": _sce_io(_sce_over_kw(_sce_io_rated) + 1.0, _sce_io_rated, 2.0),
+    "rated past 0.1": _sce_io(
+        _sce_over_kw(_sce_io_p) + 1.0, _sce_dc_replace(_sce_io_p, max_electrical_power=0.11), 2.0),
+    "commanded 0.1": _sce_io(_sce_over_kw(_sce_io_p) + 1.0, _sce_io_p, 0.1),
+    "commanded past 0.1": _sce_io(_sce_over_kw(_sce_io_p) + 1.0, _sce_io_p, 0.11),
+}
+R.check(
+    "immersion_over is strict at each bound: a reading at the immersion level, a rated power of "
+    "0.1 kW and a commanded draw of 0.1 kW are not over; one step past each is",
+    _sce_io_rows == {"at level": False, "past level": True, "rated 0.1": False, "rated past 0.1": True,
+                     "commanded 0.1": False, "commanded past 0.1": True},
+    f"{_sce_io_rows}",
+)
+
+# S7 (owner ruling D1, 2026-11-15): a meter reporting its window's average
+# gives an element cut-in, compressor off, one partial report between the
+# on-threshold and the over level; it holds one report period, at least the
+# debounce, so it is a confirmed rise before over arrives. On the meter a rise
+# counts only once two refreshes read the signal settled running; the no-class
+# edge over brings drops it first. Six offsets inside a 60 s and a 30 s window
+# (offset 0 fills its window and is over from its first report), a refresh
+# landing between the partial's confirmation and over, the element running
+# three refresh periods; then a real start on the same rig counts from its
+# second refresh. The cut-out of a short element, never latched, falls
+# through a partial from no class and stops: no start either; nor does a
+# second refresh landing while over is still pending.
+def _sce_s7(window_s, offset_s):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0
+    rise = _SCE_T0 + timedelta(seconds=_SCE_PERIOD_S - _SCE_DEBOUNCE_S - 15)
+    rig.set("sensor.kw", _sce_kw(level * (window_s - offset_s) / window_s), rise, unit="kW")
+    rig.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+    rig.set("sensor.kw", _sce_kw(level), rise + timedelta(seconds=window_s), unit="kW")
+    for k in (2, 3, 4):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    cut = _SCE_T0 + timedelta(seconds=4 * _SCE_PERIOD_S + 60)
+    rig.set("sensor.kw", _sce_kw(level * offset_s / window_s), cut, unit="kW")
+    rig.set("sensor.kw", "0.0", cut + timedelta(seconds=window_s), unit="kW")
+    for k in (5, 6, 7):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    false = rig.counter.lifetime
+    rig.set("sensor.kw", "2.0", _SCE_T0 + timedelta(seconds=7 * _SCE_PERIOD_S + 60), unit="kW")
+    seen = []
+    for k in (8, 9):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+        seen.append(rig.counter.lifetime)
+    return false, *seen
+
+
+def _sce_s7_quick(window_s):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0
+    rise = _SCE_T0 + timedelta(minutes=5)
+    rig.set("sensor.kw", _sce_kw(level / 2), rise, unit="kW")
+    rig.refresh(rise + timedelta(seconds=_SCE_DEBOUNCE_S + 1))
+    rig.set("sensor.kw", _sce_kw(level), rise + timedelta(seconds=window_s), unit="kW")
+    rig.refresh(rise + timedelta(seconds=window_s + 1))
+    rig.at(rise + timedelta(minutes=5))
+    return rig.counter.lifetime
+
+
+def _sce_s7_cutout(window_s):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0
+    rig.set("sensor.kw", _sce_kw(level), _SCE_T0 + timedelta(minutes=1), unit="kW")
+    rig.set("sensor.kw", _sce_kw(level / 2), _SCE_T0 + timedelta(minutes=5), unit="kW")
+    rig.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=5, seconds=window_s), unit="kW")
+    for k in (1, 2, 3):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    return rig.counter.lifetime, rig.c._immersion_active
+
+
+# The controls, on the same rig and refreshes: a real start counts once, in
+# the month of its first reading, from its second refresh; a run stopping
+# before that counts once, at its stop.
+def _sce_s7_real(stop_s=None):
+    rig, _on, _over = _sce_element_rig()
+    rise = _SCE_T0 + timedelta(seconds=_SCE_PERIOD_S - 300)
+    rig.set("sensor.kw", "2.0", rise, unit="kW")
+    if stop_s is not None:
+        rig.set("sensor.kw", "0.0", rise + timedelta(seconds=stop_s), unit="kW")
+    seen = []
+    for k in (1, 2):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+        seen.append(rig.counter.lifetime)
+    return *seen, dict(rig.counter.months)
+
+
+_sce_s7_rows = {(w, round(w * k / 6)): _sce_s7(w, w * k / 6) for w in (60, 30) for k in range(6)}
+_sce_s7_cut = {w: (_sce_s7_cutout(w), _sce_s7_quick(w)) for w in (60, 30)}
+_sce_s7_ctl = (_sce_s7_real(), _sce_s7_real(stop_s=240))
+R.check(
+    "S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, "
+    "and a real start after it counts at its second refresh; neither the falling average of a short "
+    "element's cut-out nor a second refresh landing while over is pending counts one; null control, "
+    "on the same rig and refreshes a real start counts once, from its second refresh, and a run "
+    "stopping before it counts once, at its stop",
+    set(_sce_s7_rows.values()) == {(0, 0, 1)}
+    and _sce_s7_cut == {60: ((0, False), 0), 30: ((0, False), 0)}
+    and _sce_s7_ctl == ((0, 1, {"2026-02": 1}), (1, 1, {"2026-02": 1})),
+    f"{_sce_s7_rows} {_sce_s7_cut} {_sce_s7_ctl}",
+)
+
+# wear.RiseHold alone: each edge it passes on keeps its own time; a held rise
+# released by its refreshes is the rise's, and a short run is the rise's then
+# the stop's. Null control, the frequency source's counter holds nothing.
+_sce_rh_t = [_SCE_T0 + timedelta(minutes=m) for m in range(5)]
+_sce_rh = _SceRiseHold()
+_sce_rh_seq = [_sce_rh.admit(_sce_rh_t[0], False), _sce_rh.admit(_sce_rh_t[1], True), _sce_rh.refresh(True),
+               _sce_rh.refresh(False), _sce_rh.refresh(True), _sce_rh.admit(_sce_rh_t[2], False),
+               _sce_rh.admit(_sce_rh_t[3], True), _sce_rh.admit(_sce_rh_t[4], False)]
+R.check(
+    "wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh "
+    "reading it running and one reading it unsettled, released by the second running one; a short "
+    "run is its rise then its stop; null control, a counter with no hold counts the rise at once",
+    _sce_rh_seq == [[(_sce_rh_t[0], False)], [], [], [], [(_sce_rh_t[1], True)], [(_sce_rh_t[2], False)],
+                    [], [(_sce_rh_t[3], True), (_sce_rh_t[4], False)]]
+    and _SceStarts(queued=None).hear(_sce_rh_t[1], True) == [_sce_rh_t[1]],
+    f"{_sce_rh_seq}",
+)
+
+# A refresh's own re-read moves the class with no meter event: the element's
+# latch, or the commanded draw that makes the same reading the element's.
+# The held rise must hear the class as this refresh re-reads it, so the
+# re-read comes before the tick (running_signal.refresh). Null control, the
+# same rig with nothing moving counts the rise at its second refresh.
+def _sce_reread(move):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0 if move == "commanded" else 2.0
+    if move == "commanded":
+        rig.c._current_action = {**rig.c._current_action, "power": 0.0, "dhw_power": 0.0}
+    rig.set("sensor.kw", _sce_kw(level), _SCE_T0 + timedelta(minutes=1), unit="kW")
+    rig.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+    if move == "commanded":
+        rig.c._current_action = {**rig.c._current_action, "power": 2.0}
+    elif move == "latch":
+        rig.c._immersion_active, rig.c._immersion_clear_count = True, 0  # as _detect_immersion latches
+    rig.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
+    rig.at(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 2 * _SCE_DEBOUNCE_S))
+    return rig.counter.lifetime
+
+
+_sce_reread_rows = {m: _sce_reread(m) for m in ("commanded", "latch", None)}
+R.check(
+    "a refresh whose own re-read moves the class off running (the commanded draw or the element's "
+    "latch changing, no meter event) while a rise is held counts no start: the tick hears the class "
+    "this refresh re-reads; null control, the same rig with nothing moving counts the rise once",
+    _sce_reread_rows == {"commanded": 0, "latch": 0, None: 1},
+    f"{_sce_reread_rows}",
+)
+_sce_dt.freeze(None)
+
+
+# -- R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor moves the plan -------
+# Group C of design/R11-OUTSIDE-HONEST-STARTS-RUNS for pull request 3529 by
+# Bankaifan: configured 0.53 kW against a metered running draw from 1.1 kW.
+# ``draw_range.update_floor`` learns the floor from runs asked at the floor in
+# force since it last moved; ``solve_band(applies_floor=...)`` books it.
+from heatpump_optimizer import draw_range as _mf_dr  # noqa: E402
+from heatpump_optimizer import coordinator as _mf_cmod  # noqa: E402
+from heatpump_optimizer import sensor as _mf_sensor  # noqa: E402
+from types import SimpleNamespace as _MfNS  # noqa: E402
+
+_MF_CAP = _MfNS(plan_writes_power=lambda: False)
+_MF_ECHO = _MfNS(plan_writes_power=lambda: True)
+_MF_TOL = _mf_dr.AGREE_TOLERANCE
+_MF_W = _mf_dr.WINDOW
+
+
+def _mf_params(lo=0.53, hi=5.0):
+    return _MfNS(min_electrical_power=lo, max_electrical_power=hi)
+
+
+def _mf_band(d, lo=0.53, hi=5.0, applies=True, cap=_MF_CAP):
+    return _mf_dr.solve_band(d, _mf_params(lo, hi), cap, 0.0, applies_floor=applies)
+
+
+def _mf_run(pump, n, lo=0.53, hi=5.0, d=None, high=2.5, cold=None):
+    """Fold ``n`` plan steps through ``DrawRange.observe``: even steps ask the
+    band's minimum (the plan wanting its least), odd ones ``high``; steps in
+    ``cold`` (a range) ask 3.0 throughout. ``pump(ask, floor, i)`` is the
+    metered draw. Returns the window and the band minimum at every step."""
+    d = d or _mf_dr.DrawRange()
+    mins = []
+    for i in range(n):
+        f = _mf_band(d, lo, hi).min_kw
+        ask = 3.0 if cold is not None and i in cold else (f if i % 2 == 0 else high)
+        d.observe(pump(ask, f, i), ask, lo, hi)
+        mins.append(_mf_band(d, lo, hi).min_kw)
+    return d, mins
+
+
+def _mf_moves(mins):
+    return [(i, b) for i, (a, b) in enumerate(zip(mins, mins[1:]), 1) if a != b]
+
+
+# The build as pull request 3529 shaped it (7eeb7cd676), for its failing arm:
+# a store admitting only asks at or under the CONFIGURED floor, each sample
+# lapsing CEILING_LAPSE_DAYS after it was taken. Half-hour steps.
+def _mf_build_run(pump, n, lo=0.53):
+    store, mins = [], []
+    for i in range(n):
+        now = i * 1800.0
+        store = [(dr, t) for dr, t in store if now - t <= _mf_dr.CEILING_LAPSE_DAYS * 86400.0]
+        low = (float(np.percentile([dr for dr, _ in store], _mf_dr.LOW_PERCENTILE))
+               if len(store) >= _mf_dr.MIN_SAMPLES else None)
+        f = low if low is not None and low > (1.0 + _MF_TOL) * lo else lo
+        ask = f if i % 2 == 0 else 2.5
+        if ask <= (1.0 + _MF_TOL) * lo:
+            store.append((pump(ask, f, i), now))
+        mins.append(f)
+    return mins
+
+
+_mf_g = lambda a, f, i: max(a, 1.1)  # noqa: E731  g(a): the pump's least is 1.1 kW
+_mf_gf = lambda a, f, i: 1.1 if a <= (1.0 + _MF_TOL) * f else a  # noqa: E731  g_f(f) = m
+_mf_step = lambda a, f, i: max(a, 1.1 if i < 2 * _MF_W else 1.6)  # noqa: E731  m steps up
+_MF_N = 3 * _MF_W + _MF_W
+_MF_COLD = range(2 * _MF_W, 3 * _MF_W)
+_mf_arm_g, _mf_mins_g = _mf_run(_mf_g, _MF_N, cold=_MF_COLD)
+_mf_arm_gf, _mf_mins_gf = _mf_run(_mf_gf, _MF_N, cold=_MF_COLD)
+_mf_arm_step, _mf_mins_step = _mf_run(_mf_step, _MF_N)
+_mf_build = _mf_build_run(_mf_g, 4 * 2 * 24 * int(_mf_dr.CEILING_LAPSE_DAYS))
+_mf_build_back = sum(1 for a, b in zip(_mf_build, _mf_build[1:]) if a > 0.53 and b == 0.53)
+R.check(
+    "metered floor, the loop (Bankaifan, #3529): configured 0.53 kW on a pump whose least draw is "
+    "1.1 kW, folded over four windows with a window-long cold spell of high asks, moves the floor "
+    "once, to 1.1, and holds it through the spell (g = max(a, 1.1), and g_f(f) = 1.1); a step in "
+    "the least draw to 1.6 moves it once more, to within 15 % under 1.6, never back; the build's "
+    "configured-floor store "
+    "with its lapse returns the band to 0.53 at least twice over the same pump",
+    [round(b, 3) for _, b in _mf_moves(_mf_mins_g)] == [1.1]
+    and [round(b, 3) for _, b in _mf_moves(_mf_mins_gf)] == [1.1]
+    and len(_mf_moves(_mf_mins_step)) == 2 and round(_mf_moves(_mf_mins_step)[0][1], 3) == 1.1
+    and _mf_moves(_mf_mins_step)[1][0] > 2 * _MF_W
+    and 1.6 / (1.0 + _MF_TOL) <= _mf_moves(_mf_mins_step)[1][1] <= 1.6
+    and round(_mf_mins_g[-1], 3) == round(_mf_mins_gf[-1], 3) == 1.1
+    and _mf_build_back >= 2,
+    f"g {_mf_moves(_mf_mins_g)} gf {_mf_moves(_mf_mins_gf)} step {_mf_moves(_mf_mins_step)} "
+    f"build returns {_mf_build_back}",
+)
+# The convergence premise as a fixture property: g nondecreasing in the ask.
+R.check(
+    "metered floor, the loop's premise: each fixture pump's draw is nondecreasing in its ask",
+    all(p(a, 0.53, 0) <= p(b, 0.53, 0) for p in (_mf_g, _mf_step)
+        for a, b in zip(np.linspace(0.5, 5, 40), np.linspace(0.5, 5, 40)[1:])),
+)
+
+# Down and out: a pump drawing 0.8 at a learned 1.1 lowers it; one drawing
+# under the configured floor clears it; a reconfiguration clears it.
+_mf_down, _ = _mf_run(lambda a, f, i: 0.8 if a <= 1.3 and a > 0.6 else a, 2 * _mf_dr.MIN_SAMPLES + 2,
+                      d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_out, _ = _mf_run(lambda a, f, i: 0.4, 2 * _mf_dr.MIN_SAMPLES + 2,
+                     d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_hold, _ = _mf_run(lambda a, f, i: 1.0 if a <= 1.3 and a > 0.6 else a, 2 * _mf_dr.MIN_SAMPLES + 2,
+                      d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_recfg = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=10)
+_mf_recfg.observe(1.2, 2.0, 0.6, 5.0)
+# A move reads only post-move pairs: sixty runs asked at 1.0 drawing 0.8 (within
+# tolerance of the 1.1 the floor is about to take, and under its lower edge),
+# then forty-eight asked at 0.53 drawing 1.1 raise it to 1.1 and restart E.
+_mf_post = _mf_dr.DrawRange()
+for _ in range(60):
+    _mf_post.observe(0.8, 1.0, 0.53, 5.0)
+for _ in range(_mf_dr.MIN_SAMPLES):
+    _mf_post.observe(1.1, 0.53, 0.53, 5.0)
+R.check(
+    "metered floor, down and out: 0.8 kW at a learned 1.1 lowers it to 0.8, and 1.0 kW (within "
+    "15 % under it) holds it; 0.4 kW (under the "
+    "configured 0.53) clears it, never under configured; a reconfiguration clears it; a raise "
+    "restarts its evidence, so runs asked near the new floor before the move do not lower it",
+    _mf_down.floor_kw is not None and round(_mf_down.floor_kw, 3) == 0.8
+    and _mf_hold.floor_kw == 1.1 and _mf_hold.floor_since > _mf_dr.MIN_SAMPLES
+    and _mf_out.floor_kw is None
+    and _mf_recfg.floor_kw is None and _mf_recfg.floor_since == 1
+    and _mf_post.floor_kw is not None and round(_mf_post.floor_kw, 3) == 1.1
+    and _mf_dr.floor_evidence(_mf_post) == (None, 0),
+    f"down {_mf_down.floor_kw} out {_mf_out.floor_kw} recfg {_mf_recfg.floor_kw} "
+    f"post {_mf_post.floor_kw} {_mf_dr.floor_evidence(_mf_post)}",
+)
+
+# Persistence: round trip, absent leaves, another range's record.
+_mf_rt = _mf_dr.DrawRange.from_dict(_mf_arm_g.as_dict())
+_mf_absent = {k: v for k, v in _mf_arm_g.as_dict().items() if k not in ("floor_kw", "floor_since")}
+_mf_noread = _mf_dr.DrawRange.from_dict(_mf_absent)
+_mf_bad = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.5, "floor_since": "x"})
+R.check(
+    "metered floor, persistence: the floor and its count survive a round trip; absent leaves "
+    "read unset; a floor not above the configured minimum and a non-count read unset; a record "
+    "keyed to another range books and publishes no learned floor",
+    (_mf_rt.floor_kw, _mf_rt.floor_since) == (_mf_arm_g.floor_kw, _mf_arm_g.floor_since)
+    and _mf_rt.floor_kw is not None
+    and (_mf_noread.floor_kw, _mf_noread.floor_since) == (None, 0)
+    and (_mf_bad.floor_kw, _mf_bad.floor_since) == (None, 0)
+    and _mf_band(_mf_rt, lo=0.6).learned_min_kw is None
+    and _mf_band(_mf_rt, lo=0.6).min_kw == 0.6,
+    f"rt {_mf_rt.floor_kw} {_mf_rt.floor_since} absent {_mf_noread.floor_kw} bad {_mf_bad.floor_kw}",
+)
+
+# The declared cost of a bad floor cell is its measured cost (fix review of
+# #3670): store._ACCURACY's ``whole`` licenses a loader to drop the draw
+# record for one bad cell, so a leaf declares it exactly when a bad value
+# measures the record lost, and declares "cell" when only the cell reads unset.
+from heatpump_optimizer import store as _mf_store  # noqa: E402
+_mf_good = _mf_arm_g.as_dict()
+_MF_BAD_CELLS = {"floor_kw": ("x", -1.0, True, [1]), "floor_since": ("x", -3, 1.5)}
+
+
+def _mf_cost(leaf, value):
+    """``cell`` when only ``leaf`` reads unset, ``record`` when the samples or
+    configuration go with it, else what came back."""
+    after = _mf_dr.DrawRange.from_dict({**_mf_good, leaf: value}).as_dict()
+    unset = {k: v for k, v in _mf_good.items() if k != "floor_kw"} if leaf == "floor_kw" \
+        else {**_mf_good, "floor_since": 0}
+    if after == unset:
+        return "cell"
+    lost = any(after.get(k) != _mf_good.get(k) for k in ("samples", "config", "engaged"))
+    return "record" if lost else repr(after)
+
+
+_mf_declared = {leaf: "record" if _mf_store._ACCURACY[f"draw/{leaf}"].whole else "cell"
+                for leaf in _MF_BAD_CELLS}
+_mf_measured = {(leaf, repr(v)): _mf_cost(leaf, v) for leaf, vs in _MF_BAD_CELLS.items() for v in vs}
+R.check(
+    "metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since "
+    "('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load "
+    "measures; null control, the good record (floor, count, samples) reads back unchanged",
+    _mf_good.get("floor_kw") is not None and _mf_good["floor_since"] > 0 and _mf_good["samples"]
+    and _mf_dr.DrawRange.from_dict(_mf_good).as_dict() == _mf_good
+    and all(m == _mf_declared[leaf] for (leaf, _v), m in _mf_measured.items()),
+    f"declared {_mf_declared} measured {_mf_measured}",
+)
+
+# Application: only under the predicate, min(F, top), plan_writes_power.
+_mf_set = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0))
+_mf_low_top = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0))
+for _k in range(12):
+    _mf_low_top.observe_ceiling(1.0, -_k * 1800.0)
+_mf_row = lambda b: (b.min_source, b.min_reason, b.min_kw, b.learned_min_kw)  # noqa: E731
+R.check(
+    "metered floor, application: a learned 1.1 under clamped levels books 1.1 (metered, "
+    "measured); unclamped it books the configured 0.53 and publishes 1.1 as cycled; under a "
+    "learned 1.0 top it books 1.0; a plan that writes the power keeps 0.53",
+    _mf_row(_mf_band(_mf_set)) == ("metered", "measured", 1.1, 1.1)
+    and _mf_row(_mf_band(_mf_set, applies=False)) == ("configured", "cycled", 0.53, 1.1)
+    and _mf_band(_mf_low_top).min_kw == 1.0 and _mf_band(_mf_low_top).max_kw == 1.0
+    and _mf_row(_mf_band(_mf_set, cap=_MF_ECHO)) == ("configured", "plan_writes_power", 0.53, 1.1)
+    and _mf_dr.solve_band(_mf_set, _mf_params(), _MF_CAP, 0.0).min_kw == 0.53,
+    f"{_mf_row(_mf_band(_mf_set))} {_mf_row(_mf_band(_mf_set, applies=False))} "
+    f"{_mf_band(_mf_low_top).min_kw}",
+)
+# The coordinator: the predicate is levels_clamped, and a band whose bottom
+# alone moved still reaches the solve copy.
+_mf_on_off = {"tibber_token": "x", "weather_entity": "weather.home", "compressor_modulation": "on_off"}
+_mf_c = _mf_cmod.HeatPumpOptimizerCoordinator(FakeHass(), _r9f13_entry(data=_mf_on_off))
+_mf_hub = _mf_cmod._ctx_of(_mf_c)._thermal_params
+_mf_lo, _mf_hi = float(_mf_hub.min_electrical_power), float(_mf_hub.max_electrical_power)
+_mf_c._accuracy.draw = _mf_dr.DrawRange(floor_kw=_mf_lo * 2.0, config=(_mf_lo, _mf_hi))
+_mf_cband = _mf_cmod._solve_band(_mf_c._accuracy.draw, _mf_hub, _mf_cmod._ctx_of(_mf_c)._config)
+_mf_copy = _mf_c._solve_hubs(8, banded=False, band=_mf_cband)[1]
+_mf_c2 = _mf_cmod.HeatPumpOptimizerCoordinator(
+    FakeHass(), _r9f13_entry(data={k: v for k, v in _mf_on_off.items() if k != "compressor_modulation"}))
+_mf_c2._accuracy.draw = _mf_dr.DrawRange(floor_kw=_mf_lo * 2.0, config=(_mf_lo, _mf_hi))
+_mf_cband2 = _mf_cmod._solve_band(_mf_c2._accuracy.draw, _mf_hub, _mf_cmod._ctx_of(_mf_c2)._config)
+R.check(
+    "metered floor, coordinator: an on/off compressor (levels clamped) books a learned floor of "
+    "twice the hub's minimum in the solve copy, its top and the hub untouched; a duty-cycling "
+    "install publishes it as cycled and the copy keeps the hub's minimum",
+    _mf_cband.min_reason == "measured" and _mf_copy.min_electrical_power == 2.0 * _mf_lo
+    and _mf_copy.max_electrical_power == _mf_hi and _mf_hub.min_electrical_power == _mf_lo
+    and _mf_cband2.min_reason == "cycled"
+    and _mf_cmod._band_fields(_mf_cband2) == {},
+    f"{_mf_cband} copy {_mf_copy.min_electrical_power} {_mf_cband2.min_reason}",
+)
+
+# Carry 0: the COP floor's reader is bit for bit at its defaults.
+_mf_cop = _mf_dr.DrawRange()
+for _k in range(80):
+    _mf_cop.observe(0.4 + 0.01 * _k, 0.3 + 0.05 * (_k % 30), 0.5, 5.0)
+_mf_cop_pairs = [(d, a) for d, a, _ in _mf_cop._evidence() if a >= 0.5 and a > 0.0]
+R.check(
+    "metered floor, carry 0: the run-asked reader at its default bounds is every run-asked "
+    "evidence pair, and power_floor_kw reads the one low-end statistic of them",
+    _mf_cop._run_asked() == _mf_cop_pairs
+    and _mf_dr.power_floor_kw(_mf_cop, _MfNS(
+        flow_lift_power_floor_kw=5.0, min_electrical_power=0.5, max_electrical_power=5.0))
+    == max(_mf_dr.on_threshold_kw(_mf_params(0.5)),
+           min(5.0, float(np.percentile([d for d, _ in _mf_cop_pairs], _mf_dr.LOW_PERCENTILE)))),
+    f"{len(_mf_cop_pairs)}",
+)
+
+# Alignment: the count is capped at the window, clamped on load, reset by a clear.
+_mf_al = _mf_dr.DrawRange()
+for _k in range(_MF_W + 7):
+    _mf_al.observe(2.0, 2.0, 0.53, 5.0)
+_mf_al_rec = _mf_al.as_dict()
+_mf_al_rec["samples"][0] = ["bad", 2.0, None, None]
+_mf_al_load = _mf_dr.DrawRange.from_dict(_mf_al_rec)
+_mf_leg = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=40, commands_known=False)
+_mf_leg.samples.extend([(1.2, 1.1)] * 40)
+_mf_leg.observe(1.2, 1.1, 0.53, 5.0, (40.0, 55.0))
+R.check(
+    "metered floor, alignment: WINDOW + 7 appends leave the count at WINDOW; a load dropping "
+    "one unreadable row clamps it to the rows kept; the legacy-commands clear restarts it at the "
+    "new sample with the floor held",
+    _mf_al.floor_since == _MF_W
+    and _mf_al_load.floor_since == len(_mf_al_load.samples) == _MF_W - 1
+    and _mf_leg.floor_since == 1 and _mf_leg.floor_kw == 1.1 and len(_mf_leg.samples) == 1,
+    f"{_mf_al.floor_since} {_mf_al_load.floor_since}/{len(_mf_al_load.samples)} "
+    f"{_mf_leg.floor_since} {_mf_leg.floor_kw}",
+)
+
+# Surface: every reason reached; unexceeded from within tolerance and from below.
+_mf_fill = lambda drawn: _mf_run(lambda a, f, i: drawn if a < 1.0 else a, 2 * _mf_dr.MIN_SAMPLES)[0]  # noqa: E731
+_mf_await = _mf_band(_mf_dr.DrawRange(), applies=True)
+_mf_within = _mf_band(_mf_fill(0.58))
+_mf_below = _mf_band(_mf_fill(0.40))
+_mf_reached = {
+    "pump_min_power_reason": {b.min_reason for b in (
+        _mf_await, _mf_within, _mf_below, _mf_band(_mf_set), _mf_band(_mf_set, applies=False),
+        _mf_band(_mf_set, cap=_MF_ECHO))},
+    "pump_min_power_source": {b.min_source for b in (_mf_await, _mf_band(_mf_set))},
+}
+R.check(
+    "metered floor, surface: each minimum reason and source is reached by its fixture, "
+    "unexceeded both from a low end within 15 % (0.58 of 0.53) and from one under the "
+    "configured floor (0.40), and the set reached is the carry-6 table's",
+    _mf_await.min_reason == "awaiting" and _mf_within.min_reason == "unexceeded"
+    and _mf_below.min_reason == "unexceeded" and _mf_within.min_samples >= _mf_dr.MIN_SAMPLES
+    and all(_mf_reached[k] == _cpd_codes[k] for k in _mf_reached),
+    f"{_mf_reached}",
+)
+_mf_cfg_d = _mf_band(_mf_dr.DrawRange()).as_dict()
+_mf_set_attrs = _mf_sensor._pump_max_power(_mf_band(_mf_set).as_dict())
+_mf_cfg_attrs = _mf_sensor._pump_max_power(_mf_cfg_d)
+_mf_min_attrs = _mf_sensor._pump_min_power(_mf_band(_mf_set).as_dict())
+R.check(
+    "metered floor, surface: the top's row and codes are byte for byte on a configured band "
+    "and on one with a learned floor (no floor key enters the max row); the minimum's row "
+    "carries the configured, planned and learned floor and E's size; no plan publishes None",
+    {k: _mf_cfg_d[k] for k in ("configured_max_kw", "planned_max_kw", "planned_min_kw", "source",
+                               "reason", "learned_max_kw", "samples", "since_s")}
+    == {"configured_max_kw": 5.0, "planned_max_kw": 5.0, "planned_min_kw": 0.53,
+        "source": "configured", "reason": "awaiting_probe", "learned_max_kw": None,
+        "samples": 0, "since_s": None}
+    and _mf_set_attrs == _mf_cfg_attrs
+    and _mf_min_attrs == {
+        "pump_min_power": {"configured_min_kw": 0.53, "planned_min_kw": 1.1,
+                           "learned_min_kw": 1.1, "samples": 0},
+        "pump_min_power_source": "metered", "pump_min_power_reason": "measured"}
+    and _mf_sensor._pump_min_power(_mf_within.as_dict())["pump_min_power"]["samples"]
+    == _mf_within.min_samples != _mf_within.samples
+    and _mf_sensor._pump_min_power(None) == {
+        "pump_min_power": None, "pump_min_power_source": None, "pump_min_power_reason": None},
+    f"{_mf_set_attrs} {_mf_min_attrs}",
+)
+
+# The edges, each a value check: the hold band's bounds are inclusive and the
+# clear-to-configured bound exclusive; a move restarts the count at 0; a fresh
+# window counts 0; a stored floor at the configured minimum, and a stored count
+# of 1, read as written; the COP floor still stands under too few pairs; an
+# unkeyed window reports no pairs; the stamp rounds to the watt.
+_mf_edge = lambda drawn: _mf_run(lambda a, f, i: drawn if 0.6 < a <= 1.3 else a, 2 * _mf_dr.MIN_SAMPLES + 2,  # noqa: E731
+                                 d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0)))[0]
+_mf_at_lower = _mf_edge((1.0 - _MF_TOL) * 1.1)
+_mf_at_clear = _mf_edge((1.0 + _MF_TOL) * 0.53)
+_mf_at_upper = _mf_edge((1.0 + _MF_TOL) * 1.1)
+_mf_bounds = _mf_dr.DrawRange(config=(0.53, 5.0), floor_kw=1.1, floor_since=10)
+_mf_bounds.samples.extend([(1.0, (1.0 - _MF_TOL) * 1.1)] * 5 + [(1.0, (1.0 + _MF_TOL) * 1.1)] * 5)
+# The default reader over a window longer than half of WINDOW reads it whole,
+# and never an ask of 0 where no minimum is configured.
+_mf_long = _mf_dr.DrawRange()
+for _k in range(200):
+    _mf_long.observe(1.0 + 0.001 * _k, 0.0 if _k % 10 == 0 else 1.0, 0.0, 5.0)
+_mf_rec1 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.53, "floor_since": 1})
+_mf_rec2 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.5301})
+_mf_rec3 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_since": -3})
+_mf_few = _mf_dr.DrawRange()
+for _k in range(_mf_dr.MIN_SAMPLES - 1):
+    _mf_few.observe(0.6, 1.0, 0.5, 5.0)
+_mf_bare = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe")
+_mf_round = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe",
+                             configured_min_kw=0.12345, learned_min_kw=0.67891).as_dict()
+R.check(
+    "metered floor, edges: a low end exactly (1 - 15 %) or (1 + 15 %) of the floor holds it, "
+    "and asks exactly at those bounds are its evidence; the default reader reads a 200-sample "
+    "window whole and no ask of 0; a low end exactly "
+    "15 % over the configured minimum clears it; a move sets the count to 0; a fresh window "
+    "counts 0; a stored floor at the configured minimum reads unset, one just above and a "
+    "count of 1 read as written, a negative count reads 0; the COP floor under 47 pairs is the configured figure; an "
+    "unkeyed window reports 0 pairs; a band built without the bottom reads configured with "
+    "no evidence; the stamp rounds the bottom to 3 decimals",
+    _mf_at_lower.floor_kw == 1.1 and _mf_at_upper.floor_kw == 1.1
+    and _mf_at_clear.floor_kw is None
+    and _mf_dr.floor_evidence(_mf_bounds)[1] == 10
+    and len(_mf_long._run_asked()) == 180
+    and _mf_post.floor_since == 0
+    and _mf_dr.DrawRange().as_dict()["floor_since"] == 0
+    and _mf_rec1.floor_kw is None and _mf_rec1.floor_since == 1 and _mf_rec2.floor_kw == 0.5301 and _mf_rec3.floor_since == 0
+    and _mf_dr.power_floor_kw(_mf_few, _MfNS(
+        flow_lift_power_floor_kw=0.9, min_electrical_power=0.5, max_electrical_power=5.0)) == 0.9
+    and _mf_band(_mf_rt, lo=0.6).min_samples == 0
+    and (_mf_bare.configured_min_kw, _mf_bare.min_source, _mf_bare.min_reason,
+         _mf_bare.learned_min_kw, _mf_bare.min_samples) == (0.0, "configured", "awaiting", None, 0)
+    and (_mf_round["configured_min_kw"], _mf_round["learned_min_kw"]) == (0.123, 0.679),
+    f"lower {_mf_at_lower.floor_kw} clear {_mf_at_clear.floor_kw} post {_mf_post.floor_since} "
+    f"rec {_mf_rec1.floor_kw} {_mf_rec1.floor_since} {_mf_rec2.floor_kw}",
+)
+
+# Null controls. (b) a pump drawing its ask plus under 15 % of the configured
+# floor, and (c) a cold week of high asks only: nothing moves.
+_mf_nb, _mf_nb_mins = _mf_run(lambda a, f, i: a + 0.1 * 0.53, _MF_N)
+_mf_nc, _mf_nc_mins = _mf_run(lambda a, f, i: max(a, 1.1), _MF_N, cold=range(_MF_N))
+R.check(
+    "metered floor, null controls (b) and (c): a draw of ask + 0.053 kW, and a window of "
+    "3.0 kW asks only on a pump whose least is 1.1, learn no floor and leave the band at 0.53",
+    _mf_nb.floor_kw is None and set(_mf_nb_mins) == {0.53}
+    and _mf_nc.floor_kw is None and set(_mf_nc_mins) == {0.53},
+    f"b {_mf_nb.floor_kw} c {_mf_nc.floor_kw}",
+)
+
+
+# Null control (a), a full optimize twice: an on/off install whose least draw
+# equals its configured minimum learns no floor, and its solve books the hub's
+# band and the same plan as with no window at all; the perturbation, a pump
+# whose least draw is twice the configured minimum, moves the solve's minimum.
+def _mf_optimize(tag, pump):
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _, _, c = _r9f13_make(f"mf_null_{tag}", {"compressor_modulation": "on_off"})
+    hub = _mf_cmod._ctx_of(c)._thermal_params
+    lo, hi = float(hub.min_electrical_power), float(hub.max_electrical_power)
+    c._accuracy.draw = (_mf_dr.DrawRange() if pump is None
+                        else _mf_run(lambda a, f, i: pump(a, lo), 2 * _MF_W, lo=lo, hi=hi)[0])
+    seen = []
+
+    async def _rec(hass, optimizer, inputs):
+        res = await _r9f13_inline(hass, optimizer, inputs)
+        seen.append((float(optimizer.model.params.min_electrical_power), list(res.power_schedule)))
+        return res
+
+    with _r9f13_mock.patch.object(_r9f13_cmod, "_await_optimize", _rec):
+        _r9f13_aio.run(c.async_run_optimization())
+    _r9f13_dt.freeze(None)
+    band = getattr(c._optimization_result, "solve_band", None) or {}
+    return lo, c._accuracy.draw.floor_kw, seen[-1] if seen else None, band
+
+
+_mf_na_base = _mf_optimize("base", None)
+_mf_na_same = _mf_optimize("same", lambda a, lo: max(a, lo))
+_mf_na_pert = _mf_optimize("pert", lambda a, lo: max(a, 2.0 * lo))
+_MF_MAX_KEYS = ("configured_max_kw", "planned_max_kw", "source", "reason")
+R.check(
+    "metered floor, null control (a): a pump whose least draw is its configured minimum learns "
+    "no floor and its solve books the same minimum, the same plan and the same top as with no "
+    "window; perturbed to twice the configured minimum, the solve's minimum moves to it",
+    _mf_na_base[2] is not None and _mf_na_same[2] is not None and _mf_na_pert[2] is not None
+    and _mf_na_same[1] is None and _mf_na_same[2] == _mf_na_base[2]
+    and {k: _mf_na_same[3].get(k) for k in _MF_MAX_KEYS} == {k: _mf_na_base[3].get(k) for k in _MF_MAX_KEYS}
+    and _mf_na_pert[1] is not None and round(_mf_na_pert[2][0], 3) == round(2.0 * _mf_na_pert[0], 3)
+    and _mf_na_pert[3].get("min_reason") == "measured",
+    f"base {_mf_na_base[:2]} {_mf_na_base[2] and _mf_na_base[2][0]} same {_mf_na_same[:2]} "
+    f"pert {_mf_na_pert[:2]} {_mf_na_pert[2] and _mf_na_pert[2][0]}",
+)
+
+
+R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
+
+# Phase 1 of room-level support (design/R11-OUTSIDE-ROOMS-P2): a list of room
+# thermometers, read through inputs.read_room and summarised by rooms. A
+# climate's state is its HVAC mode, so the temperature and target come from
+# its attributes in the instance's unit system.
+from types import SimpleNamespace as _rm_ns  # noqa: E402
+from heatpump_optimizer import rooms as _rm  # noqa: E402
+from heatpump_optimizer.const import CONF_ROOM_TEMPERATURE_ENTITIES as _RM_KEY  # noqa: E402
+from heatpump_optimizer import entry_config as _rm_ec  # noqa: E402
+
+_RM_NOW = datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
+
+
+def _rm_climate(current, target, action="heating", mode="heat", age_min=5.0):
+    attrs = {"temperature": target, "hvac_action": action}
+    if current is not None:
+        attrs["current_temperature"] = current
+    if action is None:
+        del attrs["hvac_action"]
+    return FakeState(mode, last_updated=_RM_NOW - timedelta(minutes=age_min), attributes=attrs)
+
+
+def _rm_reader(states, unit=None, enabled=True):
+    hass = FakeHass(states)
+    if unit is not None:
+        hass.config.units = _rm_ns(temperature_unit=unit)
+    return InputReader(hass, {}, enabled=enabled, now=lambda: _RM_NOW)
+
+
+_rm_r = _rm_reader({
+    "climate.a": _rm_climate(18.0, 21.0),
+    "climate.b": _rm_climate(20.4, 20.0, action="idle"),
+    "climate.noattr": _rm_climate(None, 20.0, action=None),
+    "climate.off": _rm_climate(17.0, 22.0, action="off", mode="off"),
+    "sensor.c": FakeState("19.5", unit="°C", last_updated=_RM_NOW - timedelta(minutes=3)),
+    "sensor.down": FakeState("unavailable"),
+    "sensor.old": FakeState("19.0", unit="°C", last_updated=_RM_NOW - timedelta(hours=7)),
+    "sensor.fault": FakeState("85.0", unit="°C", last_updated=_RM_NOW - timedelta(minutes=1)),
+})
+_rm_a = inputs_mod.read_room(_rm_r, "climate.a")
+_rm_b = inputs_mod.read_room(_rm_r, "climate.b")
+R.check(
+    "a climate room reads current_temperature and its target from attributes, calling from hvac_action",
+    (_rm_a.temperature_c, _rm_a.target_c, _rm_a.calling, _rm_a.hvac_mode, _rm_a.problem)
+    == (18.0, 21.0, True, "heat", None)
+    and (_rm_b.calling, _rm.usable_c(_rm_b)) == (False, 20.4),
+    f"{_rm_a} {_rm_b}",
+)
+_rm_noattr = inputs_mod.read_room(_rm_r, "climate.noattr")
+_rm_sensor = inputs_mod.read_room(_rm_r, "sensor.c")
+R.check(
+    "a climate with no current_temperature is not_numeric, and with no hvac_action its call for heat "
+    "is unknown, not False; a sensor room reads its state, no target",
+    _rm_noattr.problem == "not_numeric" and _rm_noattr.temperature_c is None and _rm_noattr.calling is None
+    and (_rm_sensor.temperature_c, _rm_sensor.target_c, _rm_sensor.calling, _rm_sensor.problem)
+    == (19.5, None, None, None),
+    f"{_rm_noattr} {_rm_sensor}",
+)
+_rm_f = inputs_mod.read_room(
+    _rm_reader({"climate.f": _rm_climate(68.0, 69.8)}, unit="°F"), "climate.f")
+_rm_f_null = inputs_mod.read_room(_rm_reader({"climate.f": _rm_climate(68.0, 69.8)}), "climate.f")
+R.check(
+    "a Fahrenheit instance's climate attributes convert to degC; null control, a Celsius instance "
+    "reads the same 68 raw, outside a room's range",
+    round(_rm_f.temperature_c, 6) == 20.0 and round(_rm_f.target_c, 6) == 21.0
+    and _rm_f_null.problem == "implausible" and _rm_f_null.target_c == 69.8,
+    f"{_rm_f} {_rm_f_null}",
+)
+# A sensor room converts by its own unit_of_measurement, not the instance's: a
+# degF sensor on a Celsius instance (the default reader) reads degC.
+_rm_sf = {u: inputs_mod.read_room(_rm_reader({"sensor.u": FakeState(
+    v, unit=u, last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.u")
+    for u, v in (("°F", "68.0"), ("°C", "20.0"))}
+R.check(
+    "a degF sensor room converts by its own unit to degC (68 degF reads 20.0, no problem); null "
+    "control, a degC sensor at 20.0 reads 20.0",
+    round(_rm_sf["°F"].temperature_c or 0.0, 6) == 20.0 and _rm_sf["°F"].problem is None
+    and _rm_sf["°C"].temperature_c == 20.0 and _rm_sf["°C"].problem is None,
+    f"{_rm_sf}",
+)
+_rm_bad = {e: inputs_mod.read_room(_rm_r, e).problem
+           for e in ("sensor.down", "sensor.none", "sensor.old", "sensor.fault")}
+_rm_fault = inputs_mod.read_room(_rm_r, "sensor.fault")
+_rm_old_off = inputs_mod.read_room(_rm_reader({"sensor.old": FakeState(
+    "19.0", unit="°C", last_updated=_RM_NOW - timedelta(hours=7))}, enabled=False), "sensor.old")
+R.check(
+    "an unavailable, missing, stale (past the indoor limit, 360 min) and implausible room each carry "
+    "their problem word, the implausible one no temperature; null control, the watchdog off reads the "
+    "old room fresh",
+    _rm_bad == {"sensor.down": "unavailable", "sensor.none": "missing_entity",
+                "sensor.old": "stale", "sensor.fault": "implausible"}
+    and _rm_fault.temperature_c is None and _rm_old_off.problem is None,
+    f"{_rm_bad} {_rm_fault} {_rm_old_off}",
+)
+R.check(
+    "no room read records into the reader's input health, on any path",
+    _rm_r.health.readings == {},
+    f"{sorted(_rm_r.health.readings)}",
+)
+
+
+def _rm_ok(entity, temp):
+    return _rm.RoomReading(entity_id=entity, temperature_c=temp)
+
+
+_rm_s = _rm.summarize((_rm_ok("climate.a", 18.0), _rm_ok("climate.b", 20.4),
+                       _rm_ok("sensor.c", 19.5), _rm_noattr))
+R.check(
+    "the summary is the mean and the warmest less the coldest over the readable rooms, naming "
+    "the coldest and the warmest",
+    _rm_s is not None and round(_rm_s.mean_c, 6) == round((18.0 + 20.4 + 19.5) / 3, 6)
+    and round(_rm_s.spread_c, 6) == 2.4
+    and (_rm_s.coldest_entity, _rm_s.warmest_entity, _rm_s.valid_count) == ("climate.a", "climate.b", 3),
+    f"{_rm_s}",
+)
+_rm_down = _rm.RoomReading(entity_id="x", temperature_c=None, problem="unavailable")
+_rm_q = {
+    (n, ok): _rm.summarize(tuple(_rm_ok(f"s.{i}", 20.0) for i in range(ok))
+                           + tuple(_rm_down for _ in range(n - ok))) is not None
+    for n, ok in ((20, 10), (20, 9), (1, 1), (1, 0), (3, 2), (3, 1), (0, 0))
+}
+R.check(
+    "the quorum is half the list, minimum one: 10 of 20 and 2 of 3 summarise, 9 of 20, 1 of 3, "
+    "0 of 1 and an empty list do not",
+    _rm_q == {(20, 10): True, (20, 9): False, (1, 1): True, (1, 0): False,
+              (3, 2): True, (3, 1): False, (0, 0): False},
+    f"{_rm_q}",
+)
+_rm_stale_kept = _rm.RoomReading(entity_id="s.old", temperature_c=19.0, problem="stale")
+R.check(
+    "a stale room's kept temperature never reaches the summary",
+    _rm.summarize((_rm_ok("s.a", 20.0), _rm_stale_kept)).mean_c == 20.0,
+    f"{_rm.summarize((_rm_ok('s.a', 20.0), _rm_stale_kept))}",
+)
+
+R.check(
+    "the room list parses absent, None, empty and a stored non-list to the empty tuple, a list to a "
+    "tuple without its empty items, and survives a factory reset as wiring",
+    _rm_ec.EntryConfig.from_mapping({}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: None}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: []}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: ["climate.a", "sensor.c"]}).room_temperature_entities
+    == ("climate.a", "sensor.c")
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: "climate.a"}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: ["climate.a", None, ""]}).room_temperature_entities
+    == ("climate.a",)
+    and _RM_KEY in _rm_ec.FACTORY_KEPT,
+    f"{_rm_ec.EntryConfig.from_mapping({_RM_KEY: ['climate.a']}).room_temperature_entities}",
+)
+
+
+def _rm_cycle(rooms=None, indoor_entity="sensor.indoor", tag=""):
+    """One closed-loop cycle on the r9f12 rig: (payload, coordinator)."""
+    cfg = dict(_r9f12_seed_cfg, indoor_temp_entity=indoor_entity)
+    hass = FakeHass()
+    hass.bus.async_fire = lambda *_a, **_k: None
+    hass.states.set("sensor.indoor", FakeState("19.6", unit="°C"))
+    hass.states.set("sensor.outdoor", FakeState("6.0", unit="°C"))
+    hass.states.set("climate.dead", FakeState("unavailable"))
+    for i in range(19):
+        hass.states.set(f"climate.r{i}", FakeState("heat", attributes={
+            "current_temperature": 19.0 + 0.1 * i, "temperature": 20.0, "hvac_action": "idle"}))
+    if rooms is not None:
+        cfg[_RM_KEY] = rooms
+    entry = _r9f12_entry(data=cfg, entry_id=f"rm_{tag}")
+    _r9f12_dt.freeze(_RM_NOW)
+    try:
+        _r9f12_seed_prices(hass, _RM_NOW)
+        _r9f12_aio.run(_r9f12_integ.async_setup_entry(hass, entry))
+        coord = entry.runtime_data
+        _r9f12_aio.run(coord.async_refresh())
+    finally:
+        _r9f12_dt.freeze(None)
+    return coord.data, coord
+
+
+_RM_TWENTY = ["climate.dead"] + [f"climate.r{i}" for i in range(19)]
+_rm_none, _ = _rm_cycle(tag="none")
+_rm_empty, _ = _rm_cycle(rooms=[], tag="empty")
+_rm_twenty, _rm_twenty_coord = _rm_cycle(rooms=_RM_TWENTY, tag="twenty")
+_rm_indoor_dead, _ = _rm_cycle(indoor_entity="climate.dead", tag="dead_indoor")
+R.check(
+    "twenty rooms with one unavailable leave input_problems and stale_inputs equal to the no-list "
+    "run; null control, the same unavailable entity as the indoor thermometer raises a problem",
+    _rm_twenty["input_problems"] == _rm_none["input_problems"]
+    and _rm_twenty["stale_inputs"] == _rm_none["stale_inputs"]
+    and any(p.get("entity_id") == "climate.dead" for p in _rm_indoor_dead["input_problems"]),
+    f"twenty={_rm_twenty['input_problems']} none={_rm_none['input_problems']} "
+    f"dead={_rm_indoor_dead['input_problems']}",
+)
+_rm_pub = _rm_twenty.get("rooms") or {}
+R.check(
+    "the payload's rooms block carries the average, spread, valid count, the dropped room and each "
+    "readable thermostat's temperature, target, call for heat and HVAC mode",
+    _rm_pub.get("valid_count") == 19 and _rm_pub.get("configured_count") == 20
+    and round(_rm_pub.get("average"), 6) == round(sum(19.0 + 0.1 * i for i in range(19)) / 19, 6)
+    and round(_rm_pub.get("spread"), 6) == 1.8
+    and _rm_pub.get("dropped") == {"climate.dead": "unavailable"}
+    and _rm_pub.get("coldest_entity") == "climate.r0"
+    and _rm_pub.get("per_room", {}).get("climate.r1")
+    == {"temperature": 19.1, "target": 20.0, "calling": False, "hvac_mode": "heat"},
+    f"{_rm_pub}",
+)
+R.check(
+    "no list and an empty list publish no rooms key and the same payload keys",
+    "rooms" not in _rm_none and "rooms" not in _rm_empty and set(_rm_none) == set(_rm_empty),
+    f"{sorted(set(_rm_none) ^ set(_rm_empty))}",
+)
+
+
+def _rm_displace(cmd):
+    """The coordinator's ECL110 displace read after one more state update, the
+    action carrying ``cmd`` as its displace (None: no displace key at all)."""
+    _, coord = _rm_cycle(tag=f"displace_{cmd}")
+    coord._ecl110_current_displace = -1.25
+    action = {k: v for k, v in coord._current_action.items() if k != "displace_value"}
+    coord._current_action = action if cmd is None else {**action, "displace_value": cmd}
+    _r9f12_dt.freeze(_RM_NOW)
+    try:
+        _r9f12_aio.run(coord._update_current_state())
+    finally:
+        _r9f12_dt.freeze(None)
+    return coord._ecl110_current_displace, coord._current_state.ecl110_displace_command
+
+
+_rm_disp = {c: _rm_displace(c) for c in (2.0, "2", None)}
+R.check(
+    "an action carrying a displace hands it, as a number, to the ECL110 lag and the coordinator's "
+    "read of it; null control, an action with no displace leaves the read where it was",
+    _rm_disp[2.0] == (2.0, 2.0) and _rm_disp["2"] == (2.0, 2.0) and _rm_disp[None][0] == -1.25,
+    f"{_rm_disp}",
+)
+R.check(
+    "the room read's age limit is the indoor sensor's, the staleness scale applied through the "
+    "same clamp max_age_for applies",
+    inputs_mod.max_age_for("indoor_temp_entity", 2.0) == inputs_mod._scaled(360.0, 2.0) == 720.0
+    and inputs_mod._scaled(360.0, 1e9) == inputs_mod.max_age_for("indoor_temp_entity", 1e9),
+    f"{inputs_mod.max_age_for('indoor_temp_entity', 2.0)}",
+)
+_rm_scaled_ends = [inputs_mod._scaled(360.0, s) for s in (0.0, 0.5, 10.0, 1e9)]
+R.check(
+    "the staleness scale is clamped at both ends: a scale under 0.5 reads as 0.5 and one over "
+    "10 as 10; null control, the two ends themselves pass through unchanged",
+    (inputs_mod.STALENESS_SCALE_MIN, inputs_mod.STALENESS_SCALE_MAX) == (0.5, 10.0)
+    and _rm_scaled_ends == [180.0, 180.0, 3600.0, 3600.0],
+    f"{_rm_scaled_ends}",
+)
+_rm_edges = {v: inputs_mod.read_room(_rm_reader({"sensor.e": FakeState(
+    str(v), unit="°C", last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.e").problem
+    for v in (-30.0, 60.0, -30.1, 60.1)}
+R.check(
+    "a room's range is closed: -30 and 60 degC read, -30.1 and 60.1 are implausible",
+    _rm_edges == {-30.0: None, 60.0: None, -30.1: "implausible", 60.1: "implausible"},
+    f"{_rm_edges}",
+)
+
+R.check(
+    "the side table holds plain data only: a tuple of frozen readings",
+    all(isinstance(r, _rm.RoomReading) for r in _rm.readings_of(_rm_twenty_coord))
+    and len(_rm.readings_of(_rm_twenty_coord)) == 20,
+    f"{_rm.readings_of(_rm_twenty_coord)[:2]}",
+)
+
+
+R.section("#3616 R11-OUTSIDE-ROOMS-P2: a room short of its target lifts the solve's comfort floor")
+
+# Phase 2 (design/R11-OUTSIDE-ROOMS-P2): rooms.resolve and rooms.lifted add a lift to the
+# floor-margin array the solver already takes. The fixture is the design
+# note's: rooms A 18.0 under a 21.0 target, B and C at or above theirs, D
+# colder than A but switched off; the house reads 19.6 under a 20.0 target on
+# a 19.5 floor, so the day band is 0.5 K and the night band 1.0 K.
+from heatpump_optimizer.optimizer import OptimizationConfig as _rl_Config  # noqa: E402
+from heatpump_optimizer import const as _rl_const  # noqa: E402
+
+_RL_N = 48  # 12:00 to 24:00 at 15 min; the night floor holds from step 40 (22:00)
+_rl_cfg = _rl_Config(min_temp=19.5, max_temp=23.0, target_temp=20.0,
+                     comfort_temp_day=20.0, comfort_temp_night=20.0)
+_RL_OPEN = dict(enabled=True, economy=False, open_window=False, away=False,
+                manual_pin=False, two_zone=False)
+
+
+class _RlOwner:
+    """A stand-in coordinator: the side tables key on it weakly."""
+
+
+def _rl_room(entity, temp, target, mode="heat", problem=None):
+    return _rm.RoomReading(entity_id=entity, temperature_c=temp, target_c=target,
+                           hvac_mode=mode, problem=problem)
+
+
+_RL_A = _rl_room("climate.a", 18.0, 21.0)
+_RL_REST = (_rl_room("climate.b", 20.4, 20.0), _rl_room("climate.c", 20.4, 16.0),
+            _rl_room("climate.d", 17.0, 22.0, mode="off"))
+_RL_ROOMS = (_RL_A,) + _RL_REST
+
+
+def _rl_solve(readings=_RL_ROOMS, house=19.6, base=None, cfg=_rl_cfg, owner=None,
+              start=_RM_NOW, n=_RL_N, **signals):
+    """One scheduled solve's margins: (array or base, owner)."""
+    owner = owner or _RlOwner()
+    _rm.record(owner, readings)
+    held = _rm.hold(owner, _rm.resolve(
+        _rm.readings_of(owner), _rm.lift_of(owner), _rm.gate(**dict(_RL_OPEN, **signals)),
+        cfg, house, start))
+    return _rm.lifted(held, base, cfg, start, n), owner
+
+
+_rl_ramped, _rl_ramped_owner = _rl_solve()
+_rl_want_ramp = np.minimum(0.5, 0.1 + 0.25 * 0.25 * np.arange(40))
+R.check(
+    "room A three kelvin under its target lifts the floor: from the house's 0.1 K margin over "
+    "the floor at step 0, rising 0.25 K an hour, to the 0.5 K day band, and to the 1.0 K cap "
+    "under the night band from 22:00",
+    _rl_ramped is not None and np.allclose(_rl_ramped[:40], _rl_want_ramp)
+    and np.allclose(_rl_ramped[40:], 1.0)
+    and _rm.lift_of(_rl_ramped_owner) == _rm.HeldLift(1.0, "climate.a", None, 19.6 - 19.5),
+    f"{None if _rl_ramped is None else np.round(_rl_ramped, 4).tolist()} {_rm.lift_of(_rl_ramped_owner)}",
+)
+_rl_flat, _ = _rl_solve(house=20.0)
+_rl_above, _ = _rl_solve(house=20.3)
+R.check(
+    "with the house at or above the lifted floor the lift is flat at the band: 0.5 K at every "
+    "day step, the night band at a night step",
+    _rl_flat is not None and np.allclose(_rl_flat[:40], 0.5) and np.allclose(_rl_flat[40:], 1.0)
+    and _rl_above is not None and np.allclose(_rl_above[:40], 0.5),
+    f"{None if _rl_flat is None else sorted(set(np.round(_rl_flat, 4).tolist()))}",
+)
+_rl_base = np.full(_RL_N, 0.3)
+_rl_conf, _ = _rl_solve(house=20.0, base=_rl_base)
+_rl_conf_low, _ = _rl_solve(house=19.9, base=_rl_base)
+R.check(
+    "a 0.3 K confidence margin leaves the lift 0.2 K, so both margins end at the comfort target "
+    "and never past it; the ramp's anchor is the house's margin over the floor with that margin "
+    "on it (19.9 over 19.8: 0.1 K at step 0)",
+    _rl_conf is not None and np.allclose(_rl_conf[:40], 0.5) and np.allclose(_rl_conf[40:], 1.0)
+    and _rl_conf is not _rl_base and np.allclose(_rl_base, 0.3)
+    and _rl_conf_low is not None and np.allclose(_rl_conf_low[:3], [0.4, 0.4625, 0.5]),
+    f"{None if _rl_conf is None else sorted(set(np.round(_rl_conf, 4).tolist()))} "
+    f"{None if _rl_conf_low is None else np.round(_rl_conf_low[:3], 4).tolist()}",
+)
+_rl_squeezed, _ = _rl_solve(house=20.0, base=np.full(_RL_N, 0.7))
+R.check(
+    "a confidence margin wider than the day band takes the whole band: no lift at a day step "
+    "(never a negative one), the rest of the night band at a night step",
+    _rl_squeezed is not None and np.allclose(_rl_squeezed[:40], 0.7)
+    and np.allclose(_rl_squeezed[40:], 1.0),
+    f"{None if _rl_squeezed is None else sorted(set(np.round(_rl_squeezed, 4).tolist()))}",
+)
+
+# -- What does not lift: each returns the base array object itself -----------
+_rl_d_heat = (_rl_room("climate.d", 17.0, 22.0, mode="heat"),) + _RL_REST[:2]
+_rl_inert = {
+    "A at its target": dict(readings=(_rl_room("climate.a", 21.0, 21.0),) + _RL_REST),
+    "D alone short, switched off": dict(readings=_RL_REST),
+    "D switched to cool": dict(readings=_RL_REST[:2] + (_rl_room("climate.d", 17.0, 22.0, mode="cool"),)),
+    "D in heat_cool": dict(readings=_RL_REST[:2] + (_rl_room("climate.d", 17.0, 22.0, mode="heat_cool"),)),
+    "A stale": dict(readings=(_rl_room("climate.a", 18.0, 21.0, problem="stale"),) + _RL_REST),
+    "A a sensor, no target": dict(readings=(_rl_room("sensor.a", 18.0, None, mode=None),) + _RL_REST),
+    "empty list": dict(readings=()),
+    "flag off": dict(enabled=False),
+    "economy": dict(economy=True),
+    "open window": dict(open_window=True),
+    "away": dict(away=True),
+    "manual pin": dict(manual_pin=True),
+    "two-zone": dict(two_zone=True),
+    "holiday at the start": dict(cfg=replace(_rl_cfg, holiday_dates=frozenset({_RM_NOW.date()}))),
+    "house reading not finite": dict(house=float("nan")),
+}
+_rl_inert_got = {}
+for _rl_name, _rl_kw in _rl_inert.items():
+    _rl_got_none, _rl_o = _rl_solve(**_rl_kw)
+    _rl_got_base, _ = _rl_solve(base=_rl_base, **_rl_kw)
+    _rl_inert_got[_rl_name] = (_rl_got_none is None, _rl_got_base is _rl_base, _rm.lift_of(_rl_o).gate)
+_rl_d_heat_arr, _rl_d_heat_owner = _rl_solve(readings=_rl_d_heat)
+R.check(
+    "no lift, and the base array object itself (None stays None), for a room at its target, a "
+    "room switched off or cooling, a stale room, a sensor with no target, an empty list, the "
+    "flag off, Economy, an open window, away, a manual space pin, the two-zone model, a holiday "
+    "and an unknown house temperature; null control, room D in heat mode lifts and is named",
+    all(got[:2] == (True, True) for got in _rl_inert_got.values())
+    and {k: v[2] for k, v in _rl_inert_got.items()} == {
+        "A at its target": None, "D alone short, switched off": None, "D switched to cool": None,
+        "D in heat_cool": None, "A stale": None, "A a sensor, no target": None,
+        "empty list": "no_rooms", "flag off": "disabled", "economy": "economy",
+        "open window": "open_window", "away": "away", "manual pin": "manual_pin",
+        "two-zone": "two_zone", "holiday at the start": "holiday",
+        "house reading not finite": "house_unknown"}
+    and _rl_d_heat_arr is not None and _rm.lift_of(_rl_d_heat_owner).entity_id == "climate.d",
+    f"{_rl_inert_got} d_heat={_rm.lift_of(_rl_d_heat_owner)}",
+)
+_rl_gate_order = [_rm.gate(**dict(_RL_OPEN, **kw)) for kw in (
+    {}, dict(enabled=False, economy=True), dict(economy=True, away=True), dict(open_window=True, two_zone=True))]
+R.check(
+    "the gate names the first signal that fires and is None when none does",
+    _rl_gate_order == [None, "disabled", "economy", "open_window"],
+    f"{_rl_gate_order}",
+)
+_rl_no_target, _rl_no_target_owner = _rl_solve(readings=(_rl_room("sensor.a", 18.0, None, mode=None),))
+_rl_quorum, _rl_quorum_owner = _rl_solve(readings=(
+    _RL_A, _rl_room("climate.x", None, 21.0, problem="unavailable"),
+    _rl_room("climate.y", None, 21.0, problem="unavailable")))
+_rl_half, _ = _rl_solve(readings=(_RL_A, _rl_room("climate.x", None, 21.0, problem="unavailable")))
+R.check(
+    "a list under its quorum lifts nothing however short its one readable room, and a list of "
+    "sensors has no target to lift by; null control, one readable room of two is a quorum",
+    _rl_quorum is None and _rm.lift_of(_rl_quorum_owner).gate == "quorum"
+    and _rl_no_target is None and _rm.lift_of(_rl_no_target_owner).gate == "no_target"
+    and _rl_half is not None,
+    f"{_rm.lift_of(_rl_quorum_owner)} {_rm.lift_of(_rl_no_target_owner)}",
+)
+
+# -- The house's own shortfall is taken off, and the cap -----------------------
+_rl_e = lambda temp: (_rl_room("climate.e", temp, 20.0),)  # noqa: E731
+_rl_same, _rl_same_owner = _rl_solve(readings=_rl_e(19.5), house=19.5)
+_rl_less, _rl_less_owner = _rl_solve(readings=_rl_e(19.25), house=19.75)
+_rl_capped, _rl_capped_owner = _rl_solve(readings=_rl_e(15.0), house=20.0)
+R.check(
+    "a room no shorter of its target than the house is of its own lifts nothing; one 0.5 K "
+    "shorter lifts 0.5 K; one five kelvin shorter lifts the 1.0 K cap",
+    _rl_same is None and _rm.lift_of(_rl_same_owner).lift_c == 0.0
+    and _rm.lift_of(_rl_less_owner) == _rm.HeldLift(0.5, "climate.e", None, 0.25)
+    and _rm.lift_of(_rl_capped_owner).lift_c == _rm.ROOM_LIFT_CAP_C == 1.0,
+    f"{_rm.lift_of(_rl_same_owner)} {_rm.lift_of(_rl_less_owner)} {_rm.lift_of(_rl_capped_owner)}",
+)
+_rl_ahead, _rl_ahead_owner = _rl_solve(readings=_rl_e(19.8), house=19.0)
+R.check(
+    "a room less short of its target than the house is of its own holds a lift of zero, never a "
+    "negative one; null control, a room 0.5 K shorter than the house holds 0.5 K",
+    _rl_ahead is None and _rm.lift_of(_rl_ahead_owner).lift_c == 0.0
+    and _rm.lift_of(_rl_less_owner).lift_c == 0.5,
+    f"{_rm.lift_of(_rl_ahead_owner)}",
+)
+_rl_neg_base, _ = _rl_solve(house=20.0, base=np.full(_RL_N, -0.5))
+R.check(
+    "a negative confidence margin is read as zero, as the solver reads it: the lifted margins "
+    "equal those with no confidence margin at all, the night band's 1.0 K included",
+    _rl_neg_base is not None and _rl_flat is not None and np.allclose(_rl_neg_base, _rl_flat),
+    f"{None if _rl_neg_base is None else sorted(set(np.round(_rl_neg_base, 4).tolist()))}",
+)
+_rl_below, _rl_below_owner = _rl_solve(readings=_rl_e(18.0), house=19.0)
+R.check(
+    "a house under its floor starts the ramp at zero, never below: step 0 takes no lift and "
+    "step 1 one step of the rate",
+    _rl_below is not None and np.allclose(_rl_below[:3], [0.0, 0.0625, 0.125])
+    and _rm.lift_of(_rl_below_owner).anchor_c == 19.0 - 19.5,
+    f"{None if _rl_below is None else np.round(_rl_below[:3], 4).tolist()} {_rm.lift_of(_rl_below_owner)}",
+)
+
+_rl_uneven = np.concatenate(([0.3], np.zeros(_RL_N - 1)))
+_rl_uneven_got, _ = _rl_solve(readings=_rl_e(15.0), house=19.9, base=_rl_uneven)
+R.check(
+    "the ramp starts at the house's margin over step 0's own margin, not a later step's: 19.9 "
+    "over a floor a 0.3 K margin raised at step 0 alone starts 0.1 K up",
+    _rl_uneven_got is not None and np.allclose(_rl_uneven_got[:3], [0.3 + 0.1, 0.1625, 0.225]),
+    f"{None if _rl_uneven_got is None else np.round(_rl_uneven_got[:3], 4).tolist()}",
+)
+_rl_half_cfg = replace(_rl_cfg, day_end_hour=21.5, comfort_temp_night=19.25)
+_rl_half_got, _ = _rl_solve(house=20.0, cfg=_rl_half_cfg)
+R.check(
+    "the band is read at each step's hour and minute, target and floor both, as the solver's "
+    "bounds are: a day ending 21:30 gives the 0.5 K day band through 21:15 and the night's "
+    "19.25 target over its 19.0 floor, 0.25 K, from 21:30",
+    _rl_half_got is not None and np.allclose(_rl_half_got[:38], 0.5)
+    and np.allclose(_rl_half_got[38:], 0.25),
+    f"{None if _rl_half_got is None else np.round(_rl_half_got[36:40], 4).tolist()}",
+)
+_, _rl_first_owner = _rl_solve(readings=_rl_e(19.125), house=20.0)
+_, _rl_edge_owner = _rl_solve(readings=(_rl_room("climate.e", 0.0, 0.2),), house=20.0)
+R.check(
+    "a first solve holds what the rooms ask, 0.875 K, not a lift it never had; a room asking "
+    "the deadband exactly, 0.2 K, moves the lift from zero; and a lift record with no lift "
+    "starts its ramp nowhere",
+    _rm.lift_of(_rl_first_owner).lift_c == 0.875
+    and _rm.lift_of(_rl_edge_owner).lift_c == _rm.ROOM_LIFT_DEADBAND_C == 0.2
+    and _rm.HeldLift().anchor_c == 0.0 and _rm.HeldLift() == _rm.HeldLift(0.0, None, None, 0.0),
+    f"{_rm.lift_of(_rl_first_owner)} {_rm.lift_of(_rl_edge_owner)} {_rm.HeldLift()}",
+)
+
+# -- Hold: the lift moves by the deadband or not at all; a gate zeroes at once --
+_rl_h1, _rl_hold = _rl_solve(readings=_rl_e(19.5), house=20.0)
+_rl_h2, _ = _rl_solve(readings=_rl_e(19.375), house=20.0, owner=_rl_hold)
+_rl_held_2 = _rm.lift_of(_rl_hold).lift_c
+_rl_h3, _ = _rl_solve(readings=_rl_e(19.25), house=20.0, owner=_rl_hold)
+_rl_held_3 = _rm.lift_of(_rl_hold).lift_c
+_rl_h4, _ = _rl_solve(readings=_rl_e(19.25), house=20.0, owner=_rl_hold, away=True)
+_rl_held_4 = _rm.lift_of(_rl_hold)
+_rl_h5, _ = _rl_solve(readings=_rl_e(19.875), house=20.0, owner=_rl_hold)
+R.check(
+    "a held 0.5 K lift stays, array and all, while the rooms ask 0.125 K more, moves to 0.75 K "
+    "when they ask 0.25 K more, drops to zero at once under a gate, and from zero ignores a "
+    "0.125 K ask",
+    np.array_equal(_rl_h1, _rl_h2) and _rl_held_2 == 0.5 and _rl_held_3 == 0.75
+    and np.allclose(_rl_h3[40:], 0.75) and _rl_h4 is None
+    and _rl_held_4 == _rm.HeldLift(gate="away") and _rl_h5 is None
+    and _rm.lift_of(_rl_hold).lift_c == 0.0,
+    f"held {_rl_held_2} {_rl_held_3} {_rl_held_4} {_rm.lift_of(_rl_hold)}",
+)
+
+# -- Holiday: treated as away, per step ----------------------------------------
+_rl_hol_cfg = replace(_rl_cfg, holiday_dates=frozenset({(_RM_NOW + timedelta(days=1)).date()}))
+_rl_hol, _ = _rl_solve(house=20.0, cfg=_rl_hol_cfg, n=60)
+R.check(
+    "a holiday date later in the horizon takes no lift at its own steps and leaves today's; "
+    "null control, the same horizon with no holiday lifts every step",
+    _rl_hol is not None and np.allclose(_rl_hol[:40], 0.5) and np.allclose(_rl_hol[40:48], 1.0)
+    and np.allclose(_rl_hol[48:], 0.0) and bool(np.all(_rl_solve(house=20.0, n=60)[0] > 0.0)),
+    f"{None if _rl_hol is None else np.round(_rl_hol[36:], 3).tolist()}",
+)
+
+# -- The what-if: the baseline's held lift and anchor, its own configuration ----
+_rl_wi_base, _rl_wi = _rl_solve()
+_rl_wi_same = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
+_rm.record(_rl_wi, (_rl_room("climate.a", 21.0, 21.0),) + _RL_REST)
+_rl_wi_after = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_low = _rm.lifted(_rm.lift_of(_rl_wi), None, replace(_rl_cfg, comfort_temp_day=19.75), _RM_NOW, _RL_N)
+_rl_wi_fresh = _rm.lifted(_rm.lift_of(_RlOwner()), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_resolved, _ = _rl_solve(readings=(_rl_room("climate.a", 21.0, 21.0),) + _RL_REST, owner=_rl_wi)
+R.check(
+    "a what-if's margins equal the baseline's after the readings change, and its clip is its own "
+    "configuration's (a 19.75 target leaves a 0.25 K band over the same 0.1 K anchor); an owner "
+    "never solved hands back the base; null control, a scheduled solve on the new readings "
+    "lifts nothing",
+    np.array_equal(_rl_wi_base, _rl_wi_same) and np.array_equal(_rl_wi_base, _rl_wi_after)
+    and np.allclose(_rl_wi_low[:4], [0.1, 0.1625, 0.225, 0.25]) and np.allclose(_rl_wi_low[4:40], 0.25)
+    and _rl_wi_fresh is _rl_base and _rl_wi_resolved is None,
+    f"{np.round(_rl_wi_low[:5], 4).tolist()} resolved={_rl_wi_resolved}",
+)
+
+# -- Published: the spread sensor's lift attribute -----------------------------
+_rl_pub = _rm.published(_RL_ROOMS, _rm.lift_of(_rl_ramped_owner))["rooms"]["lift"]
+_rl_pub_gate = _rm.published(_RL_ROOMS, _rm.HeldLift(gate="economy"))["rooms"]["lift"]
+R.check(
+    "the rooms block names the lift's size to a hundredth, its room (none while nothing is "
+    "lifted) and the gate that zeroed it; None before a solve; and no rooms block at all with "
+    "no list",
+    _rl_pub == {"size": 1.0, "entity": "climate.a", "gate": None}
+    and _rl_pub_gate == {"size": 0.0, "entity": None, "gate": "economy"}
+    and _rm.published(_RL_ROOMS)["rooms"]["lift"] is None
+    and _rm.published(_RL_ROOMS, _rm.HeldLift(0.126, "climate.a"))["rooms"]["lift"]["size"] == 0.13
+    and _rm.published(_RL_ROOMS, _rm.lift_of(_rl_same_owner))["rooms"]["lift"]
+    == {"size": 0.0, "entity": None, "gate": None}
+    and _rm.lift_of(_rl_same_owner).entity_id == "climate.e"
+    and _rm.published((), _rm.HeldLift(1.0, "climate.a")) == {},
+    f"{_rl_pub} {_rl_pub_gate}",
+)
+
+# -- The coordinator: the two SolveLimits builds, and the gate signals it reads --
+# The T5 rig's solve: floor 19.0, day target 21.0, so a 2.0 K day band and the
+# 1.0 K cap is what binds.
+from heatpump_optimizer import manual_plan as _rl_mp  # noqa: E402
+from heatpump_optimizer import away as _rl_away  # noqa: E402
+
+_RL_LIST = ["climate.a", "climate.b"]
+_RL_COLD = (_rl_room("climate.a", 17.0, 21.0), _rl_room("climate.b", 20.4, 20.0))
+
+
+def _rl_coord(readings=_RL_COLD, arm=None, **config):
+    """A T5 solve with a room list: (coordinator, the margins each solve was given)."""
+    c = _t5_solve_spy(**dict({_RM_KEY: _RL_LIST, _rl_const.CONF_ROOM_LIFT_ENABLED: True}, **config))
+    _rm.record(c, readings)
+    if arm is not None:
+        arm(c)
+    c._rl_margins = []
+    inner = c._solve_record
+
+    def spy(*args, **kwargs):
+        record = inner(*args, **kwargs)
+        c._rl_margins.append(record.inputs.limits.min_temp_margins)
+        return record
+
+    c._solve_record = spy
+    return _t5_run(c)
+
+
+def _rl_plan(c):
+    return None if c._optimization_result is None else list(c._optimization_result.power_schedule)
+
+
+def _rl_arm_pin(c):
+    c._manual_override = _rl_mp.build_override(
+        dhw_slots=None, space_slots=[{"start": (_T5_NOW + timedelta(hours=2)).isoformat(),
+                                      "end": (_T5_NOW + timedelta(hours=3)).isoformat()}],
+        expires_at=_T5_NOW + timedelta(hours=10), now=_T5_NOW)
+
+
+_rl_c_on = _rl_coord()
+_rl_c_none = _t5_run(_t5_solve_spy())
+_rl_c_off = _rl_coord(**{_rl_const.CONF_ROOM_LIFT_ENABLED: False})
+_rl_c_default = _rl_coord(**{_rl_const.CONF_ROOM_LIFT_ENABLED: None})
+_rl_c_absent = _t5_solve_spy(**{_RM_KEY: _RL_LIST})
+_rm.record(_rl_c_absent, _RL_COLD)
+_t5_run(_rl_c_absent)
+_rl_house = _rl_c_on._current_state.room_temperature
+_rl_on_m = _rl_c_on._rl_margins[0]
+R.check(
+    "the scheduled solve is given the lift: held at the 1.0 K cap for room A, starting from the "
+    "house's own margin over the 19.0 floor and never above 1.0",
+    _rl_c_on._t5_escaped is None and len(_rl_c_on._rl_margins) == 1 and _rl_on_m is not None
+    and _rm.lift_of(_rl_c_on) == _rm.HeldLift(1.0, "climate.a", None, _rl_house - 19.0)
+    and float(_rl_on_m[0]) == min(1.0, max(_rl_house - 19.0, 0.0))
+    and float(np.max(_rl_on_m)) == 1.0,
+    f"escaped={_rl_c_on._t5_escaped!r} house={_rl_house} held={_rm.lift_of(_rl_c_on)} "
+    f"m={None if _rl_on_m is None else np.round(_rl_on_m[:6], 3).tolist()}",
+)
+R.check(
+    "with the flag off, or never stored, a room list changes nothing: the margins stay None and "
+    "the plan is the no-list plan step for step; null control, the lifted plan differs",
+    _rl_c_off._rl_margins == [None] and _rl_c_default._rl_margins == [None]
+    and _rm.lift_of(_rl_c_off).gate == "disabled"
+    and _rm.lift_of(_rl_c_absent) == _rm.HeldLift(gate="disabled")
+    and _rl_const.DEFAULT_ROOM_LIFT_ENABLED is False
+    and _rl_plan(_rl_c_none) is not None
+    and _rl_plan(_rl_c_off) == _rl_plan(_rl_c_none) == _rl_plan(_rl_c_default)
+    and _rl_plan(_rl_c_on) != _rl_plan(_rl_c_none),
+    f"off={_rl_c_off._rl_margins} default={_rl_c_default._rl_margins} "
+    f"kWh none={None if _rl_plan(_rl_c_none) is None else round(sum(_rl_plan(_rl_c_none)), 3)} "
+    f"on={None if _rl_plan(_rl_c_on) is None else round(sum(_rl_plan(_rl_c_on)), 3)}",
+)
+_rl_c_gated = {
+    "economy": _rl_coord(arm=lambda c: setattr(c, "_mode", "economy")),
+    "open_window": _rl_coord(arm=lambda c: setattr(c._vent_cusum, "tripped", True)),
+    "open_window, relax on": _rl_coord(
+        arm=lambda c: setattr(c._vent_cusum, "tripped", True), open_window_relax_enabled=True),
+    "away": _rl_coord(arm=lambda c: setattr(c, "_away_state", _rl_away.AwayState(override_active=True))),
+    "away, recovering": _rl_coord(arm=lambda c: setattr(c, "_away_state", _rl_away.AwayState(
+        override_active=True, override_return_iso=(_T5_NOW + timedelta(minutes=30)).isoformat()))),
+    "manual_pin": _rl_coord(arm=_rl_arm_pin),
+    "two_zone": _rl_coord(arm=lambda c: setattr(
+        c, "_thermal_params", replace(c._thermal_params, two_zone_enabled=True))),
+}
+_rl_c_gates = {k: (c._t5_escaped, [m is None for m in c._rl_margins], _rm.lift_of(c) and _rm.lift_of(c).gate)
+               for k, c in _rl_c_gated.items()}
+R.check(
+    "the coordinator's signals each gate the lift, margins None: Economy, a tripped window "
+    "detector with the relax option off and on, away, away recovering, a manual space pin, the "
+    "two-zone model",
+    _rl_c_gates == {
+        "economy": (None, [True], "economy"), "open_window": (None, [True], "open_window"),
+        "open_window, relax on": (None, [True], "open_window"), "away": (None, [True], "away"),
+        "away, recovering": (None, [True], "away"), "manual_pin": (None, [True], "manual_pin"),
+        "two_zone": (None, [True], "two_zone")},
+    f"{_rl_c_gates}",
+)
+_rl_c_away = {k: (_rl_c_gated[k]._away_state.active, _rl_c_gated[k]._away_state.recovery_active)
+              for k in ("away", "away, recovering", "economy")}
+R.check(
+    "those two away solves were away, the second one recovering, and the Economy one was not",
+    _rl_c_away == {"away": (True, False), "away, recovering": (True, True), "economy": (False, False)},
+    f"{_rl_c_away}",
+)
+_rl_c_pub = _rl_c_on._build_data_dict().get("rooms", {}).get("lift")
+R.check(
+    "the coordinator publishes the lift its solve was given in the payload's rooms block",
+    _rl_c_pub == {"size": 1.0, "entity": "climate.a", "gate": None},
+    f"{_rl_c_pub}",
+)
+
+
+def _rl_whatif(c, overrides):
+    """The margins one what-if solve of ``overrides`` is given, at the baseline's instant."""
+    dt_util.freeze(_T5_NOW)
+    try:
+        horizon = c._forecast_arrays(_T5_NOW)
+        config, params, state = c._solve_hubs(len(horizon.prices), banded=False)
+        return c._whatif_solve(overrides, config, params, state, horizon, _T5_NOW, False)[1].limits.min_temp_margins
+    finally:
+        dt_util.freeze(None)
+
+
+_rl_wi_c = _rl_whatif(_rl_c_on, {})
+_rm.record(_rl_c_on, (_rl_room("climate.a", 21.0, 21.0), _rl_room("climate.b", 20.4, 20.0)))
+_rl_wi_c_after = _rl_whatif(_rl_c_on, {})
+_rl_wi_c_target = _rl_whatif(_rl_c_on, {"comfort_temp_day": 19.5})
+R.check(
+    "the what-if's build takes the lift the baseline was solved with, the same after the rooms "
+    "recover, and clips it to its own configuration: a what-if at a 19.5 day target has a 0.5 K "
+    "band; null control, a coordinator with the flag off gives its what-if None",
+    _rl_wi_c is not None and np.array_equal(_rl_wi_c, _rl_on_m) and np.array_equal(_rl_wi_c_after, _rl_on_m)
+    and _rl_wi_c_target is not None and float(np.max(_rl_wi_c_target[:40])) == min(0.5, 1.0)
+    and _rl_whatif(_rl_c_off, {}) is None,
+    f"{None if _rl_wi_c is None else np.round(_rl_wi_c[:4], 3).tolist()} "
+    f"target={None if _rl_wi_c_target is None else sorted(set(np.round(_rl_wi_c_target, 3).tolist()))}",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))

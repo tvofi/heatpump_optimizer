@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/whatif.py:scratch_copies GUARD_OFF d061db3d",
+  "old": "        if not spec:",
+  "reason": "Equivalent (GUARD_OFF) in `scratch_copies`: with the guard off an empty `dhw_windows` spec goes to the parsers, and parse_windows('') is [] and parse_weekly_windows('') is None, the two values the guarded branch assigns; `spec` is already stripped. Measured by PYTHONPATH=tests/hastub:custom_components python3 -c 'from heatpump_optimizer.dhw_schedule import parse_windows, parse_weekly_windows; print(repr(parse_windows(\"\")), repr(parse_weekly_windows(\"\")))', which prints [] None. The guard stays for its comment: an empty schedule is a legitimate ask, not a parse error.",
+  "verdict": "equivalent"
+}

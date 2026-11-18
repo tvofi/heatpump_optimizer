@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:SetpointGrid.on_step CLAMP_DROP 5ca7e3c5",
+  "killed_by": "tests/block_duty.py",
+  "old": "            out = min(out, _on_step(temperature_from_c(hi_c, self.unit), self.step, \"down\"))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`out = (out)`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=13."
+}

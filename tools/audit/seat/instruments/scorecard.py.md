@@ -1,6 +1,6 @@
 # `scorecard.py`
 
-- `scorecard.py` — the convergence scorecard (R10-MACH-SCORECARD): ten
+- `scorecard.py` — the convergence scorecard (R10-MACH-SCORECARD):
   report-only lines, one per signal, the baseline from which thresholds can
   later be set. No line sets an exit code or holds a merge. It is read-only on
   every input and makes no GitHub call; an input it cannot read prints
@@ -21,16 +21,22 @@
   - `S` — size: `machinery_ratchet.py --measure` (non-production merges per
     window, churn per 1 000 product lines) and machinery lines over product lines.
   - `E` — roster groups whose source is `outside` and hotfix or bug groups
-    touching the product, and how many of both are still open.
+    touching the product, and how many of both are still open; beside them
+    both sets by owning dimension (`loop_ledger.owned_split`), unread while
+    any of them records no `owned_by`.
   - `C` — the longest run of consecutive cancelled main runs in the last 50.
   - `K` — `recycle` lines of the standing dispatch and triage seats in the
     day's sweep record.
 
+  - `R` — `round_metrics.py`'s reads over the open round (merges by class,
+    `lead_time` per class, `product_green` with the gate's check count,
+    `restore`, `runner_s`, `tokens`).
+
   Every line but `H` is held in `--self-test` to a null control (a case whose
-  right answer is the quiet one). Inputs sit under `<state>/scorecard/`
+  right answer is the quiet one). Inputs sit under `<state>/scorecard/`, written by `round_metrics.py produce`
   (`runs.json`, `jobs/jobs_<id>.json`, `verdicts.json`, `merges.tsv`,
   `roster.json`) beside the overlay's `train_log` and the optional
-  `sweep_record`. When: the beat's `scorecard` row runs `report --dir
+  `sweep_record`. When: the beat's `scorecard` row runs the producer, then `report --dir
   <state>/scorecard --train-log <train_log> --repo <checkout>` (plus
   `--sweep-record` when the overlay names one) once a day and writes the
   output to `S/beatd/scorecard.txt`; the digest hears only

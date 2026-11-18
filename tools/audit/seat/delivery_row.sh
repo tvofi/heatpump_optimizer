@@ -89,7 +89,7 @@ delivery_row_self_test() ( # a subshell: the throwaway git environment stays in 
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case ${1:-} in
-    --self-test) delivery_row_self_test; exit ;;
+    --self-test) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded delivery_row bash "$0" --self-test; }; delivery_row_self_test; exit ;;
     *) sed -n '2,6p' "$0" >&2; exit 2 ;;
   esac
 fi

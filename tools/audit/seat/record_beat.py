@@ -85,9 +85,9 @@ def load_roster(run=sh) -> "dict | None":
 
 
 def facts(pr: int, repo: str, run=sh) -> dict:
-    """{sha, branch, issues} of a MERGED pull request, the sha full and from git."""
+    """{sha, branch, issues, body} of a MERGED pull request, the sha full and from git."""
     code, o = run(["gh", "pr", "view", str(pr), "--repo", repo, "--json",
-                   "state,mergeCommit,headRefName,closingIssuesReferences"])
+                   "state,mergeCommit,headRefName,closingIssuesReferences,body"])
     try:
         d = json.loads(o) if code == 0 else None
     except ValueError:
@@ -106,7 +106,7 @@ def facts(pr: int, repo: str, run=sh) -> dict:
     if code != 0 or not SHA.match(full):
         raise Owed(f"#{pr}'s merge commit {oid[:12]} does not resolve to a full sha in git")
     issues = sorted(n["number"] for n in d.get("closingIssuesReferences") or ())
-    return {"sha": full, "branch": d.get("headRefName") or "", "issues": issues}
+    return {"sha": full, "branch": d.get("headRefName") or "", "issues": issues, "body": d.get("body") or ""}
 
 
 def render(pr: int, sha: str, group: str, issues: list) -> str:
@@ -199,7 +199,8 @@ def self_test() -> int:
             if argv[:3] == ["gh", "pr", "view"]:
                 return 0, json.dumps({"state": state, "mergeCommit": {"oid": oid},
                                       "headRefName": "fix/r9-fr-1",
-                                      "closingIssuesReferences": [{"number": 9}, {"number": 3}]})
+                                      "closingIssuesReferences": [{"number": 9}, {"number": 3}],
+                                      **({"body": "the merged body"} if "body" in argv[-1].split(",") else {})})
             if "rev-parse" in j:
                 return (0, full + "\n") if resolves else (1, "")
             if "gh_comment.py" in j:
@@ -212,6 +213,8 @@ def self_test() -> int:
         f = facts(7, DEFAULT_REPO, run)
         check("the merge sha is the full 40 characters, resolved by git", f["sha"] == full, f)
         check("issues closed by the merge are sorted", f["issues"] == [3, 9], f)
+        check("the merged body is asked of gh and returned (postmerge derives its marks from it)",
+              f.get("body") == "the merged body", f)
         lines = []
         text = record(7, DEFAULT_REPO, Path(td), f, "R9-FR-1", True, run, lines.append)
         check("the dry run prints the exact comment", lines[0] == "DRY-RUN comment: " + text.rstrip("\n")

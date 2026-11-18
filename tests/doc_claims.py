@@ -812,6 +812,208 @@ def check_heat_pump_action_states() -> None:
     )
 
 
+# The direction each prose name stands for, keyed by duty_switch.DIRECTIONS.
+_DUTY_DIRECTION_PROSE = {"dhw_space": "hot water to heating", "space_dhw": "heating to hot water"}
+# Pre-fix sentences (6295f868a4), the null controls of check_duty_switch_claims.
+_LOST_HEAT_BAD = {
+    "configuration.md": (
+        "Once a direction has stopped the compressor on at least half of a weighted 5 or more "
+        "switches, seen on at least two calendar days (a switch weighs half after 14 days), the "
+        "plan charges that switch a share of the **Cost of one compressor start**, expects the "
+        "median measured off time as heat not delivered in the step that follows, and tries to "
+        "place hot water where no such switch follows it."
+    ),
+    "how-it-works.md": (
+        "With **Pump duty control** at Control the optimizer learns, per direction, how often a "
+        "switch it wrote stopped the compressor and for how long; once that is established, the "
+        "plan charges the switch `min(a, b) / p_max` cycles at the cycling cost times that "
+        "probability, and counts the off time as heat not delivered."
+    ),
+}
+_ENDS_SOON_BAD = (
+    "a run the plan would end within 10 minutes is not started unless the tank needs heat now "
+    "(below its minimum, or a disinfection hold)"
+)
+
+
+def _sentences_with(text: str, phrase: str) -> list[str]:
+    """The sentences of unwrapped prose that contain ``phrase``."""
+    flat = re.sub(r"\s+", " ", text)
+    return [s for s in re.split(r"(?<=[.;])\s+(?=[A-Z*(]|for |a )", flat) if phrase in s]
+
+
+def _lost_heat_direction() -> str | None:
+    """The one direction ``duty_legs.lost_share`` charges off time for, from the code."""
+    from heatpump_optimizer import duty_legs, duty_switch
+
+    charged = [
+        name for i, name in enumerate(duty_switch.DIRECTIONS)
+        if duty_legs.lost_share(tuple(0.5 * (j == i) for j in range(2)),
+                                tuple(300.0 * (j == i) for j in range(2))) > 0
+    ]
+    return charged[0] if len(charged) == 1 else None
+
+
+def _lost_heat_names(text: str, direction: str) -> bool:
+    """Every lost-heat sentence names ``direction`` and not the other one."""
+    other = next(v for k, v in _DUTY_DIRECTION_PROSE.items() if k != direction)
+    hits = _sentences_with(text, "heat not delivered")
+    return bool(hits) and all(
+        _DUTY_DIRECTION_PROSE[direction] in s and other not in s for s in hits
+    )
+
+
+def _ends_soon_held(duty: str) -> bool:
+    """``supply_hold._ends_soon`` for a cold tank, a run ending in 5 minutes, on a ``duty`` step."""
+    from datetime import datetime, timezone
+    from heatpump_optimizer import supply_hold
+
+    saved = supply_hold.step_supply, supply_hold.step_duty, supply_hold.tank_reason
+    supply_hold.step_supply = lambda *_: False
+    supply_hold.step_duty = lambda *_: duty
+    supply_hold.tank_reason = lambda *_: "tank_cold"
+    try:
+        inp = type("Inp", (), {"plan": None})()
+        return supply_hold._ends_soon(inp, None, datetime(2026, 1, 1, 0, 10, tzinfo=timezone.utc))
+    finally:
+        supply_hold.step_supply, supply_hold.step_duty, supply_hold.tank_reason = saved
+
+
+def _ends_soon_names_duty(row: str) -> bool:
+    """The on/off row's not-started exception names the step heating the tank."""
+    hits = [s for s in _sentences_with(row, "is not started unless")]
+    return bool(hits) and all("step heats the tank" in s for s in hits)
+
+
+def check_duty_switch_claims() -> None:
+    R.section("Duty-switch and supply-hold sentences match the code that decides them")
+    direction = _lost_heat_direction()
+    R.check(
+        "duty_legs.lost_share charges off time for exactly one direction (anchor)",
+        direction in _DUTY_DIRECTION_PROSE,
+        repr(direction),
+    )
+    for page in ("configuration.md", "how-it-works.md"):
+        R.check(
+            f"docs/{page}: every 'heat not delivered' sentence names the direction "
+            f"lost_share charges ({_DUTY_DIRECTION_PROSE.get(direction)}) and not the other",
+            direction is not None and _lost_heat_names(DOCS[page], direction),
+            repr(_sentences_with(DOCS[page], "heat not delivered")),
+        )
+        R.check(
+            f"docs/{page}: the lost-heat check fires on the pre-fix sentence (null control)",
+            direction is not None and not _lost_heat_names(_LOST_HEAT_BAD[page], direction),
+            _LOST_HEAT_BAD[page],
+        )
+    space_held, dhw_held = _ends_soon_held("space"), _ends_soon_held("dhw")
+    R.check(
+        "supply_hold._ends_soon holds a cold-tank start on a space step and passes it on a "
+        "hot-water step (anchor: the exemption needs a step that heats the tank)",
+        space_held and not dhw_held,
+        f"space={space_held} dhw={dhw_held}",
+    )
+    row = next((line for line in DOCS["configuration.md"].splitlines()
+                if line.startswith("| Heat pump on/off switch |")), "")
+    R.check(
+        "docs/configuration.md on/off switch row: the not-started exception names the step "
+        "heating the tank",
+        _ends_soon_names_duty(row),
+        repr(_sentences_with(row, "is not started unless")),
+    )
+    R.check(
+        "the on/off exception check fires on the pre-fix sentence (null control)",
+        not _ends_soon_names_duty(_ENDS_SOON_BAD),
+        _ENDS_SOON_BAD,
+    )
+
+
+def _row(page: str, label: str) -> str:
+    """The table row of ``page`` whose first cell is ``label``, or ``""``."""
+    return next((line for line in DOCS[page].splitlines() if line.startswith(f"| {label} |")), "")
+
+
+def _late_delta_facts() -> dict[str, object]:
+    """What the code decides for each sentence the late user-docs pass corrected.
+
+    Read by driving the deciding symbol, never a comment: the disinfection
+    write on a 5 degC step, the wood tank's one-probe means, the flow-bias
+    bounds, the both-step leg order with only hot water to heating stopping
+    the compressor, and the fixed transfer fee with no fee mode.
+    """
+    from heatpump_optimizer import const, duty_legs, external_heat, flow_lift, grid_fee
+    from heatpump_optimizer.inputs import SetpointGrid
+    from heatpump_optimizer.thermal_model import ThermalParameters, dhw_step_target_c
+
+    cycle = ThermalParameters(dhw_legionella_temp=62.0, dhw_setpoint=50.0, dhw_enabled=True)
+    fee = grid_fee.GridFeeSchedule.from_config(
+        {const.CONF_GRID_FEE_MODE: grid_fee.MODE_NONE, const.CONF_GRID_FEE_FIXED: 0.3})
+    return {
+        "cycle_write": dhw_step_target_c(cycle, True, SetpointGrid("°C", 5.0, 30.0, 75.0)),
+        "top_alone_drop": 60.0 - (external_heat.wood_mean_temperature(60.0, None) or 0.0),
+        "bottom_alone": external_heat.wood_mean_temperature(None, 40.0),
+        "bias_below": flow_lift.FLOW_BIAS_CLAMP_K,
+        "supply_max": flow_lift.FLOW_SUPPLY_MAX_C,
+        "first_leg": duty_legs.leg_rule((1.0, 0.0), (60.0, 60.0))[0],
+        "default_first": duty_legs.leg_rule((0.0, 0.0), (0.0, 0.0))[0],
+        "fixed_fee_no_mode": fee.fixed,
+    }
+
+
+#: The pre-fix sentences, verbatim: each check below must refuse its own.
+_LATE_DELTA_BAD = {
+    "cycle": "on the entity's step rounded up and never above the entity's maximum.",
+    "wood": "| Wood tank bottom sensor | none | a sensor | Both are needed for the remaining-energy "
+            "estimate; one alone is read conservatively. |",
+    "bias": "**The learned offset is capped at 15 °C**, so on a plant whose supply runs well "
+            "above the modelled curve only part of the extra work is priced.",
+    "split": "hot water first, for the step's hot-water power over its total power, times 15 "
+             "minutes, then heating for the rest.",
+    "fee": "| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every "
+           "hour, on top of any rules. |",
+}
+
+
+def _late_delta_true(facts: dict[str, object]) -> dict[str, object]:
+    """Per corrected sentence, a predicate over a text: does it say what ``facts`` decide?"""
+    drop, below, top = facts["top_alone_drop"], facts["bias_below"], facts["supply_max"]
+    return {
+        "cycle": lambda t: f"a 62 °C cycle writes {facts['cycle_write']:g} °C" in t,
+        "wood": lambda t: f"{drop:g} °C colder" in t and (
+            facts["bottom_alone"] is None and "bottom alone gives no" in t),
+        "bias": lambda t: f"at most {below:g} K below" in t and f"at most to a {top:g} °C supply" in t,
+        "split": lambda t: (facts["first_leg"], facts["default_first"]) == ("space", "dhw") and (
+            "Hot water runs first, unless the switch from hot water to heating" in t
+            and "then heating runs first" in t),
+        "fee": lambda t: facts["fixed_fee_no_mode"] == 0.0 and "Ignored while the grid transfer fee is None" in t,
+    }
+
+
+def check_late_delta_claims() -> None:
+    R.section("Late user-docs delta: corrected sentences match the code that decides them")
+    facts = _late_delta_facts()
+    says = _late_delta_true(facts)
+    config = DOCS["configuration.md"]
+    split = re.search(r"- \*\*A step the plan gives both duties is split\*\*.*?\n- ", config, re.S)
+    texts = {
+        "cycle": next(iter(_sentences_with(config, "62 °C cycle")), ""),
+        "wood": _row("configuration.md", "Wood tank bottom sensor"),
+        "bias": _row("configuration.md", "Price the supply temperature lift (no mixing valve)"),
+        "split": split.group(0) if split else "",
+        "fee": _row("configuration.md", "Fixed transfer fee"),
+    }
+    for key, text in texts.items():
+        R.check(f"docs/configuration.md {key}: the sentence states what the code decides",
+                says[key](text), f"{facts} {text[:300]!r}")
+        R.check(f"the {key} check refuses the pre-fix sentence (null control)",
+                not says[key](_LATE_DELTA_BAD[key]), _LATE_DELTA_BAD[key])
+    setup = DOCS["setup.md"]
+    R.check("docs/setup.md wood tank bottom sensor: one-probe readings as the code decides",
+            says["wood"](setup), repr(_sentences_with(setup, "bottom alone")))
+    R.check("docs/setup.md and docs/configuration.md no longer say both wood probes are needed",
+            "Both are needed" not in setup and "Both are needed" not in config,
+            repr(_sentences_with(setup + config, "Both are needed")))
+
+
 def check_disabled_by_default_without_hot_water() -> None:
     R.section(
         "Disabled-by-default census covers a no-hot-water install too "
@@ -2602,6 +2804,8 @@ def check_product_page() -> None:
 # building nothing. The pages are then scanned for a third-party request.
 
 SITE_BUILD = ROOT / "tools" / "site" / "build_docs.mjs"
+# Old document path -> its new one; both addresses must resolve (build_docs.mjs's MOVED is the site half).
+MOVED_PAGES = {"docs/ecl110.md": "docs/heat-curve.md"}
 SITE_CHART = ROOT / "tools" / "site" / "day_chart.mjs"
 _BUILD_CACHE: dict[str, dict] = {}
 
@@ -2614,7 +2818,7 @@ def docs_build(root: pathlib.Path = ROOT) -> dict:
     key = str(root)
     if key in _BUILD_CACHE:
         return _BUILD_CACHE[key]
-    res: dict = {"rc": None, "fails": [], "stats": "", "pages": {}, "html": {}}
+    res: dict = {"rc": None, "fails": [], "stats": "", "pages": {}, "html": {}, "moved": {}}
     if not SITE_BUILD.is_file():
         res["fails"] = [f"{str(SITE_BUILD).removeprefix(str(ROOT) + os.sep)} does not exist"]
     else:
@@ -2637,6 +2841,8 @@ def docs_build(root: pathlib.Path = ROOT) -> dict:
                 if man.is_file():
                     res["pages"] = {b["src"]: b["out"] for b in json.loads(man.read_text())["built"]}
                     res["html"] = {b["out"]: (out / b["out"]).read_text() for b in json.loads(man.read_text())["built"]}
+                    res["moved"] = {m["src"]: (m["to"], (out / m["out"]).read_text())
+                                    for m in json.loads(man.read_text()).get("moved", [])}
     _BUILD_CACHE[key] = res
     return res
 
@@ -2671,6 +2877,17 @@ def check_docs_subpages() -> None:
     rows = {os.path.normpath(r) for r in re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M)}
     missing = sorted((rows | {"README.md"}) - set(b["pages"]))
     R.check("every README Documentation row is a built page", not missing, ", ".join(missing))
+    # A renamed page keeps its old address (R11-OWNER-GENERIC-CONTROL-TEXT): on GitHub the old file stays as a
+    # pointer to the new one, and on the site the build writes the old page name as a redirect to the new page.
+    for old, new in MOVED_PAGES.items():
+        to, page = b["moved"].get(old, ("", ""))
+        stub = (ROOT / old).read_text() if (ROOT / old).is_file() else ""
+        # The meta refresh drops the fragment; only the script line keeps it, so a deep link still lands.
+        keeps = f"location.replace({json.dumps(to)} + location.hash)" in page
+        R.check(f"{old} still resolves: a pointer to {new} in the tree, a redirect to its page on the site",
+                to == b["pages"].get(new) and f'url={to}"' in page and keeps and f"]({os.path.basename(new)})" in stub,
+                f"site redirect to {to or 'nothing'}, fragment kept: {keeps}; "
+                f"the in-tree file links {new}: {f']({os.path.basename(new)})' in stub}")
     bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
     R.check("no built page requests anything from a third party", bool(b["html"]) and not bad,
             "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else "") or "no page built")
@@ -2737,6 +2954,41 @@ def check_site_request_controls() -> None:
             not [k for k, _ in subpage_findings(sub.replace("</head>", "".join(own) + "</head>", 1))])
 
 
+_THEME_STUB = """
+const saved = process.argv[1] === "none" ? null : process.argv[1];
+const src = {media: "(prefers-color-scheme: dark)", dataset: {}};
+const btn = {setAttribute() {}, addEventListener() {}};
+globalThis.document = {documentElement: {dataset: {}}, getElementById: () => btn,
+  querySelector: () => null, querySelectorAll: (q) => (q.includes("source") ? [src] : [])};
+globalThis.localStorage = {getItem: () => saved, setItem() {}};
+globalThis.matchMedia = () => ({matches: false});
+"""
+
+
+def theme_picture_media(html: str, saved: str | None) -> str | None:
+    """The `media` a built page's theme script leaves on a dark `<picture>` source, with `saved` in localStorage
+    (`hpo-theme`) and a light OS: the script run in node over a stub DOM. None when the page has no theme script."""
+    m = re.search(r"<script>(\(\(\)=>\{const r=document\.documentElement.*?)</script>", html, re.S)
+    if not m:
+        return None
+    js = _THEME_STUB + m.group(1) + "\nprocess.stdout.write(src.media);"
+    r = subprocess.run(["node", "-e", js, saved or "none"], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else f"node rc {r.returncode}: {r.stderr.strip()[:120]}"
+
+
+def check_theme_pictures(built: dict) -> None:
+    """A diagram's <picture> picks its dark render by <source media="(prefers-color-scheme: dark)">, the OS
+    preference; the site's own theme toggle must pick the same render, or a light picture sits on a dark page
+    (R10-USER-DOCS-VERIFY, carry from #3014). Null control: with no saved theme the OS query stands."""
+    html = next(iter(built.get("html", {}).values()), "")
+    got = {s: theme_picture_media(html, s) for s in ("light", "dark", None)}
+    R.check("the docs pages' theme toggle turns a dark <picture> source off on a light site theme",
+            got["light"] == "not all", repr(got))
+    R.check("... and on for a dark site theme on a light OS", got["dark"] == "all", repr(got))
+    R.check("null control: with no saved theme the source keeps its prefers-color-scheme query",
+            got[None] == "(prefers-color-scheme: dark)", repr(got))
+
+
 def check_docs_build_controls() -> None:
     """Null controls for docs_build itself: a planted tree turns the arm's core red, and a missing build or tree is red."""
     R.section("docs build arm fires on a planted tree (R9-WEB-3 null controls)")
@@ -2755,6 +3007,7 @@ def check_docs_build_controls() -> None:
         return d
 
     base = docs_build(c := corpus())
+    check_theme_pictures(base)
     R.check("a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)",
             base["rc"] == 0 and not base["fails"] and set(base["pages"]) == {"README.md", "docs/a.md"},
             f"rc {base['rc']}, {base['fails']}, {sorted(base['pages'])}")
@@ -3034,7 +3287,7 @@ def check_image_dimensions() -> None:
 WIRING_DOCS = ("docs/architecture.md", "README.md", "dev/README.md")
 # The user pages R10-USER-DOCS-FINAL drafts and R10-USER-DOCS-VERIFY re-checks. README.md is in both sets.
 USER_PAGES = ("README.md", "docs/setup.md", "docs/configuration.md", "docs/how-it-works.md", "docs/automations.md",
-              "docs/dashboard-card.md", "docs/ecl110.md")
+              "docs/dashboard-card.md", "docs/heat-curve.md")
 _COMMENT = re.compile(r"<!--.*?-->", re.S)
 # (e) reads every reader doc that draws a mermaid block, plus the onboarding.
 MERMAID_STYLE_DOCS = ("README.md", "docs/architecture.md", "docs/how-it-works.md", "docs/configuration.md",
@@ -4230,7 +4483,9 @@ def surface_sources(services: dict | None = None) -> list[dict]:
         add("option_page", page.step, titles.get(page.step, page.label))
     opt_steps = _EN_STRINGS["options"]["step"]
     for f in config_flow._OPTION_FIELDS:
-        d = f.default
+        # A `_Suggested` default renders its stored value, else its literal fallback: the fallback is the default a
+        # fresh entry shows, so its Default cell is compared like any literal's (carry from r10-min-power-floor).
+        d = f.default.fallback if isinstance(f.default, config_flow._Suggested) else f.default
         value = d if isinstance(d, (bool, int, float, str)) and not isinstance(d, config_flow._Rule) else _COMPUTED
         add("option", f.key or f"{f.step}[{f.group}]", fields(opt_steps.get(f.step, {})).get(f.key, ""), value,
             titles.get(f.step, f.step))
@@ -4437,6 +4692,16 @@ def check_surface_coverage() -> None:
     classes = collections.Counter(r["class"] for r in rows)
     R.check("every surface class enumerates from the tree (anchor)", set(classes) == set(_HOMES),
             ", ".join(f"{c}={classes.get(c, 0)}" for c in _HOMES))
+    from heatpump_optimizer import config_flow
+
+    # A `_Suggested` default's fallback is the default a fresh entry shows; read as <computed>, its Default cell
+    # would be compared against nothing (fix review of r10-user-docs-verify, block 2).
+    suggested = {f.key: f.default.fallback for f in config_flow._OPTION_FIELDS
+                 if isinstance(f.default, config_flow._Suggested)}
+    by_id = {r["id"]: r["value"] for r in rows if r["class"] == "option"}
+    R.check("every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)",
+            bool(suggested) and all(by_id.get(k) == v and v != _COMPUTED for k, v in suggested.items()),
+            repr({k: (v, by_id.get(k)) for k, v in suggested.items()}))
     bad = surface_findings(rows)
     R.check("every surface has its home, or a reasoned exemption that still names one",
             not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
@@ -4616,6 +4881,164 @@ def check_power_feedback_claims() -> None:
             all(fact in (pa._clamp_cut.__doc__ or "") for fact in (comment_id, "10104", "10103")))
 
 
+# ---------------------------------------------------------------------------
+# R10-DOCS-STRINGS-RESIDUE carries 5 to 13: reader sentences and option texts
+# that described behaviour the code does not have. Each arm takes its fact
+# from the producing code, refuses the old wording in the reader corpus and in
+# all four string files, and requires the corrected sentence to state the fact.
+# ---------------------------------------------------------------------------
+_STRING_FILES = {
+    name: json.loads((PKG / rel).read_text())
+    for name, rel in (("strings.json", "strings.json"), ("en.json", "translations/en.json"),
+                      ("de.json", "translations/de.json"), ("sv.json", "translations/sv.json"))
+}
+
+#: (carry, the old wording in any language) -- the sentences these carries corrected.
+_RESIDUE_REFUSED = (
+    ("Carry 5", r"lowers the (?:heating )?target by|Heizziel um|värmemålet med"),
+    ("Carry 6", r"headroom sensor dormant|Reserve inaktiv|utrymmessensorn vilande"),
+    ("Carry 7", r"correct itself against|Prognose sich anhand|rätta sig efter"),
+    ("Carry 8", r"in front of every (?:entity|sensor)|vorangestellt|Visas framför"),
+    ("Carry 9", r"compares spot cost only"),
+    ("Carry 10", r"measured delivery"),
+    ("Carry 11", r"first settled month"),
+)
+
+
+def _string_leaves(tree: object):
+    if isinstance(tree, dict):
+        for value in tree.values():
+            yield from _string_leaves(value)
+    elif isinstance(tree, str):
+        yield tree
+
+
+def residue_hits(corpus: dict[str, str], string_files: dict[str, dict]) -> dict[str, list[str]]:
+    """Every refused wording still present, by carry: the document or string file it is in."""
+    texts = {**{k: " ".join(v.split()) for k, v in corpus.items()},
+             **{k: "\n".join(_string_leaves(v)) for k, v in string_files.items()}}
+    return {carry: hits for carry, pattern in _RESIDUE_REFUSED
+            if (hits := [name for name, text in texts.items() if re.search(pattern, text)])}
+
+
+def menu_title_mismatches(strings: dict) -> tuple[int, list[str]]:
+    """Every options-menu entry whose target step has a title: (pairs compared, the pairs whose names differ).
+
+    Design choice: the options flow only. Its menu entries name the page they open; the config flow's are
+    actions ("Continue setup", "Describe my building (recommended)") and legitimately differ from the title."""
+    pairs, bad = 0, []
+    for flow in ("options",):
+        steps = strings.get(flow, {}).get("step", {})
+        for body in steps.values():
+            for key, label in (body.get("menu_options") or {}).items():
+                title = steps.get(key, {}).get("title")
+                if title is None:
+                    continue
+                pairs += 1
+                if title != label:
+                    bad.append(f"{flow}.step.{key}: menu {label!r}, title {title!r}")
+    return pairs, bad
+
+
+def check_docs_strings_residue() -> None:
+    R.section("reader text against the code that produces it (R10-DOCS-STRINGS-RESIDUE carries 5 to 13)")
+    import inspect
+    import types
+    from heatpump_optimizer import away, const, coordinator, entry_config, ledger, topology
+
+    flat = {k: " ".join(v.split()) for k, v in DOCS.items()}
+    cfg, en = flat.get("configuration.md", ""), _STRING_FILES["en.json"]
+    opts = en["options"]["step"]
+    hits = residue_hits(CORPUS, _STRING_FILES)
+    R.check("no reader doc or string file keeps a corrected sentence's old wording", not hits, repr(hits))
+
+    # Carry 5: the open-window relax widens the floor and leaves the target.
+    relax, floor = const.OPEN_WINDOW_RELAX_C, const.ECONOMY_ABSOLUTE_FLOOR
+    fields = dict.fromkeys(away._OPT_FIELDS, None) | {"target_temp": 21.0, "min_temp": 20.0}
+    thermal = types.SimpleNamespace(**dict.fromkeys(away._DHW_FIELDS, 45.0))
+    banded, _ = away.solve_bands(types.SimpleNamespace(**fields), thermal, None, (relax,))
+    R.check("solve_bands lowers min_temp by OPEN_WINDOW_RELAX_C and leaves target_temp",
+            banded["min_temp"] == 20.0 - relax and banded["target_temp"] == 21.0, repr(banded))
+    low, _ = away.solve_bands(types.SimpleNamespace(**(fields | {"min_temp": floor})), thermal, None, (relax,))
+    R.check("solve_bands never takes min_temp below ECONOMY_ABSOLUTE_FLOOR", low["min_temp"] == floor, repr(low))
+    phrase = f"by {relax:g} °C, never below {floor:g} °C"
+    R.check(f"configuration.md's open-window row says the coldest accepted temperature drops {phrase}",
+            f"lowers the coldest temperature the plan accepts {phrase}" in cfg)
+    R.check(f"the open-window option text says {phrase}",
+            phrase in opts["learning_features"]["sections"]["weather"]["data_description"]["open_window_relax_enabled"])
+
+    # Carry 6: fuse 0 is no fuse, so the headroom follows the capacity-tariff peak alone.
+    def fuse(amps: int) -> float | None:
+        cfg_ = types.SimpleNamespace(main_fuse_amperes=amps, main_fuse_phases=3)
+        cfg_.fuse_kw_at = lambda a: entry_config.EntryConfig.fuse_kw_at(cfg_, a)
+        return entry_config.EntryConfig.fuse_kw(cfg_)
+
+    R.check("EntryConfig.fuse_kw answers None at main fuse 0, and a capacity at 16 A (control)",
+            fuse(0) is None and fuse(16) is not None, repr((fuse(0), fuse(16))))
+    R.check("configuration.md's main-fuse row says the headroom sensor follows the capacity-tariff peak",
+            "the headroom sensor then follows the capacity-tariff peak alone" in cfg)
+    R.check("the main-fuse option text says the headroom sensor follows the capacity-tariff peak",
+            "headroom sensor following the capacity-tariff peak alone"
+            in opts["grid_connection"]["data_description"]["main_fuse_amperes"])
+
+    # Carry 7: the measured production replaces step 0 only.
+    pv = re.search(r"production\[0\] = min\(self\._pv_production, config\.peak_kw\)",
+                   inspect.getsource(coordinator))
+    R.check("the coordinator replaces production[0] alone, capped at peak_kw (anchor)", pv is not None)
+    for where, text in (("configuration.md", cfg),
+                        ("the PV sensor option text", opts["solar_pv"]["data_description"]["pv_production_entity"])):
+        R.check(f"{where} says only the current step is replaced, capped at the installed capacity",
+                "current step" in text and "capped at the installed capacity" in text)
+
+    # Carry 8: every entity is named from the device, whose name is a literal.
+    device = re.search(r'DeviceInfo\(\s*identifiers=.*?name="([^"]+)"', inspect.getsource(coordinator), re.S)
+    R.check("the coordinator's DeviceInfo names the device by a literal (anchor)", device is not None)
+    name = device.group(1) if device else "<none>"
+    for where, text in (("setup.md", flat.get("setup.md", "")), ("configuration.md", cfg),
+                        ("the name option text", en["config"]["step"]["user"]["data_description"]["name"])):
+        R.check(f"{where} says entities use the fixed device name {name!r}",
+                f"fixed device name, {name}" in text)
+
+    # Carry 9: both sides of the saving are priced at spot plus the per-kWh fee.
+    R.check("observe_spot_and_settle_savings prices the settlement at spot + fee_per_kwh (anchor)",
+            "spot=spot + fee_per_kwh" in inspect.getsource(ledger.MonthlyLedger.observe_spot_and_settle_savings))
+    card = flat.get("dashboard-card.md", "")
+    R.check("dashboard-card.md says both sides are priced at spot plus the per-kWh grid fee",
+            "both priced at spot plus the per-kWh grid fee" in card)
+
+    # Carry 10: the replay's power is the measured mean, else a fraction of the maximum.
+    half = {0.5: "half"}.get(topology._ADVISOR_DUTY_FRACTION)
+    R.check("_ADVISOR_DUTY_FRACTION is a fraction the page can name", half is not None,
+            repr(topology._ADVISOR_DUTY_FRACTION))
+    R.check("dashboard-card.md names the measured mean power, else the configured maximum's fraction",
+            f"mean electrical power your heat pump has measured where there is history, {half} its configured maximum"
+            in card)
+
+    # Carry 11: the Health picture's alt text names the booked-saving wait.
+    R.check("dashboard-card.md's Health picture waits for the first month with a booked saving",
+            "savings waiting for the first month with a booked saving" in card)
+
+    # Carry 13: one options page, one name per language.
+    for fname, strings in _STRING_FILES.items():
+        pairs, bad = menu_title_mismatches(strings)
+        R.check(f"{fname}: every options-menu entry names its page by the page's title ({pairs} pairs)",
+                pairs > 0 and not bad, "; ".join(bad))
+
+    # Null controls: each old wording, put back, fires; a renamed page title fires.
+    for carry, old in (
+        ("Carry 5", "this additionally lowers the target by 1 °C"), ("Carry 6", "the headroom sensor dormant"),
+        ("Carry 7", "Lets the forecast correct itself against what the roof"),
+        ("Carry 8", "Shown in front of every entity"), ("Carry 9", "the savings figure compares spot cost only"),
+        ("Carry 10", "your install's measured delivery"), ("Carry 11", "waiting for the first settled month"),
+    ):
+        R.check(f"{carry}: the old wording, put back, is refused (null control)",
+                carry in residue_hits({"setup.md": old}, {}))
+    renamed = json.loads(json.dumps(_STRING_FILES["de.json"]))
+    renamed["options"]["step"]["grid"]["title"] = "Netz-Spitzentarif"
+    R.check("a de grid page titled apart from its menu entry is refused (null control)",
+            bool(menu_title_mismatches(renamed)[1]))
+
+
 def check_stateless() -> None:
     R.section("the user pages describe the integration as it is, with no change history (R10-USER-DOCS-FINAL)")
     pages = _user_pages()
@@ -4637,7 +5060,9 @@ def check_stateless() -> None:
                   "The term silently evaluated to zero for many installs.",
                   "Before this was shared, the simulation charged the buffer.",
                   "Some labels read SEK, which is the historical default.",
-                  "The fit degrades to the historical two-column form."):
+                  "The fit degrades to the historical two-column form.",
+                  # R10-UX-HEALTH part 3's phrase, refused in strings.json by tests/entities.py; here on the docs.
+                  "| Heat pump operating mode | none | Read only, exactly as before. |"):
         got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
         R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
     R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "
@@ -4663,6 +5088,210 @@ def check_stateless() -> None:
 
 
 
+# R10-SAV-VALUATION-RESIDUE Carry 10: on a combi tank the three hot-water
+# figures publish ``dhw_split`` (entity.dhw_split_attributes). The README rows
+# naming them and configuration.md's combi option must name that attribute and
+# say what the code's own sentence says, so the docs cannot drift from it; the
+# null is a space figure's row, which must not carry the note.
+def check_combi_dhw_split() -> None:
+    from heatpump_optimizer import entity
+
+    claim = "what the heat pump spends in hot-water mode"
+    rows = {
+        name: next((ln for ln in README.splitlines() if ln.startswith(f"| {name} |")), "")
+        for name in ("DHW Heating Cost (next 24 h)", "DHW Energy (lifetime)",
+                     "DHW Cost (lifetime)", "Lifetime Space Heating Energy")
+    }
+    R.check(
+        "the code's combi split sentence carries the claim the docs repeat (anchor)",
+        claim in entity.COMBI_DHW_SPLIT
+        and "space heat drawn from the" in entity.COMBI_DHW_SPLIT,
+        entity.COMBI_DHW_SPLIT,
+    )
+    missing = [n for n, ln in rows.items()
+               if n != "Lifetime Space Heating Energy"
+               and not ("`dhw_split`" in ln and claim in ln and "space heat drawn from the" in ln)]
+    R.check(
+        "README's three hot-water rows say which split they show on a combi tank (Carry 10)",
+        not missing and all(rows.values()),
+        f"rows without the note: {missing}",
+    )
+    R.check(
+        "and a space figure's row does not (Carry 10 null)",
+        "`dhw_split`" not in rows["Lifetime Space Heating Energy"],
+        rows["Lifetime Space Heating Energy"],
+    )
+    combi = next((ln for ln in DOCS["configuration.md"].splitlines()
+                  if ln.startswith("| Hot water is made from the buffer tank (combi tank) |")), "")
+    R.check(
+        "configuration.md's combi option names the three figures and their dhw_split (Carry 10)",
+        all(n in combi for n in ("DHW Heating Cost (next 24 h)", "DHW Energy (lifetime)",
+                                 "DHW Cost (lifetime)"))
+        and "`dhw_split`" in combi and claim in combi,
+        combi[-400:],
+    )
+
+
+# R10-CONFIG-FLOW-TEXT-VERIFY: the flow help text that quotes a number the
+# code owns, and the flow help text on a slot the pump arbiter writes. Each pin
+# reads the shipped English (strings.json, which en.json copies leaf for leaf)
+# and the production symbol, so a constant moved without its sentence, or a
+# sentence promising "never writes" on a written slot, goes red here instead of
+# reaching a user. The record of every flow string's verdict, and which claims
+# stay prose-only, is dev/audit/rounds/round10/D6/flow-claims.md.
+_FLOW_DD = "options.step.entities_pump.data_description.pump_duty_mode"
+
+
+def flow_number_pins() -> list[tuple[str, str, float]]:
+    """``(dotted key, regex with one number group, the production value)``."""
+    import math
+
+    from heatpump_optimizer import const, curve_learning, duty_legs, flow_lift, thermal_model
+    from heatpump_optimizer import pump_arbiter as pa
+
+    pins = [
+        (_FLOW_DD, r"capped at (\d+) minutes", pa.LEASE_MINUTES),
+        (_FLOW_DD, r"\((\d+) below -?\d+ °C outdoors\)", pa.COLD_LEASE_MINUTES),
+        (_FLOW_DD, r"\(\d+ below (-?\d+) °C outdoors\)", pa.COLD_RAIL_C),
+        (_FLOW_DD, r"sent again every (\d+) minutes", pa.RETRY_MINUTES),
+        (_FLOW_DD, r"a share under (\d+) minutes", duty_legs.SPLIT_MIN_MINUTES),
+        (_FLOW_DD, r"the heating flow \((\d+) °C", pa.FLOW_HEAT_C),
+        (_FLOW_DD, r"\((\d+) °C when none is configured\)", pa.FLOW_HOLD_C),
+        (_FLOW_DD, r"(\d+) °C on steps that do not", pa.FLOW_GATE_C),
+        (_FLOW_DD, r"the hot water one to (\d+) °C", pa.DHW_GATE_C),
+        (_FLOW_DD, r"toward (\d+) °C \(or the Minimum lift", thermal_model.FLOW_MIN_LIFT_K),
+        # The realised worst case, not MAX_DOWN_PER_WEEK: STEP_K every
+        # DAYS_PER_STEP days lands three steps in one 7-day window (D6-s2-03).
+        ("options.step.learning_features.sections.model.data_description.curve_learning_enabled",
+         r"at most (six tenths) of a degree per week",
+         curve_learning.STEP_K * math.ceil(7 / curve_learning.DAYS_PER_STEP)),
+        ("options.step.tuning.sections.risk.data_description.confidence_margins_enabled",
+         r"capped at (\d+(?:\.\d+)?) °C", const.CONFIDENCE_MARGIN_CAP_C),
+        ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+         r"at most (\d+) K below", flow_lift.FLOW_BIAS_CLAMP_K),
+        ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+         r"at most to a (\d+) °C supply", flow_lift.FLOW_SUPPLY_MAX_C),
+        ("options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled",
+         r"held that temperature for (\d+) minutes", const.DHW_LEGIONELLA_HOLD_MINUTES),
+        ("config.step.temperature.data_description.min_temperature",
+         r"lowers it by a further (\d+(?:\.\d+)?) K", const.ECONOMY_MIN_TEMP_WIDENING),
+        ("config.step.temperature.data_description.min_temperature",
+         r"a detected open window by (\d+) K", const.OPEN_WINDOW_RELAX_C),
+        ("config.step.temperature.data_description.min_temperature",
+         r"never below (\d+) °C", const.ECONOMY_ABSOLUTE_FLOOR),
+        ("options.step.learning_features.sections.weather.data_description.open_window_relax_enabled",
+         r"accepts by (\d+) °C, never below", const.OPEN_WINDOW_RELAX_C),
+    ]
+    return pins
+
+
+def flow_number_findings(texts: dict, pins: list) -> list[str]:
+    """Each pin whose sentence is absent, or quotes a number its symbol does not hold."""
+    words = {"six tenths": 0.6}
+    bad = []
+    for key, pattern, value in pins:
+        node = texts
+        for part in key.split("."):
+            node = node.get(part, {}) if isinstance(node, dict) else {}
+        match = re.search(pattern, node) if isinstance(node, str) else None
+        if match is None:
+            bad.append(f"{key}: no sentence matches {pattern!r}")
+            continue
+        quoted = words.get(match.group(1)) or float(match.group(1))
+        if abs(quoted - float(value)) > 1e-9:
+            bad.append(f"{key}: quotes {match.group(1)}, the code holds {value}")
+    return bad
+
+
+#: Words that promise a slot is left alone. A sentence carrying one is true of
+#: an arbiter slot only where it names the mode that writes it.
+_NEVER_WRITES = re.compile(r"never (?:writes|recommends)|used only to notice|\bread only\b", re.I)
+
+
+def arbiter_slot_keys() -> dict[str, str]:
+    """``{slot: config key}`` for every slot ``pump_arbiter`` writes, derived by
+    feeding each ``CONF_*_ENTITY`` key a value naming itself and reading back
+    which one each slot took -- no hand list to fall behind a new slot."""
+    from heatpump_optimizer import const
+    from heatpump_optimizer import pump_arbiter as pa
+
+    keys = {v for k, v in vars(const).items() if k.startswith("CONF_") and k.endswith("_ENTITY")}
+    probe = {key: f"switch.{key}" for key in keys}
+    return {
+        slot: entity.split(".", 1)[1]
+        for slot, entity in pa._entities(probe).items()
+        if entity
+    }
+
+
+#: The one sentence another group owns: R10-HOTFIX-FLOW-SETPOINT-STUCK corrects
+#: it and its translations (the owner's brief for this group: leave it to that
+#: fix). Keyed on the exact false sentence, so the pass expires the moment that
+#: text changes and the key is then judged like every other; nothing to delete
+#: for either merge order. A design choice, not a tolerance: it silences
+#: nothing but that sentence while it is still the shipped one.
+_OWNED_ELSEWHERE = {
+    "options.step.entities.sections.indoor.data_description.space_setpoint_entity":
+        "The optimizer never writes a recommended space set-point.",
+}
+
+
+def flow_write_findings(texts: dict, slot_keys: dict, owned: dict | None = None) -> list[str]:
+    """Flow strings on (or named after) a written slot that say it is never written,
+    less a sentence ``owned`` names another group's while it is still shipped."""
+    owned = _OWNED_ELSEWHERE if owned is None else owned
+    stems = {key.removesuffix("_entity") for key in slot_keys.values()}
+    bad = []
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk(v, (*path, k))
+        elif isinstance(node, str) and path[-2:-1] == ("data_description",):
+            if any(path[-1].startswith(stem) for stem in stems) and _NEVER_WRITES.search(node) \
+                    and "Control" not in node:
+                dotted = ".".join(path)
+                if owned.get(dotted, "\0") not in node:
+                    bad.append(dotted)
+
+    for top in ("config", "options"):
+        walk(texts.get(top, {}), (top,))
+    return bad
+
+
+def check_flow_text_claims() -> None:
+    R.section("flow help text vs the code it describes (R10-CONFIG-FLOW-TEXT-VERIFY)")
+    texts = json.loads((PKG / "strings.json").read_text())
+    pins = flow_number_pins()
+    bad = flow_number_findings(texts, pins)
+    R.check(f"every quoted figure in the flow help ({len(pins)} pins) is its constant's value",
+            not bad, "; ".join(bad[:4]))
+    planted = json.loads(json.dumps(texts))
+    planted["options"]["step"]["entities_pump"]["data_description"]["pump_duty_mode"] = (
+        texts["options"]["step"]["entities_pump"]["data_description"]["pump_duty_mode"]
+        .replace("capped at 90 minutes", "capped at 60 minutes"))
+    R.check("null: a pump-duty text quoting 60 minutes for the 90-minute lease is found",
+            any(b.startswith(_FLOW_DD) and "quotes 60" in b for b in flow_number_findings(planted, pins)))
+    slots = arbiter_slot_keys()
+    R.check("the arbiter's written slots are derived (anchor: mode, both set-points)",
+            {"mode", "dhw_setpoint", "space_setpoint"} <= set(slots), repr(slots))
+    bad = flow_write_findings(texts, slots)
+    R.check("no flow help says a slot the arbiter writes is never written, unless it names Control",
+            not bad, "; ".join(bad))
+    indoor = planted["options"]["step"]["entities"]["sections"]["indoor"]["data_description"]
+    indoor["space_setpoint_unit"] = "The unit is a declaration: this integration never recommends a space set-point."
+    # Planted, not read from the tree: R10-HOTFIX-FLOW-SETPOINT-STUCK has replaced
+    # the shipped sentence, so only a plant still proves the exemption is all that
+    # hides it.
+    owned_key = "options.step.entities.sections.indoor.data_description.space_setpoint_entity"
+    indoor["space_setpoint_entity"] = _OWNED_ELSEWHERE[owned_key]
+    R.check("null: the other group's sentence is found once it is not exempted",
+            owned_key in flow_write_findings(planted, slots, owned={}))
+    R.check("null: the pre-fix space set-point unit sentence is found",
+            "options.step.entities.sections.indoor.data_description.space_setpoint_unit"
+            in flow_write_findings(planted, slots))
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -4677,6 +5306,7 @@ def main() -> int:
     check_simulate_plan_fields()
     check_two_zone_field_labels_and_placement()
     check_heat_pump_action_states()
+    check_duty_switch_claims()
     check_disabled_by_default_without_hot_water()
     check_multistart_starting_points()
     check_prose_tree_counts()
@@ -4706,7 +5336,11 @@ def main() -> int:
     check_readme_marketplace()
     check_surface_coverage()
     check_power_feedback_claims()
+    check_late_delta_claims()
+    check_flow_text_claims()
+    check_docs_strings_residue()
     check_stateless()
+    check_combi_dhw_split()
     return R.close("checks")
 
 

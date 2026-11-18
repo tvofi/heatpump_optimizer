@@ -51,6 +51,11 @@ last segment against the tails of the roster's `resume.branch` values (with a
 `-pr` suffix dropped): `fix/r10-ci-layout-g` names R10-CI-LAYOUT only that way;
 failing both, by the one roster group id its title names.
 
+The round's phases (`plan_phases.py`, its file under `dev/programme/round<N>/`)
+are drawn above the group lanes: `--phases FILE`, else the checkout's newest
+round phases file; an invalid one is its section's PHASES UNAVAILABLE, never
+the page's.
+
 `--self-test` drives every arm from fixtures in a throwaway repository, and
 never reaches GitHub: the fetch is replaced by one that fails the test.
 """
@@ -77,6 +82,7 @@ import replan  # noqa: E402 -- the one owner of plan.json and its freshness
 sys.path.insert(0, str(_SEAT.parent))
 import merge_throughput as mt  # noqa: E402 -- the flow board's computations
 import bottleneck_check  # noqa: E402 -- the one owner of the alert thresholds
+import plan_phases  # noqa: E402 -- the round's phases file and its section
 
 SELF = "tools/audit/seat/plan_page.py"
 sys.path.insert(0, str(_SEAT.parents[1] / "policy"))
@@ -244,7 +250,9 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
                if a in G and a not in discharged and roster_lib.gates(G[a])]
         if g in done:
             blk = []  # a merged group waits on nothing (the legend's not-yet-done rule)
-        part = sorted(delivered.get(g) or [])
+        # A closed group (absorbed) delivered no part of an open one: the label
+        # and the strip's count share this one predicate.
+        part = [] if g in done else sorted(delivered.get(g) or [])
         sfx = f", part merged #{', #'.join(map(str, part))}" if part else ""
         pr = ", ".join(f"#{n}" for n in open_pr.get(g, [])) or "—"
         if g in merged:
@@ -295,7 +303,9 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
             "blk": blk, "desc": roster_lib.one_line_brief(entry, 170),
             "crit": g in crit,
             "hot": g in gating_crit and g not in done and roster_lib.is_hotfix(entry),
-            "part": bool(part) and g not in done,
+            "part": bool(part),
+            # An owner-stated price is the owner's word, not a measurement: the row says so.
+            "owner_priced": bool(pg.get("owner_priced")),
             "wave": None if g in done else pg["wave"],
             "start": None if g in done else pg["start"],
             "finish": None if g in done else pg["finish"]})
@@ -307,16 +317,21 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
 
 # ---------------------------------------------------------------------- svg
 
+def time_axis(plan: dict) -> tuple[dt.datetime, dt.datetime]:
+    """The plan's time axis, `(start, end)`: the swimlanes' and the phases'.
+    It runs to closure, which is the later of the round-close stamp and the
+    last post-closure step, so no stamp lies past it."""
+    return _t(plan["generated"]["start"]), max(
+        [_t(plan["summary"]["closure"])]
+        + [_t(plan["summary"]["post_closure_finish"])
+           for _ in [0] if plan["summary"].get("post_closure_finish")])
+
+
 def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
     """The SVG chart on the plan's time axis; and how many critical-path links
     it draws (a link crossing more than one lane or two hours is left to the
     ◆ marks and the caption)."""
-    now = _t(plan["generated"]["start"])
-    # The axis runs to closure, which is the later of the round-close stamp and
-    # the last post-closure step, so no stamp lies past it.
-    end = max([_t(plan["summary"]["closure"])]
-              + [_t(plan["summary"]["post_closure_finish"])
-                 for _ in [0] if plan["summary"].get("post_closure_finish")])
+    now, end = time_axis(plan)
     slots = plan["generated"]["caps"]["slots"]
     span_h = max(1.0, (end - now).total_seconds() / 3600)
     W, LW, RH = 1180, 120, 24
@@ -625,13 +640,112 @@ def flow_section(plan: dict, rows: list, flow: dict | None) -> str:
             + "</section>\n")
 
 
+def _chip(n, closer, is_open, title) -> str:
+    cls = "chip" + (" closer" if closer else "") + ("" if is_open else " closed")
+    return f'<span class="{cls}" title="{html.escape(title)}">#{n}</span>'
+
+
+def group_rows(rows: list) -> str:
+    """The Groups table's body: one row per group row, the page's one drawing of it."""
+    e, chip = html.escape, _chip
+    return "".join(
+        f'<tr class="{r["st"]}" data-st="{r["st"]}" data-part="{int(r["part"])}"><td class="g">'
+        + ('<span class="cp" title="critical path">◆</span>' if r["crit"] else "")
+        + ('<span class="cp hotcp" title="hotfix blocking a critical-path group">▲</span>'
+           if r["hot"] else "")
+        + f'{e(short(r["g"]))}<div class="lanec">{e(r["lane"])}</div></td>'
+        f'<td class="d">{e(r["desc"])}</td>'
+        f'<td class="st">{pill(r["st"], r["label"])}</td>'
+        f'<td class="tier">{r["tier"] if r["tier"] is not None else "—"}</td>'
+        f'<td class="mono">{e(r["pr"])}</td>'
+        f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
+        f'<td class="blk">{e(", ".join(map(short, r["blk"]))) or "—"}</td>'
+        f'<td class="mono" title="{e(r["why"])}">{r["finish"] or "—"}'
+        f'{" <span class=owner-priced>owner-stated price, not measured</span>" if r["owner_priced"] else ""}</td>'
+        f'<td class="mono">{r["wave"] or "—"}</td></tr>' for r in rows)
+
+
+def next_round_pane(roster: dict, plan: dict, snap: dict) -> str:
+    """The second tab: the next round's groups on their own preliminary Gantt,
+    from the plan's `next_round` (replan.build_round_plan), which prices them on
+    the same duration model and caps, from this round's closure. Pure."""
+    e = html.escape
+    nr = plan["next_round"]
+    n, cur = nr["round"], plan["generated"]["round"]
+    head = (f'  <h2>Round {n} (preliminary)</h2>\n'
+            f'  <p class="note preliminary">Preliminary: round {n}\'s groups, priced on the same '
+            f'duration model and caps as round {cur}, starting at round {cur}\'s planned closure '
+            f'({e(_when(nr["starts_at"]))} UTC). It moves when that closure does and when the '
+            f'roster changes; round {cur}\'s tab, lanes and closure do not count these groups.'
+            + (f' {nr["beyond"]} more group(s) belong to rounds after {n} and are not scheduled.'
+               if nr.get("beyond") else "") + '</p>\n')
+    if "plan" not in nr:
+        return ('<section id="next-round">\n' + head
+                + f'  <p class="note flag">UNAVAILABLE: {e(nr.get("unavailable") or "no plan")}</p>\n'
+                '</section>\n')
+    sub = nr["plan"]
+    ids = set(sub["groups"])
+    nroster = {**roster, "groups": [g for g in roster.get("groups", []) if g["group"] in ids]}
+    rows = build_rows(nroster, sub, snap)
+    svg, _ = swimlanes(sub, rows)
+    svg = svg.replace('<g class="grp"', '<g class="grp" data-tab="next"')
+    stamps = "".join(
+        f'<tr><td class="mono">{e(x["version"])}</td><td class="mono">{_when(x["at"])}</td>'
+        f'<td>{e(", ".join(map(short, x["carries"])) or "—")}</td>'
+        f'<td class="mono">{e(x["kind"])}</td></tr>' for x in sub["stamps"])
+    return ('<section id="next-round">\n' + head
+            + f'  <p class="note">{len(rows)} groups; preliminary closure '
+              f'{e(_t(sub["summary"]["closure"]).strftime("%a %d %b %H:%M"))} UTC, stamp '
+              f'{e(sub["summary"]["closure_stamp"])}.</p>\n'
+            + f'  <h3>Swimlanes (preliminary)</h3>\n  <div class="scroll">{svg}</div>\n'
+            + '  <h3>Groups</h3>\n  <div class="scroll"><table>\n    <thead><tr><th>Group</th>'
+              '<th>Description</th><th>Status</th><th>Tier</th><th>PR</th><th>Issues</th>'
+              '<th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>\n'
+            + f'    <tbody id="rows-next">{group_rows(rows)}</tbody>\n  </table></div>\n'
+            + '  <h3>Planned stamps (preliminary)</h3>\n  <div class="scroll"><table>\n'
+              '    <thead><tr><th>Version</th><th>Projected (UTC)</th><th>Carries</th>'
+              f'<th>Kind</th></tr></thead>\n    <tbody>{stamps}</tbody>\n  </table></div>\n'
+            + '</section>\n')
+
+
+_TABS_NAV = (
+    '\n<nav class="tabs" role="tablist" aria-label="Round">'
+    '<button type="button" role="tab" data-tab="cur" aria-selected="true">Round {cur}</button>'
+    '<button type="button" role="tab" data-tab="next" aria-selected="false">'
+    'Round {nxt} (preliminary)</button></nav>')
+
+_TABS_JS = """<script>
+(function(){
+  var ts=document.querySelectorAll('.tabs button');
+  ts.forEach(function(t){t.addEventListener('click',function(){
+    ts.forEach(function(x){x.setAttribute('aria-selected',x===t?'true':'false')});
+    document.getElementById('tab-cur').hidden=t.getAttribute('data-tab')!=='cur';
+    document.getElementById('tab-next').hidden=t.getAttribute('data-tab')!=='next';
+  })});
+})();
+</script>
+"""
+
+
 def _when(s: str) -> str:
     return _t(s).strftime("%a %d %b %H:%M")
 
 
 def render(roster: dict, roster_src: str, plan: dict, snap: dict,
-           flow: dict | None = None) -> str:
-    """The page. Pure: every input is an argument."""
+           flow: dict | None = None, phases: tuple | None = None) -> str:
+    """The page. Pure: every input is an argument. `phases` is the round's
+    phases file as `(doc, violations, shown path)`, drawn above the lanes."""
+    # The page covers the plan's round only: a later round's groups are the
+    # second tab's (`next_round_pane`), and the issues only they carry are not
+    # this round's open issues.
+    whole, round_n = roster, plan["generated"].get("round")
+    later = (roster_lib.next_round_groups(roster, round_n) if isinstance(round_n, int) else {})
+    roster = roster_lib.round_roster(roster, round_n) if later else roster
+    theirs = {i for g in later.values() for i in (*(g.get("issues") or []), *(g.get("fixes") or []))}
+    mine = {i for g in roster.get("groups", []) for i in (*(g.get("issues") or []), *(g.get("fixes") or []))}
+    full_snap = snap
+    if theirs - mine:
+        snap = {**snap, "issues": [i for i in snap["issues"] if i["number"] not in theirs - mine]}
     rows = build_rows(roster, plan, snap)
     svg, drawn = swimlanes(plan, rows)
     gen, summ = plan["generated"], plan["summary"]
@@ -652,25 +766,9 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
     sizes = ", ".join(f"{k} {v:g} h" for k, v in sorted(
         model["sizes_hours"].items(), key=lambda kv: (order.get(kv[0], 99), kv[0])))
     e = html.escape
+    tabbed = bool(later and plan.get("next_round"))
 
-    def chip(n, closer, is_open, title):
-        cls = "chip" + (" closer" if closer else "") + ("" if is_open else " closed")
-        return f'<span class="{cls}" title="{e(title)}">#{n}</span>'
-
-    trs = "".join(
-        f'<tr class="{r["st"]}" data-st="{r["st"]}" data-part="{int(r["part"])}"><td class="g">'
-        + ('<span class="cp" title="critical path">◆</span>' if r["crit"] else "")
-        + ('<span class="cp hotcp" title="hotfix blocking a critical-path group">▲</span>'
-           if r["hot"] else "")
-        + f'{e(short(r["g"]))}<div class="lanec">{e(r["lane"])}</div></td>'
-        f'<td class="d">{e(r["desc"])}</td>'
-        f'<td class="st">{pill(r["st"], r["label"])}</td>'
-        f'<td class="tier">{r["tier"] if r["tier"] is not None else "—"}</td>'
-        f'<td class="mono">{e(r["pr"])}</td>'
-        f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
-        f'<td class="blk">{e(", ".join(map(short, r["blk"]))) or "—"}</td>'
-        f'<td class="mono" title="{e(r["why"])}">{r["finish"] or "—"}</td>'
-        f'<td class="mono">{r["wave"] or "—"}</td></tr>' for r in rows)
+    trs = group_rows(rows)
     stamps = "".join(
         f'<tr><td class="mono">{e(s["version"])}</td><td class="mono">{_when(s["at"])}</td>'
         f'<td>{e(", ".join(map(short, s["carries"])) or "—")}</td>'
@@ -692,6 +790,14 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
         "now": _t(gen["start"]).strftime("%d %b %H:%M"),
         "source": e(f'{roster_src} @ {gen["roster_blob"][:12]}'),
         "tracking": str(TRACKING_ISSUE), "open_iss": open_iss,
+        "tabs_nav": (_TABS_NAV.format(cur=round_n, nxt=plan["next_round"]["round"])
+                     if tabbed else ""),
+        "pane_open": '<div id="tab-cur" class="tabpane">\n' if tabbed else "",
+        "next_pane": ('</div>\n<div id="tab-next" class="tabpane" hidden>\n'
+                      + next_round_pane(whole, plan, full_snap) + '</div>\n' + _TABS_JS
+                      if tabbed else ""),
+        "phases": plan_phases.section(*phases, axis=time_axis(plan),
+                                                      phase_hours=model.get("phase_hours")) if phases else "",
         "issues_chart": issues_section(roster, plan, snap),
         "flow": flow_section(plan, rows, flow),
         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
@@ -781,6 +887,9 @@ def main(argv=None, fetch=fetch_github) -> int:
     p.add_argument("--train-log", default=None,
                    help="the live merge train's train.log, for the skip measure")
     p.add_argument("--no-flow", action="store_true", help="draw no flow metrics")
+    p.add_argument("--phases", default=None,
+                   help="the round's phases file; default: the checkout's newest "
+                        "dev/programme/round<N>/phases.json (plan_phases.discover)")
     p.add_argument("--self-test", action="store_true")
     a = p.parse_args(argv)
     if a.self_test:
@@ -807,7 +916,14 @@ def main(argv=None, fetch=fetch_github) -> int:
     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
             if a.github_snapshot else _fetch_or_offline(fetch, a.gh_repo))
     flow = None if a.no_flow else flow_metrics(a.repo, ref, path, roster, plan, a.train_log)
-    page = render(roster, f"{ref}:{path}", plan, snap, flow)
+    pf = a.phases or plan_phases.discover(a.repo)
+    phases = None
+    if pf:
+        doc, pbad = plan_phases.load(pf)
+        for b in pbad:
+            print(f"plan_page: phases {pf}: {b}", file=sys.stderr)
+        phases = (doc, pbad, plan_phases.shown(pf, a.repo))
+    page = render(roster, f"{ref}:{path}", plan, snap, flow, phases)
     Path(a.html).write_text(page, encoding="utf-8")
     print(f"wrote {a.html}: {len(roster_lib.groups_of(roster))} groups, "
           f"closure {plan['summary']['closure']}")
@@ -822,6 +938,7 @@ def _self_test() -> int:
     import tempfile
     sys.path.insert(0, str(_SEAT.parents[2] / "tests"))
     from throwaway_git import throwaway_git_environ, throwaway_git_init
+    import plan_public  # the public staging's privacy refusal, over a page with phases
     fails: list = []
     n = [0]
 
@@ -1008,6 +1125,27 @@ def _self_test() -> int:
 
             page = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
                           plan, snap)
+            # An owner-stated price is drawn as the owner's word, on its own row.
+            pr_roster = json.loads(json.dumps(roster))
+            for g_ in pr_roster["groups"]:
+                if g_["group"] == "R9-READY":
+                    g_.update(owner_price_minutes=240, owner_price_cite="tvofi: Price it at 4h")
+            pr_r, pr_ref, pr_blob = json.loads(json.dumps(r_)), ref_, blob_
+            for g_ in pr_r["groups"]:
+                if g_["group"] == "R9-READY":
+                    g_.update(owner_price_minutes=240, owner_price_cite="tvofi: Price it at 4h")
+            pr_plan = replan.build_plan(pr_r, durations, dict(replan.DEFAULT_CAPS), start,
+                                        "v1.0.0", pr_ref, pr_blob,
+                                        round_n=roster_lib.roster_round(str(rpath)))
+            pr_page = render(pr_roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                             pr_plan, snap)
+            check("a priced row says its price is owner-stated, not measured",
+                  pr_page.count("owner-stated price, not measured") == 1
+                  and pr_plan["groups"]["R9-READY"]["duration_minutes"] == 240,
+                  pr_plan["groups"]["R9-READY"].get("duration_basis"))
+            check("an unpriced plan draws no such tag (null control)",
+                  "owner-stated price, not measured" not in page
+                  and not any("owner_priced" in g_ for g_ in plan["groups"].values()))
             check("a closed issue's chip is struck",
                   '<span class="chip closer closed" title="eleven">#11</span>' in page)
             check("an open issue's chip is not",
@@ -1292,6 +1430,207 @@ def _self_test() -> int:
                     "--github-snapshot", str(snapf)]
             check("a fresh plan renders (null control)",
                   main(argv, fetch=fetch_refused) == 0 and out.is_file())
+            check("null control: a checkout with no phases file draws no phases section",
+                  'id="phases"' not in out.read_text(encoding="utf-8")
+                  and "PHASES UNAVAILABLE" not in out.read_text(encoding="utf-8"))
+            out.unlink()
+            plan_phases.fixture_checks(check)
+            # The three cases of one page: groups and phases, phases only, groups only.
+            src = f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
+            fx = (plan_phases.fixture(), [], "dev/programme/round9/phases.json")
+            groups_only = render(roster, src, plan, snap)
+            both = render(roster, src, plan, snap, None, fx)
+            sec = plan_phases.section(*fx, axis=time_axis(plan))
+            check("groups and phases: the page is the groups-only page plus the phases section, "
+                  "every section, table and control of it kept",
+                  sec in both and both.replace(sec, "", 1) == groups_only,
+                  [ln for ln in both.replace(sec, "", 1).splitlines() if ln not in groups_only][:3])
+            check("groups and phases: the phases section sits above the swimlanes",
+                  0 <= both.find('id="phases"') < both.find("<h2>Swimlanes</h2>"))
+            ticks = [re.findall(r'<text x="([\d.]+)" y="14" class="tick">([^<]*)', x)[:4]
+                     for x in (sec, swimlanes(plan, build_rows(roster, plan, snap))[0])]
+            check("groups and phases: the phases are drawn on the swimlanes' own time axis",
+                  ticks[0] and ticks[0] == ticks[1], ticks)
+            # durations.json, then build_plan, then render: the production path.
+            plan_m = replan.build_plan(r_, dict(durations, phase_hours={"finders": 7.5}),
+                                       dict(replan.DEFAULT_CAPS), start, "v1.0.0", ref_, blob_,
+                                       round_n=roster_lib.roster_round(str(rpath)))
+            measured = render(roster, src, plan_m, snap, None, fx)
+            check("a phase durations.json prices reaches the plan's model and the page prints "
+                  "its figure; one it does not prints 'duration unmeasured', never a zero or a "
+                  "typed constant; the rest a dash",
+                  plan_m["generated"]["model"].get("phase_hours") == {"finders": 7.5}
+                  and "phase_hours" not in plan["generated"]["model"]
+                  and replan.check_plan(plan_m) == []
+                  and "7.5 h (plan model)" in measured and "duration unmeasured" in measured
+                  and "duration unmeasured" in both and "plan model)" not in both
+                  and measured.count("duration unmeasured") == both.count("duration unmeasured") - 1,
+                  (both.count("duration unmeasured"), measured.count("duration unmeasured")))
+            check("null control, groups only: no phases section, nothing of the phases drawn",
+                  'id="phases"' not in groups_only and "PHASES UNAVAILABLE" not in groups_only)
+            empty = replan.build_plan({"groups": []}, json.loads(
+                (_SEAT.parents[1] / "plan" / "durations.json").read_text(encoding="utf-8")),
+                dict(replan.DEFAULT_CAPS), _t(plan["generated"]["start"]), "v1.0.0", "main",
+                "", round_n=9)
+            phases_only = render({"groups": []}, src, empty, snap, None, fx)
+            check("phases only (a round with no fix group yet): the page renders the phases "
+                  "and the group sections, with no group row",
+                  'id="phases"' in phases_only and "<h2>Swimlanes</h2>" in phases_only
+                  and '<tbody id="rows"></tbody>' in phases_only, phases_only[:200])
+            check("null control, phases only: the same empty roster with no phases file draws none",
+                  'id="phases"' not in render({"groups": []}, src, empty, snap))
+            # A round's page covers that round's groups only; the next round's are
+            # the second tab, on a preliminary schedule from this round's closure
+            # (owner, 2026-11-13). The roster of round 9 plus two groups of round 10.
+            def later_roster(*extra):
+                return {"groups": roster["groups"] + [
+                    grp("R10-NEXT-A", "IN", issues=(77,)),
+                    grp("R10-NEXT-B", "IN", after=("R10-NEXT-A", "R9-LIVE"), size="M")]
+                    + [grp(x, "IN") for x in extra]}
+            caps_ = dict(replan.DEFAULT_CAPS)
+
+            def planned(r):
+                return replan.build_round_plan(r, durations, caps_, start, "v1.0.0", "main",
+                                               "", round_n=9)
+            p0, p2, p3 = planned(roster), planned(later_roster()), planned(later_roster("R10-NEXT-C"))
+            snap77 = dict(snap, issues=snap["issues"] + [
+                {"number": 77, "title": "seventy-seven", "state": "OPEN"}])
+            check("a roster with a next-round group plans the same closure, groups, stamps "
+                  "and waves as the roster without it (null control: the plans differ in "
+                  "next_round alone)",
+                  {k: v for k, v in p2.items() if k != "next_round"} == p0
+                  and "next_round" not in p0 and p2["next_round"]["round"] == 10,
+                  [k for k in p0 if p0[k] != p2.get(k)])
+            nsub = p2["next_round"]["plan"]
+            check("the next round is scheduled apart, from this round's closure, on the same "
+                  "model; an after-edge to this round's group is dropped, one inside it kept",
+                  set(nsub["groups"]) == {"R10-NEXT-A", "R10-NEXT-B"}
+                  and nsub["generated"]["start"] == p2["summary"]["closure"]
+                  and nsub["groups"]["R10-NEXT-B"]["after"] == ["R10-NEXT-A"]
+                  and nsub["groups"]["R10-NEXT-B"]["start"] >= nsub["groups"]["R10-NEXT-A"]["finish"]
+                  and nsub["generated"]["model"] == p2["generated"]["model"]
+                  and nsub["summary"]["closure_stamp"] == "v10.0.0"
+                  and replan.check_plan(p2) == [], str(nsub["summary"])[:200])
+            try:
+                replan.build_round_plan({"groups": roster["groups"] + [
+                    grp("R10-NEXT-A", "IN"), grp("R9-BAD", "IN", after=("R10-NEXT-A",))]},
+                    durations, caps_, start, "v1.0.0", "main", "", round_n=9)
+                check("a group of this round waiting on a later round's group is refused", False)
+            except replan.PlanError as exc:
+                check("a group of this round waiting on a later round's group is refused",
+                      "later round" in str(exc), str(exc))
+            only = render(roster, src, p0, snap)
+            tabbed = render(later_roster(), src, p2, snap77)
+            tabbed3 = render(later_roster("R10-NEXT-C"), src, p3, snap77)
+
+            def panes(page):
+                a_ = page.index('<div id="tab-cur" class="tabpane">\n') + len('<div id="tab-cur" class="tabpane">\n')
+                b_ = page.index('</div>\n<div id="tab-next"')
+                return page[a_:b_], page[b_:]
+            cur2, nxt2 = panes(tabbed)
+            cur3, nxt3 = panes(tabbed3)
+            check("the current round's tab is the page without the next round's groups: strip, "
+                  "closure, lanes, rows and every section, though a next-round group carries an "
+                  "open issue",
+                  cur2 == only[only.index('<div class="strip">'):only.index("</main>")],
+                  [ln for ln in cur2.splitlines() if ln not in only][:3])
+            check("adding a next-round group changes nothing on the current tab and adds one "
+                  "bar to the other",
+                  cur3 == cur2 and nxt2.count('<g class="grp" data-tab="next"') == 2
+                  and nxt3.count('<g class="grp" data-tab="next"') == 3
+                  and 'data-name="NEXT-' not in cur3)
+            check("the second tab is labelled preliminary, names the closure it starts at, and "
+                  "lists its groups; the first tab names none of them",
+                  "Round 10 (preliminary)" in tabbed and "Preliminary: round 10" in nxt2
+                  and _when(p2["summary"]["closure"]) in nxt2 and "NEXT-A" in nxt2
+                  and "NEXT-A" not in cur2 and 'id="rows-next"' in nxt2)
+            check("null control: a page whose roster has no next-round group has no tabs",
+                  'class="tabs"' not in only and "tab-next" not in only)
+            check("a plan recorded without a next-round schedule draws no round-10 row and no tab",
+                  "NEXT-A" not in render(later_roster(), src, p0, snap)
+                  and "tab-next" not in render(later_roster(), src, p0, snap))
+            broken = {**p2, "next_round": {**{k: v for k, v in p2["next_round"].items()
+                                              if k != "plan"}, "unavailable": "boom"}}
+            check("a next round that cannot be planned is an UNAVAILABLE tab, never an absent one",
+                  "UNAVAILABLE: boom" in render(later_roster(), src, broken, snap))
+            bad_nxt = json.loads(json.dumps(p2))
+            del bad_nxt["next_round"]["plan"]["generated"]["model"]
+            check("check_plan checks the next round's plan: a violation in it is the round "
+                  "plan's, named by the next round (null control: p2 reads [] above)",
+                  replan.check_plan(bad_nxt)
+                  == ["next round 10: model: the plan records no duration model (generated.model)"],
+                  replan.check_plan(bad_nxt))
+            unplannable = later_roster()
+            unplannable["groups"][-2] = dict(unplannable["groups"][-2], savings="lots")
+            try:
+                pu = planned(unplannable)
+                nu = pu["next_round"]
+                check("a later round the model refuses is next_round.unavailable, the round's "
+                      "own plan unchanged, drawn as an UNAVAILABLE tab",
+                      "plan" not in nu and "R10-NEXT-A: savings is not a number" in nu["unavailable"]
+                      and {k: v for k, v in pu.items() if k != "next_round"} == p0
+                      and "UNAVAILABLE: R10-NEXT-A: savings is not a number"
+                      in render(unplannable, src, pu, snap77), nu)
+            except replan.PlanError as exc:
+                check("a later round the model refuses is next_round.unavailable, the round's "
+                      "own plan unchanged, drawn as an UNAVAILABLE tab", False, str(exc))
+            far = later_roster("R11-FAR-A", "R12-FAR-B")
+            pf_ = planned(far)
+            check("groups of rounds past the nearest are counted in beyond, not scheduled, and "
+                  "the tab says so (null control: a roster with none counts 0 and says nothing)",
+                  pf_["next_round"]["round"] == 10 and pf_["next_round"]["beyond"] == 2
+                  and set(pf_["next_round"]["plan"]["groups"]) == {"R10-NEXT-A", "R10-NEXT-B"}
+                  and "2 more group(s) belong to rounds after 10" in render(far, src, pf_, snap77)
+                  and p2["next_round"]["beyond"] == 0 and "more group(s) belong" not in tabbed,
+                  pf_["next_round"].get("beyond"))
+            # Carry 3: a figure on the page equals the rows it counts.
+            part_snap = dict(snap, merged_prs=snap["merged_prs"] + [
+                {"number": 24, "title": "R9-HELD: part", "head_ref": "fix/held",
+                 "merge_commit_sha": "f" * 40, "merged_at": "2026-01-04T00:00:00Z"}])
+            pp = render(roster, src, p0, part_snap)
+            n_strip = int(re.search(r"<b>(\d+)</b><span>part merged", pp).group(1))
+            n_rows = pp.count('data-part="1"><td class="g">')
+            n_label = len(re.findall(r'<span class="pill [a-z]+"[^>]*>[^<]*part merged', pp))
+            check("the strip's part-merged count equals the rows that read part merged "
+                  "(an absorbed group a merged PR names is not one)",
+                  n_strip == n_rows == n_label and n_strip >= 1
+                  and "part merged" not in {r["g"]: r for r in build_rows(
+                      roster, p0, part_snap)}["R9-HELD"]["label"], (n_strip, n_rows, n_label))
+            n_open = len(re.findall(r'<tr class="(?!done)[a-z]+" data-st', pp))
+            m_ = re.search(r"of the (\d+) the table lists as not merged; the other (\d+) are held", pp)
+            check("the lede's open-group figures equal the rows: not-merged rows, and the "
+                  "held remainder against the plan's scheduled groups",
+                  m_ and int(m_.group(1)) == n_open
+                  and int(m_.group(2)) == n_open - p0["summary"]["groups_open"], (m_ and m_.groups(), n_open))
+            check("a markdown brief renders as its title or first sentence, never a bare list marker",
+                  roster_lib.one_line_brief({"brief": "1. N-x (#1): does a thing. More."}) == "N-x (#1): does a thing."
+                  and roster_lib.one_line_brief({"brief": "# Fixer brief X: land Y\nState found: z."})
+                  == "Fixer brief X: land Y"
+                  and roster_lib.one_line_brief({"brief": "Plain. Two."}) == "Plain.")
+            pf = Path(td) / "outside" / "phases.json"
+            pf.parent.mkdir()
+            pf.write_text(json.dumps(plan_phases.fixture()), encoding="utf-8")
+            check("--phases FILE: the page draws the round's phases above the group lanes",
+                  main(argv + ["--phases", str(pf)], fetch=fetch_refused) == 0
+                  and 0 <= out.read_text(encoding="utf-8").find('id="phases"')
+                  < out.read_text(encoding="utf-8").find("<h2>Swimlanes</h2>"))
+            text = out.read_text(encoding="utf-8")
+            check("a page with phases names no host path: plan_public's privacy refusal passes",
+                  str(pf.parent) not in text and plan_public.refusal(text) is None,
+                  plan_public.refusal(text))
+            home = repo / "dev" / "programme" / "round9"
+            home.mkdir(parents=True)
+            (home / "phases.json").write_text(json.dumps(plan_phases.fixture()), encoding="utf-8")
+            main(argv, fetch=fetch_refused)
+            text = out.read_text(encoding="utf-8")
+            check("with no --phases, the checkout's newest round phases file is drawn",
+                  'id="phases"' in text and "dev/programme/round9/phases.json" in text, text[:300])
+            (home / "phases.json").write_text('{"round": 9, "phases": [{"phase": "x"}]}')
+            main(argv, fetch=fetch_refused)
+            text = out.read_text(encoding="utf-8")
+            check("an invalid phases file draws PHASES UNAVAILABLE; the group lanes still stand",
+                  "PHASES UNAVAILABLE" in text and "<h2>Swimlanes</h2>" in text, text[:300])
+            (home / "phases.json").unlink()
             out.unlink()
 
             def no_gh_binary(_repo):
@@ -1461,6 +1800,11 @@ td.st{min-width:11rem}
 .filters button[aria-pressed="true"]{background:var(--fg);color:var(--panel);border-color:var(--fg)}
 .filters button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .note{color:var(--muted);font-size:.85rem;max-width:72ch}
+.tabs{display:flex;gap:8px;margin-top:10px}
+.tabs button{font:600 .9rem var(--body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px 6px 0 0;padding:6px 16px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--fg);color:var(--panel);border-color:var(--fg)}
+.tabpane{display:flex;flex-direction:column;gap:22px}
+.tabpane[hidden]{display:none}
 .tip{position:fixed;z-index:20;max-width:300px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:12px/1.4 var(--body);box-shadow:0 8px 22px rgba(0,0,0,.18);pointer-events:none}
 .tip b{font-family:var(--mono);font-size:12.5px}
 .tip span{color:var(--muted)}
@@ -1469,9 +1813,9 @@ td.st{min-width:11rem}
 <header>
   <h1>{{title}}</h1>
   <p class="sub">heatpump_optimizer audit programme · snapshot {{now}} UTC · schedule read from <code>plan.json</code> (roster {{source}}) · tracking issue #{{tracking}}</p>
-</header>
+</header>{{tabs_nav}}
 
-<div class="strip">
+{{pane_open}}<div class="strip">
   <div class="stat"><b>{{n_done}}</b><span>groups merged</span></div>
   <div class="stat"><b>{{n_live}}</b><span>fixers working</span></div>
   <div class="stat"><b>{{n_ready}}</b><span>ready, not started</span></div>
@@ -1482,7 +1826,7 @@ td.st{min-width:11rem}
   <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
 </div>
 
-{{issues_chart}}
+{{phases}}{{issues_chart}}
 {{flow}}
 <section>
   <h2>Swimlanes</h2>
@@ -1542,7 +1886,7 @@ td.st{min-width:11rem}
   <h2>How the ETAs are computed</h2>
   <p class="note">Every figure on this page is <code>plan.json</code>'s, written by <code>tools/plan/replan.py</code>; this renderer draws it and computes no schedule of its own. A wave is the set of groups dispatched at one moment, and the next opens as soon as one of {{slots}} pull-request slots frees, so a wave never waits for the previous one to drain; the cap limits concurrency, not the wave boundary. Duration is dispatch to merge by roster size, as the plan recorded it from <code>tools/plan/durations.json</code>: {{sizes}}. {{sizes_provenance}} A group whose fixer is already working gets {{live_pct}}% of its size duration as the remaining estimate, and starts now, past the slot cap, unless an unmerged dependency holds it; a held (carries-open) group is priced by its open carries, not its size. Hover an ETA for the group's tier, why it starts when it does, its duration basis and its sort key, all the plan's own fields. Those are measured lead times, not effort: review rounds and queueing are inside them. The batching window is {{window}} minutes; its measured trade is in <code>durations.json</code>.</p>
 </section>
-</main>
+{{next_pane}}</main>
 <div id="tip" class="tip" hidden></div>
 <script>
 (function(){
@@ -1564,7 +1908,7 @@ td.st{min-width:11rem}
     g.addEventListener('mouseleave',function(){tip.hidden=true});
   });
   var bs=document.querySelectorAll('.filters button'), rows=document.querySelectorAll('#rows tr'),
-      bars=document.querySelectorAll('svg g.grp'), hide=document.getElementById('hide-done'), f='all';
+      bars=document.querySelectorAll('svg g.grp:not([data-tab])'), hide=document.getElementById('hide-done'), f='all';
   function shown(st,part){ return (f==='all'||st===f||(f==='partial'&&part==='1')) && !(hide.checked && st==='done'); }
   function apply(){
     rows.forEach(function(r){ r.hidden=!shown(r.getAttribute('data-st'),r.getAttribute('data-part')); });

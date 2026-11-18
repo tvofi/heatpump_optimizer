@@ -41,7 +41,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Mapping
 from typing import Any, Literal, NamedTuple
 from weakref import WeakKeyDictionary
 
@@ -55,13 +55,17 @@ from .const import (
     PRICE_ENERGY_TO_KWH,
     PRICE_MAJOR_SYMBOLS,
     PRICE_MINOR_UNITS,
+    QUIET_STORE_MAX_AGE_MINUTES,
+    ROOM_AIR_RANGE_C,
     STALENESS_SCALE_MAX,
     STALENESS_SCALE_MIN,
     TEMPERATURE_UNIT_TO_C,
 )
 from .const import finite_float
+from .entry_config import EntryConfig
 from .log_latch import log_held
 from .payload import InputProblem
+from .rooms import RoomReading
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -275,8 +279,12 @@ def max_age_for(
     base = table.get(key)
     if base is None or math.isinf(base):
         return None
-    scale = min(max(float(scale), STALENESS_SCALE_MIN), STALENESS_SCALE_MAX)
-    return base * scale
+    return _scaled(base, scale)
+
+
+def _scaled(base_minutes: float, scale: float) -> float:
+    """An age limit times the user's staleness scale, clamped to its range."""
+    return base_minutes * min(max(float(scale), STALENESS_SCALE_MIN), STALENESS_SCALE_MAX)
 
 
 #: Per ``hass``, the entity ids seen re-reporting an unchanged value: sources
@@ -509,6 +517,50 @@ def read_setpoint(hass: Any, entity_id: str | None) -> float | None:
     return None if reading is None else reading[0]
 
 
+#: The widest temperature difference :func:`read_temperature_delta_k` reads
+#: as one, K: a larger number is a wrong entity (a tank probe, a set-point),
+#: which as a start hysteresis would bar every planned charge.
+TEMPERATURE_DELTA_MAX_K = 20.0
+
+
+def read_temperature_delta_k(hass: Any, entity_id: str | None) -> float | None:
+    """A temperature *difference* in K (a hysteresis), or ``None`` unread.
+
+    The unit's scale without its zero: K and °C stand as they are and °F is
+    scaled by 5/9, where the absolute readers (:func:`normalize_temperature_c`)
+    would read 2 K as -271 °C. A state with no unit is taken as K; a unit
+    outside the temperature family, a non-number, or a value outside 0 to
+    :data:`TEMPERATURE_DELTA_MAX_K` is no reading.
+    """
+    state = hass.states.get(entity_id) if entity_id else None
+    value = finite_float(getattr(state, "state", None))
+    unit = str(state_unit(state) or "").strip()
+    scale = (TEMPERATURE_UNIT_TO_C.get(unit) or (None, None))[1] if unit else 1.0
+    if value is None or scale is None:
+        return None
+    delta_k = value * scale
+    return delta_k if 0.0 <= delta_k <= TEMPERATURE_DELTA_MAX_K else None
+
+
+def read_start_hysteresis(state: Any, hass: Any, config: Mapping[str, Any]) -> None:
+    """Put the pump's own start hysteresis per duty, K, on ``state``.
+
+    ``state`` is the cycle's ``ThermalState`` and ``config`` the entry's
+    effective options: ``dhw_start_hysteresis_k`` and
+    ``space_start_hysteresis_k`` take what ``dhw_hysteresis_entity`` and
+    ``space_hysteresis_entity`` read (:func:`read_temperature_delta_k`), and
+    ``None`` for an option left empty or an entity that does not read, so a
+    reading that goes away stops binding the plan the same cycle.
+    ``dhw_setpoint_grid`` takes the grid a hot-water target is written on
+    (:func:`setpoint_grid`), so the plan judges a charge against the target
+    the pump is handed.
+    """
+    cfg = EntryConfig.from_mapping(config)
+    state.dhw_setpoint_grid = setpoint_grid(hass, cfg.dhw_setpoint_entity)
+    state.dhw_start_hysteresis_k = read_temperature_delta_k(hass, cfg.dhw_hysteresis_entity)
+    state.space_start_hysteresis_k = read_temperature_delta_k(hass, cfg.space_hysteresis_entity)
+
+
 def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, float | None]:
     """The set-point entity's own (min, max) in degC, ``None`` where it states none.
 
@@ -565,6 +617,88 @@ def _setpoint_unit_of(hass: Any, entity_id: str) -> Any:
     )
 
 
+class SetpointGrid(NamedTuple):
+    """What a write to one set-point entity lands on: its unit, step and range.
+
+    Plain values, so a reader with no ``hass`` (the plan, through
+    ``ThermalState.dhw_setpoint_grid``) puts a target on the same step the
+    write does.
+    """
+
+    unit: Any
+    step: float
+    low_c: float | None
+    high_c: float | None
+
+    def on_step(
+        self,
+        value_c: float,
+        *,
+        rounding: str = "nearest",
+        lo_c: float | None = None,
+        hi_c: float | None = None,
+    ) -> float:
+        """``value_c`` on the entity's step, in its own unit, returned in degC.
+
+        ``rounding`` is ``nearest``, ``up`` or ``down``; ``lo_c`` rounds up and
+        ``hi_c`` down, and the result stays between them, so a caller keeps a
+        floor above its gate and a ceiling inside its configured maximum while
+        the levels between round to nearest, monotone in the value. The step is
+        the entity's own (``setpoint_step``) in the unit the write uses
+        (#2285), so a Fahrenheit entity is quantised in Fahrenheit.
+        """
+        out = _on_step(temperature_from_c(value_c, self.unit), self.step, rounding)
+        if lo_c is not None:
+            out = max(out, _on_step(temperature_from_c(lo_c, self.unit), self.step, "up"))
+        if hi_c is not None:
+            out = min(out, _on_step(temperature_from_c(hi_c, self.unit), self.step, "down"))
+        converted = temperature_c(out, self.unit)
+        return out if converted is None else converted
+
+    def bounded(
+        self,
+        value: float,
+        floor: float = -1e9,
+        *,
+        rounding: str = "nearest",
+        lo: float | None = None,
+        hi: float | None = None,
+    ) -> float:
+        """``value`` (degC) inside the entity's own range, on its step.
+
+        ``rounding`` for the value itself, ``lo`` (a heating floor) up and
+        ``hi`` (a ceiling) down, the entity's own minimum up and maximum down.
+        """
+        low, high = self.low_c, self.high_c
+        value = max(value, floor, low if low is not None else floor)
+        lows = [v for v in (lo, low) if v is not None]
+        highs = [high] if high is not None else []
+        # The entity's range outranks a caller's ceiling: a write under its
+        # minimum on the step is refused, so a ceiling below that is dropped and
+        # the minimum, rounded up onto the step, holds.
+        if hi is not None and (low is None or hi >= self.on_step(low, rounding="up")):
+            highs.append(hi)
+        return self.on_step(
+            value, rounding=rounding,
+            lo_c=max(lows) if lows else None, hi_c=min(highs) if highs else None,
+        )
+
+
+def _grid_of(hass: Any, entity_id: str) -> SetpointGrid:
+    return SetpointGrid(
+        _setpoint_unit_of(hass, entity_id), setpoint_step(hass, entity_id),
+        *setpoint_range_c(hass, entity_id),
+    )
+
+
+def setpoint_grid(hass: Any, entity_id: str | None) -> SetpointGrid | None:
+    """The grid a write to ``entity_id`` lands on; ``None`` for no entity or
+    one with no state, which nothing is written to."""
+    if not entity_id or hass.states.get(entity_id) is None:
+        return None
+    return _grid_of(hass, entity_id)
+
+
 def quantise_setpoint_c(
     hass: Any,
     entity_id: str,
@@ -574,24 +708,8 @@ def quantise_setpoint_c(
     lo_c: float | None = None,
     hi_c: float | None = None,
 ) -> float:
-    """``value_c`` on the entity's step, in its own unit, returned in degC.
-
-    ``rounding`` is ``nearest``, ``up`` or ``down``; ``lo_c`` rounds up and
-    ``hi_c`` down, and the result stays between them, so a caller keeps a
-    floor above its gate and a ceiling inside its configured maximum while
-    the levels between round to nearest, monotone in the value. The step is
-    the entity's own (``setpoint_step``) in the unit the write uses
-    (#2285), so a Fahrenheit entity is quantised in Fahrenheit.
-    """
-    unit = _setpoint_unit_of(hass, entity_id)
-    step = setpoint_step(hass, entity_id)
-    out = _on_step(temperature_from_c(value_c, unit), step, rounding)
-    if lo_c is not None:
-        out = max(out, _on_step(temperature_from_c(lo_c, unit), step, "up"))
-    if hi_c is not None:
-        out = min(out, _on_step(temperature_from_c(hi_c, unit), step, "down"))
-    converted = temperature_c(out, unit)
-    return out if converted is None else converted
+    """``value_c`` on the entity's step (:meth:`SetpointGrid.on_step`), degC."""
+    return _grid_of(hass, entity_id).on_step(value_c, rounding=rounding, lo_c=lo_c, hi_c=hi_c)
 
 
 async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
@@ -1133,6 +1251,55 @@ class InputReader:
             return reading
         reading.value = converted
         return reading
+
+
+#: The key a room reading carries: it names no configuration slot and no
+#: table entry, because a room never enters ``InputHealth`` (#3616).
+ROOM_READING_KEY = "room_temperature"
+
+
+def read_room(reader: InputReader, entity_id: str) -> RoomReading:
+    """One room thermometer (#3616), through ``reader``'s entity and age stages.
+
+    A ``climate``'s state is its HVAC mode, so its temperature and target are
+    the ``current_temperature`` and ``temperature`` attributes in the
+    instance's unit system -- :func:`setpoint_and_unit`'s rule -- and calling
+    is ``hvac_action == "heating"``; a ``sensor`` reads its state in its own
+    unit. The age limit is the indoor sensor's, a thermostat reporting on
+    change; the range is a room's, :data:`~.const.ROOM_AIR_RANGE_C`.
+
+    A module function beside the reader rather than a method of it, and never
+    recorded in ``reader.health`` on any path: one dead thermostat among
+    twenty is the room list's to report, not an input problem.
+    """
+    reading, state = reader._begin(
+        ROOM_READING_KEY, _scaled(QUIET_STORE_MAX_AGE_MINUTES, reader.scale), entity_id)
+    if state is None:
+        return RoomReading(entity_id, None, problem=reading.problem)
+    attrs = getattr(state, "attributes", None) or {}
+    target, calling, mode = None, None, None
+    if entity_id.startswith("climate."):
+        unit = _instance_unit(reader.hass)
+        value = temperature_c(attrs.get("current_temperature"), unit)
+        target = temperature_c(attrs.get("temperature"), unit)
+        action = attrs.get("hvac_action")
+        calling = None if action is None else action == "heating"
+        mode = str(state.state)
+    else:
+        value = temperature_c(getattr(state, "state", None), state_unit(state))
+    if value is None:
+        reading.problem = "not_numeric"
+    else:
+        reader._age_gate(reading, state)
+        if not ROOM_AIR_RANGE_C[0] <= value <= ROOM_AIR_RANGE_C[1]:
+            value = None
+            _set_problem(reading, "implausible")
+    return RoomReading(entity_id, value, target, calling, mode, reading.problem)
+
+
+def read_rooms(reader: InputReader, entity_ids: Collection[str]) -> tuple[RoomReading, ...]:
+    """:func:`read_room` over the configured list, in its order."""
+    return tuple(read_room(reader, entity_id) for entity_id in entity_ids)
 
 
 def has_value(state: Any) -> bool:

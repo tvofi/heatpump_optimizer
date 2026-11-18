@@ -14,11 +14,14 @@ the plan to the owner.
    prediction resting on a renamed or split count, a deleted feature or a
    scorer change is `revise` (`metric-gamed`).
 4. **Check the target's conditions**: admissible end to end, the spread rule,
-   the holdouts named, and fitness functions per move.
-5. **Check the time**: re-run the projection; the critical chain and the
-   hot-file order are as stated.
-6. **Check the ADRs** against the scenarios: each decision serves a named
-   scenario, and its tradeoffs are written down.
+   holdouts, fitness functions; a plan stopping at the floor with a cheap move
+   left over is `revise`.
+5. **Check the time and the objective**: re-run `plan_audit.py
+   objective-check` at the plan SHA; the critical chain and the hot-file order
+   are as stated; attack three ranks and three keyed effects in the code, the
+   rank-1 groups with most predicted dS per finding first; read the floor cost
+   against step 4's cheap test.
+6. **Check the ADRs**: each serves a named scenario, its tradeoffs written.
 
 After two `revise` rounds the plan goes to the owner with the open points,
-never to a third round.
+never a third round.

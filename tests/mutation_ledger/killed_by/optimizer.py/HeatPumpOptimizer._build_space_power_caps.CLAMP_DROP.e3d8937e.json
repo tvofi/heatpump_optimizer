@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_space_power_caps CLAMP_DROP e3d8937e",
+  "killed_by": "tests/features.py",
+  "old": "            power_caps = np.minimum(power_caps, caps_extra_arr)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`power_caps = (power_caps)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

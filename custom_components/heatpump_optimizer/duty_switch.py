@@ -4,9 +4,14 @@ Design: ``docs/design/2026-11-10-duty-switch-restart-learning/design.md``,
 part A. On some pumps a mode write from hot water to heating while the
 compressor runs stops it: the controller judges the heating request on a
 return the hot-water leg has just heated. Whether it does, and for how long
-the pump then stays off, is learned per install and per direction. **Nothing
-reads the estimate to change a plan or a write**; it is recorded, persisted
-and published on the compressor-starts sensor.
+the pump then stays off, is learned per install and per direction. It is
+recorded, persisted and published on the compressor-starts sensor. Its
+latches are read twice, through one leg rule: the arbiter's split of a both
+step (:func:`both_step_duty`, part B) and the planner (:func:`planner_fields`),
+which prices the switch through ``duty_legs``; both feed
+``duty_legs.leg_rule`` the same pairs (:meth:`DutySwitchLearner.split`), so
+the plan prices the legs the arbiter serves. A factory reset voids the store
+like every other learned estimate.
 
 **Observe** (:class:`DutySwitchLearner`, no Home Assistant object). An
 episode opens at a landed mode write between the two single duties while the
@@ -18,38 +23,42 @@ at expiry, and **void** when anything else could explain a stop
 lost running signal). A stop's off time runs to the next start edge and is
 censored by any write of the arbiter, or the supply switch, in between.
 
-**The running signal** is ``wear.compressor_running`` over the reading the
-arbiter's reader hands in, its edges ``wear.EdgeTracker``'s. This module's
-own listener (:func:`attach`) feeds the tracker and never triggers an arbiter
-pass; the pass (:func:`note_pass`) confirms a pending edge. Everything below
-the registry takes the pump's :class:`_Record`, never the coordinator.
+**The running signal** is ``running_signal``'s, the one owner of the
+listener and its debounced edges in every duty mode. While the arbiter listens
+the record subscribes to its edges (:func:`attach`), which never trigger an
+arbiter pass; the pass (:func:`note_pass`) confirms a pending edge. Everything
+below the registry takes the pump's :class:`_Record`, never the coordinator.
 
 **Estimate.** Per direction two decayed counts, ``k`` stops over ``n``
 episodes (stored as the stopped and the kept weight), half-life :data:`HALF_LIFE_DAYS`: decay scales both alike, so
 ``p = k / n`` never moves with age and only ``n`` falls. ``usable`` latches on
-at :data:`N_ON` episodes spanning :data:`SPAN_DAYS_ON` days with ``p`` at
+at a decayed weight of :data:`N_ON`, not a count (five stops ten hours apart
+weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with ``p`` at
 :data:`P_ON`, and off under :data:`N_OFF` or :data:`P_OFF`. The span is of
 the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
 forgotten with it. Every threshold
 here is a named constant from one day on one install, not a measurement.
+``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking and
+on each decay, so a record stored over it is held to it by the first pass,
+evidence from before a firmware change is outvoted in a bounded number of
+episodes and an install that stops switching unlatches in a bounded time.
 """
 from __future__ import annotations
 
 import logging
 import math
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Callable
 from weakref import WeakKeyDictionary
 
-from homeassistant.core import callback
-from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from . import pump_mode, wear
+from . import duty_legs, pump_mode, running_signal
 from .const import DOMAIN
 from .drift import stored_instant, utc_elapsed_seconds
 from .store import QuarantiningStore
+from .thermal_model import planned_draw_runs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,6 +77,13 @@ HEATED_MARGIN_K = 2.0
 SOURCE_LEG_MIN_S = 60.0
 HALF_LIFE_DAYS = 14.0
 N_ON, N_OFF = 5.0, 2.5
+#: The most decayed episodes a direction holds, twice the on-threshold, kept
+#: by scaling both counts alike (``p`` does not move): a direction the split
+#: avoids gets no episode, and from the cap ``n`` is under :data:`N_OFF` two
+#: half-lives after its last one, so the default split runs and re-tests it.
+#: With every later episode kept, ``p`` falls from 1 by 10/11 per booking and
+#: is under :data:`P_OFF` at the thirteenth.
+N_CAP = 2.0 * N_ON
 P_ON, P_OFF = 0.5, 0.3
 SPAN_DAYS_ON = 2
 #: Decayed episodes under which a direction's days span nothing any more: one
@@ -182,7 +198,7 @@ class Direction:
     def decay(self, when: datetime) -> bool:
         """Age the counts to ``when``; whether the latch or the span's days moved."""
         n = self.n
-        factor = self.weights(when)[1] / n if n > 0.0 else 1.0
+        factor = min(self.weights(when)[1], N_CAP) / n if n > 0.0 else 1.0
         self.k, self.kept_w = self.k * factor, self.kept_w * factor
         if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) > 0.0:
             self.decayed_at = when
@@ -212,6 +228,8 @@ class Direction:
                 self.censored += 1
             else:
                 self.off_s = [*self.off_s, off_s][-OFF_SAMPLES_MAX:]
+        scale = min(1.0, N_CAP / self.n)
+        self.k, self.kept_w = self.k * scale, self.kept_w * scale
         self._latch()
 
     def stored_row(self) -> dict[str, Any]:
@@ -354,20 +372,41 @@ class DutySwitchLearner:
     def published(self, when: datetime) -> dict[str, float]:
         """Counts and durations per direction, flat and numeric. A direction
         nothing was observed in publishes no key, and no off time yet is no
-        key: an install that never switches duty while running reads as before."""
+        key: an install that never switches duty while running reads as before.
+
+        Age alone moves ``n`` only, and only by a whole episode: ``n`` is the
+        whole episodes still weighing, and ``p`` does not decay (``k`` is ``p``
+        times ``n``, so it is not published)."""
         out: dict[str, float] = {}
         for name, d in self.directions.items():
             if not (d.stopped or d.kept or d.void):
                 continue
-            k, n = d.weights(when)
             row: dict[str, float | None] = {
-                "k": round(k, 2), "n": round(n, 2),
+                "p": round(d.p, 2), "n": float(math.floor(d.weights(when)[1])),
                 "stopped": d.stopped, "kept": d.kept, "void": d.void, "censored": d.censored,
                 "median_off_s": None if d.median_off_s is None else round(d.median_off_s, 1),
                 "span_days": d.span_days,
             }
             out.update({f"duty_switch_{name}_{key}": value for key, value in row.items() if value is not None})
         return out
+
+    def planner_pairs(self) -> tuple[tuple[float, float], tuple[float, float]]:
+        """Per direction, in :data:`DIRECTIONS`' order: the stop probability
+        and the median off seconds the planner prices a switch by. Zeros
+        unless the direction's latch is on, and no off time while every
+        stop's was censored."""
+        read = [d if d.usable else Direction() for d in map(self.directions.__getitem__, DIRECTIONS)]
+        return (read[0].p, read[1].p), (read[0].median_off_s or 0.0, read[1].median_off_s or 0.0)
+
+    def split(self) -> duty_legs.LegRule:
+        """The leg rule a both step is served by: ``duty_legs.leg_rule`` of
+        :meth:`planner_pairs`, the pairs the planner prices, so planner and
+        arbiter read one rule. Read only through the latches: ``n``, the
+        tallies and ``span_days`` are not read, so evidence accruing faster on
+        one set-point unit than another moves nothing here until a latch
+        moves. With no latch on this is ``duty_legs.DEFAULT_RULE``: hot water
+        first for its share."""
+        return duty_legs.leg_rule(*self.planner_pairs())
 
     def stored_record(self) -> dict[str, Any]:
         return {"directions": {name: d.stored_row() for name, d in self.directions.items()}}
@@ -389,25 +428,23 @@ class DutySwitchLearner:
             return cls()
 
 
-# -- the Home Assistant edge: listener, store, per-coordinator record ---------
-
-#: ``() -> (frequency Hz, power kW, threshold kW, by frequency)``, the
-#: arguments of ``wear.compressor_running``; built by the arbiter.
-Reader = Callable[[], tuple[float | None, float | None, float | None, bool]]
-
+# -- the Home Assistant edge: subscription, store, per-coordinator record -----
 
 @dataclass
 class _Record:
-    """One pump's learner, running signal and store."""
+    """One pump's learner, its running signal and store."""
 
     hass: Any
     store: Any
     learner: DutySwitchLearner = field(default_factory=DutySwitchLearner)
-    tracker: wear.EdgeTracker = field(default_factory=wear.EdgeTracker)
-    reader: Reader | None = None
-    unsub: Callable[[], None] | None = None
+    signal: running_signal.Signal = field(default_factory=running_signal.Signal)
     loaded: bool = False
     dirty: bool = False
+    #: The both step whose legs were decided, and the legs, latched so
+    #: neither the tick nor a re-solve inside the step flips them.
+    order: tuple[datetime, duty_legs.Legs] | None = None
+    #: Whether the compressor ran as the last scheduled solve started (:func:`running_now`).
+    solved_running: bool = False
 
     def feed(self, edge: tuple[datetime, bool | None] | None) -> None:
         """Hand a confirmed edge, if any, to the learner."""
@@ -423,44 +460,29 @@ def record_for(coord: Any) -> _Record:
     rec = _RECORDS.get(coord)
     if rec is None:
         rec = _RECORDS[coord] = _Record(coord.hass, QuarantiningStore(
-            coord.hass, STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch"))
+            coord.hass, STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch"),
+            signal=running_signal.signal_for(coord))
     return rec
 
 
-def attach(rec: _Record, entity: str | None, reader: Reader) -> None:
-    """Listen on the running signal's ``entity``; idempotent, and a no-op without one."""
-    if rec.unsub is not None or not entity:
-        return
-    rec.reader = reader
-
-    @callback
-    def _changed(_event: Any) -> None:
-        note_signal(rec, dt_util.now())
-
-    rec.unsub = async_track_state_change_event(rec.hass, [entity], _changed)
-    note_signal(rec, dt_util.now())
+def attach(rec: _Record) -> None:
+    """Hear the running signal's confirmed edges from now on; idempotent."""
+    running_signal.subscribe(rec.signal, rec.feed)
 
 
 def detach(coord: Any) -> None:
-    """Stop listening; an open episode is dropped uncounted, the signal forgotten."""
+    """Stop hearing the edges; an open episode is dropped uncounted. The signal is the module's."""
     rec = _RECORDS.get(coord)
-    if rec is None or rec.unsub is None:
-        return
-    rec.unsub()
-    rec.unsub, rec.reader, rec.tracker, rec.learner.episode = None, None, wear.EdgeTracker(), None
-
-
-def note_signal(rec: _Record, when: datetime) -> None:
-    """One reading of the running signal; never triggers an arbiter pass."""
-    if rec.reader is not None:
-        rec.feed(rec.tracker.note(when, wear.compressor_running(*rec.reader())))
+    if rec is not None:
+        running_signal.unsubscribe(rec.signal, rec.feed)
+        rec.learner.episode = None
 
 
 def note_mode_write(rec: _Record, when: datetime, old: Any, new: Any, ctx: SwitchContext) -> None:
     """The arbiter's mode write landed. A report before the load is dropped."""
     if not rec.loaded:
         return
-    running = rec.tracker.settled is True and rec.tracker.pending is None
+    running = running_signal.running_now(rec.signal) is True
     rec.dirty = rec.learner.mode_write(when, old, new, running, ctx) or rec.dirty
 
 
@@ -468,8 +490,8 @@ async def note_pass(rec: _Record, when: datetime, ctx: SwitchContext) -> None:
     """Each arbiter pass: load once, confirm a pending edge, judge the episode, save a change."""
     if not await _load(rec):
         return
-    rec.feed(rec.tracker.confirm(when))
-    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty
+    running_signal.confirm(rec.signal, when)
+    rec.dirty = rec.learner.note_pass(when, ctx, rec.signal.tracker.pending is not None) or rec.dirty
     if rec.dirty:
         await _persist(rec)
 
@@ -499,3 +521,46 @@ def starts_attributes(coord: Any) -> dict[str, float]:
     """The compressor-starts sensor's duty-switch attributes; a pump never arbitrated reads empty."""
     rec = _RECORDS.get(coord)
     return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())
+
+
+def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float, dhw_kw: float,
+                   step_min: float, next_duty: str | None) -> str:
+    """The duty the both step starting at ``start`` serves at ``now``: its
+    first leg for that leg's minutes, then its last, the legs being
+    ``duty_legs.both_step_legs`` under :meth:`DutySwitchLearner.split`, decided
+    once per step, of a step ``step_min`` long. A record not yet loaded splits by ``duty_legs.DEFAULT_RULE``,
+    as before the learner existed, and latches nothing."""
+    if rec.loaded:
+        if rec.order is None or rec.order[0] != start:
+            rec.order = (start, duty_legs.both_step_legs(space_kw, dhw_kw, step_min, rec.learner.split(),
+                                                         next_duty=next_duty))
+        legs = rec.order[1]
+    else:
+        legs = duty_legs.both_step_legs(space_kw, dhw_kw, step_min)
+    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
+
+
+def running_now(rec: _Record, action: Any) -> bool:
+    """Whether the compressor runs as a scheduled solve starts, for the plan's start count.
+
+    The running signal's settled class with no change pending
+    (:func:`running_signal.running_now`); otherwise the executing step's
+    planned draw (``action``, the coordinator's current one) by the plan's
+    own running rule. Never the
+    start counter, which follows one sample per interval. The record keeps
+    the reading (``solved_running``) for a solve compared against that plan:
+    a what-if's start count stands beside the live plan's on the card, and
+    read afresh, a compressor that started in between would move it by one.
+    """
+    running = running_signal.running_now(rec.signal)
+    if running is None:
+        running = planned_draw_runs(float(action.get("power", 0.0)), float(action.get("dhw_power", 0.0)))
+    rec.solved_running = running
+    return running
+
+
+def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:
+    """The ``OptimizationConfig`` fields a solve prices a duty switch by; a pump never arbitrated reads zeros."""
+    rec = _RECORDS.get(coord)
+    stops, off_s = (rec.learner if rec is not None else DutySwitchLearner()).planner_pairs()
+    return {"duty_switch_stop_probability": stops, "duty_switch_off_seconds": off_s}

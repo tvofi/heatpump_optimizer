@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop BOOLOP b36d784d",
+  "killed_by": "tests/features.py",
+  "old": "        if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw, measured_heat)):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if heat_kw is None or (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw, measured_heat)):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=27."
+}

@@ -291,7 +291,7 @@ EOF
   [ "$failed" = 0 ]
   return $?
 }
-case "${1:-}" in --self-test) self_test; exit $?;; esac
+case "${1:-}" in --self-test) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded ci_watch bash "$0" --self-test; }; self_test; exit $?;; esac
 
 # --------------------------------------------------------------- watch loop
 mkdir -p "$S"
