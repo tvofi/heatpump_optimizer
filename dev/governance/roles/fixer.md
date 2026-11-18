@@ -1,7 +1,8 @@
 # The fixer's contract (the standing gate protocol as a checklist)
 
 You own one PR group: one subsystem, at most five findings, at most about 400
-production lines. You work in your own worktree branched from `origin/main`.
+production lines. You work in your own worktree branched from `origin/main`,
+which `seat/base_fresh.py tree` passes.
 Read only your roster group (`jq`). The owner's rulings in
 `dev/programme/RULINGS.md` bind you. Run a job outliving your turn as a
 background task, whose exit wakes you; never end a turn on a detached one.

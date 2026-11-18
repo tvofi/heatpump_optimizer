@@ -9,3 +9,5 @@
   push line replaced by `true` reddens it (#2444). Every commit the code head
   adds over `origin/main` passes `ref_privacy.py guard --over` before any
   worktree or push, so a trailer the cloud harness pushed is refused there.
+  A checkout holding this script that `base_fresh.py tree` refuses is
+  refused first, `REFUSE BASE-STALE`, with nothing fetched or pushed.

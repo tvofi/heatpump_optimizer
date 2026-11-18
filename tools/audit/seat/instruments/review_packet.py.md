@@ -27,3 +27,7 @@
   Unavailable (rc 3, `UNAVAILABLE`) is a different outcome: the seat cannot
   read the packet's inputs (no checkout, no `gh`/token, a missing tool, an
   unwritable `--out`), so it writes nothing and `dispatch` degrades.
+  `## Policy base (base_fresh.py)` tells the reviewer to read its contract,
+  rules and instruments from origin/main, never from a worktree at the head,
+  and lists each policy, instrument or workflow file the head holds that
+  main has since moved. It is not a refusal: a handed-off head is frozen.

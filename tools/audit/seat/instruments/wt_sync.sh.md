@@ -8,3 +8,7 @@
   never touches the worktree or its index — a snapshot, not a save; a
   worktree whose snapshot would name the host is skipped with the guard's
   reason.
+  It never runs from a stale tree: it starts with `base_fresh.py ensure`
+  over its own checkout, restarts from the moved tree on `BASE-RESET`, and
+  on a checkout it cannot move exits 4 with `wt_sync: REFUSE BASE-STALE`
+  and snapshots nothing.

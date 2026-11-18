@@ -57,3 +57,6 @@
   finished relay (its `TICK-RELAY` line) and starts the next under the same lock
   once `HPO_TICK_RELAY_GAP` s (default 120) have passed since it ended; the tick
   keeps `--interval`. A stale pass starts none in its sleep, nor does a relay in flight.
+  The restart's move is `base_fresh.py reset`: a checkout holding a commit
+  origin/main lacks (a branch or a detached head), or a dirty one, is never
+  moved, and its `BASE-RESET REFUSED` reason is the `TICK-STALE` line's.

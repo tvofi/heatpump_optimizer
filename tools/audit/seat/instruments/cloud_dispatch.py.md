@@ -105,3 +105,6 @@ line adds that the design's parts are not the part line's: the part line is what
 builds, in the shape the design gives it.
 Every reviewer stop path, a setup refusal and a bounded CI wait included, pushes a verdict to
 its probe ref and reads it back.
+Every role's prompt runs `base_fresh.py ensure` in the clone before a contract is read, and stops
+on a `BASE-FRESH FAIL` its repair does not clear or on `BASE-FRESH UNREAD`; the fixer's also runs
+`tree --handoff` before its code push. The reviewer reads policy from origin/main, never the head.

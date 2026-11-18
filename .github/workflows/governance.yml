@@ -1358,6 +1358,20 @@ jobs:
           bash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"
           grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"
 
+      # dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md: the class check over a
+      # seat's tree. A stale base, an uncommitted policy edit and a stale overlay
+      # refuse; main, a branch's own committed edit and a regenerated overlay
+      # pass; reset and ensure move only a checkout that holds no work; and every
+      # seat-start path (the hooks, the instruments, each .claude/workflows/*.js)
+      # names the instrument, over throwaway origins.
+      - name: Show the base freshness check refusing a stale tree and passing main
+        id: base-fresh
+        if: ${{ !cancelled() && steps.scope.outputs.base-fresh == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/base_fresh.py --self-test | tee "$RUNNER_TEMP/base-fresh-self-test.txt"
+          grep -Eq '^base_fresh self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/base-fresh-self-test.txt"
+
       - name: Show the heartbeat andon refusing its own fixtures
         id: heartbeat-andon
         if: ${{ !cancelled() && steps.scope.outputs.heartbeat-andon == 'true' }}
