@@ -1040,5 +1040,191 @@
   "class": "N-confounded-learner",
   "note": "reproduced exactly. The learned top absorbs floor-censored intervals, N-confounded-learner. Votes: 1 verify.",
   "class_mechanism": "An online estimator absorbs the error of an unmodelled or mis-modelled covariate into the parameter it learns"
+ },
+ {
+  "id": "D2-s3-10",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: miss rate 0.006 at 0.005 C noise, 0.214 (6 of 28) at 0.02 C, 1.000 (4 of 4) at 0.05 C; --perturb-bar5 -> 0 admitted",
+  "stop_rule_class": "bug",
+  "class": "P5",
+  "note": "reproduced the shape (misses grow with noise); the perturbation empties the admitted set. An adoption interval that under-covers the bias it gates is P5. Votes: 1 verify.",
+  "class_mechanism": "A sysid/adoption gate keyed on a quantity other than the bias it gates"
+ },
+ {
+  "id": "D2-s3-11",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: gain_recovery_mean=0.5573 (scale err max 0.060); perturb -> 0.7748, up as stated",
+  "stop_rule_class": "bug",
+  "class": "N-confounded-learner",
+  "note": "reproduced exactly, tf 1.000. Votes: 1 weaken (low).",
+  "class_mechanism": "An online estimator absorbs the error of an unmodelled or mis-modelled covariate into the parameter it learns"
+ },
+ {
+  "id": "D3-s2-01",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: a payload.py body edit over-selects 9 scripts (27 over-approximated pairs of 296 claimed)",
+  "stop_rule_class": "hygiene",
+  "class": "I2",
+  "note": "reproduced the 9 scripts; over-selection costs time, never misses a test, so low and hygiene. Votes: 1 weaken (low, I2).",
+  "class_mechanism": "A measured closure or scope diverges from the real dependency graph"
+ },
+ {
+  "id": "D4-s2-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: unfilled_placeholders_total=8 over 9 fired cells; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "reproduced exactly; runner too. Votes: 1 verify.",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D4-s2-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: placeholder_parity_mismatches=1 of 4533 leaf strings; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "reproduced exactly. Merged D8-s2-01. Same string as D10-s2-03, which the dedup kept separate. Votes: 1 verify.",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D4-s3-01",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: english_error_lines=24 over 24 non-en error cells; --perturb err_localize -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-untranslated-splice",
+  "note": "reproduced exactly. Verifier counts 10 splice sites behind the 24 lines. Votes: 1 weaken (low).",
+  "class_mechanism": "A localized message interpolates text the integration does not translate (an upstream exception string), so sv/de users read an English fragment inside their language",
+  "nearest": "I4",
+  "differs": "not two definitions disagreeing: one surface splices a foreign-language runtime string into a translated template"
+ },
+ {
+  "id": "D4-s3-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: tile_row_misaligned=12 of 216 headline rows, max 14 px at phone width; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "P9",
+  "note": "reproduced in px here (the verifier left it unresolved). Votes: 1 unresolved.",
+  "class_mechanism": "Card UI: a clipping ancestor, missing colour token or unfloored hit target"
+ },
+ {
+  "id": "D4-s3-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: below_floor_cells=78 (7 elements); --perturb tooltip_floor -> 54 (2 elements)",
+  "stop_rule_class": "hygiene",
+  "class": "P9",
+  "note": "reproduced the finder's 78. Votes: 1 verify (low).",
+  "class_mechanism": "Card UI: a clipping ancestor, missing colour token or unfloored hit target"
+ },
+ {
+  "id": "D4-s3-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: role_colour_split=5; --perturb one_error_colour -> 3",
+  "stop_rule_class": "hygiene",
+  "class": "P9",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Card UI: a clipping ancestor, missing colour token or unfloored hit target"
+ },
+ {
+  "id": "D4-s3-05",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: offscale_font_sizes=14 (spacing 40); --perturb type_tokens -> 10",
+  "stop_rule_class": "hygiene",
+  "class": "P9",
+  "note": "reproduced the finder's 14 (the verifier's 136 counts element instances). Votes: 1 verify.",
+  "class_mechanism": "Card UI: a clipping ancestor, missing colour token or unfloored hit target"
+ },
+ {
+  "id": "D4-s3-06",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: en_title_case_titles=6 of 41, sv 3; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-copy-style",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "User-facing copy breaks the style rule its sibling strings keep (title case, quote style, degree sign), so one surface reads inconsistently",
+  "nearest": "P9",
+  "differs": "text style, not layout, colour token or hit target"
+ },
+ {
+  "id": "D4-s3-07",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: de_straight_spans=27 vs 95 typographic, en degree without sign 2; --perturb de_quotes -> 2",
+  "stop_rule_class": "hygiene",
+  "class": "N-copy-style",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "User-facing copy breaks the style rule its sibling strings keep (title case, quote style, degree sign), so one surface reads inconsistently",
+  "nearest": "P9",
+  "differs": "text style, not layout, colour token or hit target"
+ },
+ {
+  "id": "D4-s2-51",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "verifier: 3 languages never render {tibber_info}; tibber_token's description already carries the hint",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "converted lead: no finder harness; judged on the verifier's executed number. Dead placeholder only (verifier info maps to low). Votes: 1 weaken.",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D5-s10-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: edit_reaches_cursor=0, unguarded_generated=1; perturb -> edit reaches 1",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly. A message naming the pre-move source path is N-move-stale-path. Votes: 1 verify (low).",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s10-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: mismatches=3 (other_items 4 vs claimed 3); perturb -> 1",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s10-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: verdict_false=1 of 15 units (tools/audit/README.md)",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s10-05",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: verdict_false=1 of 3 units (tools/audit/README.md)",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s10-06",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: verdict_false=1 of 13 units (carry-2065.json)",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced 1 false unit (finder value 2 counts the path twice). Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
  }
 ]
