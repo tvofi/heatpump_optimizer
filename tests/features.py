@@ -97023,6 +97023,15 @@ R.check(
     and any(np.array_equal(r, _sv_space_commits[0][1]) for r in _sv_space_commits[0][0]),
     f"{len(_sv_space_commits)} commit stages",
 )
+R.check(
+    "a space-only solve no wood covers hands the multi-start no duplicate "
+    "start, so the reference-energy seeds are drawn only where a share "
+    "scaled the others (D0-s2-01)",
+    bool(_sv_space)
+    and len({s.tobytes() for s in _sv_space[0][0]}) == len(_sv_space[0][0]),
+    f"{len(_sv_space[0][0]) if _sv_space else 0} starts, "
+    f"{len({s.tobytes() for s in _sv_space[0][0]}) if _sv_space else 0} distinct",
+)
 _sv_covered = _sv_starts(False, share=1.0)
 _sv_live = {s.tobytes() for s in (_sv_covered[0][0] if _sv_covered else [])
             if np.any(s > 0.0)}
