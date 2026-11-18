@@ -512,3 +512,4 @@
 2026-11-18T21:31:43Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND f6fcebcb L6604 by=- ran=12 wall=1328.1s
 2026-11-18T21:31:43Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND 6f5dc16e L5656 by=- ran=13 wall=1328.0s
 2026-11-18T21:53:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains CMP_BOUND a06a3c57 L9437 by=- ran=13 wall=1319.8s
+2026-11-18T21:53:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CMP_BOUND 219aebba L2055 by=- ran=16 wall=1331.4s
