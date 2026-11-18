@@ -1,2 +1,3 @@
 ok sweep-N-step-grid
 ok sweep-N-structure-blind
+ok sweep-N-swallowed-failure
