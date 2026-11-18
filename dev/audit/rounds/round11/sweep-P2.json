@@ -1,15 +1,9 @@
 {
  "class": "P2",
- "instances": 9,
+ "instances": 8,
  "barriered": true,
  "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P2/enumerate_p2.py  (--control: positive, re-plants the 5 planted findings first; --fixture: null; --perturb: one-line re-introduction per family); probes: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py [--perturb]",
  "instance_list": [
-  {
-   "file": "custom_components/heatpump_optimizer/config_flow.py",
-   "symbol": "HeatPumpOptimizerConfigFlow.async_step_reauth_confirm",
-   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL config_flow.async_step_reauth_confirm (Entities page saved token 'token-old'; reauth -> reauth_successful; effective token 'token-old')",
-   "beyond_finding": true
-  },
   {
    "file": "custom_components/heatpump_optimizer/coordinator.py",
    "symbol": "_THERMAL_PARAM_FIELDS.upper_floor_thermal_mass",
@@ -201,6 +195,18 @@
    "symbol": "MonthlySavingsSensor._waiting_for",
    "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py -v -> avail_none_cycles=1 of 17 (D8-s1-03)",
    "beyond_finding": false
+  }
+ ],
+ "notes": [
+  {
+   "moved_seam": {
+    "file": "custom_components/heatpump_optimizer/config_flow.py",
+    "symbol": "HeatPumpOptimizerConfigFlow.async_step_reauth_confirm",
+    "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py -> FAIL config_flow.async_step_reauth_confirm (Entities page saved token 'token-old'; reauth -> reauth_successful; effective token 'token-old')",
+    "beyond_finding": true
+   },
+   "to": "N-entry-data-placement",
+   "why": "fold_ledger one-seam-one-class: seam already registered in N-entry-data-placement by that class's sweep; the P2 token-precedence probe is kept here as evidence for the owning class's fixer (same disposition as sweep-P11.json's moved seam, orchestrator ruling 2026-11-18, mandate 6893738184)"
   }
  ]
 }
