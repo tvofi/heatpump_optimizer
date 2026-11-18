@@ -511,3 +511,4 @@
 2026-11-18T22:17:56Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action GUARD_OFF 83c9652a L6648 by=tests/features.py ran=12 wall=1645.5s
 2026-11-18T22:32:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.quarter_factor GUARD_OFF 2c4b19d6 L303 by=- ran=12 wall=1637.6s
 2026-11-18T22:34:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.expected_daily_min GUARD_OFF 4711f894 L337 by=- ran=12 wall=1644.6s
+2026-11-18T22:41:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_slab_refusal GUARD_OFF ebe7af8b L892 by=- ran=12 wall=1636.2s
