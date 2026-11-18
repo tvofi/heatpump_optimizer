@@ -23,9 +23,8 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-ROOMS-P3 (stage in-progress, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage carries-open, branch `fix/r11-outside-self-setting-pump-p2`): `git fetch origin fix/r11-outside-self-setting-pump-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-VALVE-REFERENCE (stage carries-open, branch `fix/r11-valve-reference`): `git fetch origin fix/r11-valve-reference && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-ARCH-OBJECTIVE (stage carries-open, branch `fix/r11-arch-objective`): `git fetch origin fix/r11-arch-objective && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-NUDGE-RETIRE, R11-ARCH-OBJECTIVE, R11-CARRY-DRAWMAP, R11-CARRY-ROOM-LIFT, R11-CLOSEOUT-CLEANUP, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-ROOMS-P3, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-VALVE-REFERENCE
+Ready next (after-edges satisfied; nothing open constrains them): R10-NUDGE-RETIRE, R11-CARRY-DRAWMAP, R11-CARRY-ROOM-LIFT, R11-CLOSEOUT-CLEANUP, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-ROOMS-P3, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-VALVE-REFERENCE
 
 ## Resume steps
 
