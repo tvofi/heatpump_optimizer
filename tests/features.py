@@ -97140,6 +97140,27 @@ class _MrParams:
     min_electrical_power, max_electrical_power, flow_lift_power_floor_kw = 0.5, 4.0, 0.4
 
 
+# The fold's own wiring of the exclusion: each flag alone, through draw_range.fold.
+def _mr_fold_flags(frozen, distorted):
+    draw = _mr_dr.DrawRange()
+    for m in range(10):
+        _mr_dr.note_pass(draw, _mr_pass(m))
+    _mr_dr.note_pass(draw, None)
+    _mr_dr.fold(draw, 2.0, (2.0, 0.0), _MrParams(), frozen=frozen, distorted=distorted,
+                defrost=False, command=_mr_pa.FlowCommand(35.0, 25.0, 45.0))
+    return len(draw.map.rows), len(draw.map.closed)
+
+
+_mr_flag_rows = {f: _mr_fold_flags(*f) for f in ((False, False), (True, False), (False, True), (True, True))}
+R.check(
+    "fold commits a closed space run as a row only when the interval is neither "
+    "frozen nor distorted: frozen alone, distorted alone and both commit none and "
+    "clear the closed runs (control: neither flag commits one)",
+    _mr_flag_rows == {(False, False): (1, 0), (True, False): (0, 0), (False, True): (0, 0), (True, True): (0, 0)},
+    f"{_mr_flag_rows}",
+)
+
+
 def _mr_fold_run(with_rows):
     draw = _mr_dr.DrawRange()
     for i in range(240):
