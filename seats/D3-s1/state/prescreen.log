@@ -432,3 +432,4 @@
 2026-11-18T13:39:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_stored_peaks CMP_BOUND 6d475b09 L528 by=- ran=12 wall=1460.8s
 2026-11-18T13:56:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._effective_dhw_windows GUARD_OFF c70bc11d L549 by=- ran=12 wall=1372.4s
 2026-11-18T14:00:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.dhw_coast_hours CMP_BOUND ce07878a L3649 by=- ran=16 wall=1471.4s
+2026-11-18T14:02:33Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:wood_share RETURN_DEL c44bae08 L2907 by=tests/features.py ran=12 wall=1385.1s
