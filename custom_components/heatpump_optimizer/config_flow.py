@@ -481,7 +481,12 @@ from . import (
     topology,
 )
 from .wood_fuel import wood_furnace_on
-from .thermal_model import ThermalParameters, _dhw_enabled_from_config, partload_derate_limit
+from .thermal_model import (
+    ThermalParameters,
+    dhw_enabled_from_config,
+    partload_derate_limit,
+    two_zone_from_config,
+)
 from .currency import money_scale, resolve_currency
 from .dhw_schedule import (
     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
@@ -1663,15 +1668,16 @@ def _heat_curve_persistent(config: Mapping[str, Any]) -> bool:
 
 
 def _single_zone(config: Mapping[str, Any]) -> bool:
-    """Whether the model runs one zone, the only one reading the whole-house loss.
+    """Whether the model runs one zone, the only one reading the whole-house
+    loss and mass.
 
-    On two zones every reader takes the zones' loss instead
+    On two zones every reader takes the zones' loss and masses instead
     (``ThermalParameters.house_heat_loss_base``, ``sysid.HousePlant.of_params``),
-    so the thermal page does not offer the whole-house figure there
-    (R10-TWO-ZONE-HHL). The model's own resolution of the mode, so an "auto"
+    so the thermal page offers neither whole-house figure there
+    (R10-TWO-ZONE-HHL, D17-s1-03). The model's own resolution of the mode, so an "auto"
     entry follows the zone keys exactly as the solve does.
     """
-    return not ThermalParameters.from_config(config).two_zone_enabled
+    return not two_zone_from_config(config)
 
 
 def _water_space_setpoint(config: Mapping[str, Any]) -> bool:
@@ -1862,7 +1868,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_WOOD_LIGHTING_LEAD_MINUTES, DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, _number(0, 240, 15, 'min', slider=True), when=wood_furnace_on, group="wood"),
     _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="circulation"),
     # -- thermal_model
-    _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C')),
+    _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C'), when=_single_zone),
     _F("thermal_model", CONF_HOUSE_HEAT_LOSS_COEFFICIENT, _SUGGESTED, _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, 'kW/°C'), when=_single_zone),
     _F("thermal_model", CONF_SLAB_THERMAL_MASS, _SUGGESTED, _number(*RANGE_SLAB_THERMAL_MASS, 0.5, 'kWh/°C')),
     _F("thermal_model", CONF_SLAB_HEAT_TRANSFER, _SUGGESTED, _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, 'kW/°C')),
@@ -2528,7 +2534,7 @@ def _omit_unstored_defaults(
     edited page — behave exactly as before.
     """
     no_dhw_entry = (
-        CONF_DHW_ENABLED not in current and not _dhw_enabled_from_config(current)
+        CONF_DHW_ENABLED not in current and not dhw_enabled_from_config(current)
     )
     cleaned: dict[str, Any] = {}
     for key, value in user_input.items():

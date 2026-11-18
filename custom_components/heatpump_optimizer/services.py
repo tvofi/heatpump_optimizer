@@ -34,6 +34,8 @@ from . import topology
 from .accuracy import REFIT_SETTLED_DAYS
 from .drift import utc_shift
 from .const import (
+    CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+    CONF_HOUSE_THERMAL_MASS,
     DOMAIN,
     CONF_COMFORT_TEMP_DAY,
     CONF_COMFORT_TEMP_NIGHT,
@@ -100,7 +102,7 @@ from .dhw_schedule import (
     parse_windows,
 )
 from .manual_plan import ManualPlanError, build_override
-from .thermal_model import ThermalParameters
+from .thermal_model import ThermalParameters, two_zone_from_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -729,6 +731,26 @@ async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> N
                         "setpoint": f"{float(setpoint):g}",
                         "ceiling": f"{ceiling:g}",
                     },
+                )
+
+    # D17-s3-02: the whole-house mass and loss are read on one zone only
+    # (config_flow._single_zone), so on a two-zone model the write would be
+    # acknowledged and change nothing. Refused before any write, by the
+    # model's own two-zone answer for the config each coordinator was built
+    # from; the error names the fields that do act.
+    house_fields = [
+        k for k in (CONF_HOUSE_THERMAL_MASS, CONF_HOUSE_HEAT_LOSS_COEFFICIENT)
+        if params.get(k) is not None
+    ]
+    if house_fields:
+        for _entry_id, coord in targets:
+            if two_zone_from_config(coord.effective_config):
+                raise ServiceValidationError(
+                    f"{house_fields[0]} applies to a one-zone model only; "
+                    "this install runs two zones",
+                    translation_domain=DOMAIN,
+                    translation_key="set_thermal_params_house_field_two_zone",
+                    translation_placeholders={"field": house_fields[0]},
                 )
 
     _LOGGER.info("Updating thermal parameters: %s", params)

@@ -3883,13 +3883,9 @@ def _p2_proxies(sources):
         return {c for x in ast.walk(node) if (c := _p2_conf(x))}
     out = {"two_zone_enabled": set(), "dhw_enabled": set(), "wood_furnace_on": set()}
     for n in ast.walk(ast.parse(sources["thermal_model.py"])):
-        if isinstance(n, ast.If):
-            txt = ast.unparse(n)
-            if "values['two_zone_enabled']" in txt and "CONF_TWO_ZONE_MODE" not in txt:
-                out["two_zone_enabled"] |= names(n)
-        if isinstance(n, ast.Assign) and "two_zone_mode" in ast.unparse(n.targets[0]):
-            out["two_zone_enabled"] |= names(n.value)
-        if isinstance(n, ast.FunctionDef) and n.name == "_dhw_enabled_from_config":
+        if isinstance(n, ast.FunctionDef) and n.name == "two_zone_from_config":
+            out["two_zone_enabled"] |= names(n)
+        if isinstance(n, ast.FunctionDef) and n.name == "dhw_enabled_from_config":
             out["dhw_enabled"] |= names(n)
     for n in ast.walk(ast.parse(sources["wood_fuel.py"])):
         if isinstance(n, ast.FunctionDef) and n.name in ("wood_furnace_on", "wood_furnace_inferred"):
@@ -3910,7 +3906,7 @@ def _p2_registry(sources):
     return [
         dict(fact="two_zone_enabled", finding="D14-s2-01",
              match=_p2_match_proxy(px["two_zone_enabled"]),
-             owners=["thermal_model.py::ThermalParameters.from_config"], dispositions={}),
+             owners=["thermal_model.py::two_zone_from_config"], dispositions={}),
         dict(fact="wood_furnace_on", finding="D14-s2-01",
              match=_p2_match_proxy(px["wood_furnace_on"]),
              owners=["wood_fuel.py::wood_furnace_on", "wood_fuel.py::wood_furnace_inferred",
@@ -3926,7 +3922,7 @@ def _p2_registry(sources):
              }),
         dict(fact="dhw_enabled", finding="D14-s2-01",
              match=_p2_match_proxy(px["dhw_enabled"]),
-             owners=["thermal_model.py::_dhw_enabled_from_config"],
+             owners=["thermal_model.py::dhw_enabled_from_config"],
              dispositions={
                  "legionella.py::LegionellaGuard._has_probe":
                      "probe presence, not the hot-water fact",
@@ -3948,7 +3944,7 @@ def _p2_registry(sources):
                  "config_flow.py::_omit_unstored_defaults":
                      answer + " and canonical predicate: it asks only whether "
                      "the explicit answer is stored and takes its verdict from "
-                     "_dhw_enabled_from_config",
+                     "dhw_enabled_from_config",
              }),
         # D1-s5-01: a state's age. inputs.state_stamp owns the stamp rule
         # (last_reported first, #775); age_of re-derived it.
@@ -4220,7 +4216,7 @@ def _p2_registry(sources):
              match=_p2_match_node(
                  ast.BoolOp, r"two_zone\w* and [\w.]*upper_temp_trajectory",
                  lambda n: isinstance(n.op, ast.And)),
-             owners=["optimizer.py::OptimizationResult.sensor_trajectory"],
+             owners=["optimizer.py::OptimizationResult.zone_trajectories"],
              dispositions={}),
         dict(fact="billed_window_pad", finding="R10-CLONE-2238",
              match=_p2_match_node(
@@ -19174,13 +19170,13 @@ from heatpump_optimizer import thermal_model as _hb_tm  # noqa: E402
 R.check(
     "the heartbeat boot is two-zone + DHW by the model's own reading; the A3-A13 seed has no DHW",
     _hb_tm.ThermalParameters.from_config(_hb_eff).two_zone_enabled
-    and _hb_tm._dhw_enabled_from_config(_hb_eff)
+    and _hb_tm.dhw_enabled_from_config(_hb_eff)
     and _hb_eff.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_ON
     and _hb_eff.get("lower_floor_temp_entity") == _nightly.HB_LOWER_FLOOR_ENTITY
-    and not _hb_tm._dhw_enabled_from_config(_hb_base_eff),
+    and not _hb_tm.dhw_enabled_from_config(_hb_base_eff),
     f"hb two_zone={_hb_tm.ThermalParameters.from_config(_hb_eff).two_zone_enabled} "
-    f"dhw={_hb_tm._dhw_enabled_from_config(_hb_eff)}; "
-    f"base dhw={_hb_tm._dhw_enabled_from_config(_hb_base_eff)}",
+    f"dhw={_hb_tm.dhw_enabled_from_config(_hb_eff)}; "
+    f"base dhw={_hb_tm.dhw_enabled_from_config(_hb_base_eff)}",
 )
 _hb_payload = _nightly.heartbeat_payload(
     _nightly.HB_PAGE, _hb_eff, _nightly.HB_KEY, 21.5, const.AFTER_SAVE_MENU

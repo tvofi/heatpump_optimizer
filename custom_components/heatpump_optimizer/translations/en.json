@@ -315,8 +315,8 @@
           "two_zone": "On for a house with two separately heated floors, off for one. A two-zone house lets the optimizer balance the slab-heated lower floor against the upper floor.",
           "buffer_tank": "A tank between the heat pump and the heating circuits, large enough to store heat. On records a store-sized volume (500 litres; the shipped default of 35 litres models a small hydraulic separator, which cannot store a night's heat). The optimizer only plans around it as a store once a throttling mixing valve is set up too, in Options; without one this only sizes the tank in the model.",
           "dhw_tank": "A tank the heat pump keeps full of domestic hot water. Leave on if your heat pump makes hot water.",
-          "wood_furnace": "A wood furnace that heats the same water loop. On lets the optimizer factor its heat in and stand the pump down while the fire is lit.",
-          "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below; the two-tank physics activates only once a probe is assigned.",
+          "wood_furnace": "A wood furnace that heats the same water loop. On records the furnace and its wood settings. The optimizer only plans around the fire's heat once a throttling mixing valve is set up too, in Options, and it only stands the pump down while the fire is lit once Detect a wood furnace or other heat source is switched on there.",
+          "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below. The optimizer only plans with the two-tank model once a probe is assigned and a throttling mixing valve is set up too, in Options; without one this only records the tank.",
           "wood_tank_top_entity": "Together with the bottom sensor this gives the heat left in the wood tank: the average of the two readings, counted only above the buffer tank temperature plus 2 °C. With this top sensor alone the average is taken as 5 °C below it.",
           "wood_tank_bottom_entity": "See the top sensor. The top sensor alone is enough for the remaining-energy estimate, read conservatively; the bottom sensor alone gives no estimate.",
           "building_structure": "Heavy materials inside the insulation store heat, which is what lets the optimizer buy it cheaply and use it later.",
@@ -412,6 +412,9 @@
     },
     "set_thermal_params_dhw_min_no_deadband": {
       "message": "A hot water minimum of {minimum} °C leaves no deadband below the {setpoint} °C setpoint; it must be at most {ceiling} °C"
+    },
+    "set_thermal_params_house_field_two_zone": {
+      "message": "{field} applies to a one-zone model only; this install runs two zones. Set upper_floor_thermal_mass and lower_floor_thermal_mass on this action, and each zone's heat loss on the options' Two-zone model page."
     },
     "assign_entity_missing": {
       "message": "Entity {entity_id} does not exist"
@@ -1049,7 +1052,7 @@
           "after_save": "After saving"
         },
         "data_description": {
-          "house_thermal_mass": "How much heat the room air, furnishings and light fabric store per degree — roughly 0.02 kWh/°C per m² of heated area for a timber house, 0.05 or more for stone. In a floor-heated house the heavy floor and heated slab are counted separately under Slab floor thermal mass, so this figure alone is not the whole building. In a one-zone radiator house the heavy floor is added to this figure instead, because the radiator circuit itself holds almost no heat.",
+          "house_thermal_mass": "How much heat the room air, furnishings and light fabric store per degree — roughly 0.02 kWh/°C per m² of heated area for a timber house, 0.05 or more for stone. In a floor-heated house the heavy floor and heated slab are counted separately under Slab floor thermal mass, so this figure alone is not the whole building. In a one-zone radiator house the heavy floor is added to this figure instead, because the radiator circuit itself holds almost no heat. A two-zone house sets each floor's mass on the Two-zone model page instead, so this field is offered for one zone only.",
           "house_heat_loss_coefficient": "How fast the house loses heat per degree of difference to outside. Multiply by the indoor-outdoor gap to get the heating power needed: 0.25 kW/°C at 20 degrees difference means about 5 kW.",
           "slab_thermal_mass": "Heat stored per degree in whatever the heat is delivered through: the concrete slab of a floor-heated house — the buffer that lets the floor be switched off during price peaks — or, with radiators, the water and steel of the radiator circuit, which is far smaller. A radiator house of 100 m² lands near 0.2 kWh/°C, a heated slab of the same size near 10.",
           "slab_heat_transfer": "How quickly heat moves from that store into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance. A radiator circuit is faster even though its value is lower, because it holds far less heat: about 0.2 for 100 m², against about 1 for a floor of the same size.",
@@ -1152,8 +1155,8 @@
           "two_zone": "On for a house with two separately heated floors, off for one. A two-zone house lets the optimizer balance the slab-heated lower floor against the upper floor.",
           "buffer_tank": "A tank between the heat pump and the heating circuits, large enough to store heat. On records a store-sized volume (500 litres; the shipped default of 35 litres models a small hydraulic separator, which cannot store a night's heat). The optimizer only plans around it as a store once a throttling mixing valve is set up too, in Options; without one this only sizes the tank in the model.",
           "dhw_tank": "A tank the heat pump keeps full of domestic hot water. Leave on if your heat pump makes hot water.",
-          "wood_furnace": "A wood furnace that heats the same water loop. On lets the optimizer factor its heat in and stand the pump down while the fire is lit.",
-          "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below; the two-tank physics activates only once a probe is assigned.",
+          "wood_furnace": "A wood furnace that heats the same water loop. On records the furnace and its wood settings. The optimizer only plans around the fire's heat once a throttling mixing valve is set up too, in Options, and it only stands the pump down while the fire is lit once Detect a wood furnace or other heat source is switched on there.",
+          "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below. The optimizer only plans with the two-tank model once a probe is assigned and a throttling mixing valve is set up too, in Options; without one this only records the tank.",
           "wood_tank_top_entity": "Together with the bottom sensor this gives the heat left in the wood tank: the average of the two readings, counted only above the buffer tank temperature plus 2 °C. With this top sensor alone the average is taken as 5 °C below it.",
           "wood_tank_bottom_entity": "See the top sensor. The top sensor alone is enough for the remaining-energy estimate, read conservatively; the bottom sensor alone gives no estimate.",
           "building_structure": "Heavy materials inside the insulation store heat, which is what lets the optimizer buy it cheaply and use it later.",
@@ -2322,11 +2325,11 @@
       "fields": {
         "house_thermal_mass": {
           "name": "House Thermal Mass",
-          "description": "Thermal mass of the house (air + furnishings) in kWh/°C. Higher values mean slower temperature changes. Roughly 0.02 kWh/°C per m² of heated area for a timber house; heavy floors are counted under slab_thermal_mass instead."
+          "description": "Thermal mass of the house (air + furnishings) in kWh/°C. Higher values mean slower temperature changes. Roughly 0.02 kWh/°C per m² of heated area for a timber house; heavy floors are counted under slab_thermal_mass instead. One zone only: a two-zone install refuses it and takes upper_floor_thermal_mass and lower_floor_thermal_mass."
         },
         "house_heat_loss_coefficient": {
           "name": "Heat Loss Coefficient",
-          "description": "Overall heat loss coefficient in kW/°C. Lower values indicate better insulation."
+          "description": "Overall heat loss coefficient in kW/°C. Lower values indicate better insulation. One zone only: a two-zone install refuses it and takes each zone's heat loss from the options' Two-zone model page."
         },
         "slab_thermal_mass": {
           "name": "Slab Thermal Mass",

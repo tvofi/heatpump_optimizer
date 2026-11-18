@@ -1108,32 +1108,8 @@ class ThermalParameters:
             else None
         )
 
-        # Two-zone and DHW are inferred from whether their settings are present
-        # at all, rather than from a flag, so an entry written before either
-        # existed keeps working. The mode key (v4.0.0) is an explicit override
-        # on top: presence alone can never turn the model *off*, because the
-        # initial flow writes the zone keys into entry.data where the options
-        # flow cannot erase them. "auto" — the default, so every entry without
-        # the key — is the presence rule unchanged; an unknown value is
-        # treated as "auto" rather than silently disabling a running model.
-        two_zone_mode = str(
-            config.get(const.CONF_TWO_ZONE_MODE, const.DEFAULT_TWO_ZONE_MODE)
-        )
-        if two_zone_mode == const.TWO_ZONE_MODE_ON:
-            values["two_zone_enabled"] = True
-        elif two_zone_mode == const.TWO_ZONE_MODE_OFF:
-            values["two_zone_enabled"] = False
-        else:
-            values["two_zone_enabled"] = any(
-                key in config
-                for key in (
-                    const.CONF_UPPER_FLOOR_THERMAL_MASS,
-                    const.CONF_LOWER_FLOOR_THERMAL_MASS,
-                    const.CONF_INTER_ZONE_TRANSFER,
-                    const.CONF_RADIATOR_POWER_FRACTION,
-                )
-            )
-        values["dhw_enabled"] = _dhw_enabled_from_config(config)
+        values["two_zone_enabled"] = two_zone_from_config(config)
+        values["dhw_enabled"] = dhw_enabled_from_config(config)
 
         # Demand windows: fall back to the default schedule when the stored
         # value is missing, and to "always available" when it cannot be parsed.
@@ -1163,7 +1139,37 @@ class ThermalParameters:
 
         return cls(**values)
 
-def _dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
+def two_zone_from_config(config: Mapping[str, Any]) -> bool:
+    """Whether the model runs two zones: the one answer every reader takes.
+
+    Two-zone and DHW are inferred from whether their settings are present
+    at all, rather than from a flag, so an entry written before either
+    existed keeps working. The mode key (v4.0.0) is an explicit override
+    on top: presence alone can never turn the model *off*, because the
+    initial flow writes the zone keys into entry.data where the options
+    flow cannot erase them. "auto" — the default, so every entry without
+    the key — is the presence rule unchanged; an unknown value is
+    treated as "auto" rather than silently disabling a running model.
+    """
+    two_zone_mode = str(
+        config.get(const.CONF_TWO_ZONE_MODE, const.DEFAULT_TWO_ZONE_MODE)
+    )
+    if two_zone_mode == const.TWO_ZONE_MODE_ON:
+        return True
+    if two_zone_mode == const.TWO_ZONE_MODE_OFF:
+        return False
+    return any(
+        key in config
+        for key in (
+            const.CONF_UPPER_FLOOR_THERMAL_MASS,
+            const.CONF_LOWER_FLOOR_THERMAL_MASS,
+            const.CONF_INTER_ZONE_TRANSFER,
+            const.CONF_RADIATOR_POWER_FRACTION,
+        )
+    )
+
+
+def dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
     """The explicit switch, else the presence of a hot water key.
 
     A None value does NOT count as presence (v4.0.0 T3): clearing the DHW

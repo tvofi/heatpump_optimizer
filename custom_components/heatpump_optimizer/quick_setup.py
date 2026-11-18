@@ -26,10 +26,13 @@ the convention rather than hiding it:
   store only when its volume reaches ``BUFFER_STORE_MIN_VOLUME``. "yes" writes a
   store-sized volume, "no" leaves the shipped small default (not a store).
 * "Wood buffer tank" — a second tank only enters the two-tank physics when
-  its top/bottom probe entities are present (that is the model's own gate,
-  ``wood_furnace_on`` and a probe), which is why the page asks for the probes
-  beside the question. "yes" records the tank volume; the probe entities the
-  user picks on the page are what activate the two-tank physics.
+  ``wood_furnace_on`` holds and a top/bottom probe entity is present, which is
+  why the page asks for the probes beside the question. "yes" records the tank
+  volume and the probes; neither is the model's whole gate: the plan uses the
+  two-tank variant only on a throttling mixing valve
+  (``ThermalParameters.topology_layout``), which this page does not set, and
+  the pump stands down for the fire only under the external-heat detection
+  switch, which it does not set either (D17-s2-03; the page text says both).
 
 The zone answer is written as the explicit override (``two_zone_mode``), never
 by adding or removing the two-zone presence keys, because the latter is exactly

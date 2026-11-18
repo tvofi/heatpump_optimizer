@@ -27426,6 +27426,7 @@ _SVC_KEYS = {
     "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
     "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
+    "set_thermal_params_house_field_two_zone": ({"field"}, "sve"),
     "factory_reset_not_applied": ({"entry_id"}, "hae"),
 }
 
@@ -41793,6 +41794,7 @@ _ET_KEYS = {
     "config_entry_not_loaded": {"entry_id"},
     "no_loaded_config_entry": set(),
     "set_thermal_params_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
+    "set_thermal_params_house_field_two_zone": {"field"},
     "assign_entity_missing": {"entity_id"},
     "assign_entity_wrong_domain": {"entity_id", "domain", "key", "domains"},
     "apply_topology_unsupported": {"layout", "requirement"},
@@ -90263,20 +90265,158 @@ R.check(
     f"{_c2238_p3_br.predictive_info.get('power_cap_breach_c')}, release {_c2238_p3_rel}",
 )
 
-# P3's rule itself, on a real result: two-zone with an upper trajectory reads
-# it; single-zone, or two-zone without one, reads the room.
+# P3's rule itself, on a real result: two-zone with its floors reads the
+# upper one; single-zone, or two-zone without floors, reads the room. A
+# two-zone solve fills both floor lists, so the upper floor is kept whenever
+# the plan has floors (R11-SEAM-plant-model pm-03: the indoor sensor's
+# series does not move when the floors' predicate gains the lower list).
 _c2238_p3_rule = _c2238_result(3)
 _c2238_p3_rule.upper_temp_trajectory = [19.0] * 4
+_c2238_p3_rule.lower_temp_trajectory = [20.0] * 4
 _c2238_p3_bare = _c2238_result(3)
 R.check(
     "R10-CLONE-2238 P3: sensor_trajectory is the upper floor only in two-zone "
-    "mode with an upper trajectory, else the room",
+    "mode with the plan's floors, else the room",
     _c2238_p3_rule.sensor_trajectory(True) == [19.0] * 4
     and _c2238_p3_rule.sensor_trajectory(False) == [21.0] * 4
     and _c2238_p3_bare.sensor_trajectory(True) == [21.0] * 4
     and _c2238_p3_bare.sensor_trajectory(False) == [21.0] * 4,
     f"{_c2238_p3_rule.sensor_trajectory(True)} {_c2238_p3_rule.sensor_trajectory(False)} "
     f"{_c2238_p3_bare.sensor_trajectory(True)}",
+)
+
+# R11-SEAM-plant-model: one predicate per plant question (ADR-008 part 1).
+# D12-s1-01: a single-zone solve fills the floor lists with the room's own
+# trajectory, so "has floors" is the model's flag, answered once by
+# OptimizationResult.zone_trajectories; the plan view reads it, not the lists.
+_pm_single = _c2238_result(3)
+_pm_single.upper_temp_trajectory = [21.0] * 4
+_pm_single.lower_temp_trajectory = [21.0] * 4
+_pm_upper_only = _c2238_result(3)
+_pm_upper_only.upper_temp_trajectory = [19.0] * 4
+R.check(
+    "R11-SEAM-plant-model D12-s1-01: zone_trajectories is None on one zone "
+    "even with filled floor lists, the floors on two zones, None without both",
+    _pm_single.zone_trajectories(False) is None
+    and _pm_single.zone_trajectories(True) == ([21.0] * 4, [21.0] * 4)
+    and _c2238_p3_rule.zone_trajectories(True) == ([19.0] * 4, [20.0] * 4)
+    and _pm_upper_only.zone_trajectories(True) is None,
+    f"{_pm_single.zone_trajectories(False)} {_pm_upper_only.zone_trajectories(True)}",
+)
+
+
+def _pm_space_rows(two_zone_mode):
+    coord = _t2_coord(two_zone_mode=two_zone_mode)
+    res = _c2238_result(3)
+    res.upper_temp_trajectory = [19.0] * 4
+    res.lower_temp_trajectory = [20.0] * 4
+    res.timestamps = [_T6 + timedelta(minutes=15 * i) for i in range(3)]
+    return coord._build_plan_views(res)["space_plan"]["forecast"]
+
+
+_pm_rows_one = _pm_space_rows("off")
+_pm_rows_two = _pm_space_rows("on")
+R.check(
+    "R11-SEAM-plant-model D12-s1-01: a single-zone plan publishes null "
+    "upper/lower rows; a two-zone one (null control) publishes its floors",
+    bool(_pm_rows_one)
+    and all(r.get("upper") is None and r.get("lower") is None for r in _pm_rows_one)
+    and bool(_pm_rows_two)
+    and all(r.get("upper") == 19.0 and r.get("lower") == 20.0 for r in _pm_rows_two),
+    f"one={_pm_rows_one[:1]} two={_pm_rows_two[:1]}",
+)
+
+# D8-s1-01: the hot-water coast term prices a tank only on an install with
+# hot water, answered by thermal_model.dhw_enabled_from_config. Null
+# control: the same series with hot water switched on still prices it.
+from heatpump_optimizer import sensor as _pm_sensor  # noqa: E402
+
+_pm_gap_off = _pm_sensor._gap_probe_terms({}, [1.0, 0.0], [2.0, 2.0], 1.5)
+_pm_gap_on = _pm_sensor._gap_probe_terms(
+    {"dhw_enabled": True}, [1.0, 0.0], [2.0, 2.0], 1.5
+)
+R.check(
+    "R11-SEAM-plant-model D8-s1-01: no hot water prices no DHW coast; "
+    "hot water (null control) still does",
+    _pm_gap_off["dhw_extra_kwh"] == 0.0
+    and _pm_gap_on["dhw_extra_kwh"] > 0.0
+    and _pm_gap_off["outdoor_load_kw"] == _pm_gap_on["outdoor_load_kw"] > 0.0,
+    f"off={_pm_gap_off} on={_pm_gap_on}",
+)
+
+# D17-s3-02: on two zones the whole-house mass and loss are read by nothing,
+# so the action refuses them before any write instead of acknowledging a
+# write that changes nothing. Null control: one zone still takes them.
+_pm_svc_hass = FakeHass()
+_seed_prices(_pm_svc_hass)
+_asyncio.run(_ha_setup_component(_integ, _pm_svc_hass))
+_pm_svc_two = FakeEntry(data=dict(_LC_DATA, two_zone_mode="on"), entry_id="pm_two")
+_asyncio.run(_ha_setup_entry(_integ, _pm_svc_hass, _pm_svc_two))
+_pm_svc_mass0 = _pm_svc_two.runtime_data._thermal_params.room_thermal_mass
+_pm_svc_out = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"house_thermal_mass": 33.0}
+)
+_svc_check(
+    "R11-SEAM-plant-model D17-s3-02: set_thermal_parameters refuses the "
+    "whole-house mass on a two-zone entry",
+    _pm_svc_out,
+    "set_thermal_params_house_field_two_zone",
+)
+_pm_svc_loss = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"house_heat_loss_coefficient": 0.4}
+)
+_svc_check(
+    "R11-SEAM-plant-model D17-s3-02: and the whole-house heat loss",
+    _pm_svc_loss,
+    "set_thermal_params_house_field_two_zone",
+)
+R.check(
+    "R11-SEAM-plant-model D17-s3-02: the refused call wrote nothing",
+    _pm_svc_two.runtime_data._thermal_params.room_thermal_mass == _pm_svc_mass0
+    and "house_thermal_mass" not in _pm_svc_two.options,
+    f"mass={_pm_svc_two.runtime_data._thermal_params.room_thermal_mass} "
+    f"options={dict(_pm_svc_two.options)}",
+)
+_pm_svc1_hass = FakeHass()
+_seed_prices(_pm_svc1_hass)
+_asyncio.run(_ha_setup_component(_integ, _pm_svc1_hass))
+_pm_svc_one = FakeEntry(data=dict(_LC_DATA, two_zone_mode="off"), entry_id="pm_one")
+_asyncio.run(_ha_setup_entry(_integ, _pm_svc1_hass, _pm_svc_one))
+_pm_svc_one_out = _svc_call(
+    _pm_svc1_hass, "set_thermal_parameters", {"house_thermal_mass": 33.0}
+)
+R.check(
+    "R11-SEAM-plant-model D17-s3-02 null control: a single-zone entry still "
+    "takes the whole-house mass",
+    _pm_svc_one_out[0] == "returned"
+    and _pm_svc_one.runtime_data._thermal_params.room_thermal_mass == 33.0,
+    f"{_pm_svc_one_out} mass={_pm_svc_one.runtime_data._thermal_params.room_thermal_mass}",
+)
+
+# D17-s2-03: quick setup's wood answers record the furnace and the tank; the
+# page says what else the plan needs, as buffer_tank's sentence does.
+import json as _pm_json  # noqa: E402
+from pathlib import Path as _pm_Path  # noqa: E402
+
+_pm_strings = _pm_json.loads(
+    _pm_Path("custom_components/heatpump_optimizer/strings.json").read_text()
+)
+_pm_wood = [
+    _pm_strings[flow]["step"]["quick_setup"]["data_description"][key]
+    for flow in ("config", "options")
+    for key in ("wood_furnace", "wood_buffer_tank")
+]
+R.check(
+    "R11-SEAM-plant-model D17-s2-03: every quick-setup wood description names "
+    "the throttling mixing valve, and the furnace's names the detection switch",
+    all("throttling mixing valve" in t for t in _pm_wood)
+    and all(
+        "Detect a wood furnace or other heat source" in t
+        for t in _pm_wood[0::2]
+    )
+    and not any("stand the pump down while the fire is lit." in t
+                and "once" not in t for t in _pm_wood),
+    f"{_pm_wood}",
 )
 
 # P4: window means at their billed-equivalent factor -- the published peak_kw,

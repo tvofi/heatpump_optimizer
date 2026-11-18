@@ -4853,11 +4853,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Trajectories carry the initial state at index 0, so the value that
         # belongs to step i is at i + 1.
         room = series(result.room_temp_trajectory, offset=1)
-        two_zone = bool(
-            result.upper_temp_trajectory and result.lower_temp_trajectory
-        )
-        upper = series(result.upper_temp_trajectory, offset=1) if two_zone else [None] * n
-        lower = series(result.lower_temp_trajectory, offset=1) if two_zone else [None] * n
+        zones = result.zone_trajectories(_ctx_of(self)._thermal_params.two_zone_enabled)
+        upper = series(zones[0], offset=1) if zones is not None else [None] * n
+        lower = series(zones[1], offset=1) if zones is not None else [None] * n
         dhw_power = series(result.dhw_power_schedule)
         dhw_temp = series(result.dhw_temp_trajectory, offset=1)
         # v5.2.0: how far the tank curve has historically been out, at each

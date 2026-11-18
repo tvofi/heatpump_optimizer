@@ -2626,16 +2626,28 @@ class OptimizationResult:
     #: The arbiter maps the plan's steps by it (R10-COP-GATE part D).
     solve_band: dict[str, Any] = field(default_factory=dict)
 
+    def zone_trajectories(self, two_zone: bool) -> tuple[list[float], list[float]] | None:
+        """The (upper, lower) floor trajectories, or None on one zone.
+
+        The one answer to "does this plan have floors" (D12-s1-01): the
+        model's flag, not the lists alone, because a single-zone solve
+        fills both lists with the room's trajectory. ``two_zone`` is the
+        model's ``two_zone_enabled``; a two-zone plan missing either list
+        has no floors to show either.
+        """
+        if two_zone and self.upper_temp_trajectory and self.lower_temp_trajectory:
+            return self.upper_temp_trajectory, self.lower_temp_trajectory
+        return None
+
     def sensor_trajectory(self, two_zone: bool) -> list[float]:
         """The trajectory the indoor sensor reads (#2238 P3's one owner).
 
         In two-zone mode the sensor sits on the upper floor, so its
-        trajectory is the upper one when the plan carries it; otherwise the
-        room's.
+        trajectory is the upper one when the plan carries its floors;
+        otherwise the room's.
         """
-        if two_zone and self.upper_temp_trajectory:
-            return self.upper_temp_trajectory
-        return self.room_temp_trajectory
+        zones = self.zone_trajectories(two_zone)
+        return zones[0] if zones is not None else self.room_temp_trajectory
 
 
 #: Currency per start a clamped install plans at when it prices no start
