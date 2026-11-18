@@ -1039,7 +1039,10 @@ def self_test() -> int:
         path = os.path.dirname(sys.executable) + os.pathsep + env.get("PATH", "")
         # HPO_WT_SYNC_FRESH: the script under test is this checkout's, a pull request's head and no standing
         # loop's tree, so its own base check (base_fresh.py's self-test drives it) is not this fixture's.
-        env = {**env, "HOME": home, "USER": fake_name, "LOGNAME": fake_name, "PATH": path, "HPO_WT_SYNC_FRESH": "1"}
+        # HPO_HANDOFF_BASE: body_push.sh's base check is stubbed, as its own self-test stubs it; the
+        # planted checkout holds an untracked stub predictor, which that check refuses by design.
+        env = {**env, "HOME": home, "USER": fake_name, "LOGNAME": fake_name, "PATH": path, "HPO_WT_SYNC_FRESH": "1",
+               "HPO_HANDOFF_BASE": "true"}
 
         def g(*a: str, cwd: str = main) -> str:
             return subprocess.run(["git", *a], cwd=cwd, env=env, check=True, capture_output=True,

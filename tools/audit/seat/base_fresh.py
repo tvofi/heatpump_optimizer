@@ -307,8 +307,11 @@ def _self_test() -> int:
         with tempfile.TemporaryDirectory() as t:
             t = Path(t)
             src, origin = t / "src", t / "o.git"
-            subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True, env=env)
-            subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True, env=env)
+            # tests/throwaway_git.py: the one way a tracked script makes a throwaway repository.
+            sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+            import throwaway_git  # noqa: E402
+            throwaway_git.throwaway_git_init(src, "-q", "-b", "main")
+            throwaway_git.throwaway_git_init(origin, "-q", "--bare", "-b", "main")
 
             def land(path: str, text: str) -> str:
                 f = src / path
@@ -325,7 +328,7 @@ def _self_test() -> int:
 
             def clone(name: str, at: str = "origin/main", branch: str | None = None) -> Path:
                 d = t / name
-                subprocess.run(["git", "clone", "-q", str(origin), str(d)], check=True, env=env)
+                throwaway_git.throwaway_git_clone(origin, d, "-q")
                 g(d, "checkout", "-q", *(["-b", branch] if branch else ["--detach"]), at)
                 return d
 
@@ -380,6 +383,8 @@ def _self_test() -> int:
             rc, out = run(tree, str(dirty), "origin/main")
             check("an uncommitted edit to a workflow script on a fresh base is refused as an overlay",
                   rc == 1 and "  STALE .claude/workflows/w.js: an uncommitted or untracked" in out and "(stale 1, own 0)" in out)
+            check("... and its repair is to commit the edit or drop it, never the reset", "repair: commit the edit on a branch" in out
+                  and "ensure --dir" not in out)
             rc, out = run(tree, str(dirty), "origin/main", handoff=True)
             check("--handoff still refuses the uncommitted edit", rc == 1 and "BASE-FRESH FAIL" in out)
             g(dirty, "checkout", "-q", "--", ".")
@@ -418,6 +423,25 @@ def _self_test() -> int:
                   and g(idle, "branch", "--show-current") == "claude/session")
             rc, out = run(reset, str(idle), "origin/main")
             check("control: reset on a checkout already at origin/main moves nothing", rc == 0 and out.startswith("BASE-RESET none: "))
+            (idle / "custom_components/p.py").write_text("wip\n")
+            rc, out = run(reset, str(idle), "origin/main")
+            check("... and work in progress on a checkout already at origin/main is not a refusal",
+                  rc == 0 and out.startswith("BASE-RESET none: "))
+            g(idle, "checkout", "-q", "--", ".")
+            land("dev/governance/roles/new.md", "main's\n")
+            (idle / "dev/governance/roles/new.md").write_text("an untracked file git status -uno does not show\n")
+            rc, out = run(reset, str(idle), "origin/main")
+            check("a move git refuses (an untracked file main now tracks) is said, and the checkout stays",
+                  rc == 1 and out.strip() == "BASE-RESET REFUSED: the checkout failed" and g(idle, "rev-parse", "HEAD") == c1)
+            orphan = g(fresh, "commit-tree", "-m", "o", g(fresh, "rev-parse", "HEAD^{tree}"))
+            rc, out = run(tree, str(fresh), "origin/main", rev=orphan, fetch=False)
+            check("a commit sharing no history with origin/main is UNREAD, never a pass", rc == 2 and "share no history" in out)
+            try:
+                _out(str(fresh), "rev-parse", "--verify", "no-such-ref^{commit}")
+                raised = False
+            except Unread:
+                raised = True
+            check("a git read that fails is UNREAD, never an empty answer", raised)
             (dirty / ".claude/workflows/w.js").write_text("edited\n")
             g(dirty, "checkout", "-q", "--", "custom_components/p.py")
             rc, out = run(ensure, str(dirty), "origin/main")

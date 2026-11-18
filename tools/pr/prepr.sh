@@ -3260,6 +3260,9 @@ EOF
   (cd "$PDX/r" && rb=$(python3 -I -c 'import sys; sys.path.insert(0, "tools/audit/seat"); import roster_lib as r; print(r.round_ref(r.git_in(".")) or "")') \
     && git push -q origin "refs/remotes/origin/main:refs/heads/${rb#origin/}") >/dev/null 2>&1
   printf 'body\n' > "$PDX/BODY.md"
+  # body_push.sh's base check reads origin/main, which this stand-in origin does not hold; it is
+  # stubbed here as body_push.sh's own self-test stubs it, and base_fresh.py's self-test drives it.
+  export HPO_HANDOFF_BASE=true
   bpush() { (cd "$PDX/r" && git checkout -q -f "$1" && bash "$OLDPWD/tools/audit/seat/body_push.sh" "zz-$1" "$PDX/BODY.md" 2>&1; echo "rc=$?"; git --git-dir="$PDX/bodies.git" for-each-ref --format='ref %(refname)' "refs/heads/handoff-body/zz-$1"); }
   got=$(bpush pinert)
   grep -q 'PREDICT tests / closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got" && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
