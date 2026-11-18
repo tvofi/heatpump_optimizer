@@ -2102,13 +2102,21 @@ def _domain_arm() -> None:
         streak_back = (_a6_roundtrip("ledger", streak, savers)[0] or {}).get("score_day")
         for store in sorted(seeds):
             _a6_store(store, seeds[store], savers, out)
-        # The cost probe's own control: a cell-only leaf (the overdraw count)
-        # measures 0 under a planted ``whole``, a keying cell (the
-        # configuration) more.
-        whole_control = [_a6_whole_cost("accuracy", seeds["accuracy"], ("accuracy", "draw", leaf),
-                                        _store.DOMAINS["accuracy"][f"accuracy/draw/{decl}"]._replace(
-                                            whole="planted"), savers)
-                         for leaf, decl in (("overdraws", "overdraws"), ("config", "config/#"))]
+        # The cost probe's own control, through the same sweep: a ``whole``
+        # planted on a cell-only leaf (the overdraw count) is refused, and the
+        # configuration that keys the draw record is not.
+        fields = _store.stored_fields
+        planted = ("accuracy", "draw", "overdraws")
+        _store.stored_fields = lambda name, payload: [
+            (p, k, d._replace(whole="planted") if p == planted and d else d, v)
+            for p, k, d, v in fields(name, payload)]
+        control_out = {"driven": 0, "refused": set(), "unreached": set(), "whole": {}}
+        try:
+            _a6_store("accuracy", seeds["accuracy"], savers, control_out)
+        finally:
+            _store.stored_fields = fields
+        whole_control = [control_out["whole"].get(f"accuracy:accuracy/draw/{leaf}")
+                         for leaf in ("overdraws", "config/#")]
     finally:
         _dt_util.freeze(None)
         _dt_util.DEFAULT_TIME_ZONE = zone_before
@@ -2167,9 +2175,9 @@ def _domain_arm() -> None:
         f"whole={len(out['whole'])} unused={unused}",
     )
     R.check(
-        "the whole cost probe reads 0 on a cell-only leaf under a planted whole, and more on "
-        "the configuration that keys the draw record (its own control)",
-        whole_control[0] == 0 and whole_control[1] > 0,
+        "the whole sweep refuses a whole planted on a cell-only leaf (the overdraw count), and "
+        "measures a cost on the configuration that keys the draw record (its own control)",
+        whole_control[0] == 0 and (whole_control[1] or 0) > 0,
         f"overdraws={whole_control[0]} config={whole_control[1]}",
     )
     R.check(
