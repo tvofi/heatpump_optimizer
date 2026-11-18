@@ -1,8 +1,0 @@
-TRACED tests/plan_view.py rc=0 wall=1.2s cpu=1.2s procs={'started': 1, 'recorded': 1} problems=[]
-TRACED tests/card.mjs rc=0 wall=81.4s cpu=88.5s procs={'started': 0, 'recorded': 0} problems=[]
-TRACED tests/card_drift.mjs rc=0 wall=4.3s cpu=5.3s procs={'started': 0, 'recorded': 0} problems=[]
-TRACED tests/golden.py rc=1 wall=86.4s cpu=84.2s procs={'started': 2, 'recorded': 2} problems=['the traced run was not green (rc=1)']
-TRACED tests/stress.py rc=0 wall=178.8s cpu=187.4s procs={'started': 24, 'recorded': 12} problems=['starts a non-Python process: git rev-parse --verify --quiet HEAD^1^{commit} (+11)', '24 processes started, 12 recorded']
-RESULT load1=1.13
-RESULT thread_factor=1.00
-EXIT6
