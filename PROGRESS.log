@@ -7,18 +7,13 @@
 1794988634 HB D3-s1 started (frugal:builder, model opus; general-purpose and sage agents refused by the frugal routing guard)
 1794988683 CKPT D3-s1 126 file(s)
 1794989043 HB alive
-1794989505 RESUMED from c68343178ea1
-1794989505 INIT box D3-u1c
-1794989522 HB alive
-1794989582 HB re-fire: drift warm skipped: HEAD is the baseline
-1794989587 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
-1794989592 HB prepared
-1794989603 SEAT D3-s1 running
-1794989649 HB re-fire: D3-s1 started (frugal:builder, model opus)
-1794989706 CKPT D3-s1 128 file(s)
-1794990128 HB alive
-1794990734 HB alive
-1794991326 HB alive
-1794991347 CKPT D3-s1 133 file(s)
-1794991932 HB alive
-1794992538 HB alive
+1794989647 HB alive
+1794989659 HB cannot: CMD 1 is not STOP/RESUME/SKIP/NOTE (box_comms refused it as unknown) and changes brief step 3 (seat runs as an Agent subagent); recorded pending owner confirmation. D3-s1 is already running as an Agent subagent (frugal:builder, model opus) since 1794989xxx; running it inline too would duplicate it. Send STOP or SKIP D3-s1 to halt it.
+1794989783 CKPT D3-s1 133 file(s)
+1794990253 HB alive
+1794990859 HB alive
+1794991190 CKPT D3-s1 161 file(s)
+1794991464 HB alive
+1794991687 CKPT D3-s1 169 file(s)
+1794992069 HB alive
+1794992652 CKPT D3-s1 190 file(s)
