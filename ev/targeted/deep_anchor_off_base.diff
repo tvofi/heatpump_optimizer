@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 876fee23ad..b211359e97 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -5540,7 +5540,7 @@ class HeatPumpOptimizer:
+                 dt,
+             ),
+         ]
+-        if self.model.params.two_zone_enabled:
++        if False:
+             # The deep low-energy anchor, two-zone only -- see its own
+             # comment for why the reach is deliberately this narrow.
+             starts.append(

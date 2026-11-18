@@ -1,0 +1,5 @@
+NOTE body item 525b3b42: dismissed:outside D0-s2-01's mechanism by the finding's own perturbation; class P4's RCA, marked owed in ISSUES.json, is the seat that reads it
+NOTE body item aa9c98dc: dismissed:corrected by the orchestrator's ruling before this fire
+NOTE body item b2263e64: dismissed:the reproduction recipe is in this body's Figures, the reviewer's own surface
+NOTE review 0 item 1fe50b5b: dismissed:pre-existing at the base, not this diff's; carry_audit names no live roster group after R11-SEAM-solver to receive it (R10-LEDGER-RESIDUE is done), so the orchestrator routes it at the next roster
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)

@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 7db38b1ebc..633464dc4a 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2155,7 +2155,7 @@ def _space_only_starts(
+     seed_power = reference_power * (1.0 - covered)
+     energy = float(np.sum(seed_power) * dt)
+     fractions = (_LOW_ENERGY_START_FRACTION,) + (
+-        (_DEEP_LOW_ENERGY_START_FRACTION,) if model.params.two_zone_enabled else ()
++        (_DEEP_LOW_ENERGY_START_FRACTION,) if False else ()
+     )
+     starts = [
+         initial_power,
