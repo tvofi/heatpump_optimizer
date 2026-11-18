@@ -11,3 +11,4 @@
 1794989522 HB inbox cmd 1 (malformed, parser refused) read by hand: orchestrator says run D3-s1 inline in this opus session, no Agent spawn, no FRUGAL_ALLOW_EXPENSIVE; obeying. New container: PREPARE re-run.
 1794989583 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
 1794989587 HB drift warm skipped: HEAD is the baseline
+1794989591 HB prepared
