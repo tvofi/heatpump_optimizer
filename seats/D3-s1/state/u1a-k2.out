@@ -1,0 +1,3 @@
+2026-11-18T14:33:29Z COMPLETE queued=236 from=pre
+2026-11-18T14:59:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast GUARD_OFF 4fdd8846 L9827 by=- ran=13 wall=1585.1s
+2026-11-18T14:59:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._derive_hold_schedule GUARD_OFF 1cd73243 L5074 by=- ran=12 wall=1587.6s
