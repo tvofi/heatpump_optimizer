@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_correlations CLAMP_DROP 3396f1bf",
+  "old": "    rows = np.maximum(n, 1.0)",
+  "reason": "Equivalent. rows = np.maximum(n, 1.0) only replaces a zero common-row count, and every cell it changes is one where n == 0: there the unclamped division gives NaN or inf in mean, cov and var, and the mask ok = (n >= 3) & ... is False for that cell, so r keeps its NaN fill either way. The clamp spares a RuntimeWarning, not a value. Measured by tests/features.py's R11-OUTSIDE-ROOMS-P3 block (40 checks, every one green on the mutant), which reads _correlations through the collinear and correlation checks.",
+  "verdict": "equivalent"
+}

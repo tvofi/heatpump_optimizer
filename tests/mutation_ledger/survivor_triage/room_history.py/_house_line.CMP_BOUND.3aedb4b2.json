@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_house_line CMP_BOUND 3aedb4b2",
+  "old": "    fraction = np.divide(np.nansum(stack, axis=0), reported, out=np.full(len(power), np.nan), where=reported > 0)",
+  "reason": "Equivalent. The where= mask only decides whether a column with reported == 0 is divided; with reported >= 0 that division is nansum (0.0) / 0 = NaN, and with reported > 0 the out= buffer already holds NaN there. Either way the cell is NaN and is dropped by the rows filter's reported[i] term. The mutant adds a RuntimeWarning only. Every check of tests/features.py's R11-OUTSIDE-ROOMS-P3 block is green on it.",
+  "verdict": "equivalent"
+}

@@ -96389,5 +96389,77 @@ R.check(
     "factory reset keeps the room history: no _FACTORY_VOID row and not among the restored stores",
     "room_history" not in {n for n, _ in _r9f13_cmod._FACTORY_VOID},
 )
+from heatpump_optimizer import sensor as _rh_sensor_mod  # noqa: E402
+
+_rh_sep_sensors = [_rh_sensor_mod.RoomSeparabilitySensor(c, c.config_entry) for c in _rh_coords]
+R.check(
+    "the Room Separability sensor publishes the report's rooms, house line and row count as attributes; null "
+    "control, a coordinator with no record publishes no state and None for each",
+    _rh_sep_sensors[0].extra_state_attributes == {k: _rh_snaps[0]["room_history"][k] for k in ("rooms", "house", "rows")}
+    and _rh_sep_sensors[0].extra_state_attributes["rows"] == 2
+    and _rh_sep_sensors[1].native_value is None
+    and _rh_sep_sensors[1].extra_state_attributes == {"rooms": None, "house": None, "rows": None},
+    f"{_rh_sep_sensors[0].extra_state_attributes} {_rh_sep_sensors[1].extra_state_attributes}",
+)
+# A weak gain: its t-statistic clears MIN_T but not twice it (the fixture is
+# kept only while it lands there, which the second half of the check asserts).
+_rh_weak = _rh.identifiability_report(_rh_simulate(5, 10, _rh_own, rooms=("climate.a",), gain=0.12))["rooms"]["climate.a"]
+R.check(
+    "a gain three to six standard errors clear of zero reads separable: MIN_T is the bar, not twice it",
+    _rh_weak["code"] == "separable" and _rh.MIN_T <= _rh_weak["t"] < 2 * _rh.MIN_T,
+    f"{_rh_weak}",
+)
+_rh_fit_real = _rh._fit
+_rh._fit = lambda x, y: (np.array([0.05, 1.0, 0.0]), np.array([10.0, _rh.MIN_T, 0.0]))
+try:
+    _rh_at_t = _rh_code(_rh_grid([0, 10000] * 100))
+finally:
+    _rh._fit = _rh_fit_real
+R.check(
+    "a calling gain exactly MIN_T standard errors clear of zero reads separable (the bar is inclusive)",
+    _rh_at_t["code"] == "separable" and _rh_at_t["t"] == _rh.MIN_T,
+    f"{_rh_at_t}",
+)
+_rh_nan = float("nan")
+R.check(
+    "a room whose calling moves with another's at exactly COLLINEAR_R is collinear (the bar is inclusive); "
+    "just under it is not",
+    _rh._collinear(0, ["climate.a", "climate.b"], np.array([[_rh_nan, _rh.COLLINEAR_R], [_rh.COLLINEAR_R, _rh_nan]]))
+    == ("climate.b", _rh.COLLINEAR_R)
+    and _rh._collinear(0, ["climate.a", "climate.b"], np.array([[_rh_nan, 0.899], [0.899, _rh_nan]])) is None,
+)
+_rh_exact = _rh._fit(np.column_stack([[0.0, 1.0] * 5, np.ones(10)]), np.array([1.0, 2.0] * 5))
+R.check(
+    "an exact fit (a residual sum of exactly zero) keeps finite t-statistics, which the report rounds and "
+    "diagnostics serialise",
+    _rh_exact is not None and bool(np.isfinite(_rh_exact[1]).all()) and bool((_rh_exact[1] >= _rh.MIN_T).all()),
+    f"{_rh_exact}",
+)
+_rh_holes = _rh_grid([0, 10000] * 100)
+_rh_holes.rooms["climate.a"]["t"] = [None if k % 10 == 0 else v for k, v in enumerate(_rh_holes.rooms["climate.a"]["t"])]
+_rh_holes.house["outdoor"] = [None if k % 10 == 5 else v for k, v in enumerate(_rh_holes.house["outdoor"])]
+R.check(
+    "a pair needs the room's temperature and the outdoor temperature in both rows: 200 rows missing one or "
+    "the other every fifth row step 159 times",
+    len(_rh._step_pairs(_rh_holes, _rh_holes.rooms["climate.a"]["t"])) == 159
+    and _rh_code(_rh_holes)["pairs"] == 159,
+    f"{_rh_code(_rh_holes)}",
+)
+_rh_append_real, _rh_appended = _rh._append, []
+_rh_gap_h, _rh_gap_p = _rh.History(), None
+for _rh_m in (0, 30, 400 * 1440, 400 * 1440 + 30):
+    if _rh_m == 400 * 1440 + 30:
+        _rh._append = lambda *a: (_rh_appended.append(a[1]), _rh_append_real(*a))
+    try:
+        _rh_gap_p, _ = _rh.note(_rh_gap_h, _rh_gap_p, _RH_M0 + _rh_m, [_RhReading("sensor.a", 20.0)], _rh_house())
+    finally:
+        _rh._append = _rh_append_real
+R.check(
+    "a period after an outage longer than the ring fills only the ring's 14 days with null rows, not the "
+    "whole outage",
+    0 < len(_rh_appended) <= _rh.HISTORY_LENGTH and len(_rh_gap_h.times) == _rh.HISTORY_LENGTH
+    and _rh_gap_h.times[-1] == _RH_M0 + 400 * 1440,
+    f"appended={len(_rh_appended)} ring={len(_rh_gap_h.times)}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))
