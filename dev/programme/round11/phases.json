@@ -1,131 +1,136 @@
 {
- "round": 11,
- "as_of": "2026-11-15T13:00:00Z",
- "phases": [
-  {
-   "phase": "round-start",
-   "status": "running",
-   "started": "2026-11-15T05:22:47Z",
-   "entry": "the prior round's final state comment on #201 (round 10 closed by the v10.0.0 tag, whose time is this phase's start)",
-   "exit": "a baseline SHA pinned after evaluator.md's evaluation, once every finder-critical group has merged",
-   "items": [
+  "round": 11,
+  "as_of": "2026-11-18T14:17:00Z",
+  "phases": [
     {
-     "name": "Pickup",
-     "status": "done"
+      "phase": "round-start",
+      "status": "done",
+      "started": "2026-11-15T05:22:47Z",
+      "entry": "the prior round's final state comment on #201 (round 10 closed by the v10.0.0 tag, whose time is this phase's start)",
+      "exit": "a baseline SHA pinned after evaluator.md's evaluation, once every finder-critical group has merged",
+      "items": [
+        {
+          "name": "Pickup",
+          "status": "done"
+        },
+        {
+          "name": "Start evaluation (decision 0018)",
+          "status": "done",
+          "detail": "approved: eval/r11 02a48db2, review eval-review/r11-3 92991d2a"
+        },
+        {
+          "name": "Owner card rulings",
+          "status": "done",
+          "detail": "48 cards, 2 still to rule"
+        },
+        {
+          "name": "Round-10 objective record",
+          "status": "done",
+          "detail": "pull request #3611 open, in review"
+        },
+        {
+          "name": "Round-11 roster cutover",
+          "status": "done",
+          "detail": "approved"
+        },
+        {
+          "name": "R11-PRE-FINDER-CONTRACT",
+          "status": "done",
+          "detail": "finder-critical; fixer running since 12:05Z"
+        },
+        {
+          "name": "R11-PRE-BRIEFS-CENSUS",
+          "status": "done",
+          "detail": "finder-critical; fixer running since 12:05Z"
+        },
+        {
+          "name": "R11-PRE-BRIEFS-TEXT",
+          "status": "done",
+          "detail": "finder-critical; fixer running since 12:05Z"
+        },
+        {
+          "name": "R11-PRE-OWNER-CRITERIA",
+          "status": "done",
+          "detail": "finder-critical; fixer running since 12:05Z"
+        },
+        {
+          "name": "R11-PRE-NEW-DIMENSIONS",
+          "status": "done",
+          "detail": "finder-critical; design first, not yet dispatched"
+        },
+        {
+          "name": "R11-PRE-ROUND-METRICS part 1",
+          "status": "done",
+          "detail": "finder-critical (recall and overlap); fixer running since 12:43Z"
+        },
+        {
+          "name": "Scopes proved",
+          "status": "done",
+          "detail": "finder-critical"
+        },
+        {
+          "name": "Baseline at a green main",
+          "status": "done",
+          "detail": "finder-critical"
+        },
+        {
+          "name": "Instrument groups",
+          "status": "done",
+          "detail": "in parallel, not gating finders: R11-PRE-MACHINERY-LIMITER, three S hotfixes, R11-PRE-TOOLCHAIN-PIN and R11-PRE-SHARED-FILES in design, R11-PRE-STANDING-SCRIPTS, RULINGS-FILE, RELAY-REBUILD, HANDOFF-BOOKKEEPING, ACK-COMPLETION, TOKEN-LEDGER, PLAN-RENDER"
+        },
+        {
+          "name": "Outside work",
+          "status": "done",
+          "detail": "in parallel, not gating finders: #3598 in review, #3602 in repair, #3529 open"
+        }
+      ]
     },
     {
-     "name": "Start evaluation (decision 0018)",
-     "status": "done",
-     "detail": "approved: eval/r11 02a48db2, review eval-review/r11-3 92991d2a"
+      "phase": "finders",
+      "status": "running",
+      "started": "2026-11-16T16:00:37Z",
+      "items": [
+        {
+          "name": "D3 late intake (top6 local, 5 cloud boxes)",
+          "status": "running",
+          "detail": "verify/judge then plan amendment"
+        }
+      ]
     },
     {
-     "name": "Owner card rulings",
-     "status": "running",
-     "detail": "48 cards, 2 still to rule"
+      "phase": "verify-judge",
+      "status": "done"
     },
     {
-     "name": "Round-10 objective record",
-     "status": "running",
-     "detail": "pull request #3611 open, in review"
+      "phase": "plan",
+      "status": "done",
+      "finished": "2026-11-18T11:26:49Z",
+      "exit": "owner confirmed plan/r11 819aa2e3"
     },
     {
-     "name": "Round-11 roster cutover",
-     "status": "waiting",
-     "waiting_on": "the roster edit queue",
-     "detail": "approved"
+      "phase": "fix-waves",
+      "status": "running",
+      "started": "2026-11-18T12:23:00Z",
+      "items": [
+        {
+          "name": "Merged",
+          "status": "running",
+          "detail": "#3714 #3717 #3720 #3721"
+        },
+        {
+          "name": "Replay hotfix #3725",
+          "status": "waiting",
+          "waiting_on": "bus reviewer verdict"
+        }
+      ]
     },
     {
-     "name": "R11-PRE-FINDER-CONTRACT",
-     "status": "running",
-     "detail": "finder-critical; fixer running since 12:05Z"
+      "phase": "stamps",
+      "status": "not-started"
     },
     {
-     "name": "R11-PRE-BRIEFS-CENSUS",
-     "status": "running",
-     "detail": "finder-critical; fixer running since 12:05Z"
-    },
-    {
-     "name": "R11-PRE-BRIEFS-TEXT",
-     "status": "running",
-     "detail": "finder-critical; fixer running since 12:05Z"
-    },
-    {
-     "name": "R11-PRE-OWNER-CRITERIA",
-     "status": "running",
-     "detail": "finder-critical; fixer running since 12:05Z"
-    },
-    {
-     "name": "R11-PRE-NEW-DIMENSIONS",
-     "status": "not-started",
-     "detail": "finder-critical; design first, not yet dispatched"
-    },
-    {
-     "name": "R11-PRE-ROUND-METRICS part 1",
-     "status": "running",
-     "detail": "finder-critical (recall and overlap); fixer running since 12:43Z"
-    },
-    {
-     "name": "Scopes proved",
-     "status": "not-started",
-     "detail": "finder-critical"
-    },
-    {
-     "name": "Baseline at a green main",
-     "status": "not-started",
-     "detail": "finder-critical"
-    },
-    {
-     "name": "Instrument groups",
-     "status": "running",
-     "detail": "in parallel, not gating finders: R11-PRE-MACHINERY-LIMITER, three S hotfixes, R11-PRE-TOOLCHAIN-PIN and R11-PRE-SHARED-FILES in design, R11-PRE-STANDING-SCRIPTS, RULINGS-FILE, RELAY-REBUILD, HANDOFF-BOOKKEEPING, ACK-COMPLETION, TOKEN-LEDGER, PLAN-RENDER"
-    },
-    {
-     "name": "Outside work",
-     "status": "running",
-     "detail": "in parallel, not gating finders: #3598 in review, #3602 in repair, #3529 open"
+      "phase": "closure",
+      "status": "not-started"
     }
-   ]
-  },
-  {
-   "phase": "finders",
-   "status": "not-started",
-   "forecast": {
-    "start_from": "2026-11-16T08:00:00Z",
-    "start_to": "2026-11-16T20:00:00Z",
-    "basis": "the orchestrator's forecast at 2026-11-15 13:00Z, after the finder-critical groups"
-   },
-   "entry": "a baseline SHA pinned after evaluator.md's evaluation",
-   "exit": "every scope reported"
-  },
-  {
-   "phase": "verify-judge",
-   "status": "not-started",
-   "entry": "the finders' reports",
-   "exit": "every finding judged, classes swept"
-  },
-  {
-   "phase": "plan",
-   "status": "not-started",
-   "entry": "the judged register",
-   "exit": "Plan review: approve, then the owner's approval"
-  },
-  {
-   "phase": "fix-waves",
-   "status": "not-started",
-   "entry": "the approved plan; the roster lints clean",
-   "exit": "every group merged, one train batch at a time; row, handover and state docs current"
-  },
-  {
-   "phase": "stamps",
-   "status": "not-started",
-   "entry": "merges since the last tag",
-   "exit": "the tag pushed"
-  },
-  {
-   "phase": "closure",
-   "status": "not-started",
-   "entry": "every phase drained",
-   "exit": "the closure criteria of dev/audit/README.md hold"
-  }
- ]
+  ]
 }
