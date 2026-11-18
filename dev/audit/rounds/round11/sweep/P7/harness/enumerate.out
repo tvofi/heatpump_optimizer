@@ -1,0 +1,60 @@
+SEAM DAYLEN heatpump_optimizer/accuracy.py:770 heat_loss_refit | days = utc_elapsed_seconds(max(s.when for s in settled), origin) / 86400.0
+SEAM DAYLEN heatpump_optimizer/comfort_learning.py:104 ComfortLearner._decay | days = utc_elapsed_seconds(now, self.last_update) / 86400.0
+SEAM DAYLEN heatpump_optimizer/coordinator.py:4449 HeatPumpOptimizerCoordinator._dhw_setpoint_sweep | draw_day_kwh = params.dhw_draw_power * 24.0
+SEAM DAYLEN heatpump_optimizer/coordinator.py:4455 HeatPumpOptimizerCoordinator._dhw_setpoint_sweep | params.dhw_store.ua_kw_per_c
+SEAM DAYLEN heatpump_optimizer/coordinator.py:7550 HeatPumpOptimizerCoordinator._update_snow_memory | self._snow_accum_cm *= math.exp(-dt_true / 24.0)
+SEAM DAYLEN heatpump_optimizer/coordinator.py:7558 HeatPumpOptimizerCoordinator._update_snow_memory | SNOW_ROOF_DAYS * 86400.0
+SEAM DAYLEN heatpump_optimizer/coordinator.py:9447 HeatPumpOptimizerCoordinator._fold_internal_gains | self._internal_gains_profile = [g0] * 24
+SEAM DAYLEN heatpump_optimizer/coordinator.py:9448 HeatPumpOptimizerCoordinator._fold_internal_gains | hour = int(previous_time.hour) % 24
+SEAM DAYLEN heatpump_optimizer/coordinator.py:11020 HeatPumpOptimizerCoordinator._record_quiet_comfort_period | ctx._config.optimization_interval
+SEAM DAYLEN heatpump_optimizer/curve_learning.py:127 CurveLearner._step_down | days = (now - last).total_seconds() / 86400.0
+SEAM DAYLEN heatpump_optimizer/dhw_planner.py:592 DhwPlanner._dhw_legionella_due | interval_hours = float(params.dhw_legionella_interval_days) * 24.0
+SEAM DAYLEN heatpump_optimizer/dhw_planner.py:667 DhwPlanner._dhw_legionella_due | >= float(params.dhw_legionella_min_interval_days) * 24.0
+SEAM DAYLEN heatpump_optimizer/dhw_planner.py:890 DhwPlanner._dhw_coil_wood_forecast | hours = np.asarray(h.step_hours, dtype=float) % 24.0
+SEAM DAYLEN heatpump_optimizer/dhw_planner.py:954 DhwPlanner._dhw_window_floors | hours_mod = np.asarray(step_hours, dtype=float) % 24.0
+SEAM DAYLEN heatpump_optimizer/dhw_schedule.py:472 hour_in_windows | h = hour % 24.0
+SEAM DAYLEN heatpump_optimizer/dhw_schedule.py:498 overlap_fraction | start = hour_start % 24.0
+SEAM DAYLEN heatpump_optimizer/dhw_schedule.py:524 hours_until_next_window | h = hour % 24.0
+SEAM DAYLEN heatpump_optimizer/dhw_schedule.py:527 hours_until_next_window | delta = (start - h) % 24.0
+SEAM DAYLEN heatpump_optimizer/draw_range.py:184 DrawRange.learned_max_kw | if not 0.0 <= now_s - newest <= CEILING_LAPSE_DAYS * 86400.0:
+SEAM DAYLEN heatpump_optimizer/duty_switch.py:195 Direction.weights | factor = 0.5 ** (age_s / (HALF_LIFE_DAYS * 86400.0))
+SEAM DAYLEN heatpump_optimizer/learner_progress.py:90 snapshot_rates | days = utc_elapsed_seconds(now, taken) / 86400.0
+SEAM CAL heatpump_optimizer/ledger.py:132 pro_rata_factor | days = calendar.monthrange(now.year, now.month)[1]
+SEAM DAYLEN heatpump_optimizer/ledger.py:138 month_hours | return 24.0 * calendar.monthrange(now.year, now.month)[1]
+SEAM DAYLEN heatpump_optimizer/legionella.py:68 days_since_confirmed | return int(age_h // 24.0) if age_h > interval_days * 24.0 else None
+SEAM DAYLEN heatpump_optimizer/legionella.py:681 LegionellaGuard.hours_since | interval_h = max(0.0, float(self._params().dhw_legionella_interval_days) * 24.0)
+SEAM DAYLEN heatpump_optimizer/legionella.py:697 LegionellaGuard._retry_hours | interval_h = max(0.0, float(self._params().dhw_legionella_interval_days) * 24.0)
+SEAM DAYLEN heatpump_optimizer/legionella.py:708 LegionellaGuard.due_in_hours | return float(round(params.dhw_legionella_interval_days * 24.0 - since, 1))
+SEAM DAYLEN heatpump_optimizer/legionella.py:767 LegionellaGuard.check_mode_block | overdue_days = max(1, int(-due // 24.0) + 1)
+SEAM DAYLEN heatpump_optimizer/optimizer.py:3973 HeatPumpOptimizer._co_optimize | hours = np.asarray(h.step_hours, dtype=float) % 24.0
+SEAM DAYLEN heatpump_optimizer/optimizer.py:5933 HeatPumpOptimizer._optimize_with_dhw | int(step_hours[idx]) % 24
+SEAM DAYLEN heatpump_optimizer/price_model.py:58 <module> | QUARTERS_PER_DAY = HOURS_PER_DAY * QUARTERS_PER_HOUR
+SEAM DAYLEN heatpump_optimizer/price_model.py:171 PriceShapeModel | default_factory=lambda: [[1.0] * HOURS_PER_DAY for _ in range(2)]
+SEAM DAYLEN heatpump_optimizer/price_model.py:178 PriceShapeModel | default_factory=lambda: [[1.0] * QUARTERS_PER_DAY for _ in range(2)]
+SEAM DAYLEN heatpump_optimizer/price_model.py:186 PriceShapeModel | default_factory=lambda: [[0.0] * HOURS_PER_DAY for _ in range(2)]
+SEAM DAYLEN heatpump_optimizer/price_model.py:305 PriceShapeModel.quarter_factor | q = (when.hour % HOURS_PER_DAY) * QUARTERS_PER_HOUR + (
+SEAM DAYLEN heatpump_optimizer/price_model.py:315 PriceShapeModel.predict | level * shape[when.hour % HOURS_PER_DAY] * self.quarter_factor(when)
+SEAM DAYLEN heatpump_optimizer/price_model.py:356 PriceShapeModel.sigma | var = float(self.residual_var[idx][when.hour % HOURS_PER_DAY])
+SEAM DAYLEN heatpump_optimizer/price_model.py:529 extend_price_series | step_start_times[i].hour % HOURS_PER_DAY
+SEAM DAYLEN heatpump_optimizer/price_tiles.py:216 schedule_figure.month | return round(per_month((sim_kwh - live_kwh) * price * horizon_hours / 24.0 + extra, horizon_hours), 2)
+SEAM DAYLEN heatpump_optimizer/pump_schedule.py:42 vvc_should_run | hour = float(hour_of_day) % 24.0
+SEAM DAYLEN heatpump_optimizer/quiet_windows.py:301 wall_clock | minutes = int(round(hour * 60.0)) % (24 * 60)
+SEAM DAYLEN heatpump_optimizer/snapshots.py:97 SnapshotRing.due | return (now - last).total_seconds() >= SNAPSHOT_INTERVAL_DAYS * 86400.0
+SEAM DAYLEN heatpump_optimizer/sysid.py:1298 night_gains_prior_kw | span = (config.end_hour - config.start_hour) % 24 or 24
+SEAM DAYLEN heatpump_optimizer/sysid.py:1322 armable | days = None if last_run is None else utc_elapsed_seconds(now, last_run) / 86400.0
+SEAM DAYLEN heatpump_optimizer/sysid.py:1335 armable | if since is not None and (now.timestamp() - since) / 86400.0 < wait:
+SEAM DAYLEN heatpump_optimizer/sysid.py:1336 armable | days = (now.timestamp() - since) / 86400.0
+SEAM DAYLEN heatpump_optimizer/tariff.py:717 _day_peaks | window_days = np.arange(excess.size) * int(window_minutes) // (24 * 60)
+SEAM DAYLEN heatpump_optimizer/tariff.py:1143 _day_peaks_batch | days = np.arange(size) * int(window_minutes) // (24 * 60)
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:849 ThermalParameters.dhw_draw_power | liters_per_hour = self.dhw_daily_consumption / 24.0
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:2813 <module> | DHW_HOURLY_DRAW_PATTERN = [x * 24.0 / _DHW_SUM for x in DHW_HOURLY_DRAW_PATTERN]
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:3539 ThermalModel.internal_gains_at | return float(profile[int(hour_of_day) % 24])
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:3590 ThermalModel.dhw_draw_rate | hour_idx = int(hour_of_day) % 24
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:3597 ThermalModel.dhw_draw_rates | indices = (np.asarray(step_hours, dtype=float).astype(int)) % 24
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:3604 ThermalModel.dhw_usage_intensity | return self.params.effective_dhw_draw_pattern()[int(hour_of_day) % 24]
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:4404 ThermalModel.simulate_trajectory | (start_hour + i * dt_hours) % 24.0
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:4625 ThermalModel.simulate_trajectory_batch | (start_hour + i * dt_hours) % 24.0
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:4882 ThermalModel.simulate_trajectory_with_dhw | hours = (start_hour + np.arange(n_steps) * dt_hours) % 24.0
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:4928 ThermalModel.simulate_trajectory_with_dhw | current_hour % 24.0 if gains_hours_matter else None
+SEAM DAYLEN heatpump_optimizer/thermal_model.py:4953 ThermalModel.simulate_trajectory_with_dhw | hour_of_day=current_hour % 24.0,
+RESULT seams=59 CAL=1 DAYLEN=58

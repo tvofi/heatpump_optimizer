@@ -1,0 +1,648 @@
+{
+ "class": "P9",
+ "instances": 1,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P9/enumerate_p9.py  (null: --fixture clean -> seams=0; perturbation: --fixture perturbed -> seams=1); probes: dev/audit/rounds/round11/D14/sweep-P9/probe_token.py, dev/audit/rounds/round11/D14/sweep-P9/probe_svg_text.mjs, the findings' m1_*/m3_look harnesses",
+ "baseline": "origin/handoff/audit-r11-register (92d38ecb product tree)",
+ "seams": 69,
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5158,
+   "symbol": ".header",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5300,
+   "symbol": ".hl-value",
+   "family": "STACK",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (tile_row_misaligned=12 this box)",
+   "finding": "D4-s3-02",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5331,
+   "symbol": ".hl-fold-head",
+   "family": "TARGET",
+   "probe": "NODE_PATH=$(npm root -g) HPO_PLANDATA=<plan_view.py payload> STATES=score_open POINTER=coarse node dev/audit/rounds/round11/D4/s1/m1_browser.mjs  (strict_small > 0)",
+   "finding": "D4-s1-03",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5386,
+   "symbol": ".sb-head",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5415,
+   "symbol": ".chip, .layout-bar button",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5516,
+   "symbol": ".tooltip",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (below_floor_cells=78 this box)",
+   "finding": "D4-s3-03",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5535,
+   "symbol": ".tooltip .tt-shared",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (below_floor_cells=78 this box)",
+   "finding": "D4-s3-03",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5629,
+   "symbol": ".dlg-head",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5648,
+   "symbol": "dialog.expanded .legend",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5651,
+   "symbol": "dialog.expanded .dlg-head",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5654,
+   "symbol": "dialog.expanded .chip",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5660,
+   "symbol": "dialog.expanded .layout-bar button",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5663,
+   "symbol": "dialog.expanded .tooltip",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (below_floor_cells=78 this box)",
+   "finding": "D4-s3-03",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5666,
+   "symbol": "dialog.expanded .whatif",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5679,
+   "symbol": ".dlg-tab",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5853,
+   "symbol": ".layout-verdict",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (below_floor_cells=78 this box)",
+   "finding": "D4-s3-03",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5859,
+   "symbol": ".setup-svg.editing .setup-pipe",
+   "family": "TARGET",
+   "probe": "NODE_PATH=$(npm root -g) HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_pipes.mjs  (pipe_hit_under_floor > 0)",
+   "finding": "D4-s1-01",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5876,
+   "symbol": ".setup-pipe.invalid",
+   "family": "COLOUR",
+   "probe": "python3 dev/audit/rounds/round11/D14/sweep-P9/probe_token.py '.setup-pipe.invalid'  (exits 1: stroke var(--error-color, #db4437), a third error shade beside --hpo-crit and ERROR_READABLE; --perturb -> 0; null '.status-pill.tone-crit' -> 0)",
+   "beyond_finding": true,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5935,
+   "symbol": "border-color: $",
+   "family": "COLOUR",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (role_colour_split=5 this box; --perturb=one_error_colour -> 3)",
+   "finding": "D4-s3-04",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5936,
+   "symbol": "background: $",
+   "family": "COLOUR",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (role_colour_split=5 this box; --perturb=one_error_colour -> 3)",
+   "finding": "D4-s3-04",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5941,
+   "symbol": ".sp-note",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (below_floor_cells=78 this box)",
+   "finding": "D4-s3-03",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5978,
+   "symbol": ".whatif .delta",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6044,
+   "symbol": ".health-h",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6125,
+   "symbol": ".whatif",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6151,
+   "symbol": ".whatif .wi-group-title",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6160,
+   "symbol": ".whatif .wi-viewlimit",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6165,
+   "symbol": ".whatif .wi-viewreset",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6194,
+   "symbol": ".whatif .wi-quiet-unenforced",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6195,
+   "symbol": ".whatif .wi-quiet-frac-note",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6197,
+   "symbol": ".whatif .wi-quiet-remove",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6199,
+   "symbol": ".whatif .wi-add-quiet",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6201,
+   "symbol": ".whatif .wi-win-days",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6214,
+   "symbol": ".whatif .wi-remove",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6218,
+   "symbol": ".whatif .wi-add",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6231,
+   "symbol": "border-color: $",
+   "family": "COLOUR",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (role_colour_split=5 this box; --perturb=one_error_colour -> 3)",
+   "finding": "D4-s3-04",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6232,
+   "symbol": "background: $",
+   "family": "COLOUR",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (role_colour_split=5 this box; --perturb=one_error_colour -> 3)",
+   "finding": "D4-s3-04",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6261,
+   "symbol": ".whatif .wi-result .wi-detail",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6271,
+   "symbol": "dialog.expanded .legend",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6274,
+   "symbol": "dialog.expanded .layout-bar button",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6279,
+   "symbol": "dialog.expanded .tooltip",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (below_floor_cells=78 this box)",
+   "finding": "D4-s3-03",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6889,
+   "symbol": "return `<div class=\"wood-alert\" role=\"status\" style=\"margin:",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6889,
+   "symbol": "return `<div class=\"wood-alert\" role=\"status\" style=\"margin:",
+   "family": "COLOUR",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (role_colour_split=5: div.wood-alert stripe rgb(255,166,0))",
+   "finding": "D4-s3-04",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 7486,
+   "symbol": "noteHtml()",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 10789,
+   "symbol": ".receipt-total",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 10790,
+   "symbol": ".receipt-h",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 15824,
+   "symbol": "? `<div class=\"space-blocked-alert\" role=\"status\" style=\"mar",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 15824,
+   "symbol": "? `<div class=\"space-blocked-alert\" role=\"status\" style=\"mar",
+   "family": "COLOUR",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (role_colour_split=5: div.wood-alert stripe rgb(255,166,0))",
+   "finding": "D4-s3-04",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 15904,
+   "symbol": "? `<div class=\"savings-wood-note\" style=\"margin-top:.6em;fon",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 15908,
+   "symbol": "? `<div class=\"savings-floor-note\" style=\"margin-top:.6em;fo",
+   "family": "TYPE",
+   "probe": "HPO_PY=python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (offscale_font_sizes=17 this box; --perturb=type_tokens moves it)",
+   "finding": "D4-s3-05",
+   "beyond_finding": false,
+   "disposition": "instance"
+  }
+ ],
+ "guarded": [
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5240,
+   "symbol": ".tile-v",
+   "family": "STACK",
+   "guard": "m3_look.mjs measures every grid row's value baselines: tile rows (684 of the 792 rows outside .hl-stats) misaligned 0 this box"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5392,
+   "symbol": ".sb-bar",
+   "family": "CLIP",
+   "guard": "P9 browser grid (tests/card_browser.mjs) zero rule 'no unreachable clipped ink'; m1_browser.mjs full grid overflow=0 text runs"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5608,
+   "symbol": "width: min(96vw, calc(78vh * $",
+   "family": "CLIP",
+   "guard": "same: P9 grid clipped-ink zero rule; dialog body scrolls (overflow-y/x auto beneath); m1 overflow=0"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 8312,
+   "symbol": "`<text class=\"now-label\" x=\"$",
+   "family": "TYPE",
+   "guard": "chart SVG text sized by chartFontUnits, floored at MIN_AXIS_FONT_PX = 8 px; probe_svg_text.mjs chart_text_under_floor=0 (setup_two_tank, savings_page, 375/1280)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 8328,
+   "symbol": "`<text class=\"now-temp\" x=\"$",
+   "family": "TYPE",
+   "guard": "chart SVG text sized by chartFontUnits, floored at MIN_AXIS_FONT_PX = 8 px; probe_svg_text.mjs chart_text_under_floor=0 (setup_two_tank, savings_page, 375/1280)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 8381,
+   "symbol": "`<text class=\"estimated-label\" x=\"$",
+   "family": "TYPE",
+   "guard": "chart SVG text sized by chartFontUnits, floored at MIN_AXIS_FONT_PX = 8 px; probe_svg_text.mjs chart_text_under_floor=0 (setup_two_tank, savings_page, 375/1280)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 8637,
+   "symbol": "`<text x=\"$",
+   "family": "TYPE",
+   "guard": "chart SVG text sized by chartFontUnits, floored at MIN_AXIS_FONT_PX = 8 px; probe_svg_text.mjs chart_text_under_floor=0 (setup_two_tank, savings_page, 375/1280)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 8695,
+   "symbol": "`<text x=\"$",
+   "family": "TYPE",
+   "guard": "chart SVG text sized by chartFontUnits, floored at MIN_AXIS_FONT_PX = 8 px; probe_svg_text.mjs chart_text_under_floor=0 (setup_two_tank, savings_page, 375/1280)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 8725,
+   "symbol": "`<text x=\"$",
+   "family": "TYPE",
+   "guard": "chart SVG text sized by chartFontUnits, floored at MIN_AXIS_FONT_PX = 8 px; probe_svg_text.mjs chart_text_under_floor=0 (setup_two_tank, savings_page, 375/1280)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 10796,
+   "symbol": ".receipt-bar .rb-track",
+   "family": "CLIP",
+   "guard": "same: P9 grid clipped-ink zero rule; a 10 px bar track with no text; m1 overflow=0"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 11780,
+   "symbol": "`<text class=\"lane-label\" x=\"$",
+   "family": "TYPE",
+   "guard": "chart SVG text sized by chartFontUnits, floored at MIN_AXIS_FONT_PX = 8 px; probe_svg_text.mjs chart_text_under_floor=0 (setup_two_tank, savings_page, 375/1280)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 11937,
+   "symbol": "`<text class=\"lane-more\" x=\"$",
+   "family": "TYPE",
+   "guard": "chart SVG text sized by chartFontUnits, floored at MIN_AXIS_FONT_PX = 8 px; probe_svg_text.mjs chart_text_under_floor=0 (setup_two_tank, savings_page, 375/1280)"
+  }
+ ],
+ "not_applicable": [
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5756,
+   "symbol": ".setup-title",
+   "family": "TYPE",
+   "reason": "setup-diagram SVG text (viewBox units scaled with the card): renders min 8.56 px at 375 px, over the card's own SVG floor (8 px, MIN_AXIS_FONT_PX) -- probe_svg_text.mjs setup_text_under_floor=0 at 375 (null: chart 0; perturbation 16px rules: 824->576 against 12 px). Under the 12 px HTML floor, which the card applies to HTML text only. No rule floors it, so a card narrower than the grid's 375 px would cross 8 px; recorded as the barrier gap, not an instance (no failing probe at a grid viewport)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5760,
+   "symbol": ".setup-slot",
+   "family": "TYPE",
+   "reason": "setup-diagram SVG text (viewBox units scaled with the card): renders min 8.56 px at 375 px, over the card's own SVG floor (8 px, MIN_AXIS_FONT_PX) -- probe_svg_text.mjs setup_text_under_floor=0 at 375 (null: chart 0; perturbation 16px rules: 824->576 against 12 px). Under the 12 px HTML floor, which the card applies to HTML text only. No rule floors it, so a card narrower than the grid's 375 px would cross 8 px; recorded as the barrier gap, not an instance (no failing probe at a grid viewport)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5774,
+   "symbol": ".setup-slot.lead",
+   "family": "TYPE",
+   "reason": "setup-diagram SVG text (viewBox units scaled with the card): renders min 8.56 px at 375 px, over the card's own SVG floor (8 px, MIN_AXIS_FONT_PX) -- probe_svg_text.mjs setup_text_under_floor=0 at 375 (null: chart 0; perturbation 16px rules: 824->576 against 12 px). Under the 12 px HTML floor, which the card applies to HTML text only. No rule floors it, so a card narrower than the grid's 375 px would cross 8 px; recorded as the barrier gap, not an instance (no failing probe at a grid viewport)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5792,
+   "symbol": ".setup-chip-label",
+   "family": "TYPE",
+   "reason": "setup-diagram SVG text (viewBox units scaled with the card): renders min 8.56 px at 375 px, over the card's own SVG floor (8 px, MIN_AXIS_FONT_PX) -- probe_svg_text.mjs setup_text_under_floor=0 at 375 (null: chart 0; perturbation 16px rules: 824->576 against 12 px). Under the 12 px HTML floor, which the card applies to HTML text only. No rule floors it, so a card narrower than the grid's 375 px would cross 8 px; recorded as the barrier gap, not an instance (no failing probe at a grid viewport)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 5797,
+   "symbol": ".setup-chip-page",
+   "family": "TYPE",
+   "reason": "setup-diagram SVG text (viewBox units scaled with the card): renders min 8.56 px at 375 px, over the card's own SVG floor (8 px, MIN_AXIS_FONT_PX) -- probe_svg_text.mjs setup_text_under_floor=0 at 375 (null: chart 0; perturbation 16px rules: 824->576 against 12 px). Under the 12 px HTML floor, which the card applies to HTML text only. No rule floors it, so a card narrower than the grid's 375 px would cross 8 px; recorded as the barrier gap, not an instance (no failing probe at a grid viewport)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 10882,
+   "symbol": "`<line x1=\"$",
+   "family": "TYPE",
+   "reason": "replay SVG (viewBox 600x330) inside `.replay { overflow-x: auto }`: shown at its own width and scrolled, not scaled down; probe_svg_text.mjs on savings_page chart_text_under_floor=0 (8 px)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 10885,
+   "symbol": "return `<text x=\"$",
+   "family": "TYPE",
+   "reason": "replay SVG (viewBox 600x330) inside `.replay { overflow-x: auto }`: shown at its own width and scrolled, not scaled down; probe_svg_text.mjs on savings_page chart_text_under_floor=0 (8 px)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 10912,
+   "symbol": "`<text x=\"$",
+   "family": "TYPE",
+   "reason": "replay SVG (viewBox 600x330) inside `.replay { overflow-x: auto }`: shown at its own width and scrolled, not scaled down; probe_svg_text.mjs on savings_page chart_text_under_floor=0 (8 px)"
+  }
+ ],
+ "measured_this_box": {
+  "m3_look_full_grid": "cells=900 tile_row_misaligned=12 below_floor_cells=78 below_floor_elements=9 offscale_font_sizes=17 role_colour_split=5",
+  "m1_history_unavailable_375": "small=0 strict_small=0 (the finder's small=24 slot-hit 19.9 px did not reproduce on this box's payload; slotHitExtents guards)"
+ },
+ "barrier_note": "The class row is barriered by the P9 browser grid, yet round 11 judged six findings in it, and this sweep adds one more seam the grid's colour reach control cannot see (a state with an invalid layout pipe is not in the catalogue). So barriered=false here for the swept seams."
+}
