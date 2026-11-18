@@ -1,0 +1,163 @@
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1051 entries)
+  re-run the gate that owns this file before pushing
+diff --git a/tests/layout.json b/tests/layout.json
+remerge CONFLICT (content): Merge conflict in tests/layout.json
+index 4cc89ac29a..1f46bd809d 100644
+--- a/tests/layout.json
++++ b/tests/layout.json
+@@ -112,11 +112,7 @@
+     "tools/policy/**",
+     "tools/pr/**",
+     "tools/ci/**",
+-<<<<<<< a55aecce23 (Merge commit '1455a5ad970f725ceefd883ec67cf15a9d78c545' into fix/r11-pre-security-privacy)
+-    "tools/audit/{judge_batch.py,check_scopes.py,enumerate.py,product_reads.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py,leak_detectors.py}",
+-=======
+-    "tools/audit/{judge_batch.py,check_scopes.py,enumerate.py,product_reads.py,regret_oracle.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py}",
+->>>>>>> 91674d15cd (Merge pull request #3701 from tvofi/fix/r11-pre-handoff-bookkeeping-p2-p2)
++    "tools/audit/{judge_batch.py,check_scopes.py,enumerate.py,product_reads.py,regret_oracle.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py,leak_detectors.py}",
+     "tools/audit/seat/**",
+     "tools/audit/archscore/**",
+     "tools/plan/**",
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (93 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1048 entries)
+  re-run the gate that owns this file before pushing
+diff --git a/tools/audit/seat/gh_calls.py b/tools/audit/seat/gh_calls.py
+remerge CONFLICT (content): Merge conflict in tools/audit/seat/gh_calls.py
+index a7ec00fabf..cc0c781afa 100644
+--- a/tools/audit/seat/gh_calls.py
++++ b/tools/audit/seat/gh_calls.py
+@@ -5,7 +5,6 @@
+     gh_calls.py --coverage [PID ...]
+     gh_calls.py --self-test
+ 
+-<<<<<<< f7f45193ae (Merge commit '75b8f26b4cae4e7671a364185cceb66b0b8d837b' into fix/r11-pre-security-privacy)
+ --top ranks callers (the parent command), endpoints (subcommand + target) and
+ rate-limit buckets by call count. A call's bucket is derived from what the
+ shim logged: `api graphql` and the commands gh serves over GraphQL (pr, issue,
+@@ -14,16 +13,12 @@ repo, label, project) are `graphql`; `api search/...` and `gh search` are
+ run, workflow, release, cache, secret, variable and ruleset, are `core`; a
+ target the shim could not log, or a subcommand outside these, is
+ `unattributed`, never core. It counts calls, not cost: a GraphQL query's cost
+-is in its own response. Ranked over $HPO_STATE_DIR/gh-calls.log and its rotated .1 (default
+-state root $HOME/.local/state/hpo). `--since` keeps lines whose UTC stamp is
+-=======
+---top ranks callers (the parent command) and endpoints (subcommand + target)
+-by call count, over the host-wide log the shim writes, $HOME/.local/state/hpo/
+-gh-calls.log (the token and its core bucket are host-wide), plus a distinct
+-$HPO_STATE_DIR/gh-calls.log an older shim left, each with its rotated .1. With
+-more than one source holding calls the report ends with a `sources:` table of
+-each log's own count in the window; `--log PATH` reads that one file alone. `--since` keeps lines whose UTC stamp is
+->>>>>>> 8f39313a44 (v10.0.3: stamp Self-test hotfix and round-11 preparation)
++is in its own response. Ranked over the host-wide log the shim writes,
++$HOME/.local/state/hpo/gh-calls.log (the token and its core bucket are
++host-wide), plus a distinct $HPO_STATE_DIR/gh-calls.log an older shim left,
++each with its rotated .1. With more than one source holding calls the report
++ends with a `sources:` table of each log's own count in the window; `--log
++PATH` reads that one file alone. `--since` keeps lines whose UTC stamp is
+ not before it; a stamp is the shim's `YYYY-MM-DDTHH:MM:SSZ`, and a value that
+ is not one is refused, never read as "everything". A line the shim did not
+ write is counted and reported, not ranked. With no call logged in the window
+@@ -872,7 +867,6 @@ def self_test():
+                            capture_output=True, text=True, env={"PATH": f"{w / 'real'}:{tools}", "HOME": str(w)}, timeout=60)
+         check("the CLI exits 3 with the line on an empty window",
+               r.returncode == 3 and r.stdout.startswith("gh_calls: UNATTRIBUTED: no call logged since "))
+-<<<<<<< f7f45193ae (Merge commit '75b8f26b4cae4e7671a364185cceb66b0b8d837b' into fix/r11-pre-security-privacy)
+     stamp = "2026-11-15T00:00:%02dZ 7 scan.py "
+     planted = [stamp % i + tail for i, tail in enumerate(
+         ("api repos/o/r/issues", "api repos/o/r/actions/runs", "api graphql", "pr view", "api search/issues", "search issues",
+@@ -886,7 +880,6 @@ def self_test():
+     check("--top prints the bucket table, and --since bounds it like the other two",
+           render_top(planted).endswith("buckets:\n       4  core\n       1  free\n       2  graphql\n       2  search\n       3  unattributed")
+           and buckets(planted, "2026-11-15T00:00:10Z") == Counter({"core": 2}) and "buckets:\n  (none)" in render_top(planted, "2026-11-16T00:00:00Z"))
+-=======
+ 
+     # P669: one host-wide log, read whatever the reader's HPO_STATE_DIR
+     with tempfile.TemporaryDirectory() as h_:
+@@ -915,7 +908,6 @@ def self_test():
+               "sources:" not in a_.stdout and "gh calls: 3" in a_.stdout
+               and a_.stdout.rstrip("\n") == render_top(read_lines(host / "gh-calls.log")))
+         check("--log reads that file alone", "gh calls: 1" in top_cli(None, "--log", str(other / "gh-calls.log")).stdout)
+->>>>>>> 8f39313a44 (v10.0.3: stamp Self-test hotfix and round-11 preparation)
+     print(f"gh_calls self-test: {pass_n + fail_n} checks, {fail_n} failed")
+     return 1 if fail_n else 0
+ 
+diff --git a/tools/audit/seat/gh_read.py b/tools/audit/seat/gh_read.py
+remerge CONFLICT (content): Merge conflict in tools/audit/seat/gh_read.py
+index d8a729085a..a273f47afd 100644
+--- a/tools/audit/seat/gh_read.py
++++ b/tools/audit/seat/gh_read.py
+@@ -892,7 +892,6 @@ def self_test() -> int:
+     check("an unparseable page is a failure (rc 1), never an empty list",
+           code == 1 and items is None and why.startswith("page 1 of repos/o/r/x is not JSON"))
+ 
+-<<<<<<< f7f45193ae (Merge commit '75b8f26b4cae4e7671a364185cceb66b0b8d837b' into fix/r11-pre-security-privacy)
+     # THE BULK READ: the conditional read, the rate-limit wait, the budget and its floor.
+     def inc(status, headers=(), body="", tail=""):
+         return f"HTTP/2.0 {status}\r\n" + "".join(f"{k}: {v}\r\n" for k, v in headers) + "\r\n" + body + tail
+@@ -964,7 +963,6 @@ def self_test() -> int:
+               ["gh", "api", "graphql", "--input", "f.json"],
+               ["gh", "api", "graphql"],
+               ["gh", "api", "repos/o/r/issues", "-f", "query=query{a}"])))
+-=======
+ 
+     # ---- conditional reads (P596, P625): one helper, the ETag and body under the state dir
+     import tempfile
+@@ -1042,7 +1040,6 @@ def self_test() -> int:
+                 os.environ.pop("HPO_STATE_DIR", None)
+             else:
+                 os.environ["HPO_STATE_DIR"] = saved
+->>>>>>> 8f39313a44 (v10.0.3: stamp Self-test hotfix and round-11 preparation)
+     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
+     return 1 if failed else 0
+ 
+diff --git a/tools/audit/seat/shims/seat-gh b/tools/audit/seat/shims/seat-gh
+remerge CONFLICT (content): Merge conflict in tools/audit/seat/shims/seat-gh
+index dce49ecf3b..97340bc144 100755
+--- a/tools/audit/seat/shims/seat-gh
++++ b/tools/audit/seat/shims/seat-gh
+@@ -31,7 +31,6 @@
+ # A log it cannot write is skipped: no output, no status of its own.
+ # The log is capped: past HPO_GH_LOG_MAX bytes (default 1048576) it is moved
+ # to gh-calls.log.1, replacing the older one.
+-<<<<<<< f7f45193ae (Merge commit '75b8f26b4cae4e7671a364185cceb66b0b8d837b' into fix/r11-pre-security-privacy)
+ #
+ # OWNER-ONLY MODE (HPO_OWNER_ONLY set to anything, by tools/audit/seat/owner_only.py):
+ # the seat of an owner-only dimension writes nothing to GitHub. After the log line,
+@@ -40,12 +39,11 @@
+ # api_gate's stricter table: an unknown flag or a header other than Accept is refused
+ # too), or `gh pr view` -- or `gh --version` alone. The refusal is the shim's own exit
+ # 1; the real gh is never started.
+-=======
++#
+ # The log's directory, fixed at install: seat_venv.sh --install-shims bakes the next line's
+ # placeholder; no caller's environment (HPO_STATE_DIR) picks the log.
+ loghome=@HPO_GH_LOG_HOME@
+ case $loghome in @*) loghome=$HOME/.local/state/hpo ;; esac
+->>>>>>> 8f39313a44 (v10.0.3: stamp Self-test hotfix and round-11 preparation)
+ is_shim() { local l1= l2=; { IFS= read -r l1; IFS= read -r l2; } < "$1" 2>/dev/null; [ "$l2" = '# hpo-gh-shim' ]; }
+ usable() { [ -f "$1" ] && [ -x "$1" ] && ! is_shim "$1"; }
+ real=
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (92 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1047 entries)
+  re-run the gate that owns this file before pushing
+diff --git a/tests/layout.json b/tests/layout.json
+remerge CONFLICT (content): Merge conflict in tests/layout.json
+index 889cc8928a..4e3d830cea 100644
+--- a/tests/layout.json
++++ b/tests/layout.json
+@@ -111,11 +111,7 @@
+     "tools/policy/**",
+     "tools/pr/**",
+     "tools/ci/**",
+-<<<<<<< d40c045119 (Merge commit '27e47beced869de7166ef7d3ccde7207fe3584fe' into fix/r11-pre-security-privacy)
+-    "tools/audit/{judge_batch.py,check_scopes.py,enumerate.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py,leak_detectors.py}",
+-=======
+-    "tools/audit/{judge_batch.py,check_scopes.py,enumerate.py,product_reads.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py}",
+->>>>>>> 2d7161a4b7 (Merge pull request #3654 from tvofi/fix/r11-pre-toolchain-pin-p2)
++    "tools/audit/{judge_batch.py,check_scopes.py,enumerate.py,product_reads.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py,leak_detectors.py}",
+     "tools/audit/seat/**",
+     "tools/audit/archscore/**",
+     "tools/plan/**",

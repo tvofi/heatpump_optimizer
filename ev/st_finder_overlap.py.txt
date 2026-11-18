@@ -1,0 +1,47 @@
+ok   seat null: a scopes seat with two models is seated
+ok   seat: the twin's ids start at 71, above the seat's own
+ok   seat: a seat scopes.json does not hold is refused
+ok   seat: a missing model is refused
+ok   seat: a D16 and a D17 seat are seated, a D18 one refused
+ok   report: a box file is read under the seat's name
+ok   estimate: n1, n2, m after the judge and the Chapman estimate
+ok   estimate: two models are printed and the bias called unmeasured
+ok   estimate: one model is printed as biased low
+ok   estimate: a merge into a refuted finding and an unreproduced one count no bug
+ok   estimate: disjoint finds share nothing
+ok   estimate null: no pair prints unread
+ok   estimate null: a missing report prints unread
+ok   estimate null: no judge verdicts print unread
+ok   estimate null: an empty input directory prints unread and no digit
+ok   estimate: no --scopes is refused and prints no estimate
+ok   seat: the pair record is written
+ok   seat: no --round is refused and writes nothing
+ok   owner-only seat: the canary seat is refused, no pair written, no twin path printed
+ok   owner-only estimate: a pair naming the canary seat is refused before any report is read
+ok   owner-only estimate: a public universe with an owner-only seat's name is refused
+ok   owner-only null: the same seat with the flag removed is admitted and its twin path printed
+ok   owner-only null: the same seat with the flag false is admitted and its twin path printed
+ok   owner-only null: a D15 seat of the committed scopes is admitted beside an owner-only dimension
+ok   owner-only: D18-s1 over the committed scopes is refused (no seat until the dimension lands, owner-only after)
+ok   mutant killed: seat in scopes (by 'does not hold')
+ok   mutant killed: seat bound D15 (by 'D17 seat are seated')
+ok   mutant killed: seat bound D16 (by 'D17 seat are seated')
+ok   mutant killed: seat bound D18 (by 'D17 seat are seated')
+ok   mutant killed: seat models (by 'missing model')
+ok   mutant killed: box key (by 'box file')
+ok   mutant killed: shared (by 'Chapman')
+ok   mutant killed: chapman (by 'Chapman')
+ok   mutant killed: unseen (by 'Chapman')
+ok   mutant killed: one model (by 'biased low')
+ok   mutant killed: null pair (by 'no pair prints unread')
+ok   mutant killed: null report (by 'missing report')
+ok   mutant killed: null judge (by 'no judge verdicts')
+ok   mutant killed: twin ids (by 'twin's ids start at 71')
+ok   mutant killed: any dimension number (by 'flag removed is admitted')
+ok   mutant killed: owner-only declared (by 'flag false is admitted')
+ok   mutant killed: owner-only seat (by 'canary seat is refused')
+ok   mutant killed: owner-only estimate (by 'refused before any report is read')
+ok   mutant killed: owner-only seat name (by 'owner-only seat's name is refused')
+ok   mutant killed: scopes required (by 'no --scopes is refused')
+ok   mutant killed: round required (by 'no --round')
+finder_overlap self-test: ok (with mutants)
