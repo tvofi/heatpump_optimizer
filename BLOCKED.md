@@ -8,3 +8,13 @@ State at bef58ed281:
 - CI: `merge_train.py classify bef58ed281... --pr 3708` printed GREEN, red: none (round-3 verdict). `git merge-tree --write-tree origin/main bef58ed281` reported no conflict there.
 
 No code commit, no handoff push and no body push came from this seat.
+
+## Re-check by a later fixer dispatch at the same head (2026-11-18)
+
+Question (unchanged): does the owner rule on D1/D2 or waive the part-1 CI job for PR #3708? The fixer brief again assigns only the two items already resolved at bef58ed281, so a fixer has no code change to make.
+
+- PR #3708 has no reviews; its three comments are the round-1, -2 and -3 verdicts from hpo-approver[bot].
+- dev/programme/RULINGS.md at origin/main 83b9012d61 was last changed at d360d1c125 and has no D1/D2 or R11-PRE-SHARED-FILES ruling.
+- `git merge-tree --write-tree origin/main bef58ed281` exits 0 (no conflict), so no main merge is owed.
+
+No code commit, no handoff push and no body push came from this seat either.
