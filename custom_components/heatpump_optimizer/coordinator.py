@@ -30,7 +30,7 @@ from types import SimpleNamespace
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from operator import attrgetter
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
@@ -301,7 +301,7 @@ from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner, worst_zone_margin_k
 from .currency import declared_currency, resolve_currency
 from .drift import utc_shift
-from .drift import Cusum, stored_instant, utc_step_starts
+from .drift import Cusum, EvidenceLog, stored_instant, utc_instant, utc_step_starts
 from .ledger import (
     SETTLEMENT_KEYS,
     MonthlyLedger,
@@ -584,7 +584,7 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     except (TypeError, ValueError):
         return None
     if ts.tzinfo is None and reference.tzinfo is not None:
-        return ts.replace(tzinfo=timezone.utc)
+        return utc_instant(ts)
     if ts.tzinfo is not None and reference.tzinfo is None:
         return dt_util.as_local(ts).replace(tzinfo=None)
     return ts
@@ -3637,7 +3637,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._immersion_active: bool = False
         self._immersion_over_count: int = 0
         self._immersion_clear_count: int = 0
-        self._immersion_evidence: list[str] = []
+        self._immersion_log = EvidenceLog()
         self._immersion_events: list[str] = []
         # #42: the weekly ring of learner snapshots.
         self._snapshot_ring = SnapshotRing()
@@ -8000,7 +8000,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "ventilation_active": self._vent_cusum.tripped,
             "ventilation_evidence": list(self._vent_cusum.evidence),
             "immersion_active": self._immersion_active,
-            "immersion_evidence": list(self._immersion_evidence),
+            "immersion_evidence": list(self._immersion_log.evidence),
             "cop_health": {
                 "watched_buckets": _watched_cop_buckets(self._cop_baseline),
                 "alarm": self._cop_health_cusum.tripped,
@@ -9094,12 +9094,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._immersion_clear_count = 0
             if not self._immersion_active and self._immersion_over_count >= 2:
                 self._immersion_active = True
-                self._immersion_evidence.append(
-                    f"{now.isoformat(timespec='seconds')}: measured "
-                    f"{measured:.1f} kW over {params.max_electrical_power:.1f} kW nameplate; "
-                    "immersion element running"
+                self._immersion_log.note(
+                    now,
+                    f"measured {measured:.1f} kW over {params.max_electrical_power:.1f} kW "
+                    "nameplate; immersion element running",
                 )
-                del self._immersion_evidence[:-6]
                 self._immersion_events.append(now.isoformat())
                 del self._immersion_events[:-20]
                 _LOGGER.info(
@@ -9113,11 +9112,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._immersion_over_count = 0
             if self._immersion_active and self._immersion_clear_count >= 2:
                 self._immersion_active = False
-                self._immersion_evidence.append(
-                    f"{now.isoformat(timespec='seconds')}: draw back under "
-                    "nameplate; released"
-                )
-                del self._immersion_evidence[:-6]
+                self._immersion_log.note(now, "draw back under nameplate; released")
         if self._pump_signals.electric_heat.dhw_booster_started:
             self._immersion_events.append(now.isoformat())
             del self._immersion_events[:-20]

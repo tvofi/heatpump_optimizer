@@ -117,7 +117,7 @@ class GuardState(EvidenceNotes):
             self._clear_count = 0
             if self.suppressing:
                 self.suppressing = False
-                self._note(now, "window closed; released")
+                self.note(now, "window closed; released")
                 window_changed = True
 
         if floor_hold:
@@ -125,7 +125,7 @@ class GuardState(EvidenceNotes):
             self._clear_count = 0
             if self.suppressing:
                 self.suppressing = False
-                self._note(now, "floor takes precedence; released")
+                self.note(now, "floor takes precedence; released")
                 return True
             return window_changed
 
@@ -138,7 +138,7 @@ class GuardState(EvidenceNotes):
             self._clear_count = 0
             if not self.suppressing and self._over_count >= HYSTERESIS_SAMPLES:
                 self.suppressing = True
-                self._note(
+                self.note(
                     now,
                     f"projected {projection_kw:.2f} kW over "
                     f"{threshold_kw:.2f}−{margin_kw:.2f} kW; suppressing",
@@ -149,7 +149,7 @@ class GuardState(EvidenceNotes):
             self._over_count = 0
             if self.suppressing and self._clear_count >= HYSTERESIS_SAMPLES:
                 self.suppressing = False
-                self._note(
+                self.note(
                     now, f"projection back to {projection_kw:.2f} kW; released"
                 )
                 return True

@@ -1920,12 +1920,10 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
     A boost, a disinfection hold or a non-plan mode keeps Heating + DHW.
     """
     held = boost.held_for(coord)
-    if (duty != "both" or inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.disinfecting
-            or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
-        return duty
     result = inp.plan
     i = plan_step_index(result, now)
-    if i is None:
+    if (i is None or duty != "both" or inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.disinfecting
+            or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
         return duty
     start = result.timestamps[i]
     return duty_switch.both_step_duty(

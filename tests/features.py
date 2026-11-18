@@ -21328,7 +21328,7 @@ _ci._detect_immersion()
 R.check(
     "two agreeing samples latch, with evidence and an event on record",
     _ci._immersion_active
-    and _ci._immersion_evidence
+    and _ci._immersion_log.evidence
     and len(_ci._immersion_events) == 1,
 )
 _ci._measured_power = 3.0
@@ -81065,18 +81065,20 @@ R.check(
     f"{_k11_rows}",
 )
 
-# D7-s1-05 (the note arm): the peak guard and the CUSUM write their evidence
-# through drift's one owner, which keeps the newest EVIDENCE_KEEP lines.
+# D7-s1-05 (the note arm): the peak guard, the CUSUM and the coordinator's
+# immersion log write their evidence through drift's one owner, which keeps the
+# newest EVIDENCE_KEEP lines.
 _k11_guard = _k11_pg.GuardState()
 _k11_cusum = _k11_drift.Cusum(threshold=1.0, drift=0.0)
 for _k11_n in range(_k11_drift.EVIDENCE_KEEP + 2):
-    _k11_guard._note(_FD_T0 + timedelta(minutes=_k11_n), f"n{_k11_n}")
-    _k11_cusum._note(_FD_T0 + timedelta(minutes=_k11_n), f"n{_k11_n}")
+    _k11_guard.note(_FD_T0 + timedelta(minutes=_k11_n), f"n{_k11_n}")
+    _k11_cusum.note(_FD_T0 + timedelta(minutes=_k11_n), f"n{_k11_n}")
 R.check(
-    "D7-s1-05 note: GuardState and Cusum write evidence through EvidenceNotes._note, "
-    "the newest EVIDENCE_KEEP lines kept, the same line for the same note",
-    _k11_pg.GuardState._note is _k11_drift.EvidenceNotes._note
-    and _k11_drift.Cusum._note is _k11_drift.EvidenceNotes._note
+    "D7-s1-05 note: GuardState, Cusum and the immersion log write evidence through "
+    "EvidenceNotes.note, the newest EVIDENCE_KEEP lines kept, the same line for the same note",
+    _k11_pg.GuardState.note is _k11_drift.EvidenceNotes.note
+    and _k11_drift.Cusum.note is _k11_drift.EvidenceNotes.note
+    and _k11_drift.EvidenceLog.note is _k11_drift.EvidenceNotes.note
     and _k11_guard.evidence == _k11_cusum.evidence
     and len(_k11_guard.evidence) == _k11_drift.EVIDENCE_KEEP
     and _k11_guard.evidence[0].endswith(": n2") and _k11_guard.evidence[-1].endswith(": n7"),

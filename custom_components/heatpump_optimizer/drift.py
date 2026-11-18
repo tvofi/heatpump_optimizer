@@ -140,16 +140,25 @@ class EvidenceNotes:
     """The evidence log a detector publishes: timestamped lines, the newest few kept.
 
     The one owner of the line's shape and of the cap (round-11 D7-s1-05, the
-    ``note`` arm). The drift detectors and the peak guard publish the same
-    list, so they write it through the same method; each subclass declares
-    its own ``evidence`` field.
+    ``note`` arm). The drift detectors, the peak guard and the coordinator's
+    immersion inference publish the same list, so they write it through the
+    same method; each subclass declares its own ``evidence`` field.
     """
 
     evidence: list[str]
 
-    def _note(self, when: datetime, text: str) -> None:
+    def note(self, when: datetime, text: str) -> None:
+        """Append ``text`` stamped ``when``, keeping the newest :data:`EVIDENCE_KEEP`."""
         self.evidence.append(f"{when.isoformat(timespec='seconds')}: {text}")
         del self.evidence[:-EVIDENCE_KEEP]
+
+
+@dataclass
+class EvidenceLog(EvidenceNotes):
+    """An evidence log with no detector state around it: the coordinator's
+    immersion inference keeps its trail here rather than trimming its own list."""
+
+    evidence: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -218,7 +227,7 @@ class Cusum(EvidenceNotes):
         )
         if not self.tripped and self.stat >= self.threshold:
             self.tripped = True
-            self._note(
+            self.note(
                 when,
                 f"accumulated {self.stat:.2f} over threshold "
                 f"{self.threshold:.2f}; tripped",
@@ -226,7 +235,7 @@ class Cusum(EvidenceNotes):
             return True
         if self.tripped and self.stat <= release_at:
             self.tripped = False
-            self._note(when, f"decayed to {self.stat:.2f}; released")
+            self.note(when, f"decayed to {self.stat:.2f}; released")
             return True
         return False
 
@@ -303,7 +312,7 @@ class Cusum(EvidenceNotes):
             return False
         self.tripped = False
         self.stat = 0.0
-        self._note(
+        self.note(
             now,
             f"no residuals for {max_gap_hours:.0f} h; released as stale",
         )

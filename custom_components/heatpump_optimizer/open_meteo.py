@@ -37,7 +37,7 @@ import logging
 import math
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Awaitable, TypedDict
 
 import aiohttp
@@ -209,9 +209,7 @@ def _parse_block(
             parsed = datetime.fromisoformat(str(raw_t))
         except ValueError:
             continue
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
-        times.append(parsed.astimezone(timezone.utc))
+        times.append(utc_instant(parsed))
         values.append(value)
 
     if len(times) < 2:
