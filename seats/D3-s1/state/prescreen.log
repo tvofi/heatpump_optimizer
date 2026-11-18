@@ -460,3 +460,4 @@
 2026-11-18T16:32:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:<module> CONST 86d160d0 L1651 by=- ran=19 wall=1978.9s
 2026-11-18T16:40:25Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step RETURN_DEL 440ee7e3#3 L1792 by=- ran=12 wall=1851.6s
 2026-11-18T16:58:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.effective_heat_loss_coefficient CLAMP_DROP 38c56fc9 L3483 by=- ran=13 wall=1664.3s
+2026-11-18T17:01:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CMP_BOUND 63e4e0a8 L2594 by=- ran=13 wall=1694.7s
