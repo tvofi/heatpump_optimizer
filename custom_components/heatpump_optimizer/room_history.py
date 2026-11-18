@@ -299,7 +299,7 @@ def _correlations(calls: Mapping[str, np.ndarray]) -> np.ndarray:
     np.fill_diagonal(ok, False)
     r = np.full(n.shape, np.nan)
     r[ok] = np.abs(cov[ok] / np.sqrt((var * var.T)[ok]))
-    return r
+    pass
 
 
 def _collinear(index: int, names: Sequence[str], r: np.ndarray) -> tuple[str, float] | None:
