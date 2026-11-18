@@ -2200,6 +2200,23 @@
               "not_below_configured": "Configured: the measured maximum agrees with it",
               "measured_below_configured": "Measured: the pump draws clearly less than its configured maximum"
             }
+          },
+          "pump_min_power_source": {
+            "name": "Minimum power the plan used",
+            "state": {
+              "configured": "Configured minimum",
+              "metered": "Measured by the meter at the minimum"
+            }
+          },
+          "pump_min_power_reason": {
+            "name": "Why the plan used this minimum",
+            "state": {
+              "plan_writes_power": "Configured: the plan writes the power itself, so the meter only echoes it",
+              "awaiting": "Configured: too few metered runs at the minimum yet",
+              "unexceeded": "Configured: the metered minimum does not clearly exceed it",
+              "cycled": "Configured: the plan cycles the pump below its minimum, so a measured minimum would not change it",
+              "measured": "Measured: the running pump draws clearly more than its configured minimum"
+            }
           }
         }
       },

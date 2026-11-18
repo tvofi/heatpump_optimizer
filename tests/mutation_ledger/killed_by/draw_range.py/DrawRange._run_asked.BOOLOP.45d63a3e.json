@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._run_asked BOOLOP 45d63a3e",
-  "killed_by": "tests/features.py",
-  "old": "        return [(d, a) for d, a, _ in self._evidence() if a >= floor and a > 0.0]",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return [(d, a) for d, a, _ in self._evidence() if a >= floor or a > 0.0]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

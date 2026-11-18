@@ -2200,6 +2200,23 @@
               "not_below_configured": "Konfiguriert: Das gemessene Maximum stimmt damit überein",
               "measured_below_configured": "Gemessen: Die Pumpe zieht deutlich weniger als ihr konfiguriertes Maximum"
             }
+          },
+          "pump_min_power_source": {
+            "name": "Vom Plan verwendete Mindestleistung",
+            "state": {
+              "configured": "Konfiguriertes Minimum",
+              "metered": "Vom Zähler am Minimum gemessen"
+            }
+          },
+          "pump_min_power_reason": {
+            "name": "Warum der Plan dieses Minimum verwendete",
+            "state": {
+              "plan_writes_power": "Konfiguriert: Der Plan schreibt die Leistung selbst, der Zähler gibt sie nur wieder",
+              "awaiting": "Konfiguriert: Noch zu wenige gemessene Läufe am Minimum",
+              "unexceeded": "Konfiguriert: Das gemessene Minimum liegt nicht deutlich darüber",
+              "cycled": "Konfiguriert: Der Plan taktet die Pumpe unterhalb ihres Minimums, ein gemessenes Minimum würde ihn nicht ändern",
+              "measured": "Gemessen: Die laufende Pumpe zieht deutlich mehr als ihr konfiguriertes Minimum"
+            }
           }
         }
       },

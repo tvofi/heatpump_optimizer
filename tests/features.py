@@ -88240,12 +88240,17 @@ R.check(
     list(_cpd_warm) == [3.0, 3.0, 2.0, 0.0] and list(_cpd_warm_null) == [3.0, 2.5, 1.0, 0.0],
     f"{list(_cpd_warm)} {list(_cpd_warm_null)}",
 )
-# Carry 6: every source and reason code has its user string in strings.json,
-# en and sv, under the entity's state_attributes, so no raw code is shown.
+# Carry 6: every source and reason code has its user string in strings.json
+# and every shipped catalogue, under the entity's state_attributes, so no raw
+# code is shown.
 _cpd_codes = {
     "pump_max_power_source": {"configured", "ceiling_probe"},
     "pump_max_power_reason": {"plan_writes_power", "awaiting_probe", "lapsed",
                               "not_below_configured", "measured_below_configured"},
+    # R11-OUTSIDE-HONEST-METERED-FLOOR: the bottom end's codes, each reached
+    # by its fixture in that group's block (the reached-set check there).
+    "pump_min_power_source": {"configured", "metered"},
+    "pump_min_power_reason": {"plan_writes_power", "awaiting", "unexceeded", "cycled", "measured"},
 }
 _cpd_tr_missing = []
 for _cpd_name in ("strings.json", *SHIPPED_CATALOGUES):
@@ -94892,6 +94897,418 @@ R.check(
     f"{_sce_reread_rows}",
 )
 _sce_dt.freeze(None)
+
+
+# -- R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor moves the plan -------
+# Group C of design/R11-OUTSIDE-HONEST-STARTS-RUNS for pull request 3529 by
+# Bankaifan: configured 0.53 kW against a metered running draw from 1.1 kW.
+# ``draw_range.update_floor`` learns the floor from runs asked at the floor in
+# force since it last moved; ``solve_band(applies_floor=...)`` books it.
+from heatpump_optimizer import draw_range as _mf_dr  # noqa: E402
+from heatpump_optimizer import coordinator as _mf_cmod  # noqa: E402
+from heatpump_optimizer import sensor as _mf_sensor  # noqa: E402
+from types import SimpleNamespace as _MfNS  # noqa: E402
+
+_MF_CAP = _MfNS(plan_writes_power=lambda: False)
+_MF_ECHO = _MfNS(plan_writes_power=lambda: True)
+_MF_TOL = _mf_dr.AGREE_TOLERANCE
+_MF_W = _mf_dr.WINDOW
+
+
+def _mf_params(lo=0.53, hi=5.0):
+    return _MfNS(min_electrical_power=lo, max_electrical_power=hi)
+
+
+def _mf_band(d, lo=0.53, hi=5.0, applies=True, cap=_MF_CAP):
+    return _mf_dr.solve_band(d, _mf_params(lo, hi), cap, 0.0, applies_floor=applies)
+
+
+def _mf_run(pump, n, lo=0.53, hi=5.0, d=None, high=2.5, cold=None):
+    """Fold ``n`` plan steps through ``DrawRange.observe``: even steps ask the
+    band's minimum (the plan wanting its least), odd ones ``high``; steps in
+    ``cold`` (a range) ask 3.0 throughout. ``pump(ask, floor, i)`` is the
+    metered draw. Returns the window and the band minimum at every step."""
+    d = d or _mf_dr.DrawRange()
+    mins = []
+    for i in range(n):
+        f = _mf_band(d, lo, hi).min_kw
+        ask = 3.0 if cold is not None and i in cold else (f if i % 2 == 0 else high)
+        d.observe(pump(ask, f, i), ask, lo, hi)
+        mins.append(_mf_band(d, lo, hi).min_kw)
+    return d, mins
+
+
+def _mf_moves(mins):
+    return [(i, b) for i, (a, b) in enumerate(zip(mins, mins[1:]), 1) if a != b]
+
+
+# The build as pull request 3529 shaped it (7eeb7cd676), for its failing arm:
+# a store admitting only asks at or under the CONFIGURED floor, each sample
+# lapsing CEILING_LAPSE_DAYS after it was taken. Half-hour steps.
+def _mf_build_run(pump, n, lo=0.53):
+    store, mins = [], []
+    for i in range(n):
+        now = i * 1800.0
+        store = [(dr, t) for dr, t in store if now - t <= _mf_dr.CEILING_LAPSE_DAYS * 86400.0]
+        low = (float(np.percentile([dr for dr, _ in store], _mf_dr.LOW_PERCENTILE))
+               if len(store) >= _mf_dr.MIN_SAMPLES else None)
+        f = low if low is not None and low > (1.0 + _MF_TOL) * lo else lo
+        ask = f if i % 2 == 0 else 2.5
+        if ask <= (1.0 + _MF_TOL) * lo:
+            store.append((pump(ask, f, i), now))
+        mins.append(f)
+    return mins
+
+
+_mf_g = lambda a, f, i: max(a, 1.1)  # noqa: E731  g(a): the pump's least is 1.1 kW
+_mf_gf = lambda a, f, i: 1.1 if a <= (1.0 + _MF_TOL) * f else a  # noqa: E731  g_f(f) = m
+_mf_step = lambda a, f, i: max(a, 1.1 if i < 2 * _MF_W else 1.6)  # noqa: E731  m steps up
+_MF_N = 3 * _MF_W + _MF_W
+_MF_COLD = range(2 * _MF_W, 3 * _MF_W)
+_mf_arm_g, _mf_mins_g = _mf_run(_mf_g, _MF_N, cold=_MF_COLD)
+_mf_arm_gf, _mf_mins_gf = _mf_run(_mf_gf, _MF_N, cold=_MF_COLD)
+_mf_arm_step, _mf_mins_step = _mf_run(_mf_step, _MF_N)
+_mf_build = _mf_build_run(_mf_g, 4 * 2 * 24 * int(_mf_dr.CEILING_LAPSE_DAYS))
+_mf_build_back = sum(1 for a, b in zip(_mf_build, _mf_build[1:]) if a > 0.53 and b == 0.53)
+R.check(
+    "metered floor, the loop (Bankaifan, #3529): configured 0.53 kW on a pump whose least draw is "
+    "1.1 kW, folded over four windows with a window-long cold spell of high asks, moves the floor "
+    "once, to 1.1, and holds it through the spell (g = max(a, 1.1), and g_f(f) = 1.1); a step in "
+    "the least draw to 1.6 moves it once more, to within 15 % under 1.6, never back; the build's "
+    "configured-floor store "
+    "with its lapse returns the band to 0.53 at least twice over the same pump",
+    [round(b, 3) for _, b in _mf_moves(_mf_mins_g)] == [1.1]
+    and [round(b, 3) for _, b in _mf_moves(_mf_mins_gf)] == [1.1]
+    and len(_mf_moves(_mf_mins_step)) == 2 and round(_mf_moves(_mf_mins_step)[0][1], 3) == 1.1
+    and _mf_moves(_mf_mins_step)[1][0] > 2 * _MF_W
+    and 1.6 / (1.0 + _MF_TOL) <= _mf_moves(_mf_mins_step)[1][1] <= 1.6
+    and round(_mf_mins_g[-1], 3) == round(_mf_mins_gf[-1], 3) == 1.1
+    and _mf_build_back >= 2,
+    f"g {_mf_moves(_mf_mins_g)} gf {_mf_moves(_mf_mins_gf)} step {_mf_moves(_mf_mins_step)} "
+    f"build returns {_mf_build_back}",
+)
+# The convergence premise as a fixture property: g nondecreasing in the ask.
+R.check(
+    "metered floor, the loop's premise: each fixture pump's draw is nondecreasing in its ask",
+    all(p(a, 0.53, 0) <= p(b, 0.53, 0) for p in (_mf_g, _mf_step)
+        for a, b in zip(np.linspace(0.5, 5, 40), np.linspace(0.5, 5, 40)[1:])),
+)
+
+# Down and out: a pump drawing 0.8 at a learned 1.1 lowers it; one drawing
+# under the configured floor clears it; a reconfiguration clears it.
+_mf_down, _ = _mf_run(lambda a, f, i: 0.8 if a <= 1.3 and a > 0.6 else a, 2 * _mf_dr.MIN_SAMPLES + 2,
+                      d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_out, _ = _mf_run(lambda a, f, i: 0.4, 2 * _mf_dr.MIN_SAMPLES + 2,
+                     d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_hold, _ = _mf_run(lambda a, f, i: 1.0 if a <= 1.3 and a > 0.6 else a, 2 * _mf_dr.MIN_SAMPLES + 2,
+                      d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_recfg = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=10)
+_mf_recfg.observe(1.2, 2.0, 0.6, 5.0)
+# A move reads only post-move pairs: sixty runs asked at 1.0 drawing 0.8 (within
+# tolerance of the 1.1 the floor is about to take, and under its lower edge),
+# then forty-eight asked at 0.53 drawing 1.1 raise it to 1.1 and restart E.
+_mf_post = _mf_dr.DrawRange()
+for _ in range(60):
+    _mf_post.observe(0.8, 1.0, 0.53, 5.0)
+for _ in range(_mf_dr.MIN_SAMPLES):
+    _mf_post.observe(1.1, 0.53, 0.53, 5.0)
+R.check(
+    "metered floor, down and out: 0.8 kW at a learned 1.1 lowers it to 0.8, and 1.0 kW (within "
+    "15 % under it) holds it; 0.4 kW (under the "
+    "configured 0.53) clears it, never under configured; a reconfiguration clears it; a raise "
+    "restarts its evidence, so runs asked near the new floor before the move do not lower it",
+    _mf_down.floor_kw is not None and round(_mf_down.floor_kw, 3) == 0.8
+    and _mf_hold.floor_kw == 1.1 and _mf_hold.floor_since > _mf_dr.MIN_SAMPLES
+    and _mf_out.floor_kw is None
+    and _mf_recfg.floor_kw is None and _mf_recfg.floor_since == 1
+    and _mf_post.floor_kw is not None and round(_mf_post.floor_kw, 3) == 1.1
+    and _mf_dr.floor_evidence(_mf_post) == (None, 0),
+    f"down {_mf_down.floor_kw} out {_mf_out.floor_kw} recfg {_mf_recfg.floor_kw} "
+    f"post {_mf_post.floor_kw} {_mf_dr.floor_evidence(_mf_post)}",
+)
+
+# Persistence: round trip, absent leaves, another range's record.
+_mf_rt = _mf_dr.DrawRange.from_dict(_mf_arm_g.as_dict())
+_mf_absent = {k: v for k, v in _mf_arm_g.as_dict().items() if k not in ("floor_kw", "floor_since")}
+_mf_noread = _mf_dr.DrawRange.from_dict(_mf_absent)
+_mf_bad = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.5, "floor_since": "x"})
+R.check(
+    "metered floor, persistence: the floor and its count survive a round trip; absent leaves "
+    "read unset; a floor not above the configured minimum and a non-count read unset; a record "
+    "keyed to another range books and publishes no learned floor",
+    (_mf_rt.floor_kw, _mf_rt.floor_since) == (_mf_arm_g.floor_kw, _mf_arm_g.floor_since)
+    and _mf_rt.floor_kw is not None
+    and (_mf_noread.floor_kw, _mf_noread.floor_since) == (None, 0)
+    and (_mf_bad.floor_kw, _mf_bad.floor_since) == (None, 0)
+    and _mf_band(_mf_rt, lo=0.6).learned_min_kw is None
+    and _mf_band(_mf_rt, lo=0.6).min_kw == 0.6,
+    f"rt {_mf_rt.floor_kw} {_mf_rt.floor_since} absent {_mf_noread.floor_kw} bad {_mf_bad.floor_kw}",
+)
+
+# The declared cost of a bad floor cell is its measured cost (fix review of
+# #3670): store._ACCURACY's ``whole`` licenses a loader to drop the draw
+# record for one bad cell, so a leaf declares it exactly when a bad value
+# measures the record lost, and declares "cell" when only the cell reads unset.
+from heatpump_optimizer import store as _mf_store  # noqa: E402
+_mf_good = _mf_arm_g.as_dict()
+_MF_BAD_CELLS = {"floor_kw": ("x", -1.0, True, [1]), "floor_since": ("x", -3, 1.5)}
+
+
+def _mf_cost(leaf, value):
+    """``cell`` when only ``leaf`` reads unset, ``record`` when the samples or
+    configuration go with it, else what came back."""
+    after = _mf_dr.DrawRange.from_dict({**_mf_good, leaf: value}).as_dict()
+    unset = {k: v for k, v in _mf_good.items() if k != "floor_kw"} if leaf == "floor_kw" \
+        else {**_mf_good, "floor_since": 0}
+    if after == unset:
+        return "cell"
+    lost = any(after.get(k) != _mf_good.get(k) for k in ("samples", "config", "engaged"))
+    return "record" if lost else repr(after)
+
+
+_mf_declared = {leaf: "record" if _mf_store._ACCURACY[f"draw/{leaf}"].whole else "cell"
+                for leaf in _MF_BAD_CELLS}
+_mf_measured = {(leaf, repr(v)): _mf_cost(leaf, v) for leaf, vs in _MF_BAD_CELLS.items() for v in vs}
+R.check(
+    "metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since "
+    "('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load "
+    "measures; null control, the good record (floor, count, samples) reads back unchanged",
+    _mf_good.get("floor_kw") is not None and _mf_good["floor_since"] > 0 and _mf_good["samples"]
+    and _mf_dr.DrawRange.from_dict(_mf_good).as_dict() == _mf_good
+    and all(m == _mf_declared[leaf] for (leaf, _v), m in _mf_measured.items()),
+    f"declared {_mf_declared} measured {_mf_measured}",
+)
+
+# Application: only under the predicate, min(F, top), plan_writes_power.
+_mf_set = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0))
+_mf_low_top = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0))
+for _k in range(12):
+    _mf_low_top.observe_ceiling(1.0, -_k * 1800.0)
+_mf_row = lambda b: (b.min_source, b.min_reason, b.min_kw, b.learned_min_kw)  # noqa: E731
+R.check(
+    "metered floor, application: a learned 1.1 under clamped levels books 1.1 (metered, "
+    "measured); unclamped it books the configured 0.53 and publishes 1.1 as cycled; under a "
+    "learned 1.0 top it books 1.0; a plan that writes the power keeps 0.53",
+    _mf_row(_mf_band(_mf_set)) == ("metered", "measured", 1.1, 1.1)
+    and _mf_row(_mf_band(_mf_set, applies=False)) == ("configured", "cycled", 0.53, 1.1)
+    and _mf_band(_mf_low_top).min_kw == 1.0 and _mf_band(_mf_low_top).max_kw == 1.0
+    and _mf_row(_mf_band(_mf_set, cap=_MF_ECHO)) == ("configured", "plan_writes_power", 0.53, 1.1)
+    and _mf_dr.solve_band(_mf_set, _mf_params(), _MF_CAP, 0.0).min_kw == 0.53,
+    f"{_mf_row(_mf_band(_mf_set))} {_mf_row(_mf_band(_mf_set, applies=False))} "
+    f"{_mf_band(_mf_low_top).min_kw}",
+)
+# The coordinator: the predicate is levels_clamped, and a band whose bottom
+# alone moved still reaches the solve copy.
+_mf_on_off = {"tibber_token": "x", "weather_entity": "weather.home", "compressor_modulation": "on_off"}
+_mf_c = _mf_cmod.HeatPumpOptimizerCoordinator(FakeHass(), _r9f13_entry(data=_mf_on_off))
+_mf_hub = _mf_cmod._ctx_of(_mf_c)._thermal_params
+_mf_lo, _mf_hi = float(_mf_hub.min_electrical_power), float(_mf_hub.max_electrical_power)
+_mf_c._accuracy.draw = _mf_dr.DrawRange(floor_kw=_mf_lo * 2.0, config=(_mf_lo, _mf_hi))
+_mf_cband = _mf_cmod._solve_band(_mf_c._accuracy.draw, _mf_hub, _mf_cmod._ctx_of(_mf_c)._config)
+_mf_copy = _mf_c._solve_hubs(8, banded=False, band=_mf_cband)[1]
+_mf_c2 = _mf_cmod.HeatPumpOptimizerCoordinator(
+    FakeHass(), _r9f13_entry(data={k: v for k, v in _mf_on_off.items() if k != "compressor_modulation"}))
+_mf_c2._accuracy.draw = _mf_dr.DrawRange(floor_kw=_mf_lo * 2.0, config=(_mf_lo, _mf_hi))
+_mf_cband2 = _mf_cmod._solve_band(_mf_c2._accuracy.draw, _mf_hub, _mf_cmod._ctx_of(_mf_c2)._config)
+R.check(
+    "metered floor, coordinator: an on/off compressor (levels clamped) books a learned floor of "
+    "twice the hub's minimum in the solve copy, its top and the hub untouched; a duty-cycling "
+    "install publishes it as cycled and the copy keeps the hub's minimum",
+    _mf_cband.min_reason == "measured" and _mf_copy.min_electrical_power == 2.0 * _mf_lo
+    and _mf_copy.max_electrical_power == _mf_hi and _mf_hub.min_electrical_power == _mf_lo
+    and _mf_cband2.min_reason == "cycled"
+    and _mf_cmod._band_fields(_mf_cband2) == {},
+    f"{_mf_cband} copy {_mf_copy.min_electrical_power} {_mf_cband2.min_reason}",
+)
+
+# Carry 0: the COP floor's reader is bit for bit at its defaults.
+_mf_cop = _mf_dr.DrawRange()
+for _k in range(80):
+    _mf_cop.observe(0.4 + 0.01 * _k, 0.3 + 0.05 * (_k % 30), 0.5, 5.0)
+_mf_cop_pairs = [(d, a) for d, a, _ in _mf_cop._evidence() if a >= 0.5 and a > 0.0]
+R.check(
+    "metered floor, carry 0: the run-asked reader at its default bounds is every run-asked "
+    "evidence pair, and power_floor_kw reads the one low-end statistic of them",
+    _mf_cop._run_asked() == _mf_cop_pairs
+    and _mf_dr.power_floor_kw(_mf_cop, _MfNS(
+        flow_lift_power_floor_kw=5.0, min_electrical_power=0.5, max_electrical_power=5.0))
+    == max(_mf_dr.on_threshold_kw(_mf_params(0.5)),
+           min(5.0, float(np.percentile([d for d, _ in _mf_cop_pairs], _mf_dr.LOW_PERCENTILE)))),
+    f"{len(_mf_cop_pairs)}",
+)
+
+# Alignment: the count is capped at the window, clamped on load, reset by a clear.
+_mf_al = _mf_dr.DrawRange()
+for _k in range(_MF_W + 7):
+    _mf_al.observe(2.0, 2.0, 0.53, 5.0)
+_mf_al_rec = _mf_al.as_dict()
+_mf_al_rec["samples"][0] = ["bad", 2.0, None, None]
+_mf_al_load = _mf_dr.DrawRange.from_dict(_mf_al_rec)
+_mf_leg = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=40, commands_known=False)
+_mf_leg.samples.extend([(1.2, 1.1)] * 40)
+_mf_leg.observe(1.2, 1.1, 0.53, 5.0, (40.0, 55.0))
+R.check(
+    "metered floor, alignment: WINDOW + 7 appends leave the count at WINDOW; a load dropping "
+    "one unreadable row clamps it to the rows kept; the legacy-commands clear restarts it at the "
+    "new sample with the floor held",
+    _mf_al.floor_since == _MF_W
+    and _mf_al_load.floor_since == len(_mf_al_load.samples) == _MF_W - 1
+    and _mf_leg.floor_since == 1 and _mf_leg.floor_kw == 1.1 and len(_mf_leg.samples) == 1,
+    f"{_mf_al.floor_since} {_mf_al_load.floor_since}/{len(_mf_al_load.samples)} "
+    f"{_mf_leg.floor_since} {_mf_leg.floor_kw}",
+)
+
+# Surface: every reason reached; unexceeded from within tolerance and from below.
+_mf_fill = lambda drawn: _mf_run(lambda a, f, i: drawn if a < 1.0 else a, 2 * _mf_dr.MIN_SAMPLES)[0]  # noqa: E731
+_mf_await = _mf_band(_mf_dr.DrawRange(), applies=True)
+_mf_within = _mf_band(_mf_fill(0.58))
+_mf_below = _mf_band(_mf_fill(0.40))
+_mf_reached = {
+    "pump_min_power_reason": {b.min_reason for b in (
+        _mf_await, _mf_within, _mf_below, _mf_band(_mf_set), _mf_band(_mf_set, applies=False),
+        _mf_band(_mf_set, cap=_MF_ECHO))},
+    "pump_min_power_source": {b.min_source for b in (_mf_await, _mf_band(_mf_set))},
+}
+R.check(
+    "metered floor, surface: each minimum reason and source is reached by its fixture, "
+    "unexceeded both from a low end within 15 % (0.58 of 0.53) and from one under the "
+    "configured floor (0.40), and the set reached is the carry-6 table's",
+    _mf_await.min_reason == "awaiting" and _mf_within.min_reason == "unexceeded"
+    and _mf_below.min_reason == "unexceeded" and _mf_within.min_samples >= _mf_dr.MIN_SAMPLES
+    and all(_mf_reached[k] == _cpd_codes[k] for k in _mf_reached),
+    f"{_mf_reached}",
+)
+_mf_cfg_d = _mf_band(_mf_dr.DrawRange()).as_dict()
+_mf_set_attrs = _mf_sensor._pump_max_power(_mf_band(_mf_set).as_dict())
+_mf_cfg_attrs = _mf_sensor._pump_max_power(_mf_cfg_d)
+_mf_min_attrs = _mf_sensor._pump_min_power(_mf_band(_mf_set).as_dict())
+R.check(
+    "metered floor, surface: the top's row and codes are byte for byte on a configured band "
+    "and on one with a learned floor (no floor key enters the max row); the minimum's row "
+    "carries the configured, planned and learned floor and E's size; no plan publishes None",
+    {k: _mf_cfg_d[k] for k in ("configured_max_kw", "planned_max_kw", "planned_min_kw", "source",
+                               "reason", "learned_max_kw", "samples", "since_s")}
+    == {"configured_max_kw": 5.0, "planned_max_kw": 5.0, "planned_min_kw": 0.53,
+        "source": "configured", "reason": "awaiting_probe", "learned_max_kw": None,
+        "samples": 0, "since_s": None}
+    and _mf_set_attrs == _mf_cfg_attrs
+    and _mf_min_attrs == {
+        "pump_min_power": {"configured_min_kw": 0.53, "planned_min_kw": 1.1,
+                           "learned_min_kw": 1.1, "samples": 0},
+        "pump_min_power_source": "metered", "pump_min_power_reason": "measured"}
+    and _mf_sensor._pump_min_power(_mf_within.as_dict())["pump_min_power"]["samples"]
+    == _mf_within.min_samples != _mf_within.samples
+    and _mf_sensor._pump_min_power(None) == {
+        "pump_min_power": None, "pump_min_power_source": None, "pump_min_power_reason": None},
+    f"{_mf_set_attrs} {_mf_min_attrs}",
+)
+
+# The edges, each a value check: the hold band's bounds are inclusive and the
+# clear-to-configured bound exclusive; a move restarts the count at 0; a fresh
+# window counts 0; a stored floor at the configured minimum, and a stored count
+# of 1, read as written; the COP floor still stands under too few pairs; an
+# unkeyed window reports no pairs; the stamp rounds to the watt.
+_mf_edge = lambda drawn: _mf_run(lambda a, f, i: drawn if 0.6 < a <= 1.3 else a, 2 * _mf_dr.MIN_SAMPLES + 2,  # noqa: E731
+                                 d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0)))[0]
+_mf_at_lower = _mf_edge((1.0 - _MF_TOL) * 1.1)
+_mf_at_clear = _mf_edge((1.0 + _MF_TOL) * 0.53)
+_mf_at_upper = _mf_edge((1.0 + _MF_TOL) * 1.1)
+_mf_bounds = _mf_dr.DrawRange(config=(0.53, 5.0), floor_kw=1.1, floor_since=10)
+_mf_bounds.samples.extend([(1.0, (1.0 - _MF_TOL) * 1.1)] * 5 + [(1.0, (1.0 + _MF_TOL) * 1.1)] * 5)
+# The default reader over a window longer than half of WINDOW reads it whole,
+# and never an ask of 0 where no minimum is configured.
+_mf_long = _mf_dr.DrawRange()
+for _k in range(200):
+    _mf_long.observe(1.0 + 0.001 * _k, 0.0 if _k % 10 == 0 else 1.0, 0.0, 5.0)
+_mf_rec1 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.53, "floor_since": 1})
+_mf_rec2 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.5301})
+_mf_rec3 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_since": -3})
+_mf_few = _mf_dr.DrawRange()
+for _k in range(_mf_dr.MIN_SAMPLES - 1):
+    _mf_few.observe(0.6, 1.0, 0.5, 5.0)
+_mf_bare = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe")
+_mf_round = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe",
+                             configured_min_kw=0.12345, learned_min_kw=0.67891).as_dict()
+R.check(
+    "metered floor, edges: a low end exactly (1 - 15 %) or (1 + 15 %) of the floor holds it, "
+    "and asks exactly at those bounds are its evidence; the default reader reads a 200-sample "
+    "window whole and no ask of 0; a low end exactly "
+    "15 % over the configured minimum clears it; a move sets the count to 0; a fresh window "
+    "counts 0; a stored floor at the configured minimum reads unset, one just above and a "
+    "count of 1 read as written, a negative count reads 0; the COP floor under 47 pairs is the configured figure; an "
+    "unkeyed window reports 0 pairs; a band built without the bottom reads configured with "
+    "no evidence; the stamp rounds the bottom to 3 decimals",
+    _mf_at_lower.floor_kw == 1.1 and _mf_at_upper.floor_kw == 1.1
+    and _mf_at_clear.floor_kw is None
+    and _mf_dr.floor_evidence(_mf_bounds)[1] == 10
+    and len(_mf_long._run_asked()) == 180
+    and _mf_post.floor_since == 0
+    and _mf_dr.DrawRange().as_dict()["floor_since"] == 0
+    and _mf_rec1.floor_kw is None and _mf_rec1.floor_since == 1 and _mf_rec2.floor_kw == 0.5301 and _mf_rec3.floor_since == 0
+    and _mf_dr.power_floor_kw(_mf_few, _MfNS(
+        flow_lift_power_floor_kw=0.9, min_electrical_power=0.5, max_electrical_power=5.0)) == 0.9
+    and _mf_band(_mf_rt, lo=0.6).min_samples == 0
+    and (_mf_bare.configured_min_kw, _mf_bare.min_source, _mf_bare.min_reason,
+         _mf_bare.learned_min_kw, _mf_bare.min_samples) == (0.0, "configured", "awaiting", None, 0)
+    and (_mf_round["configured_min_kw"], _mf_round["learned_min_kw"]) == (0.123, 0.679),
+    f"lower {_mf_at_lower.floor_kw} clear {_mf_at_clear.floor_kw} post {_mf_post.floor_since} "
+    f"rec {_mf_rec1.floor_kw} {_mf_rec1.floor_since} {_mf_rec2.floor_kw}",
+)
+
+# Null controls. (b) a pump drawing its ask plus under 15 % of the configured
+# floor, and (c) a cold week of high asks only: nothing moves.
+_mf_nb, _mf_nb_mins = _mf_run(lambda a, f, i: a + 0.1 * 0.53, _MF_N)
+_mf_nc, _mf_nc_mins = _mf_run(lambda a, f, i: max(a, 1.1), _MF_N, cold=range(_MF_N))
+R.check(
+    "metered floor, null controls (b) and (c): a draw of ask + 0.053 kW, and a window of "
+    "3.0 kW asks only on a pump whose least is 1.1, learn no floor and leave the band at 0.53",
+    _mf_nb.floor_kw is None and set(_mf_nb_mins) == {0.53}
+    and _mf_nc.floor_kw is None and set(_mf_nc_mins) == {0.53},
+    f"b {_mf_nb.floor_kw} c {_mf_nc.floor_kw}",
+)
+
+
+# Null control (a), a full optimize twice: an on/off install whose least draw
+# equals its configured minimum learns no floor, and its solve books the hub's
+# band and the same plan as with no window at all; the perturbation, a pump
+# whose least draw is twice the configured minimum, moves the solve's minimum.
+def _mf_optimize(tag, pump):
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _, _, c = _r9f13_make(f"mf_null_{tag}", {"compressor_modulation": "on_off"})
+    hub = _mf_cmod._ctx_of(c)._thermal_params
+    lo, hi = float(hub.min_electrical_power), float(hub.max_electrical_power)
+    c._accuracy.draw = (_mf_dr.DrawRange() if pump is None
+                        else _mf_run(lambda a, f, i: pump(a, lo), 2 * _MF_W, lo=lo, hi=hi)[0])
+    seen = []
+
+    async def _rec(hass, optimizer, inputs):
+        res = await _r9f13_inline(hass, optimizer, inputs)
+        seen.append((float(optimizer.model.params.min_electrical_power), list(res.power_schedule)))
+        return res
+
+    with _r9f13_mock.patch.object(_r9f13_cmod, "_await_optimize", _rec):
+        _r9f13_aio.run(c.async_run_optimization())
+    _r9f13_dt.freeze(None)
+    band = getattr(c._optimization_result, "solve_band", None) or {}
+    return lo, c._accuracy.draw.floor_kw, seen[-1] if seen else None, band
+
+
+_mf_na_base = _mf_optimize("base", None)
+_mf_na_same = _mf_optimize("same", lambda a, lo: max(a, lo))
+_mf_na_pert = _mf_optimize("pert", lambda a, lo: max(a, 2.0 * lo))
+_MF_MAX_KEYS = ("configured_max_kw", "planned_max_kw", "source", "reason")
+R.check(
+    "metered floor, null control (a): a pump whose least draw is its configured minimum learns "
+    "no floor and its solve books the same minimum, the same plan and the same top as with no "
+    "window; perturbed to twice the configured minimum, the solve's minimum moves to it",
+    _mf_na_base[2] is not None and _mf_na_same[2] is not None and _mf_na_pert[2] is not None
+    and _mf_na_same[1] is None and _mf_na_same[2] == _mf_na_base[2]
+    and {k: _mf_na_same[3].get(k) for k in _MF_MAX_KEYS} == {k: _mf_na_base[3].get(k) for k in _MF_MAX_KEYS}
+    and _mf_na_pert[1] is not None and round(_mf_na_pert[2][0], 3) == round(2.0 * _mf_na_pert[0], 3)
+    and _mf_na_pert[3].get("min_reason") == "measured",
+    f"base {_mf_na_base[:2]} {_mf_na_base[2] and _mf_na_base[2][0]} same {_mf_na_same[:2]} "
+    f"pert {_mf_na_pert[:2]} {_mf_na_pert[2] and _mf_na_pert[2][0]}",
+)
 
 
 R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
