@@ -47491,6 +47491,152 @@ R.check(
     and abs(_neg_row["savings_pct"] + 100.0 / 3.0) < 1e-9,
     repr(_neg_row),
 )
+# R11-SEAM-money (D8-s1-02, D2-s3-07): the open month is scaled only once it has
+# covered ledger.MIN_COVERAGE_HOURS, and a month's hours are its real hours.
+# Finder harnesses: D8/s1/monthly.py (first_scale 2688.0 at the base) and
+# D2/s3/m4_tariff.py --perturb realhours (coverage_full_23h 1.001346 at the base).
+from types import SimpleNamespace as _r11m_NS  # noqa: E402
+from zoneinfo import ZoneInfo as _r11m_Zone  # noqa: E402
+
+from heatpump_optimizer import ledger as _r11m_ledger  # noqa: E402
+from heatpump_optimizer.sensor import MonthlySavingsSensor as _r11m_Sensor  # noqa: E402
+
+_r11m_sth = _r11m_Zone("Europe/Stockholm")
+# The floor read by name, 24 h where the tree predates it, so the failing-first
+# run at the base reaches every check below instead of stopping at the import.
+_R11M_FLOOR_H = getattr(_r11m_ledger, "MIN_COVERAGE_HOURS", 24.0)
+_r11m_hours = {
+    "March, spring forward": (_r11m_ledger.month_hours(datetime(2026, 3, 20, 12, tzinfo=_r11m_sth)), 743.0),
+    "October, fall back": (_r11m_ledger.month_hours(datetime(2026, 10, 20, 12, tzinfo=_r11m_sth)), 745.0),
+    "March in UTC": (_r11m_ledger.month_hours(datetime(2026, 3, 20, 12, tzinfo=UTC)), 744.0),
+    "December into January": (_r11m_ledger.month_hours(datetime(2026, 12, 31, 23, tzinfo=_r11m_sth)), 744.0),
+    "naive February": (_r11m_ledger.month_hours(datetime(2026, 2, 10, 15)), 672.0),
+}
+R.check(
+    "R11-SEAM-money: month_hours counts a month's real hours in its zone (743 / 745 across DST, 744 in UTC)",
+    all(got == want for got, want in _r11m_hours.values()),
+    repr(_r11m_hours),
+)
+
+
+def _r11m_settled(hours: float, start: datetime) -> dict:
+    """A month's meta after ``hours`` hourly settlements from ``start``."""
+    led = _SavLedger()
+    whole, part = int(hours), hours - int(hours)
+    for _h in range(whole):
+        led.observe_spot_and_settle_savings(start + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+    if part:
+        led.observe_spot_and_settle_savings(start + timedelta(hours=whole), 1.0, {"baseline_kw": 2.0}, part, part)
+    return led.months[_sav_month_key(start)]["meta"]
+
+
+_r11m_march_now = datetime(2026, 3, 31, 23, 30, tzinfo=_r11m_sth)
+_r11m_march = _r11m_settled(743, datetime(2026, 3, 1, 0, tzinfo=_r11m_sth))
+R.check(
+    "R11-SEAM-money: a spring-forward March settled every real hour scales by exactly 1.0",
+    _r11m_ledger.coverage_factor(_r11m_march, _r11m_march_now) == 1.0,
+    repr(_r11m_ledger.coverage_factor(_r11m_march, _r11m_march_now)),
+)
+_r11m_feb_now = datetime(2026, 2, 10, 15, 0)
+_r11m_at_floor = _r11m_settled(_R11M_FLOOR_H, datetime(2026, 2, 9, 15, 0))
+_r11m_under = _r11m_settled(_R11M_FLOOR_H - 0.25, datetime(2026, 2, 9, 15, 0))
+R.check(
+    "R11-SEAM-money: coverage_factor is None a quarter-hour under MIN_COVERAGE_HOURS and scales at it",
+    getattr(_r11m_ledger, "MIN_COVERAGE_HOURS", None) == 24.0
+    and _r11m_ledger.coverage_factor(_r11m_under, _r11m_feb_now) is None
+    and _r11m_ledger.coverage_factor(_r11m_at_floor, _r11m_feb_now) == 672.0 / 24.0,
+    f"{_r11m_ledger.coverage_factor(_r11m_under, _r11m_feb_now)!r} / "
+    f"{_r11m_ledger.coverage_factor(_r11m_at_floor, _r11m_feb_now)!r}",
+)
+# The calendar-day fallback (no coverage meta) takes the same floor on the hours
+# the month has run: 8 h into 1 February is no estimate, 10 February is 28 / 10.
+R.check(
+    "R11-SEAM-money: the calendar-day fallback is None before the month has run MIN_COVERAGE_HOURS",
+    _r11m_ledger.coverage_factor({}, datetime(2026, 2, 1, 8, 0)) is None
+    and _r11m_ledger.coverage_factor({}, datetime(2026, 2, 2, 0, 0)) == 28.0 / 2
+    and _r11m_ledger.coverage_factor({}, _r11m_feb_now) == 2.8,
+    f"{_r11m_ledger.coverage_factor({}, datetime(2026, 2, 1, 8, 0))!r}",
+)
+
+# One settled quarter in February after a closed January: today's row scaled the
+# quarter by 672 / 0.25 = 2688 (D8-s1-02). The open month has no row; January's
+# row is the null control and is unchanged.
+_r11m_two = _SavLedger()
+for _h in range(48):
+    _r11m_two.observe_spot_and_settle_savings(
+        datetime(2026, 1, 20, 0, 0) + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+_r11m_jan_rows = _r11m_two.savings_months(datetime(2026, 2, 1, 0, 15))
+_r11m_two.observe_spot_and_settle_savings(datetime(2026, 2, 1, 0, 0), 1.0, {"baseline_kw": 2.0}, 0.25, 0.25)
+_r11m_feb_rows = _r11m_two.savings_months(datetime(2026, 2, 1, 0, 15))
+R.check(
+    "R11-SEAM-money: one settled quarter gives the open month no row; the closed month's row is unchanged",
+    [r["month"] for r in _r11m_feb_rows] == ["2026-01"]
+    and _r11m_feb_rows == _r11m_jan_rows and not _r11m_jan_rows[0]["estimated"],
+    repr(_r11m_feb_rows),
+)
+_r11m_sensor = _r11m_NS(_rows=lambda: _r11m_feb_rows)
+_r11m_two_day = _SavLedger.from_dict(_r11m_two.as_dict())
+for _h in range(24):
+    _r11m_two_day.observe_spot_and_settle_savings(
+        datetime(2026, 2, 1, 0, 15) + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+_r11m_ready = _r11m_NS(_rows=lambda: _r11m_two_day.savings_months(datetime(2026, 2, 2, 0, 30)))
+R.check(
+    "R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows",
+    _r11m_Sensor._waiting_for.fget(_r11m_sensor) == "open_month_coverage"
+    and _r11m_Sensor._waiting_for.fget(_r11m_NS(_rows=lambda: [])) == "settled_savings_month"
+    and _r11m_Sensor._waiting_for.fget(_r11m_ready) is None,
+    f"{_r11m_Sensor._waiting_for.fget(_r11m_sensor)!r} / {_r11m_Sensor._waiting_for.fget(_r11m_ready)!r}",
+)
+# R11-SEAM-money (D14-s1-03): every money figure the options dialog labels,
+# bounds and validates is in the currency the price feed declares, the one the
+# sensors publish (currency.figure_currency): a HUF instance priced by a EUR/kWh
+# entity labelled its four money fields and the fee page in HUF and let a
+# 50/kWh fee through under the HUF bound. Finder harness:
+# D14/s1/currency_precedence.py (money_seams 5, 6 under --instance HUF).
+from heatpump_optimizer import config_flow as _r11m_cf  # noqa: E402
+from heatpump_optimizer import grid_fee as _r11m_gf  # noqa: E402
+import asyncio as _r11m_aio  # noqa: E402
+
+
+def _r11m_money_units(feed_unit: str | None) -> tuple:
+    """(field units, placeholder currency, fee-page verdict) on a HUF instance."""
+    hass = FakeHass()
+    hass.config.currency = "HUF"
+    cfg = {"price_source": "tibber"}
+    if feed_unit is not None:
+        hass.states.set("sensor.feed", FakeState("0.21", attributes={"unit_of_measurement": feed_unit}))
+        cfg = {"price_source": "entity", "price_entity": "sensor.feed"}
+    def built(of, place_of):
+        try:
+            return of(hass, cfg), place_of(hass, cfg)
+        except TypeError:  # the base's one-argument forms, for the failing-first run
+            return of(hass), place_of(hass)
+
+    rows = [row.widget.of for row in _r11m_cf._OPTION_FIELDS if isinstance(row.widget, _r11m_cf._ByHass)]
+    units = sorted(dict(built(of, _r11m_cf._fee_placeholders)[0].config).get("unit_of_measurement") for of in rows)
+    place = built(rows[0], _r11m_cf._fee_placeholders)[1]
+    verdict = _r11m_aio.run(_r11m_cf.HeatPumpOptimizerOptionsFlow._grid_fee_errors(
+        _r11m_NS(hass=hass), {"grid_fee_rules": "Mon-Sun 00-24 = 50"}, cfg))
+    return units, place["currency"], place["fee_bound"], verdict
+
+
+_r11m_eur = _r11m_money_units("EUR/kWh")
+_r11m_huf = _r11m_money_units(None)
+R.check(
+    "R11-SEAM-money: on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR",
+    _r11m_eur == (["EUR", "EUR/kWh", "EUR/kWh", "EUR/m³"], "EUR", "10",
+                  {"grid_fee_rules": _r11m_gf.ERROR_IMPLAUSIBLE}),
+    repr(_r11m_eur),
+)
+# Null controls: a Tibber install has no feed and keeps the instance's HUF
+# (bound 500, the 50/kWh fee accepted); a feed declaring nothing ("öre/kWh")
+# falls back to the instance as well.
+R.check(
+    "R11-SEAM-money: with no feed code the options dialog keeps the instance currency",
+    _r11m_huf == (["HUF", "HUF/kWh", "HUF/kWh", "HUF/m³"], "HUF", "500", {})
+    and _r11m_money_units("öre/kWh") == _r11m_huf,
+    f"{_r11m_huf!r} / {_r11m_money_units('öre/kWh')!r}",
+)
 # R10-HOTFIX-SAV-ESTIMATE: a month's reference basis. Totals cannot be rebooked,
 # so a month booked against a retired reference keeps its columns and states no
 # saving; a fresh month is stamped at its first booking.
