@@ -78,12 +78,4 @@
 1795012602 HB alive
 1795013207 HB alive
 1795013812 HB alive
-1795014226 RESUMED from fef691f050b1
-1795014226 INIT box D3-top6
-1795014243 HB alive
-1795014358 HB drift warm skipped: HEAD is the baseline
-1795014365 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
-1795014373 HB prepared
-1795014393 SEAT D3-s1 running
-1795014398 HB R0 restored from checkpoint into fresh container; PREPARE redone; R1 baseline re-take starting
-1795014412 HB alive
+1795014417 HB alive
