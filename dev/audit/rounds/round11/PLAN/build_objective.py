@@ -1,4 +1,4 @@
-"""Revision 3's objective block, derived (decision 0018; plan_audit.py's OBJECTIVE_KEYS).
+"""Revision 4's objective block, derived (decision 0018; plan_audit.py's OBJECTIVE_KEYS).
 
 Run from the repository root at the plan branch:
   python3 -I dev/audit/rounds/round11/PLAN/build_objective.py --start <UTC> [--plan-a <replan A json>]
@@ -15,7 +15,13 @@ ROSTER = "dev/audit/rounds/round11/PLAN/wave-r11-groups.json"
 VERIFIED = ("verified", "weakened")
 CLOSED = {"done", "rca-done", "absorbed", "refused", "deferred"}
 # Open cards a roster group builds (EVALUATION.json's cards, round 11).
-CARDS = {"R11-INTAKE-R10-RESIDUE": ["E11-N-INTAKE-BUILDER"]}
+CARDS = {"R11-READS-RESIDUE": ["E11-N-INTAKE-BUILDER"]}
+# Revision 4: the intake group's triage (INTAKE-TRIAGE.json beside this file).
+INTAKE = "R11-INTAKE-R10-RESIDUE"
+READS = "R11-READS-RESIDUE"
+READS_TEMPLATE = "R11-PREPR-STEP-TIMING"   # an S instrument row, for the roster's field set
+# Stages the roster lags its refs on, each with the ref that shows it.
+LIVE = {"R11-SEAM-cycle-solve": ("in-progress", 3738)}
 # The dimension whose close pass examines a rank-2 group's merged diff.
 PASS = {"R11-ARCH-cycle-surface": "D7", "R11-ARCH-fabric-learner": "D7",
         "R11-CARRY-DRAWMAP": "D2", "R11-CARRY-ROOM-LIFT": "D16",
@@ -32,7 +38,9 @@ PASS = {"R11-ARCH-cycle-surface": "D7", "R11-ARCH-fabric-learner": "D7",
 ROSTER_REF = "c7e683a6d469fd050096f284399308b087474a52"
 ROSTER_SRC = "dev/programme/rosters/wave-r11-groups.json"
 BEHAVIOUR = "R11-SEAM-product-text"   # comments follow the seams product text follows (ADR-010)
-ADD_AFTER = {"R11-SEAM-dead-state": ["R11-SEAM-store"]}
+ADD_AFTER = {"R11-SEAM-dead-state": ["R11-SEAM-store"],
+             # Revision 4: the first-wave slot goes to the rank-1 reads, not to rank-2 text pins.
+             "R11-PRODUCT-TEXT-PINS": ["R11-READS-RESIDUE"]}
 # Verified `bug` findings deferred to round 12: the owner card that rules the deferral.
 FREEZE_CARD = "P11"
 TERMS = {
@@ -55,6 +63,37 @@ def main() -> int:
     rows["R11-SEAM-comments-production"]["after"] = list(rows[BEHAVIOUR]["after"])
     for name, more in ADD_AFTER.items():
         rows[name]["after"] = list(rows[name].get("after") or []) + more
+    triage = json.loads((HERE / "INTAKE-TRIAGE.json").read_text())["carries"]
+    intake = rows[INTAKE]
+    kept = [intake["carry"][t["carry"]] for t in triage if t["into"] == READS]
+    assert len(kept) == 2, kept
+    # The intake group keeps only the carries deferred to round 12 with no deferred owner.
+    intake["resume"] = dict(intake["resume"], stage="deferred",
+                            next_step="round 12 architect triage of the carries INTAKE-TRIAGE.json leaves here",
+                            note="plan revision 4: triaged (INTAKE-TRIAGE.md); deferred to round 12, "
+                                 "holding no in-round work")
+    if READS not in rows:
+        new = json.loads(json.dumps(rows[READS_TEMPLATE]))
+        new.update({
+            "group": READS, "after": [], "issues": [], "fixes": [], "carry": kept,
+            "files": ["tools/audit/product_reads.py", "tools/audit/seat/plant_recall.py",
+                      "dev/audit/rounds/round11/product-reads/operation.tsv"],
+            "hot_files": [], "findings": [],
+            "architect_note": "Cut by plan revision 4 from the intake group's two carries on the "
+                              "product reads (card E11-N-INTAKE-BUILDER): the population levels of "
+                              "both axes and the operation seed ledger re-cut to per-state cells.",
+            "brief": "Round 11. Finish the product reads decision 0018's terms are first read from "
+                     "at this round's close: the two carries below. Re-measure each at your own "
+                     "merge base.",
+            "resume": dict(new["resume"], stage="not-started", branch="handoff/r11-reads-residue",
+                           commit=None, last_step=None, pr=None, note="cut by plan revision 4",
+                           next_step="dispatch the fixer"),
+        })
+        # At the intake group's place: replan.py hands slots out in roster order.
+        roster["groups"].insert(roster["groups"].index(intake) + 1, new)
+        rows[READS] = new
+    for name, (stage, pr) in LIVE.items():
+        rows[name]["resume"] = dict(rows[name]["resume"], stage=stage, pr=pr)
     (ROOT / ROSTER).write_text(json.dumps(roster, indent=1) + "\n")
     judge = json.loads((ROOT / "dev/audit/rounds/round11/JUDGE.json").read_text())["verdicts"]
     baseline = json.loads((ROOT / "dev/audit/yardstick/round10/OBJECTIVE.json").read_text())
@@ -71,7 +110,7 @@ def main() -> int:
     for g in plan["groups"]:
         if g["group"] in rows and g.get("origin") != "roster":
             g["after"] = list(rows[g["group"]].get("after") or [])
-    plan["revision"] = 3
+    plan["revision"] = 4
     plan["draft"] = ROSTER
     is_open = lambda g: (g.get("resume") or {}).get("stage") not in CLOSED
     by_name = {g["group"]: g for g in roster["groups"]}

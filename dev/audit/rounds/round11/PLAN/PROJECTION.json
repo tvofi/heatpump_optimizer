@@ -1,13 +1,13 @@
 {
  "a": {
-  "closure": "2026-11-27T02:56:00Z",
+  "closure": "2026-11-26T16:59:00Z",
   "critical_path_hours": 139.68,
   "lead_time_p50_hours": 35.1,
-  "lead_time_p90_hours": 174.35,
-  "wall_hours": 202.27
+  "lead_time_p90_hours": 162.87,
+  "wall_hours": 190.78
  },
  "b": {
-  "closure": "2026-11-25T12:11:00Z",
+  "closure": "2026-11-24T14:18:00Z",
   "critical_path_hours": 104.15,
   "dropped": [
    "R11-ARCH-cycle-surface",
@@ -32,32 +32,32 @@
    "R11-SEAM-kernel-layering",
    "R11-SEAM-ratchet-raise"
   ],
-  "wall_hours": 163.52
+  "wall_hours": 140.1
  },
  "floor_cost": {
   "critical_path_hours": 35.53,
   "delay_hours": {
-   "R11-INTAKE-R10-RESIDUE": 0.0,
+   "R11-READS-RESIDUE": 0.0,
    "R11-SEAM-actuation-release": 0.0,
    "R11-SEAM-actuation-writes": 0.0,
    "R11-SEAM-card": 0.0,
    "R11-SEAM-config": 0.0,
    "R11-SEAM-cycle-reporting": 0.2,
-   "R11-SEAM-cycle-solve": 0.2,
-   "R11-SEAM-entity-service": 0.0,
-   "R11-SEAM-inputs-freshness": 0.2,
+   "R11-SEAM-cycle-solve": 0.0,
+   "R11-SEAM-entity-service": 0.2,
+   "R11-SEAM-inputs-freshness": 0.0,
    "R11-SEAM-inputs-guards": 0.0,
    "R11-SEAM-kernel-step": 0.0,
-   "R11-SEAM-learners": 0.0,
+   "R11-SEAM-learners": 0.2,
    "R11-SEAM-money": 0.0,
    "R11-SEAM-plant-model": 0.0,
-   "R11-SEAM-product-text": 0.2,
+   "R11-SEAM-product-text": 0.0,
    "R11-SEAM-ratchets": 0.0,
    "R11-SEAM-solver": 0.0,
-   "R11-SEAM-store": 0.2,
+   "R11-SEAM-store": 0.0,
    "R11-SEAM-tests": 0.0
   },
-  "wall_hours": 38.75
+  "wall_hours": 50.68
  },
  "pin": {
   "caps": {
@@ -69,9 +69,9 @@
    "stamp_every": 3
   },
   "durations_blob": "d6ece5958f6b8f3e720ae3cf6faba16574294176",
-  "roster_blob": "eda6bbb52dc85f87d05492428262fc2768d22961",
+  "roster_blob": "94e1b9e5732712a3c181836a8f56f6f8049ac662",
   "roster_path": "dev/audit/rounds/round11/PLAN/wave-r11-groups.json",
-  "start": "2026-11-18T16:40:00Z"
+  "start": "2026-11-18T18:12:00Z"
  },
  "production": [
   "R11-ARCH-cycle-surface",

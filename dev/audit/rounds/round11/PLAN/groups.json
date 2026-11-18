@@ -41,7 +41,8 @@
    "issues": [],
    "fixes": [],
    "findings": [
-    "D7-s1-06"
+    "D7-s1-06",
+    "D5-s3-01"
    ],
    "merged": {},
    "severity": "low",
@@ -60,7 +61,7 @@
     "custom_components/heatpump_optimizer/sysid.py"
    ],
    "after": [],
-   "architect_note": "What the pure layer offers its importers: utc_elapsed_seconds is imported from drift.py, its owner, HISTORY_LENGTH moves to const.py, and currency.py imports HomeAssistant for its annotation only, so the pure modules that reached Home Assistant through accuracy.py and currency.py stop doing so. The reader's clock, the design ADR-002 part 2 gives four of the six modules D7-s1-06 left open, is carried by R11-SEAM-inputs-freshness in inputs.py; setpoint_check and snapshots stay. 1 finding (0 merged in), size S; class tags N-leaf-imports-solver."
+   "architect_note": "What the pure layer offers its importers: utc_elapsed_seconds is imported from drift.py, its owner, HISTORY_LENGTH moves to const.py, and currency.py imports HomeAssistant for its annotation only, so the pure modules that reached Home Assistant through accuracy.py and currency.py stop doing so. The reader's clock, the design ADR-002 part 2 gives four of the six modules D7-s1-06 left open, is carried by R11-SEAM-inputs-freshness in inputs.py; setpoint_check and snapshots stay. 2 findings (0 merged in), size S; class tags I5, N-leaf-imports-solver."
   },
   {
    "group": "R11-SEAM-dead-state",
@@ -244,8 +245,7 @@
     "D2-s3-07",
     "D8-s1-02",
     "D14-s1-03",
-    "D17-s1-05",
-    "D5-s3-01"
+    "D17-s1-05"
    ],
    "merged": {},
    "severity": "high",
@@ -263,7 +263,7 @@
     "custom_components/heatpump_optimizer/sensor.py"
    ],
    "after": [],
-   "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8.",
+   "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 8 findings (0 merged in), size L; class tags I4, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8.",
    "arms": {
     "D7-s1-05": [
      "day",

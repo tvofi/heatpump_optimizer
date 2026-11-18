@@ -1237,9 +1237,9 @@
   {
    "id": "D5-s3-01",
    "verdict": "keep",
-   "into": "R11-SEAM-money",
+   "into": "R11-SEAM-kernel-layering",
    "round": 11,
-   "reason": "money seam: grid_fee docstring, true once currency drops its Home Assistant import (D7-s1-06)"
+   "reason": "shared kernel: grid_fee's docstring is true once currency drops its Home Assistant import (D7-s1-06), so the group that makes that change corrects it (owner ruling 2026-11-18; pull request 3724 claims it)"
   },
   {
    "id": "D8-s1-02",
@@ -1881,7 +1881,8 @@
   {
    "group": "R11-SEAM-kernel-layering",
    "findings": [
-    "D7-s1-06"
+    "D7-s1-06",
+    "D5-s3-01"
    ],
    "merged": {},
    "severity": "low",
@@ -1900,7 +1901,7 @@
     "sysid.py"
    ],
    "after": [],
-   "architect_note": "What the pure layer offers its importers: utc_elapsed_seconds is imported from drift.py, its owner, HISTORY_LENGTH moves to const.py, and currency.py imports HomeAssistant for its annotation only, so the pure modules that reached Home Assistant through accuracy.py and currency.py stop doing so. The reader's clock, the design ADR-002 part 2 gives four of the six modules D7-s1-06 left open, is carried by R11-SEAM-inputs-freshness in inputs.py; setpoint_check and snapshots stay. 1 finding (0 merged in), size S; class tags N-leaf-imports-solver. Plan: ADR-002 parts 1 and 3 are this group's approved design. No edge in or out, and no edit in coordinator.py."
+   "architect_note": "What the pure layer offers its importers: utc_elapsed_seconds is imported from drift.py, its owner, HISTORY_LENGTH moves to const.py, and currency.py imports HomeAssistant for its annotation only, so the pure modules that reached Home Assistant through accuracy.py and currency.py stop doing so. The reader's clock, the design ADR-002 part 2 gives four of the six modules D7-s1-06 left open, is carried by R11-SEAM-inputs-freshness in inputs.py; setpoint_check and snapshots stay. 2 findings (0 merged in), size S; class tags I5, N-leaf-imports-solver. Plan: ADR-002 parts 1 and 3 are this group's approved design. No edge in or out, and no edit in coordinator.py."
   },
   {
    "group": "R11-SEAM-dead-state",
@@ -2074,8 +2075,7 @@
     "D2-s3-07",
     "D8-s1-02",
     "D14-s1-03",
-    "D17-s1-05",
-    "D5-s3-01"
+    "D17-s1-05"
    ],
    "merged": {},
    "severity": "high",
@@ -2093,7 +2093,7 @@
     "sensor.py"
    ],
    "after": [],
-   "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 9 findings (0 merged in), size L; class tags I4, I5, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Plan: ADR-006. The exact top-k takes the largest, as its batch twin does; the smooth scalar becomes one row of its batch only if golden fixtures stay byte-identical and the solve-time harness does not regress, else that part is dropped and recorded. It also carries the day and entry arms of D7-s1-05: price_model.py's usable day and ledger.py's month entry each get one owner (ADR-001).",
+   "architect_note": "Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window projection with a floor on settled time, one currency owner for the plan and the options dialog. 8 findings (0 merged in), size L; class tags I4, N-inverted-aggregate, N-partial-payload-parse, N-partial-window-extrapolation, P2, P7, P8. Plan: ADR-006. The exact top-k takes the largest, as its batch twin does; the smooth scalar becomes one row of its batch only if golden fixtures stay byte-identical and the solve-time harness does not regress, else that part is dropped and recorded. It also carries the day and entry arms of D7-s1-05: price_model.py's usable day and ledger.py's month entry each get one owner (ADR-001).",
    "arms": {
     "D7-s1-05": [
      "day",
@@ -2674,16 +2674,6 @@
    "architect_note": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The buffer cooling, house heat-loss and internal-gains folds and the re-anchor leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint, which is read end to end after every coordinator merge. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py, arm fabric, reads the footprint 28 statements lower for two of the folds; the designer's note carries the reading of the whole cut. Scenario: growth of coordinator.py is priced and the class shrinks (S13). Its designer starts in the first wave, not behind R11-SEAM-learners, so F is measured before most coordinator merges spend R (decided 2026-11-18, orchestrator under mandate, pending owner confirmation); the fixer still waits on R11-SEAM-learners."
   },
   {
-   "group": "R11-INTAKE-R10-RESIDUE",
-   "findings": [],
-   "size": "L",
-   "seam": "instrument",
-   "after": [],
-   "origin": "roster",
-   "stage": "not-started",
-   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
-  },
-  {
    "group": "R11-PRE-TOKEN-LEDGER",
    "findings": [],
    "size": "M",
@@ -2814,6 +2804,16 @@
    "findings": [],
    "size": "S",
    "seam": "production",
+   "after": [],
+   "origin": "roster",
+   "stage": "not-started",
+   "architect_note": "Carried from the roster at the pin, not cut by this plan: ranked and projected here, its brief and edges stay the roster's."
+  },
+  {
+   "group": "R11-READS-RESIDUE",
+   "findings": [],
+   "size": "S",
+   "seam": "instrument",
    "after": [],
    "origin": "roster",
    "stage": "not-started",
@@ -3125,8 +3125,8 @@
   },
   "pin": {
    "roster_path": "dev/audit/rounds/round11/PLAN/wave-r11-groups.json",
-   "roster_blob": "eda6bbb52dc85f87d05492428262fc2768d22961",
-   "start": "2026-11-18T16:40:00Z",
+   "roster_blob": "94e1b9e5732712a3c181836a8f56f6f8049ac662",
+   "start": "2026-11-18T18:12:00Z",
    "durations_blob": "d6ece5958f6b8f3e720ae3cf6faba16574294176"
   },
   "terms": {
@@ -3198,7 +3198,8 @@
    },
    "R11-SEAM-kernel-layering": {
     "removes": [
-     "D7-s1-06"
+     "D7-s1-06",
+     "D5-s3-01"
     ],
     "rank": 2,
     "examined_by": "round-11 close pass of D7: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
@@ -3290,8 +3291,7 @@
      "D2-s3-07",
      "D8-s1-02",
      "D14-s1-03",
-     "D17-s1-05",
-     "D5-s3-01"
+     "D17-s1-05"
     ],
     "classes": [
      "I4",
@@ -3570,12 +3570,6 @@
     "rank": 2,
     "examined_by": "round-11 close pass of D7: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
    },
-   "R11-INTAKE-R10-RESIDUE": {
-    "cards": [
-     "E11-N-INTAKE-BUILDER"
-    ],
-    "rank": 1
-   },
    "R11-PRE-TOKEN-LEDGER": {
     "rank": 2,
     "examined_by": "round-11 close pass of D13: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
@@ -3623,10 +3617,16 @@
    "R11-CARRY-ROOM-LIFT": {
     "rank": 2,
     "examined_by": "round-11 close pass of D16: a finder pass over the group's merged diff before the closeout stamp, reporting its universe and denominator"
+   },
+   "R11-READS-RESIDUE": {
+    "cards": [
+     "E11-N-INTAKE-BUILDER"
+    ],
+    "rank": 1
    }
   },
   "edges": [],
   "dispositions": {}
  },
- "revision": 3
+ "revision": 4
 }

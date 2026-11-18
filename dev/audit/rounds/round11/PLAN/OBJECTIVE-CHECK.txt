@@ -1,24 +1,24 @@
-$ python3 -I tools/audit/seat/plan_audit.py objective-check --ref c2d19c6d29643e747401a688b4184d40ab8a5703 --plan dev/audit/rounds/round11/PLAN/PLAN.json --register dev/audit/rounds/round11/JUDGE.json
-projection A: critical path 139.68 h, wall 202.27 h, closure 2026-11-27T02:56:00Z, lead time p50/p90 35.1/174.35 h
-floor cost (A less B): critical path 35.53 h, wall 38.75 h, dropped 21
-  rank-1 R11-INTAKE-R10-RESIDUE finishes 0.0 h later than on the floor
+$ python3 -I tools/audit/seat/plan_audit.py objective-check --ref 2ea1d132f1a6bb26abf351572d6ff037156f05c8 --plan dev/audit/rounds/round11/PLAN/PLAN.json --register dev/audit/rounds/round11/JUDGE.json
+projection A: critical path 139.68 h, wall 190.78 h, closure 2026-11-26T16:59:00Z, lead time p50/p90 35.1/162.87 h
+floor cost (A less B): critical path 35.53 h, wall 50.68 h, dropped 21
+  rank-1 R11-READS-RESIDUE finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-actuation-release finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-actuation-writes finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-card finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-config finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-cycle-reporting finishes 0.2 h later than on the floor
-  rank-1 R11-SEAM-cycle-solve finishes 0.2 h later than on the floor
-  rank-1 R11-SEAM-entity-service finishes 0.0 h later than on the floor
-  rank-1 R11-SEAM-inputs-freshness finishes 0.2 h later than on the floor
+  rank-1 R11-SEAM-cycle-solve finishes 0.0 h later than on the floor
+  rank-1 R11-SEAM-entity-service finishes 0.2 h later than on the floor
+  rank-1 R11-SEAM-inputs-freshness finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-inputs-guards finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-kernel-step finishes 0.0 h later than on the floor
-  rank-1 R11-SEAM-learners finishes 0.0 h later than on the floor
+  rank-1 R11-SEAM-learners finishes 0.2 h later than on the floor
   rank-1 R11-SEAM-money finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-plant-model finishes 0.0 h later than on the floor
-  rank-1 R11-SEAM-product-text finishes 0.2 h later than on the floor
+  rank-1 R11-SEAM-product-text finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-ratchets finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-solver finishes 0.0 h later than on the floor
-  rank-1 R11-SEAM-store finishes 0.2 h later than on the floor
+  rank-1 R11-SEAM-store finishes 0.0 h later than on the floor
   rank-1 R11-SEAM-tests finishes 0.0 h later than on the floor
 OBJECTIVE PASS
 exit 0
