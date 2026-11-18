@@ -16,7 +16,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-NUDGE-RETIRE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R11-PRE-SHARED-FILES (stage in-progress, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `fix/r11-pre-handoff-bookkeeping-p2`): `git fetch origin fix/r11-pre-handoff-bookkeeping-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (stage carries-open, branch `handoff/r11-outside-honest-starts-runs-p3`): `git fetch origin handoff/r11-outside-honest-starts-runs-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (stage carries-open, branch `fix/r11-outside-honest-starts-runs-p3-p2`): `git fetch origin fix/r11-outside-honest-starts-runs-p3-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-DHW-RUNS (stage in-progress, branch `handoff/r11-outside-honest-dhw-runs`): `git fetch origin handoff/r11-outside-honest-dhw-runs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-METERED-FLOOR (stage carries-open, branch `handoff/r11-outside-honest-metered-floor`): `git fetch origin handoff/r11-outside-honest-metered-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SECURITY-PRIVACY (stage carries-open, branch `fix/r11-pre-security-privacy-p2`): `git fetch origin fix/r11-pre-security-privacy-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
