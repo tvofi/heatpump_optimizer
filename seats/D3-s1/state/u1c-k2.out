@@ -104,3 +104,4 @@
 2026-11-18T22:40:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._outage_recovery_active CMP_BOUND 8274eedf L9038 by=- ran=13 wall=1333.0s
 2026-11-18T22:41:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_peak_excess GUARD_OFF eb0a46c5 L904 by=- ran=12 wall=1244.3s
 2026-11-18T22:49:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND 8256b8db L5674 by=- ran=13 wall=1328.6s
+2026-11-18T22:54:11Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_terminal_row_cost.row_cost CLAMP_DROP 1a5e5be6 L3328 by=- ran=12 wall=1326.2s
