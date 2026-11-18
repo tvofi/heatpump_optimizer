@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_accumulate GUARD_OFF 6f7dcf67",
+  "killed_by": "tests/features.py",
+  "old": "    if (floor_return := _centi(house.floor_return_c, \"return\")) is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
