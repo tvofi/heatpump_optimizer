@@ -466,3 +466,4 @@
 2026-11-18T14:48:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step RETURN_DEL b2994929#2 L1785 by=- ran=12 wall=1374.0s
 2026-11-18T14:48:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP afe9dcd9 L4578 by=- ran=17 wall=1536.8s
 2026-11-18T15:06:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery GUARD_OFF 549bb130 L2598 by=- ran=13 wall=1266.4s
+2026-11-18T15:09:39Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_liquid_fraction CLAMP_DROP 5d60b655 L3102 by=tests/features.py ran=13 wall=1346.0s
