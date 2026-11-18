@@ -24,3 +24,14 @@
 2026-11-18T15:16:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_fd_steps CMP_BOUND 4b490ea1 L1582 by=- ran=17 wall=1514.4s
 2026-11-18T15:17:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._simulate_step_two_zone CLAMP_DROP bd87497f L4019 by=- ran=13 wall=1237.8s
 2026-11-18T15:34:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:_bucket_index CMP_BOUND 463ef486 L169 by=- ran=12 wall=1345.3s
+2026-11-18T15:38:41Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:PeakTracker.observe GUARD_OFF 2cb8e485 L241 by=tests/features.py ran=12 wall=1335.4s
+2026-11-18T15:39:29Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._solve_space CLAMP_DROP e843c472 L4943 by=- ran=16 wall=1348.4s
+2026-11-18T15:41:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps CMP_BOUND 100f498e L5228 by=- ran=14 wall=1444.8s
+2026-11-18T15:56:43Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._track_curve_comfort CMP_BOUND e00915fb L9273 by=- ran=13 wall=1340.1s
+2026-11-18T15:59:46Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._publish_breach_reports CMP_BOUND d7face80 L4876 by=- ran=13 wall=1265.3s
+2026-11-18T16:00:28Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum CLAMP_DROP b7ede7f5 L746 by=tests/features.py ran=12 wall=1258.9s
+2026-11-18T16:03:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._clamp_dhw_to_capacity GUARD_OFF 0fbced3d L1943 by=- ran=16 wall=1358.2s
+2026-11-18T16:18:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_wood_share_vec CLAMP_DROP f37ca9ce L2952 by=- ran=12 wall=1296.3s
+2026-11-18T16:22:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.quarter_factor CMP_BOUND 2c4b19d6 L303 by=- ran=12 wall=1372.0s
+2026-11-18T16:23:29Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:dew_point_for_pressure CLAMP_DROP 1aaf97b9 L2827 by=- ran=12 wall=1381.1s
+2026-11-18T16:26:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.expected_daily_min CMP_BOUND 4711f894 L337 by=- ran=12 wall=1385.6s
