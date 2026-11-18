@@ -5487,6 +5487,90 @@
      "notice"
     ]
    }
+  },
+  {
+   "group": "R11-SEAM-actuation-writes",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D16-s1-01",
+    "D16-s1-02",
+    "D16-s1-03",
+    "D16-s1-05",
+    "D16-s2-01",
+    "D16-s2-02",
+    "D16-s2-03",
+    "D16-s2-04",
+    "D12-s3-02"
+   ],
+   "merged": {},
+   "classes": [
+    "N-mode-coupled-write",
+    "N-stale-step-actuation",
+    "N-step-grid",
+    "P11",
+    "P2",
+    "P3"
+   ],
+   "seam": "actuation",
+   "hot_files": [
+    "pump_arbiter.py",
+    "coordinator.py",
+    "freq_control.py",
+    "legionella.py",
+    "setpoint_check.py",
+    "tests/harness.py",
+    "heat_curve.py",
+    "disinfection.py",
+    "thermal_model.py",
+    "repairs.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3. Plan: reads the covering step from plan_step (ADR-001) and the held record as ADR-004 leaves it.",
+   "effort": "high",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R11-SEAM-kernel-step",
+    "R11-SEAM-actuation-release"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/freq_control.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/setpoint_check.py",
+    "tests/harness.py",
+    "custom_components/heatpump_optimizer/heat_curve.py",
+    "custom_components/heatpump_optimizer/disinfection.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/repairs.py"
+   ],
+   "brief": "What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3. Plan: reads the covering step from plan_step (ADR-001) and the held record as ADR-004 leaves it. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-actuation-writes",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-001, ADR-004)",
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-guards, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
