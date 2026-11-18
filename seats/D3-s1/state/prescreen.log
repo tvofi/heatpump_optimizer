@@ -159,3 +159,9 @@
 2026-11-18T08:39:01Z PRE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 036bc6d8 L2126 by=- ran=8 skip=6 wall=208.2s
 2026-11-18T08:39:01Z PRE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step RETURN_DEL b2994929#2 L1785 by=- ran=8 skip=6 wall=206.1s
 2026-11-18T08:39:34Z PRE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP afe9dcd9 L4578 by=- ran=12 skip=4 wall=316.3s
+2026-11-18T08:42:27Z PRE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery GUARD_OFF 549bb130 L2598 by=- ran=10 skip=6 wall=318.2s
+2026-11-18T08:42:31Z PRE SURVIVED custom_components/heatpump_optimizer/price_model.py:extend_price_series CMP_BOUND 4b53a999 L535 by=- ran=8 skip=6 wall=208.1s
+2026-11-18T08:42:35Z PRE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_liquid_fraction CLAMP_DROP 5d60b655 L3102 by=- ran=9 skip=5 wall=212.6s
+2026-11-18T08:43:48Z PRE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_restore_learned_snapshot GUARD_OFF e9fd377b L9743 by=tests/typing_ruler.py ran=7 skip=5 wall=74.6s
+2026-11-18T08:44:43Z PRE SURVIVED custom_components/heatpump_optimizer/sysid.py:<module> CONST 745545cd L549 by=- ran=15 skip=0 wall=306.7s
+2026-11-18T08:48:06Z RUN pre queued=279 workers=4
