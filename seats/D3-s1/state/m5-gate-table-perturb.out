@@ -1,0 +1,12 @@
+tests/plan_view.py	0	0	5.8	0.8	1.8	3.23	0.83
+RESULT plan_view_py_wall_s=5.8 s (provisional)
+RESULT plan_view_py_cpu_s=0.8 s (provisional)
+RESULT thread_factor=1.00
+tests/solar_alignment.py	0	0	0.7	0.7	1.2	0.61	0.76
+RESULT solar_alignment_py_wall_s=0.7 s (provisional)
+RESULT solar_alignment_py_cpu_s=0.7 s (provisional)
+RESULT thread_factor=1.00
+RESULT scripts=2
+RESULT load1=0.78
+RESULT thread_factor=1.00
+RESULT swapins=0
