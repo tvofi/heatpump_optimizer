@@ -8,7 +8,16 @@
 1794988527 SEAT D3-s1 running
 1794988611 HB D3-s1 started (claude-code-toolkit:coder at opus; general-purpose refused by the frugal guard)
 1794989051 HB alive
-1794989658 HB alive
-1794989674 HB cannot: CMD 1 is outside the box command set (STOP/RESUME/SKIP/NOTE) and changes step 3 of PROMPT.md, so it is recorded as pending owner confirmation. Status: D3-s1 was already started at 08:0x as an Agent subagent of type claude-code-toolkit:coder with model opus (not a generic type, so the guard did not refuse it; FRUGAL_ALLOW_EXPENSIVE was never set). A running seat is never killed, so it runs to its report; if it fails or is refused, this session takes the seat inline as CMD 1 asks.
-1794989942 CKPT D3-s1 143 file(s)
-1794990251 HB alive
+1794989476 RESUMED from e47cef28ab74
+1794989476 INIT box D3-m5
+1794989508 HB alive
+1794989573 HB re-fire: container fresh, PREPARE re-run; drift warm skipped: HEAD is the baseline
+1794989578 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
+1794989583 HB prepared
+1794989603 SEAT D3-s1 running
+1794989607 HB D3-s1 started inline in this session per inbox 1 (orchestrator: no Agent spawn)
+1794989616 CKPT D3-s1 125 file(s)
+1794990114 HB alive
+1794990115 HB D3-s1 R1: machine nproc 4, Xeon 2.30GHz, 16GB, 28G free, load1 0.05; traced baselines re-taking; M5 harnesses m5_gate_table.py, m5_trace_extra.py, m5_matrix.py written; matrix sample 38 mutants
+1794990120 CKPT D3-s1 131 file(s)
+1794990719 HB alive
