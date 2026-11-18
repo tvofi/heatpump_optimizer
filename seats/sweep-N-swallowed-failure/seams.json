@@ -1,0 +1,3301 @@
+[
+ {
+  "id": "custom_components/heatpump_optimizer/__init__.py:195",
+  "kind": "narrow",
+  "func": "_take_fresh_handover",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/__init__.py:315",
+  "kind": "broad",
+  "func": "async_setup_entry",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 2,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/accuracy.py:1050",
+  "kind": "narrow",
+  "func": "MeasuredCop.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/accuracy.py:489",
+  "kind": "narrow",
+  "func": "AccuracyTracker.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/accuracy.py:497",
+  "kind": "narrow",
+  "func": "AccuracyTracker.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/accuracy.py:505",
+  "kind": "narrow",
+  "func": "AccuracyTracker.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/accuracy.py:514",
+  "kind": "narrow",
+  "func": "AccuracyTracker.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 15,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/accuracy.py:563",
+  "kind": "narrow",
+  "func": "plan_promise",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 3,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/accuracy.py:617",
+  "kind": "narrow",
+  "func": "_stored_promise",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/away.py:439",
+  "kind": "broad",
+  "func": "persist_override",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 5,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/boost.py:574",
+  "kind": "broad",
+  "func": "persist",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/boost.py:734",
+  "kind": "narrow",
+  "func": "_due_inside_horizon",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/boost.py:745",
+  "kind": "narrow",
+  "func": "_window_open",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/comfort_learning.py:243",
+  "kind": "narrow",
+  "func": "ComfortLearner.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/comfort_learning.py:254",
+  "kind": "narrow",
+  "func": "ComfortLearner.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/config_flow.py:1110",
+  "kind": "narrow",
+  "func": "_valid_months_spec",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/config_flow.py:1357",
+  "kind": "broad",
+  "func": "_translated_menu",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/config_flow.py:2093",
+  "kind": "narrow",
+  "func": "_peak_window_as_int",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/config_flow.py:2449",
+  "kind": "broad",
+  "func": "_omit_unstored_computed",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/config_flow.py:2558",
+  "kind": "narrow",
+  "func": "_same_setting",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/config_flow.py:2563",
+  "kind": "narrow",
+  "func": "_same_setting",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/config_flow.py:533",
+  "kind": "broad",
+  "func": "validate_tibber_token",
+  "record_level": 0,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/config_flow.py:781",
+  "kind": "broad",
+  "func": "_prefilled_values",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/config_flow.py:802",
+  "kind": "narrow",
+  "func": "_widen_to_fit",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/const.py:1496",
+  "kind": "narrow",
+  "func": "finite_float",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2218,
+   "added_warn": 5,
+   "added_any": 56,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "phase-raised,flood"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:10085",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._record_accuracy",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 3,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:10645",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._capture_diagnosis_inputs",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:10650",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._capture_diagnosis_inputs",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:10712",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._maybe_refresh_price_tile",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:1086",
+  "kind": "broad",
+  "func": "_replay_interval",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 3,
+   "added_warn": 0,
+   "added_any": 9,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:11233",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator.async_simulate",
+  "record_level": 0,
+  "carried": true,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:1913",
+  "kind": "broad",
+  "func": "_shutdown_process_pool",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:1920",
+  "kind": "broad",
+  "func": "_shutdown_process_pool",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:1926",
+  "kind": "broad",
+  "func": "_shutdown_process_pool",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:2041",
+  "kind": "narrow",
+  "func": "_read_reply",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 13,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:2091",
+  "kind": "broad",
+  "func": "_run_in_process",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:2108",
+  "kind": "broad",
+  "func": "_run_in_process",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:2151",
+  "kind": "narrow",
+  "func": "_await_off_loop",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 8,
+   "added_warn": 0,
+   "added_any": 16,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:2210",
+  "kind": "broad",
+  "func": "_with_sensor_advisor",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 0,
+   "added_any": 10,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:2276",
+  "kind": "narrow",
+  "func": "_worker_fallback_streak",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:entities.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:2693",
+  "kind": "broad",
+  "func": "CoordinatorDiagnostics.of",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 4,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:3012",
+  "kind": "narrow",
+  "func": "_plausible_forecast_rows",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1344,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:3055",
+  "kind": "broad",
+  "func": "_stored_fuse_advisor",
+  "record_level": 0,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:4174",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:4184",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:440",
+  "kind": "narrow",
+  "func": "_stored_isoformat",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:452",
+  "kind": "narrow",
+  "func": "_stored_learner",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 4,
+   "added_warn": 0,
+   "added_any": 8,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:4581",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_load_thermal_learning",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 4,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:4605",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._async_load_thermal_learning",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:4661",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._load_t4b_learners",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:4678",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._load_t4b_learners",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:4780",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_save_thermal_learning",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 5,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:512",
+  "kind": "narrow",
+  "func": "_refuses_non_finite.guarded",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 9,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:583",
+  "kind": "narrow",
+  "func": "_comparable_ts",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5616,
+   "added_warn": 2,
+   "added_any": 11,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:5993",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._check_pump_mode_expired",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:6035",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._dhw_effective_windows",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 10,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:6980",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+  "record_level": 0,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 5,
+   "added_any": 61,
+   "escaped": true
+  },
+  "local": [
+   "lifecycle",
+   "escaped,phase-raised,flood"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:6982",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+  "record_level": 0,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 5,
+   "added_any": 61,
+   "escaped": true
+  },
+  "local": [
+   "lifecycle",
+   "escaped,phase-raised,flood"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:7115",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:746",
+  "kind": "broad",
+  "func": "_valve_write_problem",
+  "record_level": 0,
+  "carried": true,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:8296",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_save_price_model",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 5,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:8331",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._async_load_ledger",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:8368",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_save_ledger",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 3,
+   "added_warn": 0,
+   "added_any": 7,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:8406",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_save_accuracy",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 0,
+   "added_any": 11,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:8448",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_save_energy_totals",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 0,
+   "added_any": 11,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:8477",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_load_manual_plan",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 4,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:8505",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_save_manual_plan",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:894",
+  "kind": "narrow",
+  "func": "_outage_reading",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:9255",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._track_curve_comfort",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:9293",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:9527",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._raise_cop_issue",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:9776",
+  "kind": "broad",
+  "func": "HeatPumpOptimizerCoordinator._async_save_snapshots",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 4,
+   "added_warn": 0,
+   "added_any": 9,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/coordinator.py:9857",
+  "kind": "narrow",
+  "func": "HeatPumpOptimizerCoordinator._entity_state",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/curve_learning.py:162",
+  "kind": "narrow",
+  "func": "CurveLearner.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/curve_learning.py:171",
+  "kind": "narrow",
+  "func": "CurveLearner.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/curve_learning.py:175",
+  "kind": "narrow",
+  "func": "CurveLearner.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/debugger.py:199",
+  "kind": "narrow",
+  "func": "_read_stores",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/debugger.py:209",
+  "kind": "narrow",
+  "func": "_parsed",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/debugger.py:355",
+  "kind": "narrow",
+  "func": "run_self_tests",
+  "record_level": 0,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/debugger.py:357",
+  "kind": "broad",
+  "func": "run_self_tests",
+  "record_level": 0,
+  "carried": true,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/debugger.py:523",
+  "kind": "broad",
+  "func": "DebugCollector.async_save",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/debugger.py:674",
+  "kind": "narrow",
+  "func": "DebugCollector._async_replay",
+  "record_level": 0,
+  "carried": true,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/debugger.py:676",
+  "kind": "broad",
+  "func": "DebugCollector._async_replay",
+  "record_level": 0,
+  "carried": true,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/defrost.py:530",
+  "kind": "narrow",
+  "func": "DefrostDerate.from_dict._grid_of",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 60,
+   "added_warn": 1,
+   "added_any": 1,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/defrost.py:737",
+  "kind": "narrow",
+  "func": "DefrostWindow._elapsed",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_draws.py:160",
+  "kind": "narrow",
+  "func": "DrawStats.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_learning.py:234",
+  "kind": "narrow",
+  "func": "DhwProfileLearner.normalize_profile",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_learning.py:254",
+  "kind": "broad",
+  "func": "DhwProfileLearner.async_load_profile",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 4,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_learning.py:272",
+  "kind": "narrow",
+  "func": "DhwProfileLearner.async_load_profile",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_learning.py:335",
+  "kind": "narrow",
+  "func": "DhwProfileLearner.apply_payload",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_learning.py:355",
+  "kind": "narrow",
+  "func": "DhwProfileLearner._restore_daytypes",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 4,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_learning.py:371",
+  "kind": "broad",
+  "func": "DhwProfileLearner.async_save_profile",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_learning.py:384",
+  "kind": "broad",
+  "func": "DhwProfileLearner.async_save_draws",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_planner.py:1032",
+  "kind": "narrow",
+  "func": "DhwPlanner._dhw_window_floors",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_planner.py:1604",
+  "kind": "broad",
+  "func": "DhwPlanner._plan_dhw_min_cost",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 9,
+   "added_warn": 0,
+   "added_any": 18,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_schedule.py:123",
+  "kind": "narrow",
+  "func": "_parse_day_selector",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_schedule.py:129",
+  "kind": "narrow",
+  "func": "_parse_day_selector",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_schedule.py:537",
+  "kind": "narrow",
+  "func": "is_valid_spec",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/dhw_schedule.py:577",
+  "kind": "narrow",
+  "func": "spec_problem",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/diagnosis.py:103",
+  "kind": "narrow",
+  "func": "attribute",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/diagnosis.py:114",
+  "kind": "broad",
+  "func": "attribute",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/diagnosis.py:151",
+  "kind": "broad",
+  "func": "diagnose_record",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/diagnosis.py:93",
+  "kind": "broad",
+  "func": "attribute",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/diagnostics.py:339",
+  "kind": "broad",
+  "func": "_coordinator_snapshot",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/diagnostics.py:367",
+  "kind": "broad",
+  "func": "_never_breaks",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 4,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/draw_range.py:373",
+  "kind": "narrow",
+  "func": "DrawRange.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/draw_range.py:388",
+  "kind": "narrow",
+  "func": "DrawRange.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/draw_range.py:456",
+  "kind": "narrow",
+  "func": "_stored_ceiling",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/draw_range.py:473",
+  "kind": "narrow",
+  "func": "_command_cells",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/drift.py:109",
+  "kind": "narrow",
+  "func": "stored_instant",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 28,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/drift.py:318",
+  "kind": "narrow",
+  "func": "Cusum.load",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/drift.py:360",
+  "kind": "narrow",
+  "func": "_positive_definite",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/duty_legs.py:144",
+  "kind": "narrow",
+  "func": "priced_pair",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 41,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/duty_switch.py:427",
+  "kind": "narrow",
+  "func": "DutySwitchLearner.from_record",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/duty_switch.py:504",
+  "kind": "broad",
+  "func": "_load",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/duty_switch.py:514",
+  "kind": "broad",
+  "func": "_persist",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": null,
+  "local": [
+   "local:finite_boundary.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/entry_config.py:42",
+  "kind": "narrow",
+  "func": "_whole",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/flow_lift.py:230",
+  "kind": "narrow",
+  "func": "FlowCurveBias.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/freq_control.py:274",
+  "kind": "narrow",
+  "func": "FrequencyMap.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/freq_control.py:280",
+  "kind": "narrow",
+  "func": "FrequencyMap.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:finite_boundary.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/grid_fee.py:243",
+  "kind": "narrow",
+  "func": "spec_problem",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/grid_fee.py:281",
+  "kind": "narrow",
+  "func": "GridFeeSchedule.from_config",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/inputs.py:1122",
+  "kind": "narrow",
+  "func": "InputReader.read",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 14,
+   "added_warn": 0,
+   "added_any": 7,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/inputs.py:965",
+  "kind": "narrow",
+  "func": "parse_bool",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/issues.py:65",
+  "kind": "broad",
+  "func": "clear_issue",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 74,
+   "added_warn": 0,
+   "added_any": 148,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/ledger.py:255",
+  "kind": "narrow",
+  "func": "_clean_month",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 1,
+   "added_any": 1,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/legionella.py:227",
+  "kind": "broad",
+  "func": "LegionellaGuard.async_load",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 4,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/legionella.py:262",
+  "kind": "broad",
+  "func": "LegionellaGuard.async_save",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 5,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/manual_plan.py:267",
+  "kind": "narrow",
+  "func": "ManualOverride.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/notifier.py:289",
+  "kind": "broad",
+  "func": "Notifier._async_save",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 5,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/off_restore.py:152",
+  "kind": "broad",
+  "func": "_save",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 3,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/off_restore.py:218",
+  "kind": "broad",
+  "func": "_restore_baseline",
+  "record_level": 0,
+  "carried": true,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/off_restore.py:343",
+  "kind": "broad",
+  "func": "async_forget",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": null,
+  "local": [
+   "local:manual_plan.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/open_meteo.py:213",
+  "kind": "narrow",
+  "func": "_parse_block",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:open_meteo.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/open_meteo.py:223",
+  "kind": "narrow",
+  "func": "_parse_block",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:open_meteo.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/open_meteo.py:400",
+  "kind": "broad",
+  "func": "OpenMeteoSolar._fenced",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:open_meteo.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/open_meteo.py:421",
+  "kind": "broad",
+  "func": "OpenMeteoSolar._get_json",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:open_meteo.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:1468",
+  "kind": "narrow",
+  "func": "<module>",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:1866",
+  "kind": "broad",
+  "func": "_lbfgsb_restart",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 33,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:1944",
+  "kind": "broad",
+  "func": "_multi_start_minimize",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 20,
+   "added_warn": 2,
+   "added_any": 10,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:1970",
+  "kind": "broad",
+  "func": "_multi_start_minimize",
+  "record_level": 0,
+  "carried": true,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 20,
+   "added_warn": 2,
+   "added_any": 20,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:2849",
+  "kind": "broad",
+  "func": "_solver_status",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:4000",
+  "kind": "broad",
+  "func": "HeatPumpOptimizer._co_optimize",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 0,
+   "added_any": 10,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:496",
+  "kind": "broad",
+  "func": "_avoid_priced_switches",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:4988",
+  "kind": "broad",
+  "func": "HeatPumpOptimizer._solve_space",
+  "record_level": 10,
+  "carried": true,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 2,
+   "added_any": 20,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:5575",
+  "kind": "broad",
+  "func": "HeatPumpOptimizer._optimize_space_only",
+  "record_level": 10,
+  "carried": true,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/optimizer.py:705",
+  "kind": "broad",
+  "func": "_commit_runs",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 9,
+   "added_warn": 0,
+   "added_any": 18,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/price_model.py:113",
+  "kind": "narrow",
+  "func": "_stored_rows",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 3,
+   "added_warn": 3,
+   "added_any": 3,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/price_model.py:127",
+  "kind": "narrow",
+  "func": "_stored_counts",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/price_model.py:484",
+  "kind": "narrow",
+  "func": "_noon",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 28,
+   "added_warn": 0,
+   "added_any": 1,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/price_model.py:584",
+  "kind": "narrow",
+  "func": "_entries_by_day",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 2688,
+   "added_warn": 0,
+   "added_any": 1,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/price_model.py:749",
+  "kind": "narrow",
+  "func": "_raw_start",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1920,
+   "added_warn": 5,
+   "added_any": 56,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "phase-raised,flood"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/price_model.py:772",
+  "kind": "narrow",
+  "func": "apply_price_adjustments",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/price_model.py:862",
+  "kind": "narrow",
+  "func": "pull_prices",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/price_tiles.py:307",
+  "kind": "narrow",
+  "func": "_aware",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/process_worker.py:25",
+  "kind": "narrow",
+  "func": "_bootstrap",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/process_worker.py:40",
+  "kind": "broad",
+  "func": "_describe",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/process_worker.py:52",
+  "kind": "broad",
+  "func": "_dump",
+  "record_level": 0,
+  "carried": true,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/process_worker.py:74",
+  "kind": "narrow",
+  "func": "run_worker",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/process_worker.py:76",
+  "kind": "broad",
+  "func": "run_worker",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/process_worker.py:85",
+  "kind": "broad",
+  "func": "run_worker",
+  "record_level": 0,
+  "carried": true,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/pump_arbiter.py:1483",
+  "kind": "narrow",
+  "func": "_observed",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:guard_pins.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/pump_arbiter.py:2195",
+  "kind": "broad",
+  "func": "_persist",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": true,
+  "lifecycle": null,
+  "local": [
+   "local:finite_boundary.py",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/pump_arbiter.py:2214",
+  "kind": "narrow",
+  "func": "_load",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:finite_boundary.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/quiet_windows.py:422",
+  "kind": "narrow",
+  "func": "silent_cap_kw",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/quiet_windows.py:594",
+  "kind": "narrow",
+  "func": "_parse_spec_pair",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/quiet_windows.py:627",
+  "kind": "narrow",
+  "func": "overlap_problem",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/repairs.py:54",
+  "kind": "broad",
+  "func": "DhwSetpointRepairFlow.async_step_confirm",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/replay_doc.py:185",
+  "kind": "narrow",
+  "func": "numeric",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/replay_doc.py:197",
+  "kind": "narrow",
+  "func": "json_decimal_places",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/replay_doc.py:218",
+  "kind": "narrow",
+  "func": "text_ok",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/replay_doc.py:240",
+  "kind": "narrow",
+  "func": "clean_value",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:debug_collect.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/services.py:1273",
+  "kind": "narrow",
+  "func": "handle_diagnose_interval",
+  "record_level": 0,
+  "carried": true,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/setpoint_check.py:88",
+  "kind": "broad",
+  "func": "evaluate",
+  "record_level": 10,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 7,
+   "added_warn": 0,
+   "added_any": 14,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/silent_mode.py:109",
+  "kind": "narrow",
+  "func": "compose",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/snapshots.py:230",
+  "kind": "narrow",
+  "func": "SnapshotRing.best_restore",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/snapshots.py:286",
+  "kind": "narrow",
+  "func": "SnapshotRing.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/store.py:102",
+  "kind": "narrow",
+  "func": "_poisoned",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 392,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/store.py:160",
+  "kind": "narrow",
+  "func": "_bound_instants",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 30,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/store.py:217",
+  "kind": "narrow",
+  "func": "_parses",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 41,
+   "added_warn": 0,
+   "added_any": 7,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/store.py:247",
+  "kind": "narrow",
+  "func": "in_domain",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/store.py:690",
+  "kind": "broad",
+  "func": "load_mapping",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": {
+   "fired": 19,
+   "added_warn": 0,
+   "added_any": 38,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "contained-logged"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/store.py:72",
+  "kind": "narrow",
+  "func": "<module>",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/sysid.py:1981",
+  "kind": "narrow",
+  "func": "SystemIdentification.identify",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/sysid.py:2098",
+  "kind": "narrow",
+  "func": "SystemIdentification.identify",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/sysid.py:2112",
+  "kind": "narrow",
+  "func": "SystemIdentification.identify",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/sysid.py:826",
+  "kind": "narrow",
+  "func": "_lm_solve",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/tariff.py:425",
+  "kind": "narrow",
+  "func": "PeakTracker.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/tariff.py:435",
+  "kind": "narrow",
+  "func": "PeakTracker.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/tariff.py:445",
+  "kind": "narrow",
+  "func": "PeakTracker.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/tariff.py:524",
+  "kind": "narrow",
+  "func": "_stored_peaks",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/thermal_model.py:173",
+  "kind": "narrow",
+  "func": "_holiday_dhw_windows",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:config_flow_steps.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/thermal_model.py:268",
+  "kind": "narrow",
+  "func": "ThermalParameters.clamp",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 120,
+   "added_warn": 0,
+   "added_any": 3,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "phase-raised"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/thermal_model.py:285",
+  "kind": "narrow",
+  "func": "ThermalParameters.clamp",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 66,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/thermal_model.py:3540",
+  "kind": "narrow",
+  "func": "ThermalModel.internal_gains_at",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wear.py:225",
+  "kind": "narrow",
+  "func": "StartCounter.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 1,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wear.py:233",
+  "kind": "narrow",
+  "func": "StartCounter.from_dict",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:features.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/whatif.py:213",
+  "kind": "broad",
+  "func": "steady_pair",
+  "record_level": 10,
+  "carried": false,
+  "awaits": true,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wood_fuel.py:129",
+  "kind": "narrow",
+  "func": "wood_fuel_ready",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wood_fuel.py:291",
+  "kind": "narrow",
+  "func": "_as_dt",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wood_fuel.py:318",
+  "kind": "narrow",
+  "func": "wood_slots_to_kw",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:guard_pins.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wood_fuel.py:343",
+  "kind": "narrow",
+  "func": "_wood_slots_error",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "local:drivers_misc.py",
+   "contained-silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wood_fuel.py:369",
+  "kind": "narrow",
+  "func": "_wood_override_fuel",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wood_fuel.py:420",
+  "kind": "narrow",
+  "func": "detected_wood_slots",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 5,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wood_fuel.py:459",
+  "kind": "narrow",
+  "func": "_cops",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": {
+   "fired": 480,
+   "added_warn": 0,
+   "added_any": 0,
+   "escaped": false
+  },
+  "local": [
+   "lifecycle",
+   "silent"
+  ]
+ },
+ {
+  "id": "custom_components/heatpump_optimizer/wood_fuel.py:501",
+  "kind": "narrow",
+  "func": "build_wood_fuel_view",
+  "record_level": 0,
+  "carried": false,
+  "awaits": false,
+  "persist": false,
+  "lifecycle": null,
+  "local": [
+   "none",
+   "not-reached"
+  ]
+ }
+]
