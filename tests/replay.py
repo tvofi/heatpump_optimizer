@@ -493,9 +493,16 @@ COST_DETECTION = 2.0
 #: 87: 0.175; the reviewer's, 85-99: 0.152-0.191); the lane never runs on one.
 #: ``peak_kib`` stays. Synthetic
 #: ``cpu_ratio`` is keyed by runner class, ``COST_CLASS_BUDGETS``.
+#: Owner ``cpu_ratio`` re-derived by the same rule for 2c84a85c8c (#3602), the
+#: cut ``COST_CUTS`` declares: its engaged solve adds the commit stage to every
+#: space solve of the clamped owner install, and CI's clean owner draws moved
+#: from 204.2-271.2 to 383.1-453.8. Every draw before the cut projected by its
+#: factor, the owner draws span 361.9-480.5, one budget holds them, and sqrt(2)
+#: x their geometric midpoint is 589.7 (floor 294.8). ``loop_cpu_ratio`` the
+#: rule leaves at 0.2154.
 COST_BUDGETS: dict[str, dict[str, float]] = {
     "synthetic-dhw-only.json": {"peak_kib": 2686.0, "loop_cpu_ratio": 0.1527},
-    "owner-2026-10-30-away.json": {"cpu_ratio": 332.7976, "peak_kib": 3740.0,
+    "owner-2026-10-30-away.json": {"cpu_ratio": 589.6842, "peak_kib": 3740.0,
                                    "loop_cpu_ratio": 0.2154},
 }
 #: Runner classes, by the job's BLAS ruler: the median ``ref_ms`` over the
@@ -564,6 +571,22 @@ COST_CUTS: tuple[dict, ...] = (
                   "cost is the runner's, not the code's, so the box bounds the "
                   "direction and the factor is CI's; "
                   "tools/audit/seat/replay_draws.py interleave re-runs the box arm"},
+    {"commit": "2c84a85c8c", "fixture": "owner-2026-10-30-away.json", "metric": "cpu_ratio",
+      "from": "2026-11-16T19:03:07Z", "factor": 1.7719,
+      # #3602's merge (R11-OUTSIDE-HONEST-STARTS-RUNS). ``from`` is the merge's
+      # time, not a branch commit's: no draw of the table carries the
+      # branch's code before it, and a pull request's draw at
+      # 2026-11-16T18:28:52Z (job 133524734670, another branch) read 232.98,
+      # the old level. The CI runners' own factor: the geometric midpoint of
+      # the clean draws after ``from`` (383.13-453.80, 26 jobs) over that of
+      # the draws before it (204.23-271.15), 1.7719.
+      "evidence": "the owner install plans clamped levels, so its solve is engaged "
+                  "(start_price 0.3) and every space solve adds the commit stage "
+                  "(_commit_runs, _resolved_runs' L-BFGS-B per run) after the relaxed "
+                  "descent; no priced stop, so the unpriced second descent never runs "
+                  "(_relaxed_plans returned one plan in all 58 calls of one replay). "
+                  "The factor is CI's, as 17bb738485's is; no interleaved box arm: "
+                  "the owner replay costs about 12 CPU-minutes a run"},
 )
 #: A class border is a gap of at least this between two consecutive job
 #: rulers. On the draws of ``COST_DRAWS`` the largest step the rule leaves

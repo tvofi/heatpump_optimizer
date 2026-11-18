@@ -32,8 +32,7 @@ from datetime import datetime
 
 import numpy as np
 
-from .accuracy import utc_elapsed_seconds
-from .drift import EvidenceNotes
+from .drift import EvidenceNotes, utc_elapsed_seconds
 
 #: Consecutive agreeing projections needed to engage or release.
 HYSTERESIS_SAMPLES = 2
