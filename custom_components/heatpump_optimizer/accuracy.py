@@ -947,7 +947,7 @@ class ScaleDither:
     pair: tuple[int, int] | None = None
     #: The pair's first row, awaiting its second.
     first: CopInterval | None = None
-    #: When the pair in flight was first handed out.
+    #: When the pair in flight began: its start, or the row that completed the one before.
     since: datetime | None = None
     #: The coin of the pair after it, drawn once that pair's first slot is handed out ahead.
     after: int | None = None
@@ -1000,8 +1000,8 @@ class ScaleDither:
         ``read``: no frozen or unread cycle came since the last step;
         otherwise the pair in flight is void and the scale waits at ``base``
         until a row is read again. So it is once the pair has run past
-        ``COP_HOLD_HORIZON_S`` from its first row (from when it was handed
-        out, before one is read, or an unknowable age). Else the slot after
+        ``COP_HOLD_HORIZON_S`` from its first row (from ``since``, before one
+        is read, or an unknowable age). Else the slot after
         the one running, unless the running one is a slot handed out again
         because its first run read no row: that one is held.
         """
@@ -1022,8 +1022,6 @@ class ScaleDither:
             self.holding = running is not None and running == self._next(want)
             self.ahead = want
         coin, second = self.ahead[1:]
-        if self.since is None:
-            self.since = now
         return self.levels(base)[(coin > 0) != second]
 
     def take(self, row: CopInterval) -> None:
@@ -1046,7 +1044,7 @@ class ScaleDither:
             self.first = row
             return
         first = self.first
-        self.pair, self.first, self.since = (number + 1, self.after if self.after is not None else self.coin.choice((-1, 1))), None, None
+        self.pair, self.first, self.since = (number + 1, self.after if self.after is not None else self.coin.choice((-1, 1))), None, row.at
         self.after = None
         step = math.log(FOLLOW_ASK_SPAN)
         if coin * math.log(first.heat_ask_kw / row.heat_ask_kw) >= FOLLOW_SLOPE_MIN * step:
