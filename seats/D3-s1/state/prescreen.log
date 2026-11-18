@@ -152,3 +152,15 @@
 2026-11-18T17:09:37Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846 L539 by=tests/features.py ran=13 wall=1313.9s
 2026-11-18T17:20:33Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0 L64 by=tests/features.py ran=17 wall=1461.6s
 2026-11-18T17:33:08Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.clamp GUARD_OFF 55e7d0fb L270 by=tests/harness_headers.py ran=20 wall=3301.2s
+2026-11-18T17:33:16Z COMPLETE queued=11 from=c2
+2026-11-18T17:55:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:R10-C2 M25 L337 by=- ran=12 wall=1327.6s
+2026-11-18T17:55:31Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M27 L2246 by=tests/features.py ran=12 wall=1334.5s
+2026-11-18T17:55:32Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:R10-C2 M32 L783 by=tests/features.py ran=12 wall=1335.8s
+2026-11-18T18:11:54Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M26 L1549 by=tests/harness_headers.py,tests/features.py ran=12 wall=989.9s
+2026-11-18T18:15:46Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:R10-C2 M36 L355 by=- ran=12 wall=1214.9s
+2026-11-18T18:17:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:R10-C2 M35 L188 by=- ran=12 wall=1303.9s
+2026-11-18T18:33:26Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M28 L1593 by=tests/features.py ran=12 wall=1292.9s
+2026-11-18T18:38:49Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:R10-C2 M34 L252 by=- ran=12 wall=1293.6s
+2026-11-18T18:40:16Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:R10-C2 M29 L64 by=tests/features.py ran=17 wall=1470.6s
+2026-11-18T18:53:26Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:R10-C2 M31 L744 by=- ran=12 wall=1199.9s
+2026-11-18T19:00:28Z COMPLETE KILLED custom_components/heatpump_optimizer/price_model.py:R10-C2 M33 L532 by=tests/features.py ran=12 wall=1298.6s
