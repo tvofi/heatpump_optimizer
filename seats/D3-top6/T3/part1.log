@@ -1,4 +1,4 @@
-# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=0.13 at 2026-11-18T19:22:46Z
+# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=5.70 at 2026-11-18T19:37:51Z
 ## run.log (driver steps + controls)
 === 2026-11-18T18:51:31Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.18 :: STEP baseline
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
@@ -44,6 +44,19 @@ AssertionError: ({'kind': 'NULL_COMMENT', 'file': 'custom_components/heatpump_op
 RESULT load1=0.13
 RESULT thread_factor=1.00
 === 2026-11-18T19:22:45Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=0.13 :: STEP null
+RESULT null_verdict=LIVES
+RESULT null_drivers_run=16
+RESULT load1=1.01
+RESULT thread_factor=1.00
+=== 2026-11-18T19:29:04Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.01 :: STEP posctl
+2026-11-18T19:29:06Z RUN posctl-T3 queued=2 workers=2
+2026-11-18T19:29:15Z POSCTL-T3 KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=8.9s
+2026-11-18T19:29:15Z POSCTL-T3 KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=2 skip=5 wall=9.3s
+RESULT load1=1.09
+RESULT thread_factor=1.00
+=== 2026-11-18T19:29:15Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.09 :: STEP posctl_done killed=2 of=2
+=== 2026-11-18T19:29:15Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.09 :: STEP complete src=pre
+2026-11-18T19:29:16Z COMPLETE queued=8 from=pre
 ## prescreen.log
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
 2026-11-18T18:57:42Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=155.7s reach_ok=False
@@ -66,3 +79,7 @@ RESULT thread_factor=1.00
 2026-11-18T19:02:50Z BASELINE tests/solar_alignment.py rc=0 failed=0 wall=0.8s reach_ok=True
 2026-11-18T19:05:26Z BASELINE tests/features.py rc=0 failed=0 wall=834.6s reach_ok=False
 2026-11-18T19:06:43Z BASELINE tests/env_drift.py rc=0 failed=0 wall=233.5s reach_ok=False
+2026-11-18T19:29:06Z RUN posctl-T3 queued=2 workers=2
+2026-11-18T19:29:15Z POSCTL-T3 KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=8.9s
+2026-11-18T19:29:15Z POSCTL-T3 KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=2 skip=5 wall=9.3s
+2026-11-18T19:29:16Z COMPLETE queued=8 from=pre
