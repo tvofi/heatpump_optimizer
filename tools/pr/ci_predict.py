@@ -1826,8 +1826,13 @@ def gated_arms_self_test() -> int:
     recorded = [line for _, line in run_arms(arms, None, True)]
     ran.clear()
     only = [line for _, line in run_arms(arms, "selftest-scope", False)]
-    cases = [("gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them",
-              default == ran_default == [a for a in ARMS if a not in GATED_ARMS] and "selftest-scope" in GATED_ARMS),
+    # Named here, not read from GATED_ARMS: an expected value derived from the
+    # tuple under test holds for any membership, so a dropped arm went unseen.
+    gated = ("self-test-reads", "graders", "step-replay", "selftest-scope")
+    cases = [("gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope",
+              sorted(GATED_ARMS) == sorted(gated)),
+             ("gated arms: a default call runs every ungated arm and none of the four named gated ones",
+              default == ran_default == [a for a in ARMS if a not in gated]),
              ("gated arms: null: --record-self-tests runs every arm, in order", recorded == list(ARMS)),
              ("gated arms: --only selftest-scope runs that arm alone", only == ran == ["selftest-scope"])]
     for label, ok in cases:
