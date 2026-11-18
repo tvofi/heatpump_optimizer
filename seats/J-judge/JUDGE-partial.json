@@ -2274,6 +2274,16 @@
   "differs": "nothing stale is published; the cost is memory growth on a long-lived client"
  },
  {
+  "id": "D9-s3-01",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree (2400 s re-take): probed_by_gate=6 of 54 scenarios, blind_confined=48, flagged_if_probed=54; traced growth 1.54-3.29x",
+  "stop_rule_class": "bug",
+  "class": "I1",
+  "note": "reproduced exactly, tf 1.045; --top-n 108 perturbation on the finder's record (54 probed, 0 blind). Votes: 1 weaken (low).",
+  "class_mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green"
+ },
+ {
   "id": "D9-s3-02",
   "verdict": "verified",
   "severity": "low",
