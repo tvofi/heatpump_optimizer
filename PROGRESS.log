@@ -10,3 +10,4 @@
 1794989464 INIT box D3-u1b
 1794989490 HB alive
 1794989508 CKPT D3-s1 126 file(s)
+1794989529 HB re-fire: running D3-s1 inline per inbox 1; worktree rebuilt, evidence restored, keys-D3-u1b 309 sha 64a2b349 OK; baseline re-take running
