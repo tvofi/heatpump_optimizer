@@ -6340,7 +6340,9 @@
     "docs/img/model/make_card_weekly_figure.mjs"
    ],
    "brief": "Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc. Plan: ADR-010. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "Moved from R11-INTAKE-R10-RESIDUE carry 91 (0-based at roster c7e683a6d4) by plan revision 4 (plan/r11 50a932de3b, dev/audit/rounds/round11/PLAN/INTAKE-TRIAGE.md): kept. Text verbatim:\n\nFrom #3563 (r10-user-text-verify-card), body item a0e752f6: `docs/img/card/advisor-*.png` show the old basis line and fuse step. This host's render of the merge base already differs from the committed advisor, savings and setup figures, so they need a re-take on the host that recorded them. Re-measure: `cmp` of a `card_browser.mjs` `HPO_PAGES_OUT` render at the base against the committed PNGs. Carry: R11-INTAKE-R10-RESIDUE (items a0e752f6)"
+   ],
    "source": "audit",
    "resume": {
     "stage": "not-started",
