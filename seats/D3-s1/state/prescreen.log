@@ -532,3 +532,4 @@
 2026-11-18T23:25:12Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_series GUARD_OFF a1268b1c L7366 by=tests/features.py ran=14 wall=1207.9s
 2026-11-18T23:25:26Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair GUARD_OFF 9f1b1acf L2792 by=tests/features.py ran=13 wall=1453.4s
 2026-11-18T23:35:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._immersion_dhw_margin CMP_BOUND 0c70935f L9294 by=- ran=13 wall=1273.2s
+2026-11-18T23:38:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CLAMP_DROP e0d7cd6a L2307 by=- ran=16 wall=1291.6s
