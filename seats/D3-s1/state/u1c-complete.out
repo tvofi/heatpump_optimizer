@@ -17,3 +17,5 @@
 2026-11-18T16:29:10Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF a07a2d53 L6790 by=tests/features.py ran=15 wall=2019.2s
 2026-11-18T16:52:51Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_fetch_failed GUARD_OFF 643e387c L7118 by=- ran=13 wall=1779.0s
 2026-11-18T16:54:29Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._learning_frozen GUARD_OFF c717696c L6892 by=tests/features.py ran=15 wall=2005.6s
+2026-11-18T16:56:13Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays GUARD_OFF ce280c82 L7494 by=tests/entities.py ran=14 wall=1766.1s
+2026-11-18T16:56:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_data_dict GUARD_OFF 9e714704 L8265 by=- ran=13 wall=1633.7s
