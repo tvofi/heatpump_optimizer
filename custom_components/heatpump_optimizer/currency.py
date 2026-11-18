@@ -11,7 +11,7 @@ The instance currency is a label, though, and the numbers are denominated
 by the price feed (#1657): a EUR feed on a SEK instance published EUR
 figures under SEK units. So a published money unit is the feed's own code
 where the feed declares one (:func:`declared_currency`), and the instance's
-only where it does not.
+only where it does not: :func:`figure_currency` is that precedence.
 """
 from __future__ import annotations
 
@@ -61,6 +61,28 @@ def declared_currency(unit: Any, attributes: Any = None) -> str | None:
     if code is None and isinstance(attr, str) and re.fullmatch("[A-Za-z]{3}", attr):
         code = attr.upper()
     return code
+
+
+def feed_currency(hass: Any, feed: str | None) -> str | None:
+    """The code the price entity ``feed`` declares from its live state, or ``None``.
+
+    ``None`` too when there is no feed (Tibber) or it is not in ``hass.states``.
+    """
+    state = hass.states.get(feed) if feed else None
+    attrs = getattr(state, "attributes", None) or {}
+    return declared_currency(attrs.get("unit_of_measurement"), attrs)
+
+
+def figure_currency(hass: Any, feed: str | None, adopted: str | None = None) -> str:
+    """The currency every money figure is published and entered in (#1657).
+
+    The feed's declared code first, since its numbers denominate every
+    figure; else ``adopted``, the code already in use (an unavailable feed
+    does not flip the unit); else the instance's (``resolve_currency``).
+    The one precedence for the sensors, the options dialog's labels and its
+    fee bound (D14-s1-03).
+    """
+    return feed_currency(hass, feed) or adopted or resolve_currency(hass)
 
 
 def money_scale(currency: Any) -> int:

@@ -2490,7 +2490,9 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             coord._open_meteo = None
 
         coord._fetch_solar_forecast = no_solar_fetch
-        if not cm._entity_price_source(config):
+        from heatpump_optimizer.price_model import entity_priced
+
+        if not entity_priced(config):
             async def recorded_prices() -> None:
                 now = dt_util.now()
                 day0 = now.replace(hour=0, minute=0, second=0, microsecond=0)

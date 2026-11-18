@@ -21,7 +21,7 @@ import calendar
 import logging
 import math
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Mapping
 
 import numpy as np
@@ -135,13 +135,38 @@ def pro_rata_factor(now: datetime) -> float:
     return days / max(1, now.day)
 
 
+#: Hours an open month must have settled (or, without a coverage, have run)
+#: before it is scaled to the whole month. Below it one quarter-hour stood
+#: for the month: x2688 in February (D8-s1-02), a swing of the whole
+#: saving per cycle. A day is the shortest span holding a full price cycle.
+MIN_COVERAGE_HOURS = 24.0
+
+
+def _month_start(now: datetime) -> datetime:
+    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _real_hours(start: datetime, end: datetime) -> float:
+    """Elapsed hours from ``start`` to ``end``: UTC-converted when aware, so a
+    DST day counts its 23 or 25 hours (two datetimes sharing one ``tzinfo``
+    subtract as wall clock)."""
+    if start.tzinfo is not None:
+        start, end = start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+    return (end - start).total_seconds() / 3600.0
+
+
 def month_hours(now: datetime) -> float:
-    """Hours in ``now``'s calendar month, as days x 24 (a DST hour ignored)."""
-    return 24.0 * calendar.monthrange(now.year, now.month)[1]
+    """Real hours in ``now``'s calendar month in ``now``'s zone (743 for a
+    spring-forward March, 745 for a fall-back October; a naive ``now`` reads
+    days x 24)."""
+    start = _month_start(now)
+    following = (start + timedelta(days=32)).replace(day=1)
+    return _real_hours(start, following)
 
 
-def coverage_factor(meta: Mapping[str, Any], now: datetime) -> float:
-    """Open-month scale from the month's ``meta``: its hours over the hours it settled.
+def coverage_factor(meta: Mapping[str, Any], now: datetime) -> float | None:
+    """Open-month scale from the month's ``meta``: its hours over the hours it
+    settled, or ``None`` below ``MIN_COVERAGE_HOURS`` (no estimate yet).
 
     The coverage is the month's only when it began with the month's
     first settlement: the call folding it folds a spot sample at most
@@ -150,16 +175,19 @@ def coverage_factor(meta: Mapping[str, Any], now: datetime) -> float:
     fewer, and its hours describe the upgrade's tail, not the lines it
     would scale (#2255's coverage under v7.0.1: months of bookings over
     minutes of hours). That month, like one with no coverage, falls back
-    to the calendar-day ratio. Every estimated figure takes this one
-    factor. A meta entry that is not a dict, or one whose ``sum`` or
-    ``count`` is missing or not a finite number, reads as no coverage.
+    to the calendar-day ratio, under the same floor on the hours the month
+    has run. Every estimated figure takes this one factor. A meta entry
+    that is not a dict, or one whose ``sum`` or ``count`` is missing or not
+    a finite number, reads as no coverage.
     """
     entry, spot = meta.get(SETTLED_HOURS_META), meta.get(SPOT_PRICE_META)
     settled = finite_float(entry.get("sum"), 0.0) if isinstance(entry, dict) else 0.0
     folds = int(finite_float(entry.get("count"), 0.0)) if isinstance(entry, dict) else 0
     spot_folds = int(finite_float(spot.get("count"), 0.0)) if isinstance(spot, dict) else 0
     if settled > 0 and folds >= spot_folds:
-        return max(1.0, month_hours(now) / settled)
+        return None if settled < MIN_COVERAGE_HOURS else max(1.0, month_hours(now) / settled)
+    if _real_hours(_month_start(now), now) < MIN_COVERAGE_HOURS:
+        return None
     return pro_rata_factor(now)
 
 
@@ -278,12 +306,16 @@ class MonthlyLedger:
 
     # -- writing ------------------------------------------------------------
 
+    def _entry(self, when: datetime, section: str, name: str, zero: dict[str, Any]) -> dict[str, Any]:
+        """The running entry ``name`` of one section of ``when``'s month, started at ``zero``."""
+        entry: dict[str, Any] = self._month(month_key(when))[section].setdefault(name, zero)
+        return entry
+
     def add(self, when: datetime, line: str, *, kwh: float, sek: float) -> None:
         """Accumulate one settled amount onto a named line."""
         if not (np.isfinite(kwh) and np.isfinite(sek)):
             return
-        lines = self._month(month_key(when))["lines"]
-        entry = lines.setdefault(line, {"kwh": 0.0, "sek": 0.0})
+        entry = self._entry(when, "lines", line, {"kwh": 0.0, "sek": 0.0})
         entry["kwh"] = float(entry["kwh"]) + float(kwh)
         entry["sek"] = float(entry["sek"]) + float(sek)
 
@@ -291,8 +323,7 @@ class MonthlyLedger:
         """Fold one sample into a running month-level mean (sum and count)."""
         if not np.isfinite(value):
             return
-        meta = self._month(month_key(when))["meta"]
-        entry = meta.setdefault(name, {"sum": 0.0, "count": 0})
+        entry = self._entry(when, "meta", name, {"sum": 0.0, "count": 0})
         entry["sum"] = float(entry["sum"]) + float(value)
         entry["count"] = int(entry["count"]) + 1
 
@@ -489,7 +520,7 @@ class MonthlyLedger:
         are in neither column: the receipt states them.
 
         The open month is an estimate: every figure is scaled by
-        ``coverage_factor``. A month booked against another reference
+        ``coverage_factor``, and the month has no row while that is ``None``. A month booked against another reference
         (``REFERENCE_BASIS_META``) states its two columns and no saving, as does
         one ``below_meter_floor`` reads.
         """
@@ -511,6 +542,8 @@ class MonthlyLedger:
             estimated = key == open_key
             if estimated:
                 factor = coverage_factor(self.months[key].get("meta") or {}, now)
+                if factor is None:  # under MIN_COVERAGE_HOURS: no estimate yet
+                    continue
                 baseline_sek, actual_sek, stored_sek, comfort_sek = (
                     v * factor for v in (baseline_sek, actual_sek, stored_sek, comfort_sek))
             baseline_sek, actual_sek = round(baseline_sek, 2), round(actual_sek, 2)

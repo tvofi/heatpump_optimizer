@@ -112,7 +112,7 @@ HASHED_ID = re.compile(r"^[a-z_]+\.e_[0-9a-f]{10}$")
 TIBBER_PLATFORM = "tibber"
 TIBBER_PRICE_KEY = "electricity_price"
 #: ``const.PRICE_SOURCE_ENTITY``; every other source is Tibber's, as
-#: ``coordinator._entity_price_source`` decides it.
+#: ``price_model.entity_priced`` decides it.
 PRICE_SOURCE_ENTITY = "entity"
 
 

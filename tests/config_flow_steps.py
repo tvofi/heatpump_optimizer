@@ -7883,7 +7883,10 @@ async def options_rejected_page_rerenders_the_clear():
 
     # A2: a rejected page keeps its description placeholders.
     hass = FakeHass()
-    currency = config_flow.resolve_currency(hass)
+    # A Tibber entry has no price entity: the figures are in the instance currency.
+    from heatpump_optimizer.currency import resolve_currency
+
+    currency = resolve_currency(hass)
     fee = {"currency": currency, "fee_bound": f"{config_flow.grid_fee.fee_bound(currency):g}"}
     for step, want in (
         ("grid", fee),
