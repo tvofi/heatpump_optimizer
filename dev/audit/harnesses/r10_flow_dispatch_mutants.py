@@ -59,7 +59,7 @@ F = ROOT / REL
 MUTANTS = [
     ("M0", None, None),
     ("tree-skip", "    if tip and _git(repo_dir, \"rev-parse\"", "    if False and _git(repo_dir, \"rev-parse\""),
-    ("brief-drop", 'brief=group_brief(group, roster, fixer=role == "fixer") +', 'brief="" +'),
+    ("brief-drop", 'brief=group_brief(group, roster, fixer=role == "fixer")\n', 'brief=""\n'),
     ("parent-drop", '*(["-p", tip] if tip else [])', "*[]"),
     ("nonce-altered", "**args, nonce=nonce)\n    except Refusal:", "**args, nonce=nonce + \"0\")\n    except Refusal:"),
     ("part-collision-off", "if other is not group and topic in (", "if False and topic in ("),
@@ -118,7 +118,7 @@ MUTANTS = [
     ("part-split-one", "    if len(parts) > 1 and len(parts[-1]) <= PART_FOLD:", "    if len(parts) >= 1 and len(parts[-1]) <= PART_FOLD:"),
     ("part-runs-skip", "for j in range(1, len(idx) + 1):", "for j in range(2, len(idx) + 1):"),
     ("part-cli-nogroup-open", '        if args.part:\n            raise Refusal("--part applies', '        if False:\n            raise Refusal("--part applies'),
-    ("part-line-dropped", '(f"\\n{pline}\\n" if pline else "")', '""'),
+    ("part-line-dropped", "for ln in (dline, pline) if ln)", "for ln in (dline,) if ln)"),
     ("part-cli-dropped", "record_pr=args.record_pr, part=args.part))", "record_pr=args.record_pr, part=0))"),
     ("part-role-open", 'if part and role != "fixer":', "if False:"),
     ("part-range-off", "if not 1 <= part <= len(parts):", "if part < 1:"),
