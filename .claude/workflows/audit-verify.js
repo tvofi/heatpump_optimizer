@@ -88,7 +88,7 @@ const LENSES = [
 const OWNER_ONLY = new Set(['DX0'])
 // The dimension a finding record names, by any of its three spellings: one
 // owner-only spelling makes the record owner-only.
-const ownerOnlyRecord = (f, set) => [f?.dimension, f?.scope, f?.id].some((x) => { const m = /^D(?:[0-9]+|X0)/.exec(String(x ?? '')); return !!m && set.has(m[0]) })
+const ownerOnlyRecord = (f, set) => [f?.dimension, f?.scope, f?.id].some((x) => { const m = /^D(?:[0-9]+|X0)(?![0-9])/.exec(String(x ?? '')); return !!m && set.has(m[0]) })
 // Why a run handed a private root is refused; every line a literal, '' the only pass.
 const ownerOnlyRefusal = (a, set) => {
   if (typeof a?.privateRoot !== 'string' || !a.privateRoot.startsWith('/') || a.privateRoot.includes('/../') || a.privateRoot.endsWith('/')) return 'args.private_root is an absolute path, written without a trailing slash or a parent step'
