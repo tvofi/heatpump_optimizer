@@ -1,0 +1,26 @@
+[
+ {
+  "name": "ENGAGED_COST_ARM",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    return opt.config.start_price > 0 or opt.config.clamp_planned_levels\n",
+  "new": "    return opt.config.clamp_planned_levels\n"
+ },
+ {
+  "name": "ENGAGED_CLAMP_ARM",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    return opt.config.start_price > 0 or opt.config.clamp_planned_levels\n",
+  "new": "    return opt.config.start_price > 0\n"
+ },
+ {
+  "name": "UNPRICED_DESCENT",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if opt.config.start_price > 0 and _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n",
+  "new": "    if False:\n        free_room, free = rescope(None)\n"
+ },
+ {
+  "name": "UNPRICED_DESCENT_COST_ARM",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if opt.config.start_price > 0 and _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n",
+  "new": "    if _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n"
+ }
+]

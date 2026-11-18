@@ -1,0 +1,12 @@
+merge-base 83b9012d61eb9dba11c265cf987dd1d5960c8c96
+ .../harnesses/r11_honest_starts_runs_mutants.json      | 18 ++++++------------
+ dev/programme/delivery/3720.md                         |  1 +
+ 2 files changed, 7 insertions(+), 12 deletions(-)
+--- versioned files diff lines:
+0
+--- custom_components diff 7c2f4c30..head lines:
+0
+--- IDENTITY_GUARD old-line occurrences: 29fbdf5d4a (pre-#3697) / 332da69b74 (#3697 merge)
+1
+0
+--- roster carry: handoff/audit-r10-roster 003fab8564f210c3b31cd521f4bcc8da397e0e4d wave-r11-groups.json holds item 00652efb (Carry 6)
