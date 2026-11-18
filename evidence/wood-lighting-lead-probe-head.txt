@@ -1,4 +1,0 @@
-lead 0.0 (datetime.datetime(2026, 11, 18, 18, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 11, 18, 18, 0, tzinfo=datetime.timezone.utc))
-lead 60.0 (datetime.datetime(2026, 11, 18, 18, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 11, 18, 18, 0, tzinfo=datetime.timezone.utc))
-lead 240.0 (datetime.datetime(2026, 11, 18, 18, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 11, 18, 18, 0, tzinfo=datetime.timezone.utc))
-lead 1000000000000.0 RAISES OverflowError date value out of range

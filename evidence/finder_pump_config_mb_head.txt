@@ -1,0 +1,22 @@
+== mb
+RESULT pump_nonfinite_flag_true=10 readings
+RESULT pump_null_control_zero_flag_true=0 readings
+RESULT pump_nonfinite_freeze_fault=5 cycles
+RESULT thread_factor=1.000
+RESULT load1=3.60
+RESULT swapins=0
+RESULT v2_build_fail=11 count
+RESULT v2_permanent_cycle_fail=14 count
+RESULT v5_build_fail=5 count
+RESULT v5_permanent_cycle_fail=17 count
+== hd
+RESULT pump_nonfinite_flag_true=0 readings
+RESULT pump_null_control_zero_flag_true=0 readings
+RESULT pump_nonfinite_freeze_fault=0 cycles
+RESULT thread_factor=1.000
+RESULT load1=4.90
+RESULT swapins=0
+RESULT v2_build_fail=0 count
+RESULT v2_permanent_cycle_fail=0 count
+RESULT v5_build_fail=0 count
+RESULT v5_permanent_cycle_fail=0 count
