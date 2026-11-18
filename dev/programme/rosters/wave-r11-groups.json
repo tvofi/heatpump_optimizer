@@ -6055,6 +6055,74 @@
     "next_step": "fixer per the architect note (ADR-010)",
     "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-guards, R11-SEAM-inputs-freshness, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-config, R11-SEAM-entity-service, R11-SEAM-card): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-tests",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "low",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D10-s1-05",
+    "D10-s1-06",
+    "D9-s3-01",
+    "D9-s3-02"
+   ],
+   "merged": {},
+   "classes": [
+    "I1",
+    "I5"
+   ],
+   "seam": "test suite",
+   "hot_files": [
+    "tests/config_flow_steps.py",
+    "tests/stress.py",
+    "tests/stress_budgets.json",
+    "tests/coverage_budgets.json",
+    "config_flow.py",
+    "quality_scale.yaml",
+    "tools/coverage/coverage_tree.sh"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5. Plan: no ADR; point additions to the suite. No edge: nothing here waits on another group. Size L with no approved design: a design is owed (designer.md) before the fixer (decided 2026-11-18, orchestrator under mandate, pending owner confirmation).",
+   "effort": "high",
+   "model": {
+    "designer": "opus",
+    "design_reviewer": "opus",
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tests/config_flow_steps.py",
+    "tests/stress.py",
+    "tests/stress_budgets.json",
+    "tests/coverage_budgets.json",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/quality_scale.yaml",
+    "tools/coverage/coverage_tree.sh"
+   ],
+   "brief": "What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5. Plan: no ADR; point additions to the suite. No edge: nothing here waits on another group. Size L with no approved design: a design is owed (designer.md) before the fixer (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-tests",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "designer (designer.md) first; design review; fixer only on approve",
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-money, R11-SEAM-cycle-reporting, R11-SEAM-config, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
