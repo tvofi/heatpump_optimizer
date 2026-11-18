@@ -1,0 +1,336 @@
+[
+ {
+  "id": "D0-s2-01",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: race gap max 2.0292 (cells 2.0292/1.7251/1.6782/1.6310/1.4675); finder harness reproduces finder exactly; verifier V2 independent 0.73-1.77 and 0-zero-start gaps at 45 C",
+  "stop_rule_class": "bug",
+  "class": "P4",
+  "note": "reproduced at tf 1.000, load1 ~1. Votes: 1 weaken (low). Seed collapse sufficient not necessary (verifier 45 C arm), so mechanism is P4 not new. Null in header is 'same ...' prose: by-hand on verifier's flat null.",
+  "class_mechanism": "The optimizer seed set or stop tolerance does not bracket the optimum"
+ },
+ {
+  "id": "D0-s3-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: after_strip_lines=0 rc=2 (REFUSE) vs before 1 rc=0; perturb keep_bundles -> after_strip_lines=1 rc=0",
+  "stop_rule_class": "bug",
+  "class": "I2",
+  "note": "reproduced exactly; perturbation moves to zero-defect; tf 1.000. Votes: 1 verify. Merged D15-s1-01.",
+  "class_mechanism": "A measured closure or scope diverges from the real dependency graph"
+ },
+ {
+  "id": "D0-s3-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: summer_negative_gap_cells=16/60, max 3204.33, rel max 0.0739; perturb off_in_prod 16 -> 2; flat 0/60",
+  "stop_rule_class": "bug",
+  "class": "P4",
+  "note": "finder number reproduced (verifier's 14/60 came from its own grid); leave-one-out mean 330.9 -> 282.2 still positive; tf 1.000. Votes: 1 verify.",
+  "class_mechanism": "The optimizer seed set or stop tolerance does not bracket the optimum"
+ },
+ {
+  "id": "D0-s3-03",
+  "verdict": "refuted",
+  "severity": "low",
+  "value": "worktree, finder grid: 0/40 at default; weak_floor 13/40. Verifier V2 at comfort_weight 1.0: 24/44 cells breach without the credit (cold coast-down days absent from the finder grid)",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "finder grid reproduced, but the claim 'at any learnable weight it never does' fails on the verifier's cells, and the finder's own harness on 3 of them gives 2/3 at learned_min. Docstring holds; no drift. Votes: 1 refute (disputed).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D1-s1-01",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: stale_fallback_issues_after_restart=0 in main and null; stop arm 0 -> 1 only under --perturb; runner (worktree) got 1 vs expected 1 at tf 1.181",
+  "stop_rule_class": "bug",
+  "class": "N-uncleared-issue",
+  "note": "planted-copy main printed 0 where finder printed 1; worktree runner reproduced 1 at tf 1.181 (re-take owed). Number not stable across trees, verifier saw 1. Votes: 1 weaken (low).",
+  "class_mechanism": "A repair issue or alert raised on a failure is never cleared by the recovery path, so it outlives the condition it reports",
+  "nearest": "N-no-expiry",
+  "differs": "the stale object is a raised alert the success path never deletes, not a published value read past its age"
+ },
+ {
+  "id": "D1-s1-03",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: stale_request_refresh_rows=7 of 8 (debounced); null origin=direct 0 of 8; --perturb-rerun 0 of 8",
+  "stop_rule_class": "bug",
+  "class": "N-dropped-refresh",
+  "note": "reproduced exactly, tf 1.017, load1 0.3; perturbation and null both to zero. Votes: 1 verify.",
+  "class_mechanism": "A refresh request that lands while a solve is in flight is coalesced into that solve, which read its inputs before the request, so the request is lost until the next interval",
+  "nearest": "N-restore-race",
+  "differs": "nothing is overwritten: the request itself is swallowed by the debouncer instead of re-running"
+ },
+ {
+  "id": "D1-s1-51",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "verifier: distinct_tie=2 over PYTHONHASHSEED 1..12 (null 1, perturb 1)",
+  "stop_rule_class": "bug",
+  "class": "N-unordered-tiebreak",
+  "note": "converted lead: no finder harness to re-run; judged on the verifier's executed number with null and perturbation. Label only, plan unchanged. Votes: 1 verify.",
+  "class_mechanism": "A tie between equal candidates is broken by set or hash iteration order, so the published result depends on PYTHONHASHSEED and changes across restarts",
+  "nearest": "I4",
+  "differs": "one definition, not two: the nondeterminism is iteration order inside a single rule"
+ },
+ {
+  "id": "D1-s2-01",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: leaves_reaching_live=3, disk_undecodable=3 of 515, stores 2; null 0 of 148",
+  "stop_rule_class": "bug",
+  "class": "P1",
+  "note": "reproduced in planted copy (worktree runner 0 passes: planted seam). 3 of 515 leaves, so severity low as verifier. Votes: 1 weaken (low).",
+  "class_mechanism": "A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard"
+ },
+ {
+  "id": "D1-s2-02",
+  "verdict": "weakened",
+  "severity": "medium",
+  "value": "planted copy: stale_cells_published=6 of 6, future_published=1; fresh null 0",
+  "stop_rule_class": "bug",
+  "class": "N-no-expiry",
+  "note": "reproduced exactly; runner also reproduced (tf 1.011). Class corrected from P2 as the verifier did. Votes: 1 weaken (medium).",
+  "class_mechanism": "A last-known value is published and booked as current with no age bound once its source stops updating"
+ },
+ {
+  "id": "D1-s2-03",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: stuck_published_fresh=5 of 5; advancing null 0",
+  "stop_rule_class": "bug",
+  "class": "N-no-expiry",
+  "note": "reproduced exactly, tf 1.006. Votes: 1 verify (high).",
+  "class_mechanism": "A last-known value is published and booked as current with no age bound once its source stops updating"
+ },
+ {
+  "id": "D1-s2-04",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: consequences=2 (hold_not_released 1, baseline_lost_on_disk 1); serial null 0",
+  "stop_rule_class": "bug",
+  "class": "N-restore-race",
+  "note": "reproduced exactly, tf 1.000. Votes: 1 verify.",
+  "class_mechanism": "A restore applies persisted state after an await during which a writer changed the same state, so the stale snapshot overwrites the live write (or the write lands on an object the restore then replaces)"
+ },
+ {
+  "id": "D1-s2-05",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: per 200 mutants build 8-11 + permanent cycle 14-17 per version; null 0",
+  "stop_rule_class": "bug",
+  "class": "P1",
+  "note": "reproduced in shape; null 0. Mutants are synthetic wrong-typed options, so reach is an earlier-version entry only. Votes: 1 weaken (low).",
+  "class_mechanism": "A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard"
+ },
+ {
+  "id": "D1-s2-06",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: restarts_raising=8 of 10, control 0",
+  "stop_rule_class": "bug",
+  "class": "P1",
+  "note": "reproduced exactly; runner too. Needs an out-of-range stored value. Votes: 1 weaken (low).",
+  "class_mechanism": "A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard"
+ },
+ {
+  "id": "D1-s2-51",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "verifier: above_max_accepted=15 of 15 (below_min 0, perturb 0)",
+  "stop_rule_class": "bug",
+  "class": "P1",
+  "note": "converted lead: no finder harness; judged on the verifier's executed number, null and perturbation. Votes: 1 verify (medium, class corrected from new).",
+  "class_mechanism": "A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard"
+ },
+ {
+  "id": "D1-s2-52",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "verifier: config_arms_disagree=2 (null 0, fresh 0, perturb 0)",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "converted lead: judged on the verifier's executed number. Withholding fails safe, so low. Votes: 1 verify (low).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D1-s3-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: pump_nonfinite_flag_true=10, freeze_fault 5 cycles; null 0; perturb parse_bool_finite -> 0",
+  "stop_rule_class": "bug",
+  "class": "P1",
+  "note": "reproduced exactly; runner too. Votes: 1 verify.",
+  "class_mechanism": "A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard"
+ },
+ {
+  "id": "D1-s3-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: ecl110_bool_accepted=3; numeric null 0; perturb ecl110_refuse_bool -> 0",
+  "stop_rule_class": "bug",
+  "class": "P1",
+  "note": "reproduced exactly, tf 1.000. Votes: 1 verify.",
+  "class_mechanism": "A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard"
+ },
+ {
+  "id": "D1-s3-03",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: openmeteo_year1_solve_failures=3; healthy 0; perturb overflow_guard -> 0",
+  "stop_rule_class": "bug",
+  "class": "P1",
+  "note": "reproduced exactly. Year-1 stamp is an implausible feed value, so low as the verifier. Votes: 1 weaken (low).",
+  "class_mechanism": "A non-finite, malformed or out-of-domain value crosses an input boundary (persisted store, live entity, external feed, service call) with no guard"
+ },
+ {
+  "id": "D1-s3-04",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: transport_unbounded_waits=1, lock_held_after=1; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "count reproduced; harness tf 2.1-2.5 is its own deliberate worker threads (count metric, contention-immune). Votes: 1 verify.",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D1-s3-05",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: persist_silent_at_warning=10 of 10 reached handlers; perturb 10 -> 9",
+  "stop_rule_class": "bug",
+  "class": "N-swallowed-failure",
+  "note": "reproduced 10 (worktree runner 4: planted seam). Perturbation moves one handler only, as designed. Votes: 1 weaken (low).",
+  "class_mechanism": "A failing operation is caught and recorded below WARNING or not at all, so a persistent failure is invisible to the user and the logs",
+  "nearest": "N-silent-zero",
+  "differs": "the failure path returns nothing success-shaped; it simply records nothing visible"
+ },
+ {
+  "id": "D1-s3-06",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: repeat_error_records=3 of 5 injections; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-log-flood",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A persisting condition is logged at WARNING on every cycle instead of once per transition"
+ },
+ {
+  "id": "D1-s3-07",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: silent_broad_no_record=7 of 12 reached; perturb 7 -> 6",
+  "stop_rule_class": "bug",
+  "class": "N-swallowed-failure",
+  "note": "reproduced; finder said 7 of 11 reached, I reach 12 (denominator differs, count equal). Votes: 1 verify.",
+  "class_mechanism": "A failing operation is caught and recorded below WARNING or not at all, so a persistent failure is invisible to the user and the logs",
+  "nearest": "N-silent-zero",
+  "differs": "the failure path returns nothing success-shaped; it simply records nothing visible"
+ },
+ {
+  "id": "D10-s1-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: acknowledged_unparseable=6 of 6, cleared_existing_return=3; perturb -> 0; control accepted 1",
+  "stop_rule_class": "bug",
+  "class": "N-silent-zero",
+  "note": "reproduced exactly; severity medium as the verifier (a cleared return time, not data loss beyond it). Votes: 1 verify.",
+  "class_mechanism": "A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero"
+ },
+ {
+  "id": "D10-s1-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: silent_refusals=2 of 2; perturb -> 0; controls raised 2",
+  "stop_rule_class": "bug",
+  "class": "N-silent-zero",
+  "note": "reproduced exactly. Votes: 1 verify (low).",
+  "class_mechanism": "A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero"
+ },
+ {
+  "id": "D10-s1-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: continue_settings_in_data=41; perturb split -> 0, merged_equal=1",
+  "stop_rule_class": "hygiene",
+  "class": "N-entry-data-placement",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A setting the options flow edits is stored in ConfigEntry.data (or a flow-control value is persisted there), so options and data hold two copies of one setting",
+  "nearest": "P2",
+  "differs": "no divergent guard: one value is persisted into the wrong container, so a later options save shadows or strands it"
+ },
+ {
+  "id": "D10-s1-05",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: unrecovered_triples=51 of 53, never_stepped_past=49; perturb 51 -> 47",
+  "stop_rule_class": "hygiene",
+  "class": "I1",
+  "note": "reproduced. A test gap, not a behaviour defect. Votes: 1 weaken (low).",
+  "class_mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green"
+ },
+ {
+  "id": "D10-s1-06",
+  "verdict": "unreproduced",
+  "severity": "low",
+  "value": "planted copy: cov_modules.sh all timed out at 600 s; runner (worktree) late_files=0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "not measured to completion here. The verifier was unresolved: 15 of 25 scripts exit non-zero on the export, so the 34/95 may be an export artefact. Re-measure on a full tree owed. Votes: 1 unresolved.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D10-s2-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: shadowed_options_saved=2, reconfigure_reported_success=1; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. Votes: 1 verify (medium).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D10-s2-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: bad=2 of 37 sites; perturb raises bad to 4 (direction up as stated)",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "reproduced; worktree runner 0 (planted seam). Votes: 1 verify.",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D10-s2-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: unit_without_device_class=14 (3 delta sensors); --perturb-delta 14 -> 13",
+  "stop_rule_class": "hygiene",
+  "class": "N-entity-metadata",
+  "note": "reproduced; perturbation moves one sensor down as stated. Votes: 1 verify.",
+  "class_mechanism": "An entity declares a device_class, state_class or unit that does not describe its value, so Home Assistant converts, aggregates or offers it wrongly",
+  "nearest": "P8",
+  "differs": "the defect is in the metadata Home Assistant reads off one entity, not a precedence between surfaces"
+ },
+ {
+  "id": "D10-s3-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: untyped_requirements_under_done_row=1; null 0; perturb req -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D10-s3-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: coordinator_untyped_under_done_row=1; null 0; perturb coord -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Class I5 (done row drifts from code) rather than new. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ }
+]
