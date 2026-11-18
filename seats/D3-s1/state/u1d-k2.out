@@ -35,3 +35,13 @@
 2026-11-18T16:22:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.quarter_factor CMP_BOUND 2c4b19d6 L303 by=- ran=12 wall=1372.0s
 2026-11-18T16:23:29Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:dew_point_for_pressure CLAMP_DROP 1aaf97b9 L2827 by=- ran=12 wall=1381.1s
 2026-11-18T16:26:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.expected_daily_min CMP_BOUND 4711f894 L337 by=- ran=12 wall=1385.6s
+2026-11-18T16:40:50Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_tau_fast CMP_BOUND 72abb7dd L610 by=- ran=12 wall=1350.8s
+2026-11-18T16:43:45Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._derive_hold_schedule CMP_BOUND d4fe0ab5 L5054 by=- ran=12 wall=1266.9s
+2026-11-18T16:49:11Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._space_demand_kw GUARD_OFF 688eecbd L5191 by=tests/features.py ran=15 wall=1541.4s
+2026-11-18T16:55:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch GUARD_OFF 49969ba6 L4553 by=- ran=17 wall=1706.2s
+2026-11-18T17:03:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override GUARD_OFF 1fcdcb9f L5182 by=- ran=13 wall=1353.2s
+2026-11-18T17:07:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:<module> CONST 8c1b36af L85 by=- ran=19 wall=1437.3s
+2026-11-18T17:11:21Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF e3918152 L2068 by=tests/features.py ran=12 wall=1329.8s
+2026-11-18T17:17:28Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._track_curve_comfort CLAMP_DROP 35044979 L9271 by=tests/features.py ran=13 wall=1337.6s
+2026-11-18T17:25:54Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings CMP_BOUND 8496f2c5 L743 by=tests/features.py ran=17 wall=1350.9s
+2026-11-18T17:30:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps GUARD_OFF b53f4395 L4525 by=- ran=13 wall=1340.1s
