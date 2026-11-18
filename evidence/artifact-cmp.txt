@@ -1,0 +1,1 @@
+artifact zip download refused in this seat (see scr/dl/err); content provenance not byte-verified: metadata (name selftest-closures, run 44242125570, head_sha 7c2f4c30) read via API; inbox commit fddace05 is the orchestrator's attachment
