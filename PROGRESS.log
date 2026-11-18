@@ -4,3 +4,4 @@
 1795004950 CKPT BLOCKED.md pushed: inline-read guard vs no-subagent brief snapshot 970a1932fce1
 1795004953 DONE blocked: frugal inline-read hook refuses reads; brief forbids subagents; Question in BLOCKED.md on handoff-wip/r11-seam-kernel-step
 1795006382 HB alive
+1795006386 INBOX acked through 1
