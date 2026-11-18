@@ -21,4 +21,3 @@
 2026-11-17T17:52:18Z REPORT.json assembled (1 finding); C2 M34-M36 fast drive relaunched, 3 workers, cutoff 18:38Z
 2026-11-17T17:53:59Z REPORT.json with report_md written (finalize.py); waiting C2 M34-M36 until 18:36Z
 2026-11-17T18:29:53Z C2 M34-M36 SURVIVED (fast net); M4 answered; REPORT.json final
-2026-11-18T08:15:01Z box D3-u1c: R0 restored from checkpoint (keys-D3-u1c.txt 309, sha 5f427b5e); R1 machine nproc 4, Xeon 2.10GHz, 16 GB, 28 GB free, load1 0.34; baselines re-taken here (D3R's kept as state/baselines-D3R.json)
