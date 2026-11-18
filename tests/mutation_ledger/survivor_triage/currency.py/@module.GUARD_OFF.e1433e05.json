@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/currency.py:<module> GUARD_OFF e1433e05",
+  "old": "if TYPE_CHECKING:",
+  "reason": "Equivalent (GUARD_OFF, `if TYPE_CHECKING:` to `if False:`). typing.TYPE_CHECKING is the constant False at runtime, so the original and the mutant both skip the block on every import; the block's only content is the `from homeassistant.core import HomeAssistant` that the module's annotations name, and under `from __future__ import annotations` no annotation is evaluated, so no reader can observe the difference. Reported surviving by tests/mutation for #3724 (run 44308221206, job 134815743649).",
+  "verdict": "equivalent"
+}
