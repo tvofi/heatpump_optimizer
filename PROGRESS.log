@@ -43,3 +43,4 @@
 1794999967 CKPT D3-s1 147 file(s)
 1795000401 HB T2: null full gate at node default heap: card.mjs OOM (also standalone); re-running null + 6 gates with node --max-old-space-size=5120 (card.mjs passes standalone with it). Null-red at baseline locally (env): closure.py selftest 2, entities.py 2, optimality.py 1; kill = more failed checks than null.
 1795006813 HB gate done: null RESULT gate_rc=1 code 
+1795006821 CKPT D3-s1 154 file(s)

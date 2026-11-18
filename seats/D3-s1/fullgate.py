@@ -12,7 +12,8 @@
 # Perturbation: the one-line mutant edit itself (null control: a trailing comment on the same file,
 #   under which the verdict must be gate_rc=0; a mutant the gate kills moves killed 0 -> 1).
 # Procedure (D3-top6 brief T2): apply the line in this worktree, commit it (HEAD leaves the baseline),
-# take the gate_lock lease, run the gate, record, `git reset --hard <baseline>`, release the lease.
+# take the gate_lock lease, run the gate, record, reset HEAD and the edited file to the baseline
+# (soft reset + checkout, so the finder-wall strip survives), release the lease.
 # Writes only state/gates/<key>.{json,log} under its own directory.
 import os
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
@@ -68,6 +69,10 @@ def gate(key, mutant, msg):
     t0 = time.time()
     c0 = os.times()
     env = dict(os.environ, GATE_SCOPE="full", GOLDEN_MODE="drift", GOLDEN_REF=BASE, GATE_JOBS="1")
+    # Local macOS run: node 20.10's default ~2 GB heap OOMs tests/card.mjs inside the gate
+    # (null control, 2026-11-18); a raised heap limit is environment only, no code changes.
+    if os.environ.get("D3S1_NODE_HEAP"):
+        env["NODE_OPTIONS"] = (env.get("NODE_OPTIONS", "") + " --max-old-space-size=" + os.environ["D3S1_NODE_HEAP"]).strip()
     log = GATES / f"{key}.log"
     try:
         with open(log, "w") as fh:
@@ -80,7 +85,7 @@ def gate(key, mutant, msg):
         # baseline without restoring the paths prepare_baseline.sh --strip removed (the finder wall).
         sh("git", "reset", "-q", BASE)
         sh("git", "checkout", "-q", BASE, "--", *files)
-        sh("python3", "tests/gate_lock.py", "release", check=False)
+        sh("python3", "tests/gate_lock.py", "release", "--label", LABEL, check=False)
     text = log.read_text(errors="replace")
     failed = sorted(set(re.findall(r"^>>> (?:FAILED|ENDED BEFORE ITS SUMMARY): ([^\n(]+?)\s*(?:\(|$)", text, re.M)))
     summary = [ln for ln in text.splitlines() if re.search(r"TEST SCRIPT\(S\)|ALL TEST SCRIPTS PASSED", ln)]
@@ -93,8 +98,11 @@ def gate(key, mutant, msg):
         if mm:
             cur = mm.group(1)
             continue
-        if cur and re.match(r"^\s+FAIL\b", ln):
-            fails[cur] = fails.get(cur, 0) + 1
+        # The script's own summary count ("N of M ... FAILED"); a bare FAIL line is not counted,
+        # since several scripts print expected FAIL lines inside their negative controls.
+        sm = re.match(r"^\s*(\d+) of \d+ .*FAILED", ln) if cur else None
+        if sm:
+            fails[cur] = max(fails.get(cur, 0), int(sm.group(1)))
     rec = {"key": key, "mutant": mutant, "gate_rc": rc, "failed_scripts": failed, "fail_lines": fails,
            "summary": summary[-1:] ,
            "wall_s": round(wall, 1), "child_cpu_s": round((c1.children_user + c1.children_system) - (c0.children_user + c0.children_system), 1),
