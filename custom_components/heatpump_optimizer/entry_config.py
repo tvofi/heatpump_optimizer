@@ -36,9 +36,9 @@ def _nonzero_number(value: Any, default: float) -> float:
     return finite_float(value, default) or default
 
 
-#: The longest re-solve interval that is still a plan, minutes: past a day the
-#: plan outlives the day-ahead prices it was solved against.
-_MAX_INTERVAL_MINUTES = 24 * 60.0
+#: The longest span of minutes a plan option may name: past a day the plan
+#: outlives the day-ahead prices it was solved against.
+_MAX_PLAN_MINUTES = 24 * 60.0
 
 
 def _interval_minutes(value: Any, default: float) -> float:
@@ -49,7 +49,20 @@ def _interval_minutes(value: Any, default: float) -> float:
     ``early_cutoff.arm``): neither is an interval.
     """
     minutes = finite_float(value)
-    if minutes is None or not 0.0 < minutes <= _MAX_INTERVAL_MINUTES:
+    if minutes is None or not 0.0 < minutes <= _MAX_PLAN_MINUTES:
+        return default
+    return minutes
+
+
+def _lead_minutes(value: Any, default: float) -> float:
+    """A lead in minutes inside ``[0, a day]``, else ``default``.
+
+    A zero lead is "at the window's start"; a negative one names no instant
+    before it, and 1e12 minutes overflows the datetime it is subtracted from (sweep-P1,
+    ``wood_fuel.lighting_window``).
+    """
+    minutes = finite_float(value)
+    if minutes is None or not 0.0 <= minutes <= _MAX_PLAN_MINUTES:
         return default
     return minutes
 
@@ -222,7 +235,7 @@ class EntryConfig(Mapping[str, Any]):
     target_temperature: float = _key(const.DEFAULT_TARGET_TEMP, finite_float)
     thermal_bridge_frsi: float = _key(const.DEFAULT_THERMAL_BRIDGE_FRSI, finite_float)
     vvc_lead_minutes: float = _key(const.DEFAULT_VVC_LEAD_MINUTES, finite_float)
-    wood_lighting_lead_minutes: float = _key(const.DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, finite_float)
+    wood_lighting_lead_minutes: float = _key(const.DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, _lead_minutes)
     wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, finite_float)
 
     # A fraction this version cannot read caps nothing: None, not the default.
@@ -314,7 +327,9 @@ class EntryConfig(Mapping[str, Any]):
 
 #: The parses that read a value they refuse as the key's default, so a refused
 #: stored value and an absent key parse alike.
-_DEFAULTED_NUMBERS: tuple[Parse, ...] = (finite_float, _nonzero_number, _interval_minutes)
+_DEFAULTED_NUMBERS: tuple[Parse, ...] = (
+    finite_float, _nonzero_number, _interval_minutes, _lead_minutes,
+)
 
 
 def number_repairs(stored: Mapping[str, Any]) -> dict[str, float | None]:
