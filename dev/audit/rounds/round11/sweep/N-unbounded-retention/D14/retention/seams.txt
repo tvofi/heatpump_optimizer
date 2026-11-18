@@ -1,0 +1,77 @@
+accuracy.py:190  AccuracyTracker.samples  maxlen  seq  | self.samples.append(sample)
+accuracy.py:219  AccuracyTracker.promises  evict:del@221  keyed  | self.promises[day] = promise
+accuracy.py:240  AccuracyTracker.lead_pending  evict:del@245  seq  | self.lead_pending.append(
+accuracy.py:278  AccuracyTracker.lead_sigma  UNBOUNDED  keyed  | self.lead_sigma[lead] = (
+accuracy.py:284  AccuracyTracker.lead_counts  UNBOUNDED  keyed  | self.lead_counts[lead] = self.lead_counts.get(lead, 0) + 1
+accuracy.py:978  MeasuredCop.held  evict:clear@996  seq  | self.held.append(row)
+boost.py:273  BoostState.blocked  evict:pop@275  keyed  | self.blocked[channel] = utc_shift(now, _BLOCK_LEAD)
+boost.py:291  BoostState.until  evict:pop@272  keyed  | self.until[channel] = utc_shift(now, _MAX_LEAD)
+comfort_learning.py:118  ComfortLearner.history  evict:reset@183  seq  | self.history.append(
+config_flow.py:2849  HeatPumpOptimizerConfigFlow._data  UNBOUNDED  keyed  | self._data.update(
+coordinator.py:3627  HeatPumpOptimizerCoordinator._background_tasks  evict:clear@6629  seq  | self._background_tasks.add(task)
+coordinator.py:4571  HeatPumpOptimizerCoordinator._pump_commanded  UNBOUNDED  keyed  | self._pump_commanded[entity_id] = on
+coordinator.py:4667  HeatPumpOptimizerCoordinator._solar_aperture  UNBOUNDED  keyed  | self._solar_aperture["scale"] = float(
+coordinator.py:5233  HeatPumpOptimizerCoordinator._external_heat  UNBOUNDED  keyed  | state = self._external_heat.update(observation)
+coordinator.py:5809  HeatPumpOptimizerCoordinator._vent_cusum  UNBOUNDED  keyed  | vent_changed = span_heat_kw is None and self._vent_cusum.update(now, float(residual), (
+coordinator.py:8820  HeatPumpOptimizerCoordinator._peak_guard  UNBOUNDED  keyed  | changed = self._peak_guard.update(
+coordinator.py:9112  HeatPumpOptimizerCoordinator._immersion_evidence  evict:del@9117  seq  | self._immersion_evidence.append(
+coordinator.py:9137  HeatPumpOptimizerCoordinator._immersion_events  evict:del@9138  seq  | self._immersion_events.append(now.isoformat())
+coordinator.py:9335  HeatPumpOptimizerCoordinator._capacity_envelope  evict:reset@9591  keyed  | entry = self._capacity_envelope.setdefault(bucket, [thermal_kw, 0])
+coordinator.py:9454  HeatPumpOptimizerCoordinator._internal_gains_profile  evict:reset@4679  keyed  | self._internal_gains_profile[hour] = float(
+coordinator.py:9486  HeatPumpOptimizerCoordinator._cop_baseline  UNBOUNDED  keyed  | self._cop_baseline[bucket] = [float(observed_cop), 1]
+coordinator.py:9491  HeatPumpOptimizerCoordinator._cop_health_cusum  UNBOUNDED  keyed  | changed = self._cop_health_cusum.update(dt_util.now(), shortfall)
+coordinator.py:10344  HeatPumpOptimizerCoordinator._energy_totals  UNBOUNDED  keyed  | self._energy_totals["space_energy_kwh"] += space_energy
+coordinator.py:10355  HeatPumpOptimizerCoordinator._ledger  UNBOUNDED  seq  | self._ledger.add(
+coordinator.py:2819  <module>.__dict__  UNBOUNDED  keyed  | self.__dict__[n] = value
+debugger.py:550  DebugCollector.snapshots  evict:reset@601  seq  | self.snapshots.append({"t": now.isoformat(), "cycle": len(self.rows), "data": _dumps(data)})
+debugger.py:551  DebugCollector.rows  evict:reset@601  seq  | self.rows.append(cycle_row(coordinator, data, now, self._solve_wall_ms))
+dhw_draws.py:103  DrawStats.reservoirs  evict:del@115  keyed  | bucket = self.reservoirs.setdefault(self._open_label, [])
+dhw_learning.py:141  ChargeSettle.pending  evict:reset@143  seq  | self.pending.append(obs)
+dhw_learning.py:629  DhwProfileLearner.daytype_last_day  UNBOUNDED  keyed  | self.daytype_last_day[idx] = day
+dhw_learning.py:630  DhwProfileLearner.daytype_samples  UNBOUNDED  keyed  | self.daytype_samples[idx] += 1
+disinfection.py:158  DisinfectionSwitch.owned  evict:reassign@205  seq  | self.owned.append(entity_id)
+disinfection.py:188  DisinfectionSwitch._unreadable_since  evict:pop@191  keyed  | since = self._unreadable_since.setdefault(owned, now)
+disinfection.py:193  DisinfectionSwitch.lost  UNBOUNDED  seq  | self.lost.append(owned)
+disinfection.py:257  DisinfectionSwitch._readings  evict:reset@248  keyed  | self._readings[target] = (
+draw_range.py:203  DrawRange.ceiling  maxlen  seq  | self.ceiling.append((float(drawn_kw), float(when_s)))
+draw_range.py:310  DrawRange.samples  maxlen  seq  | self.samples.append((float(drawn_kw), float(asked_kw)))
+draw_range.py:311  DrawRange.commands  maxlen  seq  | self.commands.append(command)
+draw_range.py:318  DrawRange.idle  maxlen  seq  | self.idle.append(float(drawn_kw))
+drift.py:287  Cusum.evidence  evict:del@288  seq  | self.evidence.append(f"{when.isoformat(timespec='seconds')}: {text}")
+freq_control.py:162  FrequencyMap.buckets  UNBOUNDED  keyed  | entry = self.buckets.setdefault(decile, [ratio, 0])
+heat_energy.py:175  ModeDwell.segments  evict:del@211  seq  | self.segments.append(Segment(changed_at or at, duty))
+inputs.py:157  InputHealth.readings  UNBOUNDED  keyed  | self.readings[reading.key] = reading
+inputs.py:1365  InputReturnWatch._reread_at  UNBOUNDED  keyed  | self._reread_at[entity_id] = now
+inputs.py:1391  InputReturnWatch._pending  evict:clear@1366  seq  | self._pending.add(entity_id)
+ledger.py:269  MonthlyLedger.months  evict:del@275  keyed  | self.months[key] = month
+notifier.py:305  Notifier._sent  evict:del@314  keyed  | self._sent[oid] = occurrence.key
+power_guard.py:158  GuardState.evidence  evict:del@159  seq  | self.evidence.append(f"{now.isoformat(timespec='seconds')}: {text}")
+price_model.py:223  PriceShapeModel.residual_var  UNBOUNDED  keyed  | self.residual_var[idx] = [float(v) for v in var]
+price_model.py:233  PriceShapeModel.shapes  UNBOUNDED  keyed  | self.shapes[idx] = [float(v) for v in updated]
+price_model.py:234  PriceShapeModel.days  UNBOUNDED  keyed  | self.days[idx] = self.days[idx] + 1
+price_model.py:276  PriceShapeModel.quarter_factors  UNBOUNDED  keyed  | self.quarter_factors[idx] = [float(v) for v in updated.reshape(-1)]
+price_model.py:277  PriceShapeModel.quarter_days  UNBOUNDED  keyed  | self.quarter_days[idx] = self.quarter_days[idx] + 1
+price_model.py:448  PriceShapeLearner.days_seen  UNBOUNDED  seq  | self.days_seen.add(day)
+price_model.py:453  PriceShapeLearner.quarter_days_seen  UNBOUNDED  seq  | self.quarter_days_seen.add(day)
+setpoint_check.py:73  ConfigNotices._raised  evict:pop@68  keyed  | self._raised[issue_id] = offending
+snapshots.py:112  SnapshotRing.snapshots  evict:del@129  seq  | self.snapshots.append(
+sysid.py:1775  SystemIdentification.samples  evict:reset@1507  seq  | self.samples.append(
+tariff.py:238  PeakTracker.house_samples  evict:del@239  seq  | self.house_samples.append(float(measured_house_kw))
+wear.py:183  StartCounter.queued  evict:reset@201  seq  | self.queued.append((since, running))
+wear.py:192  StartCounter.months  evict:del@195  keyed  | self.months[key] = int(self.months.get(key, 0)) + 1
+www/heatpump-optimizer-card.js:6814  PlanSource.resolvedCache  reset  keyed  | this.resolvedCache[kind] = found;
+www/heatpump-optimizer-card.js:7052  PlanSource.statCache  reset  keyed  | this.statCache[suffix] = candidate;
+www/heatpump-optimizer-card.js:7072  PlanSource.statMissAt  reset  keyed  | this.statMissAt[suffix] = count;
+www/heatpump-optimizer-card.js:7271  HistorySource.chunks  evict  keyed  | this.chunks.set(chunk, "loading");
+www/heatpump-optimizer-card.js:7342  HistorySource.covered  UNBOUNDED  seq  | this.covered.add(chunk);
+www/heatpump-optimizer-card.js:7366  HistorySource.log  UNBOUNDED  keyed  | const log = this.log[field] || (this.log[field] = []);
+www/heatpump-optimizer-card.js:7372  HistorySource.seen  UNBOUNDED  seq  | this.seen.add(key);
+www/heatpump-optimizer-card.js:7406  HistorySource.actionLog  UNBOUNDED  seq  | this.actionLog.push({
+www/heatpump-optimizer-card.js:9479  Legend.hidden  UNBOUNDED  keyed  | this.hidden[key] = !this.hidden[key];
+www/heatpump-optimizer-card.js:11356  ManualPlan.runs  reset  keyed  | this.runs[channel] = runs;
+www/heatpump-optimizer-card.js:13769  SetupPage.unsetOpen  evict  seq  | this.unsetOpen.add(key);
+www/heatpump-optimizer-card.js:15770  HeatpumpOptimizerCard._chartWidthUsed  reset  keyed  | this._chartWidthUsed[expanded ? 1 : 0] = w;
+www/heatpump-optimizer-card.js:15791  HeatpumpOptimizerCard._geoms  reset  keyed  | this._geoms[expanded ? 1 : 0] = g;
+RESULT seams=74 count
+RESULT unbounded=31 count
+RESULT unbounded_seq=7 count
