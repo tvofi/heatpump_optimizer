@@ -692,5 +692,253 @@
   "class": "I4",
   "note": "reproduced by the runner. Class I4 (two copies of one row definition), as the verifier. Votes: 1 verify (low).",
   "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D16-s1-01",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: clause_grid=50 rig x state rows; null 0; --perturb freq_grid -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-step-grid",
+  "note": "reproduced exactly, tf 1.000. A written value off the entity's step grid is N-step-grid's mechanism on the write side. Votes: 1 weaken (low).",
+  "class_mechanism": "A number selector's minimum or default is not on its own step grid, so native validity flags legal values and a spinner click lands off-grid"
+ },
+ {
+  "id": "D16-s1-02",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree: cold_tank_charge=2 rigs; --perturb dhw_gate -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-mode-coupled-write",
+  "note": "reproduced exactly. Reach needs a pump with no heating-only mode. Votes: 1 weaken (low).",
+  "class_mechanism": "A write meant for one heat target also drives the other because the plant has no mode separating them, and the gate that should hold it back is floored below the case",
+  "nearest": "P2",
+  "differs": "not two predicates for one fact: one actuator serves two targets and the second target has no gate at all"
+ },
+ {
+  "id": "D16-s1-03",
+  "verdict": "weakened",
+  "severity": "medium",
+  "value": "worktree: boost_indoor_between=2 rigs; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. Votes: 1 weaken (medium).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D16-s1-04",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "worktree: baseline_switch_off=5 rigs; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-unreleased-hold",
+  "note": "reproduced exactly; runner header row too. Votes: 1 verify (high).",
+  "class_mechanism": "An actuator the optimizer took over has no release or restore owner on some exit (stale plan, Off, unload, remove, failed restore), so the device keeps the optimizer's last write",
+  "nearest": "N-no-expiry",
+  "differs": "the stale thing is a physical actuator state left held, not a published value read past its age"
+ },
+ {
+  "id": "D16-s1-05",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: unavailable_recorded=5 rigs; null 0; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "P11",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "The only oracle for an external counterpart (Home Assistant core, its state machine, its recorder REST API, a device behind an integration) is a test double the implementer wrote from what the code needed, so the tests agree with a wrong implementation"
+ },
+ {
+  "id": "D16-s2-01",
+  "verdict": "weakened",
+  "severity": "medium",
+  "value": "worktree: stale share mqtt 0.5732, curve 0.4644, freq 0.4480; leave-one-out drop-most-favourable stays > 0.4 (mqtt LOO 0.41-0.73)",
+  "stop_rule_class": "bug",
+  "class": "N-stale-step-actuation",
+  "note": "reproduced exactly with leave-one-out; supply and mode channels 0 (the null channels). Votes: 1 weaken (medium).",
+  "class_mechanism": "An actuator is commanded from the previous solve or step, so it holds or switches one interval late against the plan it serves",
+  "nearest": "N-no-expiry",
+  "differs": "the value is fresh but applied to the wrong step: a timing offset between plan and write, not an age bound"
+ },
+ {
+  "id": "D16-s2-02",
+  "verdict": "weakened",
+  "severity": "medium",
+  "value": "worktree: on_in_window=0 of 30 min (long window 59/90); perturb -> 29/30 and 89/90",
+  "stop_rule_class": "bug",
+  "class": "N-stale-step-actuation",
+  "note": "reproduced exactly. Votes: 1 weaken (medium).",
+  "class_mechanism": "An actuator is commanded from the previous solve or step, so it holds or switches one interval late against the plan it serves",
+  "nearest": "N-no-expiry",
+  "differs": "the value is fresh but applied to the wrong step: a timing offset between plan and write, not an age bound"
+ },
+ {
+  "id": "D16-s2-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: cell3530_record_wrong_mode_at_on=1; perturb -> 0; null arm 0",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. Votes: 1 verify (P2).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D17-s1-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: option_fields_missing=156 of 286; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "I4",
+  "note": "reproduced exactly; runner too. Votes: 1 verify.",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D17-s1-02",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: computed_kept_value_lost=8 of 12 computed rows; null 0; perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. Votes: 1 verify (high).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D17-s1-03",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: two-zone rendered_no_effect=2 incl house_thermal_mass; perturb -> 1 (thermal mass gone)",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. Votes: 1 verify (P2).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D17-s1-05",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: guard_wrong_minutes_total=69 over 5 draws (range 3-25, drop-most-favourable 44); perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-partial-window-extrapolation",
+  "note": "reproduced exactly with leave-one-out 44 > 0. Merged D7-s3-02. Votes: 1 verify (high).",
+  "class_mechanism": "A window or period figure is projected linearly from its elapsed part with no minimum-coverage rule, so early projections swing by orders of magnitude",
+  "nearest": "N-period-rollover",
+  "differs": "no reset ordering is involved: the projection itself is unguarded against a tiny elapsed sample"
+ },
+ {
+  "id": "D17-s2-02",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: step0_outdoor_spread_K=0.000 with a forecast; no-forecast null 35 K; perturb -> 35 K, 5.124 kWh",
+  "stop_rule_class": "bug",
+  "class": "N-dead-input",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A configured input or option is accepted, stored and shown, but no consumer reads it into the plan, so changing it changes nothing",
+  "nearest": "P6",
+  "differs": "the reverse of P6: the producer writes the key and no consumer reads it"
+ },
+ {
+  "id": "D17-s2-03",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: quick_path_plan_kwh_spread=0.0000 (LOO 0.0000); the valve-arm reference spreads 11.81 kWh",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly; null (valve arm) moves, quick path does not. Votes: 1 verify (P2).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D17-s2-04",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: kept_schedule_cap_delta_kW=0.000 (with fraction -2.0); perturb -> -2.0",
+  "stop_rule_class": "bug",
+  "class": "N-dead-input",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A configured input or option is accepted, stored and shown, but no consumer reads it into the plan, so changing it changes nothing",
+  "nearest": "P6",
+  "differs": "the reverse of P6: the producer writes the key and no consumer reads it"
+ },
+ {
+  "id": "D17-s2-05",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: entries_with_after_save=2; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-entry-data-placement",
+  "note": "reproduced exactly. Votes: 1 verify (low).",
+  "class_mechanism": "A setting the options flow edits is stored in ConfigEntry.data (or a flow-control value is persisted there), so options and data hold two copies of one setting",
+  "nearest": "P2",
+  "differs": "no divergent guard: one value is persisted into the wrong container, so a later options save shadows or strands it"
+ },
+ {
+  "id": "D17-s3-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: service publishes 0.5 SEK/kWh and no plan, button 2.0 and republishes; perturb -> service 2.0 and republished",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced exactly. Votes: 1 verify (P2).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D17-s3-02",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: heat_loss plan_delta=0.000 kW-steps on two-zone (also after restart); perturb -> 167.619",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced; same root as the D12-s2-01 family (two-zone forced), so P2. Votes: 1 verify.",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D17-s3-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: snapshot_bias_is_none=1, restored=1 (scale 1.0); perturb -> restored 0, scale 1.3",
+  "stop_rule_class": "bug",
+  "class": "N-silent-zero",
+  "note": "reproduced exactly. An evidence-free snapshot reads as a clean restore point. Votes: 1 verify.",
+  "class_mechanism": "A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero"
+ },
+ {
+  "id": "D17-s3-51",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "verifier: 18 of 336 week half-hours wrong; perturb 18 -> 0; flat null 0; with a solve each day still 16",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "converted lead: no finder harness; judged on the verifier's executed number, null and perturbation. Votes: 1 verify (P2).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D2-s1-01",
+  "verdict": "verified",
+  "severity": "critical",
+  "value": "planted copy: batch_parity_mismatch_total=14314 elements (dhw 1665, valve 6729, wood 2076, pv 1820 ...); space-only 0",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced the verifier's 14314 (finder 14897, 4 % more on its own arms). Merged D2-s2-01. Votes: 1 verify (critical).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D2-s1-02",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: batch_parity_mismatch_total=3012 (2z valve arms), maxdiff 1.71 K",
+  "stop_rule_class": "bug",
+  "class": "P2",
+  "note": "reproduced the verifier's 3012 (finder 3674 on a wider grid). Merged D7-s3-08. Votes: 1 verify (high).",
+  "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D2-s1-51",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "verifier: 36 of 36 cells derive 1.55x the post-2005 heat loss for 'low energy'",
+  "stop_rule_class": "bug",
+  "class": "N-table-value",
+  "note": "converted lead: no finder harness; judged on the verifier's executed number. Votes: 1 verify (medium).",
+  "class_mechanism": "A constant in a production data table (preset, coefficient, rule) is wrong, so every install that selects it computes from a false number",
+  "nearest": "I5",
+  "differs": "the false value is production data the code computes with, not prose describing it"
  }
 ]
