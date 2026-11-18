@@ -6,3 +6,4 @@
 1795006372 INBOX acked through 1
 1795006375 CKPT resumed: worktree at bc658f9d, setup OK snapshot 2f9bd69dd9f5
 1795006409 CKPT discovery dispatched to extractor workers per inbox ruling snapshot b2a69e42388e
+1795006477 CKPT structure.py and entities.py mechanics extracted; ratchet green at base snapshot 39a985fe22b4
