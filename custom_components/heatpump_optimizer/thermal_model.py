@@ -1139,6 +1139,14 @@ class ThermalParameters:
 
         return cls(**values)
 
+#: The whole-house fields only a one-zone model reads: on two zones every
+#: reader takes the floors' masses and losses instead (D17-s1-03, D17-s3-02).
+SINGLE_ZONE_HOUSE_FIELDS: tuple[str, ...] = (
+    const.CONF_HOUSE_THERMAL_MASS,
+    const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+)
+
+
 def two_zone_from_config(config: Mapping[str, Any]) -> bool:
     """Whether the model runs two zones: the one answer every reader takes.
 

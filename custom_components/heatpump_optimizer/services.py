@@ -34,8 +34,6 @@ from . import topology
 from .accuracy import REFIT_SETTLED_DAYS
 from .drift import utc_shift
 from .const import (
-    CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
-    CONF_HOUSE_THERMAL_MASS,
     DOMAIN,
     CONF_COMFORT_TEMP_DAY,
     CONF_COMFORT_TEMP_NIGHT,
@@ -102,7 +100,11 @@ from .dhw_schedule import (
     parse_windows,
 )
 from .manual_plan import ManualPlanError, build_override
-from .thermal_model import ThermalParameters, two_zone_from_config
+from .thermal_model import (
+    SINGLE_ZONE_HOUSE_FIELDS,
+    ThermalParameters,
+    two_zone_from_config,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -642,6 +644,32 @@ async def handle_set_mode(hass: HomeAssistant, call: ServiceCall) -> None:
     for _entry_id, coord in _loaded_coordinators(hass):
         await coord.async_set_mode(mode)
 
+def _refuse_house_fields_on_two_zones(
+    params: dict[str, Any], targets: list[tuple[str, HeatPumpOptimizerCoordinator]]
+) -> None:
+    """Refuse a whole-house mass or loss for a two-zone model (D17-s3-02).
+
+    Only a one-zone model reads them (``SINGLE_ZONE_HOUSE_FIELDS``), so on
+    two zones the write would be acknowledged and change nothing. Refused
+    before any write, by the model's own two-zone answer for the config each
+    coordinator was built from; the error names the fields that do act.
+    """
+    field = next((k for k in SINGLE_ZONE_HOUSE_FIELDS if params.get(k) is not None), None)
+    if field is None:
+        return
+    for _entry_id, coord in targets:
+        if two_zone_from_config(coord.effective_config):
+            raise ServiceValidationError(
+                f"{field} applies to a one-zone model only; this install runs "
+                "two zones. Set upper_floor_thermal_mass and "
+                "lower_floor_thermal_mass on this action, and each zone's heat "
+                "loss on the options' Two-zone model page.",
+                translation_domain=DOMAIN,
+                translation_key="set_thermal_params_house_field_two_zone",
+                translation_placeholders={"field": field},
+            )
+
+
 async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> None:
     """Handle the set_thermal_parameters service call."""
     params = dict(call.data)
@@ -733,25 +761,7 @@ async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> N
                     },
                 )
 
-    # D17-s3-02: the whole-house mass and loss are read on one zone only
-    # (config_flow._single_zone), so on a two-zone model the write would be
-    # acknowledged and change nothing. Refused before any write, by the
-    # model's own two-zone answer for the config each coordinator was built
-    # from; the error names the fields that do act.
-    house_fields = [
-        k for k in (CONF_HOUSE_THERMAL_MASS, CONF_HOUSE_HEAT_LOSS_COEFFICIENT)
-        if params.get(k) is not None
-    ]
-    if house_fields:
-        for _entry_id, coord in targets:
-            if two_zone_from_config(coord.effective_config):
-                raise ServiceValidationError(
-                    f"{house_fields[0]} applies to a one-zone model only; "
-                    "this install runs two zones",
-                    translation_domain=DOMAIN,
-                    translation_key="set_thermal_params_house_field_two_zone",
-                    translation_placeholders={"field": house_fields[0]},
-                )
+    _refuse_house_fields_on_two_zones(params, targets)
 
     _LOGGER.info("Updating thermal parameters: %s", params)
     for _entry_id, coord in targets:

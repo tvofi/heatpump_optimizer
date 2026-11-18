@@ -51,6 +51,8 @@ for lead, err in ((1.0, 0.4), (3.0, 0.9), (6.0, 1.5), (12.0, 2.2), (24.0, 3.0)):
 
 class Fake:
     _opt_config = oc
+    # The model's flag the plan view's floors read (D12-s1-01).
+    _thermal_params = p
     _dhw_accuracy = dhw_acc
     _build_plan_views = Coord._build_plan_views
     _dhw_confidence_band = Coord._dhw_confidence_band

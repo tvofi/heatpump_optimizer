@@ -8503,9 +8503,13 @@ _gap_load_data = {
     },
     "current_price": 1.5,
 }
-# A user who has the house meter but neither probe: the two probe rows are
-# the whole ranking, and both must be priced.
-_gap_probe_cfg = {const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power"}
+# A user who has the house meter and a hot-water tank but neither probe: the
+# two probe rows are the whole ranking, and both must be priced. The tank is
+# declared: an install with no hot water prices no coast (D8-s1-01).
+_gap_probe_cfg = {
+    const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power",
+    const.CONF_DHW_ENABLED: True,
+}
 
 
 def _gap_production_rows(data, config):
