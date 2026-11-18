@@ -9,7 +9,7 @@ Instrumented symbol: thermal_model:ThermalParameters.from_config.
 Perturbation: the arm itself (``--fix``); the FAIL count must fall (down).
 
 Run (from the export root):
-  PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
       dev/audit/rounds/round11/D10/s1/cfs_under_fix.py [--fix]
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (the round's export tree). Machine: macOS arm64, venv-ci Python 3.14.
 """

@@ -5,7 +5,7 @@ Invalid per-day DHW window 'x' for dhw_windows_thu (Invalid window 'x' (expected
 Invalid per-day DHW window 'x' for dhw_windows_fri (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
 Invalid per-day DHW window 'x' for dhw_windows_sat (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
 Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
-<HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/tests/harness.py:597: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/tests/harness.py:597: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 

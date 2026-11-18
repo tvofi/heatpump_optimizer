@@ -7,7 +7,7 @@ lacks a string in a language's matching section (F3), and the page count of the
 shortest install path (I2).
 Count key: the field name the production schema presents (marker.schema), looked up
 under <section>.step.<step_id>.data / data_description (and sections.<s>.data when grouped).
-Command: PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py [--perturb-drop-desc FIELD]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py [--perturb-drop-desc FIELD]
 Expected: the RESULT values printed at baseline, exact (counts).
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: orchestrator Mac (darwin arm64).
 Instrumented symbols: config_flow:HeatPumpOptimizerConfigFlow.async_step_*,

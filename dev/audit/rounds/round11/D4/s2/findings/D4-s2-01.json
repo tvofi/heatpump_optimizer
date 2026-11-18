@@ -7,7 +7,7 @@
  "claim": "When the setup wizard's device_prefill page refuses a DHW or silent-mode window shorter than 15 min, the form result carries no min_window_minutes placeholder, so the error string in all 4 language files is rendered with an unfilled {min_window_minutes} (8 field-language pairs), while the options flow's modbus_prefill page, the config dhw page and the options hot_water page supply it (0).",
  "mechanism": "HeatPumpOptimizerConfigFlow._device_prefill_form passes description_placeholders={**device_prefill.disclaimer(), **notes}; the options twin _prefill_form adds **_WINDOW_PLACEHOLDERS. _prefill_errors (shared) can return dhw_window_too_short / silent_mode_window_too_short, whose strings read {min_window_minutes}.",
  "evidence": {
-  "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py",
+  "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py",
   "harness_path": "dev/audit/rounds/round11/D4/s2/flow_errors.py",
   "value": 8,
   "unit": "unfilled placeholder x language pairs",
@@ -27,9 +27,9 @@
  },
  "metric_definition": "Sum over triggered error cells and language files of {name} placeholders in the returned error's string that result['description_placeholders'] lacks.",
  "phenomenon_property": "Every flow form result supplies every placeholder named by its step strings and by the strings of every error key it returns, in every language.",
- "seam_rule": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py (error cells) and PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py (DESC_UNFILLED, untouched renders)",
+ "seam_rule": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py (error cells) and PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py (DESC_UNFILLED, untouched renders)",
  "null_control": {
-  "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py",
+  "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py",
   "value": 0,
   "note": "control cells options.modbus_prefill x2, config.dhw, options.hot_water, options.grid_fees x3 fire the same or sibling errors and leave 0 unfilled"
  },

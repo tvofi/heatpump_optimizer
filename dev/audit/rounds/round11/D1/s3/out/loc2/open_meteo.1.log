@@ -1,4 +1,4 @@
-<HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py:354: RuntimeWarning: coroutine 'OpenMeteoSolar._fetch_forecast' was never awaited
+~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py:354: RuntimeWarning: coroutine 'OpenMeteoSolar._fetch_forecast' was never awaited
   forecast = await self._fenced(self._fetch_forecast(session))
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 == parsing ==

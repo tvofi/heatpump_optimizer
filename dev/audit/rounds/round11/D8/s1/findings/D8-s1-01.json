@@ -12,7 +12,7 @@
     "value": 12,
     "unit": "cell-cycles (of 22 no-DHW cell-cycles) publishing a priced dhw_temp_entity gap; all 12 have it as top_slot and state",
     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
-    "machine": "B4 orchestrator macOS (darwin), <HOME>/.local/state/hpo/venv-ci python3",
+    "machine": "B4 orchestrator macOS (darwin), ~/.local/state/hpo/venv-ci python3",
     "cpu_or_wall": "count",
     "contention_note": "shared box with other finder seats running; the count is deterministic (frozen clock, injected prices, no network); this run's load1 line was filtered, nearest run 207.89",
     "tolerance": "exact",

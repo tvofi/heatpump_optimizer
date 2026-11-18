@@ -1,4 +1,4 @@
-<HOME>/.local/state/hpo/venv-ci/lib/python3.14/site-packages/scipy/optimize/_numdiff.py:711: RuntimeWarning: invalid value encountered in divide
+~/.local/state/hpo/venv-ci/lib/python3.14/site-packages/scipy/optimize/_numdiff.py:711: RuntimeWarning: invalid value encountered in divide
   df_dx = [delf / delx for delf, delx in zip(df, dx)]
 
 === Feature modules ===

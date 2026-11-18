@@ -78,4 +78,4 @@ All under `dev/audit/rounds/round11/D1/s3/`:
 
 **Exposure:** none.
 
-Report written to <HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D1/s3/REPORT.json. It passed my own field, enum and coverage check; the jsonschema package is not installed in venv-ci, so it was not validated against the full schema. Findings are in <HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D1/s3/findings/.
+Report written to ~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D1/s3/REPORT.json. It passed my own field, enum and coverage check; the jsonschema package is not installed in venv-ci, so it was not validated against the full schema. Findings are in ~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D1/s3/findings/.

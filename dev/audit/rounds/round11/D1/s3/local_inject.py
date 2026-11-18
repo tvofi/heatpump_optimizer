@@ -9,7 +9,7 @@ Count key: the production handler's own entry/exit (compiled into its body by th
 fix that changes the handler changes the count; the test script only supplies the call.
 
 Command:
-    PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
         dev/audit/rounds/round11/D1/s3/local_inject.py --script tests/entities.py --out OUT.jsonl
   The script runs once with every handler armed one-shot; a handler is recorded when it fired.
   (--exclude-from FILE skips handlers already recorded in an earlier script's JSONL.)

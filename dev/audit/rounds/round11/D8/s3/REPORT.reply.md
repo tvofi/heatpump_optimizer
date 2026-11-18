@@ -1,6 +1,6 @@
 I ran both of my steps (D8.M4 and D8.M5) across all 6 platform files in my scope and found one defect: the three lifetime energy sensors declare the wrong `state_class`. Their `device_class` is `energy` but their `state_class` is `measurement`, which Home Assistant rejects, so these meters can't be used in the Energy dashboard. The enabled-by-default check (M4) found nothing wrong.
 
-**REPORT.json:** `<HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D8/s3/REPORT.json`. The finding is also in `findings/D8-s3-01.json` in the same directory. No commits, no pushes, no GitHub calls. I created the scratch dir `<HOME>/hpo-orch/r10s6/r11/scratch/D8-s3` but didn't need it.
+**REPORT.json:** `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D8/s3/REPORT.json`. The finding is also in `findings/D8-s3-01.json` in the same directory. No commits, no pushes, no GitHub calls. I created the scratch dir `~/hpo-orch/r10s6/r11/scratch/D8-s3` but didn't need it.
 
 ---
 

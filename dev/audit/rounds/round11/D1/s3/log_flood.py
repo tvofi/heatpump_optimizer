@@ -8,7 +8,7 @@ ERROR records "Error updating Heat Pump Optimizer: %s" added in the armed refres
 Count key: the integration's own log records (the base class's transition log is separate).
 
 Command:
-    PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
         dev/audit/rounds/round11/D1/s3/log_flood.py [--perturb]
   --perturb  one production edit, in memory at import (excepts_inject.py --edit): the generic arm
              logs ERROR only on the transition, `(_LOGGER.error if self.last_update_success else

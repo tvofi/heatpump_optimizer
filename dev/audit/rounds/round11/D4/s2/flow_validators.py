@@ -8,7 +8,7 @@ Part B metric: per NumberSelector field on every rendered page, whether a wrong-
 rather than stored; counts accepted.
 Part C: the reconfigure step rendered with a stub entry (fields, labels, prefill).
 Count key: result["errors"] values the production step returns; result["description_placeholders"].
-Command: PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_validators.py [--perturb]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_validators.py [--perturb]
   --perturb: patches config_flow._band_errors to return {} -- the comfort-band cells stop
   firing, so cells_fired goes down by the number of band cells.
 Expected: the RESULT counts printed at baseline, exact.

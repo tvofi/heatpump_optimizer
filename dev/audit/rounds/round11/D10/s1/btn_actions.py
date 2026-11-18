@@ -26,7 +26,7 @@ returned False or the diagnosis raised; silent_refusals must fall to 0
 (direction to_zero) while the controls still raise.
 
 Run (from the export root):
-  PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
       dev/audit/rounds/round11/D10/s1/btn_actions.py [--perturb]
 Expected: silent_refusals=2 of 2 (exact), controls_raised=2 of 2, sysid_enabled_armed=1;
 under --perturb silent_refusals=0.

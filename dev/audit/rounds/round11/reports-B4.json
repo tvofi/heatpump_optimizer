@@ -1310,7 +1310,7 @@
           "claim": "inputs.parse_bool reads the states 'nan', 'NaN', 'inf', '-inf' and '1e309' as True (float(token) != 0.0), so a heat-pump fault or defrost entity reporting a non-finite number publishes fault=True and defrosting=True and freezes learning with freeze_reason 'pump_fault', where the numeric reader refuses the same state.",
           "mechanism": "pump_signals.read -> InputReader.read_bool -> inputs.parse_bool: the numeric arm `return float(token) != 0.0` is reached for any token outside BOOL_TRUE/BOOL_FALSE, and float('nan') != 0.0 and float('inf') != 0.0 are both True. No finiteness test precedes it (const.finite_float, the integration's own number rule, refuses non-finite values), so an unreadable numeric state becomes a positive flag rather than `not_boolean`. The fabricated fault freezes every learner (`_learning_frozen`); the fabricated defrost feeds the defrost window/duty fold and blocks the COP fold.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm pump",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm pump",
             "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
             "value": 10,
             "unit": "flag readings published True from a non-finite state (5 tokens x {fault, defrost})",
@@ -1332,7 +1332,7 @@
           "phenomenon_property": "A flag read from an entity state is never True (or False) on a non-finite numeric state: such a state is unreadable (problem not_boolean), as the numeric reader and const.finite_float already rule.",
           "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E 'parse_bool|_parse_ecl110_state'",
           "null_control": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm pump",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm pump",
             "value": "RESULT pump_null_control_zero_flag_true=0 readings",
             "note": "state '0' publishes fault=False, defrosting=False, freeze_reason None; 'garbage', '' and 'unknown' publish None (not_boolean) in the same run"
           },
@@ -1358,7 +1358,7 @@
           "claim": "_parse_ecl110_state accepts the payloads 'true', 'false' and '{\"displace\": true}' as displacements 1.0, 0.0 and 1.0, and _async_handle_ecl110_state_message stores and publishes them as the measured ECL110 displacement, where const.finite_float refuses a bool as 'a guess, not a reading'.",
           "mechanism": "json.loads('true') is the bool True; `isinstance(data, (int, float))` admits it (bool subclasses int) and `float(raw)` turns True into 1.0, so a state topic pointed at a switch/flag topic (ON/true) or a hostile publisher sets _ecl110_current_displace and the published ecl110_displace_command/ecl110_effective_displace to a value no ECL110 reported. The plausibility window (round-9 D1-s2-02) does not catch it: 0 and 1 are inside every window.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110",
             "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
             "value": 3,
             "unit": "boolean payloads stored as a displacement (of 3 sent)",
@@ -1380,7 +1380,7 @@
           "phenomenon_property": "An external-input parser hands on only a finite real number as a measurement: a bool is never a displacement, a temperature or a power (const.finite_float's rule), at every external parser seam.",
           "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E '_parse_ecl110_state|parse_bool'",
           "null_control": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110 --perturb ecl110_refuse_bool",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110 --perturb ecl110_refuse_bool",
             "value": "RESULT ecl110_numeric_null_control=2 messages",
             "note": "the numeric payloads 7 and '{\"displace\": \"3\"}' are still accepted (2 of 2) under the perturbation: the fix refuses bools only"
           },
@@ -1400,7 +1400,7 @@
           "claim": "_parse_block keeps a sample stamped '0001-01-01T00:00', and IrradianceSeries.mean_over then raises OverflowError on `t - self.resolution` for every plan step, so every solve fails ('Optimization failed: date value out of range') for as long as the series is held, with last_update_success staying True.",
           "mechanism": "OpenMeteoSolar.async_refresh fences only the fetch+parse (`_fenced`, #1519: 'never raises ... by construction'); the parsed series is stored, and the read side (`irradiance_for` -> `mean_over`, called per step by `_apply_open_meteo` inside the solve-input build) computes `sample_start = t - self.resolution` for every sample. datetime.min - 1 h raises OverflowError; async_run_optimization's broad handler books it as a solve failure (logged once by log_held, counted in _solve_failures), the last plan stays published and the update reports success. The series is replaced only by a later non-empty forecast, so a feed that keeps the stamp fails every cycle.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo",
             "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
             "value": 3,
             "unit": "failed solves over 3 refreshes (coordinator._solve_failures)",
@@ -1422,7 +1422,7 @@
           "phenomenon_property": "A parsed external series never raises on read: every instant kept by an external-feed parser is one the read-side arithmetic (t - resolution, t + step) can carry, or the sample is dropped at parse.",
           "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E 'open_meteo|_fetch_weather|_parse_block'",
           "null_control": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo",
             "value": "RESULT openmeteo_healthy_solve_failures=0 solves",
             "note": "the same 72 valid samples without the two year-1 stamps: 0 failed solves; nan, string, unsorted/duplicate, non-dict and error bodies also 0"
           },
@@ -1442,7 +1442,7 @@
           "claim": "When the job write or reply read fails with a transport error (BrokenPipeError and kin), _run_in_process calls worker.kill() then worker.wait() with no timeout inside `with _PROCESS_LOCK`, so a child the kill does not end at once never returns and the lock stays held, while the sibling ProcessWorkerTimeout arm bounds the same wait with _SHUTDOWN_LOCK_TIMEOUT_S for exactly that child.",
           "mechanism": "coordinator.py `_run_in_process`: the `except Exception as err` arm (transport, never the job) does `worker.kill(); worker.wait()`; the `except ProcessWorkerTimeout` arm above it does `worker.kill(); worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)` with the comment 'a child the kill does not end at once (one stuck in the kernel) must not turn this into the same unbounded wait'. One fact (how long to wait for a killed child) decided twice. Held, the lock wedges every later solve, replay and sensor-advisor job behind it (each parks an executor thread in `with _PROCESS_LOCK`), and the awaiting refresh never completes, so last_update_success never turns False. The same unbounded wait sits in _shutdown_process_pool's at_exit arm (coordinator.py ~1917).",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/peer_wait.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/peer_wait.py",
             "harness_path": "dev/audit/rounds/round11/D1/s3/peer_wait.py",
             "value": 1,
             "unit": "RESULT transport_lock_held_after (1 = _PROCESS_LOCK still held after the 8 s cap; transport_returned_within_cap=0)",
@@ -1464,7 +1464,7 @@
           "phenomenon_property": "Every wait on a killed or exiting process worker is bounded, so no failure route can hold _PROCESS_LOCK (or the stop) past a deadline.",
           "seam_rule": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/silent_peer_waits.py --scan custom_components/heatpump_optimizer | grep 'wait() with no timeout'",
           "null_control": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/peer_wait.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/peer_wait.py",
             "value": "RESULT timeout_returned_within_cap=1, RESULT timeout_lock_held_after=0",
             "note": "the same stuck child on the ProcessWorkerTimeout arm: returns (ProcessWorkerTimeout) and frees the lock -- the bounded sibling"
           },
@@ -1488,7 +1488,7 @@
           "claim": "Every persist handler (17, persist_seams.py) catches any exception from building and saving its store payload and logs it only at DEBUG; with the save body forced to fail on every pass across setup, two refreshes, unload, restart and a refresh, each of the 10 handlers the lifecycle reaches added zero WARNING-or-higher records, so a payload-builder bug or a failing save silently stops the ledger, accuracy, thermal-learning, price-model, snapshot, away, legionella, notifier, off-restore and energy stores from persisting until a restart loses the unsaved state.",
           "mechanism": "Pattern `try: await store.async_save(<payload built inline>) except Exception as err: _LOGGER.debug('Could not persist ...: %s', err)` in coordinator._async_save_{thermal_learning,price_model,ledger,accuracy,energy_totals,manual_plan,snapshots}, away.persist_override, boost.persist, dhw_learning.async_save_{profile,draws}, duty_switch._persist, legionella.async_save, notifier._async_save, off_restore._save, pump_arbiter._persist, debugger.DebugCollector.async_save. The payload is built inside the try, so a programming error in any learner's as_dict (an AttributeError, a non-serialisable value) is caught with the transport failures and logged below Home Assistant's default level on every cycle; nothing latches it (log_held exists for exactly this) and no repair issue is raised.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/persist_family.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/persist_family.py",
             "harness_path": "dev/audit/rounds/round11/D1/s3/persist_family.py",
             "value": 10,
             "unit": "persist handlers (of 10 reached) whose persistent save failure added no WARNING+ record",
@@ -1510,7 +1510,7 @@
           "phenomenon_property": "A persistent store-save failure is visible above DEBUG once per outage (a held warning that says Resolved on the first save that lands), at every persist seam.",
           "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/persist_seams.py",
           "null_control": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --reach",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --reach",
             "value": "control_proc_phases_ok=9/9, control_inproc_phases_ok=9/9",
             "note": "the fault-free control run is the baseline every added-record count is taken over; the same harness counts WARNING+ for the weather fetch handler (coordinator.py:7103) at 1 per outage, so the count is able to see a warning"
           },
@@ -1539,7 +1539,7 @@
           "claim": "A persisting unexpected exception in the update cycle is logged by the integration as ERROR 'Error updating Heat Pump Optimizer' with exc_info on every refresh (3 of 3 refreshes that follow an already-failed update), while the UpdateFailed arm beside it was fixed (#216, D10-09) precisely so a day-long outage would not print the same ERROR every cycle.",
           "mechanism": "coordinator.py `_async_update_data`: `except (UpdateFailed, ConfigEntryAuthFailed): raise` (the raiser's latch already logged once) then `except Exception as err: _LOGGER.error(..., exc_info=True); _raise_update_failed(...)` with no latch. Home Assistant's DataUpdateCoordinator already logs the failure on the transition ('Error fetching ... data'), so each later cycle adds one ERROR with a full traceback: at the default 15-minute interval about 96 tracebacks a day for one stuck fault, on Raspberry-Pi-class storage. `_async_first_refresh_light` repeats the arm on every setup retry (coordinator.py:6195).",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
             "harness_path": "dev/audit/rounds/round11/D1/s3/log_flood.py",
             "value": 3,
             "unit": "integration ERROR records added in refreshes A1, A2, B1 (each follows an already-failed update)",
@@ -1561,7 +1561,7 @@
           "phenomenon_property": "A persisting failure is logged above DEBUG once per outage (on the transition), never on every cycle, at every update-wrapper arm.",
           "seam_rule": "python3 tools/audit/enumerate.py d1-excepts | grep -E '_async_update_data|_async_first_refresh_light'",
           "null_control": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
             "value": "RESULT recovered=1",
             "note": "the disarmed refresh B2 succeeds and adds no such record (only the base class's 'recovered' INFO); the transition ERROR in setup A and setup B is kept under the perturbation"
           },
@@ -1581,7 +1581,7 @@
           "claim": "Seven `except Exception` handlers the lifecycle reaches leave no log record at any level, DEBUG included, when their try body fails on every pass, so a programming error behind them is invisible: _record_accuracy's COP-residual tag, both _capture_diagnosis_inputs arms, CoordinatorDiagnostics.of, diagnostics._coordinator_snapshot and _never_breaks, and optimizer._lbfgsb_restart.",
           "mechanism": "Handler bodies are a bare fallback (`sample.cop_residual = None`, `return None`, `planned_wind = 0.0`, `'summary unavailable'`, `state = None`, `return 'unavailable'`, `return best`). The diagnostics three leave a visible marker in the downloaded diagnostics; the other four do not: a broken MeasuredCop.residual silently drops the COP tag from every accuracy sample, and a broken _current_weather silently records wind 0.0 as the plan's assumption in the diagnosis evidence (#52).",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/silent_broad.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/silent_broad.py",
             "harness_path": "dev/audit/rounds/round11/D1/s3/silent_broad.py",
             "value": 7,
             "unit": "broad handlers (of 11 reached non-logging, non-reraising broad handlers) adding zero records at any level under a persistent fault",
@@ -1603,7 +1603,7 @@
           "phenomenon_property": "No broad handler hides an exception: each one leaves at least a DEBUG record (or a held warning) naming what it swallowed.",
           "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/silent_broad.py --seams",
           "null_control": {
-            "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/silent_broad.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/silent_broad.py",
             "value": "coordinator.py:6507 added_records=10, coordinator.py:7103 added_records=14, optimizer.py:1944 added_records=10, optimizer.py:1970 added_records=20",
             "note": "four handlers of the same static seam list log through a helper and are counted as recorded by the same run: the count separates them"
           },
@@ -1757,7 +1757,7 @@
             "value": 12,
             "unit": "cell-cycles (of 22 no-DHW cell-cycles) publishing a priced dhw_temp_entity gap; all 12 have it as top_slot and state",
             "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
-            "machine": "B4 orchestrator macOS (darwin), <HOME>/.local/state/hpo/venv-ci python3",
+            "machine": "B4 orchestrator macOS (darwin), ~/.local/state/hpo/venv-ci python3",
             "cpu_or_wall": "count",
             "contention_note": "shared box with other finder seats running; the count is deterministic (frozen clock, injected prices, no network); this run's load1 line was filtered, nearest run 207.89",
             "tolerance": "exact",
@@ -1804,7 +1804,7 @@
             "value": 2688.0,
             "unit": "coverage factor applied to the first numeric state of the new month (ratio); swing over the first four numeric states 1728.39 currency",
             "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
-            "machine": "B4 orchestrator macOS (darwin), <HOME>/.local/state/hpo/venv-ci python3",
+            "machine": "B4 orchestrator macOS (darwin), ~/.local/state/hpo/venv-ci python3",
             "cpu_or_wall": "ratio",
             "contention_note": "shared box with other finder seats running; deterministic (frozen clock, injected prices and inputs, no network)",
             "tolerance": "exact",
@@ -1851,7 +1851,7 @@
             "value": 1,
             "unit": "cycles (of 17, 2026-01-31T22:00 to 2026-02-01T02:00 UTC) with the sensor available and its state None",
             "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
-            "machine": "B4 orchestrator macOS (darwin), <HOME>/.local/state/hpo/venv-ci python3",
+            "machine": "B4 orchestrator macOS (darwin), ~/.local/state/hpo/venv-ci python3",
             "cpu_or_wall": "count",
             "contention_note": "shared box with other finder seats running; deterministic",
             "tolerance": "exact",

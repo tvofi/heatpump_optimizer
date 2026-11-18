@@ -7,7 +7,7 @@
   "claim": "Walking the setup wizard's 'Continue setup' path at the forms' own defaults creates an entry whose data holds 41 keys that are not asked on the two connection screens (comfort band, thermal model, hot water, weather sensitivity), every one of them also an options-flow field, and options={} -- against the config-flow (Bronze) subcheck 'Uses ConfigEntry.data and ConfigEntry.options correctly' (settings not needed for the connection belong in options); the null arm (Finish setup now) holds 0.",
   "mechanism": "HeatPumpOptimizerConfigFlow._create_setup_entry passes the whole wizard dict self._data as async_create_entry(data=...), with no options=. Every reader then merges {**entry.data, **entry.options}, so a wizard value can be overridden by an option but never removed by one; const.py's two-zone comment records that consequence (zone keys the initial flow wrote into entry.data 'where options cannot erase them'), which needed CONF_TWO_ZONE_MODE as a workaround.",
   "evidence": {
-    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
     "harness_path": "dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
     "value": 41,
     "unit": "non-connection setting keys in the created entry's data (continue walk); finish_now walk 0",

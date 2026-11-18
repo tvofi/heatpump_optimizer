@@ -10,7 +10,7 @@ Count keys: the parser's own return/raise; for the cycle arms the coordinator's 
 payload (`coordinator.data`) and last_update_success, never the payload's own attributes.
 
 Command:
-    PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
         dev/audit/rounds/round11/D1/s3/parsers_fuzz.py [--arm unit|weather|tibber|openmeteo|ecl110|pump|all]
         [--perturb parse_bool_finite|openmeteo_overflow_guard]
 Expected (baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, exact counts):

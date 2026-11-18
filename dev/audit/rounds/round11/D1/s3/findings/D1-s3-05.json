@@ -7,7 +7,7 @@
   "claim": "Every persist handler (17, persist_seams.py) catches any exception from building and saving its store payload and logs it only at DEBUG; with the save body forced to fail on every pass across setup, two refreshes, unload, restart and a refresh, each of the 10 handlers the lifecycle reaches added zero WARNING-or-higher records, so a payload-builder bug or a failing save silently stops the ledger, accuracy, thermal-learning, price-model, snapshot, away, legionella, notifier, off-restore and energy stores from persisting until a restart loses the unsaved state.",
   "mechanism": "Pattern `try: await store.async_save(<payload built inline>) except Exception as err: _LOGGER.debug('Could not persist ...: %s', err)` in coordinator._async_save_{thermal_learning,price_model,ledger,accuracy,energy_totals,manual_plan,snapshots}, away.persist_override, boost.persist, dhw_learning.async_save_{profile,draws}, duty_switch._persist, legionella.async_save, notifier._async_save, off_restore._save, pump_arbiter._persist, debugger.DebugCollector.async_save. The payload is built inside the try, so a programming error in any learner's as_dict (an AttributeError, a non-serialisable value) is caught with the transport failures and logged below Home Assistant's default level on every cycle; nothing latches it (log_held exists for exactly this) and no repair issue is raised.",
   "evidence": {
-    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/persist_family.py",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/persist_family.py",
     "harness_path": "dev/audit/rounds/round11/D1/s3/persist_family.py",
     "value": 10,
     "unit": "persist handlers (of 10 reached) whose persistent save failure added no WARNING+ record",
@@ -29,7 +29,7 @@
   "phenomenon_property": "A persistent store-save failure is visible above DEBUG once per outage (a held warning that says Resolved on the first save that lands), at every persist seam.",
   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/persist_seams.py",
   "null_control": {
-    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --reach",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --reach",
     "value": "control_proc_phases_ok=9/9, control_inproc_phases_ok=9/9",
     "note": "the fault-free control run is the baseline every added-record count is taken over; the same harness counts WARNING+ for the weather fetch handler (coordinator.py:7103) at 1 per outage, so the count is able to see a warning"
   },

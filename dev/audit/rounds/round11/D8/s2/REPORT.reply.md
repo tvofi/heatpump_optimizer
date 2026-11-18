@@ -1,12 +1,12 @@
 I covered all six files in my D8.M3 universe (ordering and naming) and found two problems, both low severity. Nothing is unfinished or not reached. I committed nothing and pushed nothing. I could not validate REPORT.json against `finding.schema.json` because the venv has no `jsonschema` module, so `check_report.mjs` on your side is the first real check. Load1 was 24 to 52 while I ran, but every number here is a count, so contention does not affect it.
 
-**REPORT.json:** `<HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D8/s2/REPORT.json`
+**REPORT.json:** `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D8/s2/REPORT.json`
 
 ---
 
 # D8-s2 REPORT (round 11, D8.M3 — ordering and naming)
 
-Baseline `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`. Export tree `<HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`. Exposure: none.
+Baseline `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`. Export tree `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`. Exposure: none.
 
 ## Method
 - **Cells:** `check_scopes.py --seat D8-s2` prints six files, all for step M3: `binary_sensor.py`, `button.py`, `climate.py`, `entity.py`, `sensor.py`, `switch.py`. I examined all six (6/6).

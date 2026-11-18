@@ -12,6 +12,6 @@ dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle_dearer', 'idle_other_channel'
 raw space kWh 46.31 raw dhw kWh 4.71
 slot-sum space kWh 46.25
 slot-sum dhw kWh 4.71
-wrote /private/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/d5s2/plandata.json
+wrote <tmp>/d5s2/plandata.json
 PLAN VIEW ISSUES:
   - space slot energy 46.246 kWh != schedule 46.310 kWh

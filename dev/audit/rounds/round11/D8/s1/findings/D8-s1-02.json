@@ -12,7 +12,7 @@
     "value": 2688.0,
     "unit": "coverage factor applied to the first numeric state of the new month (ratio); swing over the first four numeric states 1728.39 currency",
     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
-    "machine": "B4 orchestrator macOS (darwin), <HOME>/.local/state/hpo/venv-ci python3",
+    "machine": "B4 orchestrator macOS (darwin), ~/.local/state/hpo/venv-ci python3",
     "cpu_or_wall": "ratio",
     "contention_note": "shared box with other finder seats running; deterministic (frozen clock, injected prices and inputs, no network)",
     "tolerance": "exact",

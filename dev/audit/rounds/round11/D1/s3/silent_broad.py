@@ -8,7 +8,7 @@ any level (DEBUG included) over the fault-free control run.
 Count key: the integration's own log records.
 
 Command:
-    PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
         dev/audit/rounds/round11/D1/s3/silent_broad.py [--seams] [--perturb]
   --seams    print the static seam list (every such handler in the package) and exit
   --perturb  one production line, in memory at import: _record_accuracy's COP-residual handler

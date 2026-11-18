@@ -59,7 +59,7 @@ How each step was checked:
 ## Exposure
 I read the reader docs, as the D5 brief requires. Earlier-round finding ids that appear in code comments were treated as context only. I did not look for the wall-removed `dev/archive/backlog.md`.
 
-Files are in `<HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D5/s2/`:
+Files are in `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D5/s2/`:
 - `REPORT.json`
 - `findings/` (D5-s2-01 to D5-s2-11)
 - harnesses: `structure.py`, `content.py`, `basis.py`, `defaults.py`, `defaults_table.py`, `cycling.py`, `dhw_enable.py`, `comments.py`, `plant.py`, `cited_numbers.py`, `menu_order.py`

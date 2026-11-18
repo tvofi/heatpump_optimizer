@@ -3,7 +3,7 @@
 **Result:** both steps are complete: 41 of 41 store lines and 51 of 51 input slots examined, with nothing left unreached. There are 6 findings and nothing unfinished.
 
 - **Seat and tree:** D1-s2 on box B4, run against the export of baseline `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`.
-- **Where the files are:** everything is in `dev/audit/rounds/round11/D1/s2/` inside the export at `<HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`.
+- **Where the files are:** everything is in `dev/audit/rounds/round11/D1/s2/` inside the export at `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline`.
   - `REPORT.json`, built to `finding.schema.json` and checked against its rules by a local checker (no `jsonschema` module was available).
   - The six finding files under `findings/`.
   - The 17 harnesses listed below.

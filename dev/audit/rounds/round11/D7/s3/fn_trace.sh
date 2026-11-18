@@ -8,7 +8,7 @@ out=$1; shift
 tag=$(basename "$1" .py)
 mkdir -p "$out"
 here=$(cd "$(dirname "$0")" && pwd)
-PY=${PY:-<HOME>/.local/state/hpo/venv-ci/bin/python3}
+PY=${PY:-/Users/<owner-home>/.local/state/hpo/venv-ci/bin/python3}
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
 start=$(date +%s)
 HPO_FN_TRACE="$out" HPO_FN_TRACE_TAG="$tag" HPO_PLANDATA="$out/plandata-$tag.json" \

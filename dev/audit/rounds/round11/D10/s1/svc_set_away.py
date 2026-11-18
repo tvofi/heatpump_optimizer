@@ -22,7 +22,7 @@ takes; acknowledged_unparseable must fall to 0 (direction to_zero) while
 the control arm stays accepted.
 
 Run (from the export root):
-  PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
       dev/audit/rounds/round11/D10/s1/svc_set_away.py [--perturb]
 Expected: acknowledged_unparseable=6 (exact), cleared_existing_return=3
 (exact), control_accepted=1; under --perturb acknowledged_unparseable=0.

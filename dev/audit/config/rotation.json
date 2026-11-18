@@ -575,7 +575,7 @@
             "universe": 135
           },
           "M2": {
-            "enumerator": "python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D4-s2",
+            "enumerator": "python3 ~/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo ~/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D4-s2",
             "examined": 14,
             "not_reached": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"],
             "universe": 15
@@ -1003,7 +1003,7 @@
             "universe": 17
           },
           "M5": {
-            "enumerator": "python3 dev/audit/rounds/round11/D7/s3/m5_train.py list  # the lines `git -C <HOME>/hpo-orch/r10s6/r11/find-wt diff --name-status --diff-filter=A 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -- 'custom_components/*.py'` printed (the export has no .git)",
+            "enumerator": "python3 dev/audit/rounds/round11/D7/s3/m5_train.py list  # the lines `git -C ~/hpo-orch/r10s6/r11/find-wt diff --name-status --diff-filter=A 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -- 'custom_components/*.py'` printed (the export has no .git)",
             "examined": 29,
             "not_reached": [],
             "universe": 29
@@ -1123,13 +1123,13 @@
             "universe": 6
           },
           "M4": {
-            "enumerator": "python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s3",
+            "enumerator": "python3 ~/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo ~/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s3",
             "examined": 6,
             "not_reached": [],
             "universe": 6
           },
           "M5": {
-            "enumerator": "python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s3",
+            "enumerator": "python3 ~/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo ~/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s3",
             "examined": 6,
             "not_reached": [],
             "universe": 6
@@ -1301,13 +1301,13 @@
       "11": {
         "coverage": {
           "M1": {
-            "enumerator": "python3 -c \"import json;t=json.load(open('dev/audit/rounds/round11/D10/s1/ha_tiers.json'));[print(r if isinstance(r,str) else r['id']) for k in ('bronze','silver') for r in t[k]]\" ; python3 dev/audit/rounds/round11/D10/s2/enum_gold.py ; python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+            "enumerator": "python3 -c \"import json;t=json.load(open('dev/audit/rounds/round11/D10/s1/ha_tiers.json'));[print(r if isinstance(r,str) else r['id']) for k in ('bronze','silver') for r in t[k]]\" ; python3 dev/audit/rounds/round11/D10/s2/enum_gold.py ; python3 ~/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo ~/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
             "examined": 165,
             "not_reached": ["unfinished: 7 docs-* gold rules and entity-category/device-class/disabled-by-default not separately counted; HA rule pages not fetched."],
             "universe": 165
           },
           "M2": {
-            "enumerator": "python3 -c \"import json;t=json.load(open('dev/audit/rounds/round11/D10/s1/ha_tiers.json'));[print(r if isinstance(r,str) else r['id']) for k in ('bronze','silver') for r in t[k]]\" ; python3 dev/audit/rounds/round11/D10/s2/enum_gold.py ; python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+            "enumerator": "python3 -c \"import json;t=json.load(open('dev/audit/rounds/round11/D10/s1/ha_tiers.json'));[print(r if isinstance(r,str) else r['id']) for k in ('bronze','silver') for r in t[k]]\" ; python3 dev/audit/rounds/round11/D10/s2/enum_gold.py ; python3 ~/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo ~/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
             "examined": 165,
             "not_reached": [],
             "universe": 165

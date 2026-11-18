@@ -7,7 +7,7 @@
   "claim": "A schema-valid heatpump_optimizer.set_away call whose return_time is a non-empty string that is not a datetime (6 of 6 cases) returns without raising, turns or keeps away on with no return instant, and in 3 of 3 cases wipes a previously stored return time; action-exceptions (Silver) requires a ServiceValidationError for incorrect input (D10-criteria Q2: the done row fails at this site).",
   "mechanism": "SERVICE_SCHEMA_SET_AWAY admits return_time as cv.string; handle_set_away passes it to HeatPumpOptimizerCoordinator.async_set_away, which runs away._parse_return_time -> drift.stored_instant; datetime.fromisoformat raises ValueError, stored_instant returns None, and async_set_away stores iso=None (the clear value) instead of refusing. The sibling apply_manual_plan refuses the same shape (manual_plan_invalid_expires_at).",
   "evidence": {
-    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/svc_set_away.py",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/svc_set_away.py",
     "harness_path": "dev/audit/rounds/round11/D10/s1/svc_set_away.py",
     "value": 6,
     "unit": "calls acknowledged of 6 unparseable return_time strings (cleared_existing_return=3 of 3; control_accepted=1)",

@@ -6,7 +6,7 @@ does not supply; plus error keys with no string in the result's section (per lan
 Count key: placeholder names parsed from <section>.error.<key> of each language file for
 the keys the production handler returned in result["errors"], minus result's
 description_placeholders keys.
-Command: PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py [--perturb]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py [--perturb]
   --perturb: patches config_flow.HeatPumpOptimizerConfigFlow._device_prefill_form so it adds
   _WINDOW_PLACEHOLDERS (the options page's own _prefill_form does); unfilled count goes to 0.
 Expected at baseline: RESULT unfilled_placeholders_total=8 (2 cells x 4 languages), exact.

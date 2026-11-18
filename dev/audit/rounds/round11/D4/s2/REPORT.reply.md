@@ -2,14 +2,14 @@
 
 The re-run closes every item the orchestrator asked for. It found one more bug, so there are now two, both low severity. Step D4.M2 covers 14 of its 15 files. The 15th is the card JS, which stays with M1/M3 as you asked. Both items handed over from round 10 (C1, C2) are now examined.
 
-**Report JSON (updated in place):** `<HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D4/s2/REPORT.json`
+**Report JSON (updated in place):** `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D4/s2/REPORT.json`
 **Findings:** `.../dev/audit/rounds/round11/D4/s2/findings/D4-s2-01.json`, `.../D4-s2-02.json`
 
 **Harnesses**, all under `.../dev/audit/rounds/round11/D4/s2/`:
 - From the first run: `flow_pages.py`, `flow_errors.py`, `blueprint_inputs.py`
 - New in this run: `flow_validators.py`, `flow_paths.py`, `services_icons.py`
 
-No commits, no pushes and no GitHub calls. Exposure is empty. The scratch directory is `<HOME>/hpo-orch/r10s6/r11/scratch/D4-s2`. Every number is a count, so the box load (load1 between 67 and 168) does not affect it.
+No commits, no pushes and no GitHub calls. Exposure is empty. The scratch directory is `~/hpo-orch/r10s6/r11/scratch/D4-s2`. Every number is a count, so the box load (load1 between 67 and 168) does not affect it.
 
 ## Findings
 

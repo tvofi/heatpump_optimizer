@@ -23,7 +23,7 @@ merged {**data, **options} must equal the baseline walk's data (no setting
 lost).
 
 Run (from the export root):
-  PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
       dev/audit/rounds/round11/D10/s1/cfg_data_options.py [--perturb]
 Expected: continue walk settings_in_data >= 30 (exact count in REPORT);
 finish_now walk settings_in_data=0; --perturb 0 with merged_equal=1.

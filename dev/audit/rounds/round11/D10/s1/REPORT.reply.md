@@ -1,4 +1,4 @@
-I did all three steps (M1, M2, M3) over every item in my cells, so nothing is unfinished. I found six defects, two of them high severity. The report is at `<HOME>/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D10/s1/REPORT.json` and validates against `finding.schema.json` (0 errors).
+I did all three steps (M1, M2, M3) over every item in my cells, so nothing is unfinished. I found six defects, two of them high severity. The report is at `~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/dev/audit/rounds/round11/D10/s1/REPORT.json` and validates against `finding.schema.json` (0 errors).
 
 The harness refused to write `REPORT.md` again, as it did last round, so its content is in this reply. `REPORT.json`'s `report_path` still names `REPORT.md`, which does not exist. The tree measured is the round's export as given.
 

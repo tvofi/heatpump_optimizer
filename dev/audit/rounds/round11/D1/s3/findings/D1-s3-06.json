@@ -7,7 +7,7 @@
   "claim": "A persisting unexpected exception in the update cycle is logged by the integration as ERROR 'Error updating Heat Pump Optimizer' with exc_info on every refresh (3 of 3 refreshes that follow an already-failed update), while the UpdateFailed arm beside it was fixed (#216, D10-09) precisely so a day-long outage would not print the same ERROR every cycle.",
   "mechanism": "coordinator.py `_async_update_data`: `except (UpdateFailed, ConfigEntryAuthFailed): raise` (the raiser's latch already logged once) then `except Exception as err: _LOGGER.error(..., exc_info=True); _raise_update_failed(...)` with no latch. Home Assistant's DataUpdateCoordinator already logs the failure on the transition ('Error fetching ... data'), so each later cycle adds one ERROR with a full traceback: at the default 15-minute interval about 96 tracebacks a day for one stuck fault, on Raspberry-Pi-class storage. `_async_first_refresh_light` repeats the arm on every setup retry (coordinator.py:6195).",
   "evidence": {
-    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
     "harness_path": "dev/audit/rounds/round11/D1/s3/log_flood.py",
     "value": 3,
     "unit": "integration ERROR records added in refreshes A1, A2, B1 (each follows an already-failed update)",
@@ -29,7 +29,7 @@
   "phenomenon_property": "A persisting failure is logged above DEBUG once per outage (on the transition), never on every cycle, at every update-wrapper arm.",
   "seam_rule": "python3 tools/audit/enumerate.py d1-excepts | grep -E '_async_update_data|_async_first_refresh_light'",
   "null_control": {
-    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
     "value": "RESULT recovered=1",
     "note": "the disarmed refresh B2 succeeds and adds no such record (only the base class's 'recovered' INFO); the transition ERROR in setup A and setup B is kept under the perturbation"
   },
