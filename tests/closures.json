@@ -3532,6 +3532,7 @@
   ],
   "tests/open_meteo.py": [
    "custom_components/heatpump_optimizer/const.py",
+   "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "tests/open_meteo.py"
   ],
@@ -5476,7 +5477,7 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 20.8
+   "seconds": 0.6
   },
   "tests/validate.py": {
    "rc": 0,
