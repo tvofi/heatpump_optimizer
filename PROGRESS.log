@@ -10,3 +10,5 @@
 1795010596 CKPT equivalent row for currency.py:21 committed snapshot eece1d444cc9
 1795010936 HB alive
 1795011541 HB alive
+1795012152 HB alive
+1795012152 CKPT mutation_table --scope changed PASSED with equivalent mark snapshot e948a6715967
