@@ -78536,6 +78536,7 @@ from types import SimpleNamespace as _BstNS  # noqa: E402
 from heatpump_optimizer import pump_arbiter as _bst_pa  # noqa: E402
 from heatpump_optimizer import store as _bst_store  # noqa: E402
 from heatpump_optimizer.const import CONF_BUFFER_TANK_TEMP_ENTITY as _BST_TANK  # noqa: E402
+from heatpump_optimizer.const import CONF_FLOW_HEAT_C as _BST_CEIL_KEY  # noqa: E402
 from heatpump_optimizer.thermal_model import (  # noqa: E402
     FLOW_MIN_LIFT_K as _BST_LIFT,
     modulation_floor_flow_c as _bst_floor_of,
@@ -78545,9 +78546,12 @@ _BST_ENTITY = "number.bst_flow"
 _BST_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
 
 
-def _bst_write(kw, tank, entity_min=20, duty="space"):
-    """What the arbiter writes for a ``duty`` step at ``kw`` on a tank at ``tank``."""
+def _bst_write(kw, tank, entity_min=20, duty="space", ceiling=None):
+    """What the arbiter writes for a ``duty`` step at ``kw`` on a tank at ``tank``
+    (``ceiling``: a configured heating ceiling, degC; ``None`` stores none)."""
     config = {"space_setpoint_entity": _BST_ENTITY, _BST_TANK: "sensor.bst_tank"}
+    if ceiling is not None:
+        config[_BST_CEIL_KEY] = ceiling
     attrs = {"max": 70} if entity_min is None else {"min": entity_min, "max": 70}
     states = {_BST_ENTITY: FakeState("40", attributes=attrs)}
     if tank is not None:
@@ -78605,6 +78609,21 @@ R.check(
     _bst_write(1.5, 25.3) == 31 and _bst_write(1.5, 25.9) == 31
     and _bst_write(1.5, 26.0) == 31,
     f"{_bst_write(1.5, 25.3)} {_bst_write(1.5, 25.9)} {_bst_write(1.5, 26.0)}",
+)
+R.check(
+    "the heating floor is capped by the ceiling before the entity's minimum "
+    "decides: a 30 degC ceiling under a 35 degC entity minimum, with a 40 degC "
+    "tank putting the floor at 45, writes the minimum 35 at every level, not the "
+    "floor (pump_arbiter._flow_target's lo=min(floor, heat), whose ceiling the "
+    "entity's range drops); null: a 20 degC minimum writes the ceiling 30 and a "
+    "50 degC ceiling writes 50, with or without the cap",
+    [_bst_write(kw, 40.0, entity_min=35, ceiling=30.0) for kw in (1.5, 3.5, 5.5)]
+    == [35.0, 35.0, 35.0]
+    and _bst_write(5.5, 40.0, entity_min=20, ceiling=30.0) == 30.0
+    and _bst_write(5.5, 40.0, entity_min=35, ceiling=50.0) == 50.0,
+    f"{[_bst_write(kw, 40.0, entity_min=35, ceiling=30.0) for kw in (1.5, 3.5, 5.5)]} "
+    f"{_bst_write(5.5, 40.0, entity_min=20, ceiling=30.0)} "
+    f"{_bst_write(5.5, 40.0, entity_min=35, ceiling=50.0)}",
 )
 
 # (B) The window. ``observe`` takes the sample's command where the tree has
