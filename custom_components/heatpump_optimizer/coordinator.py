@@ -34,6 +34,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
+from weakref import WeakKeyDictionary
 
 import aiohttp
 import numpy as np
@@ -757,13 +758,8 @@ FREQUENCY_RESTORE = "compressor_frequency"
 VALVE_RESTORE = "mixing_valve_target"
 
 
-def _register_number_restore(key: str, field: str, owner: str, write: Any, reading: Any) -> None:
-    """Register config ``field``'s entity under ``key``; its restore empties coordinator ``owner``'s record."""
-    def restored(entry: Any, _entity_id: str, _value: float) -> None:
-        coord = getattr(entry, "runtime_data", None)
-        if coord is not None:
-            getattr(coord, owner).released()
-
+def _register_number_restore(key: str, field: str, restored: Any, write: Any, reading: Any) -> None:
+    """Register config ``field``'s entity under ``key``; ``restored`` empties its owner's record."""
     def restorer(config: Any) -> off_restore.Restorer | None:
         entity_id = getattr(EntryConfig.from_mapping(config), field)
         return off_restore.Restorer(str(entity_id), write, baseline_of=reading, restored=restored) if entity_id else None
@@ -771,13 +767,28 @@ def _register_number_restore(key: str, field: str, owner: str, write: Any, readi
     off_restore.register_consumer(key, restorer, write, stale=True)
 
 
+#: Config entry -> the two numbers' write owners, set by the entry's
+#: coordinator, so a restore reaches their records with no coordinator.
+_NUMBER_OWNERS: WeakKeyDictionary[Any, tuple[FrequencyWatchdog, mixing_valve.ValveTarget]] = WeakKeyDictionary()
+
+
+def _frequency_restored(entry: Any, _entity_id: str, _value: float) -> None:
+    if (owners := _NUMBER_OWNERS.get(entry)) is not None:
+        owners[0].stand_easy()
+
+
+def _valve_restored(entry: Any, _entity_id: str, _value: float) -> None:
+    if (owners := _NUMBER_OWNERS.get(entry)) is not None:
+        owners[1].handed_back()
+
+
 def _number_reading(hass: Any, entity_id: str) -> float | None:
     """The entity's state as a number in its own unit, or ``None``."""
     return finite_float(getattr(hass.states.get(entity_id), "state", None), None)
 
 
-_register_number_restore(FREQUENCY_RESTORE, "compressor_freq_entity", "_freq_watchdog", write_setpoint, _number_reading)
-_register_number_restore(VALVE_RESTORE, "mixing_valve_write_entity", "_valve_target", write_setpoint_c, read_setpoint)
+_register_number_restore(FREQUENCY_RESTORE, "compressor_freq_entity", _frequency_restored, write_setpoint, _number_reading)
+_register_number_restore(VALVE_RESTORE, "mixing_valve_write_entity", _valve_restored, write_setpoint_c, read_setpoint)
 
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
@@ -4001,6 +4012,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The valve target's write record (smart_write), so identical answers
         # on consecutive cycles do not re-command the device.
         self._valve_target = mixing_valve.ValveTarget()
+        _NUMBER_OWNERS[self.entry] = (self._freq_watchdog, self._valve_target)
         self._away_state = away_mode.AwayState()
 
         # --- Closed-loop accuracy (item 11) --------------------------------
@@ -4538,7 +4550,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         vvc_entity = ctx._config.vvc_pump_entity
         space_entity = _space_pump_to_drive(self)
-        if self._mode == MODE_OFF or (not vvc_entity and not space_entity):
+        if self._mode == MODE_OFF:
             return
         now = dt_util.now()
         params = ctx._thermal_params

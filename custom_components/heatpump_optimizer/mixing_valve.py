@@ -243,6 +243,6 @@ class ValveTarget:
             self.commanded_c = target_c
         return True
 
-    def released(self) -> None:
+    def handed_back(self) -> None:
         """A restore wrote the entity's baseline: no target stands."""
         self.commanded_c = None

@@ -324,7 +324,7 @@ class FrequencyWatchdog:
         self.note_command(hz)
         return True
 
-    def released(self) -> None:
+    def stand_easy(self) -> None:
         """A restore wrote the entity's baseline: no command stands; a trip does."""
         self.commanded, self.strikes, self.grace = None, 0, False
 

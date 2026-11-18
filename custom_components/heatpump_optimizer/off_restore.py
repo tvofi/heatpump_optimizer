@@ -204,18 +204,24 @@ async def async_arm(
     is never written to a target that has none. A key whose restore is in
     flight refuses the write, which would land over the restore's.
     """
-    factory = _CONSUMERS.get(key)
-    restorer = factory(config) if factory is not None else None
-    if restorer is None and key not in _RELEASES:
-        return False
     held = await _armed_record(hass, entry)
     if key in held.busy:
         return False
-    if restorer is None:  # a release consumer: a neutral entry, armed once
+    if key in _RELEASES:  # a release consumer: a neutral entry, armed once
         if key not in held.armed:
             held.armed[key] = None
             await _save(held)
         return True
+    factory = _CONSUMERS.get(key)
+    restorer = factory(config) if factory is not None else None
+    return restorer is not None and await _arm_restorer(hass, entry, held, key, restorer, baseline_c)
+
+
+async def _arm_restorer(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, held: _Held, key: str,
+    restorer: Restorer, baseline_c: float | None,
+) -> bool:
+    """:func:`async_arm` for a consumer with a restorer: keep, replace or capture its entry."""
     if key in held.armed:
         current = held.armed[key]
         if not isinstance(current, dict):
@@ -255,8 +261,20 @@ async def _restore_baseline(
                         key, entity_id, value)
         held.armed.pop(key)
         return False
+    return await _land(entry, held, key, restorer, entity_id, value, reason, write(hass, entity_id, value), True)
+
+
+async def _land(
+    entry: HeatPumpOptimizerConfigEntry, held: _Held, key: str, restorer: Restorer | None,
+    entity_id: str, value: float, reason: str, write: Awaitable[Any], refusable: bool,
+) -> bool:
+    """Await one restore write and settle it: latched and still armed, or told and disarmed.
+
+    A write that raises is a failure; so is one answering False where
+    ``refusable`` (a set-point write to a domain that takes none).
+    """
     try:
-        sent = await write(hass, entity_id, value) is not False
+        sent = await write is not False or not refusable
         err: Any = "the entity takes no set-point write"
     except Exception as exc:  # noqa: BLE001 - a restore never raises into off or unload
         sent, err = False, exc
@@ -309,28 +327,20 @@ async def _restore_key(
     restorer = factory(config) if factory is not None else None
     if isinstance(baseline, dict):
         return await _restore_baseline(hass, entry, held, key, restorer, reason)
-    release = _RELEASES.get(key) if restorer is None else None
-    value = None if restorer is None else (
-        restorer.neutral if restorer.neutral is not None else baseline)
-    target = key if restorer is None else restorer.entity_id
+    if restorer is not None and (restorer.neutral is not None or baseline is not None):
+        value = restorer.neutral if restorer.neutral is not None else baseline
+        return await _land(entry, held, key, restorer, restorer.entity_id, value, reason,
+                           restorer.write(hass, restorer.entity_id, value), False)
+    release = _RELEASES.get(key)
     try:
-        if restorer is not None and value is not None:
-            await restorer.write(hass, target, value)
-        elif release is None:
-            held.armed.pop(key)
-            return False
-        elif not await release(hass, entry, config, reason):
-            return False  # it still owes a write: armed, and tried again next cycle
+        # A release answering False still owes a write: armed, and tried again next cycle.
+        done = release is None or await release(hass, entry, config, reason)
     except Exception as err:  # noqa: BLE001 - a restore never raises into off or unload
-        log_held(entry, f"off_restore_{key}", True,
-                 "Restore of %s to %s on %s failed: %s", target, value, reason, err)
-        return False
-    log_held(entry, f"off_restore_{key}", False)
-    if restorer is not None and restorer.restored is not None:
-        restorer.restored(entry, target, value)
-    held.armed.pop(key)
-    _LOGGER.info("Restored %s to %s (%s)", target, value, reason)
-    return True
+        done = not log_held(entry, f"off_restore_{key}", True, "Release of %s on %s failed: %s", key, reason, err)
+    if done:
+        held.armed.pop(key)
+        log_held(entry, f"off_restore_{key}", False)
+    return done and release is not None
 
 
 async def async_cycle(
