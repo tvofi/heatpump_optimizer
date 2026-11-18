@@ -123,3 +123,4 @@
 1795041825 HB alive
 1795042088 CKPT D3-s1 553 file(s)
 1795042198 CKPT D3-s1 554 file(s)
+1795042202 HB full-net driver (pid 22759) OOM-killed at 22:48 UTC by the session memcg limit (14.3 GB) with 4 workers, at 105/242; its 4 in-flight mutants have no result and are re-driven; orphan test procs in /tmp/d3s1-workers/w2 killed; checkpointed; re-dispatching D3-s1 through gate
