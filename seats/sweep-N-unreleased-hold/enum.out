@@ -1,0 +1,26 @@
+write_sites=8 exits=off,unload,remove,duty_change(+_disinfecting,+off_modbus),stale_plan,failed_restore
+SEAM coordinator._async_set_pump | duty_change | duty_change:switch.vvc duty_change_disinfecting:switch.vvc
+SEAM coordinator._async_set_pump | off | off:switch.vvc off_disinfecting:switch.vvc off_modbus:switch.vvc
+SEAM coordinator._async_set_pump | remove | remove:switch.vvc remove_disinfecting:switch.vvc
+SEAM coordinator._async_set_pump | unload | unload:switch.vvc unload_disinfecting:switch.vvc
+SEAM coordinator._command_frequency | duty_change | duty_change:number.freq duty_change_disinfecting:number.freq
+SEAM coordinator._command_frequency | off | off:number.freq off_disinfecting:number.freq off_modbus:number.freq
+SEAM coordinator._command_frequency | remove | remove:number.freq remove_disinfecting:number.freq
+SEAM coordinator._command_frequency | unload | unload:number.freq unload_disinfecting:number.freq
+SEAM coordinator._command_valve_target | duty_change | duty_change:number.valve duty_change_disinfecting:number.valve
+SEAM coordinator._command_valve_target | off | off:number.valve off_disinfecting:number.valve off_modbus:number.valve
+SEAM coordinator._command_valve_target | remove | remove:number.valve remove_disinfecting:number.valve
+SEAM coordinator._command_valve_target | unload | unload:number.valve unload_disinfecting:number.valve
+SEAM heat_curve.publish_ecl110_topics | duty_change | duty_change:mqtt:ecl110/command duty_change:mqtt:ecl110/displace/set duty_change_disinfecting:mqtt:ecl110/command duty_change_disinfecting:mqtt:ecl110/displace/set
+SEAM heat_curve.write_persistent | duty_change | duty_change:number.offset duty_change_disinfecting:number.offset
+SEAM off_restore.async_restore (no retry while Off) | failed_restore_while_off | failed_restore_while_off:number.offset failed_restore_while_off:space_setpoint
+SEAM pump_arbiter._write | duty_change | duty_change_disinfecting:number.dhw_set
+SEAM pump_arbiter._write | off | off:select.pump_mode off_disinfecting:number.dhw_set off_disinfecting:select.pump_mode off_modbus:number.dhw_set
+SEAM pump_arbiter.release (baseline row with the disinfection hold live) | remove | remove_disinfecting:number.dhw_set
+SEAM pump_arbiter.release (baseline row with the disinfection hold live) | unload | unload_disinfecting:number.dhw_set
+SEAM pump_arbiter.switch_supply | duty_change | duty_change:switch.hp duty_change_disinfecting:switch.hp
+SEAM pump_arbiter.switch_supply | off | off:switch.hp off_disinfecting:switch.hp
+SEAM pump_arbiter.switch_supply | remove | remove:switch.hp remove_disinfecting:switch.hp
+SEAM pump_arbiter.switch_supply | stale_plan | stale_plan:switch.hp
+SEAM pump_arbiter.switch_supply | unload | unload:switch.hp unload_disinfecting:switch.hp
+held_cells=51 seams=24

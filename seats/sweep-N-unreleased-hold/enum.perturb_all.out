@@ -1,0 +1,11 @@
+write_sites=8 exits=off,unload,remove,duty_change(+_disinfecting,+off_modbus),stale_plan,failed_restore
+SEAM coordinator._async_set_pump | duty_change | duty_change:switch.vvc duty_change_disinfecting:switch.vvc
+SEAM coordinator._command_frequency | duty_change | duty_change:number.freq duty_change_disinfecting:number.freq
+SEAM coordinator._command_valve_target | duty_change | duty_change:number.valve duty_change_disinfecting:number.valve
+SEAM heat_curve.publish_ecl110_topics | duty_change | duty_change:mqtt:ecl110/command duty_change:mqtt:ecl110/displace/set duty_change_disinfecting:mqtt:ecl110/command duty_change_disinfecting:mqtt:ecl110/displace/set
+SEAM heat_curve.write_persistent | duty_change | duty_change:number.offset duty_change_disinfecting:number.offset
+SEAM off_restore.async_restore (no retry while Off) | failed_restore_while_off | failed_restore_while_off:number.offset failed_restore_while_off:space_setpoint
+SEAM pump_arbiter._write | off | off_disinfecting:number.dhw_set
+SEAM pump_arbiter.switch_supply | duty_change | duty_change:switch.hp duty_change_disinfecting:switch.hp
+SEAM pump_arbiter.switch_supply | stale_plan | stale_plan:switch.hp
+held_cells=18 seams=9

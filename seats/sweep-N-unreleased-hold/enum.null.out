@@ -1,0 +1,2 @@
+write_sites=8 exits=off,unload,remove,duty_change(+_disinfecting,+off_modbus),stale_plan,failed_restore
+held_cells=0 seams=0
