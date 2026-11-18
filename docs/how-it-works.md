@@ -166,7 +166,9 @@ counts it as the starts it is. With a start priced, or on an install that
 cannot duty-cycle, the solve first plans without the start cost, then commits
 that plan to whole runs at or above the minimum power, at the same energy: a
 step lifted to the minimum is paid for by a step left out. Several such plans
-are scored with the start cost included, and the cheapest ships. (Finding and
+are scored with the start cost included, and the cheapest ships. An install
+that cannot duty-cycle and prices no start is planned at a start price of 0.1,
+so that commit does not ship more starts than the plan it replaced. (Finding and
 method: Bankaifan, pull request 3529.)
 
 ### Weather anticipation is emergent, not a bonus
@@ -1230,6 +1232,22 @@ at most every 7 days until a maximum is learned and every 30 days after. The
 **Learning Model Status** sensor publishes the maximum in use and where it came
 from (`pump_max_power`, `pump_max_power_source`, `pump_max_power_reason`), and
 the last experiment's kind, phase and result in `system_identification_outcome`.
+
+The minimum is learned from the meter too, from the runs the plan asked at the
+minimum in force: the configured **Heat pump min power**, or the learned
+minimum once there is one. Once 48 such runs are metered, the low end of their
+draw (the 10th percentile) is the learned minimum where it is more than 15 %
+above **Heat pump min power**, and the plan books it where its levels are
+clamped to the pump's range (a plan that cycles the pump below its minimum is
+left as it is). It is never below **Heat pump min power** nor above the maximum
+in use, and it does not lapse with age: a learned minimum moves only on the
+runs asked at it, so it rises when they draw more than 15 % above it and comes
+down when they draw more than 15 % below it, and changing **Heat pump min
+power** or **Heat pump max power** clears it. A pump whose least draw falls
+below a learned minimum is never asked to run there, so the way down is to
+change **Heat pump min power**. The **Learning Model Status** sensor publishes
+the minimum in use and where it came from (`pump_min_power`,
+`pump_min_power_source`, `pump_min_power_reason`).
 
 The fit regresses the room's rate of change on `(T_room − T_out)`, applied power
 and a **constant**, over both the step and relaxation phases: relaxation carries

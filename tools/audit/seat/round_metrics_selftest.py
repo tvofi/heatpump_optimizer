@@ -315,13 +315,22 @@ def cases(m, tests: Path) -> dict[str, bool]:
             calls.append(path)
             if path.endswith("/runs"):
                 return [{"id": 11, "created_at": at(m, 1), "conclusion": "success", "run_attempt": 2, "event": "push", "head_branch": "main"},
-                        {"id": 12, "created_at": at(m, 2), "conclusion": "failure", "run_attempt": 1, "event": "pull_request", "head_branch": "x"}]
+                        {"id": 12, "created_at": at(m, 2), "conclusion": "failure", "run_attempt": 1, "event": "pull_request", "head_branch": "x",
+                         "head_sha": "b" * 40, "pull_requests": [{"number": 7}, {"number": 9}]}]
             return [{"name": "gate", "conclusion": "success", "run_attempt": 2, "started_at": None, "completed_at": None, "id": 5}]
         out = Path(td) / "fetched"
         m.fetch_runs(out, "o/r", T0, fake)
         r["producer: main push runs in runs.json, every run in ci_runs.json, each listing fetched"] = \
             [x["id"] for x in m.read_json(out / "runs.json")] == [11] and len(m.read_json(out / "ci_runs.json")) == 2 \
             and m.read_json(out / "jobs" / "jobs_11.json")["attempt"] == 2 and len(calls) == 3
+        wide = {x["id"]: x for x in m.read_json(out / "ci_runs.json")}
+        r["producer: ci_runs.json keeps head_sha, event, head_branch and the first pull request's number"] = \
+            wide[12] == {"id": 12, "t": at(m, 2), "c": "failure", "attempt": 1, "head_sha": "b" * 40,
+                         "event": "pull_request", "head_branch": "x", "pr": 7}
+        r["producer: a run listed with no head_sha and no pull request keeps both null"] = \
+            (wide[11].get("head_sha", 0), wide[11].get("pr", 0), wide[11].get("event")) == (None, None, "push")
+        r["producer: a runs.json row holds exactly id, t, c and attempt"] = \
+            [sorted(x) for x in m.read_json(out / "runs.json")] == [["attempt", "c", "id", "t"]]
         calls.clear()
         m.fetch_runs(out, "o/r", T0, fake)
         r["producer: a listing cached at the run's latest attempt is not fetched again"] = len(calls) == 1
@@ -394,6 +403,10 @@ MUTANTS = {
     "group by pr": ("    if pr in by_pr:\n        return by_pr[pr]\n", "", "merges: classes"),
     "merge cached class": ("cached.get(sha) or ", "", "merges: a cached class"),
     "producer main filter": ('r["event"] == "push" and r["head_branch"] == "main"', "True", "producer: main push runs"),
+    "producer narrow runs.json": ("for x, r in zip(narrow, listed) if r[", "for x, r in zip(ci, listed) if r[",
+                                  "producer: a runs.json row holds exactly"),
+    "producer first pull request": ('for q in r.get("pull_requests") or []), None)', 'for q in reversed(r.get("pull_requests") or [])), None)',
+                                    "producer: ci_runs.json keeps"),
     "producer cache": ('.get("attempt") != r["attempt"]]', ".get(\"attempt\") is not None or True]", "producer: a listing cached"),
     "window open": ('(b if b is not None else now)', "now", "window: a closed round"),
     "week span": ("min(t + WEEK_S, b)", "t + WEEK_S", "weeks:"),
