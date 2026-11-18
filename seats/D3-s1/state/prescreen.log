@@ -469,3 +469,4 @@
 2026-11-18T17:26:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._slab_outcome GUARD_OFF 0e512205 L2409 by=- ran=12 wall=1369.9s
 2026-11-18T17:27:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:PeakTracker.from_dict CMP_BOUND 55d61241 L465 by=- ran=12 wall=1361.8s
 2026-11-18T17:29:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict._unit CMP_BOUND 257d42d3 L537 by=- ran=13 wall=1542.4s
+2026-11-18T17:34:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND 343ca3c4 L5663 by=- ran=13 wall=1348.8s
