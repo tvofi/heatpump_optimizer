@@ -47,7 +47,9 @@ handoff_push_self_test() (
     && printf '#!/bin/bash\n[ "$(git -C "$2" rev-parse HEAD)" = "$(git -C "$2" rev-parse --verify "refs/heads/$3")" ] || { echo "app_push: REFUSE: HEAD is not the committed tip of $3"; exit 1; }\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
     && chmod +x "$m/tools/pr/app_push.sh" \
     && printf '#!/bin/bash\ncase "$*" in\n  "pr view "*"--json number --jq .number") [ -e "$PR_EXISTS" ] && echo 42 || exit 1 ;;\n  "pr view "*"--json number") [ -e "$PR_EXISTS" ] && echo 42 || exit 1 ;;\n  "pr edit "*|"pr ready "*) exit 0 ;;\n  *) echo "fake gh: unexpected $*" >&2; exit 1 ;;\nesac\n' > "$t/bin/gh" \
-    && chmod +x "$t/bin/gh"; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
+    && chmod +x "$t/bin/gh" \
+    && printf '#!/bin/bash\n[ -e "$BASE_STALE" ] && { echo "BASE-FRESH FAIL planted"; exit 1; }\nexit 0\n' > "$t/bin/basechk" \
+    && chmod +x "$t/bin/basechk"; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
   # run <open|update>: a fresh state and worktree root per case; the clone's
   # copy of this file is the program under test.
   run() {
@@ -64,7 +66,7 @@ handoff_push_self_test() (
     [ "$topic" = h ] && git -C "$m" worktree add -q -b fix/h "$wr/fix-h" origin/fix/h
     [ "$exists" = "$t/pr-exists" ] && : > "$exists"
     : > "$t/push"
-    HPO_STATE_DIR=$st HPO_WT_ROOT=$wr PATH="$t/bin:$PATH" PUSH_LOG=$t/push \
+    HPO_STATE_DIR=$st HPO_WT_ROOT=$wr PATH="$t/bin:$PATH" PUSH_LOG=$t/push HPO_HANDOFF_BASE=$t/bin/basechk BASE_STALE=$t/base-stale \
       PR_EXISTS=$exists bash "$m/tools/audit/seat/handoff_push.sh" "$topic" "${2:-$code}" "a title" \
       > "$t/out" 2>&1
     echo $? > "$t/rc"
@@ -86,7 +88,7 @@ handoff_push_self_test() (
   # on the detached HEAD would leave the local branch behind it.
   git -C "$o" update-ref refs/heads/fix/h "$(git -C "$o" commit-tree "$base^{tree}" -p "$base" -m "fix/h moves")"
   : > "$t/push"
-  HPO_STATE_DIR=$t/st$i HPO_WT_ROOT=$t/wt$i PATH="$t/bin:$PATH" PUSH_LOG=$t/push PR_EXISTS=$t/pr-exists \
+  HPO_STATE_DIR=$t/st$i HPO_WT_ROOT=$t/wt$i PATH="$t/bin:$PATH" PUSH_LOG=$t/push PR_EXISTS=$t/pr-exists HPO_HANDOFF_BASE=$t/bin/basechk \
     bash "$m/tools/audit/seat/handoff_push.sh" h "$code" "a title" > "$t/out" 2>&1
   [ "$?" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 1 ] && grep -q 'RESULT pr=42' "$t/out"
   ck "an update on the detached worktree a previous run left still pushes once" $?
@@ -95,6 +97,10 @@ handoff_push_self_test() (
   run trailer "$(git -C "$o" rev-parse handoff/t)"
   [ "$(cat "$t/rc")" = 1 ] && [ ! -s "$t/push" ] && grep -q 'co-author-trailer in the message of' "$t/out"
   ck "a code head carrying a co-author trailer is refused, and nothing is pushed" $?
+  # The base at the open: a checkout base_fresh.py refuses pushes nothing; the open and update runs above are its null.
+  : > "$t/base-stale"; run open; rm -f "$t/base-stale"
+  [ "$(cat "$t/rc")" = 1 ] && [ ! -s "$t/push" ] && grep -q '^REFUSE BASE-STALE: ' "$t/out" && grep -q 'BASE-FRESH FAIL planted' "$t/out"
+  ck "a checkout the base check refuses is refused with its output, and nothing is pushed" $?
   rm -rf "$t"
   echo "handoff_push self-test: $n checks, $f failed"
   [ "$f" = 0 ]
@@ -114,6 +120,12 @@ R=tvofi/heatpump_optimizer; M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --pa
 BR=${BRNAME:-fix/$TOPIC}; WT=${HPO_WT_ROOT:-$(dirname "$M")}/${BRNAME:-fix/$TOPIC}; WT=${WT/fix\//fix-}
 B=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/bodies/$TOPIC-body.md; mkdir -p "$(dirname "$B")"
 cd $M
+# The base at the open (base_fresh.py): this script, the body rewrite and the App push run from the
+# checkout holding this file, so one whose policy, instrument or workflow files are not origin/main's
+# is refused before anything is fetched or pushed. HPO_HANDOFF_BASE replaces the checker (the self-test's stub).
+if ! BASE=$(${HPO_HANDOFF_BASE:-python3 -I "$SEAT/base_fresh.py"} tree --dir "$SEAT" 2>&1); then  # mut:base
+  printf '%s\n' "$BASE"; echo "REFUSE BASE-STALE: the checkout holding handoff_push.sh is not origin/main's (above); nothing pushed"; exit 1
+fi
 # The App push, resolved once (the three calls were two lines each before
 # #2444's seam): the live pusher, behind the pre-move location a checkout may
 # still carry (tests/layout.json maps that path to this one).

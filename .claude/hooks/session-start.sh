@@ -56,6 +56,19 @@
 # tip dated yesterday is that alarm. NO `git fetch` HERE on purpose: 489 ms of
 # network in a hook whose contract is that it never blocks.
 #
+#   the base                `base fresh:` is tools/audit/seat/base_fresh.py's
+#                           answer for this tree: PASS, or STALE when a policy,
+#                           instrument or workflow file here is not
+#                           origin/main's (dev/audit/rca/
+#                           R11-RCA-PLAN-OBJECTIVE-MISSING.md: a seat executes
+#                           the contracts of the tree it starts in, and the
+#                           distance lines count commits, not what they
+#                           touched). This one line does fetch, with a 10 s
+#                           bound: a count against a stale ref is the alarm the
+#                           distance lines leave to the reader, and here it
+#                           would read PASS. A failed fetch is judged against
+#                           the local ref and says so.
+#
 # It never blocks. SessionStart output is context, and a session that cannot
 # start is worse than one that starts uninformed.
 #
@@ -84,6 +97,24 @@ toolchain() { # the `toolchain:` line; a cloud seat is one with $HPO_PREFIX/venv
     return
   fi
   echo "REFUSE -- the environment's variables are unset and no CLAUDE_ENV_FILE took them; start each Bash call with: eval \"\$(bash .claude/hooks/session-start.sh --env-lines)\""
+}
+
+base_fresh() { # the `base fresh:` line
+  local tool=tools/audit/seat/base_fresh.py out rc note=
+  if [ ! -f "$tool" ]; then
+    echo "UNREAD -- this tree has no $tool, so it predates the check: start from origin/main"; return
+  fi
+  out=$(python3 -I "$tool" tree --fetch-timeout 10 2>&1 </dev/null); rc=$?
+  if [ "$rc" = 2 ]; then
+    out=$(python3 -I "$tool" tree --no-fetch 2>&1 </dev/null); rc=$?
+    note=" (origin/main was not fetched: judged against the local ref)"
+  fi
+  out=$(printf '%s\n' "$out" | tail -1)
+  case $rc:$out in  # the answer is the instrument's last line, never its exit code alone: a crash is not STALE
+    0:"BASE-FRESH PASS "*) echo "PASS -- $out$note" ;;
+    1:"BASE-FRESH FAIL "*) echo "STALE -- $out$note; a policy, instrument or workflow file here is not origin/main's: run python3 -I $tool tree, and its repair, before you read a contract or run an instrument" ;;
+    *) echo "UNREAD -- $out" ;;
+  esac
 }
 
 report() {
@@ -120,6 +151,7 @@ report() {
     "${tip:-UNKNOWN -- origin/main does not resolve; git fetch origin main}"
   printf 'claim driver:   %s\n' "${driver:-MISSING -- python3 tests/env_drift.py --install-merge-driver}"
   printf 'toolchain:      %s\n' "$(toolchain)"
+  printf 'base fresh:     %s\n' "$(base_fresh)"
 }
 
 role_pack() { # the `role pack:` line, printed only when HPO_SEAT_ROLE is set
@@ -143,8 +175,8 @@ fi
 
 if [ "${1:-}" = "--self-test" ]; then
   # The report is a pure read of git state, so what a self-test can assert is
-  # that it ASKS -- that every one of the seven lines is present and none is
-  # empty. A hook that silently prints six lines instead of seven is the failure
+  # that it ASKS -- that every one of the eight lines is present and none is
+  # empty. A hook that silently prints seven lines instead of eight is the failure
   # mode here: nobody reads a missing line.
   # THE CLOCK IS PINNED. `origin/main at:` is git's relative `%cr`, which moves
   # with the wall clock; the byte comparisons below call the report in
@@ -165,6 +197,27 @@ if [ "${1:-}" = "--self-test" ]; then
   st '^origin/main at: .+$'                                            "origin/main's committer date is printed, or says it does not resolve"
   st '^claim driver:   .+$'                                            "the claim driver is printed, or says how to install it"
   st '^toolchain:      (OK|EXPORTED|REFUSE|n/a) -- '                     "the toolchain state is printed and is one of the four answers"
+  st '^base fresh:     (PASS|STALE|UNREAD) -- '                          "the base freshness is printed and is one of the three answers"
+  # THE BASE LINE ON A SCRATCH ORIGIN: a clone at main reads PASS, the same
+  # clone after main moves a contract reads STALE and names the repair, and a
+  # tree without the instrument reads UNREAD, never PASS.
+  B=$(mktemp -d)
+  bg() { env -u GIT_DIR -u GIT_WORK_TREE GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=t GIT_COMMITTER_NAME=t \
+    GIT_AUTHOR_EMAIL=1+t@users.noreply.github.com GIT_COMMITTER_EMAIL=1+t@users.noreply.github.com git "$@"; }
+  base_line() { ( cd "$1" && bg status >/dev/null && env -u GIT_DIR GIT_CONFIG_GLOBAL=/dev/null bash -c "$(declare -f base_fresh); base_fresh" </dev/null ); }
+  ans() { if case $1 in "$2"*) true ;; *) false ;; esac; then pass=$((pass+1)); printf '  ok   %s\n' "$3"
+          else fail=$((fail+1)); printf '  FAIL %s (got: %s)\n' "$3" "$1"; fi; }
+  bg init -q -b main "$B/s" && mkdir -p "$B/s/tools/audit/seat" "$B/s/dev/governance/roles" \
+    && cp tools/audit/seat/base_fresh.py "$B/s/tools/audit/seat/" && echo one > "$B/s/dev/governance/roles/x.md" \
+    && bg -C "$B/s" add -A && bg -C "$B/s" commit -qm base && bg clone -q "$B/s" "$B/c"
+  ans "$(base_line "$B/c")" "PASS -- BASE-FRESH PASS " "a clone at origin/main reads PASS"
+  echo two > "$B/s/dev/governance/roles/x.md" && bg -C "$B/s" commit -qam moved
+  ans "$(base_line "$B/c")" "STALE -- BASE-FRESH FAIL " "after main moves a contract the same clone reads STALE (the line fetches)"
+  case $(base_line "$B/c") in *"base_fresh.py tree, and its repair"*) pass=$((pass+1)); printf '  ok   %s\n' "the STALE line names the command that prints the repair" ;;
+    *) fail=$((fail+1)); printf '  FAIL %s\n' "the STALE line names the command that prints the repair" ;; esac
+  bg -C "$B/c" rm -q tools/audit/seat/base_fresh.py && bg -C "$B/c" commit -qm gone
+  ans "$(base_line "$B/c")" "UNREAD -- " "a tree without the instrument reads UNREAD, never PASS"
+  rm -rf "$B"
   # AND EACH ANSWER IS THE ONE ITS ENVIRONMENT EARNS, driven on a stub prefix:
   # a hook that printed OK by construction is the defect this line exists for.
   T=$(mktemp -d)

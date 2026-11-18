@@ -24,6 +24,12 @@ This hook runs at both events and prints, on stdout (which the session reads):
   DEAD relay     cloud_relay.sh's log (cloud-relay.log) older than
                  HPO_RELAY_STALE_MIN (default 15, three tick passes): the relay
                  runs inside tick_loop.sh's pass, so no standalone process is sought;
+  BASE-STALE     the orchestrator's checkout (orch-checkout) holds a policy, instrument
+                 or workflow file that is not origin/main's and could not be moved
+                 there (base_fresh.py ensure: a commit of its own, a dirty tree, an
+                 unread origin); a checkout holding no work is moved and the line is
+                 BASE-RESET, after which CLAUDE.md and the contract are re-read. Printed
+                 at every event, UserPromptSubmit included: each wake dispatches from it;
   MISSING        a checkout the state names (orch-checkout and the *checkout* keys
                  of sweep-overlay.json) that is not a directory;
   READ-PROOF     the owed corpus at origin/main is written to policy-corpus.txt:
@@ -148,6 +154,26 @@ def prove(state: Path, sha: str) -> int:
     return 0
 
 
+def base_lines(repo: str) -> list[str]:
+    """BASE-RESET or BASE-STALE for the orchestrator's checkout; nothing when it is origin/main's."""
+    tool = SEAT / "base_fresh.py"
+    try:
+        cmd, note = [sys.executable, "-I", str(tool), "ensure", "--dir", repo], ""
+        r = subprocess.run([*cmd, "--fetch-timeout", "10"], capture_output=True, text=True, timeout=120)
+        if r.returncode == 2:  # origin unread: judge against the local ref, and say so
+            r, note = subprocess.run([*cmd, "--no-fetch"], capture_output=True, text=True, timeout=120), " (origin/main not fetched)"
+        last = (r.stdout.strip().splitlines() or [r.stderr.strip()[-120:] or "no output"])[-1] + note
+        rc = r.returncode
+    except (OSError, subprocess.TimeoutExpired) as e:
+        last, rc = type(e).__name__, 2
+    if rc == 0 and last.startswith("BASE-FRESH PASS"):
+        return []
+    if rc == 0 and last.startswith("BASE-RESET"):
+        return [f"{last}. Re-read CLAUDE.md and your contract from it: the copies this session loaded were the old tree's"]
+    return [f"BASE-STALE orch-checkout {repo}: {last}; dispatch nothing and launch no workflow from it until "
+            f"python3 -I {tool} tree --dir {repo} passes (its output names each file and the repair)"]
+
+
 def restart_beatd(state: Path, repo: str) -> str:
     """Relaunch beatd from its recorded launch; never any other loop."""
     try:
@@ -174,7 +200,7 @@ def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
         return []
     if not repo or not Path(repo).is_dir():
         return []
-    out: list[str] = []
+    out: list[str] = base_lines(repo)
     if event == "UserPromptSubmit":
         if (state / "compact-owed").exists():
             out.append(f"READ-PROOF owed: read {state / 'policy-corpus.txt'} to its last line and run the PROOF command there")

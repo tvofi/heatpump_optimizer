@@ -1037,7 +1037,9 @@ def self_test() -> int:
         env = throwaway_git_init(main, "-q", "-b", "main")
         # python3 is this interpreter: a seat shim resolves its venv under $HOME.
         path = os.path.dirname(sys.executable) + os.pathsep + env.get("PATH", "")
-        env = {**env, "HOME": home, "USER": fake_name, "LOGNAME": fake_name, "PATH": path}
+        # HPO_WT_SYNC_FRESH: the script under test is this checkout's, a pull request's head and no standing
+        # loop's tree, so its own base check (base_fresh.py's self-test drives it) is not this fixture's.
+        env = {**env, "HOME": home, "USER": fake_name, "LOGNAME": fake_name, "PATH": path, "HPO_WT_SYNC_FRESH": "1"}
 
         def g(*a: str, cwd: str = main) -> str:
             return subprocess.run(["git", *a], cwd=cwd, env=env, check=True, capture_output=True,

@@ -19,7 +19,7 @@ if [ "${1:-}" = "--self-test" ]; then
   FAILS=0; N=0; st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
   # shellcheck source=../../../tests/throwaway_git.sh
   . "$SH/../../../tests/throwaway_git.sh"
-  mkcopy() { mkdir -p "$W/$1/audit/seat" "$W/$1/pr"; cp "$SH/ref_privacy.py" "$SH/pr_args.sh" "$W/$1/audit/seat/"
+  mkcopy() { mkdir -p "$W/$1/audit/seat" "$W/$1/pr"; cp "$SH/ref_privacy.py" "$SH/pr_args.sh" "$SH/base_fresh.py" "$W/$1/audit/seat/"
     case $2 in real) cp "$SELF" "$W/$1/audit/seat/body_push.sh";; bpbase) sed '/# mut:bpbase$/s/.*/    :/' "$SELF" > "$W/$1/audit/seat/body_push.sh";;
       *) sed '/# mut:keep$/s/.*/    :/' "$SELF" > "$W/$1/audit/seat/body_push.sh";; esac
     printf '#!/bin/bash\n[ "$1" = --body-check ] && [ -f "$FLAGS/lint" ] && { echo lint-stub-refuses; exit 1; }\nexit 0\n' > "$W/$1/pr/prepr.sh"
@@ -28,6 +28,7 @@ if [ "${1:-}" = "--self-test" ]; then
   mkdir -p "$W/bin"; printf '#!/bin/sh\ncase "$*" in api*pulls?state*) cat "$W/prn" ;; api*pulls/*) cat "$W/pullbase" ;; *) exit 99 ;; esac\n' > "$W/bin/gh"; chmod +x "$W/bin/gh"; : > "$W/prn"
   printf '#!/bin/bash\nexit 0\n' > "$W/packer"; printf '#!/bin/bash\n[ -f "$FLAGS/packet" ] && exit 1\nexit 0\n' > "$W/packer"
   printf '#!/bin/bash\n[ -f "$FLAGS/landed" ] && exit 1\nexit 0\n' > "$W/landed"; chmod +x "$W/packer" "$W/landed"
+  printf '#!/bin/bash\n[ -f "$FLAGS/base" ] && { echo "BASE-FRESH FAIL planted"; exit 1; }\nexit 0\n' > "$W/basechk"; chmod +x "$W/basechk"
   throwaway_git_init "$W/o.git" -q --bare; throwaway_git_init "$W/repo" -q
   mkdir -p "$W/repo/tools/pr"
   printf 'import os, sys\nsys.exit(1 if os.path.exists(os.environ["FLAGS"] + "/pred") else 0)\n' > "$W/repo/tools/pr/ci_predict.py"
@@ -37,17 +38,17 @@ if [ "${1:-}" = "--self-test" ]; then
   printf '#!/bin/sh\nwhile read o n r; do case $r in refs/heads/handoff-wip/*) exit 1;; esac; done\n' > "$W/hook"; chmod +x "$W/hook"
   run() { # copy -> rc ; FLAGS names the refusal switches, out in $W/out
     ( cd "$W/repo" && throwaway_git_env && PATH="$W/bin:$PATH" W="$W" FLAGS="$W/flags" HPO_HANDOFF_PACKER="$W/packer" HPO_HANDOFF_LANDED="$W/landed" \
-        bash "$W/$1/audit/seat/body_push.sh" t "$W/body.md" > "$W/out" 2>&1 ); }
+        HPO_HANDOFF_BASE="${BASECHK-$W/basechk}" bash "$W/$1/audit/seat/body_push.sh" t "$W/body.md" > "$W/out" 2>&1 ); }
   keepsha() { git -C "$W/o.git" rev-parse -q --verify refs/heads/handoff-wip/t-body 2>/dev/null || echo none; }
   drop() { git -C "$W/o.git" update-ref -d refs/heads/handoff-wip/t-body 2>/dev/null; rm -rf "$W/flags"; mkdir -p "$W/flags"; }
   drop
   CODE=$(git -C "$W/repo" rev-parse HEAD)
   printf '## Head\n\n%s\n\n## Other\n\nthe body\n' "$CODE" > "$W/body.md"; BODYTXT=$(cat "$W/body.md")
-  for arm in pred lint packet landed; do
+  for arm in base pred lint packet landed; do
     drop; : > "$W/flags/$arm"; run t; rc=$?
     want=1; [ "$arm" != landed ] || want=4  # CARRY-LANDED alone is exit 4, so the relay can fold it
     st "$rc" "$want" "REFUSE $arm: exit code ($want)"
-    tok=$(echo "$arm" | tr a-z A-Z); case $arm in pred) tok=PREDICTOR;; lint) tok=BODY-LINT;; packet) tok=REVIEW-PACKET;; landed) tok=CARRY-LANDED;; esac
+    tok=$(echo "$arm" | tr a-z A-Z); case $arm in base) tok=BASE-STALE;; pred) tok=PREDICTOR;; lint) tok=BODY-LINT;; packet) tok=REVIEW-PACKET;; landed) tok=CARRY-LANDED;; esac
     st "$(grep -c "^body_push: REFUSED $tok\$" "$W/out")" 1 "... and the output names the refusal REFUSED $tok"
     k=$(keepsha)
     st "$(git -C "$W/o.git" show "$k:BODY.md" 2>/dev/null)" "$BODYTXT" "... and the refused body is kept at handoff-wip/t-body"
@@ -97,6 +98,18 @@ if [ "${1:-}" = "--self-test" ]; then
   st "$(git -C "$W/o.git" rev-parse -q --verify refs/heads/handoff-body/t 2>/dev/null || echo none)" none "... and nothing is pushed to handoff-body/t"
   printf '## Head\n\n%s\n' "$CODE" > "$W/body.md"; drop; run t; rc=$?
   st "$rc$(grep -c head-stale "$W/out")" 00 "(null) a ## Head naming the code sha passes the head check"
+  # The base at the handoff, with the real base_fresh.py (BASECHK empty: no stub): an uncommitted edit to an
+  # instrument of the code head's checkout refuses and pushes nothing; the committed tree (null) passes, and so
+  # does one behind main on a policy file, which is listed and not refused.
+  drop; git -C "$W/o.git" update-ref -d refs/heads/handoff-body/t; printf '# edited\n' >> "$W/repo/tools/pr/ci_predict.py"
+  BASECHK= run t; rc=$?
+  st "$rc$(grep -c '^body_push: REFUSED BASE-STALE$' "$W/out")$(grep -c 'STALE tools/pr/ci_predict.py: an uncommitted' "$W/out")" 111 "REFUSE base: an uncommitted instrument edit in the handed-off checkout is refused by base_fresh.py, naming the file"
+  st "$(git -C "$W/o.git" rev-parse -q --verify refs/heads/handoff-body/t 2>/dev/null || echo none)" none "... and nothing is pushed to handoff-body/t"
+  git -C "$W/repo" checkout -q -- tools/pr/ci_predict.py; drop
+  MOVED=$(cd "$W/repo" && throwaway_git_env && T=$(git ls-tree origin/main | sed 's/\ta$/\tCLAUDE.md/' | git mktree) && git commit-tree "$T" -p origin/main -m "main moves policy")
+  git -C "$W/o.git" fetch -q "$W/repo" "$MOVED:refs/heads/main"  # the scratch origin fetches: no push site
+  BASECHK= run t; rc=$?
+  st "$rc$(grep -c '^  note: 1 file(s) main moved since the base are not merged for a handoff' "$W/out")" 01 "(null) a committed tree passes, and a policy file main moved since the base is listed, not refused"
   echo "body_push self-test: $N checks, $FAILS failed"; [ "$FAILS" = 0 ]; exit $?
 fi
 TOPIC=${1:?topic}; BODY=${2:?body file}; NOTE=${3:-}
@@ -153,6 +166,19 @@ drop_keep() {
 
 ROOT=$(git rev-parse --show-toplevel)
 [ -f "$ROOT/tools/pr/ci_predict.py" ] || { echo "body_push: $ROOT carries no tools/pr/ci_predict.py; run it from the code head's worktree" >&2; exit 1; }
+# The base at the handoff (base_fresh.py tree --handoff, over the code head's checkout): the predictor,
+# the lint and the packet below run from this tree, so a policy, instrument or workflow file here that
+# no commit holds is refused before them. Files main moved since the base are listed, never refused:
+# a head behind main is not merged for that (fixer.md step 6), and its reviewer reads policy from
+# origin/main. HPO_HANDOFF_BASE replaces the checker (the self-test's stub).
+if ! BASE=$(${HPO_HANDOFF_BASE:-python3 -I "$(dirname "$0")/base_fresh.py"} tree --dir "$ROOT" --handoff 2>&1); then
+  printf '%s\n' "$BASE" >&2
+  echo "body_push: the base check refuses this checkout (above); commit or drop what it names, push the code, then the body" >&2
+  echo "body_push: REFUSED BASE-STALE" >&2
+  keep_refused # mut:keep
+  exit 1
+fi
+printf '%s\n' "$BASE" | grep -E '^  note: |^BASE-FRESH ' || true
 if ! PRED=$(cd "$ROOT" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main 2>&1); then
   printf '%s\n' "$PRED" >&2
   echo "body_push: the predictor refuses this head (above); repair it, push the code, then the body" >&2

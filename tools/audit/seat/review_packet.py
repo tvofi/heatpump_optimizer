@@ -725,6 +725,7 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
     if facts.get("handoff"):
         refusals.append(f"handoff-not-applied: {facts['handoff']}")
     advisories = [a for a in facts.get("advisories", [])] + owed_adv
+    policy = facts.get("policy")  # absent in a caller that gathered none: the section then says so
     parts = [
         f"# Review packet #{facts['pr']}",
         f"head: {head}", f"base: {facts['base']}", "",
@@ -732,6 +733,7 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         "", f"## Gate digest: {state}", *gate_lines, "",
         "## Refusals", *(refusals or ["none"]), "",
         "## Advisories", *(advisories or ["none"]), "",
+        "## Policy base (base_fresh.py)", *policy_parts(policy, head), "",
         "## carry_audit at the head", facts["carry_out"], "",
         "## figure_lint at the head", facts["figure_out"], "",
         f"## Finder's harness: {facts['harness_label']}",
@@ -743,6 +745,33 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         "an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.",
     ]
     return refusals, advisories, "\n".join(parts) + "\n"
+
+
+def policy_parts(policy: tuple | None, head: str) -> list[str]:
+    """The packet's policy section: a reviewer's contract, rules and instruments are origin/main's,
+    never the head's (dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md: 20 % and 38 % of two rounds'
+    heads lacked a policy change main already held). `policy` is (main sha, stale paths, why unread)."""
+    rule = ("Read fix-review.md, its rules and every instrument you run from origin/main (`git show origin/main:<path>`, "
+            "or a checkout `python3 -I tools/audit/seat/base_fresh.py tree` passes), never from a worktree at the head.")
+    if not policy:
+        return [rule, "not measured for this packet"]
+    main, stale, why = policy
+    if why:
+        return [rule, f"not measured: {why}"]
+    if not stale:
+        return [rule, f"the head {head} holds no policy, instrument or workflow file origin/main {main} has since moved"]
+    return [rule, f"the head {head} is behind origin/main {main} on {len(stale)} policy, instrument or workflow file(s); "
+                  "its copies are superseded:", *(f"- {p}" for p in stale)]
+
+
+def policy_facts(head: str, main: str, root: str | None = None) -> tuple:
+    """(main sha, the policy paths main moved since the head's base, why unread) by base_fresh.measure."""
+    import base_fresh
+    try:
+        m = base_fresh.measure(root or str(repo()), main, head)
+    except base_fresh.Unread as e:
+        return ("", [], str(e))
+    return (m["main"], m["stale"], "")
 
 
 def scope_parts(facts: dict) -> list[str]:
@@ -807,6 +836,7 @@ def gather(a) -> dict:
         "harness_base": run_harness(data, base, a.harness_arg) if data else "not run",
         "harness_head": run_harness(data, head, a.harness_arg) if data else "not run",
         "ledger_diff": git("diff", f"{base}...{head}", "--", LEDGER),
+        "policy": policy_facts(head, main),
         **scope_facts(a.pr, getattr(a, "reviewed_head", None), base, head),
     }
 
@@ -911,6 +941,40 @@ def _self_test() -> int:
     check("the packet carries the head's harness output and names the head",
           "RESULT 0" in t0 and packet_head(t0) == H)
     check("check names a stale packet: another head does not match", packet_head(t0) != B)
+    # The policy base: the packet says where a reviewer reads policy, and what the head holds that main moved.
+    def psec(**kw) -> str:
+        t = build({**clean, **kw})[2]
+        return t[t.index("## Policy base (base_fresh.py)"):t.index("## carry_audit at the head")]
+
+    check("the packet tells the reviewer to read policy from origin/main, never from a worktree at the head",
+          "from origin/main (`git show origin/main:<path>`" in psec() and "never from a worktree at the head" in psec()
+          and "not measured for this packet" in psec())
+    check("a head behind main on policy names each superseded file and main's sha, and is not refused",
+          f"is behind origin/main {B} on 2 policy" in psec(policy=(B, ["CLAUDE.md", "tools/pr/prepr.sh"], ""))
+          and "- CLAUDE.md\n- tools/pr/prepr.sh\n" in psec(policy=(B, ["CLAUDE.md", "tools/pr/prepr.sh"], ""))
+          and build({**clean, "policy": (B, ["CLAUDE.md"], "")})[0] == [])
+    check("null control: a head level with main on policy says so and lists nothing; an unread base says why",
+          f"holds no policy, instrument or workflow file origin/main {B} has since moved" in psec(policy=(B, [], ""))
+          and "\n- " not in psec(policy=(B, [], "")) and "not measured: no merge base" in psec(policy=("", [], "no merge base")))
+    with tempfile.TemporaryDirectory() as d:
+        import subprocess as sp
+        genv = {**{k: v for k, v in os.environ.items() if not k.startswith("GIT_")}, "GIT_CONFIG_GLOBAL": os.devnull,
+                "GIT_AUTHOR_NAME": "t", "GIT_COMMITTER_NAME": "t", "GIT_AUTHOR_EMAIL": "1+t@users.noreply.github.com",
+                "GIT_COMMITTER_EMAIL": "1+t@users.noreply.github.com"}
+
+        def sg(*a: str) -> str:
+            return sp.run(["git", "-C", d, *a], check=True, capture_output=True, text=True, env=genv).stdout.strip()
+        sg("init", "-q", "-b", "main")
+        Path(d, "CLAUDE.md").write_text("one\n")
+        sg("add", "-A")
+        sg("commit", "-qm", "base")
+        old = sg("rev-parse", "HEAD")
+        Path(d, "CLAUDE.md").write_text("two\n")
+        sg("commit", "-qam", "main moves policy")
+        sg("update-ref", "refs/remotes/origin/main", "HEAD")
+        got_old, got_new = policy_facts(old, "origin/main", d), policy_facts(sg("rev-parse", "HEAD"), "origin/main", d)
+        check("policy_facts measures a real head with base_fresh: the old head is behind on CLAUDE.md, main's tip on nothing",
+              got_old == (sg("rev-parse", "HEAD"), ["CLAUDE.md"], "") and got_new == (sg("rev-parse", "HEAD"), [], ""))
 
     def refused(signal: str, **kw) -> bool:
         r, _, _ = build({**clean, **kw})

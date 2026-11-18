@@ -150,7 +150,10 @@ def _fixture_state(base: Path, *, dead: bool = False, stale: bool = False, down:
     repo = base / "orch"
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_init
-    throwaway_git_init(repo, "-q")
+    genv = throwaway_git_init(repo, "-q")
+    # a first commit that is also origin/main: the checkout base_fresh.py judges is level with it
+    for a in (("commit", "-q", "--allow-empty", "-m", "base"), ("update-ref", "refs/remotes/origin/main", "HEAD")):
+        subprocess.run(["git", "-C", str(repo), *a], check=True, capture_output=True, env=genv)
     (s / "orch-checkout").write_text(f"{repo}\n")
     now = time.time()
     stamp = lambda t: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))  # noqa: E731
@@ -235,6 +238,34 @@ def cases() -> dict[str, bool]:
             not any(w in out for w in ("DEAD", "STALE", "ALARM", "UNREADABLE")) and "ARM:" in out
             and "OWED reviewer-fire 1" in out)
         res["liveness: a healthy table with a fresh stamp owes no policy re-read"] = "POLICY-REREAD" not in out
+        # BASE-STALE and BASE-RESET (base_fresh.py ensure over orch-checkout): origin/main moves a contract
+        orch = Path((s / "orch-checkout").read_text().strip())
+
+        def og(*a):
+            return subprocess.run(["git", "-C", str(orch), "-c", "user.name=t", "-c", "user.email=1+t@users.noreply.github.com",
+                                   *a], check=True, capture_output=True, text=True).stdout.strip()
+        res["liveness: a checkout level with origin/main prints no BASE line (null control)"] = "BASE-" not in out
+        at0 = og("rev-parse", "HEAD")
+        (orch / "dev/governance/roles").mkdir(parents=True)
+        (orch / "dev/governance/roles/x.md").write_text("contract 2\n")
+        og("add", "-A")
+        og("commit", "-qm", "main moves a contract")
+        at1 = og("rev-parse", "HEAD")
+        og("update-ref", "refs/remotes/origin/main", at1)
+        og("checkout", "-q", "-b", "session", at0)
+        (orch / "own.txt").write_text("work\n")
+        og("add", "-A")
+        og("commit", "-qm", "own")
+        o = _run_hook("liveness.py", s, {"hook_event_name": "UserPromptSubmit"})
+        res["liveness: a checkout behind origin/main on a contract with a commit of its own prints BASE-STALE at a prompt, and is not moved"] = (
+            o.startswith(f"BASE-STALE orch-checkout {orch}: BASE-FRESH FAIL ") and "tree --dir" in o
+            and og("rev-parse", "HEAD~1") == at0)
+        og("checkout", "-q", "--detach", at0)
+        o = _run_hook("liveness.py", s, {"hook_event_name": "UserPromptSubmit"})
+        res["liveness: the same checkout holding no work is moved to origin/main and prints BASE-RESET, naming the re-read"] = (
+            o.startswith(f"BASE-RESET {at0[:10]} -> {at1[:10]}: ") and "Re-read CLAUDE.md" in o and og("rev-parse", "HEAD") == at1)
+        res["liveness: the next prompt on the moved checkout is silent again (null control)"] = (
+            "BASE-" not in _run_hook("liveness.py", s, {"hook_event_name": "UserPromptSubmit"}))
         res["liveness: PostCompact demands the policy re-read"] = (
             "POLICY-REREAD" in _run_hook("liveness.py", s, {"hook_event_name": "PostCompact"}))
         res["liveness: an unparseable HPO_ALIVE_STALE_MIN falls back to its default"] = (

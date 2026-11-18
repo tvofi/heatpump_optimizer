@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Refuse a tree whose policy, instruments or workflows are not origin/main's.
 
-    python3 -I tools/audit/seat/base_fresh.py tree    [--dir D] [--rev R] [--handoff] [--no-fetch]
+    python3 -I tools/audit/seat/base_fresh.py tree    [--dir D] [--rev R] [--handoff] [--no-fetch] [--fetch-timeout S]
     python3 -I tools/audit/seat/base_fresh.py ensure  [--dir D] [--no-fetch]
     python3 -I tools/audit/seat/base_fresh.py reset   [--dir D] [--no-fetch]
     python3 -I tools/audit/seat/base_fresh.py overlay --file F --of <tracked path> --patch P [--dir D] [--no-fetch]
@@ -79,6 +79,15 @@ def _out(d: str, *a: str) -> str:
     return r.stdout.strip()
 
 
+def _top(d: str) -> str:
+    """The checkout's root: every pathspec below is written from it, so a --dir inside the tree
+    (a script passing its own directory) must not be read as the root."""
+    r = _git(d, "rev-parse", "--show-toplevel")
+    if r.returncode or not r.stdout.strip():
+        raise Unread(f"{d} is not a git checkout")
+    return r.stdout.strip()
+
+
 def _fetch(d: str, main: str) -> None:
     remote, _, branch = main.partition("/")
     try:
@@ -96,8 +105,6 @@ def _names(d: str, a: str, b: str) -> list[str]:
 
 def measure(d: str, main: str, rev: str | None = None) -> dict:
     """{head, main, base, stale, own, dirty} of the checkout at `d`, or of `rev` in it."""
-    if _git(d, "rev-parse", "--is-inside-work-tree").stdout.strip() != "true":
-        raise Unread(f"{d} is not a git checkout")
     if _git(d, "rev-parse", "--is-shallow-repository").stdout.strip() == "true":
         raise Unread(f"{d} is a shallow clone, so no merge base is readable: git -C {d} fetch --unshallow origin")
     head = _out(d, "rev-parse", "--verify", f"{rev or 'HEAD'}^{{commit}}")
@@ -112,7 +119,7 @@ def measure(d: str, main: str, rev: str | None = None) -> dict:
     differs = _names(d, head, msha)
     dirty: list[str] = []
     if rev is None:
-        top = _out(d, "rev-parse", "--show-toplevel")
+        top = d
         st = _git(top, "status", "--porcelain", "--untracked-files=all", "--", *POLICY)
         if st.returncode:
             raise Unread(f"git status failed in {top}")
@@ -158,7 +165,7 @@ def tree(d: str, main: str, *, rev: str | None = None, handoff: bool = False, fe
 
 def reset_why(d: str, main: str) -> tuple[str | None, str, str]:
     """(why the checkout is not moved or None when it was, old head, new head)."""
-    top = _out(d, "rev-parse", "--show-toplevel")
+    top = d
     old, new = _out(top, "rev-parse", "HEAD"), _out(top, "rev-parse", "--verify", f"{main}^{{commit}}")
     if old == new:
         return None, old, new
@@ -196,9 +203,8 @@ def ensure(d: str, main: str, *, fetch: bool = True) -> int:
         return 0
     why, old, new = reset_why(d, main)
     if why or old == new:  # not movable, or level with main and still refused (an uncommitted edit)
-        print(buf.getvalue(), end="")
-        if why:
-            print(f"  not reset: {why}")
+        *body, verdict = buf.getvalue().splitlines()
+        print("\n".join(body + ([f"  not reset: {why}"] if why else []) + [verdict]))  # the verdict stays the last line
         return 1
     with contextlib.redirect_stdout(buf):
         rc = tree(d, main, fetch=False)
@@ -291,7 +297,7 @@ def _self_test() -> int:
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             try:
-                rc = fn(*a, **kw)
+                rc = fn(_top(a[0]), *a[1:], **kw)
             except Unread as e:
                 print(f"BASE-FRESH UNREAD: {e}")
                 rc = 2
@@ -310,7 +316,7 @@ def _self_test() -> int:
                 f.write_text(text)
                 g(src, "add", "-A")
                 g(src, "commit", "-qm", path)
-                g(src, "push", "-q", str(origin), "HEAD:main")
+                g(origin, "fetch", "-q", str(src), "+main:main")  # a fetch, never a push site (ref_privacy.py PUSHERS)
                 return g(src, "rev-parse", "HEAD")
 
             land("dev/governance/roles/x.md", "contract 1\n")
@@ -418,6 +424,33 @@ def _self_test() -> int:
             check("ensure cannot repair an uncommitted policy edit: refused, the edit kept",
                   rc == 1 and "BASE-FRESH FAIL" in out and (dirty / ".claude/workflows/w.js").read_text() == "edited\n")
 
+            # wt_sync.sh never runs from a stale tree: the script of a clone that cannot be moved refuses,
+            # exit 4; the script of one holding no work moves its tree and starts again from the new file.
+            seat = Path(__file__).resolve().parent
+            for name in ("wt_sync.sh", "base_fresh.py", "ref_privacy.py"):
+                (src / "tools/audit/seat").mkdir(parents=True, exist_ok=True)
+                (src / "tools/audit/seat" / name).write_bytes((seat / name).read_bytes())
+            c2 = land("tools/audit/seat/README", "the instruments land\n")
+            held, loop = clone("held", branch="work"), clone("loop")
+            (held / "note").write_text("own\n")
+            g(held, "add", "-A")
+            g(held, "commit", "-qm", "own")
+            c3 = land("tools/audit/seat/README", "main moves an instrument\n")
+
+            def sync(d: Path, **extra) -> subprocess.CompletedProcess:
+                return subprocess.run(["bash", str(d / "tools/audit/seat/wt_sync.sh")], cwd=d, capture_output=True, text=True,
+                                      env={**env, **extra})
+            r = sync(held)
+            check("wt_sync.sh from a tree behind main that holds a commit of its own refuses, exit 4, with the stale file",
+                  r.returncode == 4 and "wt_sync: REFUSE BASE-STALE" in r.stderr and "STALE tools/audit/seat/README" in r.stderr
+                  and "wip-sync" not in g(origin, "for-each-ref", "--format=%(refname)"))
+            r = sync(loop)
+            check("wt_sync.sh from a tree behind main that holds no work moves it to origin/main and restarts from the new file",
+                  r.returncode == 0 and r.stdout.startswith(f"wt_sync: BASE-RESET {c2[:10]} -> {c3[:10]}; restarting")
+                  and g(loop, "rev-parse", "HEAD") == c3)
+            r = sync(loop)
+            check("control: wt_sync.sh from the moved tree runs without a restart", r.returncode == 0 and "BASE-RESET" not in r.stdout)
+
             # OVERLAY: the prototype's three controls.
             old_js = g(src, "show", f"{c0}:.claude/workflows/w.js") + "\n"
             (t / "old.js").write_text(old_js)
@@ -445,6 +478,9 @@ def _self_test() -> int:
             (t / "plain").mkdir()
             rc, out = run(tree, str(t / "plain"), "origin/main", fetch=False)
             check("a directory that is no checkout is exit 2, not a pass", rc == 2 and "is not a git checkout" in out)
+            rc, out = run(tree, str(both / "dev/governance"), "origin/main", fetch=False)
+            check("a --dir inside the tree is judged as its checkout: the stale contract is still refused",
+                  rc == 1 and "STALE dev/governance/roles/x.md" in out)
             rc, out = run(tree, str(fresh), "origin/nowhere", fetch=False)
             check("a main ref that does not resolve is exit 2", rc == 2 and "does not resolve" in out)
             g(fresh, "remote", "set-url", "origin", str(t / "gone.git"))
@@ -488,6 +524,7 @@ def _self_test() -> int:
 
 
 def main(argv: list[str]) -> int:
+    global FETCH_TIMEOUT
     if argv[:1] == ["--self-test"]:
         return _self_test()
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -497,6 +534,7 @@ def main(argv: list[str]) -> int:
         p.add_argument("--dir", default=".")
         p.add_argument("--main", default="origin/main")
         p.add_argument("--no-fetch", action="store_true")
+        p.add_argument("--fetch-timeout", type=float, default=FETCH_TIMEOUT, help="seconds (a hook passes a short one)")
         if name == "tree":
             p.add_argument("--rev")
             p.add_argument("--handoff", action="store_true")
@@ -505,8 +543,10 @@ def main(argv: list[str]) -> int:
             p.add_argument("--of", required=True)
             p.add_argument("--patch", required=True)
     a = ap.parse_args(argv)
+    FETCH_TIMEOUT = a.fetch_timeout
     fetch = not a.no_fetch
     try:
+        a.dir = _top(a.dir)
         if a.mode == "tree":
             return tree(a.dir, a.main, rev=a.rev, handoff=a.handoff, fetch=fetch)
         if a.mode == "ensure":

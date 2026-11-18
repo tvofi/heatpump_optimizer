@@ -126,7 +126,7 @@ behind_count() { # <checkout> <paths...>: the commits in HEAD..origin/main touch
 }
 
 fresh_check() { # <out>: sets code, behind and stale (the acting arms are skipped); may exec the new loop
-  local top self why bound=${HPO_TICK_STALE_BOUND:-25} br own
+  local top self why bound=${HPO_TICK_STALE_BOUND:-25}
   case $bound in ''|*[!0-9]*) bound=25 ;; esac
   code=none behind=unknown stale=
   top=$(git -C "${HPO_TICK_CODE_DIR:-$HERE}" rev-parse --show-toplevel 2>/dev/null) || return 0
@@ -138,18 +138,15 @@ fresh_check() { # <out>: sets code, behind and stale (the acting arms are skippe
   self=$(behind_count "$top" "${SELF_PATHS[@]}") || self=1  # never-empty: SELF_PATHS is the literal two-path list above
   [ "$behind" -gt "$bound" ] || [ "$self" -gt 0 ] || return 0  # mut:bound
   stale=1
-  # A branch-backed checkout (worktree_gc.sh removes clean old detached worktrees) restarts on its own
-  # branch when it holds no commit outside origin/main; one with commits of its own is never moved.
-  br=$(git -C "$top" symbolic-ref -q --short HEAD 2>/dev/null) || br=
-  [ -z "$br" ] || own=$(git -C "$top" rev-list --count origin/main..HEAD 2>/dev/null) || own=unknown
+  # The move is base_fresh.py reset's, the one rule for a checkout that holds no work: a branch-backed one
+  # (worktree_gc.sh removes clean old detached worktrees) restarts on its own branch, and one holding a
+  # commit origin/main lacks, or a dirty one, is never moved; its refusal is this pass's reason.
   if [ -n "${HPO_TICK_RESTARTED:-}" ]; then why="restarted once this pass"
   elif ! python3 -I -c "$LOCK_FREE" "$1.relay.lock"; then why="a relay is in flight (the lock is held)"  # mut:lock
-  elif [ -n "$br" ] && [ "$own" != 0 ]; then why="the branch $br holds $own commit(s) origin/main lacks; it is never moved"  # mut:branchown
-  elif [ -n "$(git -C "$top" status --porcelain --untracked-files=no)" ]; then why="the tree is dirty"  # mut:dirty
   elif ! git -C "$top" show origin/main:tools/audit/seat/tick_loop.sh | bash -n 2>/dev/null; then  # mut:syntax
     why="bash -n refuses origin/main's tick_loop.sh"
-  elif ! if [ -n "$br" ]; then git -C "$top" checkout -q -B "$br" origin/main; else git -C "$top" checkout -q --detach origin/main; fi; then  # mut:branchrestart
-    why="the checkout failed"
+  elif ! why=$(python3 -I "$HERE/base_fresh.py" reset --dir "$top" --no-fetch 2>&1); then  # mut:reset
+    why=${why#BASE-RESET REFUSED: }
   else
     printf 'TICK-RESTART %s code=%s behind=%s -> %s\n' "$(date -u +%FT%TZ)" "$code" "$behind" \
       "$(git -C "$top" rev-parse --short=7 HEAD)"
@@ -485,7 +482,7 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
   # skips this block.
   if [ -z "$nested" ]; then
     mkdir -p "$t/n/tools/audit/seat" "$t/n/tests"
-    cp "$HERE/tick_loop.sh" "$HERE/heartbeat.sh" "$HERE/ref_privacy.py" "$HERE/pr_args.sh" "$t/n/tools/audit/seat/"
+    cp "$HERE/tick_loop.sh" "$HERE/base_fresh.py" "$HERE/heartbeat.sh" "$HERE/ref_privacy.py" "$HERE/pr_args.sh" "$t/n/tools/audit/seat/"
     cp "$HERE/../../../tests/throwaway_git.sh" "$t/n/tests/"
     throwaway_git_init "$t/n.git" -q --bare -b main && throwaway_git_init "$t/n" -q -b main
     git -C "$t/n" add -A && git -C "$t/n" commit -qm base && git -C "$t/n.git" fetch -q "$t/n" main:main

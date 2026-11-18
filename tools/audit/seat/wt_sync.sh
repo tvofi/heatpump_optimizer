@@ -9,7 +9,17 @@ set -uo pipefail
 # the worktree or its index, one snapshot commit per such worktree.
 # A ref name and message never carry a host path (#2310): the slug is
 # ref_privacy.py's, and its guard refuses a push that would publish the host.
-RP="$(cd "$(dirname "$0")" && pwd)/ref_privacy.py"
+# This script never runs from a stale tree (dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md: round 10's
+# loop ran 314 policy and instrument files behind main). base_fresh.py ensure moves a checkout that
+# holds no work to origin/main, and the script then starts again from the new file; a checkout it
+# cannot move (a commit of its own, a dirty tree, an unread origin) is refused, exit 4, with the repair.
+HERE=$(cd "$(dirname "$0")" && pwd)
+if [ -z "${HPO_WT_SYNC_FRESH:-}" ]; then
+  BF=$(python3 -I "$HERE/base_fresh.py" ensure --dir "$HERE" 2>&1) || {  # mut:fresh
+    printf '%s\n' "$BF" >&2; echo "wt_sync: REFUSE BASE-STALE: this script's tree is not origin/main's (above); nothing snapshotted" >&2; exit 4; }
+  case $BF in BASE-RESET*) echo "wt_sync: ${BF%%:*}; restarting from the moved tree"; HPO_WT_SYNC_FRESH=1 exec bash "$0" "$@" ;; esac
+fi
+RP="$HERE/ref_privacy.py"
 R=$(git rev-parse --path-format=absolute --git-common-dir)/..; R=$(cd "$R" && pwd)
 S=""; [ "${1:-}" = "--scratch" ] && S=$(cd "$2" && pwd)
 snap() { # $1 worktree dir (git), $2 slug, [$3 alt work-tree]

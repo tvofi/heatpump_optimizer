@@ -145,6 +145,20 @@ FRUGAL_LINE = ("Discovery reads (search, list, read across files) go through Age
 #: Who owes a red an answer (owner rulings tvofi 2026-11-07, 2026-11-09: no merge is
 #: blocked on a non-required red), stated to the two seats that meet check runs, in one
 #: line naming the instrument that prints the set; the rule itself is defect-root-cause.md's.
+#: The base at a cloud seat's start (dev/audit/rca/R11-RCA-PLAN-OBJECTIVE-MISSING.md): a container
+#: cloned at fire time is level with main, a re-fired or long-lived one is not, and nothing said so.
+BASE_CHECK = "python3 -I tools/audit/seat/base_fresh.py"
+BASE_START = (f"Before you read a contract or run an instrument, run `{BASE_CHECK} ensure` in the clone: "
+              "`BASE-RESET` means the clone was behind and is now origin/main's, so read from it only now; "
+              "on `BASE-FRESH FAIL` apply the repair it prints and run it again; if it still fails, or on "
+              "`BASE-FRESH UNREAD`, stop and report the line as your result. Policy, "
+              "instruments and workflows are origin/main's alone: in a worktree at another head, read a "
+              "contract with `git show origin/main:<path>`.")
+#: Before a committing seat's return push: its own tree, with the handoff's rule (an uncommitted
+#: policy or instrument edit refuses; a head behind main is listed and not merged for it).
+BASE_HANDOFF = (f"Before the handoff push, run `{BASE_CHECK} tree --handoff` in your worktree and repair "
+                "what it refuses (an uncommitted policy, instrument or workflow edit); files it lists as "
+                "moved on main are not merged for the handoff. ")
 OWED_REDS_ROLES = ("reviewer", "fixer")
 OWED_REDS_LINE = ("A red is owed a `## Red checks` answer, and may block, only when its name is in the set "
                   "`python3 tools/audit/seat/merge_train.py owed-reds` prints (defect-root-cause.md); any "
@@ -237,7 +251,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
              "`eval \"$(bash .claude/hooks/session-start.sh --env-lines)\"`. Then run "
              f"`{SETUP_CHECK}`, and on REFUSE stop: report its line as your result and start no work. "
              "Run anything heavy in "
-             "the background with Monitor and no timeout. " + WAIT_LINE)
+             "the background with Monitor and no timeout. " + WAIT_LINE + " " + BASE_START)
     if role in PACK_ROLE:
         setup += (f" Read your policy once, verbatim: `python3 -I tools/policy/role_pack.py render "
                   f"{PACK_ROLE[role]} --out $HOME/role-pack.md`, then that file in place of your role "
@@ -274,8 +288,9 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
                    f"If the review is not complete then, push `Fix review: blocked {head} ci-wait: <the last "
                    "classify line>` as below.\n")
         body = (
-            "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
-            f"exactly. Fetch the {'handoff' if at_handoff else 'PR'} head with `git fetch origin {head}`; " + where +
+            "Role: read dev/governance/roles/fix-review.md and its rules from main (`git show "
+            "origin/main:<path>`, or the clone once the base check passes), never from the head under "
+            f"review, and follow them exactly. Fetch the {'handoff' if at_handoff else 'PR'} head with `git fetch origin {head}`; " + where +
             (f"This is a later round over the reviewed head {reviewed_head}: its scope is the packet's "
              "`## Review scope` line, the delta and the previous verdict's findings when it reads `delta`, "
              "widened only to the exact already-reviewed code a production (custom_components/) delta puts "
@@ -328,7 +343,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "`tools/pr/prepr.sh` head (the body check included), fixing what it refuses; a main that has moved "
             "since that run needs no re-merge and no second run, because the train re-proves the head on the "
             "current main. Merge origin/main and rerun prepr.sh only when "
-            "`git merge-tree --write-tree origin/main HEAD` reports a conflict. If you must stop on a question, "
+            "`git merge-tree --write-tree origin/main HEAD` reports a conflict. " + BASE_HANDOFF +
+            "If you must stop on a question, "
             f"first push `BLOCKED.md` with a `Question:` line to refs/heads/{WIP_NS}/{topic}, even with no code. Then push the code to "
             f"refs/heads/handoff/{topic}, then write the PR body and run "
             f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
@@ -1459,6 +1475,19 @@ def self_test() -> int:
           f"push each verified step, fast-forward only, to {wip} before any wait" in fx
           and "never step-push to\nhandoff/t-1" not in fx and "never step-push to handoff/t-1" in fx
           and f"except your return refs and {wip} and {wip}-body." in fx)
+    # The base (base_fresh.py): every role's prompt runs the start check before a contract is read; the
+    # fixer's runs the handoff check before its push; the reviewer reads policy from main, not the head.
+    all_roles = prompts
+    check(f"every role's prompt ({len(all_roles)}) runs base_fresh.py ensure at start, before its role line, and stops on a FAIL its repair does not clear or on UNREAD",
+          len(all_roles) == len(ROLES) and all(
+              0 <= p_.find(f"`{BASE_CHECK} ensure`") < p_.find("\nRole: ") and "if it still fails, or on `BASE-FRESH UNREAD`, stop and report the line" in p_
+              for p_ in all_roles.values()))
+    check("the fixer runs base_fresh.py tree --handoff before the code push, and no other role is told to (null)",
+          0 <= fx.find(f"`{BASE_CHECK} tree --handoff`") < fx.find("push the code to refs/heads/handoff/t-1")
+          and [r for r, p_ in all_roles.items() if "tree --handoff" in p_] == ["fixer"])
+    check("the reviewer reads its contract from origin/main, never from the head under review",
+          "from main (`git show origin/main:<path>`, or the clone once the base check passes), never from the head under review"
+          in " ".join(rv.split()))
     check("the fixer deletes the step ref only after body_push.sh succeeds",
           0 <= fx.find("body_push.sh t-1") < fx.find(f"`git push origin :{wip}`"))
     check("the fixer hands off at its first clean prepr.sh head and re-merges main only on a merge-tree conflict",
