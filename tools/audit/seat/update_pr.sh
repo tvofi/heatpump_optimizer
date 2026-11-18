@@ -103,7 +103,7 @@ M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
 upd_figures() { # <where>
   grep -q '^<!-- figure-block: ' "$B" || return 0
   local fb=origin/main
-  fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
+  if [ -n "$MAIN" ]; then fb=origin/main; else fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"; fi  # mut:updbase  LOCAL OVERLAY r11 reland: main merged -> the push's base is origin/main, which prepr verifies
   python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && return 0
   pr_refuse "the figure-block refresh $1 failed; nothing is pushed or patched:
 $(tail -n 20 $WT.fig.log)"
