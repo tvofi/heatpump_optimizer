@@ -73,7 +73,7 @@ Outputs are under `D14/N-silent-zero/` in the report directory (`enumerate*.txt`
 - D2 debug_replay.py:199 `bundle.get('replay') or {}`: an absent replay half crashes `run_seeded` (traceback), loud, not clean.
 - D2 debug_replay.py:110 `trim_replay` and :180 `gate_checks` `.get('states') or {}`: they read the replay the run itself needs, and with no replay the run fails as above.
 
-### Not applicable: 24
+### Not applicable: 23
 
 - C2, a reason-returning predicate whose None is its "nothing to refuse" success by contract, not missing evidence: coordinator.py:973 `_fold_flow_lift`, :9246 `_track_curve_comfort`, :10987 `_record_quiet_comfort_period` (`_learning_frozen(..) is not None`), :11068 `_run_system_identification` (`why`), early_cutoff.py:305 and :313 `on_room_event` (`_exempt`, `reason`).
 - C2, an optional parameter or handle, not evidence: coordinator.py:2816 `_hub` / `_hub.set` (ctx present; listed twice by the nested walk), :5415 `_fold_cop_evidence` (`read_scale` routes a held interval), optimizer.py:5219 `_safety_release_steps` (`space_pins` optional), pump_arbiter.py:2053 `note_supply` (unsubscribe handle), sysid.py:1476 `arm` (`plant` optional), grid_fee.py:164 `FeeRule.applies` (`hours` None means every hour, by configuration).
@@ -88,7 +88,7 @@ Not seams (no rule reads them), but seen by the section probe: `debug_ingest.py`
 `payload_snapshots` or `store_save_counts` at all, so dropping either leaves pass 12/12. They
 are unjudged sections, not silent zeros.
 
-Totals: 42 = 9 judged-site lines (7 judged seams) + 3 instances + 8 guarded + 24 not applicable
+Totals: 42 = 8 judged-site lines (7 judged seams) + 3 instances + 8 guarded + 23 not applicable
 (counting each listed line, the duplicates included). `instances` = 3.
 
 ## Barrier implication
