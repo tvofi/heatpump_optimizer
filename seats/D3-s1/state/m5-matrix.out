@@ -24,3 +24,19 @@
 2026-11-18T13:05:21Z MATRIX SURVIVED custom_components/heatpump_optimizer/flow_lift.py:<module> CONST 17af2c12 L47 by=- ran=24 skip=0 wall=2288.8s
 2026-11-18T13:06:15Z MATRIX SURVIVED custom_components/heatpump_optimizer/grid_fee.py:_parse_rule GUARD_OFF f8c4994a L173 by=- ran=12 skip=7 wall=1696.5s
 2026-11-18T13:10:17Z MATRIX KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF 7b8dda16 L559 by=tests/features.py ran=12 skip=7 wall=1660.7s
+2026-11-18T13:31:24Z MATRIX SURVIVED custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe GUARD_OFF 336a6ca0 L183 by=- ran=13 skip=11 wall=1867.2s
+2026-11-18T13:32:34Z MATRIX SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_tau_fast GUARD_OFF 72abb7dd L610 by=- ran=12 skip=7 wall=1629.8s
+2026-11-18T13:33:45Z MATRIX KILLED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF 3dbd4039 L201 by=tests/features.py ran=14 skip=5 wall=1647.1s
+2026-11-18T13:38:14Z MATRIX KILLED custom_components/heatpump_optimizer/coordinator.py:_plain_types GUARD_OFF 710abac2 L422 by=tests/features.py ran=13 skip=6 wall=1674.7s
+2026-11-18T13:55:32Z MATRIX KILLED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF ed095cbf L198 by=tests/features.py ran=14 skip=5 wall=1035.3s
+2026-11-18T14:00:50Z MATRIX KILLED custom_components/heatpump_optimizer/coordinator.py:_best_effort_cycle_step GUARD_OFF d02b7542 L687 by=tests/entities.py,tests/features.py ran=13 skip=6 wall=1763.8s
+2026-11-18T14:08:47Z MATRIX KILLED custom_components/heatpump_optimizer/dhw_planner.py:_dhw_windows_at GUARD_OFF b551ee16 L75 by=tests/stress.py,tests/features.py ran=18 skip=6 wall=2171.6s
+2026-11-18T14:13:37Z MATRIX SURVIVED custom_components/heatpump_optimizer/optimizer.py:_holiday_flags_for GUARD_OFF dacd4cc6 L773 by=- ran=20 skip=4 wall=2390.3s
+2026-11-18T14:22:31Z MATRIX KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe_duty GUARD_OFF 1bf142a4 L419 by=tests/features.py ran=12 skip=7 wall=1616.1s
+2026-11-18T14:27:53Z MATRIX KILLED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability GUARD_OFF f4619cef L677 by=tests/features.py ran=12 skip=7 wall=1619.8s
+2026-11-18T14:41:38Z MATRIX KILLED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846 L539 by=tests/features.py ran=13 skip=6 wall=1677.7s
+2026-11-18T15:01:11Z MATRIX KILLED custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0 L64 by=tests/features.py ran=20 skip=4 wall=2317.3s
+2026-11-18T15:17:31Z MATRIX KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.clamp GUARD_OFF 55e7d0fb L270 by=tests/harness_headers.py ran=23 skip=1 wall=4121.4s
+RESULT load1=1.00
+RESULT thread_factor=1.00
+EXIT7 0
