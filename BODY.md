@@ -6,16 +6,23 @@ What the port changes against the tag:
 - Conflicts resolved against main's metered floor (R11-OUTSIDE-HONEST-METERED-FLOOR) and COP scale probe (R11-OUTSIDE-SELF-SETTING-PUMP): `owed_scale` stays ahead of `judge_floor`; the experiment flag is a keyword after `draw`; `store` keeps main's `draw/engaged` domain and floor leaves, the map-row column leaves added beside them.
 - Carry 12: B's typing narrowing of `MapRows.take_pass` (early return on no pass) and `_stored_map` (filtered split), commit 8b4c27bb52, taken; behaviour unchanged (block A passes on it).
 - Design verdict note dither-first-cycle: an experiment cycle now reads as no interval for the dither (`MeasuredCop.owed_scale(..., read=False)`), so the step a plan row admitted just before the experiment earned is not taken inside it. Alternatives: (a) skipping `owed_scale` on an experiment cycle leaves the stale admission live for the cycle after, moving the defect one cycle later; (b) adding `COP_REFUSED_OFF_ASK` to the non-read refusals also changes the ratio gate's off-ask verdict (`_judge_ratio` admits the row into the probe before refusing it), a behaviour change outside this group. Taken: the explicit `read` argument, one caller.
+- Review block mutation-vacuous (verdict/3737 at 007e7be48d): block A gains "fold commits a closed space run as a row only when the interval is neither frozen nor distorted ...", which drives `draw_range.fold` itself after a closed space run with frozen alone, distorted alone, both, and neither (the control, which commits one row); the earlier check called `MapRows.commit_runs` directly and never read how `fold` wires `keep`.
 - Design item 2: the window null gains `floor_kw`, `floor_since` and the solve band (`solve_band(..., applies_floor=True)`), on a run whose learned floor moves.
 
 ## Head
 
-58b59591aacc80b6cb5cdbdf34d8b255ceb98b58, measured on merge base ae0ed64af898d8923ac35afe6e9c031ac1e6b111 (2026-11-18T14:58Z).
+adf0a38ba1347fe376ccd018e146969bdaf89df4, measured on merge base 9fe63d00b59f100aea67267ddddc95522e164aa1 (origin/main 8751943e17ef4d3ec699e7859ae829b4528d8ce7, 2026-11-18T16:28Z).
 
 ## Mutation proof
 
-- `coordinator._fold_measured_cop`: `owed_scale(..., not experiment)` replaced by `owed_scale(..., True)`; block A (`features_block.py --prelude "exec(open('<prelude>').read())" 'R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")'`, prelude by `--emit-prelude`): `FAIL the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the row before it admitted, takes no dither step inside it ...`; 1 of 32 failed. Restored: 32 of 32 pass.
-- The tag's own A block, at main's production code with this head's `tests/features.py`: the block stops at its import (`AttributeError: module 'heatpump_optimizer.draw_range' has no attribute 'PassRecord'`); at the head 32 of 32 pass.
+- `coordinator._fold_measured_cop`: `owed_scale(..., not experiment)` replaced by `owed_scale(..., True)`; block A (`features_block.py --prelude "exec(open('<prelude>').read())" 'R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")'`, prelude by `--emit-prelude`): `FAIL the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the row before it admitted, takes no dither step inside it ...`; 1 of 33 failed. Restored: 33 of 33 pass.
+- The tag's own A block, at main's production code with this head's `tests/features.py`: the block stops at its import (`AttributeError: module 'heatpump_optimizer.draw_range' has no attribute 'PassRecord'`); at the head 33 of 33 pass.
+- `draw_range.fold`'s `draw.map.commit_runs(keep=not (frozen or distorted))`, the review's mutants driven by its own `mutant_driver.py` (verdict/3737 ev/) on block A at the head:
+  - `keep=True`: `FAIL fold commits a closed space run as a row only when the interval is neither frozen nor distorted ...`; 1 of 33 failed.
+  - `keep=not distorted` (frozen ignored): the same check fails; 1 of 33.
+  - `keep=not frozen` (distorted ignored): the same check fails; 1 of 33.
+  - `keep=False`: that check and the window null's "rows were kept" fail; 2 of 33.
+  - Restored: 33 of 33 pass.
 - The mutation draw over the diff's added lines is CI's `tests / mutation`.
 
 ## Null control
@@ -26,7 +33,7 @@ What the port changes against the tag:
 
 ## Figures
 
-- Block A at the head: `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude "exec(open('<prelude>').read())" 'R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")'` -> `ALL 32 FEATURES BLOCK PASSED`.
+- Block A at the head: `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude "exec(open('<prelude>').read())" 'R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")'` -> `ALL 33 FEATURES BLOCK PASSED`.
 - Harness `dev/audit/harnesses/draw_map_rows.py` (sha1 057455db8d886d3b112e0c43a2b422d3de37e220), `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/draw_map_rows.py --synthetic`: head `RESULT store rows=672 draw_record_bytes_empty=83 draw_record_bytes_capped=58141 added_bytes=58058`, `RESULT open_loop rows=25 distinct_c=18 gain_kw_per_k=0.300 offset_kw=0.400 planted_gain=0.3 planted_offset=0.4`, null `RESULT shuffled ... gain_kw_per_k=0.023`; at main's code the harness stops (`AttributeError: 'DrawRange' object has no attribute 'map'`).
 - Typing: `cd custom_components && mypy --strict --ignore-missing-imports heatpump_optimizer/draw_range.py`: before the carry-12 narrowing 5 errors in `draw_range.py` (`take_pass` x4, `_stored_map` x1); after, none in `draw_range.py`. Local mypy is not CI's pinned pair; `tests / typing` is the authority.
 - Ratchet: `python3 tests/structure.py` reported one gain, `seam_cut_total` (the hot-water clock `_dhw_current_hour` left the coordinator class as a module function), recorded with `--record`; re-run clean.
@@ -34,7 +41,7 @@ What the port changes against the tag:
 - Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D` -> MODE line below; every script in `scope.run` run locally with `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`: 28 of 28 exit 0.
 - Sibling seams (`fixer.md` step 8), rule `git grep -n "judge_floor(" -- custom_components`: `coordinator._fold_measured_cop` (closed here, experiment flag); the heat-counter span close in `coordinator.py` (`_async_learn_heat_span`'s caller passes `close.refusal` first, which carries the cycle's `draw_off_ask`: already guarded, tag check "a heat counter span holding an experiment cycle folds no COP" passes). Rule `git grep -n "owed_scale(" -- custom_components`: `MeasuredCop.owed_scale` (closed here), its one caller (closed here).
 
-<!-- figure-block: scope-line mb=ae0ed64af898d8923ac35afe6e9c031ac1e6b111 head=58b59591aacc80b6cb5cdbdf34d8b255ceb98b58 -->
+<!-- figure-block: scope-line mb=9fe63d00b59f100aea67267ddddc95522e164aa1 head=adf0a38ba1347fe376ccd018e146969bdaf89df4 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
@@ -86,9 +93,14 @@ Every site `tools/pr/ci_predict.py` lists as added and unpinned at this head, ea
 - `custom_components/heatpump_optimizer/pump_arbiter.py:1378 RETURN_DEL`: pinned by mutation-autofix (lane mutates custom_components/)
 - `custom_components/heatpump_optimizer/pump_arbiter.py:1391 GUARD_OFF`: pinned by mutation-autofix (lane mutates custom_components/)
 
+## Architecture score
+
+- `coord_footprint` 2507 -> 2508: the one statement the experiment exclusion needs in the coordinator class, `experiment = self._current_action.get("mode") == "system_identification"` in `_fold_measured_cop`, which reads the cycle's own action (the coordinator's state) once and hands the flag to both `MeasuredCop.owed_scale` and `MeasuredCop.judge_floor`; the hot-water clock `_dhw_current_hour` leaving the class pays part of the port's statements. Alternative not taken: passing the whole action into `accuracy.MeasuredCop` would move a coordinator concept (the action's mode key) into the learner module. Command: `python3 tools/audit/archscore/score.py --diff 9fe63d00b59f100aea67267ddddc95522e164aa1` -> `Architecture score: dS -0.0006 WORSENS (inadmissible: coord_footprint 2507->2508)`.
+
 ## Red checks
 
-- `mutation` at 58b59591aacc: red by construction on the 41 sites under `## Unpinned sites` (lines this diff adds, none yet in the ledger); `mutation-autofix` pins the killed sites after the push. Cheaper detector: `tools/pr/ci_predict.py`, which predicted it here offline in about a minute; it already runs in `prepr.sh`, so no countermeasure is owed.
+- `tests / mutation` at adf0a38ba134 (red at 007e7be48d0f): red by construction on the 41 sites under `## Unpinned sites` (lines this diff adds, none yet in the ledger); `mutation-autofix` pins the killed sites after the push. Cheaper detector: `tools/pr/ci_predict.py`, which predicted it here offline in about a minute; it already runs in `prepr.sh`, so no countermeasure is owed.
+- `arch-score / arch-score` at 007e7be48d0f: `FAIL: dS -0.0006 WORSENS; unexplained: coord_footprint 2507->2508` because the body had no `## Architecture score` section; answered by the section above. Cheaper detector: `tools/audit/archscore/score.py --diff <merge base>`, offline in under a minute, which `prepr.sh` does not run (its `ci predict` step predicted no red here); no countermeasure is built in this group, whose seam is the draw map, not the pre-PR instruments.
 
 ## Forward-carry
 
