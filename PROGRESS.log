@@ -3,3 +3,4 @@
 1795004854 CKPT worktree cut at origin/main bc658f9; findings read snapshot 253bea01fecc
 1795005074 CKPT BLOCKED.md pushed to handoff-wip: frugal inline-read guard vs no-subagent brief snapshot 5d5e68d326ab
 1795005078 DONE blocked: frugal inline guard refuses reads; brief forbids subagents; BLOCKED.md on handoff-wip/r11-seam-governance-text
+1795006378 HB alive
