@@ -1,0 +1,9 @@
+rc=1 tests/doc_claims.py
+rc=0 tests/structure.py
+rc=0 tests/block_duty.py
+rc=0 tests/manual_plan.py
+rc=0 tests/guard_pins.py
+rc=0 tests/plan_view.py
+rc=0 tests/deployment_shape.py
+rc=0 tests/layout.py
+rc=0 tests/env_drift.py --claims-only 9fe63d00b59f100aea67267ddddc95522e164aa1
