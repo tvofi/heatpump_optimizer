@@ -1,0 +1,43 @@
+ref=8751943e17ef4d3ec699e7859ae829b4528d8ce7 seats=65
+ok D0 mode=cells seats=3 universe=3 [s1:3f/23176loc, s2:3f/23176loc, s3:3f/23176loc]
+ok D1 mode=cells seats=3 universe=96 [s1:96f/75933loc, s2:96f/75933loc, s3:96f/75933loc]
+ok D2 mode=cells seats=3 universe=96 [s1:96f/75933loc, s2:96f/75933loc, s3:96f/75933loc]
+ok D3 mode=cells seats=3 universe=167 [s1:12f/31852loc, s2:18f/16560loc, s3:137f/43958loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20902loc, s2:15f/20902loc, s3:15f/20902loc]
+ok D5 mode=cells seats=10 universe=908 [s1:16f/0loc/0u, s2:16f/0loc/76u, s3:45f/37808loc/2906u, s4:52f/54562loc/3409u, s5:77f/0loc/3864u, s6:264f/0loc/4016u, s7:3f/0loc/4150u, s8:44f/0loc/3655u, s9:69f/0loc/3761u, s10:338f/0loc/1876u]
+ok D6 mode=files seats=7 universe=376 [s1:15f/0loc/4109u, s2:111f/0loc/4102u, s3:97f/75933loc/3365u, s4:2f/16437loc/3943u, s5:148f/0loc/3645u, s6:1f/0loc/2329u, s7:2f/0loc/2668u]
+ok D7 mode=cells seats=3 universe=96 [s1:96f/75933loc, s2:96f/75933loc, s3:96f/75933loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4813loc, s2:6f/4813loc, s3:6f/4813loc]
+ok D9 mode=cells seats=3 universe=97 [s1:97f/92370loc, s2:97f/92370loc, s3:97f/92370loc]
+ok D10 mode=cells seats=3 universe=115 [s1:115f/92370loc, s2:115f/92370loc, s3:115f/92370loc]
+ok D11 mode=cells seats=3 universe=1422 [s1:1422f/0loc, s2:1422f/0loc, s3:1422f/0loc]
+ok D12 mode=cells seats=3 universe=96 [s1:96f/75933loc, s2:96f/75933loc, s3:96f/75933loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D16 mode=cells seats=3 universe=96 [s1:96f/75933loc, s2:96f/75933loc, s3:96f/75933loc]
+ok D17 mode=cells seats=3 universe=103 [s1:103f/75933loc, s2:103f/75933loc, s3:103f/75933loc]
+ok coverage tracked=11864 in_universe=1677 excluded=10187 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+FAIL start evaluation round=11: 9 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for tools/audit/seat/instruments/corpus_mirror.py.md
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for tools/audit/seat/instruments/leak_detectors.py.md
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for tools/audit/seat/instruments/owner_only.py.md
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for tools/audit/seat/instruments/product_reads.py.md
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for tools/audit/seat/instruments/regret_oracle.py.md
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for tools/audit/seat/instruments/shell_hazard.py.md
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for tools/audit/seat/instruments/toolchain.py.md
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   PARALLEL E11-GATE-REDS accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-INJECTED accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-GATE-CAUSE accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-INSTRUMENT-YIELD accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-INTAKE-BUILDER accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-NULL-REVIEWER accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-ROLE-CLAUSE accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-RULE-YIELD accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-R-WORKFLOWS accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-S-SEATS accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-SCORECARD accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-T-product_green_floor accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
