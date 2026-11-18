@@ -1,2 +1,0 @@
-2026-11-18T12:50:36Z COMPLETE queued=245 from=pre
-2026-11-18T13:11:57Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:<module> CONST d4d92013 L106 by=tests/features.py ran=19 wall=1279.7s
