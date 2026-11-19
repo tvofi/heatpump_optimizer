@@ -20,6 +20,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-ROOMS-P3 (stage in-progress, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage carries-open, branch `fix/r11-outside-self-setting-pump-p2`): `git fetch origin fix/r11-outside-self-setting-pump-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-CARRY-DRAWMAP (stage in-progress, branch `fix/r11-carry-drawmap`): `git fetch origin fix/r11-carry-drawmap && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-CARRY-ROOM-LIFT (stage in-progress, branch `fix/r11-carry-room-lift`): `git fetch origin fix/r11-carry-room-lift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-kernel-step (stage in-progress, branch `handoff/r11-seam-kernel-step`): `git fetch origin handoff/r11-seam-kernel-step && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-plant-model (stage in-progress, branch `handoff/r11-seam-plant-model`): `git fetch origin handoff/r11-seam-plant-model && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-inputs-guards (stage in-progress, branch `handoff/r11-seam-inputs-guards`): `git fetch origin handoff/r11-seam-inputs-guards && git worktree add --detach $SEAT/wt FETCH_HEAD`
