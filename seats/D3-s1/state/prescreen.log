@@ -544,3 +544,5 @@
 2026-11-19T00:32:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP eef19624 L4702 by=- ran=12 wall=1168.5s
 2026-11-19T00:34:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_power_fraction CMP_BOUND 1608f006 L2170 by=- ran=17 wall=1409.9s
 2026-11-19T00:41:04Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:metering_windows GUARD_OFF c58ef9ab L573 by=- ran=17 wall=1376.4s
+2026-11-19T00:44:25Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch GUARD_OFF f644eb41 L4774 by=tests/features.py ran=14 wall=1228.1s
+2026-11-19T00:45:40Z COMPLETE queued=111 from=pre
