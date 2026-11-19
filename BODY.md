@@ -31,6 +31,10 @@ Departures from the design, each listed here for the reviewer to judge:
 
 ## Head
 
+5ed23c2558c22fa6095540ee98ad20563449d971 is this handoff's code head: 28977f9e merged with main at 7ae05284 (c3d0249a, no conflict), plus 21aa2094, which deletes main's stale `async_simulate RETURN_DEL 1457a93f` pin (`## Red checks`), then merged with main at 8ab5dc566f (5ed23c25, no conflict); the ledger's `completeness_problems` is `[]` at 5ed23c25. The merge leaves the PR's own diff unchanged: `git diff 8751943e17ef...28977f9e` and `git diff 7ae05284d5bc c3d0249a51` share `git patch-id --stable` c1eb75b88e8d (66 files, +1184 -294). Kill at the moved line (`coordinator.py` 11312, anchor fd0988d6): `tools/audit/seat/mutant_run.py --spec` replacing `return payload` with `pass`, driven by `tools/audit/seat/features_block.py` over the block `# #240: the what-if's parameters must share` up to `# -- The held start, on the optimizer` (prelude from `--emit-prelude`), printed `SURVIVED NULL` then `KILLED async_simulate_RETURN_DEL_fd0988d6`.
+
+`28977f9e820ee1813eccd5952484e0365e72f91a` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
 6b9b3ce8a74f113e846d3f20869122621f835c46, the code head of this handoff: 1cf4d759 plus the one commit repairing review block e80c8c4a (`## Review block repaired`), merge base 8751943e17ef4d3ec699e7859ae829b4528d8ce7. Figures under `## Review block repaired` were taken at 6b9b3ce8; the rest were taken at 8d5e340f (merge base ae0ed64af898d8923ac35afe6e9c031ac1e6b111), and the harnesses ran at b8aaa5ad7b09a26dfd77cc4d986a9749dfed52ea. The later commits up to 8d5e340f touched no production file: `git diff --quiet b8aaa5ad7b09 8d5e340f5ee7 -- custom_components && echo PROD-IDENTICAL` printed PROD-IDENTICAL.
 
 ## Mutation proof
@@ -90,7 +94,7 @@ The harnesses come from `$EXPORT` = `git archive 819aa2e354b4 dev/audit/rounds/r
   - `tests/harness_headers.py`: only the committed-output check failed before the regenerated round-4 claims were committed.
 - Gate scope: the block below, from the recorded closures; before they were recorded, `closure.py select --diff ae0ed64af898` read `MODE: FULL` (`solve_gate.py` was in no closure). Run locally of that scope: `features.py`, `entities.py`, `harness_headers.py`, `structure.py`, `worker_deadlines.py` and `debug_collect.py`; the rest is CI's (the brief's scoped-prepr rule). The closures were recorded by `tests/derive_closures.sh --single tests/config_flow_steps.py` and by `--scripts-from` over the 21 scripts whose closure read the coordinator, button, services or whatif module but not `solve_gate.py`, merged with `closure.py merge --partial`. After that, `python3 tools/pr/ci_predict.py` predicts no closures, fast, governance or instrument red.
 - Structure: `python3 tests/structure.py --record`, against the base's budgets: `coordinator_attrs` 136 → 135, `coordinator_multiassigned_attrs` 104 → 102, `max_class_loc` 7875 → 7873, `class_excess_loc` 17382 → 17380. The reason is in the commit message.
-<!-- figure-block: scope-line mb=8751943e17ef4d3ec699e7859ae829b4528d8ce7 head=6b9b3ce8a74f113e846d3f20869122621f835c46 -->
+<!-- figure-block: scope-line mb=8ab5dc566fac0cdc52e7ac3ebffcacf38d149f58 head=5ed23c2558c22fa6095540ee98ad20563449d971 -->
 ~~~text
 MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 ~~~
@@ -98,9 +102,10 @@ MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 
 ## Architecture score
 
-`python3 tools/audit/archscore/score.py --diff ae0ed64af898` printed "Architecture score: dS +0.0208 WORSENS (inadmissible: coord_footprint 2505->2517)":
+`python3 tools/audit/archscore/score.py --diff 8ab5dc566f` (the merge base after main's merge at 5ed23c25; the same output against 7ae05284d5bc) printed "Architecture score: dS +0.0208 WORSENS (inadmissible: coord_footprint 2507->2519)", with these rows:
 
-- `coord_footprint` 2505 -> 2517: the twelve statements are the eight findings' new behaviour on the coordinator and on functions it is handed. They are the request override and its trailing schedule, the stop answers in `_await_optimize` and `async_run_optimization`, the diagnose publish, the user slot around `async_simulate`, and `async_optimize_now`'s fixed-mode solve and failed-refresh reason. Moving them elsewhere would leave them on functions handed the coordinator, which the metric counts by role. `PLAN.md`'s Risks names the same cost for this seam.
+- `coord_footprint` 2507 -> 2519 (-0.0069): the twelve statements are the eight findings' new behaviour on the coordinator and on functions it is handed. They are the request override and its trailing schedule, the stop answers in `_await_optimize` and `async_run_optimization`, the diagnose publish, the user slot around `async_simulate`, and `async_optimize_now`'s fixed-mode solve and failed-refresh reason. Moving them elsewhere would leave them on functions handed the coordinator, which the metric counts by role. `PLAN.md`'s Risks names the same cost for this seam.
+- `coordinator_multiassigned_attrs` 104 -> 102 (+0.0277): the drop `## Figures` records from `tests/structure.py --record`.
 
 ## Unpinned sites
 
@@ -170,7 +175,8 @@ Block e80c8c4a, from the review of 1cf4d759 ("Design §3 B's trailing arm does n
 
 ## Red checks
 
-- `tests / mutation` at 8d5e340f5ee7: red by construction on the 38 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `tests / mutation` at 28977f9e, two runs. Run 44463878660 checked the head alone against ratchet base 8751943e and refused six added sites: `coordinator.py` 6171 BOOLOP and 11222 GUARD_OFF, and `solve_gate.py` 76, 78, 90 and 129. Each is disposed under `## Unpinned sites` as pinned by mutation-autofix. That dispatch skipped `mutation-pins` and `mutation-autofix`, so they are pinned after this push: `unmeasured` here. Run 44458574179 checked the PR merged with main and refused one stale pin, not an unpinned site. Main's `ed7025dc` pinned `coordinator.py:HeatPumpOptimizerCoordinator.async_simulate RETURN_DEL 1457a93f` (old `        return payload`); this PR re-indents that line into the solve gate's block, where its anchor is `fd0988d6`, already pinned by `c06d2fb9` (`ci: pin killed mutants`, killed by `tests/features.py`). mutation-autofix read `skip-not-unpinned`. Repaired at 21aa2094 by merging main (c3d0249a) and deleting the 1457a93f file. `completeness_problems(load_budgets(), inventory())` returns `[]` at 21aa2094 and at 5ed23c25, and the 1457a93f problem with that file restored (null). Kill at the new line: see `## Head`. Run 44458574179 refused that pin alone.
+- `governance / policy-docs` at 28977f9e (run 44463878660, job 135357182125): `machinery_ratchet` failed `churn_per_kilo_product_lines 34577 <= 14797 + band 3636`. The cap it read was this branch's pre-merge `dev/governance/config/machinery_budgets.json`; main re-recorded that cap to 34898 (30ae44cd94, after #3723's raise), and the same job on main at 7ae05284 passed (`35068 <= 34898 + band 3636`). The main merge at c3d0249a carries the 34898 cap, under which the measured 34577 passes. Cheaper detector: none exists for this one. It is a stale-base red that a merge of main cures, not a defect in the diff.
 
 ## Forward-carry
 
@@ -183,4 +189,5 @@ Block e80c8c4a, from the review of 1cf4d759 ("Design §3 B's trailing arm does n
 
 - harness-port: stale: the finder's `$EXPORT/dev/audit/rounds/round11/D1/s1/m4_race.py` raises `KeyError: '_vent_cusum'` at the merge base because main's `d1-solve-state` census grew a name its `WRITERS` table lacks; both ends were measured with a two-edit port (Figures) that lives beside its `rl` helper in the export, not in the tree. Carry: dismissed: the round-11 register owns its harnesses
 - frugal-guard: contradiction: the seat brief says to work inline with no subagents, and the session's frugal hook refuses a sixth inline read per prompt and points at a subagent; reads were batched and continued after each background run's wake instead. Carry: dismissed: a seat-environment conflict, recorded for the orchestrator
+
 
