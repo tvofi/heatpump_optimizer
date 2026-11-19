@@ -10,3 +10,4 @@
 2026-11-19T01:38:04Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND 6d711f71 L6573 by=tests/features.py ran=12 wall=1434.5s
 2026-11-19T01:42:26Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:dhw_coil_draw_reduction CLAMP_DROP 1eab1002 L3005 by=tests/features.py ran=12 wall=1331.4s
 2026-11-19T01:45:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_energy_totals BOOLOP aa0e01fc L8419 by=- ran=13 wall=1434.4s
+2026-11-19T01:48:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize GUARD_OFF 5fc3725f L4532 by=- ran=13 wall=1478.8s
