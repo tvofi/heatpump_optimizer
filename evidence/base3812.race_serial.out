@@ -1,0 +1,7 @@
+RACE serial=True fix=False: restore_writes_sent=1 curve_writes=[('set_value', 3)] doc_after={"armed": {}, "state": {"heat_curve": {}}}
+RESULT hold_not_released=0 count
+RESULT baseline_lost_on_disk=0 count
+RESULT consequences=0 count
+RESULT thread_factor=0.999
+RESULT load1=54.50
+RESULT swapins=570
