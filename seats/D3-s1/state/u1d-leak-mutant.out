@@ -1,0 +1,7 @@
+RESULT arm=mutant
+RESULT peak_process_workers=20
+RESULT capped=1
+RESULT script_rc=-9
+RESULT seconds=12.7
+RESULT load1=5.10
+RESULT thread_factor=1.00
