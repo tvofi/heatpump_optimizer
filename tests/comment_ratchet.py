@@ -19,7 +19,8 @@ SCOPE is the one list the comment groups extend: tracked `tests/` files ending `
 Usage:
   comment_ratchet.py [--base REF]     the ratchet against the ratchet base
   comment_ratchet.py --show           also print one row per long unit
-  comment_ratchet.py --text-only REF  prints `RESULT code_changed_files=<n> line_shifted_hunks=<n>`
+  comment_ratchet.py --text-only REF  prints `RESULT code_changed_files=<n> line_shifted_hunks=<n>`,
+                                     after one CODE or SHIFTED line per file it counts
   comment_ratchet.py --self-test
 
 tests/doc_claims.py runs `gate` as one arm. A script of its own would add one recording to every
@@ -267,11 +268,14 @@ def text_only(ref):
     code = hunks = 0
     for f in changed:
         a, b = old.get(f), new.get(f)
-        if a is None or b is None:
-            code += 1
-            continue
-        code += code_of(f, a) != code_of(f, b)
-        hunks += shifted_hunks(a, b)
+        changed_code = a is None or b is None or code_of(f, a) != code_of(f, b)
+        shifted = 0 if a is None or b is None else shifted_hunks(a, b)
+        if changed_code:
+            print(f"CODE {f}")
+        if shifted:
+            print(f"SHIFTED {f} {shifted}")
+        code += changed_code
+        hunks += shifted
     print(f"RESULT code_changed_files={code} line_shifted_hunks={hunks}")
     return 0
 
