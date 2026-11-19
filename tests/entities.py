@@ -42370,6 +42370,9 @@ import logging  # noqa: E402
 
 _r10_pkg = Path("custom_components/heatpump_optimizer")
 _r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
+# the package's other shipped files: text a module can read and hand to an evaluator
+_r11_files = {p.relative_to(_r10_pkg).as_posix(): p.read_bytes() for p in sorted(_r10_pkg.rglob("*"))
+              if p.is_file() and p.suffix not in (".py", ".pyc") and "__pycache__" not in p.parts}
 
 
 def _r10_functions(source):
@@ -42494,104 +42497,111 @@ def _r10_unlatched_logs(sources):
     return found
 
 
-def _r11_logger_aliases(sources):
+def _r11_logger_aliases(sources, files=None):
     """``(module, line, binding)`` per way a package line can log through
-    something the barrier does not read. The barrier keys on the text
-    ``_LOGGER``, so the one logger it sees is a module-level
-    ``_LOGGER = logging.getLogger(...)`` used only as ``_LOGGER.<method>(...)``.
-    A use of the module ``logging`` or of the name ``_LOGGER`` is read by
-    allow-list, so a use of either nobody listed is refused rather than
-    missed. The routes to a logger by another spelling are a named set, not
-    an allow-list: the names ``logging``, ``logger``, ``_LOGGER`` and
-    ``warnings``, as an attribute or as text, the module ``warnings``, and
-    code run from text, through its three doors. Refused: a name bound to ``_LOGGER`` or to a
-    ``getLogger``/``getChild`` result; any other ``getLogger``/``getChild``
-    call, bound or inline, ``logging.getLogger`` or a bare ``getLogger``;
-    ``import logging as`` another name, an import of ``_LOGGER``, of a module
-    called ``logging``, or of anything from ``logging`` but its level numbers;
-    the module ``logging`` used other than as ``logging.<level number>`` or
-    a ``logging.getLogger(...)`` call (a call on the root logger, ``logging.Logger``,
-    a rebinding by assignment or walrus, ``getattr(logging, ...)``); the text
-    ``'logging'`` (``__import__``, ``import_module``, ``sys.modules``); an
-    attribute named ``logging``, or ``logger`` (Home Assistant's coordinator
-    exposes the handed-over ``_LOGGER`` so), or ``_LOGGER`` (another module's
-    logger, ``coordinator._LOGGER``, or this one's by ``sys.modules[__name__]``);
-    the text ``'_LOGGER'`` or ``'logger'`` (``globals()['_LOGGER']``,
-    ``getattr(m, 'logger')``); the module ``warnings``, imported, named, as an
-    attribute or as the text ``'warnings'`` (Home Assistant turns on
-    ``logging.captureWarnings``, so ``warnings.warn`` lands as a WARNING
-    record on ``py.warnings``); code run from text, which this check cannot
-    parse, at each of its three doors rather than by spelling: ``exec``,
-    ``eval``, ``compile`` and the namespace ``builtins``/``__builtins__``
-    holding them, as a name, an attribute (``builtins.exec``), text
-    (``getattr(b, 'exec')``, ``__builtins__['exec']``), an import or an
-    import alias (``from builtins import exec as run``), but ``re.compile``
-    through an ``import re`` nothing rebinds; any module outside the vetted
-    roots, imported by statement, ``__import__`` or ``import_module`` of a constant
-    (``marshal``, ``code``, ``runpy``, ``importlib.util``, ``types.CodeType``);
-    and a bytes constant holding a letter, the form a pickle or marshal payload
-    names what it runs by;
-    ``_LOGGER.<method>(...)`` for a method outside the level calls and
-    ``isEnabledFor`` (``_log``, ``handle``, ``makeRecord``); and ``_LOGGER``
-    itself escaping, as an argument, a return value, an element or a bound
-    method, which is how a
-    logger reaches a parameter the barrier cannot name. Not read: a name
-    computed at run time (``import_module('log' + 'ging')``,
-    ``globals()['_LOG' + 'GER']``, ``import_module('mar' + 'shal')``), which
-    no syntactic rule can name; an object reached by walking a namespace's
-    values with no name or text for it (``vars(m).values()``), a value flow
-    rather than a spelling; and a
-    route to Home Assistant's log through its own services
-    (``system_log.write``), a service call this check does not read."""
+    something the barrier does not read.
+
+    Claim: every logger the package reaches from text written in its shipped
+    tree is either a ``_LOGGER.<level>(...)`` call the barrier reads or is
+    refused here. Not claimed: text the package derives at run time by any
+    operation (``+``, ``join``, a decode, ``base64``, an f-string, ``chr``,
+    a name read off an object), whether in package code, inside text it
+    evaluates or in pickle opcodes; text read from outside the shipped tree
+    (configuration, the store, the network); an object reached by walking a
+    namespace's values with no name or text for it (``vars(m).values()``);
+    and Home Assistant's ``system_log.write`` service. Which string a
+    computation yields is undecidable in general, so no static rule can name
+    it; the boundary is the text as written.
+
+    The barrier keys on the text ``_LOGGER``, so the one logger it sees is a
+    module-level ``_LOGGER = logging.getLogger(...)`` used only as
+    ``_LOGGER.<method>(...)``. Refused, by spelling: a name bound to
+    ``_LOGGER`` or to a ``getLogger``/``getChild`` result; any other
+    ``getLogger``/``getChild`` call; ``import logging as`` another name, an
+    import of ``_LOGGER``, of a module called ``logging``, or of anything from
+    ``logging`` but its level numbers; the module ``logging`` used other than
+    as ``logging.<level number>`` or ``logging.getLogger(...)``; an attribute
+    named ``logging``, ``logger`` (Home Assistant's coordinator exposes the
+    handed-over ``_LOGGER`` so), ``_LOGGER`` or ``warnings``; the module
+    ``warnings`` (Home Assistant turns on ``logging.captureWarnings``);
+    ``_LOGGER.<method>(...)`` outside the level calls and ``isEnabledFor``;
+    and ``_LOGGER`` itself escaping, as an argument, a return value, an
+    element or a bound method.
+
+    Refused, by the payload, whatever later runs it: an identifier that names
+    a logger (``LOGGER``, ``logger``, ``logging``, ``warnings`` inside it) in
+    any other place, a keyword, a parameter, a definition, an import alias or
+    module (``dict(_LOGGER=0)`` turns a name into text); and a str or bytes
+    constant, a docstring included, or a file of the package that is not a
+    module, that names one. The constant is read as written and through each
+    evaluator's own front end: ``ast.parse`` (a coding cookie, escapes,
+    adjacent literals, NFKC identifiers) and
+    ``pickletools.genops`` (a pickle's literal opcodes), each result read
+    again. A route that runs text (``exec``, ``typing.get_type_hints``,
+    ``pickle.loads``, any other) needs that text, so the evaluator is not
+    read."""
+    # imported here: a harness execs this function alone (as logflood_shape.py
+    # does the barrier)
+    import hashlib
+    import io
+    import pickletools
     levels = {"debug", "info", "warning", "warn", "error", "exception",
               "critical", "fatal", "log"}
     methods = levels | {"isEnabledFor"}
     numbers = {"NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL"}
     binders = (ast.Assign, ast.AnnAssign, ast.NamedExpr)
-    # each name a logger is reached by, read as an attribute or as text
+    # each name a logger is reached by, read as an attribute
     reached = {"logging", "logger", "_LOGGER", "warnings"}
-    # Code run from text (R11 #3729 round 4) has three doors, and each is shut
-    # in every static spelling, so no new spelling of one stays open. The
-    # builtins that compile text, and the namespace that holds them, are
-    # refused as a name, an attribute, text, an import or an
-    # import alias; ``re.compile`` is read only through an
-    # unaliased ``import re`` that nothing rebinds.
-    door = {"exec", "eval", "compile", "builtins", "__builtins__"}
-    # The third door is an imported module: deny by default. Each root here
-    # was read for an API that runs text or bytes the package hands it as code
-    # in this process, and has none; pickle resolves the callables its bytes
-    # name, and a bytes constant holding a letter is refused below;
-    # subprocess and os run another process, whose log is not Home
-    # Assistant's; Home Assistant's templates render in a sandbox that cannot
-    # reach a module's globals. importlib and types are read member by
-    # member: importlib's util and machinery load code from a file the check
-    # never reads, and types builds a function from a code object.
-    vetted = {"__future__", "aiohttp", "asyncio", "atexit", "bisect", "calendar",
-              "collections", "contextvars", "copy", "dataclasses", "datetime",
-              "difflib", "functools", "hashlib", "hmac", "homeassistant",
-              "inspect", "itertools", "json", "math", "numbers", "numpy",
-              "operator", "os", "pathlib", "pickle", "random", "re", "scipy",
-              "selectors", "statistics", "subprocess", "sys", "threading",
-              "threadpoolctl", "time", "typing", "voluptuous", "weakref"}
-    scoped = {"importlib": {"import_module"},
-              "types": {"MappingProxyType", "ModuleType", "SimpleNamespace"}}
-    own_arm = {"logging", "warnings"}
+    names_one = re.compile(r"LOGGER|[Ll]ogger|logging|warnings")
 
-    def module_door(dotted):
-        # the label a module import is refused by, or None when it is read
-        root, _, rest = dotted.partition(".")
-        if root in own_arm or root in door or root in vetted:
-            return None
-        if root in scoped and not rest:
-            return None
-        return f"import {dotted if root in scoped else root}"
+    def idents(node):
+        # every identifier a node carries: each can become text at run time
+        for field in ("id", "attr", "arg", "name", "asname", "rest", "module"):
+            v = getattr(node, field, None)
+            if isinstance(v, str):
+                yield v
+        for field in ("names", "kwd_attrs"):
+            for v in getattr(node, field, None) or ():
+                if isinstance(v, str):
+                    yield v
+
+    def text_names_one(value):
+        # the text as written, then what each evaluator's own front end reads
+        # out of it, read again: every text read is shorter than the one it
+        # came from, so the recursion ends
+        if names_one.search(value if isinstance(value, str) else value.decode("latin-1")):
+            return True
+        inner = []
+        try:  # ast.parse applies a coding cookie, escapes, adjacent literals, NFKC
+            for n in ast.walk(ast.parse(value)):
+                inner += [s for s in idents(n) if names_one.search(s)]
+                if isinstance(n, ast.Constant) and isinstance(n.value, (str, bytes)):
+                    inner.append(n.value)
+        except Exception:  # not a program: no evaluator of Python runs it
+            pass
+        try:  # a pickle runs each opcode it reads before a bad one, so each counts
+            for _op, arg, _pos in pickletools.genops(io.BytesIO(
+                    value.encode("utf-8") if isinstance(value, str) else value)):
+                if isinstance(arg, (str, bytes)):
+                    inner.append(arg)
+        except Exception:
+            pass
+        return any(v != value and text_names_one(v) for v in inner)
 
     def logger_call(node):
         return isinstance(node, ast.Call) and (
             (isinstance(node.func, ast.Attribute) and node.func.attr in ("getLogger", "getChild"))
             or (isinstance(node.func, ast.Name) and node.func.id == "getLogger"))
 
+    def label(value):
+        # a long text by the hash of its exact bytes: an allowance cannot be reworded
+        raw = value.encode() if isinstance(value, str) else value
+        return repr(value) if len(raw) <= 40 else f"text sha256:{hashlib.sha256(raw).hexdigest()[:16]}"
+
     out = []
+    for name, data in (files or {}).items():
+        if text_names_one(data):
+            out.append((name, 0, label(data)))
     for name, source in sources.items():
         tree = ast.parse(source)
         top = set(map(id, tree.body))
@@ -42604,66 +42614,33 @@ def _r11_logger_aliases(sources):
                     and node.value.func.attr == "getLogger"
                     and ast.unparse(node.value.func.value) == "logging"):
                 canonical_values.add(id(node.value))
-        # each binding of the name ``re``: ``re.compile`` is a pattern only
-        # when every one is an unaliased ``import re``
-        re_binds = [
-            (n, a) for n in ast.walk(tree)
-            for a in (n.names if isinstance(n, (ast.Import, ast.ImportFrom)) else [None])
-            if (a is not None and (a.asname or (a.name.split(".")[0]
-                                                if isinstance(n, ast.Import) else a.name)) == "re")
-            or (a is None and "re" in (
-                [n.id] if isinstance(n, ast.Name) and not isinstance(n.ctx, ast.Load)
-                else [n.arg] if isinstance(n, ast.arg)
-                else [n.name] if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef,
-                                                ast.ClassDef, ast.ExceptHandler,
-                                                ast.MatchAs, ast.MatchStar))
-                else list(n.names) if isinstance(n, (ast.Global, ast.Nonlocal))
-                else [n.rest] if isinstance(n, ast.MatchMapping) else []))]
-        re_module = bool(re_binds) and all(
-            isinstance(n, ast.Import) and a.name == "re" and a.asname is None
-            for n, a in re_binds)
         for node in ast.walk(tree):
             up = parent.get(id(node))
-            if isinstance(node, ast.Import):
+            # the payload arm: identifiers the spelling arms below do not read
+            if not (isinstance(node, ast.Name) and node.id in ("_LOGGER", "logging", "warnings")
+                    or isinstance(node, ast.Attribute) and (
+                        node.attr in reached or isinstance(node.value, ast.Name)
+                        and node.value.id == "logging")
+                    or isinstance(node, ast.alias) and node.name in ("logging", "warnings")
+                    or isinstance(node, ast.ImportFrom)
+                    and (node.module or "").split(".")[0] in ("logging", "warnings")):
+                for s in idents(node):
+                    if names_one.search(s):
+                        out.append((name, getattr(node, "lineno", getattr(up, "lineno", 0)),
+                                    f"{type(node).__name__} {s}"))
+            if isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes)):
+                if text_names_one(node.value):
+                    out.append((name, node.lineno, label(node.value)))
+            elif isinstance(node, ast.Import):
                 for a in node.names:
-                    root = a.name.split(".")[0]
-                    if ((root == "logging" and a.asname) or root == "warnings" or root in door
-                            or (root in scoped and a.asname)):
+                    if (a.name.split(".")[0] == "logging" and a.asname) or a.name.split(".")[0] == "warnings":
                         out.append((name, node.lineno, a.asname or a.name))
-                    elif module_door(a.name):
-                        out.append((name, node.lineno, module_door(a.name)))
             elif isinstance(node, ast.ImportFrom):
                 root = (node.module or "").split(".")[0]
                 for a in node.names:
                     if a.name in ("_LOGGER", "logging", "warnings") or root == "warnings" or (
-                            root == "logging" and a.name not in numbers) or (
-                            a.name in door or root in door) or (
-                            not node.level and root in scoped
-                            and (node.module != root or a.name not in scoped[root])):
+                            root == "logging" and a.name not in numbers):
                         out.append((name, node.lineno, a.asname or a.name))
-                if not node.level and root not in scoped and module_door(node.module):
-                    out.append((name, node.lineno, module_door(node.module)))
-            elif (isinstance(node, ast.Call) and node.args
-                    and isinstance(node.func, (ast.Name, ast.Attribute))
-                    and (node.func.id if isinstance(node.func, ast.Name) else node.func.attr)
-                    in ("__import__", "import_module")
-                    and isinstance(node.args[0], ast.Constant)
-                    and isinstance(node.args[0].value, str)
-                    and not node.args[0].value.startswith(".")
-                    and module_door(node.args[0].value)):
-                # an import by text names its module as plainly as a statement
-                out.append((name, node.lineno, module_door(node.args[0].value)))
-            elif (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
-                    and node.value.id in scoped and node.attr not in scoped[node.value.id]):
-                out.append((name, node.lineno, ast.unparse(node)))
-            elif (isinstance(node, ast.Attribute) and node.attr in door and not (
-                    node.attr == "compile" and re_module
-                    and isinstance(node.value, ast.Name) and node.value.id == "re")):
-                out.append((name, node.lineno, ast.unparse(node)))
-            elif (isinstance(node, ast.Constant) and isinstance(node.value, bytes)
-                    and re.search(rb"[A-Za-z]", node.value)):
-                # a pickle or marshal payload names what it runs in letters
-                out.append((name, node.lineno, repr(node.value)))
             elif isinstance(node, binders):
                 value = node.value
                 targets = node.targets if isinstance(node, ast.Assign) else [node.target]
@@ -42684,10 +42661,7 @@ def _r11_logger_aliases(sources):
                     isinstance(up, ast.Attribute) and up.value is node):
                 out.append((name, node.lineno, f"logging -> {type(up).__name__}"
                             if not isinstance(up, ast.Call) else f"logging -> {ast.unparse(up.func)}"))
-            elif isinstance(node, ast.Constant) and isinstance(node.value, str) and (
-                    node.value in reached | door):
-                out.append((name, node.lineno, repr(node.value)))
-            elif isinstance(node, ast.Name) and (node.id == "warnings" or node.id in door):
+            elif isinstance(node, ast.Name) and node.id == "warnings":
                 out.append((name, node.lineno, node.id))
             elif isinstance(node, ast.Name) and node.id == "_LOGGER" and isinstance(node.ctx, ast.Load):
                 via = up
@@ -42713,6 +42687,13 @@ _R11_LOGGER_HANDOVERS = {
     # only on the success -> failure transition (its last_update_success
     # latch) and at INFO on recovery, so it cannot flood.
     ("coordinator.py", "_LOGGER -> super().__init__"): 1,
+    # Prose docstrings that name a logger, each by the hash of its exact text,
+    # so a reworded or replaced one is read again: none is a program any
+    # evaluator runs (R11 #3729 round 6).
+    ("coordinator.py", "text sha256:1bae1cedbbbd1464"): 1,  # "Run one best-effort cycle step, logging ..."
+    ("learner_progress.py", "text sha256:559299c54c5ae71d"): 1,  # "At DEBUG: why ``what`` took no sample ..."
+    ("log_latch.py", "text sha256:82178ac44c5d08e8"): 1,  # "Whether condition ``key`` holds, logging ..."
+    ("setpoint_check.py", "text sha256:4271bd2a011ac6e7"): 1,  # "The standing warnings about stored ..."
 }
 
 
@@ -42818,7 +42799,12 @@ _r10_log_planted = _r10_unlatched_logs({
                  "def at_star(self, a):\n    _LOGGER.log(*a)\n"
                  "def at_kwargs(self, k):\n    _LOGGER.log(**k)\n",
 })
-_r11_aliases_found = _r11_logger_aliases(_r10_sources)
+_r11_aliases_found = _r11_logger_aliases(_r10_sources, _r11_files)
+# a shipped file that is not a module is read as text, a pickle by its opcodes;
+# a binary one with no logger name in it is not refused
+_r11_files_plant = {"strings.json": b'{"x": "_LOGGER.error(1)"}', "icon.png": b"\x89PNG\r\n",
+                    "p.pickle": b"\x80\x04\x95\x0b\x00\x8c\x07logging\x94."}
+_r11_files_planted = {(m, b) for m, _l, b in _r11_logger_aliases({}, _r11_files_plant)}
 _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n"
              "from logging import DEBUG\n"
@@ -42895,13 +42881,15 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "pickled.py": "import pickle\ndef f():\n"
                   "    pickle.loads(\"cbuiltins\\nexec\\n(S\\\"_LOGGER.error(x)\\\"\\ntR.\".encode())\n",
     # R11 #3729 round 6, the class: the payload is read, not the evaluator.
-    # Text is read as written, in NFKC form, and through each evaluator's own
-    # front end: an escape inside evaluated text, a fullwidth identifier, a
-    # coding cookie and adjacent literals are each refused
+    # Text is read as written and through each evaluator's own front end: an
+    # escape inside evaluated text, a fullwidth identifier, a coding cookie,
+    # adjacent literals and an escape in a pickle's string opcode are each refused
     "escaped.py": "def f():\n    eval(\"globals()['_\\\\x4cOGGER'].error('x')\")\n",
     "fullwidth.py": "def f():\n    exec('_\\uff2c\\uff2f\\uff27\\uff27\\uff25\\uff32.error(1)')\n",
     "cookie.py": "def f():\n    exec(b'# coding: utf-7\\n+AF8ATABPAEcARwBFAFI-.error(1)')\n",
     "joined.py": "def f():\n    exec(\"globals()['_LOG' 'GER'].error(1)\")\n",
+    "pickesc.py": "import pickle\ndef f():\n"
+                  "    pickle.loads(b\"cbuiltins\\nexec\\n(S'_\\\\x4cOGGER.error(1)'\\ntR.\")\n",
     # an identifier turns into text at run time: a keyword, a parameter, a
     # definition, an import's module
     "idents.py": "from homeassistant.util.logging import catch_log_exception\n"
@@ -43000,6 +42988,7 @@ R.check(
                                  ('fullwidth.py', "'_\uff2c\uff2f\uff27\uff27\uff25\uff32.error(1)'"),
                                  ('cookie.py', 'text sha256:e5560473c6647532'),
                                  ('joined.py', '"globals()[\'_LOG\' \'GER\'].error(1)"'),
+                                 ('pickesc.py', 'text sha256:bc18f7cf581cd48b'),
                                  ('idents.py', 'ClassDef MyLogger'),
                                  ('idents.py', 'ImportFrom homeassistant.util.logging'),
                                  ('idents.py', 'arg logger'), ('idents.py', 'keyword _LOGGER')}
@@ -43007,9 +42996,12 @@ R.check(
     | {f"logging.{n}" for n in ("NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR",
                                 "CRITICAL", "FATAL")}
     # precondition: the package is flat, so the glob read every module
-    and len(list(_r10_pkg.rglob("*.py"))) == len(_r10_sources),
+    and len(list(_r10_pkg.rglob("*.py"))) == len(_r10_sources)
+    and _r11_files_planted == {(k, repr(v)) for k, v in _r11_files_plant.items() if k != "icon.png"}
+    # precondition: the shipped files that are not modules were read
+    and len(_r11_files) >= 10,
     f"refused {_r11_alias_verdict(_r11_aliases_found)}; planted read {sorted(_r11_aliases_planted)}; "
-    f"unread surface {sorted(_r11_unread)}",
+    f"unread surface {sorted(_r11_unread)}; files planted {sorted(_r11_files_planted)}",
 )
 
 # THE RECORD JOB'S WINDOW CACHE WIRING (R10-RECORD-API-BUDGET, M1). The cache is
