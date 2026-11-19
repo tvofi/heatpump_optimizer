@@ -1,0 +1,44 @@
+{
+ "0c3e91a6a349409a": {
+  "site": "flow_lift.py:47",
+  "src": "pre",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+  "baseline": "bias=3.638040 K",
+  "mutant": "bias=4.689280 K",
+  "null_delta": "0.0 K",
+  "verdict": "finding",
+  "symbol": "flow_lift:FLOW_BIAS_ALPHA read in FlowBias.observe (lines 194-195)",
+  "reach": "every fold after the 5th sample via coordinator.py:986",
+  "should_fail": "tests/doc_claims.py:1949-1956 reads the constant instead of pinning 0.1; tests/features.py exercises the symbol",
+  "input": "5 residuals +2 K then 5 of +6 K",
+  "direction": "bias up 3.638 -> 4.689 K"
+ },
+ "3885e472b8297a90": {
+  "site": "flow_lift.py:183",
+  "src": "pre",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_3885e472.py",
+  "baseline": "bias=2.0 K samples=3",
+  "mutant": "bias=nan K samples=4",
+  "null_delta": "0.0 K",
+  "verdict": "non-finding (unreachable through production)",
+  "symbol": "flow_lift:FlowBias.observe line 183 non-finite guard",
+  "reach": "0: observe_temps (flow_lift.py:169-173) maps non-finite supply to None and coordinator.py:965-966 returns; curve_supply_temp (flow_lift.py:114-117) returns None for non-finite curve (read, not run); reach_nonfinite_supply_after_observe_temps=0",
+  "should_fail": "none through production; only a direct unit call separates",
+  "input": "observe(NaN, 25.0) after 3 samples",
+  "direction": "bias 2.0 -> nan on direct call only"
+ },
+ "a0b3b28854fa500c": {
+  "site": "flow_lift.py:188",
+  "src": "c2",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_a0b3b288.py",
+  "baseline": "bias=3.000000 K",
+  "mutant": "bias=3.666667 K",
+  "null_delta": "0.0 K",
+  "verdict": "finding",
+  "symbol": "flow_lift:FlowBias.observe line 188 warm-up boundary",
+  "reach": "reach_samples_eq_min=1: every plant passes samples==FLOW_BIAS_MIN_SAMPLES once",
+  "should_fail": "tests/doc_claims.py:1949-1956 loops FLOW_BIAS_MIN_SAMPLES samples but never folds one past the boundary",
+  "input": "five +2 K residuals then +12 K (6th sample)",
+  "direction": "bias up 3.0 -> 3.667 K"
+ }
+}
