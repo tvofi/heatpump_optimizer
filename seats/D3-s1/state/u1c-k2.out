@@ -177,3 +177,4 @@
 2026-11-19T06:39:47Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_warm_seeded GUARD_OFF 6fee1acd L2360 by=- ran=13 wall=1644.5s
 2026-11-19T06:57:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.seasonal_inlet_temp GUARD_OFF 855229b8 L835 by=- ran=15 wall=1872.6s
 2026-11-19T07:03:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_identifiability CMP_BOUND 72abb7dd L643 by=- ran=12 wall=1664.7s
+2026-11-19T07:06:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP f0477740 L1538 by=- ran=16 wall=1663.3s
