@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index c54290f544..b52e0ee778 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -5086,7 +5086,7 @@ class HeatPumpOptimizer:
+                     headroom,
+                 )
+             )
+-            starts.append(_lower_bound_start(bounds))
++            pass
+         descent = _descent_pair(self, objective, objective_batch)[0]
+         try:
+             res, relaxed = _relaxed_plans(self, rescope, scope, headroom, starts, dhw_plan)

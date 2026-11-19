@@ -1,2 +1,4 @@
-RED bdf096245858f5a381b67719c4174d7a2880974d pending: none red: gate
-rc=1
+GREEN ee9bfa8ac5c2c5cc5454f3c636cb627bcb29d565 pending: none red: none
+budget-raise-gate / budget-raise-gate completed failure 2026-11-19T11:04:36Z
+
+[exited with code 0]
