@@ -28,9 +28,15 @@ Departures from the note, each made for a measured reason and each open to the r
 
 ## Head
 
-`684f554faf338e82ef5ac7251533d4701383effe`, measured 2026-11-17 (UTC) on a merge base of `5e2ef89b4e` (`git merge-base origin/main HEAD`), `origin/main` at `5e2ef89b4e` when this was written. It is `36af54c383` with `origin/main` merged in (`65be05a2b1`: `tests/features.py`, both sides appended a block, both kept; `tests/golden/claimed_drift.txt`, main's v10.0.3 stamp header and restored may-drift entries, this branch's two claims, the two may-drift entries suspended again for them) and P2's four mutants re-anchored (`684f554faf`). The production delta is `36af54c383`'s: the added and removed lines of `git diff origin/main HEAD -- custom_components/` equal those of `git diff 2d7161a4b7 36af54c383 -- custom_components/` (`diff` of the two line sets exits 0). Figures below not re-taken at this head name the head they ran at.
+`6da56a3eae049f8400e3f63e17efbae50e56b85f`, measured 2026-11-19 (UTC) on a merge base of `9fe63d00b5` (`git merge-base origin/main HEAD`), `origin/main` at `1723f9fdc9` when this was written (`git merge-tree --write-tree origin/main HEAD` clean with the merge drivers installed, so no second merge). Resumed under the orchestrator's ruling on `refs/heads/inbox/r11-outside-honest-dhw-runs`, INBOX line 2 (2026-11-18T14:45:33Z, mandate 6893738184): from handoff-wip `f33fea5a`, code tip `bafb2d00f7`, which holds `c5111367a9`, `ddc4090264` (`454585e039`, `9de00356af`, `21e945ca7e`, `3e0b02547a`), `2c0f244bba` and the shard 2/8 and 4/8 pins; nothing it carries is dropped. Commits since, first parent:
+- `fc35ed57ac`: `dhw_planner.py:617` (`_StoreProgram.plan.place`'s charge bound) and `:699` (`commit_charges`' walk ceiling) each killed by a check by value (`## Mutation proof`).
+- `748ddfb59d`: `origin/main` `9fe63d00b5` merged with the drivers. `tests/golden/claimed_drift.txt` conflicted (claims-for 10.0.3 here, 10.1.0 on main after the stamp emptied the list): main's file with this branch's two claims (`cycling_cost`, `everything_on`) and the suspensions of their may-drift entries restated; R11-OUTSIDE-HONEST-METERED-FLOOR's `coord_*` claims stay emptied (merged and stamped). `tests/features.py` (both blocks kept), `tests/structure_budgets.json` and `tests/closures.json` merged under the drivers; `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, no budget raised.
+- `e83047f512`: the combi slack check of `2c0f244bba` repaired (`## Red checks`).
+- `c007c16661`, `6355738de5`, `6da56a3eae`: one unsharded `tests/mutation_table.py --pin-killed --base origin/main`, serially, then its survivors (`## Unpinned sites`). Neither drive deleted a committed pin (`git status` listed no ` D` entry after each).
 
-prepr: passed rc=0 at 684f554faf338e82ef5ac7251533d4701383effe (`PREPR_SKIP_CLOSURES=1`; the last run after a text-only body edit with `PREPR_SKIP_CODE=1`).
+No production line changes in this round: `git diff bafb2d00f7 6da56a3eae -- custom_components/` adds and removes exactly main's lines (`git diff 99a4010e47 9fe63d00b5 -- custom_components/`): `diff` of the two sorted added-and-removed line sets exits 0, 423 lines each.
+
+prepr: passed rc=0 at 6da56a3eae049f8400e3f63e17efbae50e56b85f (`PREPR_SKIP_CLOSURES=1`).
 
 ## Mutation proof
 
@@ -56,6 +62,14 @@ Sixteen mutants named for the design's mutation targets, `python3 -I tools/audit
 
 Every mutant of the diff's added lines (the contract's first 40 raised to all): `mutant_run.py --diff 2d7161a4b7...HEAD --path <file> --cmd <CMD A> --max-mutants 400 --report-only` per production file at `2231093947`, 165 mutants of `dhw_planner.py`, 46 of `runs.py`, 26 of `optimizer.py`, rc 0 each: 18, 14 and 2 survivors. CMD B, group A's leaf checks of `runs.commit` (its block from its section to `_HSR_STEPS = np.arange(96)`), over `runs.py`'s 46: 6 survivors, so 10 of CMD A's 14 are `commit`'s own lines, which the group's block does not drive and group A's does. Three more were killed after that drive by checks added since (`runs.py`'s two flags, the build's call of `whole_charges`; the last re-run alone as a spec: `KILLED SUPPRESSION_WIRING`). The 20 lines that still hold a survivor are each triaged under `## Unpinned sites`.
 
+## Mutation proof (this round)
+
+This round, each run with `tools/audit/seat/features_block.py` over the group's block (block-mode baseline: the inherited `combi: the exchange leaves its rounds ...` failure, which passes in the full script) and each mutant applied by hand and reverted:
+- `dhw_planner.py` `_StoreProgram.plan.place` `t <= self.ceilings[k] - _STORE_MARGIN_K + 1e-9` -> `<`: fails `the store program keeps a charge that ends exactly on its charge bound ...` (on 5-minute steps a floor-level charge onto step 0's exact bound starts the plan there; the fill to the ceiling is more than the tolerance under the floor and cannot stand in). At 15-minute steps the same tie is equivalent: the fill stands in 4e-10 kW cheaper and the plan is bitwise the same (a scratch probe, both levels).
+- `commit_charges` `np.maximum(limits[1], walk[1:])` -> `(limits[1])`: fails `the store program's ceiling is the higher of the maximum and the uncommitted plan's own walk ...` (the plan charging steps 0-2 past a 55 degC maximum ships as given; with the mutant the charge moves to step 7).
+- `commit_charges`' guard: `np.any(plan > 0.0)` -> `>=` fails `commit_charges ships the plan given, unwalked and with the store program unasked ...`; `ctx.c_dhw <= 0.0` -> `<` raises `ZeroDivisionError` in `_tank_decay` at that check.
+- `optimizer.py` `_combi_flux_exchange` `kept = ... <= ...` -> `<`: the full `tests/features.py` run fails 1 of 5939, the combi slack check, on its exact-slack conjunct alone (`(True, True, True, False, True, True)`); unmutated, `ALL 5939 FEATURE CHECKS PASSED`.
+
 ## Null control
 
 - A solve that plans no runs: `optimizer._charge_runs` returns `None` and `commit_charges` returns the plan object it was given (block check 3). The harness's `fixtures` arm with the planner handed no `ChargeRuns` prints, on this head, the lines the same harness prints in a `git archive` copy of `2d7161a4b7` (Figures), and `env_drift.py --all` finds 54 of 56 fixtures byte-identical to the base.
@@ -70,6 +84,10 @@ Every mutant of the diff's added lines (the contract's first 40 raised to all): 
 - Suppression: on a solve that plans no runs the mask is returned as it is.
 
 ## Figures
+
+- At `6da56a3eae`: `python3 tests/closure.py select --diff 9fe63d00b5 --workdir <dir>`: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=9fe63d00b5 PYTHONPATH=tests/hastub ./tests/run.sh`: `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN`, exit 0 (`ALL 5940 FEATURE CHECKS PASSED`, `ALL 2732 ENTITY CHECKS PASSED`, `ALL 116 STRESS CHECKS PASSED`, `STRUCTURE RATCHET PASSED`). `node .claude/workflows/check-wave-script.mjs`: `295 passed, 0 failed`. `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures, fast, governance or instrument red predicted against 9fe63d00b59f`.
+- Pin drives: `tests/mutation_table.py --pin-killed --base origin/main` at `e83047f512`: `PIN KILLED: 25 pinned, 9 left unpinned`; its baseline `tests/features.py: rc=0 failed=0`, the `NULL_COMMENT` null control survived every driver. At `bafb2d00f7` the same command refused, `MUTATION TABLE INCONCLUSIVE` (`baseline tests/features.py: rc=1 failed=2`, the combi slack check). `--scripts tests/features.py` at `6355738de5`: `PIN KILLED: 3 pinned, 0 left unpinned`.
+- Float ties behind the triage rows, on the block's rig (`_hdr_rig(t0=50.0, draws=0.5)`, step 0, a scratch probe bisecting step 0's ceiling): the tail's level against `min_run_power` 0.6 kW steps from 0.5999999999999979 to 0.6000000000000008 between adjacent ceilings (26 ulps of 0.6 apart, the tie never computed); `_to_ceiling`'s share steps from 0.9999999999999996 to 1.0000000000000002; a coast landing exactly on the ceiling less the margin (room 0.0) gives level 0.0, fills False.
 
 All on one box (x86_64), at `36af54c383993b5d7bcdffe8b83e1e9ca76b17dc` unless named (the merge and the re-anchor change no production file; the lines naming `684f554faf` were re-taken there) (the harness arms ran at `e9c1d2291d`, before that rename); base `2d7161a4b7`, read from a `git archive` copy with this head's harness file copied in (sha1 `33f36cbb77d490508b2569434ce20616386f5eca`).
 
@@ -95,9 +113,9 @@ All on one box (x86_64), at `36af54c383993b5d7bcdffe8b83e1e9ca76b17dc` unless na
 - Scope at this head: `python3 tests/closure.py select --diff 5e2ef89b4e --workdir <dir>`: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=5e2ef89b4e ./tests/run.sh` at `684f554faf`: `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN`, exit 0 (`ALL 5864 FEATURE CHECKS PASSED`, `ALL 2731 ENTITY CHECKS PASSED`, `ALL 116 STRESS CHECKS PASSED`). Before the merge, `python3 tests/closure.py select --diff 2d7161a4b7 --workdir <dir>`: 27 scripts run, 6 scoped out. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=2d7161a4b7 ./tests/run.sh` at `2231093947`: 24 scripts passed and `tests/features.py`, `tests/entities.py`, `tests/typing_ruler.py` failed (`## Red checks`); the three alone at `9c4f723721`: `ALL 5812 FEATURE CHECKS PASSED`, `ALL 2723 ENTITY CHECKS PASSED`, `ALL 9 typing-ruler checks PASSED`, exit 0 each.
 - `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures, fast, governance or instrument red predicted against 2d7161a4b709`, and 79 unpinned sites (`## Unpinned sites`).
 
-<!-- figure-block: scope-line mb=5e2ef89b4e7348b190aa917dc032da73ba04998e head=684f554faf338e82ef5ac7251533d4701383effe -->
+<!-- figure-block: scope-line mb=9fe63d00b59f100aea67267ddddc95522e164aa1 head=6da56a3eae049f8400e3f63e17efbae50e56b85f -->
 ~~~text
-MODE: FULL -- every test script runs, nothing is scoped out.
+MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 ~~~
 <!-- /figure-block -->
 
@@ -105,115 +123,42 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 Architecture score: dS +0.0000 NULL
 
+At `6da56a3eae`: `python3 tools/audit/archscore/score.py --diff 9fe63d00b5` prints the line above.
+
 `python3 tools/audit/archscore/score.py --diff 2d7161a4b7` at the head. `python3 tests/structure.py`: `methods_over_200` 7 to 6, recorded (the linear program's free walk moved to `_DhwPlanContext.coast`); no metric up.
 
 ## Unpinned sites
 
-- `custom_components/heatpump_optimizer/dhw_planner.py:318 CONST`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:324 CONST`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:325 CONST`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:330 CONST`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:347 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:349 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:351 CMP_BOUND`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:352 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:358 CMP_BOUND*3`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:360 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:368 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:370 CMP_BOUND`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:373 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:464 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:551 CLAMP_DROP`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:553 CLAMP_DROP`: written triage: a survivor (the COP table two knots longer) is equivalent: the extra rows are never interpolated to; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/dhw_planner.py:563 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:571 CMP_BOUND*2`: written triage: a survivor (share >= 0) differs only for a tank exactly on its mark, where the fill's level is 0 and the floor test refuses it; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/dhw_planner.py:580 CMP_BOUND`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:590 CMP_BOUND`: written triage: survivors (the floor's 1e-9 slack, its boundary) are a tie of measure zero; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/dhw_planner.py:591 CMP_BOUND`: written triage: a survivor (level > min_run_power) is a tie of measure zero; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/dhw_planner.py:598 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:615 CMP_BOUND*3`: written triage: survivors (the floor's boundary; cell 0): a tie of measure zero, and cell 0 lies a kelvin under every floor; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/dhw_planner.py:616 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:617 CMP_BOUND`: written triage: survivors (the ceiling's boundary and its 1e-9 slack) are a tie of measure zero; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/dhw_planner.py:618 CLAMP_DROP`: written triage: a survivor (clip to cell 1): cell 0 lies a kelvin under every floor and is never arrived in; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/dhw_planner.py:618 RETURN_DEL`: written triage: a survivor (clip to cell 1): cell 0 lies a kelvin under every floor and is never arrived in; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/dhw_planner.py:624 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:629 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:630 BOOLOP`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:630 CMP_BOUND`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:633 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:644 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:646 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:649 RETURN_DEL`: written triage: a survivor (the closing return None) is equivalent, the function ends there; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/dhw_planner.py:677 CMP_BOUND*3`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:677 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:679 BOOLOP`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:679 CMP_BOUND`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:679 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:683 CLAMP_DROP`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:684 CLAMP_DROP`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:688 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:691 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:693 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:697 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:699 CLAMP_DROP`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:702 CMP_BOUND*2`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:704 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:1950 CMP_BOUND`: written triage: a survivor (gaps >= the tolerance): the base's comparison with its literal named, a tie of measure zero; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/optimizer.py:207 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:209 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:2049 CONST`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:2083 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:2087 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:2094 GUARD_OFF`: written triage: a survivor (atol 1e-5): the base's convergence tolerance on a line this diff reflowed; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/optimizer.py:2097 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:2106 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:2108 CMP_BOUND`: written triage: a survivor (<) is a tie of measure zero; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/optimizer.py:2109 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:155 CLAMP_DROP`: killed by group A's leaf checks of `runs.commit` (Mutation proof, CMD B); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:156 CLAMP_DROP`: written triage: a survivor (clip to cell 1): the base's clip, moved into commit's cell rule; cell 0 is the band's far edge; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/runs.py:156 RETURN_DEL`: written triage: a survivor (clip to cell 1): the base's clip, moved into commit's cell rule; cell 0 is the band's far edge; the line's other mutants are killed
-- `custom_components/heatpump_optimizer/runs.py:159 CMP_BOUND`: killed by group A's leaf checks of `runs.commit` (Mutation proof, CMD B); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:202 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:217 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:218 CLAMP_DROP`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:219 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:221 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:222 CLAMP_DROP`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:224 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:229 RETURN_DEL`: killed by group A's leaf checks of `runs.commit` (Mutation proof, CMD B); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:254 CMP_BOUND`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:256 CMP_BOUND`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:259 CMP_BOUND`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:264 GUARD_OFF`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:272 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:282 CMP_BOUND`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/runs.py:284 RETURN_DEL`: killed by the group's block (Mutation proof, CMD A); pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:546` (no site of step 6d's): written triage: a survivor (the assert) is a typing narrowing with no behaviour
-- `custom_components/heatpump_optimizer/dhw_planner.py:573` (no site of step 6d's): written triage: a survivor (the level where there is no fill) is read only where a fill was taken
-- `custom_components/heatpump_optimizer/dhw_planner.py:605` (no site of step 6d's): written triage: a survivor (the grid one table knot narrower): the top kelvin is headroom over every ceiling
-- `custom_components/heatpump_optimizer/dhw_planner.py:610` (no site of step 6d's): written triage: a survivor (the origin's cost 1.0) is a constant on every path, so the cheapest is the same
-- `custom_components/heatpump_optimizer/dhw_planner.py:692` (no site of step 6d's): written triage: a survivor (the step of a level refusal): the step is read only for a start refusal
-- `custom_components/heatpump_optimizer/runs.py:60` (no site of step 6d's): written triage: a survivor: a type alias, read by annotations only
-- `custom_components/heatpump_optimizer/runs.py:64` (no site of step 6d's): written triage: a survivor: a type alias, read by annotations only
-- `custom_components/heatpump_optimizer/runs.py:266` (no site of step 6d's): written triage: a survivor (the continue): no destination arrives with no finite cost in the block's cases
+none added by this diff at the head: every site the two drives found is pinned under `tests/mutation_ledger/killed_by/` or triaged under `tests/mutation_ledger/survivor_triage/`. Enumerator: `tests/mutation_table.py --pin-killed --base origin/main` at `6355738de5` drove `3 new unpinned site(s)` and left 0. The survivors this round, each with its disposition:
+- `dhw_planner.py:617 CMP_BOUND` (`_StoreProgram.plan.place`), `:699 CLAMP_DROP` (`commit_charges`): killed by value (`## Mutation proof (this round)`), pinned.
+- `dhw_planner.py:677 CMP_BOUND*3` (`commit_charges`' guard): killed (one by the earlier block, two by the new early-return check), pinned by the `--scripts tests/features.py` drive.
+- `dhw_planner.py:571 CMP_BOUND*2` (`_StoreProgram._to_ceiling`): triaged equivalent, `_StoreProgram._to_ceiling.CMP_BOUND.83613a48.json`.
+- `dhw_planner.py:591 CMP_BOUND` (the tail's minimum run power): triaged equivalent, `_StoreProgram._actions.fill.CMP_BOUND.d335b51b.json`.
+- `dhw_planner.py:618 CLAMP_DROP` (`place`'s clip): triaged equivalent, `_StoreProgram.plan.place.CLAMP_DROP.ea9b6ec1.json`.
+- `dhw_planner.py:702 CMP_BOUND` (`plan < floor` -> `<=`; the line's `>=` is killed): triaged equivalent, `commit_charges.CMP_BOUND.a8e7dc9b.json`.
+- `dhw_planner.py:590` and `:616`, the survivors the ruling names from shard 1: triaged by `2c0f244bba` (`_StoreProgram._actions.fill.CMP_BOUND.f5054d73.json`, `_StoreProgram.plan.place.CMP_BOUND.8e6c71cd.json`); `optimizer.py:2106` (`_combi_flux_exchange`'s `<=`): killed, the combi slack check (`## Red checks`).
 
 ## Red checks
 
-none open at the head. Three scripts of the scoped gate went red on a commit of this branch (`2231093947`), each repaired before the handoff:
-- `tests/features.py`: seven checks outside the group's block (the combi flux census reading the linear program's source, and six checks of the duty-switch block whose days made no priced switch once hot water was committed). Cheaper detector: none; the block that failed is the cheapest reader of those solves, about ten minutes of the script's fifteen.
-- `tests/entities.py`: the P2 owners registry's disposition for the tolerance literal in `_dhw_shortfall`, stale once the literal was named. Cheaper detector: the script itself, under two minutes; it was in the scoped set and was run late, after the mutation drives, which is the order's fault and not the check's.
-- `tests/typing_ruler.py`: one `arg-type` on the exchange's shortfall. Cheaper detector: the same mypy on the three changed files, under two minutes; not run before the gate.
+Owed set: `python3 tools/audit/seat/merge_train.py owed-reds`. Red at `c5111367a9` and in that set:
+- `governance / wave-script` (job 134481388414): `249 passed, 6 failed`, the R11-ARCH-OBJECTIVE checks of the P3 plan stage. The job restored the check source from `origin/main` (`2 file(s) differ from the pull request's copy`) and ran it against this branch's older copy of the workflow it reads; main's newer copy is in this head through `748ddfb59d`, and at `6da56a3eae` the same command prints `295 passed, 0 failed`. Cheaper detector: the same `node` command, under two seconds, on a branch behind main; a merge of main was the repair, and the train re-merges anyway. No countermeasure.
+- `pr-contract / pr-contract` (job 134511477415): `CARRY-AUDIT: ... 4 bad destination(s)`: four carries named R11-OUTSIDE-HONEST-METERED-FLOOR and R11-OUTSIDE-HONEST-STARTS-RUNS-P3, both carries-open. Each re-routed: dismissed where built here or measured as at the base, the producer keeping the one open finding, since `carry_audit.py check --pr-group` names no live group after this one (`## Forward-carry`, `## Friction`). Cheaper detector: `tools/pr/prepr.sh`'s body step, which runs the same audit before the push; the destinations closed after that body was written.
+- `tests / fast (3.14)` (job 134348073106, at `46ca7b5a5b`): `1 of 5864 FEATURE CHECKS FAILED`, `a solve that prices a stop commits both descents and ships the lower`: with the hot water committed as runs the mild day at 2 degC left the operand's descent alone 0.0065 above the shipped plan under numpy's no-AVX dispatch (Nehalem class), inside the check's 0.01; the merge base keeps 0.061 there. Repaired by `21e945ca7e` (carried in this head): the mild day moves to 1 degC, where the gap is 0.18 in all four kernel classes measured (native, Haswell, Sandybridge, Nehalem). Green at `c5111367a9` (job 134481776136) and in the scoped gate at this head (`ALL 5940 FEATURE CHECKS PASSED`). Cheaper detector: `tools/audit/seat/cloud-setup.sh --kernels <the check's command>`, which runs a solve's check under each kernel class CI's runners load; it existed and was not run on that check before the push. No new countermeasure: the instrument is the countermeasure, and `cloud-setup.sh --check` names it at every seat's setup.
+- `tests / typing` (on an earlier commit of this branch, `2231093947`): one `arg-type` on the exchange's shortfall, repaired before the previous handoff; green at `c5111367a9` (job 134481776257) and `ALL 9 typing-ruler checks PASSED` in the scoped gate at this head. Cheaper detector: the same mypy over the three changed files (`tests/typing_ruler.py` in the scoped set, 23 s in this round's pin-drive baseline); it was run late, not before that push. No countermeasure: the scoped gate already runs it.
+- `tests / mutation` (job 134481388649): the unpinned sites this diff added. Repaired: `## Unpinned sites`. Cheaper detector: none cheaper than the pin drive itself (hours on this box).
+
+New at this round's commits, before the handoff: `tests/features.py` red at `bafb2d00f7` (`2c0f244bba`'s combi slack check, 1 of 5939 in the full script, passing in block mode). Causes: the check calibrated its slack on one solve and applied it to the next, took the last two shortfalls of the whole solve rather than the exchange's, and read the plan that ships as the last round's, where an exchange that settles hands back the round before the one that repeats it; its float-short slack stepped the slack, not the sum. Repaired in `e83047f512`. Cheaper detector: the full `tests/features.py` (15 minutes) instead of `features_block.py`, whose block-mode solve settles differently; that seat ran only the block. No countermeasure built: the full script is already the gate's.
 
 ## Forward-carry
 
-- R11-OUTSIDE-HONEST-STARTS-RUNS-P2 merged (pull request #3693) with `dev/audit/harnesses/r11_honest_starts_runs_mutants.json`; four of its 54 entries named `runs.py` lines this group rewrites, and on the merge of `origin/main` into this head their `old` text occurred 0 times in `runs.py`: `OUT_OF_BAND_PENALTY` (now the fine in `commit`'s `cells`), `START_COST_EDGE` (now `advance`'s `c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts, _, _, paid in took]) + extra`), `REV3_TIE_NOT_ASKED_SIDE_OFF` and `REV3_TIE_ASKED_SIDE_OFF` (both halves now `runs.tie_break`'s return). Re-anchored in this pull request, same mutation on the moved line (Figures). Enumerator: the entries of that file whose `old` occurs other than once in its `file`; 4 at the merge, 0 after. R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (pull request #3697) carries the harness forward and drives the same spec: it reads the re-anchored entries once this merges. Carry: R11-OUTSIDE-HONEST-STARTS-RUNS-P3
+- R11-OUTSIDE-HONEST-STARTS-RUNS-P2 merged (pull request #3693) with `dev/audit/harnesses/r11_honest_starts_runs_mutants.json`; four of its 54 entries named `runs.py` lines this group rewrites, and on the merge of `origin/main` into this head their `old` text occurred 0 times in `runs.py`: `OUT_OF_BAND_PENALTY` (now the fine in `commit`'s `cells`), `START_COST_EDGE` (now `advance`'s `c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts, _, _, paid in took]) + extra`), `REV3_TIE_NOT_ASKED_SIDE_OFF` and `REV3_TIE_ASKED_SIDE_OFF` (both halves now `runs.tie_break`'s return). Re-anchored in this pull request, same mutation on the moved line (Figures). Enumerator: the entries of that file whose `old` occurs other than once in its `file`; 4 at the merge, 0 after. R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (pull request #3697) carries the harness forward and drives the same spec: it reads the re-anchored entries once this merges. Carry: dismissed: built in this pull request (the four entries re-anchored, Figures); the harness's reader has merged
 - The settle and the unengaged combi double heating are not built (the note's routing: a group of their own on the candidate stage's seam). `combi` arm: after B the engaged combi fixture ships no combined step under the floor; the unengaged one ships 1, as the base does. Carry: R11-OUTSIDE-HONEST-DHW-RUNS (decision: orchestrator, the note's Decisions routed)
 - The clamped tail, test 7's figures (`tail` arm): the start count of the combined draw is the same with the tail allowed and refused on all three installs and the combi fixture, so it saves no start there. Carry: R11-OUTSIDE-HONEST-DHW-RUNS (decision: owner, the note's Decisions routed)
-- On the fixed-speed install of `r11_honest_starts_runs.py` (floor 5.5 kW) the planner's run power, 0.8 of the pump's maximum, is under the floor, so the commit stage returns the plan as it is and the optimizer's projection raises it, as at the base (`tail` arm: 4 steps under the floor as planned, 0 as shipped). The floor's value is R11-OUTSIDE-HONEST-METERED-FLOOR's. Carry: R11-OUTSIDE-HONEST-METERED-FLOOR
-- On the base and the head alike the two-descent solve scores above one of its arms alone on some days (the scan under Figures: base at -6 degC `both 43.2343, operand 42.8717`; head at -2 degC `both 31.4801, operand 31.4193`), so "ships the lower" holds on the days the block reads and not on every day. Not this group's seam (the candidate stage). Carry: R11-OUTSIDE-HONEST-STARTS-RUNS-P3
+- On the fixed-speed install of `r11_honest_starts_runs.py` (floor 5.5 kW) the planner's run power, 0.8 of the pump's maximum, is under the floor, so the commit stage returns the plan as it is and the optimizer's projection raises it, as at the base (`tail` arm: 4 steps under the floor as planned, 0 as shipped). The floor's value is R11-OUTSIDE-HONEST-METERED-FLOOR's. Carry: dismissed: measured here as at the base; the floor's value is owned by a group that merged as pull request #3670
+- On the base and the head alike the two-descent solve scores above one of its arms alone on some days (the scan under Figures: base at -6 degC `both 43.2343, operand 42.8717`; head at -2 degC `both 31.4801, operand 31.4193`), so "ships the lower" holds on the days the block reads and not on every day. Not this group's seam (the candidate stage), and no live group follows this one on it (`carry_audit.py check --pr-group`: none live after this group). Carry: R11-OUTSIDE-HONEST-DHW-RUNS (decision: orchestrator, the producer keeps it until a candidate-stage group is cut)
 
 ## Friction
 
 - `fixer.md`: `unclear`: step 2: `prepr.sh`'s drive mutates the first 40 added lines in file order, which on this diff is `dhw_planner.py`'s first 40 of 237; the survivors that mattered (the build's call of `whole_charges`, the kernel's two flags) were past it and found only by raising `--max-mutants`. Carry: dismissed: one fixer's reading, no second instance
 - `gate-scoping.md`: `cost`: `tests/run.sh` keeps no log of a failed script (the lane log is overwritten), so `tests/features.py`'s seven failures cost a second 15-minute run to read. Carry: dismissed: one occurrence, not measured against a second
-- `finding-propagation.md`: `unclear`: a dependency on a handed-off, unmerged predecessor (P2's mutants file) has no tree to land a carry in; it is named in this body only. Carry: R11-OUTSIDE-HONEST-STARTS-RUNS-P3
+- `finding-propagation.md`: `unclear`: a dependency on a handed-off, unmerged predecessor (P2's mutants file) has no tree to land a carry in; it is named in this body only. Carry: dismissed: one occurrence, its predecessor has since merged
