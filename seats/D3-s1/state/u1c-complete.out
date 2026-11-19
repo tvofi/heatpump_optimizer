@@ -203,3 +203,4 @@
 2026-11-19T14:00:36Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_liquid_fraction CLAMP_DROP 5d60b655 L3102 by=tests/features.py ran=13 wall=1711.8s
 2026-11-19T14:00:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP afe9dcd9 L4578 by=- ran=17 wall=1956.3s
 2026-11-19T14:03:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_config CLAMP_DROP 61545c3f L5083 by=- ran=15 wall=1847.9s
+2026-11-19T14:26:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_snow_memory CLAMP_DROP 7b17a55a L7549 by=- ran=13 wall=1721.6s
