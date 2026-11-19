@@ -652,3 +652,4 @@
 2026-11-19T11:51:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab GUARD_OFF 8acc76b0 L2315 by=- ran=12 wall=1574.4s
 2026-11-19T12:02:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._slab_outcome CLAMP_DROP 016f09c9 L2411 by=- ran=12 wall=1569.9s
 2026-11-19T12:08:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:prices_from_entity_state GUARD_OFF 4cd28db0 L820 by=- ran=13 wall=1553.8s
+2026-11-19T12:10:06Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step GUARD_OFF 489080ca L1790 by=tests/harness_headers.py,tests/features.py ran=12 wall=1560.1s
