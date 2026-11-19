@@ -1,0 +1,6 @@
+Live-tree plants at head 5a4b43320394fb57480d835773d02913eb1de4cd, in a throwaway worktree, each reset after.
+P1 RANGE_HOUSE_HEAT_LOSS (0.01,1.0)->(0.02,1.0): UNREADABLE house_size: level min declares 0.01 for CONF_HOUSE_HEAT_LOSS_COEFFICIENT, the flow row reads 0.02  rc=1
+P2 const DEFAULT_DHW_TANK_VOLUME 200.0->250.0: UNREADABLE tank_volume: level default declares 200 ... reads 250  rc=1
+P3 config_flow.py:1827 _F("hot_water_tank", CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME, ...) -> default argument 300.0: tank_volume 3 default,max,min  rc=0   (STALE: the row's default is 300, the printed level is 200)
+P4 config_flow.py:1249 _QUESTIONNAIRE_DEFAULTS CONF_HEATED_AREA: DEFAULT_HEATED_AREA -> 180.0: house_size 3 default,max,min  rc=0   (STALE)
+P5 CONF_HEATED_AREA: _number(20, 1000, 5 -> 1200: UNREADABLE house_size: level max declares 1000 for CONF_HEATED_AREA, the flow row reads 1200  rc=1

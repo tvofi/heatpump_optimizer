@@ -1,0 +1,13 @@
+# reviewer control: other states
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | full	tests/guard_pins.py::#1913 GCHV writes
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | full	tests/guard_pins.py::#1913 GCHV daytime
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | full	tests/guard_pins.py::#1913 GCHV hold
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | partial	tests/guard_pins.py::#1913 GCHV writes
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | partial	tests/guard_pins.py::#1913 GCHV daytime
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | partial	tests/guard_pins.py::#1913 GCHV hold
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | both	tests/guard_pins.py::#1913 GCHV writes
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | both	tests/guard_pins.py::#1913 GCHV daytime
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | both	tests/guard_pins.py::#1913 GCHV hold
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | observe	tests/guard_pins.py::#1913 GCHV writes
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | observe	tests/guard_pins.py::#1913 GCHV daytime
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | observe	tests/guard_pins.py::#1913 GCHV hold

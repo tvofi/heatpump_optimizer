@@ -1,0 +1,5 @@
+REFUSE: dev/audit/rounds/round11/product-reads/operation.tsv:2: 'write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write | duty=control | running' is no item of this universe as printed
+
+real	0m3.755s
+user	0m1.384s
+sys	0m0.072s
