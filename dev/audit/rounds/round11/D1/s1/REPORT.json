@@ -1,0 +1,251 @@
+{
+ "dimension": "D1",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D1/s1/REPORT.json",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D1.M1",
+   "enumerator": "python3 tools/audit/enumerate.py d1-lifecycle --repo <git archive of the baseline> (the export's ._* AppleDouble files break it in place; output committed as dev/audit/rounds/round11/D1/s1/d1-lifecycle.txt)",
+   "universe": 41,
+   "examined": 41,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "examined"
+    }
+   ],
+   "evidence": "m1_lifecycle.py --unload faithful: census_lines_ran=41/41, leaks_total=0, escaped_exceptions=0, error_logs=0, first_cycle_ok=3 of 3, away override restored 1,1 and resolved (None); positive control --perturb-leak: leaks_total=33. C3 quantified: --unload harness 1 async_shutdown per unload / 3 dropped coroutines / 9 saves vs faithful 2 / 0 / 12; m1_notready.py: harness 12 leaked registrations + 3 alive failed coordinators vs faithful 0/0 (finding D1-s1-02). m1_stop_midsolve.py for line coordinator.py:1958 _stop (finding D1-s1-01)."
+  },
+  {
+   "step": "D1.M4",
+   "enumerator": "python3 tools/audit/enumerate.py d1-solve-state --repo <git archive of the baseline> (committed as dev/audit/rounds/round11/D1/s1/d1-solve-state.txt)",
+   "universe": 29,
+   "examined": 29,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C2",
+     "state": "examined"
+    }
+   ],
+   "evidence": "m4_race.py Part B: all 29 lines raced with their production loop-side writer mid-solve (debounced: stale_request_refresh_rows 7 of 8; direct null 0 of 8; --perturb-rerun 0 of 8; 2 options-only rows have no loop-side writer outside a reload). Part A (C2): in-process fallback job vs coordinator: 44 job mutables + 11 buffers, 1 shared buffer (forecast.pv_surplus is coordinator._pv_surplus, rebound only), torn_inputs=0 across all writers; positive control --control-inplace torn_inputs=1."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D1-s1-01",
+   "scope": "D1-s1",
+   "step": "D1.M1",
+   "title": "HA stop mid-solve raises a persistent solve_worker_fallback repair that no later solve ever clears",
+   "severity": "medium",
+   "claim": "When EVENT_HOMEASSISTANT_STOP fires while a solve's reply is being read from the process worker, the reap breaks the pipe, _await_optimize takes the fallback route (one in-process GIL solve during the stop) and raises the persistent 'solve_worker_fallback' repair; after a restart the issue is still raised once the new instance has solved twice through a healthy worker (count 1, null control 0).",
+   "mechanism": "_shutdown_process_pool kills the child before taking the lock (by design, D1-s2-05), so the in-flight _run_in_process reads EOF and raises ProcessWorkerUnavailable('Ran out of input'); _await_optimize treats that like a broken install: _note_worker_fallback creates the issue with is_persistent=True and reruns the solve in process. The issue is cleared only by _clear_worker_fallback, which returns early unless THIS process's _WORKER_FALLBACK_CAUSES latched a cause for the entry; after the restart the module dict is empty, so every successful solve leaves the restored issue in place. HA does not unload entries at stop, so _release_registrations' clear does not run either.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_stop_midsolve.py --arm stop_midsolve",
+    "harness_path": "dev/audit/rounds/round11/D1/s1/m1_stop_midsolve.py",
+    "value": 1,
+    "unit": "stale solve_worker_fallback issues after restart",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B4 container, linux x86_64, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "part B of m4_race.py and other finder seats running on the box; a count, contention-immune; thread_factor is the residual after subtracting executor-thread CPU (rl.DELIBERATE)",
+    "tolerance": "exact",
+    "load1": 2.88,
+    "thread_factor": 1.112
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:_clear_worker_fallback (with _await_optimize, _note_worker_fallback, async_register_worker_shutdown._stop driven on a real loop)",
+   "perturbation": {
+    "change": "_clear_worker_fallback deletes the issue whenever no cause is latched in this process (drop the early return after the pop); harness flag --perturb",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of hass.issues entries with issue_id solve_worker_fallback after the restarted instance completed two successful process-route solves.",
+   "phenomenon_property": "A repair notice raised for a transient, self-inflicted cause (the instance's own stop reaping its worker) must not be raised persistent, or must be withdrawable by the next healthy solve in a fresh process; a stop must not rerun the killed solve in process.",
+   "seam_rule": "grep -n 'is_persistent=True' custom_components/heatpump_optimizer/*.py  (each persistent issue: is its clear path reachable from a fresh process?)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_stop_midsolve.py --arm stop_idle",
+    "value": 0,
+    "note": "stop fired with no solve in flight: 0 issues raised, 0 in-process solves after stop, 0 stale after restart"
+   },
+   "reproduction_steps": [
+    "setup on a real loop (rl.RealHass), wait for the first process solve",
+    "start async_run_optimization; when _read_reply is entered, await the EVENT_HOMEASSISTANT_STOP listener (_stop)",
+    "observe fallback cause 'process worker exited rc=None: Ran out of input', 1 issue is_persistent=True, 1 in-process solve after stop",
+    "restart: keep the persistent issues, clear _WORKER_FALLBACK_CAUSES and the streak; set up a new entry and solve twice",
+    "stale_fallback_issues_after_restart=1"
+   ],
+   "proposed_fix_scope": "coordinator.py: mark the stop (a module flag set by _stop) so a reply broken by our own reap is not a worker fault (no issue, no in-process rerun during stop); and/or let _clear_worker_fallback delete the issue when no entry has a latched cause in this process.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D1-s1-02",
+   "scope": "D1-s1",
+   "step": "D1.M1",
+   "title": "tests/harness.py lifecycle helpers skip HA's on_unload processing: 1 shutdown per unload (HA 2), 4 leaks per NotReady (HA 0)",
+   "severity": "low",
+   "claim": "The suite's entry-manager instrument diverges from Home Assistant's ConfigEntry in two seams of one mechanism (_async_process_on_unload): ha_unload_entry calls each async_on_unload callback FIFO and drops a returned coroutine, so HeatPumpOptimizerCoordinator.async_shutdown runs once per unload where HA runs it twice (1 RuntimeWarning per unload; store saves 3 vs 4 per unload); and ha_setup_entry runs no unload callback when async_setup_entry raises ConfigEntryNotReady, so each failed attempt leaves 4 live registrations reaching its coordinator and the coordinator alive (3 of 3 after 3 failures), where HA's order leaves 0 and 0.",
+   "mechanism": "homeassistant ConfigEntry._async_process_on_unload: `while self._on_unload: if job := self._on_unload.pop()(): self.async_create_task(hass, job)` then awaits the tasks; the stub DataUpdateCoordinator registers `config_entry.async_on_unload(self.async_shutdown)` as upstream does; tests/harness.py:ha_unload_entry runs `callback()` and drops the result. Every suite test unloading through it therefore never runs the second HeatPumpOptimizerCoordinator.async_shutdown (pump_arbiter.release -> _persist a second time, legionella release, forget_held) that a real unload runs. On ConfigEntryNotReady HA's ConfigEntry.async_setup also awaits _async_process_on_unload (the coordinator's own _release_registrations and the base-class async_shutdown), which tests/harness.py:ha_setup_entry never runs: production's #236 cleanup is therefore unobservable through the suite's helper, and a test that counts registrations after a NotReady sees leaks HA would not have.",
+   "evidence": {
+    "command": "D1_CENSUS_DIR=<dir with d1-lifecycle.txt, only if the tree carries ._* files> PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_lifecycle.py --unload harness",
+    "harness_path": "dev/audit/rounds/round11/D1/s1/m1_lifecycle.py",
+    "value": 1,
+    "unit": "async_shutdown runs per unload (harness instrument; HA order gives 2)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B4 container, linux x86_64, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "part B of m4_race.py and other finder seats on the box; counts, contention-immune; thread_factor after subtracting executor-thread CPU",
+    "tolerance": "exact",
+    "load1": 2.86,
+    "thread_factor": 1.019
+   },
+   "instrumented_symbol": "tests/harness.py:ha_unload_entry (counting heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_shutdown entries and homeassistant.helpers.storage.SAVE_COUNTS)",
+   "perturbation": {
+    "change": "one-line instrument repair in ha_unload_entry: `if inspect.isawaitable(r := callback()): await r` (arm --unload harness_awaiting)",
+    "expected_direction": "up",
+    "observed_value": 2
+   },
+   "metric_definition": "async_shutdown entries per unload over 3 unloads of one lifecycle (1 vs 2); and live registrations reaching a failed attempt's coordinator after 3 NotReady setups (12 vs 0).",
+   "phenomenon_property": "The suite's entry-manager helpers must run what Home Assistant's ConfigEntry runs at unload and at a failed setup: every async_on_unload callback, popped last-first, a returned awaitable awaited.",
+   "seam_rule": "grep -n 'def ha_setup_entry\\|def ha_unload_entry\\|_on_unload' tests/harness.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_lifecycle.py --unload faithful ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_notready.py --setup faithful",
+    "value": "2 shutdowns per unload, 0 dropped coroutines, 12 saves; 0 failed-attempt leaks, 0 alive",
+    "note": "HA's order (rl.ha_unload_faithful / process_on_unload). The NotReady seam: --setup harness gives failed_attempt_leaks=12 (running_signal.py:112, :194, away.py:260, coordinator.py:8746 x3), failed_attempts_alive=3."
+   },
+   "reproduction_steps": [
+    "m1_lifecycle.py --unload harness: shutdown_runs_per_unload=1, dropped_coroutines=3, unload_saves=9",
+    "m1_lifecycle.py --unload faithful or harness_awaiting: 2, 0, 12",
+    "m1_notready.py --setup harness: failed_attempt_leaks=12, failed_attempts_alive=3; --setup faithful: 0, 0"
+   ],
+   "proposed_fix_scope": "tests/harness.py: ha_unload_entry pops LIFO and awaits a returned awaitable; ha_setup_entry runs the same processing when async_setup_entry raises ConfigEntryNotReady (as rl.ha_unload_faithful / m1_notready.process_on_unload do). Production impact: none found (HA's order leaks nothing); one redundant pump_duty save per unload.",
+   "files": [
+    "tests/harness.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D1-s1-03",
+   "scope": "D1-s1",
+   "step": "D1.M4",
+   "title": "A user write landing during a debounced in-flight solve is dropped: plan ignores it until the next interval",
+   "severity": "medium",
+   "claim": "When away, economy mode, a manual plan, a comfort-weight reset or a holiday-calendar change is written while a solve started through async_request_refresh (setup's first solve, a button, a service, any state listener) is in flight, the write's re-plan request is dropped by the refresh debouncer and the published plan stays built on the pre-write value until the next scheduled update: 7 of 8 request-refresh census rows stale, 0 of 8 when the in-flight solve came from async_refresh.",
+   "mechanism": "DataUpdateCoordinator.async_request_refresh goes through Debouncer.async_call, which returns without arming a trailing run while a call is executing (upstream: 'Locked means a call is in progress. Any call is good, so abort.'; the stub mirrors it). The in-flight call is the refresh carrying the solve, so the writer's request never reaches async_run_optimization, whose #1754 re-run latch (_optimization_rerun_requested) only catches calls that arrive there. The scheduled interval refresh bypasses the debouncer, so the same write during a scheduled solve IS re-planned (null control). The stale window is up to one optimization_interval (default 30 min, DEFAULT_OPTIMIZATION_INTERVAL); _mode_superseded covers only the fixed modes.",
+   "evidence": {
+    "command": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin debounced",
+    "harness_path": "dev/audit/rounds/round11/D1/s1/m4_race.py",
+    "value": 7,
+    "unit": "request-refresh census rows (of 8) whose write is not re-planned",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B4 container, linux x86_64, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "two arms of this harness and other finder seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 3.54,
+    "thread_factor": 1.015
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._solve_record (entries counted after the write; the builder's output compared before/after), driven through HeatPumpOptimizerCoordinator.async_request_refresh / async_run_optimization on a real loop",
+   "perturbation": {
+    "change": "async_request_refresh records the #1754 re-run (self._optimization_rerun_requested = True) when self._optimization_running before deferring to the debouncer (harness flag --perturb-rerun)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Per d1-solve-state line whose writer re-plans via async_request_refresh: builder output changed by the write AND no _solve_record built after it before the loop settles.",
+   "phenomenon_property": "Every re-plan request issued while a solve is in flight is honoured by one solve after that solve completes, whatever path (debounced or scheduled) started the in-flight solve.",
+   "seam_rule": "grep -n 'async_request_refresh()' custom_components/heatpump_optimizer/*.py  (each caller that can run while a debounced refresh executes)",
+   "null_control": {
+    "command": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin direct",
+    "value": 0,
+    "note": "in-flight solve started by async_refresh (the scheduled interval's path): 0 of 8 stale; the 3 stale_plan_rows left in every arm are _peak_guard/_peak_tracker (power event) and _pv_export_price (no listener), which no writer re-plans by design and are picked up next cycle"
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 0,
+    "max": 1,
+    "drop_most_favourable": 6
+   },
+   "reproduction_steps": [
+    "set up on rl.RealHass, wait for the first solve",
+    "hold a solve in flight (gate on _run_in_process) started via async_request_refresh",
+    "run the row's writer (async_set_away, async_set_mode economy, async_apply_manual_plan, reset comfort + request refresh, holiday calendar state event)",
+    "release, settle: no _solve_record after the write; the plan is the pre-write one"
+   ],
+   "proposed_fix_scope": "coordinator.py: override async_request_refresh (or the shared request path) to set _optimization_rerun_requested when a solve is in flight, so the in-flight solve's finally re-runs once (the perturbation).",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No live task, listener, timer, interval or executor future references a torn-down coordinator after reload mid-solve, unload mid-solve or final unload, on any of the 41 d1-lifecycle lines; no exception escapes; each new instance's first cycle completes",
+   "command": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_lifecycle.py --unload faithful",
+   "value": "leaks_total=0, escaped_exceptions=0, first_cycle_ok=3 of 3, ALIVE-AFTER [] x3 (positive control --perturb-leak: 33)"
+  },
+  {
+   "claim": "A stored away override is carried across restore and a resolve after restore completes",
+   "command": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_lifecycle.py --unload faithful",
+   "value": "away_override_restored=1,1; resolve_after_restore=None"
+  },
+  {
+   "claim": "A solve finishing after unload is discarded (no actuation): unload writes 0 service calls",
+   "command": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_lifecycle.py --unload faithful",
+   "value": "unload_writes=0"
+  },
+  {
+   "claim": "Under HA's NotReady order (#236) failed setup attempts leak nothing and the retry succeeds",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_notready.py --setup faithful",
+   "value": "failed_attempt_leaks=0, failed_attempts_alive=0, retry_ok=1"
+  },
+  {
+   "claim": "The in-process fallback's inputs are never torn by a loop-side writer: _solve_hubs deep-copies the hubs and every array helper returns a fresh array; the one shared buffer (pv_surplus) is only rebound",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part A",
+   "value": "shared_mutable_objects=1, torn_inputs=0 (control --control-inplace: 1)"
+  },
+  {
+   "claim": "Cycle-kind writers (inputs read by _update_current_state) during an in-flight solve are re-planned via the #1754 re-run, on both origins",
+   "command": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin debounced",
+   "value": "15 cycle rows honoured=1 of 15"
+  },
+  {
+   "claim": "_capacity_tariff and _fuse_kw have no loop-side writer outside an options save, which reloads the entry (reload mid-solve covered by M1: the solve is discarded)",
+   "command": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B",
+   "value": "2 rows kind=options, changed=0"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D1/s1/rl.py",
+  "dev/audit/rounds/round11/D1/s1/m1_lifecycle.py",
+  "dev/audit/rounds/round11/D1/s1/m1_notready.py",
+  "dev/audit/rounds/round11/D1/s1/m1_stop_midsolve.py",
+  "dev/audit/rounds/round11/D1/s1/m4_race.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "tools/audit/enumerate.py",
+   "symbol": "pkg_files",
+   "what": "globs *.py, so the export's macOS AppleDouble files (custom_components/heatpump_optimizer/._*.py, 20 of them, not in the baseline) make every package universe raise UnicodeDecodeError in the finder export; the export step or pkg_files should exclude ._* (or the export should not carry them)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_update_data",
+   "what": "while a scheduled (non-debounced) refresh is in flight, a writer's async_request_refresh starts a second _async_update_data concurrently (observed in m4_race.py --origin direct); the second cycle records the #1754 re-run but then runs _apply_action and the best-effort accuracy/energy steps on the old plan beside the first, and overwrites _refresh_task. Not measured for double booking."
+  }
+ ]
+}

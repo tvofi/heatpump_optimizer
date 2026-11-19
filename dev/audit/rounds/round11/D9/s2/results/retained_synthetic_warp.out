@@ -1,0 +1,84 @@
+# machine Linux-6.18.44-fc-v509-x86_64-with-glibc2.39 x86_64 py3.14.7
+# fixture=synthetic cycles=1100 warmup=200 step_minutes=360 perturb=None cycle_errors=0 []
+RESULT traced_slope=516.3 B/cycle
+RESULT traced_year_mib=25.88 MiB (B4 budget 10 MiB = 199 B/cycle)
+RESULT root_slope[coord._snapshot_ring]=20.3 B/cycle
+RESULT root_slope[coord._price_learner]=19.5 B/cycle
+RESULT root_slope[coord.data]=-9.4 B/cycle
+RESULT root_slope[coord._accuracy]=7.4 B/cycle
+RESULT root_slope[module.heatpump_optimizer.grid_fee._MONTHS]=0.1 B/cycle
+RESULT root_slope[coord._dhw_accuracy]=0.1 B/cycle
+RESULT root_slope[coord._optimization_result]=-0.0 B/cycle
+RESULT root_slope[coord._dhw_learner]=-0.0 B/cycle
+RESULT root_slope[coord._immersion_clear_count]=0.0 B/cycle
+RESULT root_slope[module.heatpump_optimizer.debugger.DOMAINS]=0.0 B/cycle
+RESULT file_slope[snapshots.py]=356.5 B/cycle
+RESULT file_slope[other]=93.2 B/cycle
+RESULT file_slope[price_model.py]=23.8 B/cycle
+RESULT file_slope[coordinator.py]=14.0 B/cycle
+RESULT file_slope[ledger.py]=8.0 B/cycle
+RESULT file_slope[dhw_draws.py]=6.3 B/cycle
+RESULT file_slope[store.py]=6.3 B/cycle
+RESULT file_slope[thermal_model.py]=-4.1 B/cycle
+RESULT file_slope[plan_slots.py]=-0.6 B/cycle
+RESULT file_slope[optimizer.py]=0.5 B/cycle
+RESULT file_slope[drift.py]=-0.3 B/cycle
+RESULT file_slope[dhw_learning.py]=0.3 B/cycle
+RESULT file_slope[entity.py]=-0.3 B/cycle
+RESULT file_slope[narrative.py]=-0.3 B/cycle
+RESULT file_slope[accuracy.py]=0.2 B/cycle
+RESULT file_slope[boost.py]=-0.2 B/cycle
+RESULT file_slope[binary_sensor.py]=-0.2 B/cycle
+RESULT file_slope[heat_energy.py]=-0.1 B/cycle
+RESULT file_slope[external_heat.py]=-0.1 B/cycle
+RESULT file_slope[defrost.py]=0.1 B/cycle
+RESULT file_slope[duty_switch.py]=-0.1 B/cycle
+RESULT file_slope[early_cutoff.py]=-0.1 B/cycle
+RESULT file_slope[heat_curve.py]=-0.1 B/cycle
+RESULT file_slope[supply_hold.py]=-0.1 B/cycle
+RESULT late_traced_slope=20.7 B/cycle (from cycle 700)
+RESULT late_root_slope[coord._price_learner]=12.8 B/cycle
+RESULT late_root_slope[coord._snapshot_ring]=0.1 B/cycle
+RESULT late_root_slope[module.heatpump_optimizer.currency._UNITS_PER_SEK]=0.1 B/cycle
+RESULT late_root_slope[coord._dhw_learner]=-0.1 B/cycle
+#   growth 345.3 B/cycle (+8278 blocks) at snapshots.py:122 via ['decoder.py:361', 'decoder.py:345', '__init__.py:352', 'snapshots.py:122']
+#   growth 84.1 B/cycle (+2 blocks) at other via ['tracemalloc.py:469', 'retained.py:152', 'retained.py:208', 'retained.py:287']
+#   growth 12.7 B/cycle (+224 blocks) at price_model.py:588 via ['price_model.py:588', 'price_model.py:608', 'price_model.py:445', 'coordinator.py:8619']
+#   growth 11.3 B/cycle (+85 blocks) at coordinator.py:2956 via ['coordinator.py:2956', 'coordinator.py:7072', 'coordinator.py:6070', 'events.py:94']
+#   growth 9.1 B/cycle (+1 blocks) at price_model.py:448 via ['price_model.py:448', 'coordinator.py:8619', 'coordinator.py:6079', 'events.py:94']
+#   growth 8.5 B/cycle (+147 blocks) at snapshots.py:121 via ['decoder.py:361', 'decoder.py:345', '__init__.py:352', 'snapshots.py:121']
+#   growth 5.3 B/cycle (+0 blocks) at store.py:824 via ['encoder.py:263', 'encoder.py:202', '__init__.py:235', 'storage.py:117']
+#   growth 2.8 B/cycle (+2 blocks) at other via ['_compiler.py:778', '__init__.py:350', '__init__.py:289', 'fnmatch.py:50']
+#   growth 2.6 B/cycle (+20 blocks) at other via ['__init__.py:771', '__init__.py:787', 'retained.py:102', 'retained.py:210']
+#   growth 2.4 B/cycle (+49 blocks) at ledger.py:127 via ['ledger.py:127', 'coordinator.py:10417', 'coordinator.py:8078', 'coordinator.py:8229']
+#   growth 2.3 B/cycle (+24 blocks) at other via ['fnmatch.py:181', 'fnmatch.py:101', 'fnmatch.py:49', 'fnmatch.py:91']
+#   growth 2.2 B/cycle (+44 blocks) at ledger.py:127 via ['ledger.py:127', 'coordinator.py:10727', 'coordinator.py:8248', 'coordinator.py:6140']
+#   growth 2.1 B/cycle (+14 blocks) at snapshots.py:113 via ['snapshots.py:113', 'coordinator.py:9672', 'coordinator.py:684', 'coordinator.py:6133']
+#   growth 2.0 B/cycle (+41 blocks) at ledger.py:127 via ['ledger.py:127', 'ledger.py:416', 'coordinator.py:8064', 'coordinator.py:8229']
+#   growth 1.9 B/cycle (+73 blocks) at dhw_draws.py:104 via ['dhw_draws.py:104', 'dhw_draws.py:76', 'dhw_learning.py:509', 'dhw_learning.py:466']
+# checkpoint cycle=200 traced=545620 worker_rss_kib=87232 cpu_s=11.4
+# checkpoint cycle=250 traced=680975 worker_rss_kib=87364 cpu_s=31.0
+# checkpoint cycle=300 traced=789832 worker_rss_kib=87064 cpu_s=50.0
+# checkpoint cycle=350 traced=885211 worker_rss_kib=87296 cpu_s=68.9
+# checkpoint cycle=400 traced=995146 worker_rss_kib=87012 cpu_s=87.9
+# checkpoint cycle=450 traced=986502 worker_rss_kib=87232 cpu_s=107.8
+# checkpoint cycle=500 traced=997290 worker_rss_kib=87152 cpu_s=127.4
+# checkpoint cycle=550 traced=987345 worker_rss_kib=87296 cpu_s=146.3
+# checkpoint cycle=600 traced=1001832 worker_rss_kib=87208 cpu_s=165.2
+# checkpoint cycle=650 traced=991160 worker_rss_kib=87360 cpu_s=183.8
+# checkpoint cycle=700 traced=1002038 worker_rss_kib=86704 cpu_s=201.4
+# checkpoint cycle=750 traced=994369 worker_rss_kib=87252 cpu_s=219.6
+# checkpoint cycle=800 traced=1005312 worker_rss_kib=87164 cpu_s=239.2
+# checkpoint cycle=850 traced=994977 worker_rss_kib=86704 cpu_s=258.8
+# checkpoint cycle=900 traced=1006433 worker_rss_kib=87012 cpu_s=278.5
+# checkpoint cycle=950 traced=997395 worker_rss_kib=87312 cpu_s=298.3
+# checkpoint cycle=1000 traced=1007714 worker_rss_kib=87136 cpu_s=317.7
+# checkpoint cycle=1050 traced=999346 worker_rss_kib=86704 cpu_s=337.1
+# checkpoint cycle=1100 traced=1010311 worker_rss_kib=87164 cpu_s=357.4
+RESULT worker_rss_slope=-77 B/cycle (solving child VmRSS, cycles 200..1100; provisional)
+RESULT ru_maxrss=119400 KiB (coordinator process, incl. tracemalloc overhead; provisional)
+RESULT worker_ru_maxrss=104380 KiB (solving child; provisional; B5 128 MB)
+RESULT wall_s=1268.8 s (provisional)
+RESULT thread_factor=1.0
+RESULT load1=9.37
+RESULT swapins=0

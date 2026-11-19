@@ -1,0 +1,178 @@
+{
+ "dimension": "D8",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D8/s2/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D8.M3",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo <repo> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s2",
+   "universe": 6,
+   "examined": 6,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "m3_naming.py built all 82 entities (sensor 62, binary_sensor 6, button 6, switch 6, climate 1, datetime 1) through each platform's real async_setup_entry over all 5 coordinator_scenarios(); sorted every entity_id (per platform and global) and every display name in en/sv/de; compared every leaf of strings.json with de/en/sv (keys, placeholders, en values); checked ENUM option state strings. entity.py examined as the base (translation_key/entity_id assignment) through the built entities."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D8-s2-01",
+   "scope": "D8-s2",
+   "step": "D8.M3",
+   "title": "German run-optimization refusal names {entry_id}; production passes {entry_ids}, so the de message cannot render",
+   "severity": "low",
+   "claim": "translations/de.json exceptions.run_optimization_no_prices.message uses placeholder {entry_id} while strings.json, sv.json and both raise sites pass only entry_ids, so 1 of 3 shipped languages cannot format the message the optimize_now button raises.",
+   "mechanism": "button.py ForceOptimizationButton.async_press (and services.py run_optimization) raise HomeAssistantError(translation_key='run_optimization_no_prices', translation_placeholders={'entry_ids': ...}); the de string formats {entry_id}. str.format raises KeyError; Home Assistant's translation loader validates a localized string's placeholders against the English one and discards a mismatching one, so German users get the English text (plus a load-time error log) instead of German.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_placeholder.py",
+    "harness_path": "dev/audit/rounds/round11/D8/s2/m3_placeholder.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, orchestrator box (local seat B5)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 52.5,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.button:ForceOptimizationButton.async_press (built via heatpump_optimizer.button:async_setup_entry)",
+   "perturbation": {
+    "change": "--perturb-de: in memory, '{entry_id}' -> '{entry_ids}' in the de message",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "shipped languages whose exceptions.<key>.message raises KeyError when formatted with the placeholders on the HomeAssistantError production raises",
+   "phenomenon_property": "Every leaf string of every translations/<lang>.json carries exactly the {placeholder} set of the same leaf in strings.json.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py  (RESULT tr_placeholder_<lang>; DETAIL lines name each leaf)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_placeholder.py",
+    "value": 0,
+    "note": "null_raised=0: the same press with reason None raises nothing; sv and en render (0 KeyError)"
+   },
+   "reproduction_steps": [
+    "run m3_placeholder.py: unrenderable_langs=1 (de:missing 'entry_id')",
+    "run with --perturb-de: unrenderable_langs=0",
+    "m3_naming.py: tr_placeholder_de=1, en=0, sv=0 over all leaves"
+   ],
+   "proposed_fix_scope": "translations/de.json: {entry_id} -> {entry_ids} in exceptions.run_optimization_no_prices.message; plus a tests/entities.py check that every translation leaf's placeholder set equals strings.json's (the existing strings/translation drift check compares keys, not placeholders).",
+   "files": [
+    "custom_components/heatpump_optimizer/translations/de.json",
+    "custom_components/heatpump_optimizer/button.py",
+    "tests/entities.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D8-s2-02",
+   "scope": "D8-s2",
+   "step": "D8.M3",
+   "title": "Declared 'lifetime' family sorts as 3 runs by sensor entity_id (cost_total_heating, space_heating_*, total_energy)",
+   "severity": "low",
+   "claim": "The four sensors const.ENTITY_FAMILY_OVERRIDES declares as family 'lifetime' suggest entity ids sensor.heat_pump_optimizer_{cost_total_heating, space_heating_cost, space_heating_energy, total_energy}, which sort into 3 separate runs among the sensor ids; every other declared family is one run per platform.",
+   "mechanism": "#1668 moved the four meters' display names to lead with 'Lifetime' and declared the family via overrides, but left translation keys (from which the suggested object id is built) untouched, so the id sort keeps the old cost_/space_/total_ placement. The name sort is contiguous in en/sv/de (0 excess runs).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+    "harness_path": "dev/audit/rounds/round11/D8/s2/m3_naming.py",
+    "value": 2,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, orchestrator box (local seat B5)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 24.26,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:async_setup_entry (entity_id of each built sensor) with heatpump_optimizer.const:ENTITY_FAMILY_OVERRIDES",
+   "perturbation": {
+    "change": "--perturb-lifetime-ids: each lifetime member's entity_id -> sensor.heat_pump_optimizer_lifetime_<key> in memory",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "RESULT fam_runs_excess_entity_id_sensor: sum over declared families of (contiguous runs - 1) in the sorted sensor entity_id list",
+   "phenomenon_property": "Every declared family (ENTITY_FAMILY_OVERRIDES, else translation key lead token) forms one contiguous run in each platform's suggested entity_id sort, as it does in each language's name sort.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py  (RESULT fam_runs_excess_entity_id_<platform>)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+    "value": 0,
+    "note": "fam_runs_excess_entity_id for binary_sensor, button, switch, climate, datetime = 0; fam_runs_excess_name_en/sv/de = 0"
+   },
+   "reproduction_steps": [
+    "m3_naming.py: fam_runs_excess_entity_id_sensor=2 (lifetime:3runs)",
+    "--perturb-lifetime-ids: 0"
+   ],
+   "proposed_fix_scope": "New installs only, the #1227/#1333 pattern: suggested ids for the four meters gain the lifetime_ lead (unique ids unchanged, so existing installs keep their ids and history), or an owner ruling that a declared family is a name-sort family only, recorded beside ENTITY_FAMILY_OVERRIDES. Docs/card references to these ids need the legacy-fallback treatment.",
+   "files": [
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/entity.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "N-name-sort"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every declared family is one contiguous run in the en, sv and de display-name sorts of all built entities",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+   "value": "fam_runs_excess_name_en=0, sv=0, de=0"
+  },
+  {
+   "claim": "No built entity lacks a name in any shipped language; no two entities share a display name in any language",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+   "value": "name_missing_{en,sv,de}=0, name_duplicate_{en,sv,de}=0"
+  },
+  {
+   "claim": "strings.json and every translation file have identical leaf key sets; en.json equals strings.json value for value",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+   "value": "tr_missing/tr_extra = 0 for de, en, sv; tr_en_value_diff=0"
+  },
+  {
+   "claim": "Only one placeholder mismatch exists across all leaves (de, D8-s2-01); sv and en match",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+   "value": "tr_placeholder_de=1, en=0, sv=0"
+  },
+  {
+   "claim": "Every ENUM sensor option has a state string in every shipped language",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+   "value": "enum_state_untranslated_{en,de,sv}=0"
+  },
+  {
+   "claim": "Within binary_sensor, button, switch, climate, datetime the entity_id sort keeps every declared family in one run",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+   "value": "fam_runs_excess_entity_id_<platform>=0 for those five"
+  },
+  {
+   "claim": "Global entity_id splits other than lifetime (away, dhw, heat, learning, prediction, wood) are platform-prefix boundaries no key can cross",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py --perturb-lifetime-ids",
+   "value": "fam_runs_excess_entity_id_all=9 at baseline, 7 with lifetime moved; each remaining boundary is a platform change (DETAIL id all)"
+  },
+  {
+   "claim": "Undeclared groupings, proposed declaration changes only (not splits): dhw_cost/dhw_energy are '(lifetime)' meters homed in the dhw family while the other four lifetime meters form 'lifetime'; climate 'Heat Pump Optimizer' and sensor 'Heat Pump Action' share lead token 'heat' by accident; optimal/optimization/optimize/optimizer are separate families that sort adjacent",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py -v",
+   "value": "NAME lines; 0 excess runs"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D8/s2/rig.py",
+  "dev/audit/rounds/round11/D8/s2/m3_naming.py",
+  "dev/audit/rounds/round11/D8/s2/m3_placeholder.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "dev/audit/config/scopes.json",
+   "symbol": "D8-s2 cells (D8.M3)",
+   "what": "The M3 universe lists binary_sensor, button, climate, entity, sensor, switch .py but not custom_components/heatpump_optimizer/datetime.py, which ships the away_return entity (family 'away'); this seat measured it through the rig anyway, outside the enumerated cells."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "run_optimization (raises run_optimization_no_prices with {entry_ids})",
+   "what": "Second raise site of the same exception key as D8-s2-01; the de translation fix covers it, but the services path was not driven by a harness here."
+  }
+ ]
+}

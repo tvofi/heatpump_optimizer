@@ -481,8 +481,14 @@ from . import (
     topology,
 )
 from .wood_fuel import wood_furnace_on
-from .thermal_model import ThermalParameters, _dhw_enabled_from_config, partload_derate_limit
-from .currency import money_scale, resolve_currency
+from .thermal_model import (
+    ThermalParameters,
+    dhw_enabled_from_config,
+    partload_derate_limit,
+    two_zone_from_config,
+)
+from .currency import figure_currency, money_scale
+from .price_model import price_feed
 from .dhw_schedule import (
     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
     MIN_WINDOW_MINUTES,
@@ -612,11 +618,12 @@ def identity_update(
 
 
 def _money(
-    maximum: float, step: float, hass: HomeAssistant, per: str = ""
+    maximum: float, step: float, hass: HomeAssistant, current: Mapping[str, Any], per: str = ""
 ) -> selector.NumberSelector:
-    """A money field in the instance currency, its SEK-sized maximum scaled
-    to that currency (#1657): 5 SEK/kWh left a 20 HUF/kWh fee unenterable."""
-    currency = resolve_currency(hass)
+    """A money field in the currency the figures are in (``figure_currency``:
+    the feed's, else the instance's), its SEK-sized maximum scaled to that
+    currency (#1657): 5 SEK/kWh left a 20 HUF/kWh fee unenterable."""
+    currency = figure_currency(hass, price_feed(current))
     return _number(0, maximum * money_scale(currency), step, f"{currency}{per}")
 
 
@@ -1292,9 +1299,10 @@ def _quick_setup_schema(
     options flow would then have to un-write. The building questionnaire is the
     same field list the ``building_describe`` and ``building_preset`` pages use,
     so a house answered here derives the identical physics as one answered
-    there. The two wood-tank probe pickers ride the same page because they are
-    the two-tank model's own gate: the wood-buffer-tank toggle alone changes
-    nothing the model reads. Both callers share the field list: the initial
+    there. The two wood-tank probe pickers ride the same page because a probe
+    is part of the two-tank model's gate: the wood-buffer-tank toggle alone
+    changes nothing the model reads, and the plan uses that model only on a
+    throttling mixing valve, which the Options pages set (D17-s2-03). Both callers share the field list: the initial
     flow over its accumulating wizard data (which never holds the probes), and
     the Configure page over the entry's effective config, where a stored probe
     is suggested back rather than shown empty (#1258).
@@ -1569,9 +1577,10 @@ class _Suggested(NamedTuple):
 
 
 class _ByHass(NamedTuple):
-    """A widget that cannot be built until hass is known (the currency)."""
+    """A widget that cannot be built until hass and the entry are known (the
+    currency: the price feed's, read from the instance's states)."""
 
-    of: Callable[[HomeAssistant], Any]
+    of: Callable[[HomeAssistant, Mapping[str, Any]], Any]
 
 
 class _P(NamedTuple):
@@ -1663,15 +1672,16 @@ def _heat_curve_persistent(config: Mapping[str, Any]) -> bool:
 
 
 def _single_zone(config: Mapping[str, Any]) -> bool:
-    """Whether the model runs one zone, the only one reading the whole-house loss.
+    """Whether the model runs one zone, the only one reading the whole-house
+    loss and mass.
 
-    On two zones every reader takes the zones' loss instead
+    On two zones every reader takes the zones' loss and masses instead
     (``ThermalParameters.house_heat_loss_base``, ``sysid.HousePlant.of_params``),
-    so the thermal page does not offer the whole-house figure there
-    (R10-TWO-ZONE-HHL). The model's own resolution of the mode, so an "auto"
+    so the thermal page offers neither whole-house figure there
+    (R10-TWO-ZONE-HHL, D17-s1-03). The model's own resolution of the mode, so an "auto"
     entry follows the zone keys exactly as the solve does.
     """
-    return not ThermalParameters.from_config(config).two_zone_enabled
+    return not two_zone_from_config(config)
 
 
 def _water_space_setpoint(config: Mapping[str, Any]) -> bool:
@@ -1857,12 +1867,12 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_EXTERNAL_HEAT_DECAY_MINUTES, DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, _number(15, 360, 15, 'min', slider=True), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_TYPE, DEFAULT_WOOD_TYPE, _select(list(WOOD_TYPES), 'wood_type'), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_PACKING, DEFAULT_WOOD_PACKING, _select(list(WOOD_PACKINGS), 'wood_packing'), when=wood_furnace_on, group="wood"),
-    _F("building", CONF_WOOD_PRICE_SEK_M3, _SUGGESTED, _ByHass(lambda hass: _money(10000, 10, hass, "/m³")), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_PRICE_SEK_M3, _SUGGESTED, _ByHass(lambda hass, cur: _money(10000, 10, hass, cur, "/m³")), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_FURNACE_EFFICIENCY, DEFAULT_WOOD_FURNACE_EFFICIENCY, _number(10, 95, 1, '%', slider=True), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_LIGHTING_LEAD_MINUTES, DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, _number(0, 240, 15, 'min', slider=True), when=wood_furnace_on, group="wood"),
     _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="circulation"),
     # -- thermal_model
-    _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C')),
+    _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C'), when=_single_zone),
     _F("thermal_model", CONF_HOUSE_HEAT_LOSS_COEFFICIENT, _SUGGESTED, _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, 'kW/°C'), when=_single_zone),
     _F("thermal_model", CONF_SLAB_THERMAL_MASS, _SUGGESTED, _number(*RANGE_SLAB_THERMAL_MASS, 0.5, 'kWh/°C')),
     _F("thermal_model", CONF_SLAB_HEAT_TRANSFER, _SUGGESTED, _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, 'kW/°C')),
@@ -1888,7 +1898,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("tuning", CONF_CYCLING_COST, DEFAULT_CYCLING_COST, _number(0, 10, 0.05), group="wear"),
     _F("tuning", CONF_PRICE_RISK_LAMBDA, DEFAULT_PRICE_RISK_LAMBDA, _number(0.0, 2.0, 0.05), group="risk"),
     _F("tuning", CONF_CONFIDENCE_MARGINS_ENABLED, DEFAULT_CONFIDENCE_MARGINS_ENABLED, bool, group="risk"),
-    _F("tuning", CONF_COMPRESSOR_REPLACEMENT_COST, DEFAULT_COMPRESSOR_REPLACEMENT_COST, _ByHass(lambda hass: _money(100000, 100, hass)), group="wear"),
+    _F("tuning", CONF_COMPRESSOR_REPLACEMENT_COST, DEFAULT_COMPRESSOR_REPLACEMENT_COST, _ByHass(lambda hass, cur: _money(100000, 100, hass, cur)), group="wear"),
     _F("tuning", CONF_COMPRESSOR_RATED_STARTS, DEFAULT_COMPRESSOR_RATED_STARTS, _number(1000, 1000000, 1000), group="wear"),
     _F("tuning", CONF_WEAR_AUTOTUNE_ENABLED, DEFAULT_WEAR_AUTOTUNE_ENABLED, bool, group="wear"),
     _F("tuning", CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED, bool, group="risk"),
@@ -1943,10 +1953,10 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- grid_fees
     _F("grid_fees", CONF_DSO_PRODUCT, DEFAULT_DSO_PRODUCT, _select(grid_fee.catalog_choices(), 'dso_product')),
     _F("grid_fees", CONF_GRID_FEE_MODE, DEFAULT_GRID_FEE_MODE, _select(list(grid_fee.MODES), 'grid_fee_mode')),
-    _F("grid_fees", CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED, _ByHass(lambda hass: _money(5, 0.01, hass, "/kWh"))),
+    _F("grid_fees", CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED, _ByHass(lambda hass, cur: _money(5, 0.01, hass, cur, "/kWh"))),
     _F("grid_fees", CONF_GRID_FEE_RULES, DEFAULT_GRID_FEE_RULES, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT, multiline=True))),
     _F("grid_fees", CONF_GRID_FEE_ENTITY, _STORED, _entity_of('sensor')),
-    _F("grid_fees", CONF_CONTRACT_FIXED_PRICE, DEFAULT_CONTRACT_FIXED_PRICE, _ByHass(lambda hass: _money(10, 0.01, hass, "/kWh"))),
+    _F("grid_fees", CONF_CONTRACT_FIXED_PRICE, DEFAULT_CONTRACT_FIXED_PRICE, _ByHass(lambda hass, cur: _money(10, 0.01, hass, cur, "/kWh"))),
     # -- solar_pv
     _F("solar_pv", CONF_PV_ENABLED, DEFAULT_PV_ENABLED, bool),
     _F("solar_pv", CONF_PV_PEAK_KW, DEFAULT_PV_PEAK_KW, _number(0, 100, 0.1, 'kWp')),
@@ -2102,8 +2112,8 @@ def _apply_dso_catalog(cleaned: dict[str, Any], _merged: dict[str, Any]) -> dict
     return cleaned
 
 
-def _fee_placeholders(hass: HomeAssistant) -> dict[str, str]:
-    currency = resolve_currency(hass)
+def _fee_placeholders(hass: HomeAssistant, current: Mapping[str, Any]) -> dict[str, str]:
+    currency = figure_currency(hass, price_feed(current))
     return {"currency": currency, "fee_bound": f"{grid_fee.fee_bound(currency):g}"}
 
 
@@ -2149,7 +2159,7 @@ def _page_schema(
         if row.default is _DYNAMIC:
             buckets[group].update(row.widget(current))
             continue
-        widget = row.widget.of(hass) if isinstance(row.widget, _ByHass) else row.widget
+        widget = row.widget.of(hass, current) if isinstance(row.widget, _ByHass) else row.widget
         buckets[group][_field_marker(row, current, hass)] = widget
     fields: dict[Any, Any] = {}
     emitted_group = False
@@ -2528,7 +2538,7 @@ def _omit_unstored_defaults(
     edited page — behave exactly as before.
     """
     no_dhw_entry = (
-        CONF_DHW_ENABLED not in current and not _dhw_enabled_from_config(current)
+        CONF_DHW_ENABLED not in current and not dhw_enabled_from_config(current)
     )
     cleaned: dict[str, Any] = {}
     for key, value in user_input.items():
@@ -3918,7 +3928,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             user_input,
             check=self._peak_tariff_errors,
             finish=_peak_window_as_int,
-            placeholders=_fee_placeholders(self.hass),
+            placeholders=_fee_placeholders(self.hass, self._current),
         )
 
     async def _peak_tariff_errors(
@@ -3962,7 +3972,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             clear=True,
             check=self._grid_fee_errors,
             finish=_apply_dso_catalog,
-            placeholders=_fee_placeholders(self.hass),
+            placeholders=_fee_placeholders(self.hass, self._current),
         )
 
     async def _grid_fee_errors(
@@ -3970,7 +3980,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     ) -> dict[str, str]:
         errors: dict[str, str] = {}
         fee_problem = grid_fee.spec_problem(
-            submit.get(CONF_GRID_FEE_RULES, ""), resolve_currency(self.hass)
+            submit.get(CONF_GRID_FEE_RULES, ""), figure_currency(self.hass, price_feed(_current))
         )
         if fee_problem is not None:
             errors[CONF_GRID_FEE_RULES] = fee_problem

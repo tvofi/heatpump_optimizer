@@ -315,8 +315,8 @@
           "two_zone": "På för ett hus med två separat värmda plan, av för ett enda. Ett tvåzonshus låter optimeraren balansera det golvvärmda nedre planet mot det övre.",
           "buffer_tank": "En tank mellan värmepumpen och värmekretsarna, stor nog att lagra värme. På registrerar en lagringsstor volym (500 liter; standardvärdet 35 liter modellerar en liten hydraulisk avlastare, som inte kan lagra en natts värme). Optimeraren planerar bara kring den som ett lager när en strypande shuntventil också är inställd, under Inställningar; utan en sådan sätter detta bara tankens storlek i modellen.",
           "dhw_tank": "En beredare som värmepumpen håller full med varmvatten. Lämna på om din värmepump gör varmvatten.",
-          "wood_furnace": "En vedpanna som värmer samma vattenkrets. På låter optimeraren räkna in dess värme och låta pumpen stå tillbaka medan brasan brinner.",
-          "wood_buffer_tank": "En andra tank som vedpannan värmer, skild från värmepumpens buffert. Dess temperaturgivare väljs här nedan; tvåtanksfysiken aktiveras först när en givare är angiven.",
+          "wood_furnace": "En vedpanna som värmer samma vattenkrets. På registrerar pannan och dess vedinställningar. Optimeraren planerar med brasans värme först när en strypande blandningsventil också är inställd, under Alternativ, och låter pumpen stå tillbaka medan brasan brinner först när Upptäck vedpanna eller annan värmekälla är påslaget där.",
+          "wood_buffer_tank": "En andra tank som vedpannan värmer, skild från värmepumpens buffert. Dess temperaturgivare väljs här nedan. Optimeraren planerar med tvåtanksmodellen först när en givare är angiven och en strypande blandningsventil också är inställd, under Alternativ; utan en registrerar detta bara tanken.",
           "wood_tank_top_entity": "Tillsammans med bottengivaren ger den värmen som finns kvar i vedtanken: medelvärdet av de två avläsningarna, räknat bara över ackumulatortankens temperatur plus 2 °C. Med enbart den här toppgivaren tas medelvärdet som 5 °C under den.",
           "wood_tank_bottom_entity": "Se toppgivaren. Toppgivaren ensam räcker för uppskattningen av kvarvarande energi, som läses konservativt; enbart bottengivaren ger ingen uppskattning.",
           "building_structure": "Tunga material innanför isoleringen lagrar värme, och det är just det som gör att optimeraren kan köpa värmen billigt och använda den senare.",
@@ -412,6 +412,9 @@
     },
     "set_thermal_params_dhw_min_no_deadband": {
       "message": "Ett varmvattenminimum på {minimum} °C lämnar inget arbetsband under börvärdet {setpoint} °C; det måste vara högst {ceiling} °C"
+    },
+    "set_thermal_params_house_field_two_zone": {
+      "message": "{field} gäller bara en enzonsmodell; den här installationen räknar med två zoner. Ange upper_floor_thermal_mass och lower_floor_thermal_mass i den här åtgärden och varje zons värmeförlust på alternativsidan Tvåzonsmodell."
     },
     "assign_entity_missing": {
       "message": "Enheten {entity_id} finns inte"
@@ -1152,8 +1155,8 @@
           "two_zone": "På för ett hus med två separat värmda plan, av för ett enda. Ett tvåzonshus låter optimeraren balansera det golvvärmda nedre planet mot det övre.",
           "buffer_tank": "En tank mellan värmepumpen och värmekretsarna, stor nog att lagra värme. På registrerar en lagringsstor volym (500 liter; standardvärdet 35 liter modellerar en liten hydraulisk avlastare, som inte kan lagra en natts värme). Optimeraren planerar bara kring den som ett lager när en strypande shuntventil också är inställd, under Inställningar; utan en sådan sätter detta bara tankens storlek i modellen.",
           "dhw_tank": "En beredare som värmepumpen håller full med varmvatten. Lämna på om din värmepump gör varmvatten.",
-          "wood_furnace": "En vedpanna som värmer samma vattenkrets. På låter optimeraren räkna in dess värme och låta pumpen stå tillbaka medan brasan brinner.",
-          "wood_buffer_tank": "En andra tank som vedpannan värmer, skild från värmepumpens buffert. Dess temperaturgivare väljs här nedan; tvåtanksfysiken aktiveras först när en givare är angiven.",
+          "wood_furnace": "En vedpanna som värmer samma vattenkrets. På registrerar pannan och dess vedinställningar. Optimeraren planerar med brasans värme först när en strypande blandningsventil också är inställd, under Alternativ, och låter pumpen stå tillbaka medan brasan brinner först när Upptäck vedpanna eller annan värmekälla är påslaget där.",
+          "wood_buffer_tank": "En andra tank som vedpannan värmer, skild från värmepumpens buffert. Dess temperaturgivare väljs här nedan. Optimeraren planerar med tvåtanksmodellen först när en givare är angiven och en strypande blandningsventil också är inställd, under Alternativ; utan en registrerar detta bara tanken.",
           "wood_tank_top_entity": "Tillsammans med bottengivaren ger den värmen som finns kvar i vedtanken: medelvärdet av de två avläsningarna, räknat bara över ackumulatortankens temperatur plus 2 °C. Med enbart den här toppgivaren tas medelvärdet som 5 °C under den.",
           "wood_tank_bottom_entity": "Se toppgivaren. Toppgivaren ensam räcker för uppskattningen av kvarvarande energi, som läses konservativt; enbart bottengivaren ger ingen uppskattning.",
           "building_structure": "Tunga material innanför isoleringen lagrar värme, och det är just det som gör att optimeraren kan köpa värmen billigt och använda den senare.",

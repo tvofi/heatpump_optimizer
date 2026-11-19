@@ -1,0 +1,12 @@
+  setupA: value=True added_warn=2 tpl=['40:Error fetching %s data: %s', '40:Error updating Heat Pump Optimizer: %s']
+  refreshA1: value=False added_warn=0 tpl=['10:Error updating Heat Pump Optimizer: %s']
+  refreshA2: value=False added_warn=0 tpl=['10:Error updating Heat Pump Optimizer: %s']
+  setupB: value=True added_warn=2 tpl=['10:%s: %d stored field(s) off their declared domain: %s', '40:Error fetching %s data: %s', '40:Error updating Heat Pump Optimizer: %s']
+  refreshB1: value=False added_warn=0 tpl=['10:Error updating Heat Pump Optimizer: %s']
+  refreshB2: value=True added_warn=0 tpl=['20:Fetching %s data recovered']
+RESULT fired=5 injections
+RESULT repeat_error_records=0 records
+RESULT recovered=1
+RESULT thread_factor=1.0 (no timing RESULT)
+RESULT load1=75.74
+RESULT swapins=0

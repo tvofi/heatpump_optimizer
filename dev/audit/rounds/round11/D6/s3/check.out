@@ -1,0 +1,61 @@
+RESULT units=3331
+RESULT rows=1796
+RESULT claims=145
+RESULT false=2
+RESULT stale=0
+RESULT true=143
+RESULT unverifiable=0
+RESULT unrowed=1535
+RESULT orphan=0
+RESULT malformed=0
+   unrowed custom_components/heatpump_optimizer/boost.py#52331311f0
+   unrowed custom_components/heatpump_optimizer/boost.py#a86e11d684
+   unrowed custom_components/heatpump_optimizer/boost.py#cb05b66d5c
+   unrowed custom_components/heatpump_optimizer/climate.py#514d2b2614
+   unrowed custom_components/heatpump_optimizer/climate.py#97492cc6db
+   unrowed custom_components/heatpump_optimizer/comfort_band.py#5a19180dd4
+   unrowed custom_components/heatpump_optimizer/comfort_band.py#5a19180dd4.1
+   unrowed custom_components/heatpump_optimizer/comfort_learning.py#b146055227
+   unrowed custom_components/heatpump_optimizer/config_flow.py#246182bbc2
+   unrowed custom_components/heatpump_optimizer/config_flow.py#a2c178f526
+   unrowed custom_components/heatpump_optimizer/config_flow.py#ac95897f5c
+   unrowed custom_components/heatpump_optimizer/config_flow.py#ac95897f5c.1
+   unrowed custom_components/heatpump_optimizer/config_flow.py#badaf165de
+   unrowed custom_components/heatpump_optimizer/coordinator.py#00a647e77f
+   unrowed custom_components/heatpump_optimizer/coordinator.py#06630d3268
+   unrowed custom_components/heatpump_optimizer/coordinator.py#07561cb189
+   unrowed custom_components/heatpump_optimizer/coordinator.py#08dfb79bdb
+   unrowed custom_components/heatpump_optimizer/coordinator.py#09891f83a9
+   unrowed custom_components/heatpump_optimizer/coordinator.py#0e7ceddf2d
+   unrowed custom_components/heatpump_optimizer/coordinator.py#0f33a422e8
+   unrowed custom_components/heatpump_optimizer/coordinator.py#11b7f4e739
+   unrowed custom_components/heatpump_optimizer/coordinator.py#147303417c
+   unrowed custom_components/heatpump_optimizer/coordinator.py#16aaa2abb8
+   unrowed custom_components/heatpump_optimizer/coordinator.py#180d637d30
+   unrowed custom_components/heatpump_optimizer/coordinator.py#1ca6010b0e
+   unrowed custom_components/heatpump_optimizer/coordinator.py#27e96eaabe
+   unrowed custom_components/heatpump_optimizer/coordinator.py#28777d95f0
+   unrowed custom_components/heatpump_optimizer/coordinator.py#36bff5abb7
+   unrowed custom_components/heatpump_optimizer/coordinator.py#37a2e5fdd1
+   unrowed custom_components/heatpump_optimizer/coordinator.py#3d2a305803
+   unrowed custom_components/heatpump_optimizer/coordinator.py#3ef22c2f48
+   unrowed custom_components/heatpump_optimizer/coordinator.py#3fe086b685
+   unrowed custom_components/heatpump_optimizer/coordinator.py#430df79363
+   unrowed custom_components/heatpump_optimizer/coordinator.py#4c9abebc71
+   unrowed custom_components/heatpump_optimizer/coordinator.py#506a2d2397
+   unrowed custom_components/heatpump_optimizer/coordinator.py#558f94ad77
+   unrowed custom_components/heatpump_optimizer/coordinator.py#563656344f
+   unrowed custom_components/heatpump_optimizer/coordinator.py#5eff52802c
+   unrowed custom_components/heatpump_optimizer/coordinator.py#65d85ad0a4
+   unrowed custom_components/heatpump_optimizer/coordinator.py#7034f0e3c0
+   unrowed custom_components/heatpump_optimizer/coordinator.py#71c111145a
+   unrowed custom_components/heatpump_optimizer/coordinator.py#752537f154
+   unrowed custom_components/heatpump_optimizer/coordinator.py#77b225d236
+   unrowed custom_components/heatpump_optimizer/coordinator.py#7816ad1ace
+   unrowed custom_components/heatpump_optimizer/coordinator.py#7a31848f5b
+   unrowed custom_components/heatpump_optimizer/coordinator.py#7def665483
+   unrowed custom_components/heatpump_optimizer/coordinator.py#7fb9e38f1d
+   unrowed custom_components/heatpump_optimizer/coordinator.py#8588ff0bec
+   unrowed custom_components/heatpump_optimizer/coordinator.py#860feec9d5
+   unrowed custom_components/heatpump_optimizer/coordinator.py#93f7c17831
+RESULT plant_refused=1 planted_units=1 in custom_components/heatpump_optimizer/translations/en.json

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/name_match.py:_device_words CMP_BOUND 4979b537",
+  "killed_by": "tests/features.py",
+  "old": "        while keep < min(len(common), len(run)) and common[keep] == run[keep]:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`while keep <= min(len(common), len(run)) and common[keep] == run[keep]:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

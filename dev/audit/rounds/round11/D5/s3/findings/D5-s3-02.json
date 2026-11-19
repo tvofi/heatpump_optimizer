@@ -1,0 +1,46 @@
+{
+ "id": "D5-s3-02",
+ "scope": "D5-s3",
+ "step": "D5.M4",
+ "title": "comfort_band docstring says the climate slider's maximum sits one degree above the ceiling; it equals the ceiling",
+ "severity": "low",
+ "claim": "comfort_band.py's module docstring states, in the present tense, that the climate entity's slider has 'its own maximum sitting one degree *above* the configured ceiling'; the real HeatPumpOptimizerClimate publishes max_temp equal to the configured max_temperature (overshoot 0.0 °C).",
+ "mechanism": "climate.py:124 sets _attr_max_temp = config.max_temperature since v5.1.7 removed the + 1 (its own comment at climate.py:110 says so); the comfort_band bullet still describes the old slider as current, so a reader of comfort_band alone believes the slider can still store a target above the ceiling.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+  "value": 1,
+  "unit": "stale rows (docstring claims +1.0 °C, measured overshoot 0.0 °C)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B3, x86_64 4 vCPU container",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats running on the shared box; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 5.2,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.climate:HeatPumpOptimizerClimate.__init__ (_attr_max_temp) via climate.EntryConfig.from_mapping",
+ "perturbation": {
+  "change": "climate.EntryConfig.from_mapping wrapped (mock.patch.object, --perturb) to hand the entity max_temperature + 1, the pre-v5.1.7 slider",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "stale_rows = 1 when HeatPumpOptimizerClimate max_temp minus the configured max_temperature differs from the docstring's +1.0 °C, else 0.",
+ "phenomenon_property": "A docstring that describes another component's current behaviour in the present tense matches what that component does at the same ref.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py --perturb",
+  "value": "overshoot_c=1.0, stale_rows=0",
+  "note": "the instrument reads the docstring as true when the slider does overshoot"
+ },
+ "reproduction_steps": [
+  "run the command: overshoot_c=0.0, stale_rows=1",
+  "--perturb: overshoot_c=1.0, stale_rows=0"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/comfort_band.py"
+ ],
+ "proposed_fix_scope": "Rewrite the bullet in the past tense or drop the history (C4): the slider now offers exactly the band (climate.py:110-124)."
+}

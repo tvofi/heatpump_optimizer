@@ -1,0 +1,15 @@
+   healthy [(True, 0, 0, 'None'), (True, 0, 0, 'None'), (True, 0, 0, 'None')]
+   year1_stamps [(True, 0, 0, 'None'), (True, 0, 0, 'None'), (True, 0, 0, 'None')]
+   nan_values [(True, 1, 0, 'None'), (True, 0, 0, 'None'), (True, 0, 0, 'None')]
+   strings [(True, 1, 0, 'None'), (True, 0, 0, 'None'), (True, 0, 0, 'None')]
+   unsorted_dupes [(True, 0, 0, 'None'), (True, 0, 0, 'None'), (True, 0, 0, 'None')]
+   not_dict [(True, 1, 0, 'None'), (True, 0, 0, 'None'), (True, 0, 0, 'None')]
+   hourly_list [(True, 1, 0, 'None'), (True, 0, 0, 'None'), (True, 0, 0, 'None')]
+   error [(True, 1, 0, 'None'), (True, 0, 0, 'None'), (True, 0, 0, 'None')]
+RESULT openmeteo_year1_solve_failures=0 solves
+RESULT openmeteo_year1_failed_updates=0 cycles
+RESULT openmeteo_healthy_solve_failures=0 solves
+RESULT openmeteo_all_variants_solve_failures=0 solves
+RESULT thread_factor=1.000
+RESULT load1=251.98
+RESULT swapins=0

@@ -1,0 +1,96 @@
+# machine Linux-6.18.44-fc-v509-x86_64-with-glibc2.39 x86_64 py3.14.7
+# fixture=synthetic cycles=1100 warmup=200 step_minutes=None perturb=None cycle_errors=0 []
+RESULT traced_slope=874.9 B/cycle
+RESULT traced_year_mib=43.85 MiB (B4 budget 10 MiB = 199 B/cycle)
+RESULT root_slope[coord._snapshot_ring]=268.9 B/cycle
+RESULT root_slope[coord._accuracy]=217.7 B/cycle
+RESULT root_slope[coord.data]=17.8 B/cycle
+RESULT root_slope[coord._thermal_model]=8.7 B/cycle
+RESULT root_slope[coord._prices]=7.6 B/cycle
+RESULT root_slope[coord._price_learner]=2.2 B/cycle
+RESULT root_slope[coord._dhw_learner]=0.4 B/cycle
+RESULT root_slope[coord._dhw_accuracy]=0.2 B/cycle
+RESULT root_slope[coord._ledger]=0.1 B/cycle
+RESULT root_slope[coord._ctx]=0.1 B/cycle
+RESULT root_slope[module.heatpump_optimizer.debugger.DOMAINS]=-0.0 B/cycle
+RESULT root_slope[module.heatpump_optimizer.grid_fee._MONTHS]=-0.0 B/cycle
+RESULT root_slope[coord._immersion_clear_count]=0.0 B/cycle
+RESULT file_slope[snapshots.py]=266.9 B/cycle
+RESULT file_slope[coordinator.py]=252.3 B/cycle
+RESULT file_slope[store.py]=101.2 B/cycle
+RESULT file_slope[other]=85.5 B/cycle
+RESULT file_slope[inputs.py]=52.3 B/cycle
+RESULT file_slope[accuracy.py]=42.2 B/cycle
+RESULT file_slope[drift.py]=20.4 B/cycle
+RESULT file_slope[defrost.py]=11.8 B/cycle
+RESULT file_slope[price_model.py]=10.6 B/cycle
+RESULT file_slope[ledger.py]=7.2 B/cycle
+RESULT file_slope[dhw_draws.py]=4.3 B/cycle
+RESULT file_slope[thermal_model.py]=-2.3 B/cycle
+RESULT file_slope[entity.py]=1.5 B/cycle
+RESULT file_slope[dhw_learning.py]=1.4 B/cycle
+RESULT file_slope[plan_slots.py]=1.2 B/cycle
+RESULT file_slope[sensor.py]=0.8 B/cycle
+RESULT file_slope[optimizer.py]=0.3 B/cycle
+RESULT file_slope[boost.py]=-0.3 B/cycle
+RESULT file_slope[switch.py]=-0.3 B/cycle
+RESULT file_slope[driving_grade.py]=0.3 B/cycle
+RESULT file_slope[narrative.py]=-0.2 B/cycle
+RESULT file_slope[heat_energy.py]=-0.1 B/cycle
+RESULT file_slope[pump_arbiter.py]=-0.1 B/cycle
+RESULT file_slope[legionella.py]=-0.1 B/cycle
+RESULT file_slope[heat_curve.py]=0.1 B/cycle
+RESULT late_traced_slope=986.4 B/cycle (from cycle 700)
+RESULT late_root_slope[coord._snapshot_ring]=605.0 B/cycle
+RESULT late_root_slope[coord._thermal_model]=35.2 B/cycle
+RESULT late_root_slope[coord._accuracy]=-5.7 B/cycle
+RESULT late_root_slope[coord._dhw_accuracy]=1.8 B/cycle
+RESULT late_root_slope[coord.data]=0.5 B/cycle
+RESULT late_root_slope[coord._dhw_learner]=0.4 B/cycle
+RESULT late_root_slope[coord._price_learner]=0.4 B/cycle
+RESULT late_root_slope[module.heatpump_optimizer.debugger.DOMAINS]=-0.1 B/cycle
+RESULT late_root_slope[module.heatpump_optimizer.grid_fee._MONTHS]=0.1 B/cycle
+RESULT late_root_slope[coord._ctx]=0.1 B/cycle
+RESULT late_root_slope[coord._sysid]=0.1 B/cycle
+#   growth 265.0 B/cycle (+4554 blocks) at snapshots.py:122 via ['decoder.py:361', 'decoder.py:345', '__init__.py:352', 'snapshots.py:122']
+#   growth 127.5 B/cycle (+652 blocks) at coordinator.py:10051 via ['coordinator.py:10051', 'coordinator.py:682', 'coordinator.py:6117', 'events.py:94']
+#   growth 97.8 B/cycle (+1 blocks) at store.py:824 via ['encoder.py:263', 'encoder.py:202', '__init__.py:235', 'storage.py:117']
+#   growth 74.7 B/cycle (+2 blocks) at other via ['tracemalloc.py:469', 'retained.py:152', 'retained.py:208', 'retained.py:287']
+#   growth 34.8 B/cycle (+652 blocks) at coordinator.py:9996 via ['dt.py:58', 'coordinator.py:9996', 'coordinator.py:682', 'coordinator.py:6117']
+#   growth 31.4 B/cycle (+1143 blocks) at coordinator.py:2047 via ['coordinator.py:2047', 'coordinator.py:2081', 'harness.py:194', 'coordinator.py:2129']
+#   growth 19.0 B/cycle (+237 blocks) at accuracy.py:273 via ['accuracy.py:273', 'coordinator.py:10031', 'coordinator.py:682', 'coordinator.py:6117']
+#   growth 17.8 B/cycle (+666 blocks) at coordinator.py:10061 via ['coordinator.py:10061', 'coordinator.py:682', 'coordinator.py:6117', 'events.py:94']
+#   growth 17.7 B/cycle (+664 blocks) at coordinator.py:5011 via ['coordinator.py:5011', 'coordinator.py:10108', 'coordinator.py:682', 'coordinator.py:6117']
+#   growth 17.5 B/cycle (+656 blocks) at coordinator.py:10066 via ['coordinator.py:10066', 'coordinator.py:682', 'coordinator.py:6117', 'events.py:94']
+#   growth 17.5 B/cycle (+655 blocks) at inputs.py:371 via ['inputs.py:371', 'inputs.py:836', 'inputs.py:1112', 'coordinator.py:6655']
+#   growth 17.4 B/cycle (+654 blocks) at inputs.py:341 via ['inputs.py:341', 'inputs.py:1222', 'coordinator.py:6694', 'coordinator.py:6064']
+#   growth 17.4 B/cycle (+654 blocks) at inputs.py:371 via ['inputs.py:371', 'inputs.py:836', 'inputs.py:1112', 'coordinator.py:6649']
+#   growth 10.3 B/cycle (+1 blocks) at defrost.py:346 via ['defrost.py:346', 'thermal_model.py:3337', 'thermal_model.py:3301', 'coordinator.py:5100']
+#   growth 10.2 B/cycle (+192 blocks) at drift.py:67 via ['drift.py:67', 'coordinator.py:10194', 'coordinator.py:10221', 'coordinator.py:6461']
+# checkpoint cycle=200 traced=529764 worker_rss_kib=107468 cpu_s=15.1
+# checkpoint cycle=250 traced=674823 worker_rss_kib=107628 cpu_s=45.4
+# checkpoint cycle=300 traced=723255 worker_rss_kib=106956 cpu_s=75.2
+# checkpoint cycle=350 traced=753264 worker_rss_kib=108196 cpu_s=103.5
+# checkpoint cycle=400 traced=779773 worker_rss_kib=108132 cpu_s=132.0
+# checkpoint cycle=450 traced=802347 worker_rss_kib=107868 cpu_s=161.1
+# checkpoint cycle=500 traced=834946 worker_rss_kib=106968 cpu_s=189.6
+# checkpoint cycle=550 traced=856166 worker_rss_kib=106972 cpu_s=217.2
+# checkpoint cycle=600 traced=873895 worker_rss_kib=107524 cpu_s=245.3
+# checkpoint cycle=650 traced=899262 worker_rss_kib=107396 cpu_s=273.8
+# checkpoint cycle=700 traced=922606 worker_rss_kib=108092 cpu_s=304.2
+# checkpoint cycle=750 traced=934374 worker_rss_kib=106988 cpu_s=334.5
+# checkpoint cycle=800 traced=971929 worker_rss_kib=106988 cpu_s=362.9
+# checkpoint cycle=850 traced=986150 worker_rss_kib=108332 cpu_s=395.5
+# checkpoint cycle=900 traced=979154 worker_rss_kib=106988 cpu_s=425.9
+# checkpoint cycle=950 traced=995049 worker_rss_kib=107764 cpu_s=454.2
+# checkpoint cycle=1000 traced=987538 worker_rss_kib=107740 cpu_s=485.9
+# checkpoint cycle=1050 traced=1300999 worker_rss_kib=106992 cpu_s=515.6
+# checkpoint cycle=1100 traced=1317178 worker_rss_kib=108008 cpu_s=547.8
+RESULT worker_rss_slope=614 B/cycle (solving child VmRSS, cycles 200..1100; provisional)
+RESULT ru_maxrss=123480 KiB (coordinator process, incl. tracemalloc overhead; provisional)
+RESULT worker_ru_maxrss=108156 KiB (solving child; provisional; B5 128 MB)
+RESULT wall_s=1612.8 s (provisional)
+RESULT thread_factor=1.0
+RESULT load1=8.2
+RESULT swapins=0
+RESULT child_ru_maxrss=123480 KiB (provisional; before=0)
