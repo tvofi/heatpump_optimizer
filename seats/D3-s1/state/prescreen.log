@@ -682,3 +682,4 @@
 2026-11-19T17:39:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_wood_share_vec CLAMP_DROP 351c0e21 L2946 by=- ran=12 wall=1614.3s
 2026-11-19T17:49:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._cop_law CLAMP_DROP 2723239c L3328 by=- ran=19 wall=1952.4s
 2026-11-19T17:49:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.flow_lift_factor CLAMP_DROP 9e45afd9 L3387 by=- ran=17 wall=1747.6s
+2026-11-19T17:53:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.update_ecl110_displace_state CLAMP_DROP c141a98b L3569 by=- ran=13 wall=1964.2s
