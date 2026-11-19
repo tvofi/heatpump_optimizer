@@ -526,3 +526,6 @@
 2026-11-18T23:59:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery GUARD_OFF 4f3bbbac L2587 by=- ran=12 wall=1504.4s
 2026-11-19T00:07:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery GUARD_OFF 549bb130 L2598 by=- ran=13 wall=1462.4s
 2026-11-19T00:14:59Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_step GUARD_OFF bf9c0638 L4140 by=- ran=17 wall=1743.8s
+2026-11-19T00:19:07Z RUN posctl-D3-u1c-refire queued=2 workers=2
+2026-11-19T00:19:18Z POSCTL-D3-U1C-REFIRE KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=11.0s
+2026-11-19T00:19:18Z POSCTL-D3-U1C-REFIRE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=2 skip=5 wall=11.2s
