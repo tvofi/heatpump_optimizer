@@ -244,3 +244,4 @@
 1795095395 HB alive
 1795095426 HB session restart ~13:35 UTC: comms loop restarted with the current proxy; full-net driver still running (236/242)
 1795095499 HB alive
+1795095525 HB session restart ~13:35 UTC: comms loop restarted with the current proxy (stale push lock from the killed loop removed); full-net driver still running (236/242)
