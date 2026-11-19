@@ -572,3 +572,9 @@
 2026-11-19T04:46:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_apply_pins_to_bounds CMP_BOUND b5267853 L2417 by=- ran=14 wall=1485.5s
 2026-11-19T04:49:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_mark_manual_reasons CMP_BOUND 69bbbda7 L2494 by=- ran=14 wall=1590.6s
 2026-11-19T04:49:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_fd_steps CMP_BOUND 5b2af4e0 L1577 by=- ran=17 wall=1675.6s
+2026-11-19T05:09:56Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._co_optimize CMP_BOUND 50b6e4ab L3997 by=- ran=12 wall=1383.2s
+2026-11-19T05:14:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize CMP_BOUND de6d4fb9 L4560 by=- ran=13 wall=1483.3s
+2026-11-19T05:17:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CMP_BOUND ed2d6ba6 L4229 by=- ran=17 wall=1664.8s
+2026-11-19T05:37:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._publish_breach_reports CMP_BOUND dd84d80c L4879 by=- ran=13 wall=1392.6s
+2026-11-19T05:37:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._stash_price_horizon CMP_BOUND bafde796 L4700 by=- ran=17 wall=1677.6s
+2026-11-19T05:41:52Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._tighten_buffer_caps CMP_BOUND c413675c L5139 by=- ran=12 wall=1487.2s
