@@ -5487,7 +5487,8 @@
    "severity": "high",
    "size": "L",
    "issues": [
-    3749
+    3749,
+    3772
    ],
    "fixes": [],
    "findings": [
