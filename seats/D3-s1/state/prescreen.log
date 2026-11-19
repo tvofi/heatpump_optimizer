@@ -537,6 +537,4 @@
 2026-11-18T23:45:16Z COMPLETE queued=162 from=pre
 2026-11-18T23:51:25Z COMPLETE SIGNAL custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF 582cce74 L783 (not written; re-drive)
 2026-11-19T00:16:04Z COMPLETE queued=162 from=pre
-2026-11-19T00:50:57Z RUN posctl-D3-u1d-refire queued=2 workers=2
-2026-11-19T00:51:12Z POSCTL-D3-U1D-REFIRE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=2 skip=5 wall=8.9s
-2026-11-19T00:51:12Z POSCTL-D3-U1D-REFIRE KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=8.8s
+2026-11-19T00:21:22Z COMPLETE SIGNAL custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF 582cce74 L783 (not written; re-drive)
