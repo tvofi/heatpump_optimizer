@@ -1,0 +1,9 @@
+gap D3-s1: M1 has 0 coverage row(s), not exactly one
+gap D3-s1: M4 has 0 coverage row(s), not exactly one
+gap D3-s1: M5 has 0 coverage row(s), not exactly one
+gap D3-s1: C1 (M5), handed over from the round before, is not answered under redispatched
+gap D3-s1: C4 (M5), handed over from the round before, is not answered under redispatched
+gap D3-s1: C7 (M5), handed over from the round before, is not answered under redispatched
+gap D3-s1: C8 (M1), handed over from the round before, is not answered under redispatched
+gap D3-s1: C9 (M5), handed over from the round before, is not answered under redispatched
+ok D3-s1
