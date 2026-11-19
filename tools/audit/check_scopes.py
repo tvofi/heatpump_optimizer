@@ -876,7 +876,8 @@ def population_self_test():
     nr = {"axis": "n", "kind": None, "no_read": "why", "builder": "G1"}
     every = pop(tup("T"), tup("D"), tup("L"), binary, glob, cmp, nr)
     files["p/flow2.py"] = ("RANGE_L = (0.01, 1.0)\nW = {CONF_A: _number(20, 1000, 5, 'm2')}\n"
-                           "R = (_F('t', CONF_V, D_V, _number(50, 1400, 10, 'L')), _F('m', CONF_L, X, _number(*RANGE_L, 0.01)))\n")
+                           "R = (_F('t', CONF_V, D_V, _number(50, 1400, 10, 'L')), _F('m', CONF_L, X, _number(*RANGE_L, 0.01)))\n"
+                           "W2 = {CONF_D: _number(50, 1400, 10)}\nR2 = (_F('u', CONF_D, D_V, _number(50, 1300, 10)),)\n")
     files["p/const.py"] += "D_V = 200.0\nD_A = 140.0\nD_L = 0.15\n"
     rng_v = {"axis": "v", "kind": "flow_range", "file": "p/flow2.py", "levels": {"min": 50, "default": 200, "max": 1400},
              "rows": [{"key": "CONF_V", "default": "D_V"}]}
@@ -919,8 +920,13 @@ def population_self_test():
             not moved_max[1] and moved_max[0][0] == "UNREADABLE v: level max declares 1500 for CONF_V, the flow row reads 1400",
         "a flow-range level that is not the row's default constant is UNREADABLE":
             not moved_def[1] and moved_def[0][0] == "UNREADABLE s: level default declares 0.15 for CONF_L, the flow row reads 0.2",
-        "a flow-range key no _number row presents is UNREADABLE": not pop({**rng_v, "rows": [{"key": "CONF_NONE", "default": "D_V"}]})[1],
-        "a flow-range level that is no row bound is UNREADABLE": not pop({**rng_v, "levels": {**rng_v["levels"], "typical": 300}})[1],
+        "a flow-range key no _number row presents is UNREADABLE by key":
+            pop({**rng_v, "rows": [{"key": "CONF_NONE", "default": "D_V"}]})[0][0] == "UNREADABLE v: CONF_NONE is presented by no _number rows in p/flow2.py",
+        "a flow-range key whose _number rows disagree is UNREADABLE":
+            pop({**rng_v, "rows": [{"key": "CONF_D", "default": "D_V"}]})[0][0] == "UNREADABLE v: CONF_D is presented by disagreeing _number rows in p/flow2.py",
+        "a flow-range level other than min, default and max is UNREADABLE by name":
+            pop({**rng_v, "levels": {**rng_v["levels"], "typical": 300}})[0][0]
+            == "UNREADABLE v: levels ['default', 'max', 'min', 'typical'] are not among min, default and max, the levels a flow row reads",
     }
 
 
