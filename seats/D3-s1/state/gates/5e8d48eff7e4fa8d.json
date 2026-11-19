@@ -1,0 +1,26 @@
+{
+ "key": "5e8d48eff7e4fa8d",
+ "mutant": {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "line": 8806,
+  "old": "        if tariff.enabled and factor > 0.0:",
+  "new": "        if tariff.enabled or factor > 0.0:",
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:R10-C3C6 M04",
+  "c2_id": "M04"
+ },
+ "gate_rc": 0,
+ "failed_scripts": [],
+ "summary": [
+  "ALL TEST SCRIPTS PASSED"
+ ],
+ "wall_s": 3288.6,
+ "child_cpu_s": 4393.7,
+ "load1_start": 0.66,
+ "load1_end": 0.0,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "killed_by": [],
+ "verdict": "SURVIVED"
+}
