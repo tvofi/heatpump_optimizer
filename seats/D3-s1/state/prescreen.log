@@ -599,3 +599,4 @@
 2026-11-19T03:27:25Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth CMP_BOUND 7e1c5191 L1083 by=tests/entities.py ran=12 wall=1641.4s
 2026-11-19T03:39:15Z COMPLETE KILLED custom_components/heatpump_optimizer/grid_fee.py:GridFeeSchedule.current_fee RETURN_DEL 7e53edad L310 by=tests/features.py ran=12 wall=1674.6s
 2026-11-19T03:49:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CLAMP_DROP 79ab3a2f L2037 by=- ran=12 wall=1661.6s
+2026-11-19T03:51:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_price_ranked_start CMP_BOUND fc7a9935 L2126 by=- ran=17 wall=1875.9s
