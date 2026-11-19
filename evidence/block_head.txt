@@ -1,0 +1,40 @@
+Tibber returned no usable price rows
+Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+
+=== features block ===
+  ok   D7-s3-03: plan_step_index, covering_index and both _planned_room copies agree on every probe -- inside the plan a step covers now, at and past its end none does
+  ok   D7-s3-03: a plan's last step is one PLAN_STEP wide after a shorter gap (covered at half a step, not at a step), and the arbiter's planned room reads it; null control, the series lookup with no grid width ends it one gap after its stamp
+  ok   D7-s1-05 note: GuardState, Cusum and the immersion log write evidence through EvidenceNotes.note, the newest EVIDENCE_KEEP lines kept, the same line for the same note
+  ok   D7-s3-04 water: the tank model, the flow meter and the gap advisor read one heat capacity, const.WATER_SPECIFIC_HEAT (kWh per litre per K)
+  ok   D7-s3-04 naive instant: drift.utc_instant reads a naive stamp as UTC under a Tokyo host; open_meteo and manual_plan read it there
+  ok   D7-s3-04 finite: payload_number refuses NaN and infinity, and agrees with finite_float on every probe but text
+  ok   #2229: a price list that stopped updating publishes no current price past its last entry's hour; a covered hour (the null control) still reads its entry
+  ok   #2229: no prices, or none started yet, is no current price -- never 0.0, the cheapest price there is, and never the head of a list that covers a later hour
+  ok   #2229: the forecast's outdoor 'now' and the open-loop plan seed end with their series (the sweep's two siblings); inside it they read the covering entry
+  ok   #2233/#2236: a Tibber body with no usable row is a failure reason, a row with no parseable start is dropped, and a good body (null control) keeps all 96 rows
+  ok   #2236: one start rule for both ingress paths -- the entity path drops an unparseable start too
+  ok   #2233: an HTTP 200 with empty days fails the fetch and keeps the 96 held rows; the good fetch before it (null control) succeeds
+  ok   #2233: a forecast whose rows all fail plausibility is a failed fetch: the held 48 rows stay and are marked stale; the good fetch (null control) is not stale
+  ok   #2226: a held condition warns when it starts, DEBUGs while it holds, INFOs once when it clears, and warns again on recurrence or a changed text
+  ok   #2226: four cycles of no prices, no forecast and malformed peak-tariff options log each WARNING once (it was 4, and 16 for a tariff option)
+  ok   #2226/#2351: the stale-plan hold logs its advancing age and failure count at DEBUG, so a persisting stale plan never warns every cycle
+  ok   #2351: a None owner is logged every call and never raises -- no stable key means no transition to hold, not a cycle-ending exception
+  ok   #2351: a failed solve ERRORs with its traceback once per spell, DEBUGs on repeats, ERRORs again after the success path clears it; forget_held re-arms
+  ok   #2229: an interval no price covered books its energy, no cost and no spot sample -- not a zero-priced kWh and not a 0.0 dragging the month's mean spot
+  ok   #2229 null control: a priced interval still books its cost and spot sample
+  ok   #2229: an accuracy sample with no price records no cost comparison (None, which the tracker's pairing skips), not a 0.0 cost; a priced one (null control) does
+  ok   #2229: an unknown current price never starts a system-identification experiment
+  ok   #2229: an override with no current price is recorded at a neutral relative price
+  ok   #2229: the operation score's day book takes an unpriced interval's kWh nowhere -- counted at 0 SEK it lowered the day's mean paid price; a priced one (null control) books
+  ok   #2239: the external-heat detector's space demand is the whole-house demand the tank's drain law prices, on the learned lower-floor ratio; the single-zone and ratio-1.0 arms are the controls
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r11/rev-3728/wt/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r11/rev-3728/wt/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/Users/timmalmstrom/hpo-seats/r11/rev-3728/wt/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 605, in <module>
+NameError: name '_s5_effective' is not defined
