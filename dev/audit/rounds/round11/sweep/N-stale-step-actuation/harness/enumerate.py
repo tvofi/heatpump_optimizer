@@ -27,6 +27,19 @@ WRITE_PRIMS = {"async_call", "async_publish", "publish", "select_option",
                "_drive_switch", "turn_on", "turn_off"}
 
 
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
 def _name(f):
     if isinstance(f, ast.Attribute):
         return f.attr
@@ -93,7 +106,7 @@ def scan(root):
 
 
 def controls():
-    repo = pathlib.Path(__file__).resolve().parents[6]
+    repo = repo_root(__file__)
     real = scan(repo / "custom_components" / "heatpump_optimizer")
     names = {s[2] for s in real}
     want = {"_command_frequency", "async_publish_current_action", "async_track_cycle"}

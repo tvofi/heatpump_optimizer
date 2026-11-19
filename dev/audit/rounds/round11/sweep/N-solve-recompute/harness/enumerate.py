@@ -21,6 +21,19 @@ TRIGGERS = {"async_request_refresh", "async_refresh", "async_refresh_now",
 EXEMPT_FUNCS = {"_async_update_data"}  # the cycle itself is the solve, not a trigger of it
 
 
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
 def seams(root):
     out = []
     for path in sorted(pathlib.Path(root).rglob("*.py")):
@@ -56,7 +69,7 @@ def seams(root):
 
 def controls():
     here = pathlib.Path(__file__).resolve()
-    repo = here.parents[6]
+    repo = repo_root(here)
     pkg = repo / "custom_components" / "heatpump_optimizer"
     real = seams(pkg)
     pos = [s for s in real if s[2].endswith("async_diagnose_interval") and s[3] == "async_request_refresh"]
