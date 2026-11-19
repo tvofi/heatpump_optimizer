@@ -624,3 +624,13 @@
 2026-11-19T12:12:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling GUARD_OFF cf0ef9fc L6093 by=- ran=12 wall=1612.5s
 2026-11-19T12:14:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains CLAMP_DROP e9f6523e L9452 by=- ran=13 wall=1635.3s
 2026-11-19T12:20:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off CMP_BOUND 92c9617c L5212 by=- ran=13 wall=1645.1s
+2026-11-19T12:27:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_fold_flow_lift GUARD_OFF a9ba1061 L984 by=- ran=13 wall=1658.8s
+2026-11-19T12:39:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._narrative_view CLAMP_DROP e7bcbc6b L10603 by=- ran=13 wall=1634.4s
+2026-11-19T12:42:10Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_setup_peak_guard GUARD_OFF 24dbc1db L8740 by=tests/features.py ran=13 wall=1641.9s
+2026-11-19T12:51:17Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF 065079e2 L6667 by=tests/entities.py,tests/features.py ran=15 wall=1828.8s
+2026-11-19T12:54:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling CMP_BOUND 384d6fb8 L6070 by=- ran=13 wall=1621.9s
+2026-11-19T13:07:56Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._confidence_margins CMP_BOUND 4d9403aa L9166 by=- ran=13 wall=1683.6s
+2026-11-19T13:10:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND 6ac7c36c L5679 by=- ran=13 wall=1690.6s
+2026-11-19T13:19:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._settlement_caps CLAMP_DROP 2094fe44 L6029 by=- ran=13 wall=1697.7s
+2026-11-19T13:22:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch CLAMP_DROP 8322628c L821 by=- ran=12 wall=1704.8s
+2026-11-19T13:36:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CLAMP_DROP 7c0715b8 L1974 by=- ran=12 wall=1697.0s
