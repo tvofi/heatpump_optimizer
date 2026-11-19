@@ -187,3 +187,10 @@
 2026-11-19T12:00:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:wood_share CMP_BOUND 5dfd3ad3 L2903 by=- ran=12 wall=1558.3s
 2026-11-19T12:15:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:learner_newton_step CMP_BOUND e46c5e3e L3073 by=- ran=13 wall=1885.2s
 2026-11-19T12:15:47Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:learner_newton_step CMP_BOUND e46c5e3e L3073 by=- ran=13 wall=1883.8s
+2026-11-19T12:25:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.effective_heat_loss_coefficient CMP_BOUND 5eed5b5e L3479 by=- ran=17 wall=1922.7s
+2026-11-19T12:28:53Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.dhw_coast_hours CMP_BOUND a01b8479 L3651 by=tests/features.py ran=16 wall=1675.6s
+2026-11-19T12:36:40Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state BOOLOP 23752846 L539 by=tests/features.py ran=13 wall=1266.8s
+2026-11-19T12:43:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views BOOLOP 4d085ae8 L4851 by=- ran=14 wall=1673.9s
+2026-11-19T12:53:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state BOOLOP 9f6c1950 L6752 by=- ran=13 wall=1660.7s
+2026-11-19T12:56:49Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_immersion BOOLOP 2f74d22d L9107 by=tests/features.py ran=13 wall=1676.5s
+2026-11-19T13:04:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_simulate BOOLOP 67eac7b8 L11271 by=- ran=13 wall=1660.1s
