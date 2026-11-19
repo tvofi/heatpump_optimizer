@@ -1,0 +1,16 @@
+# const spellings in the package at head
+custom_components/heatpump_optimizer/climate.py:22:from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+custom_components/heatpump_optimizer/diagnostics.py:75:from homeassistant.const import CONF_NAME
+custom_components/heatpump_optimizer/__init__.py:24:from homeassistant.const import Platform
+custom_components/heatpump_optimizer/config_flow.py:14:from homeassistant.const import CONF_NAME
+custom_components/heatpump_optimizer/coordinator.py:43:from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfSpeed
+custom_components/heatpump_optimizer/sensor.py:12:from homeassistant.const import (
+# subpackages
+# from . import const users
+custom_components/heatpump_optimizer/debugger.py
+custom_components/heatpump_optimizer/flow_meter.py
+custom_components/heatpump_optimizer/dhw_schedule.py
+custom_components/heatpump_optimizer/grid_fee.py
+custom_components/heatpump_optimizer/entry_config.py
+custom_components/heatpump_optimizer/store.py
+custom_components/heatpump_optimizer/thermal_model.py

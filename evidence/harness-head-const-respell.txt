@@ -1,0 +1,170 @@
+FILE __init__.py loc=438 functions=15 max_fn_loc=83 over_150=0 over_200=0 max_cc=5 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=2 const_read=2 module_level_cc=1
+FILE accuracy.py loc=1452 functions=63 max_fn_loc=70 over_150=0 over_200=0 max_cc=23 cc_over_15=1 cc_over_25=0 max_class_loc=375 const_counted=6 const_read=6 module_level_cc=0
+FILE away.py loc=631 functions=27 max_fn_loc=54 over_150=0 over_200=0 max_cc=17 cc_over_15=1 cc_over_25=0 max_class_loc=39 const_counted=11 const_read=11 module_level_cc=0
+FILE batchmath.py loc=68 functions=1 max_fn_loc=39 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE battery.py loc=392 functions=15 max_fn_loc=174 over_150=1 over_200=0 max_cc=8 cc_over_15=0 cc_over_25=0 max_class_loc=81 const_counted=1 const_read=1 module_level_cc=0
+FILE binary_sensor.py loc=340 functions=24 max_fn_loc=26 over_150=0 over_200=0 max_cc=8 cc_over_15=0 cc_over_25=0 max_class_loc=93 const_counted=1 const_read=1 module_level_cc=0
+FILE boost.py loc=820 functions=47 max_fn_loc=41 over_150=0 over_200=0 max_cc=13 cc_over_15=0 cc_over_25=0 max_class_loc=175 const_counted=6 const_read=6 module_level_cc=0
+FILE button.py loc=255 functions=18 max_fn_loc=32 over_150=0 over_200=0 max_cc=3 cc_over_15=0 cc_over_25=0 max_class_loc=45 const_counted=1 const_read=1 module_level_cc=0
+FILE climate.py loc=355 functions=17 max_fn_loc=74 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=283 const_counted=5 const_read=5 module_level_cc=0 in_function_copies=1
+FILE comfort_band.py loc=282 functions=6 max_fn_loc=119 over_150=0 over_200=0 max_cc=11 cc_over_15=0 cc_over_25=0 max_class_loc=9 const_counted=23 const_read=23 module_level_cc=0
+FILE comfort_learning.py loc=262 functions=10 max_fn_loc=48 over_150=0 over_200=0 max_cc=10 cc_over_15=0 cc_over_25=0 max_class_loc=175 const_counted=0 const_read=0 module_level_cc=0
+FILE config_flow.py loc=4128 functions=141 max_fn_loc=92 over_150=0 over_200=0 max_cc=15 cc_over_15=0 cc_over_25=0 max_class_loc=795 const_counted=424 const_read=424 module_level_cc=17
+FILE const.py loc=1939 functions=8 max_fn_loc=32 over_150=0 over_200=0 max_cc=9 cc_over_15=0 cc_over_25=0 max_class_loc=5 const_counted=0 const_read=0 module_level_cc=0
+FILE coordinator.py loc=11418 functions=394 max_fn_loc=231 over_150=2 over_200=1 max_cc=42 cc_over_15=8 cc_over_25=2 max_class_loc=7875 const_counted=100 const_read=100 module_level_cc=1
+FILE currency.py loc=68 functions=3 max_fn_loc=16 over_150=0 over_200=0 max_cc=9 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE curve_learning.py loc=180 functions=7 max_fn_loc=25 over_150=0 over_200=0 max_cc=7 cc_over_15=0 cc_over_25=0 max_class_loc=114 const_counted=0 const_read=0 module_level_cc=0
+FILE datetime.py loc=48 functions=4 max_fn_loc=7 over_150=0 over_200=0 max_cc=1 cc_over_15=0 cc_over_25=0 max_class_loc=23 const_counted=0 const_read=0 module_level_cc=0
+FILE debugger.py loc=730 functions=49 max_fn_loc=36 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=203 const_counted=5 const_read=5 module_level_cc=0
+FILE defrost.py loc=838 functions=27 max_fn_loc=119 over_150=0 over_200=0 max_cc=31 cc_over_15=1 cc_over_25=1 max_class_loc=453 const_counted=0 const_read=0 module_level_cc=2
+FILE device_prefill.py loc=350 functions=7 max_fn_loc=45 over_150=0 over_200=0 max_cc=13 cc_over_15=0 cc_over_25=0 max_class_loc=21 const_counted=5 const_read=5 module_level_cc=0
+FILE dhw_draws.py loc=180 functions=10 max_fn_loc=26 over_150=0 over_200=0 max_cc=11 cc_over_15=0 cc_over_25=0 max_class_loc=117 const_counted=0 const_read=0 module_level_cc=0
+FILE dhw_learning.py loc=639 functions=21 max_fn_loc=63 over_150=0 over_200=0 max_cc=11 cc_over_15=0 cc_over_25=0 max_class_loc=493 const_counted=6 const_read=6 module_level_cc=0
+FILE dhw_planner.py loc=2307 functions=57 max_fn_loc=340 over_150=4 over_200=2 max_cc=21 cc_over_15=2 cc_over_25=0 max_class_loc=1872 const_counted=1 const_read=1 module_level_cc=0
+FILE dhw_schedule.py loc=683 functions=26 max_fn_loc=47 over_150=0 over_200=0 max_cc=14 cc_over_15=0 cc_over_25=0 max_class_loc=2 const_counted=0 const_read=2 module_level_cc=0
+FILE diagnosis.py loc=156 functions=3 max_fn_loc=54 over_150=0 over_200=0 max_cc=11 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE diagnostics.py loc=419 functions=16 max_fn_loc=40 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=5 const_read=5 module_level_cc=0
+FILE disinfection.py loc=276 functions=12 max_fn_loc=39 over_150=0 over_200=0 max_cc=10 cc_over_15=0 cc_over_25=0 max_class_loc=193 const_counted=2 const_read=2 module_level_cc=0
+FILE draw_range.py loc=856 functions=43 max_fn_loc=43 over_150=0 over_200=0 max_cc=15 cc_over_15=0 cc_over_25=0 max_class_loc=295 const_counted=0 const_read=0 module_level_cc=0
+FILE drift.py loc=362 functions=15 max_fn_loc=46 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=211 const_counted=0 const_read=0 module_level_cc=0
+FILE driving_grade.py loc=127 functions=9 max_fn_loc=19 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=2 const_read=2 module_level_cc=0
+FILE duty_legs.py loc=301 functions=12 max_fn_loc=38 over_150=0 over_200=0 max_cc=8 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE duty_switch.py loc=566 functions=37 max_fn_loc=26 over_150=0 over_200=0 max_cc=15 cc_over_15=0 cc_over_25=0 max_class_loc=139 const_counted=1 const_read=1 module_level_cc=1
+FILE early_cutoff.py loc=341 functions=16 max_fn_loc=38 over_150=0 over_200=0 max_cc=10 cc_over_15=0 cc_over_25=0 max_class_loc=26 const_counted=3 const_read=3 module_level_cc=0
+FILE entity.py loc=459 functions=20 max_fn_loc=46 over_150=0 over_200=0 max_cc=13 cc_over_15=0 cc_over_25=0 max_class_loc=125 const_counted=0 const_read=0 module_level_cc=1
+FILE entry_config.py loc=412 functions=27 max_fn_loc=13 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=203 const_counted=3 const_read=120 module_level_cc=4
+FILE external_heat.py loc=497 functions=17 max_fn_loc=53 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=309 const_counted=3 const_read=3 module_level_cc=0
+FILE flow_lift.py loc=247 functions=6 max_fn_loc=26 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=127 const_counted=2 const_read=2 module_level_cc=0
+FILE flow_meter.py loc=151 functions=6 max_fn_loc=34 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=4 module_level_cc=0
+FILE freq_control.py loc=346 functions=12 max_fn_loc=41 over_150=0 over_200=0 max_cc=11 cc_over_15=0 cc_over_25=0 max_class_loc=157 const_counted=3 const_read=3 module_level_cc=0
+FILE frontend.py loc=197 functions=4 max_fn_loc=102 over_150=0 over_200=0 max_cc=25 cc_over_15=1 cc_over_25=0 max_class_loc=0 const_counted=1 const_read=1 module_level_cc=0
+FILE grid_fee.py loc=517 functions=16 max_fn_loc=39 over_150=0 over_200=0 max_cc=14 cc_over_15=0 cc_over_25=0 max_class_loc=83 const_counted=12 const_read=15 module_level_cc=0
+FILE heat_curve.py loc=594 functions=28 max_fn_loc=53 over_150=0 over_200=0 max_cc=13 cc_over_15=0 cc_over_25=0 max_class_loc=10 const_counted=2 const_read=2 module_level_cc=0
+FILE heat_energy.py loc=621 functions=33 max_fn_loc=32 over_150=0 over_200=0 max_cc=14 cc_over_15=0 cc_over_25=0 max_class_loc=178 const_counted=1 const_read=1 module_level_cc=0
+FILE inputs.py loc=1471 functions=71 max_fn_loc=52 over_150=0 over_200=0 max_cc=10 cc_over_15=0 cc_over_25=0 max_class_loc=285 const_counted=15 const_read=15 module_level_cc=0
+FILE issues.py loc=89 functions=4 max_fn_loc=30 over_150=0 over_200=0 max_cc=5 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=1 const_read=1 module_level_cc=0
+FILE learner_progress.py loc=241 functions=9 max_fn_loc=28 over_150=0 over_200=0 max_cc=14 cc_over_15=0 cc_over_25=0 max_class_loc=17 const_counted=0 const_read=0 module_level_cc=0
+FILE ledger.py loc=743 functions=32 max_fn_loc=64 over_150=0 over_200=0 max_cc=15 cc_over_15=0 cc_over_25=0 max_class_loc=307 const_counted=1 const_read=1 module_level_cc=0
+FILE legionella.py loc=787 functions=24 max_fn_loc=157 over_150=1 over_200=0 max_cc=21 cc_over_15=1 cc_over_25=0 max_class_loc=658 const_counted=5 const_read=5 module_level_cc=0
+FILE log_latch.py loc=76 functions=2 max_fn_loc=39 over_150=0 over_200=0 max_cc=7 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE manual_plan.py loc=331 functions=14 max_fn_loc=55 over_150=0 over_200=0 max_cc=10 cc_over_15=0 cc_over_25=0 max_class_loc=122 const_counted=1 const_read=1 module_level_cc=0
+FILE mixing_valve.py loc=208 functions=6 max_fn_loc=54 over_150=0 over_200=0 max_cc=4 cc_over_15=0 cc_over_25=0 max_class_loc=5 const_counted=0 const_read=0 module_level_cc=0
+FILE modbus_prefill.py loc=283 functions=14 max_fn_loc=22 over_150=0 over_200=0 max_cc=8 cc_over_15=0 cc_over_25=0 max_class_loc=6 const_counted=19 const_read=19 module_level_cc=0
+FILE name_match.py loc=420 functions=14 max_fn_loc=39 over_150=0 over_200=0 max_cc=11 cc_over_15=0 cc_over_25=0 max_class_loc=34 const_counted=5 const_read=5 module_level_cc=0
+FILE narrative.py loc=238 functions=3 max_fn_loc=58 over_150=0 over_200=0 max_cc=9 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE notifier.py loc=339 functions=15 max_fn_loc=26 over_150=0 over_200=0 max_cc=15 cc_over_15=0 cc_over_25=0 max_class_loc=65 const_counted=2 const_read=2 module_level_cc=0
+FILE off_restore.py loc=353 functions=16 max_fn_loc=41 over_150=0 over_200=0 max_cc=15 cc_over_15=0 cc_over_25=0 max_class_loc=16 const_counted=2 const_read=2 module_level_cc=1
+FILE open_meteo.py loc=529 functions=22 max_fn_loc=68 over_150=0 over_200=0 max_cc=20 cc_over_15=1 cc_over_25=0 max_class_loc=274 const_counted=6 const_read=6 module_level_cc=0
+FILE optimizer.py loc=6705 functions=191 max_fn_loc=339 over_150=3 over_200=2 max_cc=41 cc_over_15=3 cc_over_25=2 max_class_loc=3330 const_counted=4 const_read=4 module_level_cc=1 in_function_copies=2
+FILE payload.py loc=1073 functions=0 max_fn_loc=0 over_150=0 over_200=0 max_cc=0 cc_over_15=0 cc_over_25=0 max_class_loc=47 const_counted=0 const_read=0 module_level_cc=1
+FILE plan_slots.py loc=100 functions=2 max_fn_loc=80 over_150=0 over_200=0 max_cc=23 cc_over_15=2 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE plan_step.py loc=41 functions=1 max_fn_loc=18 over_150=0 over_200=0 max_cc=1 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE power_guard.py loc=159 functions=4 max_fn_loc=68 over_150=0 over_200=0 max_cc=11 cc_over_15=0 cc_over_25=0 max_class_loc=90 const_counted=0 const_read=0 module_level_cc=0
+FILE prefill_offer.py loc=103 functions=3 max_fn_loc=17 over_150=0 over_200=0 max_cc=3 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE presets.py loc=395 functions=6 max_fn_loc=117 over_150=0 over_200=0 max_cc=10 cc_over_15=0 cc_over_25=0 max_class_loc=29 const_counted=9 const_read=9 module_level_cc=0
+FILE price_model.py loc=898 functions=34 max_fn_loc=65 over_150=0 over_200=0 max_cc=16 cc_over_15=1 cc_over_25=0 max_class_loc=266 const_counted=10 const_read=10 module_level_cc=0
+FILE price_tiles.py loc=326 functions=17 max_fn_loc=30 over_150=0 over_200=0 max_cc=13 cc_over_15=0 cc_over_25=0 max_class_loc=8 const_counted=1 const_read=1 module_level_cc=0
+FILE process_worker.py loc=91 functions=4 max_fn_loc=21 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=1
+FILE pump_arbiter.py loc=2283 functions=111 max_fn_loc=56 over_150=0 over_200=0 max_cc=14 cc_over_15=0 cc_over_25=0 max_class_loc=39 const_counted=22 const_read=22 module_level_cc=0
+FILE pump_mode.py loc=311 functions=8 max_fn_loc=38 over_150=0 over_200=0 max_cc=4 cc_over_15=0 cc_over_25=0 max_class_loc=24 const_counted=0 const_read=0 module_level_cc=3
+FILE pump_schedule.py loc=105 functions=3 max_fn_loc=33 over_150=0 over_200=0 max_cc=9 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=1 const_read=1 module_level_cc=0
+FILE pump_signals.py loc=559 functions=12 max_fn_loc=145 over_150=0 over_200=0 max_cc=23 cc_over_15=1 cc_over_25=0 max_class_loc=101 const_counted=8 const_read=8 module_level_cc=0
+FILE pv.py loc=145 functions=5 max_fn_loc=22 over_150=0 over_200=0 max_cc=3 cc_over_15=0 cc_over_25=0 max_class_loc=21 const_counted=0 const_read=0 module_level_cc=0
+FILE quick_setup.py loc=234 functions=3 max_fn_loc=69 over_150=0 over_200=0 max_cc=8 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=21 const_read=21 module_level_cc=0
+FILE quiet_windows.py loc=663 functions=25 max_fn_loc=53 over_150=0 over_200=0 max_cc=11 cc_over_15=0 cc_over_25=0 max_class_loc=17 const_counted=13 const_read=13 module_level_cc=0
+FILE repairs.py loc=68 functions=3 max_fn_loc=26 over_150=0 over_200=0 max_cc=8 cc_over_15=0 cc_over_25=0 max_class_loc=34 const_counted=1 const_read=1 module_level_cc=0
+FILE replay_doc.py loc=734 functions=42 max_fn_loc=25 over_150=0 over_200=0 max_cc=15 cc_over_15=0 cc_over_25=0 max_class_loc=3 const_counted=0 const_read=0 module_level_cc=5
+FILE rooms.py loc=310 functions=15 max_fn_loc=31 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=15 const_counted=0 const_read=0 module_level_cc=1
+FILE running_signal.py loc=194 functions=15 max_fn_loc=20 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=12 const_counted=0 const_read=0 module_level_cc=0
+FILE runs.py loc=247 functions=11 max_fn_loc=55 over_150=0 over_200=0 max_cc=11 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE sensor.py loc=3170 functions=188 max_fn_loc=150 over_150=0 over_200=0 max_cc=9 cc_over_15=0 cc_over_25=0 max_class_loc=209 const_counted=16 const_read=16 module_level_cc=2
+FILE services.py loc=1407 functions=27 max_fn_loc=150 over_150=0 over_200=0 max_cc=17 cc_over_15=1 cc_over_25=0 max_class_loc=0 const_counted=49 const_read=49 module_level_cc=2
+FILE setpoint_check.py loc=206 functions=9 max_fn_loc=35 over_150=0 over_200=0 max_cc=9 cc_over_15=0 cc_over_25=0 max_class_loc=36 const_counted=1 const_read=1 module_level_cc=0
+FILE silent_mode.py loc=117 functions=2 max_fn_loc=31 over_150=0 over_200=0 max_cc=9 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=1 const_read=1 module_level_cc=0
+FILE slab_seed.py loc=92 functions=5 max_fn_loc=21 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=0
+FILE slot_drivers.py loc=168 functions=7 max_fn_loc=32 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=0 const_read=0 module_level_cc=1
+FILE snapshots.py loc=294 functions=10 max_fn_loc=52 over_150=0 over_200=0 max_cc=15 cc_over_15=0 cc_over_25=0 max_class_loc=239 const_counted=0 const_read=0 module_level_cc=0
+FILE store.py loc=876 functions=26 max_fn_loc=59 over_150=0 over_200=0 max_cc=14 cc_over_15=0 cc_over_25=0 max_class_loc=156 const_counted=0 const_read=19 module_level_cc=33
+FILE supply_hold.py loc=154 functions=8 max_fn_loc=19 over_150=0 over_200=0 max_cc=9 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=2 const_read=2 module_level_cc=0
+FILE switch.py loc=234 functions=16 max_fn_loc=17 over_150=0 over_200=0 max_cc=3 cc_over_15=0 cc_over_25=0 max_class_loc=54 const_counted=2 const_read=2 module_level_cc=0
+FILE sysid.py loc=2483 functions=65 max_fn_loc=373 over_150=1 over_200=1 max_cc=44 cc_over_15=1 cc_over_25=1 max_class_loc=1064 const_counted=3 const_read=3 module_level_cc=0
+FILE tariff.py loc=1227 functions=39 max_fn_loc=71 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=317 const_counted=0 const_read=0 module_level_cc=0 in_function_copies=2
+FILE thermal_model.py loc=5055 functions=166 max_fn_loc=332 over_150=2 over_200=1 max_cc=39 cc_over_15=1 cc_over_25=1 max_class_loc=1816 const_counted=0 const_read=132 module_level_cc=1 in_function_copies=1
+FILE topology.py loc=1223 functions=21 max_fn_loc=135 over_150=0 over_200=0 max_cc=14 cc_over_15=0 cc_over_25=0 max_class_loc=14 const_counted=36 const_read=36 module_level_cc=4
+FILE wear.py loc=243 functions=13 max_fn_loc=19 over_150=0 over_200=0 max_cc=7 cc_over_15=0 cc_over_25=0 max_class_loc=87 const_counted=0 const_read=0 module_level_cc=0
+FILE whatif.py loc=217 functions=6 max_fn_loc=32 over_150=0 over_200=0 max_cc=8 cc_over_15=0 cc_over_25=0 max_class_loc=9 const_counted=1 const_read=1 module_level_cc=0
+FILE wood_fuel.py loc=669 functions=30 max_fn_loc=72 over_150=0 over_200=0 max_cc=14 cc_over_15=0 cc_over_25=0 max_class_loc=0 const_counted=15 const_read=15 module_level_cc=0
+COPY climate.py:221 extra_state_attributes places=4
+COPY optimizer.py:4216 _analyze_forecast_trajectory places=2
+COPY optimizer.py:3476 _comfort_terms_batch places=3
+COPY tariff.py:734 _smooth_topk_sum places=2
+COPY tariff.py:778 _smooth_topk_sum_batch places=2
+COPY thermal_model.py:4510 simulate_trajectory_batch places=4
+RECOUNT methods_over_150 ratchet=14 recount=14 ok
+RECOUNT methods_over_200 ratchet=7 recount=7 ok
+RECOUNT functions_cc_over_15 ratchet=26 recount=26 ok
+RECOUNT functions_cc_over_25 ratchet=7 recount=7 ok
+RECOUNT max_method_loc ratchet=373 recount=373 ok
+RECOUNT max_cc ratchet=44 recount=44 ok
+RECOUNT max_class_loc ratchet=7875 recount=7875 ok
+RECOUNT const_modules_over_50 ratchet=4 recount=2 MISMATCH
+RECOUNT import_cycle_modules ratchet=0 recount=0 ok
+RECOUNT coordinator_private_reach ratchet=0 recount=0 ok
+RECOUNT class_excess_loc ratchet=17382 recount=17382 ok
+RECOUNT dead_top_level_symbols ratchet=2 recount=2 ok
+CONST config_flow.py ratchet_counts=424 distinct_read=424 seen
+CONST coordinator.py ratchet_counts=100 distinct_read=100 seen
+CONST entry_config.py ratchet_counts=120 distinct_read=120 seen
+CONST thermal_model.py ratchet_counts=132 distinct_read=132 seen
+RESULT perturbation=const-respell label
+RESULT files=96 count
+RESULT ratchet_class_excess_loc=17382 count
+RESULT ratchet_const_modules_over_50=4 count
+RESULT ratchet_coordinator_attrs=136 count
+RESULT ratchet_coordinator_multiassigned_attrs=104 count
+RESULT ratchet_coordinator_private_reach=0 count
+RESULT ratchet_dead_methods=0 count
+RESULT ratchet_dead_top_level_symbols=2 count
+RESULT ratchet_duplication_copies=8 count
+RESULT ratchet_functions_cc_over_15=26 count
+RESULT ratchet_functions_cc_over_25=7 count
+RESULT ratchet_import_cycle_modules=0 count
+RESULT ratchet_max_cc=44 count
+RESULT ratchet_max_class_loc=7875 count
+RESULT ratchet_max_method_loc=373 count
+RESULT ratchet_methods_over_150=14 count
+RESULT ratchet_methods_over_200=7 count
+RESULT ratchet_module_excess_loc=21549 count
+RESULT ratchet_name_kept_members=38 count
+RESULT ratchet_seam_cut_total=415 count
+RESULT budget_keys_measured=19 count
+RESULT rows_recounted=12 count
+RESULT recount_mismatches=1 count
+RESULT any_spelling_const_modules_over_50=4 count
+RESULT const_unseen_modules=0 count
+RESULT in_function_copies=6 count
+UNUSED config_flow.py:42 from .const import CONF_AWAY_RETURN_ENTITY
+UNUSED config_flow.py:42 from .const import PRICE_SOURCE_TIBBER
+UNUSED coordinator.py:97 from .const import SCORE_ALPHA
+UNUSED coordinator.py:276 from .price_model import TIBBER_API_URL
+UNUSED coordinator.py:298 from .dhw_learning import DHW_PROFILE_STORE_VERSION
+UNUSED coordinator.py:340 from .thermal_model import WATER_SPECIFIC_HEAT
+UNUSED modbus_prefill.py:48 from .const import CONF_UPPER_FLOOR_THERMAL_MASS
+UNUSED optimizer.py:91 from .thermal_model import MIN_RUNNING_DRAW_KW
+UNUSED optimizer.py:91 from .thermal_model import channel_heating_steps
+UNUSED pump_arbiter.py:169 from .const import CONF_SPACE_SETPOINT_POWER_FEEDBACK
+UNUSED pump_arbiter.py:196 from .inputs import quantise_setpoint_c
+RESULT unused_package_imports=11 count
+RESULT ratchet_rows_off_budget=1 count  (dead_top_level_symbols 1->2)
+RESULT package_loc=75935 lines
+RESULT coordinator_py_loc=11418 lines
+RESULT coordinator_helper_loc=557 lines
+RESULT coordinator_py_unpriced_loc=2986 lines
+RESULT coordinator_py_module_level_functions=135 count
+RESULT coordinator_py_module_level_function_loc=2417 lines
+RESULT modules_over_2000_loc=8 count
+RESULT module_level_cc_total=83 count
+RESULT module_level_cc_max=33 count
+RESULT thread_factor=1.00 ratio
+RESULT load1=1.02 load
+RESULT swapins=0 count
