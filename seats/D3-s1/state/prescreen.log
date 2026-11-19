@@ -549,3 +549,4 @@
 2026-11-19T03:02:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.from_dict CMP_BOUND c4ec1c50 L232 by=- ran=13 wall=1585.4s
 2026-11-19T03:10:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture BOOLOP 13bad77a L9402 by=- ran=13 wall=1396.5s
 2026-11-19T03:21:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.clamp CMP_BOUND 55e7d0fb L270 by=- ran=20 wall=1565.1s
+2026-11-19T03:25:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_draw_power CLAMP_DROP d01d01b2 L852 by=- ran=16 wall=1396.8s
