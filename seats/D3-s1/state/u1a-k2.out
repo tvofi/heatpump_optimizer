@@ -115,3 +115,4 @@
 2026-11-19T12:09:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss GUARD_OFF 16fff8db L5940 by=- ran=13 wall=1480.8s
 2026-11-19T12:10:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views GUARD_OFF 76e4a528 L4831 by=- ran=14 wall=1486.9s
 2026-11-19T12:30:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CMP_BOUND 6428a6b2 L4723 by=- ran=13 wall=1411.4s
+2026-11-19T12:32:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._predicted_next_room_temp CLAMP_DROP 278a1cc1 L10262 by=- ran=14 wall=1689.0s
