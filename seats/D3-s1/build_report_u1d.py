@@ -85,14 +85,14 @@ def main() -> int:
         if k in m3_done:
             continue
         o = "assigned to box D3-u1d (not finished)" if k in surv_keys else \
-            "carried survivor of runs 1-2 / another box's slice, not D3-u1d's"
+            "carried survivor of runs 1-2, not D3-u1d's slice: full net owed by another box (D3-top6 holds the top six)"
         nr[o].append(sid(r["mutant"]))
     m3_nr = [f"{x} ({o})" for o, xs in sorted(nr.items()) for x in xs]
     if len(m3_nr) > 200:
         m3_nr = [f"{o}: {len(xs)} survivors" for o, xs in sorted(nr.items())]
     cv = Counter(comp[k]["verdict"] for k in surv_keys if k in comp)
     ck = Counter(s for k in surv_keys if k in comp for s in comp[k]["killed_by"])
-    full_surv = [k for k in surv_keys if k in comp and comp[k]["verdict"] == "SURVIVED"]
+    full_surv = [k for k in surv_keys if k in comp and comp[k]["verdict"] in ("SURVIVED", "TIMEOUT")]
     m4 = json.loads((HERE / "m4_answers-D3-u1d.json").read_text())
     extra = json.loads((HERE / "report_extra-u1d.json").read_text())
     tally = (f"K1 (D3.M2) on state/keys-D3-u1d.txt: driven {len(mine)}, KILLED {v['KILLED']} "
@@ -116,6 +116,29 @@ def main() -> int:
          "redispatched": [{"item": "C3", "state": "not_reached"}, {"item": "C5", "state": "examined"}],
          "evidence": ktally + " " + extra["m3_evidence"]},
     ]
+    # D3.M1 and D3.M5 are not this box's slice: carried from box D3R's REPORT.json
+    # (M5 owned by box D3-m5); D3.M4 is computed over the same survivor universe.
+    carried = {c["step"]: c for c in json.loads((HERE / "REPORT-D3R.json").read_text())["coverage"]
+               if c["step"] in ("D3.M1", "D3.M5")} if not extra.get("carried_rows") else extra["carried_rows"]
+    extra["carried_rows"] = carried
+    (HERE / "report_extra-u1d.json").write_text(json.dumps(extra, indent=1) + "\n")
+    def flat(e):
+        return e if isinstance(e, str) else " | ".join(f"{x['command']} -> {x['value']}" for x in e)
+    m1 = dict(carried["D3.M1"], evidence=flat(carried["D3.M1"]["evidence"]) + " (carried from runs 1-2; not re-driven on box D3-u1d)")
+    m5 = dict(carried["D3.M5"], evidence=flat(carried["D3.M5"]["evidence"]) + " (carried; the rest of D3.M5 is assigned to box D3-m5)")
+    m5["not_reached"] = [x if "assigned to box" in x else x + " (assigned to box D3-m5)" for x in m5["not_reached"]]
+    m4_old = json.loads((HERE / "m4_answers.json").read_text())
+    m4_ok = [k for k in surv if k in m4 or k in m4_old]
+    cov.insert(0, m1)
+    cov.append({"step": "D3.M4",
+                "enumerator": cov[-1]["enumerator"], "universe": len(surv), "examined": len(m4_ok),
+                "not_reached": [sid(surv[k]["mutant"]) + " (no full-net result yet; another box's slice)"
+                                for k in surv if k not in m4_ok],
+                "redispatched": [],
+                "evidence": f"cat {REL}/m4_answers.json {REL}/m4_answers-D3-u1d.json: {len(m4_ok)} of {len(surv)} fast-net survivors answered "
+                            f"(production line, file, the check that should have failed); this box answered all {len(surv_keys)} of its slice, "
+                            "KILLED ones by the full-net driver that killed them."})
+    cov.append(m5)
     prescreened = []
     for k in full_surv + ([LEAK] if leak else []):
         r = comp.get(k) or pre[k]
@@ -123,7 +146,7 @@ def main() -> int:
         prescreened.append({
             "key": k, "site": sid(m), "patch": f"{m['file']}:{m['line']}: `{m['old'].strip()}` -> `{m['new'].strip()}`",
             "scripts_ran": sorted(r["runs"]), "reach_skipped": sorted(r.get("skipped") or []),
-            "verdict": "LEAK (killed only by resource exhaustion)" if k == LEAK else r["verdict"],
+            "verdict": "LEAK (killed only by resource exhaustion)" if k == LEAK else "TIMEOUT (features.py hangs; inconclusive, not a kill)" if r["verdict"] == "TIMEOUT" else r["verdict"],
             "m4": m4.get(k, "")})
     rep = {
         "dimension": "D3", "baseline_sha": BASE, "report_path": f"{REL}/REPORT.md",

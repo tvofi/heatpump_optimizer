@@ -1,1 +1,4 @@
 2026-11-19T14:29:18Z COMPLETE queued=1 from=pre
+2026-11-19T15:28:35Z COMPLETE TIMEOUT custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization GUARD_OFF 0513f90d L6356 by=- ran=13 wall=3556.8s
+RESULT load1=0.00
+RESULT thread_factor=1.00
