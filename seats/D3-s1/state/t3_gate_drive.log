@@ -1,0 +1,70 @@
+START pre:121362d48b408236 2026-11-18T21:09:11Z
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3306 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.0
+RESULT killed=0 count
+VERDICT 121362d48b408236 SURVIVED 
+START pre:050fdc4a20eba212 2026-11-18T22:04:26Z
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3221 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.0
+RESULT killed=0 count
+VERDICT 050fdc4a20eba212 SURVIVED 
+START pre:3885e472b8297a90 2026-11-18T22:58:15Z
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3166 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.0
+RESULT killed=0 count
+VERDICT 3885e472b8297a90 SURVIVED 
+START pre:460217277822d5bd 2026-11-18T23:51:10Z
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3181 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.0
+RESULT killed=0 count
+VERDICT 460217277822d5bd SURVIVED 
+START pre:65f121eb047174ad 2026-11-19T00:44:21Z
+--- restart after container restart 2026-11-19T01:15:09Z
+SKIP done 121362d48b408236
+SKIP done 050fdc4a20eba212
+SKIP done 3885e472b8297a90
+SKIP done 460217277822d5bd
+START pre:65f121eb047174ad 2026-11-19T01:15:09Z
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3715 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.0
+RESULT killed=0 count
+VERDICT 65f121eb047174ad SURVIVED 
+START pre:0c3e91a6a349409a 2026-11-19T02:17:15Z
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3597 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.06
+RESULT killed=0 count
+VERDICT 0c3e91a6a349409a SURVIVED 
+START c2:2719aef4cbb8b464 2026-11-19T03:17:20Z
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3508 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.0
+RESULT killed=0 count
+VERDICT 2719aef4cbb8b464 SURVIVED 
+START c2:95779f9d6d71c50d 2026-11-19T04:15:58Z
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3487 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.0
+RESULT killed=0 count
+VERDICT 95779f9d6d71c50d SURVIVED 
