@@ -1,21 +1,16 @@
 Fix review: merge 5e10f99bc84d7ecef0d5dbdc4e3451ed27cc2c4c
+bus-nonce: 77f3aa5f33b016d1280d625ab04016ef
 
-bus-nonce: 6e2b52d1bfaeca831ed06cd383a34b38
-pending-ci: gate
+Round: 1 (replacement reviewer for the stalled one; no earlier verdict on verdict/3801).
+Scope: data-file record, tools/ci/selftest_closures.json +4 and the delivery row. No custom_components/, no VERSION/manifest/notes, no claim files, no budgets.
 
-Round 1 (first review of #3801).
-
-## Evidence
-
-- Head: 5e10f99bc84d7ecef0d5dbdc4e3451ed27cc2c4c, still the PR head when this verdict was written (ev/HEAD.txt). The diff is tools/ci/selftest_closures.json, 4 lines added, plus the delivery row dev/programme/delivery/3801.md. VERSION, the manifest version and RELEASE_NOTES.md are untouched.
-- Merge: `git merge-tree --write-tree origin/main <head>` exits 0 with no conflict (ev/merge-tree.txt). origin/main is 1723f9fdc9, which is also the merge base.
-- Finder's harness, re-derived independently: `selftest_scope.py record` under strace, run for the four steps (dependency-graph-census, temp-or-machine-path, self-tests-outside-seat, prepr) in a worktree at origin/main 1723f9fdc9. Result: rc=0, 0 failed, 0 broken traces (ev/record.log). Against main's table my record adds exactly the four survivor_triage/currency.py items the PR adds, and also a repeated `tools/audit/round4/**` probe glob (ev/main-vs-rec.diff). Against the head's table that glob is the only difference (ev/rec-vs-head.diff). This matches the body's statement that the duplicates are left out.
-- Null control: `drift(table, my measured steps, workflow_steps())` gives the four UNDER-SCOPED refusals with main's table, the same set CI printed. With the head's table it gives 0 refusals and 0 notes (ev/drift.txt).
-- Mutation proof (my own targeted mutants): removing any one of the four added items from the head's table brings back exactly its own single UNDER-SCOPED refusal. 4 mutants, 4 killed, 0 survivors (ev/drift.txt).
-- Class: one seam. The class is a new directory under a listed survivor_triage/ path. The four gated steps that walk that path are exactly the ones my record and CI's drift name. Its process countermeasure belongs to R11-RCA-SELFTEST-TABLE-DRIFT, as the body's Red checks section routes it.
-- At the head, `selftest_scope.py static` reports 127 gated steps and 0 problems.
-- CI: `merge_train.py classify` printed `WAIT 5e10f99bc84d7ecef0d5dbdc4e3451ed27cc2c4c pending: gate red: none` on every run from 00:08 to 00:31 UTC (ev/classify.log). No red check at this head, so no red is owed an answer.
-
-## Notes
-
-- Note: figure: the body says `selftest_scope.py --self-test` runs 118 checks. I measure 128 checks, 0 failed, at both the head and the merge base, so the instrument did not change and the body's figure is stale. Carry: dismissed: a body figure, paperwork with no code effect
+RESULT harness (finder's: selftest_scope.drift over red main push run 44408012370's selftest-closures artifact, the CI step "Refuse a self-test read set the committed table misses"): base table at main 1723f9fd (byte-identical at ed7025dc) 4 UNDER-SCOPED, exactly the four CI printed; head table 0.
+RESULT perturbation: each of the four added items dropped alone brings back 1 UNDER-SCOPED; the harness moves under its own perturbation.
+RESULT null control re-run: matches the body (4 -> 0, no STALE/UNMEASURED/EXTRA); static 127 gated / 0 problems; --self-test 118 checks / 0 failed.
+RESULT class: every one of the 39 survivor_triage/* directories at head and at main is in the dirs of the three dirs-steps and its .gitattributes in temp-or-machine-path's probes; no other directory of the class is missing. Lists stay sorted; no line removed.
+RESULT mutation proof: n/a, no production line; the perturbation above stands in for it (data file).
+RESULT checks: classify --pr GREEN (pending none, red none); head check runs all success/skipped/neutral, gate success. The earlier gate red ("still being judged") was a pending-run wait, now concluded green.
+RESULT merge: git merge-tree --write-tree origin/main(ed7025dc) head exits 0.
+RESULT head: PR body names 5e10f99bc84d7ecef0d5dbdc4e3451ed27cc2c4c, the head measured.
+RESULT carry: the body's Carry: R11-RCA-SELFTEST-TABLE-DRIFT names #3684, merged; its section 7 recommends C5 (P-R11-41) with C6 as interim, which this record is consistent with.
+RESULT harness provenance: the packet names no finder's harness; the one used is the committed CI drift check (tools/ci/selftest_scope.py drift(), the step that went red on main) fed the red run's own artifact. The four-line wrapper evidence/harness.py is the reviewer's, disclosed here; it adds no logic beyond loading the two files.

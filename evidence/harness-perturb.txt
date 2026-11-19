@@ -1,0 +1,4 @@
+drop dependency-graph-census dirs tests/mutation_ledger/survivor_triage/currency.py -> UNDER-SCOPED: 1
+drop prepr dirs tests/mutation_ledger/survivor_triage/currency.py -> UNDER-SCOPED: 1
+drop self-tests-outside-seat dirs tests/mutation_ledger/survivor_triage/currency.py -> UNDER-SCOPED: 1
+drop temp-or-machine-path probes tests/mutation_ledger/survivor_triage/currency.py/.gitattributes -> UNDER-SCOPED: 1
