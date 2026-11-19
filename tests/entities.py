@@ -15630,8 +15630,8 @@ _mig_quiet_ok, _mig_quiet_logs = _mig_warnings(_mig_quiet)
 R.check(
     "a healthy old entry migrates with no repair warning (null control)",
     _mig_quiet_ok is True and not _mig_quiet_logs
-    and _mig_quiet.data == {"min_temperature": 19.0, "dhw_tank_volume": 200.0},
-    f"{[r.getMessage() for r in _mig_quiet_logs]}",
+    and {**_mig_quiet.data, **_mig_quiet.options} == {"min_temperature": 19.0, "dhw_tank_volume": 200.0},
+    f"{[r.getMessage() for r in _mig_quiet_logs]} data={_mig_quiet.data} options={_mig_quiet.options}",
 )
 _mig_bad = FakeEntry(data=dict(_mig_bad_data), options=dict(_mig_bad_options))
 _mig_before = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
@@ -15641,8 +15641,9 @@ R.check(
     _mig_bad_ok is True
     and len(_mig_bad_logs) == 1 and "min_temperature" in _mig_bad_logs[0].getMessage()
     and _mig_bad.version == const.CONFIG_ENTRY_VERSION
-    and _mig_bad.data == {"dhw_tank_volume": 200.0}
-    and _mig_bad.options == {"silent_mode_power_fraction": "abc"},
+    # 7.2 then places each surviving key: neither is DATA_ONLY, so both land in options
+    and _mig_bad.data == {}
+    and _mig_bad.options == {"dhw_tank_volume": 200.0, "silent_mode_power_fraction": "abc"},
     f"data={_mig_bad.data} options={_mig_bad.options}",
 )
 _mig_after = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
