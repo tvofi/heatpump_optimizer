@@ -42637,7 +42637,10 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n"
              "from logging import DEBUG\n"
              "def f():\n    _LOGGER.warning('x')\n    _LOGGER.isEnabledFor(logging.DEBUG)\n"
-             "    _LOGGER.log(level=DEBUG, msg='see logging')\n",
+             "    _LOGGER.log(level=DEBUG, msg='see logging')\n"
+             # R11 #3729 round 3: a sibling module, re.compile and text that
+             # only mentions _LOGGER or warnings are not refused
+             "from . import coordinator\nimport re\nPAT = re.compile('_LOGGER warnings')\n",
     "alias.py": "_LOGGER = logging.getLogger(__name__)\ndef f():\n    log = _LOGGER\n    log.warning('x')\n",
     "child.py": "_LOG = logging.getLogger(__name__)\nCHILD = _LOGGER.getChild('c')\n",
     "mod.py": "import logging as lg\n",
@@ -42663,6 +42666,15 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
                   "def f(self):\n    logging.Logger.error(self, 'x')\n    self.logger.error('y')\n",
     "star.py": "from logging import *\n",
     "getref.py": "make = logging.getLogger\n",
+    # R11 #3729 round 3: another module's logger as an attribute, the own
+    # logger by its text, code run from text, and the warnings module (Home
+    # Assistant's captureWarnings turns warnings.warn into a WARNING record)
+    "sibling.py": "from . import coordinator as c\nimport sys\ndef f():\n"
+                  "    c._LOGGER.error('x')\n    sys.modules[__name__]._LOGGER.error('y')\n",
+    "bytext.py": "def f(m):\n    globals()['_LOGGER'].error('x')\n    getattr(m, 'logger').error('y')\n",
+    "fromtext.py": "def f():\n    exec(\"_LOGGER.error('x')\")\n    eval('1')\n    compile('', '', 'exec')\n",
+    "warn.py": "import warnings\nfrom warnings import warn as w\ndef f(o):\n"
+               "    warnings.warn('x')\n    o.warnings.warn('y')\n    __import__('warnings')\n",
 })}
 # Every callable of a Logger, called at ERROR on _LOGGER, and every name the
 # logging module exports: what neither check reads is exactly the quiet
@@ -42722,7 +42734,14 @@ R.check(
                                  ("surface.py", "makeLogRecord"), ("surface.py", "hl"),
                                  ("surface.py", "logging.Logger"), ("surface.py", "self.logger"),
                                  ("star.py", "*"), ("getref.py", "logging.getLogger"),
-                                 ("child.py", "_LOGGER -> _LOGGER.getChild")}
+                                 ("child.py", "_LOGGER -> _LOGGER.getChild"),
+                                 ("sibling.py", "c._LOGGER"),
+                                 ("sibling.py", "sys.modules[__name__]._LOGGER"),
+                                 ("bytext.py", "'_LOGGER'"), ("bytext.py", "'logger'"),
+                                 ("fromtext.py", "exec"), ("fromtext.py", "eval"),
+                                 ("fromtext.py", "compile"), ("warn.py", "warnings"),
+                                 ("warn.py", "w"), ("warn.py", "o.warnings"),
+                                 ("warn.py", "'warnings'")}
     and _r11_unread == {"_LOGGER.debug", "_LOGGER.info", "_LOGGER.isEnabledFor"}
     | {f"logging.{n}" for n in ("NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR",
                                 "CRITICAL", "FATAL")}
