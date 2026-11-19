@@ -4996,7 +4996,9 @@
    "class": "production",
    "severity": "critical",
    "size": "M",
-   "issues": [],
+   "issues": [
+    3745
+   ],
    "fixes": [],
    "findings": [
     "D2-s3-02",
