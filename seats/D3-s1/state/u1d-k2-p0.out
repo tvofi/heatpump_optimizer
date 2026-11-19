@@ -1,0 +1,8 @@
+2026-11-19T01:12:12Z COMPLETE queued=41 from=pre
+2026-11-19T01:28:43Z COMPLETE SIGNAL custom_components/heatpump_optimizer/coordinator.py:_ensure_worker GUARD_OFF 65dd54c6 L1864 (not written; re-drive)
+2026-11-19T01:52:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_mixed_water CMP_BOUND 5e696d34 L4391 by=- ran=13 wall=1404.9s
+2026-11-19T02:17:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold CMP_BOUND dd8037c4 L8847 by=- ran=13 wall=1507.7s
+2026-11-19T02:42:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture CMP_BOUND aba82b00 L9386 by=- ran=13 wall=1496.0s
+2026-11-19T03:07:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._settle_defrost CMP_BOUND 4069a6cf L9980 by=- ran=13 wall=1500.5s
+2026-11-19T03:28:34Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:_bucket_index CMP_BOUND 94663f39 L167 by=tests/features.py ran=13 wall=1281.2s
+2026-11-19T03:53:45Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings CMP_BOUND 8496f2c5 L743 by=tests/features.py ran=17 wall=1511.3s

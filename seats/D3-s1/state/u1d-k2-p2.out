@@ -1,0 +1,7 @@
+2026-11-19T01:24:12Z COMPLETE queued=40 from=pre
+2026-11-19T01:54:12Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_storable_sample_count CMP_BOUND 713016cb L467 by=tests/features.py ran=14 wall=1799.9s
+2026-11-19T02:19:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_forecast CMP_BOUND e55af298 L5259 by=- ran=13 wall=1526.2s
+2026-11-19T02:44:43Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._track_curve_comfort CMP_BOUND e00915fb L9273 by=- ran=13 wall=1505.3s
+2026-11-19T03:09:46Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture CMP_BOUND 13bad77a L9402 by=- ran=13 wall=1502.3s
+2026-11-19T03:38:11Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._accumulate_energy CMP_BOUND 8a2d264d L10331 by=- ran=14 wall=1705.3s
+2026-11-19T04:03:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostDerate._decide CMP_BOUND 6dd9fd41 L313 by=- ran=12 wall=1498.0s
