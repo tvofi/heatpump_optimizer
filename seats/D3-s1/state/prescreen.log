@@ -580,3 +580,4 @@
 2026-11-19T06:08:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override CMP_BOUND 03186ecd L5156 by=- ran=13 wall=1395.3s
 2026-11-19T06:16:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_cop_health CMP_BOUND 70038ecd L9486 by=- ran=13 wall=1407.2s
 2026-11-19T06:24:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_learner_payloads GUARD_OFF 00ba86b8 L9628 by=- ran=14 wall=1577.9s
+2026-11-19T06:26:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling GUARD_OFF ca0830c1 L5671 by=- ran=13 wall=1423.6s
