@@ -194,3 +194,4 @@
 2026-11-19T12:53:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state BOOLOP 9f6c1950 L6752 by=- ran=13 wall=1660.7s
 2026-11-19T12:56:49Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_immersion BOOLOP 2f74d22d L9107 by=tests/features.py ran=13 wall=1676.5s
 2026-11-19T13:04:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_simulate BOOLOP 67eac7b8 L11271 by=- ran=13 wall=1660.1s
+2026-11-19T13:15:06Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostObservation.any_defrost BOOLOP 1299c7b8 L683 by=tests/features.py ran=13 wall=1885.7s
