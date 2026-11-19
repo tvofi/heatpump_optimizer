@@ -82396,15 +82396,83 @@ _df_valves = {
 R.check(
     "the smart_write valve target is written in the entity's unit, once, "
     "and remembered in degC (L1); a climate that reads no target has no baseline "
-    "to restore, so nothing is written to it and nothing remembered (ADR-004)",
+    "to restore, so it is written and restores nothing (ADR-004)",
     _df_valves == {
         "climate on degF": ([74], 23.5),
-        "climate on degF, no target": ([], None),
+        "climate on degF, no target": ([74], 23.5),
         "number declaring degF": ([74], 23.5),
         "climate on degC": ([23], 23.5),
         "number declaring degC": ([23], 23.5),
     },
     f"{_df_valves}",
+)
+
+
+# A baseline that cannot be read never parks the write until a person acts:
+# the entity is written and arms a restore of nothing, kept while armed so the
+# optimizer's own write is never captured as the baseline; the next arm after
+# that restore drops it captures the entity's reading. Driven from "no
+# baseline" to the first write that lands, for the valve on a climate that is
+# off with no target and the frequency entity with no readable state.
+def _nb_drive(key, entity, first, second, entry_data):
+    from heatpump_optimizer import off_restore as _nb_or
+    hass = FakeHass({entity: first})
+    coord = Coord(hass, _DfEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+        "max_temperature": 23.5, **entry_data,
+    }, entry_id=f"nb{next(_DF_IDS)}"))
+    coord.hass.config.units = _DfNS(temperature_unit=_DC)
+    cfg = coord._ctx._config
+    armed_blind = [_df_aio.run(_nb_or.async_arm(hass, coord.entry, cfg, key)) for _ in range(3)]
+    entry_blind = _df_aio.run(_nb_or.async_armed_entry(hass, coord.entry, key))
+    calls_before = len(hass.services.calls)
+    restored = _df_aio.run(_nb_or.async_restore(hass, coord.entry, cfg, "mode_off"))
+    restore_calls = len(hass.services.calls) - calls_before
+    hass.states.set(entity, second)
+    armed_read = _df_aio.run(_nb_or.async_arm(hass, coord.entry, cfg, key))
+    entry_read = _df_aio.run(_nb_or.async_armed_entry(hass, coord.entry, key))
+    return armed_blind, entry_blind, restored, restore_calls, armed_read, entry_read
+
+
+_nb = {
+    "valve, climate off with no target": _nb_drive(
+        "mixing_valve_target", "climate.valve", FakeState("off"),
+        FakeState("heat", attributes={"temperature": 20.0}),
+        {"mixing_valve_mode": "smart_write", "mixing_valve_write_entity": "climate.valve"}),
+    "frequency, no readable state": _nb_drive(
+        "compressor_frequency", "number.hp_freq", FakeState("unavailable"),
+        FakeState("40", unit="Hz"),
+        {"compressor_freq_entity": "number.hp_freq"}),
+}
+_nb_want = {
+    "valve, climate off with no target": (
+        [True, True, True], None, 0, 0, True, {"entity_id": "climate.valve", "value": 20.0}),
+    "frequency, no readable state": (
+        [True, True, True], None, 0, 0, True, {"entity_id": "number.hp_freq", "value": 40.0}),
+}
+R.check(
+    "an entity whose baseline is unreadable is still written and restores nothing; "
+    "the restore that drops it writes nothing, and the next arm captures the "
+    "reading (the valve on an off climate, the frequency with no state)",
+    _nb == _nb_want,
+    f"{_nb}",
+)
+_valve_off_hass = FakeHass({"climate.valve": FakeState("off")})
+_valve_off = Coord(_valve_off_hass, _DfEntry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "max_temperature": 23.5, "mixing_valve_mode": "smart_write",
+    "mixing_valve_write_entity": "climate.valve",
+}, entry_id=f"nb{next(_DF_IDS)}"))
+_valve_off.hass.config.units = _DfNS(temperature_unit=_DC)
+for _ in range(5):
+    _df_aio.run(_valve_off._command_valve_target())
+R.check(
+    "a smart_write valve on a climate that is off with no target is written on "
+    "the first cycle, once, not parked until the climate reports one",
+    len(_valve_off_hass.services.calls) == 1,
+    f"{len(_valve_off_hass.services.calls)} writes over 5 cycles",
 )
 
 
@@ -88263,6 +88331,44 @@ for _ms_name, _ms_over, _ms_want in (
 ):
     _ms_got = _asyncio.run(_sh_tick_over(**_ms_over))
     R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# The supply restore that lands switches the pump on and ends the step tick's
+# held write: the tick in that same step writes nothing, where the held write
+# alone (the null control) retries the action's OFF over the restore.
+class _SrCoord:
+    pass
+
+
+async def _sr_tick(restore):
+    from heatpump_optimizer import off_restore as _sr_or
+    inp = _sa_pa.ArbiterInputs(**{**vars(_sh_inputs(3, state="on")()), "mode": "economy", "plan": None,
+                                  "action": {"heat_pump_on": False}})
+    coord, held = _SrCoord(), _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    entry = _DfEntry(data=dict(inp.config), entry_id=f"sr{next(_DF_IDS)}")
+    entry.runtime_data = coord
+    _sa_pa._STATES[coord] = held
+    landed = None
+    if restore:
+        await _sr_or.async_arm(inp.hass, entry, inp.config, _sa_pa.SUPPLY)
+        landed = await _sr_or.async_restore(inp.hass, entry, inp.config, "mode_off")
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return landed, wrote, held.supply_held, [c[:2] for c in inp.hass.services.calls]
+
+
+_sr_got = {"restored": _asyncio.run(_sr_tick(True)), "null, held only": _asyncio.run(_sr_tick(False))}
+R.check(
+    "the supply restore that lands ends the step tick's held write: the same step's "
+    "tick writes nothing over it (null control: the held write alone retries OFF)",
+    _sr_got == {"restored": (1, [], False, [("switch", "turn_on")]),
+                "null, held only": (None, [False], True, [])},
+    f"{_sr_got}",
+)
 
 
 # An install with no power switch: the gate reads no switch. Upstream's
