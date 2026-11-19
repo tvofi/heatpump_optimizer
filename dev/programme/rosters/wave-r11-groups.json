@@ -5520,7 +5520,9 @@
    "class": "production",
    "severity": "medium",
    "size": "L",
-   "issues": [],
+   "issues": [
+    3744
+   ],
    "fixes": [],
    "findings": [
     "D16-s1-01",
