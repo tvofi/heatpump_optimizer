@@ -513,7 +513,7 @@ def _self_test() -> int:
             check("a failed fetch is exit 2 (control: --no-fetch on the same checkout still answers)",
                   rc == 2 and "git fetch origin main failed" in out and rc0 in (0, 1))
             sh = t / "shallow"
-            subprocess.run(["git", "clone", "-q", "--depth", "1", f"file://{origin}", str(sh)], check=True, env=env)
+            throwaway_git.throwaway_git_clone(f"file://{origin}", sh, "-q", "--depth", "1")
             rc, out = run(tree, str(sh), "origin/main", fetch=False)
             check("a shallow clone is exit 2, naming the unshallow fetch", rc == 2 and "fetch --unshallow" in out)
             r = subprocess.run([sys.executable, "-I", __file__, "tree", "--dir", str(t / "plain"), "--no-fetch"],
