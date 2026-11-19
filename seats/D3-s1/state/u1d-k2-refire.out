@@ -44,3 +44,10 @@
 2026-11-19T06:34:52Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND ec1be445 L6566 by=- ran=12 wall=1507.8s
 2026-11-19T06:52:46Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND c9af7d41 L6606 by=- ran=12 wall=1482.0s
 2026-11-19T06:56:04Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND 8f65ad5c L6638 by=- ran=12 wall=1492.8s
+2026-11-19T06:59:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND f18d7d5c L6653 by=- ran=12 wall=1482.8s
+2026-11-19T07:21:22Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:_in_domain CMP_BOUND de1a0615 L141 by=- ran=13 wall=1716.0s
+2026-11-19T07:21:43Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.sigma CMP_BOUND 718a13c2 L357 by=- ran=12 wall=1538.8s
+2026-11-19T07:25:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_tau_fast CMP_BOUND 72abb7dd L610 by=- ran=12 wall=1540.7s
+2026-11-19T07:47:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_slab_refusal CMP_BOUND ae78329c L897 by=- ran=12 wall=1573.0s
+2026-11-19T07:47:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met CMP_BOUND ade5352a L1546 by=- ran=12 wall=1573.3s
+2026-11-19T07:51:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power.fits CMP_BOUND 3896349a L1593 by=- ran=12 wall=1584.8s
