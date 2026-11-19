@@ -129,3 +129,4 @@
 2026-11-19T00:54:27Z COMPLETE queued=118 from=pre
 2026-11-19T01:21:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:max_abs_component CMP_BOUND 4a974762 L355 by=- ran=12 wall=1607.3s
 2026-11-19T01:21:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP b186b210 L4668 by=- ran=12 wall=1628.4s
+2026-11-19T01:25:03Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF f030484a L2038 by=tests/features.py ran=12 wall=1832.7s
