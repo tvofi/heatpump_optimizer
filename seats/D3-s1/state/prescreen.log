@@ -566,3 +566,4 @@
 2026-11-19T04:49:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._unadoptable CMP_BOUND d7b0d9bd L1705 by=- ran=12 wall=1387.1s
 2026-11-19T04:52:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._pv_self_consumed CMP_BOUND df43b236 L5699 by=- ran=17 wall=1576.3s
 2026-11-19T04:58:35Z COMPLETE KILLED custom_components/heatpump_optimizer/price_model.py:pull_prices GUARD_OFF 4f1a2dba#2 L896 by=tests/features.py ran=12 wall=1378.3s
+2026-11-19T05:02:47Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_mixed_water CMP_BOUND 8c38caee L4396 by=- ran=13 wall=1288.6s
