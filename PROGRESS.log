@@ -145,3 +145,4 @@
 1795048760 INIT box D3-u1d
 1795048765 HB alive
 1795048788 HB container reboot ~00:37 UTC killed the re-fired D3-s1 seat and its full-net driver at 113/242 (results on disk survive); comms loop restarted; re-dispatching D3-s1 through gate
+1795048794 SEAT D3-s1 running
