@@ -570,3 +570,4 @@
 2026-11-19T00:26:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_raise_fits CMP_BOUND 655157d4 L2140 by=- ran=16 wall=1287.9s
 2026-11-19T00:34:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._unadoptable CMP_BOUND 628390f0 L1715 by=- ran=12 wall=1271.8s
 2026-11-19T00:39:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views BOOLOP 4d085ae8 L4851 by=- ran=14 wall=1254.6s
+2026-11-19T00:45:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.topology_layout GUARD_OFF 0486e863 L404 by=- ran=19 wall=1407.4s
