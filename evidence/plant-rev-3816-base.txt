@@ -1,0 +1,9 @@
+rev-3816-base tank_volume=min no population level
+rev-3816-base tank_volume=default no population level
+rev-3816-base tank_volume=max no population level
+rev-3816-base house_size=min no population level
+rev-3816-base house_size=default no population level
+rev-3816-base house_size=max no population level
+rev-3816-base layout=no_valve accepted
+rev-3816-base layout=moon no population level
+rev-3816-base tank_volume=typical no population level

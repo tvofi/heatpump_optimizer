@@ -1,0 +1,6 @@
+KILLED   split_trailing identity | FAIL a trailing comment on a code line is not part of the block below it
+KILLED   is_heading False | FAIL a banner line is a paragraph of its own
+KILLED   is_code False | FAIL an indented usage line is not prose
+KILLED   is_break blank-only | FAIL a list item ends the sentence before it
+SURVIVED is_rule False | 
+RESULT reviewer_mutants=5 survived=1
