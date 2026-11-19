@@ -1,0 +1,10 @@
+ref_privacy._DIM: head rc=0 mutant rc=1 ::   ok   an unreadable range refuses (fail closed), exit 2   ok   and once re-authored the guard passes (the null control: any later failure is not the guard's) 
+fold_ledger.DIM_OF: head rc=0 mutant rc=1 :: FAIL DIM_OF reads the dimension of every brief's finding id, seat and step (19 briefs), and no near-miss 
+finder_overlap.SEAT_RE: head rc=0 mutant rc=1 :: FAIL owner-only: DX0-s1 over the committed scopes is refused (no seat until the dimension lands, owner-only after) finder_overlap self-test: FAIL owner-only: DX0-s1 over the committed scopes is refused (no seat until the dimension lands, owner-only after) 
+check_scopes.BRIEF_NAMED: head rc=0 mutant rc=1 :: FAIL D1 mode=cells seats=3 universe=96 [s1:96f/75933loc, s2:96f/75933loc, s3:96f/75933loc] FAIL D2 mode=cells seats=3 universe=96 [s1:96f/75933loc, s2:96f/75933loc, s3:96f/75933loc] 
+roster_lib._DIM: head rc=0 mutant rc=1 :: roster_lib self-test: 104 checks, 1 failed FAIL every brief of the tree is a finder dimension, DX0 included; a near-miss is none (got: ['DX0']) 
+verify.ownerOnlyRecord: head rc=0 mutant rc=1 :: -- Provenance and the fail-closed Reconcile gate   FAIL ownerOnlyRecord reads every declared owner-only brief's id, seat and dimension, and no near-miss ["DX0"] 
+verify.ownerOnlyRecord-lookahead: head rc=0 mutant rc=1 :: -- Provenance and the fail-closed Reconcile gate   FAIL ownerOnlyRecord reads every declared owner-only brief's id, seat and dimension, and no near-miss ["DX0"] 
+verify.stepYield: head rc=0 mutant rc=0 :: -- Provenance and the fail-closed Reconcile gate   FAIL (probe, expected) threw: deliberate 
+finding.schema: head rc=0 mutant rc=1 :: -- Provenance and the fail-closed Reconcile gate   FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"title":"Audit finder report","type":"object","required":["dimension","baseline_sha 
+DONE
