@@ -1,0 +1,8 @@
+ctl_warning            barrier=1 alias=[]
+builtins_exec          barrier=0 alias=[]
+builtins_getattr_exec  barrier=0 alias=[]
+from_builtins_exec     barrier=0 alias=[]
+dunder_builtins        barrier=0 alias=[]
+vars_sibling           barrier=0 alias=["'_LOGGER'"]
+sibling_from_import_mod barrier=0 alias=['lg2']
+ctl_re_compile         barrier=0 alias=[]
