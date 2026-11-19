@@ -135,3 +135,5 @@
 2026-11-19T14:17:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override RETURN_DEL 440ee7e3 L5174 by=- ran=13 wall=1593.3s
 2026-11-19T14:26:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_one_per_day GUARD_OFF b1117b0c L489 by=- ran=12 wall=1578.0s
 2026-11-19T14:31:04Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views.reason_at BOOLOP 51d5f34e L4888 by=tests/features.py ran=14 wall=1565.8s
+2026-11-19T14:43:50Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_open_meteo CMP_BOUND ee355c86 L7419 by=- ran=14 wall=1570.2s
+2026-11-19T14:45:47Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:in_frost_band CMP_BOUND a90cc8c2 L111 by=tests/features.py ran=13 wall=1789.8s
