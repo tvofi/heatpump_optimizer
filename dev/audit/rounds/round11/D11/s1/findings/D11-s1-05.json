@@ -1,0 +1,48 @@
+{
+ "id": "D11-s1-05",
+ "scope": "D11-s1",
+ "step": "D11.M1",
+ "title": "Structure ratchet's meter is neither owned nor base-pinned in the required jobs that run it",
+ "severity": "medium",
+ "claim": "Of the 8 meters grading the budget files budget_raise_gate.SCHEMA protects, exactly 1, tests/structure.py, is executed from the pull request's own copy by required jobs (tests / fast (3.14), tests / arch-instrument, via ./tests/run.sh) and matched by no owner-carrying CODEOWNERS pattern, so a pull request can weaken what the structural ratchet measures with no owner review.",
+ "mechanism": "Decision 0013 (amendment 2026-09-24) lets a grader leave the owner only where a base restore replaces the owner as the barrier, and lists the test-side files kept owned (run.sh, env_drift.py, golden.py, harness.py, profiles.py, stress.py, plan_view.py, card_browser.mjs, mutation_table.py, typing_ruler.py, closure.py, derive_closures.sh) and those pinned (coverage_ratchet.py, nightly_status.py, delivery_status.py). tests/structure.py is in neither list: CODEOWNERS has no line for it and `fast` runs it through tests/run.sh with no restore. codeowners_gap.py --check reads it PINNED because governance / wave-script restores it (for agreement_py's import closure, not to grade the ratchet), and its rule does not enter run.sh's body. budget_raise_gate grades only the JSON values, so a raise of tests/structure_budgets.json needs the owner while an edit to the meter that makes the same growth read as no growth needs only the fix reviewer; the base-copy arch-score check flags the rise but passes on a 30-character body explanation.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/meter_boundary.py",
+  "harness_path": "dev/audit/rounds/round11/D11/s1/meter_boundary.py",
+  "value": 1,
+  "unit": "budget meters run from the PR copy in a required job with no owner",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (linux 6.18, 4 cpu)",
+  "cpu_or_wall": "count",
+  "contention_note": "box shared with other seats; a count over tree text, contention-immune",
+  "tolerance": "exact",
+  "load1": 6.5,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/pr/outside.py:owner_patterns over .github/CODEOWNERS, and tools/ci/gate.py:gate_required (the required job set) over .github/workflows/tests.yml jobs and tests/run.sh",
+ "perturbation": {
+  "change": "append `/tests/structure.py @tvofi` to the CODEOWNERS text owner_patterns reads (meter_boundary.py --perturb); equivalently, restore tests/structure.py from $PINNED in fast before ./tests/run.sh",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Meters of budget_raise_gate.SCHEMA's budget files that a gate.py-required job executes from the PR's copy (no PINNED restore of it in that job) and that no owner CODEOWNERS pattern matches.",
+ "phenomenon_property": "Every grader of a budget cap is either owned by the owner or restored from the base in every required job that runs it, so no pull request can change how a cap is measured without the review a cap raise needs (decision 0013's rule).",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/meter_boundary.py | grep '^EXPOSED'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/meter_boundary.py",
+  "value": "null_coverage_ratchet_exposed=0",
+  "note": "tests/coverage_ratchet.py is also unowned but pinned in its job, so the same rule reads it safe; stress.py, typing_ruler.py and mutation_table.py run from the PR copy but are owned"
+ },
+ "reproduction_steps": [
+  "meter_boundary.py -> EXPOSED tests/structure.py via tests / arch-instrument, tests / fast (3.14); RESULT pr_copy_unowned=1",
+  "meter_boundary.py --perturb -> RESULT pr_copy_unowned=0"
+ ],
+ "proposed_fix_scope": "Add `/tests/structure.py @tvofi` to .github/CODEOWNERS (the suite cannot pin it: fast runs the PR's code), name it in decision 0013's kept-owned list, and extend codeowners_gap.py --check to follow tests/run.sh's `run \"$PYTHON\" tests/X.py` lines for the scripts that read a *_budgets.json.",
+ "files": [
+  ".github/CODEOWNERS",
+  "tests/structure.py",
+  "dev/audit/rounds/round6/D11/fix/codeowners_gap.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

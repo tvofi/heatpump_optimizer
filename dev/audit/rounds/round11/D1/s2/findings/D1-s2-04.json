@@ -1,0 +1,45 @@
+{
+  "id": "D1-s2-04",
+  "scope": "D1-s2",
+  "step": "D1.M2",
+  "title": "off_restore._armed_record marks loaded before its read lands: a concurrent caller sees no hold and saves that",
+  "severity": "medium",
+  "claim": "off_restore._armed_record sets held.loaded = True before awaiting load_mapping and takes no lock, so a second caller while the first read is in flight gets an empty armed set: with the persisted record holding the heat curve's baseline (3.0) and async_armed_entry's read pending, async_restore (entering MODE_OFF, or unload) sends 0 restore writes instead of 1 and saves {\"armed\": {}}, which QuarantiningStore.async_save writes after the read lands -- so the hold is not released now and the baseline is gone from disk for the next restart (2 of 2 consequences; 0 when the two calls are serial).",
+  "mechanism": "QuarantiningStore.async_save waits for the read in flight, but _save(held) builds its payload from held.armed before calling it, so the store-level wait cannot help: the payload is the pre-read empty set. The sibling with the same 'loaded before the await' shape, pump_arbiter._load, is safe because both its callers (apply, the switch-on pass) hold held.lock; off_restore has no lock and five public entry points (async_arm, async_restore, async_armed_entry, async_rebaseline, async_consumer_state) reach _armed_record from the heat-curve publish, the pump arbiter, set_mode and unload, which run as separate loop tasks. The exposure is the first read of an entry's record after a start: a set_mode('off')/unload, or a second consumer, landing while the first cycle's heat-curve arm is reading.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/off_restore_race.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s2/off_restore_race.py",
+    "value": 2,
+    "unit": "consequences of 2 (restore not sent; armed baseline missing from the saved document)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 (orchestrator box B4, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, other seats running; a count (the read suspension is a fixed 10 ms sleep, the ordering is deterministic)",
+    "tolerance": "exact",
+    "load1": 225.41,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/off_restore.py:_armed_record (driven through off_restore.async_armed_entry and off_restore.async_restore on one entry, real QuarantiningStore)",
+  "perturbation": {
+    "change": "--fix: _armed_record wrapped so one read per record is shared and every concurrent caller awaits it (loaded only after the read), patched in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "consequences=0: restore_writes_sent=1 (set_value 3 on number.curve), as in the serial control"
+  },
+  "metric_definition": "Count of {restore write not sent, armed baseline absent from the saved document} when async_restore runs while another caller's first read of the off-restore record is pending.",
+  "phenomenon_property": "No caller of a lazily loaded persisted record observes it before its read lands, and no save of that record can carry a payload built before the read: the first read is shared and awaited by every caller.",
+  "seam_rule": "grep -nE '\\.loaded = True|_loaded = True' custom_components/heatpump_optimizer/*.py  (each lazy-load flag set before its await; safe only where every caller holds one lock, as pump_arbiter's held.lock does)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/off_restore_race.py --serial",
+    "value": 0,
+    "note": "the same two calls, the second after the first returns: the hold is restored (set_value 3) and the record released"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/off_restore_race.py          -> consequences=2",
+    "... --serial -> 0 (null control); ... --fix -> 0 (perturbation)",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/clock_save.py               -> SAVE stores_clobbered includes off_restore (the same mechanism, reached by the store-wide save-during-load sweep)"
+  ],
+  "proposed_fix_scope": "off_restore.py:_armed_record shares one in-flight read per entry (a future or an asyncio.Lock on _Held) and sets loaded after it lands.",
+  "files": ["custom_components/heatpump_optimizer/off_restore.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "N-restore-race"
+}

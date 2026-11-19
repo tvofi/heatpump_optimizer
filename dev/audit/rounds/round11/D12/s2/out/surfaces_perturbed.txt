@@ -1,0 +1,23 @@
+SURFACE blueprint blueprints/automation/charge_ev_from_grid_headroom.yaml	min	refs=1 dangling=[]
+SURFACE blueprint blueprints/automation/charge_ev_from_grid_headroom.yaml	ref	refs=1 dangling=[]
+SURFACE blueprint blueprints/automation/economy_mode_on_price_peak.yaml	min	refs=1 dangling=[]
+SURFACE blueprint blueprints/automation/economy_mode_on_price_peak.yaml	ref	refs=1 dangling=[]
+SURFACE blueprint blueprints/automation/notifications.yaml	min	refs=0 dangling=[]
+SURFACE blueprint blueprints/automation/notifications.yaml	ref	refs=0 dangling=[]
+SURFACE blueprint blueprints/automation/notify_on_manual_plan.yaml	min	refs=1 dangling=[]
+SURFACE blueprint blueprints/automation/notify_on_manual_plan.yaml	ref	refs=1 dangling=[]
+SURFACE blueprint blueprints/automation/notify_wood_cheaper_window.yaml	min	refs=1 dangling=[]
+SURFACE blueprint blueprints/automation/notify_wood_cheaper_window.yaml	ref	refs=1 dangling=[]
+SURFACE card custom_components/heatpump_optimizer/www/._heatpump-optimizer-card.js	min	load_error='Invalid or unexpected token' bad_pages=[] setup_lower_floor_boxes=0
+SURFACE card custom_components/heatpump_optimizer/www/._heatpump-optimizer-card.js	ref	load_error='Invalid or unexpected token' bad_pages=[] setup_lower_floor_boxes=0
+SURFACE card custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js	min	load_error=None bad_pages=[] setup_lower_floor_boxes=0
+SURFACE card custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js	ref	load_error=None bad_pages=[] setup_lower_floor_boxes=5
+arm=perturbed
+RESULT min_setup_two_zone=0 count
+RESULT ref_setup_two_zone=1 count
+RESULT card_lower_zone_min=0 count
+RESULT card_lower_zone_ref=5 count
+RESULT blueprint_dangling_on_ref=0 count
+RESULT thread_factor=1.001
+RESULT load1=2.00
+RESULT swapins=0
