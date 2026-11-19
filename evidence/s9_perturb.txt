@@ -1,0 +1,53 @@
+<unknown>:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+RESULT units=3763
+RESULT files=69
+RESULT refs_checked=3651
+RESULT const_cited=2
+RESULT C2-moved=15
+RESULT C2-path=3
+RESULT C2-line=0
+RESULT C2-symbol=0
+RESULT C2-ident=0
+RESULT C2-call=0
+RESULT C1-const=1
+RESULT C5-long=809
+RESULT C2-benign=78
+RESULT units_false=597
+RESULT units_no_claim=85
+FILE tests/edge.py C5-long=1
+FILE tests/entities.py C2-moved=11 C2-path=3 C5-long=470
+FILE tests/env_drift.py C5-long=34
+FILE tests/ha_contract.py C5-long=4
+FILE tests/ha_floor.py C5-long=2
+FILE tests/harness_headers.py C5-long=8
+FILE tests/host_probe.py C5-long=2
+FILE tests/issue996_count.py C5-long=2
+FILE tests/lane_skip.py C5-long=8
+FILE tests/layout.py C5-long=3
+FILE tests/manual_plan.py C5-long=4
+FILE tests/md_tables.mjs C5-long=3
+FILE tests/mutation_table.py C5-long=31
+FILE tests/nightly_ha.py C5-long=17
+FILE tests/nightly_status.py C5-long=9
+FILE tests/open_meteo.py C5-long=2
+FILE tests/optimality.py C5-long=18
+FILE tests/plan_view.py C5-long=1
+FILE tests/replay.py C5-long=30
+FILE tests/rolling.py C5-long=3
+FILE tests/run.sh C1-const=1 C2-moved=3 C5-long=15
+FILE tests/setup_qa_render.mjs C5-long=1
+FILE tests/stress.py C5-long=112
+FILE tests/structure.py C2-moved=1 C5-long=17
+FILE tests/throwaway_git.py C5-long=2
+FILE tests/typing_ruler.py C5-long=4
+FILE tests/validate.py C5-long=3
+FILE tests/wood_advisor.py C5-long=1
+FILE tests/worker_deadlines.py C5-long=2
+RESULT perturb_C1 unit=tests/run.sh#094c2db172 TOTAL:=1 mismatches 1->0
+RESULT perturb_C2 restore cited paths: unresolved in-repo paths 18->0
+RESULT perturb_C5 unit=tests/edge.py#100ffa8010 long 1->0
+RESULT thread_factor=1.000
+RESULT load1=133.04
+RESULT swapins=0
+rc=0
