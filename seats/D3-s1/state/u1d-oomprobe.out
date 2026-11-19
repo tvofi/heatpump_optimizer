@@ -1,0 +1,5 @@
+2026-11-19T00:48:25Z COMPLETE queued=1 from=pre
+2026-11-19T01:11:19Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF 582cce74 L783 by=tests/entities.py,tests/features.py ran=13 wall=1373.6s
+RESULT load1=1.00
+RESULT thread_factor=1.00
+rc=0
