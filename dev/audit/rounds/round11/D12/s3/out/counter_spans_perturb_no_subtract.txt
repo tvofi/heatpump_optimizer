@@ -1,0 +1,21 @@
+BAD span 2026-11-16 23:00:00+00:00 1.00 h heat 3.75 dhw 3.75 -> space 1.875 kW
+INFLATED span 2026-11-16 23:00:00+00:00 1.00 h observed=True space 1.875 kW vs true 0.000 kW (hot water 3.75 kWh)
+RESULT arm=unseen+tuya_mode+dhw_timer+no-subtract
+RESULT cycles_ok=16 count (of 16)
+RESULT plans_published=16 count
+RESULT spans_closed=7 count
+RESULT spans_with_dhw=2 count
+RESULT spans_observed=7 count
+RESULT spans_plan_dhw_share=0 count
+RESULT bad_spans=1 count
+RESULT spans_true_dhw=2 count
+RESULT inflated_space_spans=1 count
+RESULT inflated_spans_folded=0 count
+RESULT space_spans_folded=4 count
+RESULT cop_records=1 count
+RESULT dhw_cop_records=0 count
+RESULT dhw_cop_records_unseen=0 count
+RESULT wall_s=43.7 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=7.57
+RESULT swapins=0

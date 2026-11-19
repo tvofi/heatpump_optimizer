@@ -1,0 +1,499 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D5/s6/REPORT.md",
+ "exposure": "Read dev/governance/roles/COMMON.md, dimensions/D5.md, D6.md, criteria/D5-criteria.md, dev/audit/README.md and dev/audit/config/*. No docs/ read (none in cells). Comments in the cells cite earlier finding and issue ids (e.g. D11-s1-72, D13-04, R9-RO-PC1, R10-REPLAY-COST-BUDGET, #1241, #2469, #3508); read as context only. Read tools/policy/policy_lint.mjs lines 2405-2425 and tests/replay.py:COST_DRAWS to check comments in the cells.",
+ "coverage": [
+  {
+   "step": "D5.M1",
+   "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"'  # x 3 reader paths",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "outline prints 0 rows over the 258 files of D5-s6's cells (240 .py, 15 .sh, 3 .mjs: no Markdown/HTML), so no reader path passes through these cells: 0 dead ends. C4 examined: the code/JS cells yield no document row to walk. C2 (feature reader paths in docs/) is outside D5-s6's cells (docs/*.md are D5-s1's M1 cells); sent as a lead."
+  },
+  {
+   "step": "D5.M2",
+   "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"heading\"||$3==\"link\"'",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "outline prints 0 heading and 0 link rows for the cells; C5 examined: structure over the code cells is the empty set by the enumerator (0 broken links, 0 duplicated paragraphs)."
+  },
+  {
+   "step": "D5.M3",
+   "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"{print $1}' | xargs -r python3 tools/audit/text_ledger.py units --dim D6",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "C1: the denominator round 10 lacked is recorded: D5-s6's cells hold no document, so M3's universe here is 0 of 0. C3 (how-it-works.md, configuration.md mechanism paragraphs) is D5-s2's M3 cells: lead. C6: in these cells every docstring is an M4 unit (1336 docstrings rowed by D5.M4's executed checks; 4 docstring defects confirmed: D5-s6-02/03/04/06) but no paragraph-by-paragraph mechanism trace was run."
+  },
+  {
+   "step": "D5.M4",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 3781,
+   "examined": 3781,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C7",
+     "state": "examined"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -> units=3781 claim_rows=840 false_rows=263 (C1-flag 1, C1-count 1, C2-path 9, C5-len 404); python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s6/LEDGER.tsv --plant --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -> unrowed=0 orphan=0 malformed=0 plant_refused=1. C7: the cited-number-vs-adjacent-constant check is automated (C1-count: 44 comment/literal pairs checked, 1 confirmed false, 28 flags dismissed by reading); www/*.js and README/docs are not in these cells (leads to D5-s4, D5-s2)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D5.M4",
+   "what": "All 3781 units are rowed by executed checks (paths, file:symbol citations, name() calls, usage-line flags, count-vs-adjacent-literal, sentence length), but 2941 are `no-claim` only in the sense that those checks extracted nothing: behavioural statements inside them (what a function does) were not executed against the code (C1), and C3 restatement and C4 history-share were not judged for any of the 3781. Issue numbers (#NNNN) were not resolved (no GitHub for D5)."
+  },
+  {
+   "step": "D5.M3",
+   "what": "C6: mechanism paragraphs in this seat's 1336 docstrings were not traced one by one against their code paths (they sit under M4 here)."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D5-s6-01",
+   "scope": "D5-s6",
+   "step": "D5.M4",
+   "title": "stamp.py record-class comment counts three regexes over six and cites two moved paths",
+   "severity": "low",
+   "claim": "The comment above tools/release/stamp.py:RECORD_CLASS_RES says the node copy carries 'the same three regexes' and lives at .claude/workflows/policy_lint.mjs, and register_argv's docstring cites tools/audit/README.md's section 'A harness at the evidence tag may measure the tag, not your tree'; at the baseline RECORD_CLASS_RES holds 6 regexes, .claude/workflows/policy_lint.mjs does not exist (the copy is tools/policy/policy_lint.mjs), and no tools/audit/README.md exists.",
+   "mechanism": "The record classes gained a second (dev/programme/) layout per class and the lint and README moved out of .claude/workflows/ and tools/audit/; the comments kept the pre-move count and paths. Fails D5-criteria C1 (count), C2 (two paths).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "value": 3,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 container (shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/release/stamp.py:RECORD_CLASS_RES, tools/release/stamp.py:register_argv",
+   "perturbation": {
+    "change": "--perturb stamp: stamp RECORD_CLASS_RES cut to its first three regexes in memory, the cited policy_lint.mjs and README section planted at the cited paths in a temp tree",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Comment claims in stamp.py contradicted by the executed module: stated regex count vs len(RECORD_CLASS_RES), cited copy path exists and holds RECORD_CLASS_RES, cited README section exists.",
+   "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/release/stamp.py"
+   ],
+   "proposed_fix_scope": "Comment edits in tools/release/stamp.py only: 'six regexes, two per class', tools/policy/policy_lint.mjs, and the README section by its current home or dropped.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb stamp"
+   ],
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "value": "roster_edit.py's BRIEF_LINT_OLD/.claude/workflows/brief_lint.mjs is flagged by the same path scan and dismissed: it is a deliberate old-layout fallback in code",
+    "note": "a moved path the code itself still reads is not counted"
+   }
+  },
+  {
+   "id": "D5-s6-02",
+   "scope": "D5-s6",
+   "step": "D5.M4",
+   "title": "replay_draws.py docstring names tests/replay_draws.tsv; the table it fills is tests/replay_cost_draws.tsv",
+   "severity": "low",
+   "claim": "tools/audit/seat/replay_draws.py's module docstring says the harvested rows are what 'tests/replay_draws.tsv holds', but tests/replay.py:COST_DRAWS, the table the same module grades and shifts (replay.COST_DRAWS at lines 166/193/303), is tests/replay_cost_draws.tsv and no tests/replay_draws.tsv is tracked.",
+   "mechanism": "The docstring names a file that never existed under that name; the module's own code (and its later docstring paragraph, line 25) use COST_DRAWS. Fails D5-criteria C1, C2.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 container (shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/replay.py:COST_DRAWS",
+   "perturbation": {
+    "change": "--perturb replay: replay COST_DRAWS repointed in memory at ROOT/tests/replay_draws.tsv (the docstring's name)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "1 when the path the replay_draws.py docstring names differs from tests/replay.py:COST_DRAWS as the imported module delivers it, else 0.",
+   "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/audit/seat/replay_draws.py"
+   ],
+   "proposed_fix_scope": "One word in the docstring: tests/replay_cost_draws.tsv.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb replay"
+   ]
+  },
+  {
+   "id": "D5-s6-03",
+   "scope": "D5-s6",
+   "step": "D5.M4",
+   "title": "row_position.py usage line runs a path that does not exist (exit 2)",
+   "severity": "low",
+   "claim": "tools/audit/seat/row_position.py's docstring gives its command as 'python3 dev/audit/harnesses/row_position.py', which exits 2 with 'No such file or directory' from the export root; the script lives at tools/audit/seat/row_position.py.",
+   "mechanism": "The script moved from dev/audit/harnesses/ to tools/audit/seat/ and its usage line kept the old path. Fails D5-criteria C1, C2.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 container (shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/seat/row_position.py (module docstring, run as written with --help)",
+   "perturbation": {
+    "change": "--perturb row_position: the usage line run in a temp tree holding the script at the cited path",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Exit status != 0 of the usage line exactly as the docstring writes it, run with --help from the repository root (1 = fails).",
+   "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/audit/seat/row_position.py"
+   ],
+   "proposed_fix_scope": "Docstring usage line: python3 tools/audit/seat/row_position.py.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb row_position"
+   ]
+  },
+  {
+   "id": "D5-s6-04",
+   "scope": "D5-s6",
+   "step": "D5.M4",
+   "title": "plan_audit.py documents end-to-end --target 22.7; its parser refuses it",
+   "severity": "low",
+   "claim": "tools/audit/seat/plan_audit.py's usage line 'plan_audit.py end-to-end --fork SHA [--head REF] [--target 22.7]' fed to plan_audit.main's own argparse parser exits 2 'unrecognized arguments: --target 22.7': the end-to-end subparser defines only --fork and --head and the target is the constant TARGET_DS.",
+   "mechanism": "The option was documented (or removed) without the other side following; a reader who passes it gets an argparse error, not a different target. Fails D5-criteria C1.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 container (shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/seat/plan_audit.py:main",
+   "perturbation": {
+    "change": "--perturb plan_audit: plan_audit.main's end-to-end subparser given a --target option (argparse add_parser patched in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "1 when plan_audit.main(argv from the docstring's end-to-end usage line) exits 2 (argparse refusal), run_end_to_end stubbed so only parsing is measured.",
+   "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/audit/seat/plan_audit.py"
+   ],
+   "proposed_fix_scope": "Docstring line drops [--target 22.7] (or the subparser gains it and main reads it instead of TARGET_DS: then it is a behaviour change).",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb plan_audit"
+   ]
+  },
+  {
+   "id": "D5-s6-05",
+   "scope": "D5-s6",
+   "step": "D5.M4",
+   "title": "update_pr.sh header names the script updatepr.sh",
+   "severity": "low",
+   "claim": "Line 2 of tools/audit/seat/update_pr.sh introduces the script as 'updatepr.sh <branch> <code-sha|-> <body-file> [issues...]', but the script's $0 basename is update_pr.sh and no updatepr.sh is tracked anywhere at the ref.",
+   "mechanism": "A rename (updatepr.sh -> update_pr.sh) left the header's self-name behind. Fails D5-criteria C2.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 container (shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/seat/update_pr.sh (bash $0 basename)",
+   "perturbation": {
+    "change": "--perturb update_pr: the script copied and run under the header's name in a temp dir, and that name added to the tracked set",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "1 when the name the header gives differs from the basename bash reports for the script, or is not a tracked file name.",
+   "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/audit/seat/update_pr.sh"
+   ],
+   "proposed_fix_scope": "Header: update_pr.sh.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb update_pr"
+   ]
+  },
+  {
+   "id": "D5-s6-06",
+   "scope": "D5-s6",
+   "step": "D5.M4",
+   "title": "roster_lib.py attributes its open set and wave recurrence to gen_table_rev3.py, absent from the tree",
+   "severity": "low",
+   "claim": "Three comment units of tools/audit/seat/roster_lib.py (module docstring, the comment above the closed-stage set, depth_of's docstring) define behaviour by reference to 'gen_table_rev3.py', a script no tracked path at the ref holds and that no unit qualifies with a ref.",
+   "mechanism": "The script is a design-revision prototype on another branch; the comments point a code reader at it as the definition instead of stating the rule. Fails D5-criteria C2.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "value": 3,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 container (shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/seat/roster_lib.py:depth_of",
+   "perturbation": {
+    "change": "--perturb gen_table: gen_table_rev3.py added to the tracked file list",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Number of mentions of gen_table_rev3.py in the file while no tracked path at the ref ends in gen_table_rev3.py.",
+   "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/audit/seat/roster_lib.py"
+   ],
+   "proposed_fix_scope": "State the recurrence and open set in the comments (they are short), or cite the script with its ref.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb gen_table"
+   ]
+  },
+  {
+   "id": "D5-s6-07",
+   "scope": "D5-s6",
+   "step": "D5.M4",
+   "title": "plan_table.py self-test comment cites gen_table_rev3.py, absent from the tree",
+   "severity": "low",
+   "claim": "tools/audit/seat/plan_table.py line 205 justifies its wave assertions as 'gen_table_rev3.py's recurrence', a script no tracked path at the ref holds.",
+   "mechanism": "Same unresolvable citation as roster_lib.py, in the self-test that pins it. Fails D5-criteria C2.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 container (shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/seat/roster_lib.py:depth_of (called by plan_table.py's self-test)",
+   "perturbation": {
+    "change": "--perturb gen_table: gen_table_rev3.py added to the tracked file list",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Number of mentions of gen_table_rev3.py in the file while no tracked path at the ref ends in gen_table_rev3.py.",
+   "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/audit/seat/plan_table.py"
+   ],
+   "proposed_fix_scope": "Cite roster_lib.depth_of, which is what the check calls.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb gen_table"
+   ]
+  },
+  {
+   "id": "D5-s6-08",
+   "scope": "D5-s6",
+   "step": "D5.M4",
+   "title": "404 comment sentences over 40 words in 99 files of the seat's cells",
+   "severity": "low",
+   "claim": "Run over all 3781 D5 comment units of the seat's cells, 404 prose sentences (usage/code lines excluded, text_ledger's own sentence splitter) exceed criteria C5's 40-word bound, in 99 of 258 files; the longest is 166 words (tools/replay/export.py's module docstring).",
+   "mechanism": "Long WHY paragraphs are written as one sentence chained by colons, semicolons and dashes; nothing checks length. Fails D5-criteria C5.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "harness_path": "dev/audit/rounds/round11/D5/s6/m4_ledger.py",
+    "value": 404,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 container (shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of (the D5 unit enumerator) over the cells' comments",
+   "perturbation": {
+    "change": "m4_ledger.py --c5-split tools/audit/seat/pr_args.sh (that file's units re-broken in memory every 30 words, as a fix would)",
+    "expected_direction": "down",
+    "observed_value": 372
+   },
+   "metric_definition": "Count of sentences over 40 words in D5 comment units of D5-s6's cells (comment markers stripped, indented/command lines dropped, a backtick span one word).",
+   "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C5-len; C5_BY_FILE.tsv",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "see dev/audit/rounds/round11/D5/s6/C5_BY_FILE.tsv (99 files)"
+   ],
+   "proposed_fix_scope": "Sentence splits in the comments only; no code change.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --out $(mktemp -d) --c5-split tools/audit/seat/pr_args.sh"
+   ],
+   "leave_one_out": {
+    "cells": 99,
+    "min": 1,
+    "max": 35,
+    "drop_most_favourable": 369
+   },
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "value": "C2-call=0 C2-cite=0 over the same 3781 units",
+    "note": "the same scan reports zero where the comments are sound; C5 is grouped as one phenomenon, the per-file split is C5_BY_FILE.tsv"
+   }
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every file:symbol citation in the cells' comments names a symbol the cited file defines",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": "C2-cite=0 false of 3 citations checked"
+  },
+  {
+   "claim": "Every name() a comment calls exists as a code token in the tree",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": "C2-call=0 false of >=150 checked"
+  },
+  {
+   "claim": "Repository paths named in comments resolve, apart from the 9 confirmed",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": ">=1605 path checks; 178 unresolved tokens read and dismissed (runtime artefacts such as plan.json/VERDICT.md, f-string fragments such as dev/programme/rosters/wave-r, self-test fixtures, roster_edit.py's deliberate BRIEF_LINT_OLD fallback, scripts cited at another ref such as dbg_ingest_smoke.py at eae236d66)"
+  },
+  {
+   "claim": "Usage-line options exist in the script's parser, apart from plan_audit.py --target",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": ">=186 flag checks; 9 dismissed (sweep_gantt.py, roster_queue.py and build_docs.mjs build their options in a loop or generically)"
+  },
+  {
+   "claim": "Comment-stated item counts match the display beneath, apart from stamp.py RECORD_CLASS_RES",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": "44 comment/literal pairs; 28 flags dismissed (the number counts something other than the literal's items)"
+  },
+  {
+   "claim": "The D5 ledger rows every unit and refuses an omission",
+   "command": "python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s6/LEDGER.tsv --plant --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": "unrowed=0 orphan=0 malformed=0 plant_refused=1"
+  },
+  {
+   "claim": "M1-M3 over the cells: no reader path, heading, link or document unit",
+   "command": "python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": "0 rows"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D5/s6/m4_ledger.py",
+  "dev/audit/rounds/round11/D5/s6/truth_checks.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D5-s8",
+   "file": "tools/policy/policy_lint.mjs",
+   "symbol": "RECORD_CLASS_RES",
+   "what": "Comment at line 2410 calls the copy 'the same three regexes' and line 2423 'one of the three record classes above'; the array holds 6 regexes (same defect as D5-s6-01's stamp.py comment)."
+  },
+  {
+   "owner_seat": "D5-s1",
+   "file": "docs/ecl110.md, docs/configuration.md, docs/how-it-works.md",
+   "symbol": "M1 feature reader paths",
+   "what": "Redispatched C2 (two-tank storage, ECL110, capacity tariff paragraph-by-paragraph walk) is outside D5-s6's cells."
+  },
+  {
+   "owner_seat": "D5-s2",
+   "file": "docs/how-it-works.md, docs/configuration.md",
+   "symbol": "M3 mechanism paragraphs",
+   "what": "Redispatched C3 (trace each mechanism paragraph against code) and the README/docs part of C7 are outside D5-s6's cells."
+  },
+  {
+   "owner_seat": "D5-s4",
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "comments",
+   "what": "Redispatched C7's www/*.js symbol scan; m4_ledger.py's path/call/flag checks can be pointed at those cells with --seat D5-s4."
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+  "id": "D4-s1-02",
+  "scope": "D4-s1",
+  "step": "D4.M1",
+  "title": "Chart tooltip with a shared-step line runs 20.6 px past the bottom of its chart at 375 px: fitWhy trims only the idle explanation",
+  "severity": "low",
+  "claim": "Hovering a shared heating/hot-water step in the expanded chart at 375x812 under a fine pointer shows a 201.9 px tooltip in a chart whose box ends 20.6 px above the tooltip's bottom, in 12 of 12 such renders (de, en, sv x light/dark x reduce/no-preference), while no tooltip_hover render spills (0 of 72).",
+  "mechanism": "fitWhy(tt, chartHeight - 16) keeps the tooltip inside its chart only by removing `.tt-why` items; a shared-step tooltip carries `.tt-shared` and `.tt-reason` prose and no `.tt-why`, so fitWhy returns at `if (!why) return;` with the box still taller than the chart, and the box (z-index 5, chartwrap overflow visible) paints over what sits under the chart.",
+  "evidence": {
+    "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_tooltip.mjs",
+    "harness_path": "dev/audit/rounds/round11/D4/s1/m1_tooltip.mjs",
+    "value": 12,
+    "unit": "shared_steps_hover renders (of 72) whose visible tooltip ends >0.5 px past its chartwrap (max 20.6 px)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B9, 4 vCPU, Chromium 158.0.8127.18 (playwright 1.65.0 lock, rev 1254), headless shell",
+    "cpu_or_wall": "count",
+    "contention_note": "the seat's full M1 grid run ran beside it; a count of geometry, contention-immune",
+    "tolerance": "exact",
+    "load1": 10.3,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:fitWhy (with tooltipHtml, from the chart pointer-move handler that calls fitWhy(tt, rect.height - 16))",
+  "perturbation": {
+    "change": "m1_tooltip.mjs PERTURB=1: in memory, fitWhy's `const why = tt.querySelector(\".tt-why\");` -> `... || tt.querySelector(\".tt-reason\");`",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Renders where the visible .tooltip's box extends >0.5 px above or below its .chartwrap box after the hover step (getBoundingClientRect).",
+  "phenomenon_property": "Whatever lines a chart tooltip carries, the box fits inside its chart's height: every prose block it may hold is trimmed or dropped before the box leaves the chart.",
+  "seam_rule": "dev/audit/rounds/round11/D4/s1/m1_browser.mjs (RESULT popups; m1_summarize.py <renders.jsonl> --check popups lists every pop-up past its chart or the viewport)",
+  "null_control": {
+    "command": "same run, RESULT tip_spill_renders_null",
+    "value": 0,
+    "note": "tooltip_hover (a tooltip with a .tt-why block fitWhy can trim) spills in 0 of 72 renders in the same grid."
+  },
+  "leave_one_out": {"cells": 6, "min": 0, "max": 20.6, "drop_most_favourable": 0},
+  "reproduction_steps": [
+    "HPO_PLANDATA=$(mktemp -d)/plan.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
+    "run the command above; read RESULT tip_spill_renders and the per vp/pointer line ({\"375/fine\":20.6})",
+    "re-run with PERTURB=1: 0"
+  ],
+  "proposed_fix_scope": "fitWhy: after the idle explanation, shorten or drop the remaining prose blocks (.tt-reason, then .tt-shared's wording) until the box fits; value rows untouched.",
+  "files": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"],
+  "stop_rule_class": "bug",
+  "class_guess": "P9"
+}

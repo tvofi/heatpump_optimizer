@@ -530,7 +530,14 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
 
     @property
     def _waiting_for(self) -> str | None:
-        return None if self._rows() else "settled_savings_month"
+        # Closed months and no open row: the ledger holds the open month back
+        # until it has covered ``ledger.MIN_COVERAGE_HOURS``.
+        rows = self._rows()
+        if not rows:
+            return "settled_savings_month"
+        if any(isinstance(row, dict) and row.get("estimated") for row in rows):
+            return None
+        return "open_month_coverage"
 
     @property
     def native_value(self) -> float | None:

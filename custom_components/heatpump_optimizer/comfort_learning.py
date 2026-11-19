@@ -31,7 +31,7 @@ from typing import Any
 
 import numpy as np
 
-from .accuracy import utc_elapsed_seconds
+from .drift import utc_elapsed_seconds
 from .drift import stored_instant
 from .payload import ComfortLearning
 
