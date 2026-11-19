@@ -1,0 +1,76 @@
+unit	line	kind	command	result	verdict	truth
+README.md#8ec9a00bfd	0	no-claim			-	
+docs/CONTRIBUTING.md#ed96d3a2ff	0	no-claim			-	
+docs/architecture.md#f48b101bb9	0	no-claim			-	
+docs/automations.md#0e0d3f0b38	0	no-claim			-	
+docs/configuration.md#d6dd35ea7c	0	no-claim			-	
+docs/dashboard-card.md#f112dfdb12	0	no-claim			-	
+docs/ecl110.md#3e23a3286a	0	no-claim			-	
+docs/how-it-works.md#fd8ccb6b7f	0	no-claim			-	
+docs/img/card/make_card_figures.mjs#372771bf95	1	claim	closure.is_inert(generator); closures.json readers; card.mjs imports card_rig; card_drift.mjs names generator; plan_view reads HPO_PLAN_TWO_ZONE	is_inert=True readers=[] all-present=True	true	
+docs/img/card/make_card_figures.mjs#088c5b509d	34	claim	grep sha256(tests dir)[:12] derivation in tests/card.mjs,tests/plan_view.py,docs/img/card/make_card_figures.mjs	{'tests/card.mjs': True, 'tests/plan_view.py': True, 'docs/img/card/make_card_figures.mjs': True}	true	
+docs/img/card/make_card_figures.mjs#6ca989a69a	56	no-claim			-	
+docs/img/card/make_card_figures.mjs#30d5ee5d04	58	claim	count in card source: ['function defaultWindow', 'purely historical']	{'function defaultWindow': 1, 'purely historical': 2}	true	
+docs/img/card/make_card_figures.mjs#53bfb71326	83	claim	count in card source: ['<svg', 'The expand button carries an inline `<svg>`']	{'<svg': 8, 'The expand button carries an inline `<svg>`': 1}	true	
+docs/img/card/make_card_figures.mjs#d37ed691ab	95	claim	count in card source: ['var(--primary-text-color,#212121)']	{'var(--primary-text-color,#212121)': 2}	true	
+docs/img/card/make_card_figures.mjs#826bc2b5da	110	claim	count in card source: ['<defs><pattern id=', 'nextPatternId']	{'<defs><pattern id=': 1, 'nextPatternId': 6}	true	
+docs/img/card/make_card_figures.mjs#98a6669fcb	117	no-claim			-	
+docs/img/card/make_card_figures.mjs#de8f55d1fa	119	claim	count in card source: ['function smoothLine', 'function steppedLine']	{'function smoothLine': 1, 'function steppedLine': 1}	true	
+docs/img/card/make_card_figures.mjs#9414443025	132	claim	sed -n 132,144p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#8bd806970f	133	claim	sed -n 133,145p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#3b65749229	135	claim	sed -n 135,147p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#e9339fd3b7	137	claim	sed -n 137,149p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#54c582aae3	143	claim	count in card source: ['class="series" data-key=', 'line.primary']	{'class="series" data-key=': 4, 'line.primary': 5}	true	
+docs/img/card/make_card_figures.mjs#0e17869968	154	claim	count in card source: ['--hpo-series-', 'R9-UI-4', 'return `var(--hpo-series-${def.key}, ${def.color})`']	{'--hpo-series-': 5, 'R9-UI-4': 10, 'return `var(--hpo-series-${def.key}, ${def.color})`': 1}	true	
+docs/img/card/make_card_figures.mjs#1a47ffb9b8	159	claim	count in card source: ['fill-opacity="${fillOpacity}" stroke="none"']	{'fill-opacity="${fillOpacity}" stroke="none"': 1}	true	
+docs/img/card/make_card_figures.mjs#1973336a9d	166	claim	sed -n 166,178p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#afcb7c5460	174	claim	dashboard-card.md documents series:; SERIES_DEFS keys not hidden by onlySeries draw no data (planStates feeds no action sensor)	documented=True unhidden=['actioned', 'quiet_off', 'quiet_silent'] planStates_feeds_action=False	true	
+docs/img/card/make_card_figures.mjs#0a81d06eab	186	claim	count in card source: ['<rect class="panel" data-panel', 'R9-UI-4']	{'<rect class="panel" data-panel': 1, 'R9-UI-4': 10}	true	
+docs/img/card/make_card_figures.mjs#10837a1443	211	claim	README.md hero image; <text> elements in banner.svg; fonts make_readme_figures.banner outlines	hero=./docs/img/readme/banner.png banner_text_elements=0 hero_fonts=['InstrumentSans', 'JetBrainsMono', 'Outfit']	false	README.md's hero is banner.png, glyphs outlined from Outfit / Instrument Sans (make_readme_figures.banner); it carries no CSS font stack, so FONT matches nothing in README.md
+docs/img/card/make_card_figures.mjs#785abc26f4	216	no-claim			-	
+docs/img/card/make_card_figures.mjs#1ce2bf7764	223	claim	sed -n 223,235p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#96d3212a17	236	claim	sed -n 236,248p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#57a70250af	248	claim	count in card source: ['dash: "6 3"', '#558 C1']	{'dash: "6 3"': 1, '#558 C1': 9}	true	
+docs/img/card/make_card_figures.mjs#6311765aa6	257	claim	count in card source: ['<line class="now"']	{'<line class="now"': 1}	true	
+docs/img/card/make_card_figures.mjs#76bd24b21d	266	claim	count in card source: ['<rect class="lane"']	{'<rect class="lane"': 2}	true	
+docs/img/card/make_card_figures.mjs#490a61c26a	273	claim	sed -n 273,285p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#52e02872eb	302	claim	count in card source: ['const FONT_BASE = 10;']	{'const FONT_BASE = 10;': 1}	true	
+docs/img/card/make_card_figures.mjs#89f646de78	308	claim	sed -n 308,320p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#b648eedcce	334	no-claim			-	
+docs/img/card/make_card_figures.mjs#a6ded5298a	336	claim	sed -n 336,348p docs/img/card/make_card_figures.mjs	statement present: the statement under the unit	true	
+docs/img/card/make_card_figures.mjs#19b1d7026c	403	no-claim			-	
+docs/img/model/make_card_weekly_figure.mjs#7a6d89f1e6	1	claim	is_inert(weekly generator); schedule, minimum, 2.5 offset, price_known in code	all=True	true	
+docs/img/model/make_card_weekly_figure.mjs#a442fb738e	36	claim	sed -n 36,48p docs/img/model/make_card_weekly_figure.mjs	statement present: the statement under the unit	true	
+docs/img/model/make_card_weekly_figure.mjs#bc784f2613	40	claim	datetime.date(2026,1,16).strftime('%A')	Friday	true	
+docs/img/model/make_card_weekly_figure.mjs#d0e6eea402	50	claim	overlayDhwDisplay skips dhw_temp < W and floors lo at W	True	true	
+docs/img/model/make_card_weekly_figure.mjs#6a560eb47f	103	claim	count in card source: ['this._series']	{'this._series': 5}	true	
+docs/img/model/make_card_weekly_figure.mjs#37d6a645b0	119	claim	count in card source: ['chartwrap']	{'chartwrap': 13}	true	
+docs/img/model/make_model_figures.py#3220470584	1	claim	closure.is_inert(make_model_figures.py); closures.json readers	is_inert=False readers=['tests/doc_claims.py']	false	tests/doc_claims.py imports make_model_figures.py; closure.py lists it in INERT_EXCEPT and closures.json puts it in doc_claims.py's closure, so editing it selects tests/doc_claims.py
+docs/img/model/make_model_figures.py#2c6dfe0581	55	claim	sed -n 55,67p docs/img/model/make_model_figures.py	statement present: the statement under the unit	true	
+docs/img/model/make_model_figures.py#ff6fc03108	78	claim	sed -n 78,90p docs/img/model/make_model_figures.py	statement present: the statement under the unit	true	
+docs/img/model/make_model_figures.py#2284e92eee	356	claim	hasattr(ThermalModel, 'marginal_cop')	True	true	
+docs/img/model/make_model_figures.py#bac64a0538	427	claim	how-it-works formula present; extend_dhw_temps calls compute_cop_dhw	True	true	
+docs/img/model/make_model_figures.py#c6820d7c21	146	claim	sed -n 146,158p docs/img/model/make_model_figures.py	statement present: the statement under the unit	true	
+docs/img/model/make_model_figures.py#5eaef3e4d3	35	no-claim			-	
+docs/img/model/make_model_figures.py#9f842d1935	40	no-claim			-	
+docs/img/model/make_model_figures.py#41e095f7df	45	claim	grep sha256(tests dir)[:12] derivation in tests/card.mjs,tests/plan_view.py,docs/img/card/make_card_figures.mjs,docs/img/model/make_model_figures.py	{'tests/card.mjs': True, 'tests/plan_view.py': True, 'docs/img/card/make_card_figures.mjs': True, 'docs/img/model/make_model_figures.py': True}	true	
+docs/img/model/make_model_figures.py#e80f5347f5	62	claim	grep plotting libraries in tests/requirements-ci.txt	plotting_libs=False	true	
+docs/img/model/make_model_figures.py#86de3d924f	211	no-claim			-	
+docs/img/model/make_model_figures.py#5efa24b69d	256	claim	plan_view payload: lowest tank temperature inside a frame minus the 45 degC minimum	margin=0.070 degC	true	
+docs/img/model/make_model_figures.py#292a3cd1a9	292	claim	parse_windows('22:00-02:00')	[(0.0, 2.0), (22.0, 24.0)]	true	
+docs/img/model/make_model_figures.py#d4fee4f728	348	no-claim			-	
+docs/img/model/make_model_figures.py#c9d9c34c87	448	claim	simulate_dhw_step x96 at 50 degC, 0.05 kWh: refused+floor-injected heat; step0 equal; step1 differs	refused=0.0 floor_injected=0.0 step0_equal=True step1_gap=0.14368	true	
+docs/img/model/make_model_figures.py#b87b6ff9c8	468	claim	simulate_dhw_step x96 at 50 degC, 0.05 kWh: refused+floor-injected heat; step0 equal; step1 differs	refused=0.0 floor_injected=0.0 step0_equal=True step1_gap=0.14368	true	
+docs/img/readme/make_readme_figures.py#197c3c3705	1	claim	banner.svg has no <text> (outlined); social preview to HPO_SOCIAL_OUT or a temp dir	True	true	
+docs/img/readme/make_readme_figures.py#3f24d150b6	29	claim	mark(...) call modes	['dark', 'dark']	true	
+docs/img/readme/make_readme_figures.py#b7d9ff266d	72	claim	sed -n 72,84p docs/img/readme/make_readme_figures.py	statement present: the statement under the unit	true	
+docs/img/readme/make_readme_figures.py#819fb591f4	91	claim	len(PRICES)	24	true	
+docs/img/readme/make_readme_figures.py#c896a840aa	98	no-claim			-	
+docs/img/readme/make_readme_figures.py#a552080363	135	claim	WCAG contrast of et on its figure background (dark, light)	6.48 / 5.12	true	
+docs/img/readme/make_readme_figures.py#05f920449e	138	claim	sed -n 138,150p docs/img/readme/make_readme_figures.py	statement present: the statement under the unit	true	
+docs/img/readme/render.mjs#23a27f71c4	1	claim	argv destructuring matches the usage line	True	true	
+docs/img/readme/render.mjs#f8a8943817	5	claim	grep createRequire tests/card_browser.mjs	True	true	
+docs/img/readme/render_mermaid.mjs#c5c61444a2	1	claim	doc_claims.readme_figure_findings(README) empty; docs.css dark --bg; named paths exist; pages.yml npm ci	findings=0 css=True paths=True pages=True	true	
+docs/img/readme/render_mermaid.mjs#5437d966e6	27	claim	count ```mermaid blocks in README.md vs NAMES (3)	3	true	
+docs/img/readme/render_mermaid.mjs#09ed61ec39	31	claim	doc_claims._MERMAID_FENCE captures the text between the fences	True	true	
+docs/setup.md#25cf989882	0	no-claim			-	

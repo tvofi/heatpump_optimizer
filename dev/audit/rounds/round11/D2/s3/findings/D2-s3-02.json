@@ -1,0 +1,46 @@
+{
+ "id": "D2-s3-02",
+ "step": "D2.M4",
+ "title": "A price sensor in a minor unit (öre, cent, c, p) reaches the plan at 100x: the 1/100 is never applied",
+ "severity": "critical",
+ "claim": "inputs.normalize_price_per_kwh returns value*per_kwh for every unit in PRICE_MINOR_UNITS, so prices_from_entity_attributes publishes an öre/kWh or c/kWh series as major currency per kWh, 100x too high (and an öre/MWh one 100x too high too).",
+ "mechanism": "inputs.py:791-792: the minor-unit branch returns value*per_kwh where its own docstring (and tests/features.py _P8_FACTORS) says a minor unit is a hundredth of the major one; price_model.prices_from_entity_attributes scales every row by normalize_price_per_kwh(1.0, unit) before VAT and surcharge, and the coordinator plans, publishes and books on those rows. The unit is recognised, so the price_unit_unrecognised notice never fires: silent.",
+ "evidence": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": 8,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 5.76,
+  "thread_factor": 1.0001
+ },
+ "instrumented_symbol": "heatpump_optimizer.price_model:prices_from_entity_attributes (through inputs:normalize_price_per_kwh)",
+ "perturbation": {
+  "change": "--perturb minor: normalize_price_per_kwh divides a minor-unit result by 100 (the documented factor)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "unit_mismatches = units of the price grammar where prices_from_entity_attributes' total != raw value * true unit factor * VAT + surcharge (14 units tried)",
+ "phenomenon_property": "Every price an entity publishes in a minor currency unit reaches the plan, the published costs and the ledger as major currency per kWh: value/100 per the unit's energy factor.",
+ "seam_rule": "grep -n 'PRICE_MINOR_UNITS' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": "0 mismatches on SEK/kWh, EUR/MWh, €/kWh, kr/kWh, NOK/Wh and unit-less",
+  "note": "the major-unit arms of the same seam are exact; only the 8 minor-unit spellings fail (öre/kWh 153.8 vs 1.638 at VAT 1.25 + 0.1)"
+ },
+ "reproduction_steps": [
+  "run the command; read the CELL currency-pv-export price_source=entity line",
+  "rerun with --perturb minor --section cur: unit_mismatches=0"
+ ],
+ "proposed_fix_scope": "inputs.normalize_price_per_kwh: the minor-unit branch returns value*per_kwh/100; tests/features.py's _P8_FACTORS check already states the contract",
+ "files": [
+  "custom_components/heatpump_optimizer/inputs.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P8",
+ "scope": "D2-s3"
+}

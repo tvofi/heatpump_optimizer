@@ -1,0 +1,42 @@
+{
+ "id": "D5-s2-04",
+ "scope": "D5-s2",
+ "step": "D5.M4",
+ "title": "make_model_figures.py docstring says no test reads it; tests/doc_claims.py imports it and its closure holds it",
+ "severity": "low",
+ "claim": "The module docstring of docs/img/model/make_model_figures.py states that docs/ is INERT so 'nothing under tests/ reads it, so it needs no closure entry and editing it selects no gate script', but closure.is_inert returns False for the file, closure.INERT_EXCEPT lists it, and tests/closures.json puts it in tests/doc_claims.py's closure (doc_claims.py imports it); the store_decay docstring also carries a 45-word sentence (C5).",
+ "mechanism": "#1413 moved the generator into tests/doc_claims.py's recorded closure (closure.py INERT_EXCEPT, 'the generated model figures') after the docstring was written; the docstring kept the earlier rationale. A seat reading it expects an edit to the generator to select no gate script, while the scoped gate runs doc_claims.py.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/comments.py --plandata $TMPDIR/plandata.json",
+  "harness_path": "dev/audit/rounds/round11/D5/s2/comments.py",
+  "value": "false_units[make_model_figures.py]=1 (is_inert=False, readers=['tests/doc_claims.py']); long_sentences[make_model_figures.py]=1",
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+  "cpu_or_wall": "count",
+  "contention_note": "box heavily loaded (load1 150-185); counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 172.87,
+  "thread_factor": 0.999
+ },
+ "instrumented_symbol": "tests/closure.py:is_inert (with closure.INERT_EXCEPT and tests/closures.json) for docs/img/model/make_model_figures.py",
+ "perturbation": {
+  "change": "--perturb-closure: make_model_figures.py removed from closure.INERT_EXCEPT and from closures.json's readers (mock), so the docstring's claim becomes true",
+  "expected_direction": "down",
+  "observed_value": "false_units 2 -> 1 (this file's unit leaves)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/comments.py",
+  "value": "the same closure claim in make_card_figures.mjs:1 and make_card_weekly_figure.mjs:1 checks true (is_inert=True, readers=[])",
+  "note": "the check separates a generator the gate reads from one it does not"
+ },
+ "metric_definition": "Comment units in the file whose executed check contradicts them (C1), plus prose sentences over 40 words (C5).",
+ "phenomenon_property": "Every comment or docstring that states how the gate classifies a file agrees with tests/closure.py:is_inert and tests/closures.json for that file.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/comments.py  (false lines; any unit containing 'INERT')",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "docs/img/model/make_model_figures.py"
+ ],
+ "proposed_fix_scope": "Rewrite the docstring's second paragraph: the generator lives beside its output; tests/doc_claims.py imports it, so it is in that script's closure and an edit selects doc_claims.py. Split the 45-word store_decay sentence."
+}

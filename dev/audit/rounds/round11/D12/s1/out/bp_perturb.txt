@@ -1,0 +1,4 @@
+manual_override RESULT bp_pairs=1011 count
+manual_override RESULT bp_fail_pairs=337 count
+cheaper_windows RESULT bp_pairs=1011 count
+cheaper_windows RESULT bp_fail_pairs=0 count

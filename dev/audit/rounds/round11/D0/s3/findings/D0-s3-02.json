@@ -1,0 +1,71 @@
+{
+ "id": "D0-s3-02",
+ "scope": "D0-s3",
+ "step": "D0.M4",
+ "title": "No all-off start: negative-price storage plants ship plans 1.8-8.6 % worse than off; MPC masks most",
+ "severity": "low",
+ "claim": "On the 60 d0-grid cells summer_negative/summer_warm/*, production ships on 16 (every one a storage plant: valve-storage, wood, manual-valve-buffer, flow-setpoint-behind-valve; 0 of 12 plain) a space plan whose true objective exceeds the plan production's own _multi_start_minimize reaches from the all-off (lower-bound) start by 273-3204 objective units (1.8-7.4 % of the objective), heating an above-ceiling house 2.9-35.6 more degree-steps for 0.03-1.65 SEK of negative-price revenue; on the 60 flat-price twins the gap is 0. D0.M6: in a 24 h closed loop re-planned hourly (loop.py, plant == model, production's warm seed), the augmented arm (structured seeds incl. the lower bound) realises < 1 objective unit better on 12 of the 16 gap cells, 30-85 units better on 3 (all flow-setpoint-behind-valve) and 128 units worse on 1; mean realised gap 1.59 units/day, -3.95 with the most favourable cell dropped, energy money within 0.75 SEK/day either way: the shipped (published) plan is wrong, the realised loss is small and not robust.",
+ "mechanism": "Every production start set (_solve_space and the space-only path in optimizer.py: the guess, _price_ranked_start at the baseline/low/deep-low energy, headroom*0.5, the seed power) carries energy, and none is the lower bound. Through a buffer and mixing valve the room's response to pump power saturates: past a small threshold extra power no longer raises the room (the overshoot penalty is flat in power: J at 0.5x and 1.0x the shipped plan differ by 0.3 units, at 0.01x it is the off value), while the negative price keeps paying for more. Every start descends onto that plateau, so L-BFGS-B never sees the off basin the objective prefers by thousands of units. Masking: the shipped plan's heating sits after step 0 (step0_prod = 0 on every gap cell), so a re-plan an hour later re-derives it and the closed loop on most cells coasts at the off trajectory anyway.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1",
+  "harness_path": "dev/audit/rounds/round11/D0/s3/offstart.py",
+  "value": "summer_negative_gap_cells=16/60; gap_off max=3204.33 (rel 0.0543), rel max 0.0739, mean rel over gap cells 0.0372",
+  "unit": "cells / objective units",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B3 (4 cores shared by three seats)",
+  "cpu_or_wall": "count",
+  "contention_note": "race, decomp and loop runs of this seat plus D3-s3/D9-s3 runs; counts and objective values are contention-immune",
+  "tolerance": "exact count; objective values +-1e-6 relative",
+  "load1": 8.31,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize (candidates captured and run; shipped plan scored through optimizer:_commit_runs)",
+ "perturbation": {
+  "change": "--perturb off_in_prod: append the lower-bound vector to the candidate list of every production _multi_start_minimize call (in memory)",
+  "expected_direction": "down",
+  "observed_value": "summer_negative_gap_cells=2/60 (14 of 16 close to 0.0000; shipped J falls by the gap, ceiling breach falls, no cell worse); the 2 left are the no-DHW flow-setpoint-behind-valve cells, where the descent objective ranks the off run below the shipped one"
+ },
+ "metric_definition": "gap_off = J(shipped) - J(off-arm) on _commit_runs' true objective, off-arm = production's _multi_start_minimize from the lower bound alone, committed; count of cells with gap_off > 1e-4.",
+ "phenomenon_property": "The shipped plan's true objective is no worse than the plan the same solver reaches from the all-off (lower-bound) start, on every cell, so a saturating storage chain cannot hold the plan on a plateau that heats against the comfort ceiling for negative-price revenue.",
+ "seam_rule": "grep -n 'starts = \\[\\|starts.append\\|extra_starts' custom_components/heatpump_optimizer/optimizer.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1",
+  "value": "summer_warm twins: flat_gap_cells=0/60; all 300 flat cells: 40 gaps, max 0.587 units, max rel 0.27 %, 0 above 1 %",
+  "note": "the same 60 cells at profiles.prices('flat'): with no price that pays to run, the plan is off and the gap vanishes; the gap is price-driven"
+ },
+ "leave_one_out": {
+  "cells": 300,
+  "min": -1217.0096633911162,
+  "max": 3204.3327384753284,
+  "drop_most_favourable": 55.524878917507664
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1 --perturb off_in_prod",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --cells <gap cells>  # the full race reaches the same gaps (seeds/de_block/warm arms)"
+ ],
+ "proposed_fix_scope": "optimizer.py start sets (_solve_space and the space-only path): add the lower-bound (all-off / minimum-level) start; check the 2 flow-setpoint no-DHW cells where descent and true objective rank the off run differently; add DHW storage cells at negative prices to the certification cells (_CERT_CELLS holds space-only cells); low priority: the published plan and its forecast overheat are what the user sees, the realised money is within 0.75 SEK/day",
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py"
+ ],
+ "expected_golden_drift": [
+  "golden plans on storage plants at negative prices may move (none of the stock golden scenarios was checked)"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P4",
+ "m6_masking": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --cells dev/audit/rounds/round11/D0/s3/loop_cells_famA.txt --tag famA.d1e4 --workers 1",
+  "value": "same_nonflat n=16 realised_gap_pos=10 (>1e-4) neg=2 mean=1.588 min=-128.48 max=84.70 loo_drop_max_mean=-3.95; mis (plant heat loss x1.2, mass x0.85): mean=10.32 max=127.0 loo=2.54",
+  "note": "perturbation --perturb no_seeds makes the augmented arm production itself: realised_gap 0 by construction"
+ },
+ "population_all_summer_negative": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 2 --cells dev/audit/rounds/round11/D0/s3/offstart_cells_all.txt",
+  "value": "summer_negative_gap_cells=44/300 (rel > 1 %: 22); flat_gap_cells=40/300 with max gap_off 0.587, max rel 0.0027, mean -0.14 (rel > 1 %: 0)",
+  "note": "every summer_negative and flat line of enumerate.py d0-grid; beyond summer_warm the same mechanism reaches summer_cool 48h DHW storage cells (rel 8.5 %, 0.38-0.44 units, 42-45 kWh shipped vs 14 kWh); the flat arm's 40 cells are noise-sized and the off arm is worse on average there"
+ },
+ "m6_one_replan": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --mask --min-gap 0.0001 --workers 4",
+  "value": "of 546 grid race gap cells 512 masked after one hourly re-plan; 34 unmasked, 18 of them > 1 % of the re-plan objective, every one an off-start cell (15 summer_negative/summer_warm, 3 summer_negative/summer_cool 48h DHW storage); flat 152/152 masked",
+  "note": "one re-plan does not mask the off-start gap; the 24 h closed loop (m6_masking) masks most of it on 12 of 16 cells"
+ }
+}

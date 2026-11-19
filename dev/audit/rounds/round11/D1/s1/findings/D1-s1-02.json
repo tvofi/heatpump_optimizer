@@ -1,0 +1,47 @@
+{
+ "id": "D1-s1-02",
+ "scope": "D1-s1",
+ "step": "D1.M1",
+ "title": "tests/harness.py lifecycle helpers skip HA's on_unload processing: 1 shutdown per unload (HA 2), 4 leaks per NotReady (HA 0)",
+ "severity": "low",
+ "claim": "The suite's entry-manager instrument diverges from Home Assistant's ConfigEntry in two seams of one mechanism (_async_process_on_unload): ha_unload_entry calls each async_on_unload callback FIFO and drops a returned coroutine, so HeatPumpOptimizerCoordinator.async_shutdown runs once per unload where HA runs it twice (1 RuntimeWarning per unload; store saves 3 vs 4 per unload); and ha_setup_entry runs no unload callback when async_setup_entry raises ConfigEntryNotReady, so each failed attempt leaves 4 live registrations reaching its coordinator and the coordinator alive (3 of 3 after 3 failures), where HA's order leaves 0 and 0.",
+ "mechanism": "homeassistant ConfigEntry._async_process_on_unload: `while self._on_unload: if job := self._on_unload.pop()(): self.async_create_task(hass, job)` then awaits the tasks; the stub DataUpdateCoordinator registers `config_entry.async_on_unload(self.async_shutdown)` as upstream does; tests/harness.py:ha_unload_entry runs `callback()` and drops the result. Every suite test unloading through it therefore never runs the second HeatPumpOptimizerCoordinator.async_shutdown (pump_arbiter.release -> _persist a second time, legionella release, forget_held) that a real unload runs. On ConfigEntryNotReady HA's ConfigEntry.async_setup also awaits _async_process_on_unload (the coordinator's own _release_registrations and the base-class async_shutdown), which tests/harness.py:ha_setup_entry never runs: production's #236 cleanup is therefore unobservable through the suite's helper, and a test that counts registrations after a NotReady sees leaks HA would not have.",
+ "evidence": {
+  "command": "D1_CENSUS_DIR=<dir with d1-lifecycle.txt, only if the tree carries ._* files> PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_lifecycle.py --unload harness",
+  "harness_path": "dev/audit/rounds/round11/D1/s1/m1_lifecycle.py",
+  "value": 1,
+  "unit": "async_shutdown runs per unload (harness instrument; HA order gives 2)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B4 container, linux x86_64, Python 3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "part B of m4_race.py and other finder seats on the box; counts, contention-immune; thread_factor after subtracting executor-thread CPU",
+  "tolerance": "exact",
+  "load1": 2.86,
+  "thread_factor": 1.019
+ },
+ "instrumented_symbol": "tests/harness.py:ha_unload_entry (counting heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_shutdown entries and homeassistant.helpers.storage.SAVE_COUNTS)",
+ "perturbation": {
+  "change": "one-line instrument repair in ha_unload_entry: `if inspect.isawaitable(r := callback()): await r` (arm --unload harness_awaiting)",
+  "expected_direction": "up",
+  "observed_value": 2
+ },
+ "metric_definition": "async_shutdown entries per unload over 3 unloads of one lifecycle (1 vs 2); and live registrations reaching a failed attempt's coordinator after 3 NotReady setups (12 vs 0).",
+ "phenomenon_property": "The suite's entry-manager helpers must run what Home Assistant's ConfigEntry runs at unload and at a failed setup: every async_on_unload callback, popped last-first, a returned awaitable awaited.",
+ "seam_rule": "grep -n 'def ha_setup_entry\\|def ha_unload_entry\\|_on_unload' tests/harness.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_lifecycle.py --unload faithful ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_notready.py --setup faithful",
+  "value": "2 shutdowns per unload, 0 dropped coroutines, 12 saves; 0 failed-attempt leaks, 0 alive",
+  "note": "HA's order (rl.ha_unload_faithful / process_on_unload). The NotReady seam: --setup harness gives failed_attempt_leaks=12 (running_signal.py:112, :194, away.py:260, coordinator.py:8746 x3), failed_attempts_alive=3."
+ },
+ "reproduction_steps": [
+  "m1_lifecycle.py --unload harness: shutdown_runs_per_unload=1, dropped_coroutines=3, unload_saves=9",
+  "m1_lifecycle.py --unload faithful or harness_awaiting: 2, 0, 12",
+  "m1_notready.py --setup harness: failed_attempt_leaks=12, failed_attempts_alive=3; --setup faithful: 0, 0"
+ ],
+ "proposed_fix_scope": "tests/harness.py: ha_unload_entry pops LIFO and awaits a returned awaitable; ha_setup_entry runs the same processing when async_setup_entry raises ConfigEntryNotReady (as rl.ha_unload_faithful / m1_notready.process_on_unload do). Production impact: none found (HA's order leaks nothing); one redundant pump_duty save per unload.",
+ "files": [
+  "tests/harness.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

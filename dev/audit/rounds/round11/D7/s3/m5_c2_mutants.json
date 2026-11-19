@@ -1,0 +1,2030 @@
+{
+"coordinator.py:4782:HeatPumpOptimizerCoordinator._dhw_confidence_band": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted coordinator.py:4782"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"coordinator.py:5538:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"coordinator.py:9139:HeatPumpOptimizerCoordinator._confidence_margins": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH KeyError: 'plan'"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"device_prefill.py:204:_matched_keys": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted device_prefill.py:204"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"device_prefill.py:235:resolve": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted device_prefill.py:235"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"device_prefill.py:269:_table_sources": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted device_prefill.py:269"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"device_prefill.py:288:resolve_with_fallback": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted device_prefill.py:288"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"device_prefill.py:306:disclaimer": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted device_prefill.py:306"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"device_prefill.py:337:disclaimer._named": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted device_prefill.py:337"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:863:DhwPlanner._dhw_coil_wood_forecast": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:863"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_schedule.py:134:_format_day_selector": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_schedule.py:134"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_schedule.py:301:parse_weekly_windows": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_schedule.py:301"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_schedule.py:592:day_spec_problem": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_schedule.py:592"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_schedule.py:609:day_overrides_enabled": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_schedule.py:609"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_schedule.py:651:parse_day_overrides": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_schedule.py:651"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_schedule.py:97:_parse_day_selector": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_schedule.py:97"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:112:package_prefix": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:112"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:131:night_mode_write_ids": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:131"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:146:candidates": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:146"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:162:snapshot": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:162"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:180:_number": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:180"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:185:_register": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:185"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:190:_scaled": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:190"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:196:_clock": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:196"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:206:_window": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:206"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:215:_interval_days": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:215"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:221:_hot_water": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:221"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:232:_plant": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:232"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:256:infer": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:256"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"modbus_prefill.py:272:notes": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted modbus_prefill.py:272"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"name_match.py:133:family": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": -9,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": true
+}
+],
+"verdict": "timeout"
+},
+"name_match.py:278:tokens": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted name_match.py:278"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"name_match.py:289:score_name": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted name_match.py:289"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"name_match.py:305:_device_words": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted name_match.py:305"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": true
+}
+],
+"verdict": "pinned"
+},
+"name_match.py:327:_names": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted name_match.py:327"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"name_match.py:345:_passes": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted name_match.py:345"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"name_match.py:354:_candidates": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted name_match.py:354"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"name_match.py:382:matches": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted name_match.py:382"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"optimizer.py:1040:_sharing_wood_side": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted optimizer.py:1040"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"optimizer.py:1493:_batch_fd_gradient": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "validate",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"optimizer.py:1610:_fused_value_and_gradient": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "validate",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"optimizer.py:1714:_memoized_value_and_gradient": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "validate",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"optimizer.py:1773:_bounds_supported_by_batch": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "validate",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"optimizer.py:3455:HeatPumpOptimizer._comfort_terms_batch": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted optimizer.py:3455"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"optimizer.py:3520:HeatPumpOptimizer._cost_terms_batch": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "validate",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"optimizer.py:3768:HeatPumpOptimizer._terminal_cost_batch.cost_batch": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "validate",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"prefill_offer.py:58:fallback_roles": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted prefill_offer.py:58"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"prefill_offer.py:71:qualifies": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted prefill_offer.py:71"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"prefill_offer.py:87:offered": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted prefill_offer.py:87"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"pump_signals.py:204:PumpElectricHeat.as_dict": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted pump_signals.py:204"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"pump_signals.py:216:resistive_carve_out": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted pump_signals.py:216"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"pump_signals.py:347:PumpSignals.as_dict": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted pump_signals.py:347"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"pump_signals.py:368:read_electric_heat": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted pump_signals.py:368"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"pump_signals.py:415:read": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted pump_signals.py:415"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"tariff.py:1154:peak_cost_batch": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "validate",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"thermal_model.py:3127:reanchor_heat_loss": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"thermal_model.py:4429:ThermalModel._batch_cop": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "validate",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"thermal_model.py:4500:ThermalModel.simulate_trajectory_batch": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "validate",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:1069:_advisor_replay": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:1069"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:1088:_advisor_edge_params": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:1088"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:375:_tr": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:375"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:381:_slot_extras": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:381"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:395:_place_home": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:395"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:503:layout_edges": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:503"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:585:describe_setup": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:585"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:722:_slot_lines": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:722"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:737:_sensor_gap_lines": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:737"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:752:render_text_summary": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:752"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:767:render_text_summary.t": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:767"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:840:_window_peak": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:840"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:853:peak_miss_sek": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:853"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:867:outdoor_cop_miss_sek": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:867"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:881:dhw_coast_miss_sek": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:881"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:886:_combi_store_probed": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:886"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:897:rank_sensor_gaps": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:897"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:963:looks_like_pulse_power": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:963"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"topology.py:988:suggest_house_power_entity": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted topology.py:988"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:108:wood_fuel_ready": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:108"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:134:cheaper_steps": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:134"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:157:cheaper_hour_count": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:157"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:167:cheaper_windows": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:167"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:181:cheaper_windows.day": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:181"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:200:lighting_window": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:200"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:211:_scan_wood_night": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:211"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:241:night_advice": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:241"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:283:_as_dt": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:283"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:303:wood_slots_to_kw": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:303"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:39:wood_tank_soc_from_probes": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:39"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:410:detected_wood_slots": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:410"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:451:_cops": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:451"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:464:build_wood_fuel_view": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:464"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:538:_derated": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:538"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:544:_attach_windows": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:544"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:555:_attach_windows.iso": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:555"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:574:_attach_night_advice": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:574"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:59:useful_kwh_m3": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:59"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:602:wood_fuel_from_parts": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:602"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:63:liters_to_kwh": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:63"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:650:_plan_partload": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:650"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:69:wood_sek_per_kwh": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:69"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:78:wood_furnace_inferred": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:78"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:92:wood_furnace_on": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:92"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"wood_fuel.py:98:saving_includes_wood": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted wood_fuel.py:98"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+}
+}

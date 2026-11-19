@@ -1,0 +1,46 @@
+{
+ "id": "D2-s2-03",
+ "scope": "D2-s2",
+ "step": "D2.M2",
+ "title": "compressor_modulation=on_off is read as modulating: the declared on/off pump gets unclamped sub-p_min plans",
+ "severity": "high",
+ "claim": "thermal_model.declared_modulation maps COMPRESSOR_MODULATION_ON_OFF to True (modulating) instead of False, so a user declaring an on/off compressor gets clamp_planned_levels False on every set-point unit, and the solve prices 32 of 96 steps at levels in (0, p_min) the pump cannot run; auto on the same surface clamps (0 such steps).",
+ "mechanism": "Both explicit select values return True; the docstring and the options page say on_off -> False. Every reader inherits it: levels_clamped/duty_cycle_realizable (the plan's level law), learner_unmetered (the house learner's freeze) and probe_install(...).on_off. The explicit declaration is therefore weaker than leaving the key on auto.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+  "value": 3,
+  "unit": "cells (of 9) whose derived clamp contradicts the declared modulation",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B5 (shared compute box, linux x86_64, venv-ci python 3.14)",
+  "cpu_or_wall": "count",
+  "contention_note": "counts only; box shared",
+  "tolerance": "exact",
+  "load1": 0.32,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.thermal_model:declared_modulation (via OptimizationConfig.from_mapping -> levels_clamped, and HeatPumpOptimizer.optimize)",
+ "perturbation": {
+  "change": "thermal_model.py declared_modulation: `True if mode == const.COMPRESSOR_MODULATION_ON_OFF` -> `False if mode == const.COMPRESSOR_MODULATION_ON_OFF` (harness --perturb, private copy)",
+  "expected_direction": "to_zero",
+  "observed_value": "clamp_mismatch 3 -> 0; on_off cells sub_pmin_steps 32 -> 0"
+ },
+ "metric_definition": "Per space_setpoint_unit x compressor_modulation cell, 1 if from_mapping(cfg).clamp_planned_levels != declared (on_off True, modulating False, auto = probe); summed over 9 cells.",
+ "phenomenon_property": "A declared on_off compressor plans every step at 0 or in [p_min, p_max] on every write surface; modulating opts out; auto follows the probe.",
+ "seam_rule": "grep -n 'declared_modulation' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+  "value": "auto and modulating cells: clamp_mismatch 0 on all 6",
+  "note": "only the on_off declaration moves"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py --perturb"
+ ],
+ "proposed_fix_scope": "thermal_model.py declared_modulation: on_off -> False.",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}
