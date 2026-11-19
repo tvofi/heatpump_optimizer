@@ -1,6 +1,6 @@
 No published prices cover the planning horizon; skipping
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/hpo-seats/r11/rev-3711-aa98/wt/tests/harness.py:597: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-11-orchestrator-resume-928854/f2a0d03a-dc77-4fb9-b8fa-10babda9f42a/scratchpad/rev3711/tests/harness.py:597: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 

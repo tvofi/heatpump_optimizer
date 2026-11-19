@@ -1,0 +1,146 @@
+LEDGER-MERGE: resolved tests/closures.json
+143c3767f9178089b7d56b6b1ca002118046a97c
+
+diff --git a/docs/configuration.md b/docs/configuration.md
+remerge CONFLICT (content): Merge conflict in docs/configuration.md
+index 645183d4d7..d0965f9916 100644
+--- a/docs/configuration.md
++++ b/docs/configuration.md
+@@ -970,13 +970,8 @@ neither.
+ 
+ | Setting | Default | Range | What it means |
+ |---|---|---|---|
+-<<<<<<< aa98d2b6fb (ci: pin killed mutants)
+ | Room thermometers | none | up to 32 `climate` entities or `temperature` sensors | Optional, one per room. A room thermostat's own room temperature (its `current_temperature`) is read, not its HVAC mode; a temperature sensor's state is read as it is. Three sensors appear once the list is saved: **Room Average Temperature**, the mean over the rooms that read, **Room Temperature Spread**, the warmest room less the coldest, in K, and **Room Separability**, the number of rooms whose own history shows how their calling for heat warms them, apart from every other room. That history keeps each room's temperature, target and share of time calling for heat, every half hour for 14 days, beside the outdoor and floor-return temperatures and the measured power; the sensor's `rooms` attribute gives each room's verdict (`separable` with its heat-loss rate `a_per_h` and calling gain `b_k_per_h`, or why not: `no_action` for a sensor with no calling state, `short_history` under three days, `never_calling` or `always_calling`, `collinear` with the room named in `with`, `no_response`), and `house` whether the power reading follows how many rooms call. Nothing in the plan reads it yet. The history is saved every six hours and when the integration stops, and a factory reset keeps it. A room that is unavailable, older than six hours (times the staleness scale) or outside -30 to 60 °C is left out and listed under the average's `dropped` attribute; it never raises an input problem. With fewer than half the rooms readable both sensors read unknown. The indoor temperature sensor on **Sensors and entities** is still the one the model runs on, and the plan uses the rooms only with the setting below. Clearing the list removes it; a factory reset keeps it, as it keeps every sensor. |
+-| Let a cold room raise the planned minimum | off | on / off | Off, a room list changes nothing in the plan. On, a room thermostat that reads further below its own target than the house reads below yours raises the minimum temperature the plan holds. Only a `climate` in `heat` or `auto` mode counts: a room switched off or cooling, a plain temperature sensor (it has no target) and a dropped room do not. The raise is the coldest such room's shortfall less the house's own, at most 1 °C, and it never lifts the minimum above your comfort target for that hour — so the plan holds the house at its target while a room is short, and never plans the house above it; raise the target for more. It rises from where the house is now by 0.25 °C an hour, moves only when the rooms ask for 0.2 °C more or less, and drops at once when it yields: in Economy mode, while a window is detected open, while away, on a holiday, while a heating slot is planned by hand, and in two-zone mode (the list does not say which floor a room is on). **Room Temperature Spread**'s `lift` attribute shows the size asked for, the room that set it and, when it yielded, to what. |
+-=======
+-| Room thermometers | none | up to 32 `climate` entities or `temperature` sensors | Optional, one per room. A room thermostat's own room temperature (its `current_temperature`) is read, not its HVAC mode; a temperature sensor's state is read as it is. Two sensors appear once the list is saved: **Room Average Temperature**, the mean over the rooms that read, and **Room Temperature Spread**, the warmest room less the coldest, in K. A room that is unavailable, older than six hours (times the staleness scale) or outside -30 to 60 °C is left out and listed under the average's `dropped` attribute; it never raises an input problem. With fewer than half the rooms readable both sensors read unknown. The indoor temperature sensor on **Sensors and entities** is still the one the model runs on, and the plan uses the rooms only with the setting below. Clearing the list removes it; a factory reset keeps it, as it keeps every sensor. |
+ | Let a cold room raise the planned minimum | off | on / off | Off, a room list changes nothing in the plan. On, a room thermostat that reads further below its own target than the house reads below yours raises the minimum temperature the plan holds. Only a `climate` in `heat` or `auto` mode counts: a room switched off or cooling, a plain temperature sensor (it has no target) and a dropped room do not. The raise is the coldest such room's shortfall less the house's own, at most 1 °C, and it never lifts the minimum above your comfort target for that hour — so the plan holds the house at its target while a room is short; raise the target for more. The minimum is not held back below the target, so the plan may store heat above the target, and its warmest planned temperature can be higher than it would be with the setting off. It rises from where the house is now by 0.25 °C an hour, moves only when the rooms ask for 0.2 °C more or less, and drops at once when it yields: in Economy mode, while a window is detected open, while away, on a holiday, while a heating slot is planned by hand, and in two-zone mode (the list does not say which floor a room is on). **Room Temperature Spread**'s `lift` attribute shows the size asked for, the room that set it and, when it yielded, to what. |
+->>>>>>> 99436a082c (Merge pull request #3803 from tvofi/fix/r11-carry-room-lift)
+ 
+ ### Heating system and heat storage
+ 
+diff --git a/tests/features.py b/tests/features.py
+remerge CONFLICT (content): Merge conflict in tests/features.py
+index 26e7efa89d..08ac905573 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -97301,7 +97301,57 @@ R.check(
+ )
+ 
+ 
+-<<<<<<< aa98d2b6fb (ci: pin killed mutants)
++# -- The plan peak under the lift: accepted, never clipped (round-11 ruling, 2026-11-18,
++# option A). The lifted floor reaches the comfort target and the plan may store heat above
++# it, so its peak may pass the unlifted plan's. These checks encode that choice: a clip of
++# the lift short of the target, or a headroom under it, fails the first; the zeros array
++# is the solver's own null control. The fixture is the design note's, solved through
++# the production optimizer on dev/audit/harnesses/room_lift_solve.py's inputs.
++from heatpump_optimizer.thermal_model import ThermalState as _rl_State  # noqa: E402
++
++_RL_PEAK_START = datetime(2026, 4, 15, 12, 0, tzinfo=UTC)
++_rl_peak_cfg = _rl_Config(horizon_hours=24, time_step_minutes=15, target_temp=20.0, min_temp=19.5,
++                          max_temp=23.0, comfort_temp_day=20.0, comfort_temp_night=20.0)
++_RL_PEAK_N = 96
++
++
++def _rl_peak_solve(margins):
++    """The plan's room temperatures past step 0 for ``margins``, from the harness's inputs."""
++    cfg = _grad_house(target_temperature=20.0, min_temperature=19.5)
++    outdoor, wind, rain, solar = _grad_weather("shoulder", _RL_PEAK_START)
++    state = _rl_State(
++        room_temperature=19.6, slab_temperature=20.6, outdoor_temperature=float(outdoor[0]),
++        dhw_temperature=50.0, dhw_hours_since_legionella=20.0, upper_floor_temperature=19.6,
++        lower_floor_temperature=19.6, buffer_tank_temperature=40.0)
++    result = _PvOpt(_PvModel(_PvParams.from_config(cfg)), _rl_peak_cfg).optimize(inputs=solve_inputs(
++        initial_state=state, prices=_grad_prices("winter_typical", _RL_PEAK_START),
++        outdoor_temps=outdoor, wind_speeds=wind, precipitation=rain, solar_radiation=solar,
++        start_time=_RL_PEAK_START, min_temp_margins=margins))
++    return np.asarray(result.room_temp_trajectory[1:], dtype=float)
++
++
++_rl_peak_m, _ = _rl_solve(cfg=_rl_peak_cfg, start=_RL_PEAK_START, n=_RL_PEAK_N)
++_rl_peak = {k: _rl_peak_solve(m) for k, m in
++            (("none", None), ("zeros", np.zeros(_RL_PEAK_N)), ("lift", _rl_peak_m))}
++_rl_peak_gap = None if _rl_peak_m is None else [
++    round(float(_rl_peak_cfg.get_comfort_temp(t.hour + t.minute / 60.0, when=t)
++                - _rl_peak_cfg.get_temp_bounds(t.hour + t.minute / 60.0, when=t)[0] - _rl_peak_m[i]), 9)
++    for i, t in enumerate(_RL_PEAK_START + timedelta(minutes=15 * i) for i in range(_RL_PEAK_N))]
++R.check(
++    "the lifted floor reaches the comfort target, no headroom under it, at every step past the "
++    "ramp (0.1 K at step 0, 0.25 K an hour, so from step 7)",
++    _rl_peak_gap is not None and _rl_peak_gap[0] > 0.0 and set(_rl_peak_gap[7:]) == {0.0},
++    f"gap to target {_rl_peak_gap and sorted(set(_rl_peak_gap))}",
++)
++R.check(
++    "the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the "
++    "target past the ramp; null control, an all-zero margin array plans the unlifted plan",
++    float(_rl_peak["lift"].max()) > float(_rl_peak["none"].max())
++    and float(_rl_peak["lift"][12:].min()) >= 20.0 - 1e-6
++    and np.array_equal(_rl_peak["zeros"], _rl_peak["none"]),
++    f"peak none={_rl_peak['none'].max():.3f} zeros={_rl_peak['zeros'].max():.3f} "
++    f"lift={_rl_peak['lift'].max():.3f} lift min past 3 h={_rl_peak['lift'][12:].min():.3f}",
++)
+ 
+ # ---------------------------------------------------------------------------
+ # R11-OUTSIDE-ROOMS-P3 (#3616, phase 3a): room history and the identifiability report
+@@ -97920,59 +97970,4 @@ R.check(
+     f"before={_rh_ul_before} after={_rh_ul_doc}",
+ )
+ 
+-=======
+-# -- The plan peak under the lift: accepted, never clipped (round-11 ruling, 2026-11-18,
+-# option A). The lifted floor reaches the comfort target and the plan may store heat above
+-# it, so its peak may pass the unlifted plan's. These checks encode that choice: a clip of
+-# the lift short of the target, or a headroom under it, fails the first; the zeros array
+-# is the solver's own null control. The fixture is the design note's, solved through
+-# the production optimizer on dev/audit/harnesses/room_lift_solve.py's inputs.
+-from heatpump_optimizer.thermal_model import ThermalState as _rl_State  # noqa: E402
+-
+-_RL_PEAK_START = datetime(2026, 4, 15, 12, 0, tzinfo=UTC)
+-_rl_peak_cfg = _rl_Config(horizon_hours=24, time_step_minutes=15, target_temp=20.0, min_temp=19.5,
+-                          max_temp=23.0, comfort_temp_day=20.0, comfort_temp_night=20.0)
+-_RL_PEAK_N = 96
+-
+-
+-def _rl_peak_solve(margins):
+-    """The plan's room temperatures past step 0 for ``margins``, from the harness's inputs."""
+-    cfg = _grad_house(target_temperature=20.0, min_temperature=19.5)
+-    outdoor, wind, rain, solar = _grad_weather("shoulder", _RL_PEAK_START)
+-    state = _rl_State(
+-        room_temperature=19.6, slab_temperature=20.6, outdoor_temperature=float(outdoor[0]),
+-        dhw_temperature=50.0, dhw_hours_since_legionella=20.0, upper_floor_temperature=19.6,
+-        lower_floor_temperature=19.6, buffer_tank_temperature=40.0)
+-    result = _PvOpt(_PvModel(_PvParams.from_config(cfg)), _rl_peak_cfg).optimize(inputs=solve_inputs(
+-        initial_state=state, prices=_grad_prices("winter_typical", _RL_PEAK_START),
+-        outdoor_temps=outdoor, wind_speeds=wind, precipitation=rain, solar_radiation=solar,
+-        start_time=_RL_PEAK_START, min_temp_margins=margins))
+-    return np.asarray(result.room_temp_trajectory[1:], dtype=float)
+-
+-
+-_rl_peak_m, _ = _rl_solve(cfg=_rl_peak_cfg, start=_RL_PEAK_START, n=_RL_PEAK_N)
+-_rl_peak = {k: _rl_peak_solve(m) for k, m in
+-            (("none", None), ("zeros", np.zeros(_RL_PEAK_N)), ("lift", _rl_peak_m))}
+-_rl_peak_gap = None if _rl_peak_m is None else [
+-    round(float(_rl_peak_cfg.get_comfort_temp(t.hour + t.minute / 60.0, when=t)
+-                - _rl_peak_cfg.get_temp_bounds(t.hour + t.minute / 60.0, when=t)[0] - _rl_peak_m[i]), 9)
+-    for i, t in enumerate(_RL_PEAK_START + timedelta(minutes=15 * i) for i in range(_RL_PEAK_N))]
+-R.check(
+-    "the lifted floor reaches the comfort target, no headroom under it, at every step past the "
+-    "ramp (0.1 K at step 0, 0.25 K an hour, so from step 7)",
+-    _rl_peak_gap is not None and _rl_peak_gap[0] > 0.0 and set(_rl_peak_gap[7:]) == {0.0},
+-    f"gap to target {_rl_peak_gap and sorted(set(_rl_peak_gap))}",
+-)
+-R.check(
+-    "the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the "
+-    "target past the ramp; null control, an all-zero margin array plans the unlifted plan",
+-    float(_rl_peak["lift"].max()) > float(_rl_peak["none"].max())
+-    and float(_rl_peak["lift"][12:].min()) >= 20.0 - 1e-6
+-    and np.array_equal(_rl_peak["zeros"], _rl_peak["none"]),
+-    f"peak none={_rl_peak['none'].max():.3f} zeros={_rl_peak['zeros'].max():.3f} "
+-    f"lift={_rl_peak['lift'].max():.3f} lift min past 3 h={_rl_peak['lift'][12:].min():.3f}",
+-)
+-
+-
+->>>>>>> 99436a082c (Merge pull request #3803 from tvofi/fix/r11-carry-room-lift)
+ sys.exit(R.close("FEATURE CHECKS"))

@@ -1,5 +1,5 @@
 import subprocess, sys, pathlib, os, shutil
-W = pathlib.Path("/Users/timmalmstrom/hpo-seats/r11/rev-3711-aa98/wt")
+W = pathlib.Path("/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-11-orchestrator-resume-928854/f2a0d03a-dc77-4fb9-b8fa-10babda9f42a/scratchpad/rev3711")
 P = "custom_components/heatpump_optimizer/"
 M = [
  ("first->last reading", P+"room_history.py", "        if tally[0] is None:  # the period's first reading: its calling acts from there on\n", "        if True:\n"),
@@ -26,7 +26,7 @@ M = [
  ("call share counts problem rows", P+"room_history.py", "if reading.problem is None and reading.calling is not None:", "if reading.calling is not None:"),
  ("house line drops space filter", P+"room_history.py", "and s >= CALLING_SHARE and reported[i]]", "and reported[i]]"),
 ]
-CMD = ["env","PYTHONPATH=tests/hastub","PYTHONDONTWRITEBYTECODE=1","python3","tools/audit/seat/features_block.py","--prelude","exec(open(\"/Users/timmalmstrom/hpo-seats/r11/rev-3711-aa98/ev/prelude.py\").read())","R11-OUTSIDE-ROOMS-P3 (#3616, phase 3a)"]
+CMD = ["env","PYTHONPATH=tests/hastub","PYTHONDONTWRITEBYTECODE=1","python3","tools/audit/seat/features_block.py","--prelude","exec(open(\"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-11-orchestrator-resume-928854/f2a0d03a-dc77-4fb9-b8fa-10babda9f42a/scratchpad/ev3711/prelude.py\").read())","R11-OUTSIDE-ROOMS-P3 (#3616, phase 3a)"]
 extra = sys.argv[1:]
 if extra and extra[0] in ("--null",): M = [("NULL no-op", M[0][1], M[0][2], M[0][2])]
 for name, f, old, new in M:
