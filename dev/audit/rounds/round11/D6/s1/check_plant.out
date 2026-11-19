@@ -1,0 +1,11 @@
+RESULT units=3970
+RESULT rows=3970
+RESULT claims=3340
+RESULT false=5
+RESULT stale=0
+RESULT true=622
+RESULT unverifiable=2713
+RESULT unrowed=0
+RESULT orphan=0
+RESULT malformed=0
+RESULT plant_refused=1 planted_units=1 in DISCLAIMER.md

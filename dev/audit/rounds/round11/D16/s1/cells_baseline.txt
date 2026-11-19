@@ -1,0 +1,106 @@
+RESULT cells=532 count
+RESULT examined=532 count
+RESULT unattributed_calls=0 count
+ROW fork-flow    idle           ok 
+ROW fork-flow    min-cold-tank  FAIL [grid] outside min/max/step: number.hp_freq=23.5
+ROW fork-flow    partial        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-flow    full           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW fork-flow    dhw-only       FAIL [grid] outside min/max/step: number.hp_freq=37.5
+ROW fork-flow    both           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW fork-flow    boost-partial  FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW fork-flow    disinfection   FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-flow    baseline       FAIL [switch] supply switch reads off past the plan: the pump is not handed back
+ROW fork-flow    restart        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-flow    upgrade        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-flow    unavailable    FAIL [grid] outside min/max/step: number.hp_freq=51.5; write recorded as made while Home Assistant skipped it: ['mode']
+ROW fork-flow    observe        ok 
+ROW fork-flow    off            ok 
+NULL fork-flow    baseline-on    ok 
+LEVELS fork-flow {'water': [33, 44, 55]}
+ROW gchv-flow    idle           ok 
+ROW gchv-flow    min-cold-tank  FAIL [grid] outside min/max/step: number.hp_freq=23.5; tank asked to charge: mode both, tank set-point 30.0 - hysteresis 5.0 > tank 20.0
+ROW gchv-flow    partial        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW gchv-flow    full           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW gchv-flow    dhw-only       FAIL [grid] outside min/max/step: number.hp_freq=37.5
+ROW gchv-flow    both           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW gchv-flow    boost-partial  FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW gchv-flow    disinfection   FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW gchv-flow    baseline       FAIL [switch] supply switch reads off past the plan: the pump is not handed back
+ROW gchv-flow    restart        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW gchv-flow    upgrade        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW gchv-flow    unavailable    FAIL [grid] outside min/max/step: number.hp_freq=51.5; write recorded as made while Home Assistant skipped it: ['mode']
+ROW gchv-flow    observe        ok 
+ROW gchv-flow    off            ok 
+NULL gchv-flow    baseline-on    ok 
+LEVELS gchv-flow {'water': [33, 44, 55]}
+ROW fork-indoor  idle           ok 
+ROW fork-indoor  min-cold-tank  FAIL [grid] outside min/max/step: number.hp_freq=23.5
+ROW fork-indoor  partial        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-indoor  full           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW fork-indoor  dhw-only       FAIL [grid] outside min/max/step: number.hp_freq=37.5
+ROW fork-indoor  both           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW fork-indoor  boost-partial  FAIL [grid] outside min/max/step: number.hp_freq=86.5; boost indoor set-point 21.0 != band top (max_temperature 23.0); plan's step K booked 21.0
+ROW fork-indoor  disinfection   FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-indoor  baseline       FAIL [switch] supply switch reads off past the plan: the pump is not handed back
+ROW fork-indoor  restart        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-indoor  upgrade        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-indoor  unavailable    FAIL [grid] outside min/max/step: number.hp_freq=51.5; write recorded as made while Home Assistant skipped it: ['mode']
+ROW fork-indoor  observe        ok 
+ROW fork-indoor  off            ok 
+NULL fork-indoor  baseline-on    ok 
+LEVELS fork-indoor {}
+ROW gchv-indoor  idle           ok 
+ROW gchv-indoor  min-cold-tank  FAIL [grid] outside min/max/step: number.hp_freq=23.5; tank asked to charge: mode both, tank set-point 30.0 - hysteresis 5.0 > tank 20.0
+ROW gchv-indoor  partial        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW gchv-indoor  full           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW gchv-indoor  dhw-only       FAIL [grid] outside min/max/step: number.hp_freq=37.5
+ROW gchv-indoor  both           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW gchv-indoor  boost-partial  FAIL [grid] outside min/max/step: number.hp_freq=86.5; boost indoor set-point 21.0 != band top (max_temperature 23.0); plan's step K booked 21.0
+ROW gchv-indoor  disinfection   FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW gchv-indoor  baseline       FAIL [switch] supply switch reads off past the plan: the pump is not handed back
+ROW gchv-indoor  restart        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW gchv-indoor  upgrade        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW gchv-indoor  unavailable    FAIL [grid] outside min/max/step: number.hp_freq=51.5; write recorded as made while Home Assistant skipped it: ['mode']
+ROW gchv-indoor  observe        ok 
+ROW gchv-indoor  off            ok 
+NULL gchv-indoor  baseline-on    ok 
+LEVELS gchv-indoor {}
+ROW fork-flow-pc idle           ok 
+ROW fork-flow-pc min-cold-tank  FAIL [grid] outside min/max/step: number.hp_freq=23.5
+ROW fork-flow-pc partial        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-flow-pc full           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW fork-flow-pc dhw-only       FAIL [grid] outside min/max/step: number.hp_freq=37.5
+ROW fork-flow-pc both           FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW fork-flow-pc boost-partial  FAIL [grid] outside min/max/step: number.hp_freq=86.5
+ROW fork-flow-pc disinfection   FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-flow-pc baseline       FAIL [switch] supply switch reads off past the plan: the pump is not handed back
+ROW fork-flow-pc restart        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-flow-pc upgrade        FAIL [grid] outside min/max/step: number.hp_freq=51.5
+ROW fork-flow-pc unavailable    FAIL [grid] outside min/max/step: number.hp_freq=51.5; write recorded as made while Home Assistant skipped it: ['mode']
+ROW fork-flow-pc observe        ok 
+ROW fork-flow-pc off            ok 
+NULL fork-flow-pc baseline-on    ok 
+LEVELS fork-flow-pc {'water': [33, 44, 55]}
+RESULT gate_cells=154 count (coordinator solve/fetch hold x state, fork-flow)
+RESULT gate_cells_evaluated=154 count
+RESULT gate_cells_latched=112 count
+RESULT gate_cells_command_diff=2 count (cells whose latch changed the state's commands)
+RESULT failing_rows=55 count (rig x state)
+RESULT fail_cells=418 count (cells whose state row fails on some rig)
+RESULT cells_with_site_activity=387 count
+RESULT arbiter_value_rows_failing=4 rows (rig x value state, untagged arbiter clauses; P1 and P2 raise it, P2doc leaves it)
+RESULT clause_grid=50 rows (rig x state)
+RESULT clause_freq=0 rows (rig x state)
+RESULT clause_mqtt=0 rows (rig x state)
+RESULT clause_circ=0 rows (rig x state)
+RESULT clause_stale=0 rows (rig x state)
+RESULT clause_switch=5 rows (rig x state)
+RESULT clause_valve=0 rows (rig x state)
+RESULT cold_tank_charge=2 rigs
+RESULT boost_indoor_between=2 rigs
+RESULT baseline_switch_off=5 rigs
+RESULT unavailable_recorded=5 rigs
+RESULT wall_s=69.9 s provisional
+RESULT thread_factor=1.000
+RESULT load1=1.10
+RESULT swapins=0

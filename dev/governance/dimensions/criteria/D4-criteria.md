@@ -1,9 +1,6 @@
 # D4 acceptance criteria: the card and the config flow
 
-> UI/UX — the card and the config flow, including grouping and setup
-> ergonomics. It should be intuitive, user friendly and look professional.
-
-— the owner, `D4.md`. Each statement below quotes the words it tests.
+The owner's brief is quoted in `D4.md`. Each statement below quotes the words it tests.
 
 Drafted by a fixer seat under mandate 6893738184 (scope all);
 binding as the owner's words until the owner rewrites them.

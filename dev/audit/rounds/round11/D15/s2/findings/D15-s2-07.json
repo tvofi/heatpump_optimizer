@@ -1,0 +1,40 @@
+{
+  "id": "D15-s2-07",
+  "scope": "D15-s2",
+  "step": "D15.M5",
+  "title": "Replay judge not_frozen reads a config-constant wear price as a frozen mirror of the electricity price",
+  "severity": "low",
+  "claim": "On the owner's replay window (hours 7-9) tests/replay.py:frozen_offenders reports compressor_starts.wear_price_per_start 'stayed 0.3 while sensor.price moved', although wear_price_per_start is replacement_cost / rated_starts (heatpump_optimizer.wear:wear_price_per_start), a constant that never moved in the window; hours 13-15 show the same with solar_heat_gain.orientation_factor 'stayed 0.7' against the price (a configured factor); restricting the judge to published series that moved at least once takes the count 1 -> 0.",
+  "mechanism": "frozen_offenders takes a published series as a mirror of an input when at least MIRROR_MIN_HITS cycles and half the paired cycles lie within MIRROR_TOL of the input and two distinct non-zero input values matched. A published constant passes all three whenever the input hovers near it for a short window (an 8-cycle chunk, a price near 0.3), and then every later price move reads as the mirror freezing.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 7 --hours 2 --offenders 4",
+    "harness_path": "dev/audit/rounds/round11/D15/s2/m5_judges.py",
+    "value": "judge_not_frozen=1 (compressor_starts.wear_price_per_start against sensor.price)",
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "owner's macOS box (B8), venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 12.18,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tests/replay.py:frozen_offenders over heatpump_optimizer.coordinator's published wear_price_per_start (heatpump_optimizer.wear:wear_price_per_start) in the seeded replay",
+  "perturbation": {
+    "change": "--perturb constant: frozen_offenders judges only published series with at least two distinct values over the window, in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "judge_not_frozen=0 on both chunks (hours 7-9 and 13-15)"
+  },
+  "metric_definition": "not_frozen offenders tests/replay.py:run_fixture returns over the seeded replay's hours 7-9 of the owner's window.",
+  "phenomenon_property": "The not_frozen judge flags only a published value that tracked an input and then stopped: a series constant over the whole window is never a mirror.",
+  "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle B --from-hours F --hours H --offenders 8   # every not_frozen line whose published side never moved",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 1 --hours 2",
+    "value": "judge_not_frozen=0",
+    "note": "hours 1-3, where the price does not hover near the constant"
+  },
+  "proposed_fix_scope": "tests/replay.py:frozen_offenders: require the published series to have moved (two distinct values) before it can be a mirror, with a controls() arm of a constant beside an input that brushes it; no production change.",
+  "files": ["tests/replay.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}
