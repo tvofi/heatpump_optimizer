@@ -5233,7 +5233,8 @@
    "severity": "high",
    "size": "L",
    "issues": [
-    3744
+    3744,
+    3747
    ],
    "fixes": [],
    "findings": [
