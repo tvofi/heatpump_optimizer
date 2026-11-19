@@ -594,3 +594,4 @@
 2026-11-19T05:41:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability CLAMP_DROP b592c18f L676 by=- ran=12 wall=1463.6s
 2026-11-19T05:43:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:wood_share CLAMP_DROP cbb7802c L2906 by=- ran=12 wall=1381.0s
 2026-11-19T05:43:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_liquid_fraction CMP_BOUND 0cc7355e L3101 by=- ran=13 wall=1482.5s
+2026-11-19T06:03:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostWindow._accrue CMP_BOUND 81049507 L746 by=- ran=12 wall=1452.1s
