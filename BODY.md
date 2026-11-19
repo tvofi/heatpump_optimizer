@@ -9,6 +9,8 @@ Policy: the diff touches `dev/governance/decisions/0018-objective-function.md`, 
 
 Code head e395a9f66ff9aadb2276ad95e275ecc3a6d1d443, cut from origin/main cb8edb65a5a9c0940dbe263acee49e02ba5f0b25 (merge base), measured 2026-11-19T11:04Z. `base_fresh.py tree` passed at the start (stale 0, own 0).
 
+prepr: passed rc=0 at e395a9f66ff9aadb2276ad95e275ecc3a6d1d443 (PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1). CI is the authority for the code-keyed steps.
+
 ## Mutation proof
 
 Run against `check_scopes.population_self_test()` (`python3 -I tools/audit/check_scopes.py --self-test --repo .` runs it). Each mutant replaces one predicate line of `flow_range_levels`, or its dispatch line in `levels`, and the file is restored afterwards (`git status` clean). The unmutated arms all held. Before the reader existed, the three positive arms failed: "a flow-range axis prints its declared levels once each matches its row", "... not its row's bound is UNREADABLE by level and key" and "... not the row's default constant is UNREADABLE".
