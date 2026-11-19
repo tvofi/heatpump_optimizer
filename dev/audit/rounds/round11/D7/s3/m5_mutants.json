@@ -1,0 +1,6100 @@
+{
+"batchmath.py:30:row_sums": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted batchmath.py:30"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:103:store_keys": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:103"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:108:_wire": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:108"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:117:_dumps": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:117"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:121:cycle_row": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:121"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:149:_aware": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:149"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:159:_repair": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:159"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:184:_kept": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:184"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:193:_read_stores": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:193"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:206:_parsed": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:206"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:214:store_report": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:214"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:225:accuracy_report": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:225"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:239:_monitor": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:239"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:245:spread": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:245"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:252:_longest_flat": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:252"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:262:sensor_sanity": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:262"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:274:feed_health": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:274"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:302:collection_window": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:302"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:322:_solver_smoke": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL finalizing stops the collection at once and runs the five self-tests after it"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:335:run_self_tests": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:335"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:363:download_bytes": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:363"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:368:capped": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:368"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:381:replay_window": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:381"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:388:_public": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:388"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:400:registry_rows": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:400"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:407:replay_entities": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:407"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:423:_since": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:429:_record": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:436:replay_document": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:462:fit_replay": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:478:DebugCollector.__init__": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:478"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:500:DebugCollector.async_load": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:500"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:512:DebugCollector.as_dict": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:512"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:520:DebugCollector.async_save": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:520"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:526:DebugCollector.observe": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:526"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:542:DebugCollector.record": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:542"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:557:DebugCollector.async_close": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:557"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:561:DebugCollector.finalize": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:561"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:566:DebugCollector._async_finish": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:566"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:577:DebugCollector._async_finish.read_stores": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL finalizing stops the collection at once and runs the five self-tests after it"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:594:DebugCollector._read": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:594"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:600:DebugCollector.restart": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:600"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:605:DebugCollector.status": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:605"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:612:DebugCollector.async_bundle": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:612"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:649:DebugCollector._async_replay": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:649"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:680:collector_for": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:680"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:684:async_setup_debugger": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:684"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:701:async_unload_debugger": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:701"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:708:async_command": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:708"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"debugger.py:99:_store": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted debugger.py:99"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:100:_tank_decay": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:100"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:1068:DhwPlanner._build_dhw_requirements": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:1068"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:108:_exo_at": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:108"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:113:_within_ceiling": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:113"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:123:_forced_off_with": {
+"scripts": [
+{
+"script": "manual_plan",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"dhw_planner.py:1409:DhwPlanner._dhw_cop_profile": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:1409"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:1429:DhwPlanner._plan_dhw_min_cost": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:1429"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:143:_with_placement_ban": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:143"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:155:_legionella_off_mask": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:155"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:162:_legionella_charge": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:162"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:1655:DhwPlanner._dhw_shortfall": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:1655"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:1683:DhwPlanner._dhw_plan_temps": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:1683"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:1705:DhwPlanner._ctx_temps": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:1705"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:1712:DhwPlanner._ctx_clamp": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:1712"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:1724:DhwPlanner._repair_dhw_floor": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:1724"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:181:_place_legionella_step": {
+"pinned_by": "edge",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL legionella overdue                     RuntimeError: d7s3-deleted dhw_planner.py:181"
+],
+"rc": -9,
+"script": "edge",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:1907:DhwPlanner._clamp_dhw_to_capacity": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:1907"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:2014:DhwPlanner._apply_dhw_min_run": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:2014"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:203:_drop_off_steps": {
+"scripts": [
+{
+"script": "manual_plan",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"dhw_planner.py:2109:DhwPlanner._dhw_raise_fits": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:2109"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:2145:DhwPlanner._plan_dhw_cheapest_first": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:2145"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:2223:DhwPlanner._plan_dhw_cheapest_first.usable": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:2223"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:222:dhw_start_temps": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:222"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:2242:DhwPlanner._plan_dhw_cheapest_first.retained_fraction": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:2242"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:245:startable_steps": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:245"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:270:drop_unstartable": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL a charge begun above its start temperature is dropped whole; the first step and a cooled tank's run are kept"
+],
+"rc": -9,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:289:place_startable": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:289"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:444:DhwPlanner.__init__": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:444"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:456:DhwPlanner._dhw_planning_prices": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:456"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:479:DhwPlanner._baseline_dhw_economics": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:479"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:531:DhwPlanner._effective_dhw_windows": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:531"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:565:DhwPlanner._dhw_legionella_due": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:565"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:64:_dhw_windows_at": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:64"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:710:DhwPlanner._dhw_legionella_ceilings": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:710"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:819:DhwPlanner._dhw_legionella_plan": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:819"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:863:DhwPlanner._dhw_coil_wood_forecast": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:863"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:910:DhwPlanner._dhw_planner_draws": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:910"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"dhw_planner.py:931:DhwPlanner._dhw_window_floors": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted dhw_planner.py:931"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"draw_range.py:158:DrawRange.idle_kw": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:162:DrawRange.above_idle_kw": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:167:DrawRange.ceiling_since": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH KeyError: 'plan'"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"draw_range.py:171:DrawRange.learned_max_kw": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH KeyError: 'plan'"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"draw_range.py:206:DrawRange._overdrawn": {
+"scripts": [
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:217:DrawRange._evidence": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:234:DrawRange._aligned": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:238:DrawRange._run_asked": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:276:DrawRange._disagrees": {
+"scripts": [
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:292:DrawRange.observe": {
+"scripts": [
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:343:DrawRange.as_dict": {
+"scripts": [
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:397:running_kw": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:409:space_share": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:418:space_draw_kw": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted draw_range.py:418"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"draw_range.py:449:_stored_ceiling": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted draw_range.py:449"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"draw_range.py:463:_stored_overdraws": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted draw_range.py:463"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"draw_range.py:478:ask_evidence": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:526:power_floor_kw": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:554:is_running_space": {
+"scripts": [
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:588:fold": {
+"scripts": [
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"draw_range.py:695:SolveBand.as_dict": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['dhw_temperature', 'ecl110_displa",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"draw_range.py:708:solve_band": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH KeyError: 'plan'"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"draw_range.py:727:solve_band.configured": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH KeyError: 'plan'"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"driving_grade.py:105:published": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted driving_grade.py:105"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"driving_grade.py:118:restore": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"driving_grade.py:125:as_stored": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"driving_grade.py:36:_add": {
+"scripts": [
+{
+"script": "entities",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"driving_grade.py:40:held": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted driving_grade.py:40"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"driving_grade.py:45:tally": {
+"scripts": [
+{
+"script": "entities",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"driving_grade.py:66:book_keys": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"driving_grade.py:71:day_drivers": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"driving_grade.py:88:fold": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"duty_legs.py:140:priced_pair": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_legs.py:140"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_legs.py:247:space_headroom": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_legs.py:247"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_legs.py:49:leg_rule": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_legs.py:49"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:198:Direction.decay": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:198"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:210:Direction._latch": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:210"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:218:Direction.book": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"duty_switch.py:235:Direction.stored_row": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"duty_switch.py:262:_stored_number": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"duty_switch.py:267:_tally": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"duty_switch.py:297:DutySwitchLearner.mode_write": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:297"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:309:DutySwitchLearner._interrupt": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:309"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:335:DutySwitchLearner.note_pass": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:335"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:372:DutySwitchLearner.published": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL no sensor crashes before the first update"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:393:DutySwitchLearner.planner_pairs": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH KeyError: 'plan'"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:411:DutySwitchLearner.stored_record": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"duty_switch.py:458:record_for": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:458"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:468:attach": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:468"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:473:detach": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:473"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:481:note_mode_write": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:481"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:489:note_pass": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:489"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:499:_load": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted duty_switch.py:499"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:511:_persist": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"duty_switch.py:520:starts_attributes": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL no sensor crashes before the first update"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:543:running_now": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH KeyError: 'plan'"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"duty_switch.py:562:planner_fields": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH KeyError: 'plan'"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"early_cutoff.py:144:state_for": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted early_cutoff.py:144"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"early_cutoff.py:149:arm": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:189:allow_on": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted early_cutoff.py:189"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"early_cutoff.py:207:detach": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:213:release": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:220:_exempt": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:235:_plant_exempt": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:245:threshold": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:252:_planned_room": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:264:_cycle_guard": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:280:_second_zone_cold": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:287:_reading": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:296:on_room_event": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"early_cutoff.py:329:diagnostics_view": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "swallowed"
+},
+"entry_config.py:259:EntryConfig.fuse_kw_at": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:259"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:263:EntryConfig.fuse_kw": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted entry_config.py:263"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:268:EntryConfig.__reduce__": {
+"scripts": [
+{
+"script": "entities",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"entry_config.py:278:EntryConfig.__getitem__": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:278"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:281:EntryConfig.__iter__": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:281"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:284:EntryConfig.__len__": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:284"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:288:_restore": {
+"scripts": [
+{
+"script": "entities",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"entry_config.py:30:_refused_number": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:30"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:340:settings_of": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"entry_config.py:346:with_settings": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"entry_config.py:35:_nonzero_number": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:35"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:362:undo_point": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"entry_config.py:371:_side_pair": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"entry_config.py:378:undone_settings": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"entry_config.py:391:factory_settings": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"entry_config.py:39:_whole": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:39"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:46:_flag": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:46"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:50:_text": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:50"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:54:_entity": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:54"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:59:_spec": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:59"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:64:_or_default": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:64"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:68:_as_stored": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:68"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:72:_one_of": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:72"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:76:_key": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:76"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"entry_config.py:81:_entity_slot": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted entry_config.py:81"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"flow_meter.py:105:cop_evidence": {
+"scripts": [
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"flow_meter.py:127:space_reference_cop": {
+"scripts": [
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"flow_meter.py:146:observe_water": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted flow_meter.py:146"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"flow_meter.py:27:thermal_output_kw": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "swallowed"
+},
+"flow_meter.py:47:read_heat_output_kw": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted flow_meter.py:47"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"flow_meter.py:83:replay_freeze": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted flow_meter.py:83"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_curve.py:156:_mqtt_restorer": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted heat_curve.py:156"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_curve.py:170:_mqtt_restorer.write_neutral": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"heat_curve.py:183:ecl110_legacy_payload": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted heat_curve.py:183"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_curve.py:214:publish_ecl110_topics": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted heat_curve.py:214"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_curve.py:269:publish": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted heat_curve.py:269"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_curve.py:299:range_excludes_zero": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_curve.py:299"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_curve.py:346:write_cap_per_day": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_curve.py:346"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_curve.py:351:write_displace": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "swallowed"
+},
+"heat_curve.py:471:outside_own_range": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_curve.py:471"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_curve.py:571:diagnostics": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_curve.py:571"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:105:CounterDelta.rebase": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "swallowed"
+},
+"heat_energy.py:169:ModeDwell.observe": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:169"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:184:ModeDwell.shares": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:184"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:205:ModeDwell.prune": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:205"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:214:observed_duty": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:214"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:232:attribution": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:232"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:239:space_heat_kw": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:239"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:255:ran_hot_water": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:255"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:265:cop_duty": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"heat_energy.py:276:dhw_share": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:276"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:392:HeatEnergyMeter.observe_mode": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:392"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:398:HeatEnergyMeter.observe_cycle": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:398"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:418:HeatEnergyMeter.attribution": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:418"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:422:HeatEnergyMeter.observe_counters": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:422"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:477:HeatEnergyMeter._fold_dhw_step": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:477"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:490:HeatEnergyMeter.settle": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:490"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:526:HeatEnergyMeter.restore_basis": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"heat_energy.py:530:HeatEnergyMeter.bridges_hot_water": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:530"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:548:close_span": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:548"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:593:replay_gate": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:593"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:619:meter_of": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:619"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:65:_after": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:65"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:69:_hours": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:69"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"heat_energy.py:87:CounterDelta.observe": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted heat_energy.py:87"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"issues.py:23:create_issue": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted issues.py:23"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"issues.py:29:set_issue": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted issues.py:29"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"issues.py:61:clear_issue": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted issues.py:61"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"issues.py:69:note_price_outage": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"FAIL an empty entity source raises UpdateFailed and does not start reauth"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"learner_progress.py:101:_snapshot_count": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"learner_progress.py:113:gate_count": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted learner_progress.py:113"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"learner_progress.py:130:pauses": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.exceptions.ConfigEntryNotReady: Error updating data: d7s3-deleted learner_progress.py:130"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"learner_progress.py:169:FreezeRecord.note_freeze": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted learner_progress.py:169"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"learner_progress.py:180:log_skip": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted learner_progress.py:180"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"learner_progress.py:192:learner_progress": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted learner_progress.py:192"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"learner_progress.py:222:_status": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted learner_progress.py:222"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"learner_progress.py:71:snapshot_rates": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted learner_progress.py:71"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"log_latch.py:28:log_held": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted log_latch.py:28"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"log_latch.py:69:forget_held": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted log_latch.py:69"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"notifier.py:122:_comfort": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"notifier.py:145:_inputs": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"notifier.py:159:_plan": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"notifier.py:170:_manual": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"notifier.py:208:floor_return_silence": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"notifier.py:235:FloorReturnWatch.__init__": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted notifier.py:235"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"notifier.py:239:FloorReturnWatch.handle": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"notifier.py:256:Notifier.__init__": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted notifier.py:256"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"notifier.py:275:Notifier.async_load": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted notifier.py:275"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"notifier.py:286:Notifier._async_save": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"notifier.py:292:Notifier.handle": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"notifier.py:320:async_setup_notifier": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": -9,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": true
+},
+{
+"script": "manual_plan",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "timeout"
+},
+"notifier.py:334:async_setup_notifier._on_update": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"notifier.py:84:_monthly_receipt": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"off_restore.py:117:_store": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted off_restore.py:117"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"off_restore.py:121:_armed_record": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted off_restore.py:121"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"off_restore.py:137:_entry_of": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted off_restore.py:137"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"off_restore.py:146:_save": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted off_restore.py:146"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"off_restore.py:156:async_arm": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted off_restore.py:156"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"off_restore.py:230:async_restore": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted off_restore.py:230"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"off_restore.py:268:async_mode_change": {
+"scripts": [
+{
+"script": "boost_drift_replay",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"off_restore.py:281:async_armed_entry": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted off_restore.py:281"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"off_restore.py:325:async_forget": {
+"scripts": [
+{
+"script": "manual_plan",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"off_restore.py:347:diagnostics": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted off_restore.py:347"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"off_restore.py:92:register_consumer": {
+"pinned_by": "wood_advisor",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted off_restore.py:92"
+],
+"rc": 1,
+"script": "wood_advisor",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"plan_slots.py:21:plan_slots": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted plan_slots.py:21"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"plan_slots.py:52:plan_slots.close": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted plan_slots.py:52"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"plan_step.py:24:plan_step_start": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted plan_step.py:24"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"price_tiles.py:108:book": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted price_tiles.py:108"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"price_tiles.py:128:rotation": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:133:take": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:154:per_month": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:159:monthly_deltas": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:186:realised_price": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:192:schedule_figure": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:215:schedule_figure.month": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:224:specs": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:245:specs.degree": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:252:monthly_figure": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:258:_within": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:264:fold": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:273:record": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:290:published": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted price_tiles.py:290"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"price_tiles.py:304:_aware": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"price_tiles.py:311:restore": {
+"scripts": [
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"quiet_windows.py:119:step_actions": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:119"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:155:quiet_reason": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"quiet_windows.py:170:silent_control_usable": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:170"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:186:gchv_schedule_ready": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:186"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:204:gchv_fits_pump": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:204"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:218:next_gchv_window": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:218"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:253:silent_unenforceable": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 0,
+"script": "solar_alignment",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:253"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:270:_gchv_days": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:270"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:279:_gchv_merge": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:279"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:294:wall_clock": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:294"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:305:_gchv_at": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:305"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:310:_silent_plan_spec": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:310"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:336:_power_entity_kw": {
+"scripts": [
+{
+"script": "manual_plan",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"quiet_windows.py:349:_within_nameplate": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:349"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:362:measured_ceiling_kw": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:362"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:398:silent_cap_kw": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:398"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:429:compose": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:429"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:484:compose_with_silent": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH KeyError: 'plan'"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:513:configured_specs": {
+"scripts": [
+{
+"script": "entities",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "manual_plan",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "finite_boundary",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"quiet_windows.py:538:overridden_config": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"script": "manual_plan",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"quiet_windows.py:563:apply_config_keys": {
+"scripts": [
+{
+"script": "entities",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"quiet_windows.py:581:_parse_spec_pair": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:581"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"quiet_windows.py:608:overlap_problem": {
+"scripts": [
+{
+"script": "manual_plan",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"quiet_windows.py:657:_overlaps": {
+"scripts": [
+{
+"script": "manual_plan",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"quiet_windows.py:667:_fmt": {
+"pinned_by": "guard_pins",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted quiet_windows.py:667"
+],
+"rc": 1,
+"script": "guard_pins",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:132:conf_keys": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:132"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:141:tibber_price_candidates": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:141"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:153:choose_price_entity": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH TypeError: 'NoneType' object is not subscriptable"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:180:numeric": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH TypeError: 'NoneType' object is not subscriptable"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": false,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:188:json_decimal_places": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:188"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:207:text_ok": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:224:_is_coordinate": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:228:clean_value": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:260:_number": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:260"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:268:_unit": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:274:_snake": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:274"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:278:_options": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:278"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:288:_series": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:288"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:306:_time": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:306"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:326:_entry_shape": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:341:_keep_keys": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:358:_attr_shape": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:362:sanitise": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:391:_collect_strings": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:413:_no_credential": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:413"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:419:_walk": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:438:violations": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:453:_entry_violations": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:467:_state_violations": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:490:mapped_entities": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted replay_doc.py:490"
+],
+"rc": 1,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:504:state_rows": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:525:_role_claims": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:547:entity_roles": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:554:entity_roles.claim": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:567:hashed_id": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:575:mask_ids": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:580:mask_ids.rename": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:592:_entity_ids": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:607:_unmasked": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:617:mask_violations": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:628:refusals": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:641:document": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:667:_copy": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:676:_scan": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:699:_scan_leaf": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:708:_hit": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"replay_doc.py:715:seal": {
+"pinned_by": "debug_collect",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes"
+],
+"rc": -9,
+"script": "debug_collect",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:102:attach": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:102"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:116:detach": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:116"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:132:subscribe": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:132"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:140:unsubscribe": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:140"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:145:note": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:145"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:151:refresh": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:151"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:159:confirm": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:159"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:164:running_now": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:164"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:169:_publish": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:169"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:176:_arm_timer": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:176"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:75:signal_for": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:75"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:80:source": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:80"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"running_signal.py:91:source.reader": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted running_signal.py:91"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"runs.py:58:floor_kw": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"runs.py:69:running_share": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"runs.py:74:start_count_batch": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"runs.py:90:start_count": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"runs.py:95:edge_count": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted runs.py:95"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slab_seed.py:36:above_room": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted slab_seed.py:36"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slab_seed.py:41:hot_water_run": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted slab_seed.py:41"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slab_seed.py:51:refusal": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted slab_seed.py:51"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slab_seed.py:62:seed": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted slab_seed.py:62"
+],
+"rc": 1,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slab_seed.py:72:judge": {
+"pinned_by": "solar_alignment",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted slab_seed.py:72"
+],
+"rc": 1,
+"script": "solar_alignment",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slot_drivers.py:133:_direction": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['ecl110_displace_command', 'ecl11",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slot_drivers.py:139:step_reasons": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['ecl110_displace_command', 'ecl11",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slot_drivers.py:151:why_now_at": {
+"pinned_by": "entities",
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": false
+},
+{
+"n_new": 2,
+"new_failing": [
+"CRASH FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)  [solves=2 undeclared=['ecl110_displace_command', 'ecl11",
+"FAIL no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)"
+],
+"rc": -9,
+"script": "entities",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slot_drivers.py:42:away_floor_drops": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted slot_drivers.py:42"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slot_drivers.py:69:_price_push": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted slot_drivers.py:69"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slot_drivers.py:80:_forecast_push": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted slot_drivers.py:80"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"slot_drivers.py:99:space_drivers": {
+"pinned_by": "plan_view",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted slot_drivers.py:99"
+],
+"rc": 1,
+"script": "plan_view",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"supply_hold.py:104:tank_reason": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"supply_hold.py:115:_held_for": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted supply_hold.py:115"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"supply_hold.py:128:switch_age": {
+"scripts": [
+{
+"n_new": 0,
+"new_failing": [],
+"rc": -9,
+"script": "config_flow_steps",
+"sentinel_in_output": false,
+"timed_out": true
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "timeout"
+},
+"supply_hold.py:68:hold_supply": {
+"pinned_by": "config_flow_steps",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH homeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: d7s3-deleted supply_hold.py:68"
+],
+"rc": 1,
+"script": "config_flow_steps",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"supply_hold.py:89:freeze_reason": {
+"pinned_by": "block_duty",
+"scripts": [
+{
+"n_new": 1,
+"new_failing": [
+"CRASH RuntimeError: d7s3-deleted supply_hold.py:89"
+],
+"rc": 1,
+"script": "block_duty",
+"sentinel_in_output": true,
+"timed_out": false
+}
+],
+"verdict": "pinned"
+},
+"whatif.py:147:state_for": {
+"scripts": [
+{
+"script": "config_flow_steps",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"whatif.py:152:limited_answer": {
+"scripts": [
+{
+"script": "dst_checks",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"whatif.py:166:slot_counts": {
+"scripts": [
+{
+"script": "config_flow_steps",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"whatif.py:176:schedule_days": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"whatif.py:192:steady_pair": {
+"scripts": [
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+},
+"whatif.py:98:scratch_copies": {
+"scripts": [
+{
+"script": "config_flow_steps",
+"skipped": "over --max-script-seconds"
+},
+{
+"script": "features",
+"skipped": "over --max-script-seconds"
+}
+],
+"verdict": "not_reached"
+}
+}

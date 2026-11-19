@@ -1,0 +1,8 @@
+CELL learner-clamps evidence=zero heat_loss_drift=0.000e+00 cop_drift=0.000e+00
+CELL learner-clamps evidence=on_clamp heat_loss_max: reached=3.0000 overrun=+0.000e+00 back=234 fresh=234 | heat_loss_min: reached=0.3000 overrun=+0.000e+00 back=220 fresh=220 | cop_max: reached=1.6000 overrun=+0.000e+00 back=112 fresh=112 | cop_min: reached=0.5000 overrun=+0.000e+00 back=106 fresh=106
+RESULT zero_drift_max=0.000e+00 ratio
+RESULT clamp_overrun_max=0.000e+00 ratio
+RESULT windup_steps_max=0 count
+RESULT thread_factor=1.0000
+RESULT load1=2.93
+RESULT swapins=0

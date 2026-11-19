@@ -1,0 +1,411 @@
+{
+ "class": "P8",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P8/enumerate_p8.py  (null: --fixture clean -> seams=0; perturbation: --fixture perturbed -> seams=1); probes: dev/audit/rounds/round11/D14/sweep-P8/probe_p8.py",
+ "baseline": "origin/handoff/audit-r11-register (92d38ecb product tree)",
+ "seams": 54,
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 619,
+   "symbol": "_money",
+   "family": "CUR",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P8/probe_p8.py currency  (money_seams=5; --null 0)",
+   "beyond_finding": false,
+   "disposition": "instance",
+   "finding": "D14-s1-03"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 620,
+   "symbol": "_money",
+   "family": "CUR",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P8/probe_p8.py currency  (money_seams=5; --null 0)",
+   "beyond_finding": false,
+   "disposition": "instance",
+   "finding": "D14-s1-03"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 2106,
+   "symbol": "_fee_placeholders",
+   "family": "CUR",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P8/probe_p8.py currency  (money_seams=5; --null 0)",
+   "beyond_finding": false,
+   "disposition": "instance",
+   "finding": "D14-s1-03"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 3973,
+   "symbol": "HeatPumpOptimizerOptionsFlow._grid_fee_errors",
+   "family": "CUR",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P8/probe_p8.py currency --instance HUF  (money_seams=6, the fee bound; --null 0)",
+   "beyond_finding": false,
+   "disposition": "instance",
+   "finding": "D14-s1-03"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "line": 81,
+   "symbol": "fee_bound",
+   "family": "CUR",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P8/probe_p8.py currency --instance HUF  (money_seams=6: fee_bound scaled by the instance currency passed from config_flow; --null 0)",
+   "beyond_finding": false,
+   "disposition": "instance",
+   "finding": "D14-s1-03"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 446,
+   "symbol": "temperature_from_c",
+   "family": "TEMP",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P8/probe_p8.py temperature --planted  (12 of 35, D7-s3-01's planted copy; 0 of 35 at the register tree, where the line already divides)",
+   "beyond_finding": false,
+   "disposition": "instance",
+   "finding": "D7-s3-01"
+  }
+ ],
+ "guarded": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2844,
+   "symbol": "_entity_price",
+   "family": "TEMP",
+   "guard": "price_per_kwh(state, state_unit): the entity's own unit, as every price read"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2910,
+   "symbol": "_dhw_inlet_c",
+   "family": "TEMP",
+   "guard": "absolute temperature read in the entity's own declared unit through normalize_temperature_c (the one forward rule)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2950,
+   "symbol": "_forecast_in_model_units",
+   "family": "TEMP",
+   "guard": "weather forecast in the entity's temperature_unit attribute (HA hands forecasts in the entity's display unit), through the same table"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2958,
+   "symbol": "_forecast_in_model_units",
+   "family": "TEMP",
+   "guard": "weather forecast in the entity's temperature_unit attribute (HA hands forecasts in the entity's display unit), through the same table"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 3078,
+   "symbol": "_fabricated_forecast",
+   "family": "TEMP",
+   "guard": "parses only (unit None); the rows then pass through _forecast_in_model_units with the entity's temperature_unit"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 3413,
+   "symbol": "_feed_currency",
+   "family": "CUR",
+   "guard": "_feed_currency itself: the feed-first resolver (canonical)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 3532,
+   "symbol": "HeatPumpOptimizerCoordinator.__init__",
+   "family": "CUR",
+   "guard": "coordinator.self.currency's feed-first precedence (_feed_currency or resolve_currency, #1657), the precedence the probe's 13 entity surfaces agree on"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6647,
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "family": "CUR",
+   "guard": "coordinator.self.currency's feed-first precedence (_feed_currency or resolve_currency, #1657), the precedence the probe's 13 entity surfaces agree on"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/currency.py",
+   "line": 43,
+   "symbol": "resolve_currency",
+   "family": "CUR",
+   "guard": "resolve_currency itself: the instance fallback the canonical rule falls back to; its divergent callers are the judged config_flow sites"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/early_cutoff.py",
+   "line": 291,
+   "symbol": "_reading",
+   "family": "TEMP",
+   "guard": "absolute temperature read in the entity's own declared unit through normalize_temperature_c (the one forward rule)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 374,
+   "symbol": "normalize_temperature_c",
+   "family": "TEMP",
+   "guard": "absolute temperature read in the entity's own declared unit through normalize_temperature_c (the one forward rule)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 439,
+   "symbol": "temperature_c",
+   "family": "TEMP",
+   "guard": "absolute temperature read in the entity's own declared unit through normalize_temperature_c (the one forward rule)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 488,
+   "symbol": "setpoint_unit",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 489,
+   "symbol": "setpoint_unit",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 505,
+   "symbol": "setpoint_and_unit",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 506,
+   "symbol": "setpoint_and_unit",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 508,
+   "symbol": "setpoint_and_unit",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 510,
+   "symbol": "setpoint_and_unit",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 537,
+   "symbol": "read_temperature_delta_k",
+   "family": "TEMP",
+   "guard": "temperature DELTA: scale only, no offset; no unit read as K -- agrees with the absolute readers' identity for C/K"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 538,
+   "symbol": "read_temperature_delta_k",
+   "family": "TEMP",
+   "guard": "temperature DELTA: scale only, no offset; no unit read as K -- agrees with the absolute readers' identity for C/K"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 576,
+   "symbol": "setpoint_range_c",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 577,
+   "symbol": "setpoint_range_c",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 616,
+   "symbol": "_setpoint_unit_of",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 650,
+   "symbol": "SetpointGrid.on_step",
+   "family": "TEMP",
+   "guard": "converts only through inputs.temperature_from_c with the unit setpoint_unit resolved for the read (one rule both ways); probe temperature 0 of 35 at this tree, and m8_agree.py's 22 families 0 disagreements"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 652,
+   "symbol": "SetpointGrid.on_step",
+   "family": "TEMP",
+   "guard": "converts only through inputs.temperature_from_c with the unit setpoint_unit resolved for the read (one rule both ways); probe temperature 0 of 35 at this tree, and m8_agree.py's 22 families 0 disagreements"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 654,
+   "symbol": "SetpointGrid.on_step",
+   "family": "TEMP",
+   "guard": "converts only through inputs.temperature_from_c with the unit setpoint_unit resolved for the read (one rule both ways); probe temperature 0 of 35 at this tree, and m8_agree.py's 22 families 0 disagreements"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 655,
+   "symbol": "SetpointGrid.on_step",
+   "family": "TEMP",
+   "guard": "setpoint_unit is the one rule (D12-s3-01): climate/water_heater -> instance unit, others -> the entity's unit; read, range, grid and write all resolve through it"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 777,
+   "symbol": "write_setpoint_c",
+   "family": "TEMP",
+   "guard": "converts only through inputs.temperature_from_c with the unit setpoint_unit resolved for the read (one rule both ways); probe temperature 0 of 35 at this tree, and m8_agree.py's 22 families 0 disagreements"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 814,
+   "symbol": "price_per_kwh",
+   "family": "PRICE",
+   "guard": "normalize_price_per_kwh: the one price-unit converter"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 832,
+   "symbol": "_value_in_model_units",
+   "family": "TEMP",
+   "guard": "absolute temperature read in the entity's own declared unit through normalize_temperature_c (the one forward rule)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 843,
+   "symbol": "_value_in_model_units",
+   "family": "TEMP",
+   "guard": "absolute temperature read in the entity's own declared unit through normalize_temperature_c (the one forward rule)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 1282,
+   "symbol": "read_room",
+   "family": "TEMP",
+   "guard": "read_room: a climate entity's attributes in the instance unit, any other entity's state in its own unit -- the setpoint_unit rule"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 1283,
+   "symbol": "read_room",
+   "family": "TEMP",
+   "guard": "read_room: a climate entity's attributes in the instance unit, any other entity's state in its own unit -- the setpoint_unit rule"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 1284,
+   "symbol": "read_room",
+   "family": "TEMP",
+   "guard": "read_room: a climate entity's attributes in the instance unit, any other entity's state in its own unit -- the setpoint_unit rule"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 1289,
+   "symbol": "read_room",
+   "family": "TEMP",
+   "guard": "read_room: a climate entity's attributes in the instance unit, any other entity's state in its own unit -- the setpoint_unit rule"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "line": 793,
+   "symbol": "prices_from_entity_attributes",
+   "family": "PRICE",
+   "guard": "normalize_price_per_kwh: the one price-unit converter, shared with inputs.price_per_kwh"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/setpoint_check.py",
+   "line": 183,
+   "symbol": "_dhw",
+   "family": "TEMP",
+   "guard": "converts only through inputs.temperature_from_c with the unit setpoint_unit resolved for the read (one rule both ways); probe temperature 0 of 35 at this tree, and m8_agree.py's 22 families 0 disagreements"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6916,
+   "symbol": "card",
+   "family": "CARD",
+   "guard": "card currency(): own unit, then the integration's published `currency` attribute (feed-first), config and HA only fill in (#1657); entity surfaces agree in currency_precedence.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6921,
+   "symbol": "card",
+   "family": "CARD",
+   "guard": "fallback inside card currency(), behind the published feed currency"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "line": 6922,
+   "symbol": "card",
+   "family": "CARD",
+   "guard": "fallback inside card currency(), behind the published feed currency"
+  }
+ ],
+ "not_applicable": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2862,
+   "symbol": "_audit_price_units",
+   "family": "TEMP",
+   "reason": "_audit_price_units: the repair that NAMES a feed/instance disagreement; comparing the two precedences is its purpose"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2863,
+   "symbol": "_audit_price_units",
+   "family": "PRICE",
+   "reason": "_audit_price_units' unit-family check (a repair), not a published figure"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2879,
+   "symbol": "_audit_price_units",
+   "family": "CUR",
+   "reason": "_audit_price_units: compares feed vs instance by design (the price_currency repair)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2880,
+   "symbol": "_audit_price_units",
+   "family": "CUR",
+   "reason": "_audit_price_units: compares feed vs instance by design"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2893,
+   "symbol": "_audit_price_units",
+   "family": "CUR",
+   "reason": "_audit_price_units: reports the configured currency in the repair text"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 420,
+   "symbol": "state_power_kw",
+   "family": "TEMP",
+   "reason": "power unit (state_unit -> normalize_power_kw), not currency/temperature: one surface, one rule"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 1229,
+   "symbol": "InputReader.read_power_kw",
+   "family": "TEMP",
+   "reason": "power unit read, one rule"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 1247,
+   "symbol": "InputReader.read_flow_kg_s",
+   "family": "TEMP",
+   "reason": "flow unit read, one rule"
+  }
+ ],
+ "note": "D7-s3-01 does not reproduce at the register tree: inputs.temperature_from_c there already divides by the factor (0 of 35); the finder's planted copy multiplied, and the probe's --planted arm reproduces its 12 of 35 exactly."
+}

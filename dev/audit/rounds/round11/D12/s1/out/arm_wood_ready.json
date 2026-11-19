@@ -1,0 +1,37 @@
+{
+"level climate=winter_cold [minimal]": [
+"published two_zone_enabled=True but the cell declares zone=off",
+"plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)"
+],
+"level climate=winter_cold [reference]": [],
+"level price_shape=winter_extreme [minimal]": [
+"published two_zone_enabled=True but the cell declares zone=off",
+"plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)"
+],
+"level price_shape=winter_extreme [reference]": [],
+"level wood_packing=loose [minimal]": [
+"published two_zone_enabled=True but the cell declares zone=off",
+"plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)"
+],
+"level wood_packing=loose [reference]": [],
+"level wood_packing=packed [minimal]": [
+"published two_zone_enabled=True but the cell declares zone=off",
+"plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)"
+],
+"level wood_packing=packed [reference]": [],
+"level wood_type=birch [minimal]": [
+"published two_zone_enabled=True but the cell declares zone=off",
+"plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)"
+],
+"level wood_type=birch [reference]": [],
+"level wood_type=mixed [minimal]": [
+"published two_zone_enabled=True but the cell declares zone=off",
+"plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)"
+],
+"level wood_type=mixed [reference]": [],
+"level wood_type=pine [minimal]": [
+"published two_zone_enabled=True but the cell declares zone=off",
+"plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)"
+],
+"level wood_type=pine [reference]": []
+}

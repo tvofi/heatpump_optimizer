@@ -1,0 +1,357 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D5/s7/REPORT.md",
+ "exposure": "Comment units in tests/features.py and tests/finite_boundary.py cite earlier finding and round ids (e.g. R6-D9-01, D12-s2-02, R9-P5, round-5/6 harness names); read as context only. No docs/ read: the seat's cells hold no document. No GitHub read.",
+ "coverage": [
+  {
+   "step": "D5.M1",
+   "enumerator": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M1",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "text_ledger.py outline over tests/features.py, tests/finite_boundary.py, tests/frontend.py (check_scopes.py --seat D5-s7) prints 0 rows: no Markdown/HTML document, so 0 reader-path x document cells. C4 (reader paths over code cells): examined, the outline is empty for these code cells. C2 (feature reader paths in docs/) lies in README.md/docs/**, D5-s1's cells: not_reached here, routed as a lead."
+  },
+  {
+   "step": "D5.M2",
+   "enumerator": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M2",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "outline prints 0 heading and 0 link rows over the three .py cells. C5 (structure over code cells): examined, the universe is empty."
+  },
+  {
+   "step": "D5.M3",
+   "enumerator": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M3",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "M3's universe is the D6 units of outline's documents; the cells hold none, so the denominator is 0 (C1 answered with a denominator). The 8663 D6 units text_ledger lists for these files are Python string literals, D6's. C6: the 628 docstrings in the cells are D5 units, each rowed in M4's ledger by the executed battery, and the one mechanism count that battery flagged (features.py:6856) was traced by execution (c1_sleep_count.py). C3 (how-it-works.md, configuration.md) lies in D5-s2's cells: not_reached, routed as a lead."
+  },
+  {
+   "step": "D5.M4",
+   "enumerator": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M4",
+   "universe": 4030,
+   "examined": 3948,
+   "not_reached": [
+    "tests/features.py#77c834a394",
+    "tests/features.py#1e04e90f8e",
+    "tests/features.py#7b30342b76",
+    "tests/features.py#612853a2e1",
+    "tests/features.py#53ce1720fc",
+    "tests/features.py#69ee7577f9",
+    "tests/features.py#42f2de5711",
+    "tests/features.py#b2b50ac272",
+    "tests/features.py#d71992da4f",
+    "tests/features.py#2a4a1855ed",
+    "tests/features.py#6209c31094",
+    "tests/features.py#ce06bd4af7",
+    "tests/features.py#d93ad123d2",
+    "tests/features.py#3964920480",
+    "tests/features.py#0bd727a8f1",
+    "tests/features.py#6930485c78",
+    "tests/features.py#e1fb907f5d",
+    "tests/features.py#6939d51222",
+    "tests/features.py#540353f5df",
+    "tests/features.py#d0246e3af3",
+    "tests/features.py#28bba7e765",
+    "tests/features.py#e1f2184ea9",
+    "tests/features.py#ecfa51ac44",
+    "tests/features.py#22fcecdb3a",
+    "tests/features.py#cc5c4c16a6",
+    "tests/features.py#e3db0456bf",
+    "tests/features.py#dd1415cad4",
+    "tests/features.py#46a8a5ce69",
+    "tests/features.py#d8b6dcd6e4",
+    "tests/features.py#ba4fd4e9ca",
+    "tests/features.py#bd6218544b",
+    "tests/features.py#381fc5724f",
+    "tests/features.py#0749dabb60",
+    "tests/features.py#28be5f7023",
+    "tests/features.py#02c7d44d8b",
+    "tests/features.py#cf84909c70",
+    "tests/features.py#2b877e1618",
+    "tests/features.py#ebc9da6145",
+    "tests/features.py#85f270e041",
+    "tests/features.py#39f45c725d",
+    "tests/features.py#9e2a8d649d",
+    "tests/features.py#ec658703c6",
+    "tests/features.py#21fa507f0e",
+    "tests/features.py#ed237934b6",
+    "tests/features.py#56618a6017",
+    "tests/features.py#c74a88ae28",
+    "tests/features.py#aa0fb06c32",
+    "tests/features.py#cb9a165933",
+    "tests/features.py#3bb5245e98",
+    "tests/features.py#41ea702e6b",
+    "tests/features.py#42e7380dcd",
+    "tests/features.py#316773ca78",
+    "tests/features.py#8fa346a05a",
+    "tests/features.py#79382ee21d",
+    "tests/features.py#864f391211",
+    "tests/features.py#743763afb8",
+    "tests/features.py#e33207b100",
+    "tests/features.py#e727b3105e",
+    "tests/features.py#2efc45153c",
+    "tests/features.py#e480e3392c",
+    "tests/features.py#2631fbe819",
+    "tests/features.py#7a3840414e",
+    "tests/features.py#a69f9c60b2",
+    "tests/features.py#0018933e42",
+    "tests/features.py#6bd64cee95",
+    "tests/features.py#4ea8864938",
+    "tests/features.py#cfed31f13c",
+    "tests/features.py#65c7815266",
+    "tests/features.py#d7b52eb491",
+    "tests/features.py#6daeb760c9",
+    "tests/features.py#be716a7feb",
+    "tests/features.py#2e495819ea",
+    "tests/features.py#01e5a9c7d1",
+    "tests/features.py#853ce465a2",
+    "tests/features.py#2bbbb80a2a",
+    "tests/features.py#ffe0e167f3",
+    "tests/features.py#c7e94be1b9",
+    "tests/features.py#4520811c32",
+    "tests/features.py#e262de14f2",
+    "tests/features.py#580138ee12",
+    "tests/features.py#e051fc39e5",
+    "tests/finite_boundary.py#0640c5d1cc"
+   ],
+   "redispatched": [
+    {
+     "item": "C7",
+     "state": "examined"
+    }
+   ],
+   "evidence": "dev/audit/rounds/round11/D5/s7/ledger.tsv rows all 4030 units; text_ledger.py check --plant: units=4030 rows=4030 claims=3604 true=3051 false=471 unverifiable=82 unrowed=0 orphan=0 malformed=0 plant_refused=1 (dev/audit/rounds/round11/D5/s7/check_plant.out). C7: the cited-number vs adjacent-constant check is automated (m4_comments.py number_candidates): 1164 cited numbers, 256 with no code literal within -40/+120 lines, on 153 units; the 82 units whose only open item is such a number are not_reached (verdict unverifiable). The www/*.js and README/docs parts of C7 lie in D5-s4's and D5-s2's cells: leads."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D5.M4",
+   "what": "82 units (listed in not_reached) carry a cited number with no adjacent code literal, not triaged by execution; 71 further false-row units carry such numbers too (detail.tsv 'C1n'). C3 (restatement) and C4 (history over half) were not judged per unit: the executed battery covers C1 by one traced count plus the number check, C2 and C5. Per-docstring mechanism tracing past that battery is left."
+  }
+ ],
+ "findings": [
+  {
+   "scope": "D5-s7",
+   "step": "D5.M4",
+   "severity": "low",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "seam_rule": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M4  (then PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv; rows with verdict false are the seams)",
+   "metric_definition": "Per file: D5 units (text_ledger units_of) failing C1 (executed contradiction), C2 (named code absent from the tree's code tokens) or C5 (a sentence over 40 words).",
+   "id": "D5-s7-01",
+   "title": "tests/features.py: 454 comment units fail D5-criteria C1/C2/C5 (3 dead names, 1 false count, 450 over-long)",
+   "claim": "Of tests/features.py's 3863 D5 comment units, 454 are false under D5-criteria.md: 1 contradicts the code (C1), 3 name a path or symbol no tracked file defines (C2), and 450 carry a sentence over 40 words (C5).",
+   "mechanism": "C1: the docstring at features.py:6856 says 'The eight between-run sleep(0.002) calls'; optimizer:_multi_start_minimize makes 3 to 34 such calls per optimize over the 50 golden solves (8 in 2), so the count is a stale snapshot. C2: features.py:57049 names tools/audit/w5-partition/partition.py, moved to tools/coverage/partition.py by 3b0a39216b; features.py:86177 names ``_feedback_sent``, which no tracked file and no production commit (git log -S) ever defined (the record is written by pump_arbiter._feedback via FeedbackRun.sent_c); features.py:54592 names PlantRig, which no tracked file defines. C5: 450 units hold a sentence over 40 words (longest 177, features.py:54710), mostly clauses chained with ';' and ' -- '.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv",
+    "harness_path": "dev/audit/rounds/round11/D5/s7/m4_comments.py",
+    "value": 454,
+    "unit": "count (false ledger rows)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12 (cloud container, Linux x86_64)",
+    "cpu_or_wall": "count",
+    "contention_note": "count over text; contention-immune",
+    "tolerance": "exact",
+    "load1": 0.87,
+    "thread_factor": 0.997
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of over tests/features.py, names resolved against the code tokens of every live tracked file; the C1 row by optimizer:_multi_start_minimize via time.sleep (c1_sleep_count.py)",
+   "perturbation": {
+    "change": "--perturb fix-path: the one-line comment edit at features.py:57049 to tools/coverage/partition.py (in memory); --perturb c2-define defines every unresolved name; --perturb c5-split re-splits sentences at 40 words; c1_sleep_count.py --perturb adds one start per _multi_start_minimize call",
+    "expected_direction": "down",
+    "observed_value": "fix-path: c2_fail 3->2, false_rows 454->453; c2-define: total c2_fail 3->0; c5-split: total false_rows 471->4; c1 --perturb: between-run per solve 3..34 -> 4..41, solves reading eight 2->0"
+   },
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s7/ledger.tsv --plant --seat D5-s7 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "value": "units=4030 rows=4030 unrowed=0 orphan=0 malformed=0 plant_refused=1",
+    "note": "the ledger rows every unit, and a planted unit is refused as unrowed; --perturb plant raises c2_fail by exactly 1"
+   },
+   "phenomenon_property": "Every D5 unit of tests/features.py is true of the code it sits on (C1), names only code the tree defines (C2), and has no sentence over 40 words (C5).",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv",
+    "grep -P '\\tC[125]' dev/audit/rounds/round11/D5/s7/detail.tsv",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/c1_sleep_count.py"
+   ],
+   "proposed_fix_scope": "Comment-only edits in tests/features.py: state the between-run yield without a count (or 'one per start after the first'); point 57049 at tools/coverage/partition.py; replace ``_feedback_sent`` with pump_arbiter._feedback / FeedbackRun.sent_c; drop or path the PlantRig reference; split the 450 long sentences.",
+   "files": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "scope": "D5-s7",
+   "step": "D5.M4",
+   "severity": "low",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "seam_rule": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M4  (then PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv; rows with verdict false are the seams)",
+   "metric_definition": "Per file: D5 units (text_ledger units_of) failing C1 (executed contradiction), C2 (named code absent from the tree's code tokens) or C5 (a sentence over 40 words).",
+   "id": "D5-s7-02",
+   "title": "tests/finite_boundary.py: 14 comment units carry a sentence over 40 words (C5)",
+   "claim": "Of tests/finite_boundary.py's 143 D5 units, 14 hold a sentence over 40 words (longest 94, the Arm 4 block at line 1018), failing D5-criteria C5; none fails C1 or C2 under the executed battery.",
+   "mechanism": "Long docstring and comment-block sentences chain clauses with ';' and ' -- ' (finite_boundary.py:1, 130, 549, 704, 752, 877, 1018, 1464, 1501, 1674, 1774, 2170, 2342, 2549).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv",
+    "harness_path": "dev/audit/rounds/round11/D5/s7/m4_comments.py",
+    "value": 14,
+    "unit": "count (false ledger rows)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12 (cloud container, Linux x86_64)",
+    "cpu_or_wall": "count",
+    "contention_note": "count over text; contention-immune",
+    "tolerance": "exact",
+    "load1": 0.87,
+    "thread_factor": 0.997
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of and :sentences over tests/finite_boundary.py",
+   "perturbation": {
+    "change": "--perturb c5-split (each sentence re-split at its 40th word, in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "finite_boundary c5_fail 14->0 (total false_rows 471->4)"
+   },
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s7/ledger.tsv --plant --seat D5-s7 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "value": "unrowed=0 plant_refused=1",
+    "note": "every unit rowed; a plant is refused"
+   },
+   "phenomenon_property": "No D5 unit of tests/finite_boundary.py has a sentence over 40 words.",
+   "proposed_fix_scope": "Split the 14 sentences; comment-only.",
+   "files": [
+    "tests/finite_boundary.py"
+   ]
+  },
+  {
+   "scope": "D5-s7",
+   "step": "D5.M4",
+   "severity": "low",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "seam_rule": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M4  (then PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv; rows with verdict false are the seams)",
+   "metric_definition": "Per file: D5 units (text_ledger units_of) failing C1 (executed contradiction), C2 (named code absent from the tree's code tokens) or C5 (a sentence over 40 words).",
+   "id": "D5-s7-03",
+   "title": "tests/frontend.py: 3 comment units carry a sentence over 40 words (C5)",
+   "claim": "Of tests/frontend.py's 24 D5 units, 3 hold a sentence over 40 words (lines 1, 43, 226; longest 52), failing D5-criteria C5.",
+   "mechanism": "The module docstring and two docstrings each run one sentence past 40 words.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv",
+    "harness_path": "dev/audit/rounds/round11/D5/s7/m4_comments.py",
+    "value": 3,
+    "unit": "count (false ledger rows)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12 (cloud container, Linux x86_64)",
+    "cpu_or_wall": "count",
+    "contention_note": "count over text; contention-immune",
+    "tolerance": "exact",
+    "load1": 0.87,
+    "thread_factor": 0.997
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of and :sentences over tests/frontend.py",
+   "perturbation": {
+    "change": "--perturb c5-split (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "frontend c5_fail 3->0"
+   },
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s7/ledger.tsv --plant --seat D5-s7 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "value": "unrowed=0 plant_refused=1",
+    "note": "every unit rowed; a plant is refused"
+   },
+   "phenomenon_property": "No D5 unit of tests/frontend.py has a sentence over 40 words.",
+   "proposed_fix_scope": "Split the 3 sentences; comment-only.",
+   "files": [
+    "tests/frontend.py"
+   ]
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every name and path tests/finite_boundary.py's and tests/frontend.py's comments use as code resolves (C2)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py",
+   "value": "c2_fail=0 for both files over 125 named references; 2 HA-library names triaged in triage.tsv"
+  },
+  {
+   "claim": "tests/features.py's 2109 named code references resolve but for 3 (C2), after 41 triaged as HA/library names, formula terms, examples or harness cells (triage.tsv)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py",
+   "value": "c2_names=2109 c2_fail=3"
+  },
+  {
+   "claim": "908 of 1164 cited decimal or unit-bearing numbers in the cells match a code literal (or a x60/x3600/x4/x1000/x100/x24 conversion) within -40/+120 lines",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py",
+   "value": "num_cited=1164 num_candidates=256"
+  },
+  {
+   "claim": "The sleep(0.002) yields the README names are three source sites, in _lbfgsb_restart, _multi_start_minimize and the DHW-to-space seam (_optimize_with_dhw)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/c1_sleep_count.py",
+   "value": "source_sites=3; by_caller over 50 solves names exactly those three functions"
+  },
+  {
+   "claim": "The seat's cells hold no document, heading or link: M1-M3 have empty universes",
+   "command": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M1; bash dev/audit/rounds/round11/D5/s7/enumerators.sh M2; bash dev/audit/rounds/round11/D5/s7/enumerators.sh M3",
+   "value": "0, 0, 0 lines"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D5/s7/m4_comments.py",
+  "dev/audit/rounds/round11/D5/s7/c1_sleep_count.py",
+  "dev/audit/rounds/round11/D5/s7/enumerators.sh",
+  "dev/audit/rounds/round11/D5/s7/triage.tsv"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D5-s1",
+   "file": "docs/{configuration,ecl110,how-it-works}.md",
+   "symbol": "feature reader paths (two-tank storage, ECL110, capacity tariff)",
+   "what": "Round-10 carry C2: the paragraph-by-paragraph walk for dead ends and forward references was recorded only at label level."
+  },
+  {
+   "owner_seat": "D5-s2",
+   "file": "docs/how-it-works.md, docs/configuration.md",
+   "symbol": "mechanism paragraphs",
+   "what": "Round-10 carry C3: mechanism paragraphs not traced one by one against the code paths."
+  },
+  {
+   "owner_seat": "D5-s4",
+   "file": "custom_components/heatpump_optimizer/www/*.js",
+   "symbol": "comment units",
+   "what": "Round-10 carry C7 part: www/*.js comments not scanned for symbols; dev/audit/rounds/round11/D5/s7/m4_comments.py's refs()/number_candidates() could be pointed at them."
+  },
+  {
+   "owner_seat": "D5-s2",
+   "file": "README.md, docs/*.md",
+   "symbol": "D5.M4 cell",
+   "what": "Round-10 carry C7 part: the README/docs M4 cell was not run."
+  }
+ ]
+}

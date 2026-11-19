@@ -1,0 +1,42 @@
+{
+ "id": "D2-s3-07",
+ "step": "D2.M4",
+ "title": "The open month's coverage scale counts 744 h for the 743-hour March: a fully settled DST month reads 0.13 % high",
+ "severity": "low",
+ "claim": "ledger.coverage_factor divides ledger.month_hours (days x 24, 744 for March 2026) by the settled hours, so a March settled for every one of its 743 real hours scales every estimated row figure by 1.001346 instead of 1.0.",
+ "mechanism": "ledger.py month_hours ignores the DST hour (its docstring says so); coverage_factor = max(1, month_hours/settled). October (745 h) clamps to 1.0, so only the spring month is off; it lasts until the month closes.",
+ "evidence": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": 1.001346,
+  "unit": "ratio",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "ratio",
+  "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+  "tolerance": "±1e-6",
+  "load1": 5.76,
+  "thread_factor": 1.0001
+ },
+ "instrumented_symbol": "heatpump_optimizer.ledger:coverage_factor (month_hours)",
+ "perturbation": {
+  "change": "--perturb realhours: ledger.month_hours counts the month's real hours in the zone",
+  "expected_direction": "down",
+  "observed_value": 1.0
+ },
+ "metric_definition": "coverage_full = ledger.coverage_factor of a month whose settled-hours meta equals its real UTC hours, read on the month's last minute (identity 1.0)",
+ "phenomenon_property": "An open month settled over all of its real hours is estimated at scale 1.0, its real hours counted in the zone the month is booked in.",
+ "seam_rule": "grep -n 'def month_hours\\|monthrange' custom_components/heatpump_optimizer/ledger.py",
+ "null_control": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": "coverage_full_month_boundary 1.000000 (January, 744 h), coverage_full_25h 1.000000",
+  "note": ""
+ },
+ "proposed_fix_scope": "ledger.month_hours: the real hours between the month's local midnights",
+ "files": [
+  "custom_components/heatpump_optimizer/ledger.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P7",
+ "scope": "D2-s3"
+}

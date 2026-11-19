@@ -1,0 +1,48 @@
+{
+  "id": "D16-s3-02",
+  "scope": "D16-s3",
+  "step": "D16.M6",
+  "title": "Supply switch, frequency, valve and circulation pump have no restore owner on off, unload or remove",
+  "severity": "high",
+  "claim": "Four written entities -- the heat-pump power switch (left off after an idle step), the compressor frequency number (45 against 70), the mixing-valve target (18 against 22) and the hot-water circulation pump (left off) -- stay at the optimizer's last value after Off, after unload and after the entry is removed, because none of their writers registers with off_restore.",
+  "mechanism": "off_restore restores only consumers registered at import (heat_curve, heat_curve_mqtt, pump_arbiter_space). pump_arbiter.switch_supply, coordinator._command_frequency, coordinator._command_valve_target and coordinator._async_set_pump only stop writing in MODE_OFF ('off writes nothing') and on unload; nothing writes their baseline back. After async_remove_entry no later setup can either, so a pump switched off on an idle step stays off.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+    "harness_path": "dev/audit/rounds/round11/D16/s3/m6_restore.py",
+    "value": 4,
+    "unit": "entities (RESULT unrestored_unload_unregistered; off 4, remove 4)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (shared, up to three compute seats)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute seats may share B11; the number is a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.87,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "pump_arbiter:switch_supply, coordinator:HeatPumpOptimizerCoordinator._command_frequency/_command_valve_target/_async_set_pump, off_restore:async_restore (via heatpump_optimizer:async_unload_entry/async_remove_entry)",
+  "perturbation": {
+    "change": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py --perturb consumers: register off_restore consumers for the supply switch (neutral on), the frequency and the valve (pre-write reading) and the circulation pump (neutral on), armed before each write",
+    "expected_direction": "to_zero",
+    "observed_value": "unrestored_off_unregistered=0, unrestored_unload_unregistered=0, unrestored_remove_unregistered=0"
+  },
+  "metric_definition": "Per trigger: count of written entities outside the arbiter's slots whose final state differs from the pre-write state; key = state the delivered service calls left.",
+  "phenomenon_property": "Every entity any write site of enumerate.py d16-writes commands is returned to its baseline once on Off, unload and remove; a writer outside off_restore's consumers is the defect.",
+  "seam_rule": "python3 tools/audit/enumerate.py d16-writes | grep '^write' (each site whose entity no off_restore.register_consumer covers)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+    "value": "null_unrestored_off=0, null_unrestored_unload=0, null_unrestored_remove=0",
+    "note": "commands equal to each baseline: nothing to restore, nothing counted"
+  },
+  "reproduction_steps": [
+    "run the command; read RESULT unrestored_<trigger>_unregistered and the per-entity lines for switch.hp, number.freq, number.valve, switch.vvc",
+    "re-run with --perturb consumers: the unregistered counts read 0"
+  ],
+  "proposed_fix_scope": "Register the power switch, the frequency number, the valve write entity and the circulation pumps with off_restore (arm before each write), or give each writer an equivalent restore on Off, unload and remove.",
+  "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/off_restore.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

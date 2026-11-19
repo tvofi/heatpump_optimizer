@@ -1,0 +1,24 @@
+  setpoint_step_zero: baseline=('ok', 21.0) mutant=('ok', 21.0)
+RESULT distinct_setpoint_step_zero=0 (0/1)
+  roll_receipts_retention: baseline=('ok', 24) mutant=('ok', 24)
+RESULT distinct_roll_receipts_retention=0 (0/1)
+  sanitize_tuple_nan: baseline=('ok', "{'a': (1.0, None)}") mutant=('ok', "{'a': (1.0, None)}")
+RESULT distinct_sanitize_tuple_nan=0 (0/1)
+  gap_rate_zero_recent: baseline=('ok', 1.7) mutant=('ok', 1.7)
+RESULT distinct_gap_rate_zero_recent=0 (0/1)
+  plan_promise_zero_steps: baseline=('ok', None) mutant=('ok', None)
+RESULT distinct_plan_promise_zero_steps=0 (0/1)
+  sample_from_dict_falsy_t: baseline=('ok', [None, None, None, None, None]) mutant=('ok', [None, None, None, None, None])
+RESULT distinct_sample_from_dict_falsy_t=0 (0/1)
+  take_fresh_handover_none: baseline=('ok', [None, None, None, {'p': 1}]) mutant=('ok', [None, None, None, {'p': 1}])
+RESULT distinct_take_fresh_handover_none=0 (0/1)
+  score_lead_nan_actual: baseline=('ok', ('0.5', 0)) mutant=('ok', ('0.5', 0))
+RESULT distinct_score_lead_nan_actual=0 (0/1)
+  note_lead_nan_predicted: baseline=('ok', ('0.5', 0)) mutant=('ok', ('0.5', 0))
+RESULT distinct_note_lead_nan_predicted=0 (0/1)
+  score_nan_pending_direct: baseline=('ok', ('0.0', {})) mutant=('ok', ('0.0', {}))
+RESULT distinct_score_nan_pending_direct=0 (0/1)
+RESULT distinct_total=0 of 10 probes
+RESULT thread_factor=0.93
+RESULT load1=7.12
+RESULT swapins=0

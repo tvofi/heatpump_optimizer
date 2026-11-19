@@ -1,0 +1,1253 @@
+[
+ {
+  "unit": "custom_components/heatpump_optimizer/debugger.py#e78c128a7e",
+  "path": "custom_components/heatpump_optimizer/debugger.py",
+  "claim": "the store keeps the newest 192 samples; the live tracker more",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "accuracy:HISTORY_LENGTH",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/grid_fee.py#39fef837a3",
+  "path": "custom_components/heatpump_optimizer/grid_fee.py",
+  "claim": "Ellevio — villa effekt (to 2026-05-31)",
+  "claimed": "'2026-05-31'",
+  "observed": "'2026-05-31'",
+  "symbol": "grid_fee:SWEDEN_CATALOG",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/legionella.py#a3f7fbf749",
+  "path": "custom_components/heatpump_optimizer/legionella.py",
+  "claim": "it will be retried within a day",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "legionella:DHW_LEGIONELLA_RETRY_HOURS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#02c0fd55b0",
+  "path": "services.apply_manual_plan.fields.expires_at.description",
+  "claim": "shorter than the optimizer's 24-hour horizon",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "optimizer:OptimizationConfig.horizon_hours",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#03c05e4bbf",
+  "path": "services.set_thermal_parameters.fields.dhw_cooling_rate.description",
+  "claim": "at 45 °C tank temperature and 20 °C ambient",
+  "claimed": "25.0",
+  "observed": "25.0",
+  "symbol": "const:DHW_COOLING_REFERENCE_*",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#043e1b20d8",
+  "path": "options.error.partload_derate_above_limit",
+  "claim": "below 0.44 for a 1-5 kW pump | below 0.17 for a 4-5 kW one",
+  "claimed": "(False, True) | (False, True)",
+  "observed": "(False, True) | (False, True)",
+  "symbol": "config_flow:_partload_errors | config_flow:_partload_errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#04bc73c9f2",
+  "path": "config.error.max_below_target",
+  "claim": "The maximum temperature is below the target",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#04bc73c9f2.1",
+  "path": "options.error.max_below_target",
+  "claim": "The maximum temperature is below the target",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#07e768ef57",
+  "path": "options.step.tuning.sections.risk.data_description.price_tiles_enabled",
+  "claim": "power capped at 75 % | averaged over 30 days",
+  "claimed": "True | 30",
+  "observed": "True | 30",
+  "symbol": "price_tiles:TILE_NAMES | price_tiles:HORIZON_DAYS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#0e3ce763d3",
+  "path": "services.run_optimization.description",
+  "claim": "for the next 24 hours",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "optimizer:OptimizationConfig.horizon_hours",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#10801cb605",
+  "path": "options.step.learning_features.sections.weather.data_description.open_window_relax_enabled",
+  "claim": "by 1 °C, never below 15 °C | by 1 °C, never below 15 °C",
+  "claimed": "1.0 | 15.0",
+  "observed": "1.0 | 15.0",
+  "symbol": "const:OPEN_WINDOW_RELAX_C | away:ECONOMY_ABSOLUTE_FLOOR",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#10b209acf4",
+  "path": "config.error.comfort_outside_band",
+  "claim": "must sit inside the comfort band",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#10b209acf4.1",
+  "path": "options.error.comfort_outside_band",
+  "claim": "must sit inside the comfort band",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#18583835bb",
+  "path": "options.step.grid_connection.data_description.silent_mode_power_fraction",
+  "claim": "1.0 caps nothing.",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "silent_mode:caps",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#1da9bc5bf7",
+  "path": "config.step.dhw.data_description.dhw_windows",
+  "claim": "'weekdays 06:00-08:30, weekend 08:00-09:30'",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_weekly_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#1da9bc5bf7.1",
+  "path": "options.step.hot_water.sections.schedule.data_description.dhw_windows",
+  "claim": "'weekdays 06:00-08:30, weekend 08:00-09:30'",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_weekly_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#20e0428fc4",
+  "path": "issues.dhw_legionella_off_step.description",
+  "claim": "a day",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "legionella:DHW_LEGIONELLA_RETRY_HOURS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#2387e638dd",
+  "path": "options.step.building.sections.combi.data_description.dhw_combi_legionella_force",
+  "claim": "With 3 L or less | With 3 L or less",
+  "claimed": "3.0 | False",
+  "observed": "3.0 | False",
+  "symbol": "const:COMBI_LEGIONELLA_POTABLE_LIMIT_L | config_flow:options building form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#2deca6724c",
+  "path": "config.step.device_prefill.description",
+  "claim": "Backup heater type register: {backup_heater_type}",
+  "claimed": "True",
+  "observed": "False",
+  "symbol": "config_flow:HeatPumpOptimizerConfigFlow.async_step_device_prefill (refusal render)",
+  "verdict": "false"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#2deca6724c.1",
+  "path": "options.step.modbus_prefill.description",
+  "claim": "Backup heater type register: {backup_heater_type}",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "config_flow:HeatPumpOptimizerOptionsFlow.async_step_modbus_prefill (refusal render)",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#2fccca8728",
+  "path": "entity.sensor.dhw_heating_cost.name",
+  "claim": "(next 24 h)",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "optimizer:OptimizationConfig.horizon_hours",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#3102a60501",
+  "path": "options.step.entities.sections.indoor.data_description.flow_heat_c",
+  "claim": "Below 30 °C is not offered | the gate that means off is 25 °C",
+  "claimed": "30 | 25.0",
+  "observed": "30 | 25.0",
+  "symbol": "config_flow:options entities selector | pump_arbiter:FLOW_GATE_C",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#38008ea43f",
+  "path": "options.step.learning_features.sections.weather.data_description.open_window_relax_enabled",
+  "claim": "Off by default because it moves",
+  "claimed": "False",
+  "observed": "False",
+  "symbol": "config_flow:options learning_features form",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#39fef837a3",
+  "path": "selector.dso_product.options.ellevio_villa_effekt_2026",
+  "claim": "(to 2026-05-31)",
+  "claimed": "'2026-05-31'",
+  "observed": "'2026-05-31'",
+  "symbol": "grid_fee:SWEDEN_CATALOG",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#3ea4aa094f",
+  "path": "services.simulate_plan.fields.silent_mode_power_fraction.description",
+  "claim": "1.0 is the unset value",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "services:_quiet_schedule_fields",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#3ea4aa094f.1",
+  "path": "services.apply_schedule.fields.silent_mode_power_fraction.description",
+  "claim": "1.0 is the unset value",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "services:_quiet_schedule_fields",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#41d10c7585",
+  "path": "services.set_thermal_parameters.fields.rain_heat_loss_multiplier.description",
+  "claim": "rain of 2 mm/h or more",
+  "claimed": "(1.15, 1.15, 1.0, 1.075)",
+  "observed": "(1.15, 1.15, 1.0, 1.075)",
+  "symbol": "thermal_model:ThermalModel.effective_heat_loss_coefficient",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#458e8da6ed",
+  "path": "config.step.zones.data_description.buffer_tank_volume",
+  "claim": "holds at least 100 litres",
+  "claimed": "100.0",
+  "observed": "100.0",
+  "symbol": "const:BUFFER_STORE_MIN_VOLUME",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#458e8da6ed.1",
+  "path": "options.step.building.sections.buffer.data_description.buffer_tank_volume",
+  "claim": "holds at least 100 litres",
+  "claimed": "100.0",
+  "observed": "100.0",
+  "symbol": "const:BUFFER_STORE_MIN_VOLUME",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#46a659a740",
+  "path": "services.set_thermal_parameters.fields.silent_mode_power_fraction.description",
+  "claim": "(a lower value is raised to 0.6)",
+  "claimed": "0.6",
+  "observed": "0.6",
+  "symbol": "silent_mode:caps",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#46a659a740.1",
+  "path": "services.simulate_plan.fields.silent_mode_power_fraction.description",
+  "claim": "(a lower value is raised to 0.6)",
+  "claimed": "0.6",
+  "observed": "0.6",
+  "symbol": "silent_mode:caps",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#46a659a740.2",
+  "path": "services.apply_schedule.fields.silent_mode_power_fraction.description",
+  "claim": "(a lower value is raised to 0.6)",
+  "claimed": "0.6",
+  "observed": "0.6",
+  "symbol": "silent_mode:caps",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#530c2a2ff9",
+  "path": "options.step.learning.description",
+  "claim": "are on by default; the rest are off",
+  "claimed": "(True, True, False, False, False)",
+  "observed": "(True, True, False, False, False)",
+  "symbol": "config_flow:options learning form defaults",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#538b900c1b",
+  "path": "options.step.building.sections.wood.data_description.wood_packing",
+  "claim": "billed at 0.60 of packed",
+  "claimed": "0.6",
+  "observed": "1.667",
+  "symbol": "wood_fuel:useful_kwh_m3 (worst type)",
+  "verdict": "false"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#5765756587",
+  "path": "options.step.entities.sections.indoor.data_description.space_setpoint_power_feedback",
+  "claim": "After a 5-minute start hold | within 10 %",
+  "claimed": "300.0 | 0.1",
+  "observed": "300.0 | 0.1",
+  "symbol": "pump_arbiter:FEEDBACK_START_HOLD | pump_arbiter:FEEDBACK_DEADBAND_SHARE",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#577e455087",
+  "path": "config.error.dhw_window_too_short",
+  "claim": "The plan is made in",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:MIN_WINDOW_MINUTES vs optimizer:OptimizationConfig.time_step_minutes",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#577e455087.1",
+  "path": "config.error.silent_mode_window_too_short",
+  "claim": "The plan is made in",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:MIN_WINDOW_MINUTES vs optimizer:OptimizationConfig.time_step_minutes",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#577e455087.2",
+  "path": "options.error.dhw_window_too_short",
+  "claim": "The plan is made in",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:MIN_WINDOW_MINUTES vs optimizer:OptimizationConfig.time_step_minutes",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#577e455087.3",
+  "path": "options.error.silent_mode_window_too_short",
+  "claim": "The plan is made in",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:MIN_WINDOW_MINUTES vs optimizer:OptimizationConfig.time_step_minutes",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#5b1cf576a0",
+  "path": "issues.accuracy_drift.description",
+  "claim": "three settled days",
+  "claimed": "3.0",
+  "observed": "3.0",
+  "symbol": "accuracy:REFIT_SETTLED_DAYS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#5c8337bad4",
+  "path": "options.step.grid_fees.data_description.grid_fee_rules",
+  "claim": "\"0,25\" reads as 0.25",
+  "claimed": "0.25",
+  "observed": "0.25",
+  "symbol": "grid_fee:parse_rules",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#5ce8628a41",
+  "path": "services.apply_manual_plan.description",
+  "claim": "for the next 20 hours",
+  "claimed": "20",
+  "observed": "20",
+  "symbol": "const:MANUAL_PLAN_WINDOW_HOURS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#5dbd68ef98",
+  "path": "config.step.user_sensors.data_description.floor_return_temp_entity",
+  "claim": "more than 12 K above the room",
+  "claimed": "12.0",
+  "observed": "12.0",
+  "symbol": "slab_seed:SLAB_SEED_MAX_ABOVE_ROOM_K",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#5dbd68ef98.1",
+  "path": "config.step.user_sensors.sections.plant.data_description.floor_return_temp_entity",
+  "claim": "more than 12 K above the room",
+  "claimed": "12.0",
+  "observed": "12.0",
+  "symbol": "slab_seed:SLAB_SEED_MAX_ABOVE_ROOM_K",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#5dbd68ef98.2",
+  "path": "options.step.entities.sections.plant.data_description.floor_return_temp_entity",
+  "claim": "more than 12 K above the room",
+  "claimed": "12.0",
+  "observed": "12.0",
+  "symbol": "slab_seed:SLAB_SEED_MAX_ABOVE_ROOM_K",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#61125bab1a",
+  "path": "options.step.entities_pump.data_description.pump_duty_mode",
+  "claim": "Off (the default)",
+  "claimed": "'off'",
+  "observed": "'off'",
+  "symbol": "config_flow:options entities_pump form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6185f3acfe",
+  "path": "options.step.entities_pump.data_description.space_hysteresis_entity",
+  "claim": "0 to 20 K",
+  "claimed": "20.0",
+  "observed": "20.0",
+  "symbol": "inputs:TEMPERATURE_DELTA_MAX_K",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#63ef746ed2",
+  "path": "config.step.dhw.data_description.dhw_cooling_rate",
+  "claim": "measured at 45 °C in a 20 °C room | measured at 45 °C in a 20 °C room",
+  "claimed": "45.0 | 20.0",
+  "observed": "45.0 | 20.0",
+  "symbol": "const:DHW_COOLING_REFERENCE_TANK_TEMP | const:DHW_COOLING_REFERENCE_AMBIENT_TEMP",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#63ef746ed2.1",
+  "path": "options.step.hot_water_tank.sections.tank.data_description.dhw_cooling_rate",
+  "claim": "measured at 45 °C in a 20 °C room | measured at 45 °C in a 20 °C room",
+  "claimed": "45.0 | 20.0",
+  "observed": "45.0 | 20.0",
+  "symbol": "const:DHW_COOLING_REFERENCE_TANK_TEMP | const:DHW_COOLING_REFERENCE_AMBIENT_TEMP",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6881282138",
+  "path": "options.step.hot_water_tank.sections.inlet.data_description.dhw_inlet_temp",
+  "claim": "Swedish default of 10 °C",
+  "claimed": "10.0",
+  "observed": "10.0",
+  "symbol": "config_flow:options hot_water_tank form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6a9616c4cf",
+  "path": "config.error.dhw_min_too_close",
+  "claim": "at least 5 °C below the setpoint",
+  "claimed": "5.0",
+  "observed": "5.0",
+  "symbol": "const:DHW_MIN_TEMP_SETPOINT_MARGIN",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6a9616c4cf.1",
+  "path": "options.error.dhw_min_too_close",
+  "claim": "at least 5 °C below the setpoint",
+  "claimed": "5.0",
+  "observed": "5.0",
+  "symbol": "const:DHW_MIN_TEMP_SETPOINT_MARGIN",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6b292606a5",
+  "path": "services.set_mode.fields.mode.description",
+  "claim": "1.5 °C below your comfort floor | 1.5 °C below your comfort floor",
+  "claimed": "1.5 | 15.0",
+  "observed": "1.5 | 15.0",
+  "symbol": "const:ECONOMY_MIN_TEMP_WIDENING | const:ECONOMY_ABSOLUTE_FLOOR",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6b9c72a817",
+  "path": "services.set_thermal_parameters.fields.quiet_off_windows.description",
+  "claim": "\"weekend 23:00-07:00\".",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_weekly_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6b9c72a817.1",
+  "path": "services.simulate_plan.fields.quiet_off_windows.description",
+  "claim": "\"weekend 23:00-07:00\".",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_weekly_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6b9c72a817.2",
+  "path": "services.apply_schedule.fields.quiet_off_windows.description",
+  "claim": "\"weekend 23:00-07:00\".",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_weekly_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6d696206ad",
+  "path": "options.error.invalid_peak_months",
+  "claim": "\"Nov-Mar\" or single months like \"Jul\"",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "grid_fee:parse_month_range",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6d98eac965",
+  "path": "entity.sensor.plan_space_heating.name",
+  "claim": "(next 24 h)",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "optimizer:OptimizationConfig.horizon_hours",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#6f794b3827",
+  "path": "options.step.tuning.sections.risk.data_description.price_tiles_enabled",
+  "claim": "Off by default because",
+  "claimed": "False",
+  "observed": "False",
+  "symbol": "config_flow:options tuning form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#7105b82ba3",
+  "path": "options.step.learning_features.sections.weather.data_description.outage_recovery_enabled",
+  "claim": "two-hour recovery window",
+  "claimed": "(2.0, 45.0)",
+  "observed": "(2.0, 45.0)",
+  "symbol": "const:OUTAGE_RECOVERY_HOURS/OUTAGE_DHW_DELAY_MINUTES",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#73fd77d4d2",
+  "path": "services.restore_learned_snapshot.description",
+  "claim": "three settled days",
+  "claimed": "3.0",
+  "observed": "3.0",
+  "symbol": "accuracy:REFIT_SETTLED_DAYS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#75482ab335",
+  "path": "options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled",
+  "claim": "held that temperature for 20 minutes",
+  "claimed": "20.0",
+  "observed": "20.0",
+  "symbol": "const:DHW_LEGIONELLA_HOLD_MINUTES",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#7a9d1fff5d",
+  "path": "options.step.entities_pump.data_description.pump_duty_mode",
+  "claim": "the hot water one to 30 °C",
+  "claimed": "30.0",
+  "observed": "30.0",
+  "symbol": "pump_arbiter:DHW_GATE_C",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#81f7108bc8",
+  "path": "options.step.heat_curve.data_description.heat_curve_persistent_min_dwell_minutes",
+  "claim": "60 minutes is about",
+  "claimed": "60",
+  "observed": "60",
+  "symbol": "const:DEFAULT_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#845f881c8f",
+  "path": "options.step.entities.sections.indoor.data_description.flow_min_lift_k",
+  "claim": "5 K suits a controller",
+  "claimed": "5.0",
+  "observed": "5.0",
+  "symbol": "config_flow:options entities form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#85b8707878",
+  "path": "issues.pump_write_ignored.description",
+  "claim": "every five minutes",
+  "claimed": "5.0",
+  "observed": "5.0",
+  "symbol": "pump_arbiter:RETRY_MINUTES",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8a57c88d3d",
+  "path": "config.error.min_power_above_max",
+  "claim": "minimum power is above its maximum",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "config_flow:_power_errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8a57c88d3d.1",
+  "path": "options.error.min_power_above_max",
+  "claim": "minimum power is above its maximum",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "config_flow:_power_errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8ad6bf9df6",
+  "path": "options.step.heat_curve.data_description.heat_curve_offset_band_k",
+  "claim": "3 K is an estimate",
+  "claimed": "3.0",
+  "observed": "3.0",
+  "symbol": "config_flow:options heat_curve form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8ad6bf9df6.1",
+  "path": "options.step.heat_curve.data_description.heat_curve_persistent_band_k",
+  "claim": "3 K is an estimate",
+  "claimed": "3.0",
+  "observed": "3.0",
+  "symbol": "const:DEFAULT_HEAT_CURVE_PERSISTENT_BAND_K",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8af4858135",
+  "path": "options.step.grid_connection.data_description.silent_mode_windows",
+  "claim": "\"22:00-06:00\"",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8ccc6d9443",
+  "path": "options.step.grid.data_description.peak_tariff_hours",
+  "claim": "\"07:00-19:00\"",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8d664baca1",
+  "path": "issues.accuracy_drift_rolled_back.description",
+  "claim": "three settled days",
+  "claimed": "3.0",
+  "observed": "3.0",
+  "symbol": "accuracy:REFIT_SETTLED_DAYS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8d92a152d8",
+  "path": "options.step.tuning.sections.risk.data_description.confidence_margins_enabled",
+  "claim": "capped at 0.8 °C",
+  "claimed": "0.8",
+  "observed": "0.8",
+  "symbol": "const:CONFIDENCE_MARGIN_CAP_C",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8e20be520d",
+  "path": "config.step.temperature.data_description.min_temperature",
+  "claim": "lowers it by a further 1.5 K | a detected open window by 1 K | never below 15 °C",
+  "claimed": "1.5 | 1.0 | 15.0",
+  "observed": "1.5 | 1.0 | 15.0",
+  "symbol": "const:ECONOMY_MIN_TEMP_WIDENING | const:OPEN_WINDOW_RELAX_C | const:ECONOMY_ABSOLUTE_FLOOR",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8e20be520d.1",
+  "path": "options.step.comfort.sections.band.data_description.min_temperature",
+  "claim": "lowers it by a further 1.5 K | a detected open window by 1 K | never below 15 °C",
+  "claimed": "1.5 | 1.0 | 15.0",
+  "observed": "1.5 | 1.0 | 15.0",
+  "symbol": "const:ECONOMY_MIN_TEMP_WIDENING | const:OPEN_WINDOW_RELAX_C | const:ECONOMY_ABSOLUTE_FLOOR",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#8fc29d6183",
+  "path": "options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+  "claim": "at most 15 K below | a 75 °C supply",
+  "claimed": "15.0 | 75.0",
+  "observed": "15.0 | 75.0",
+  "symbol": "flow_lift:FLOW_BIAS_CLAMP_K | flow_lift:FLOW_SUPPLY_MAX_C",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#91c5f2d9f1",
+  "path": "config.step.user.data_description.weather_entity",
+  "claim": "plans 24 hours ahead",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "optimizer:OptimizationConfig.horizon_hours",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#91c5f2d9f1.1",
+  "path": "options.step.entities.sections.credentials.data_description.weather_entity",
+  "claim": "plans 24 hours ahead",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "optimizer:OptimizationConfig.horizon_hours",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#93b65bfdf8",
+  "path": "entity.sensor.plan_dhw_heating.name",
+  "claim": "(next 24 h)",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "optimizer:OptimizationConfig.horizon_hours",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#99ec8320c7",
+  "path": "config.step.user_sensors.data_description.solar_location",
+  "claim": "Defaults to your Home Assistant home location.",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "config_flow:solar_location default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#99ec8320c7.1",
+  "path": "config.step.user_sensors.sections.solar.data_description.solar_location",
+  "claim": "Defaults to your Home Assistant home location.",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "config_flow:solar_location default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#99ec8320c7.2",
+  "path": "options.step.entities_metering.sections.solar.data_description.solar_location",
+  "claim": "Defaults to your Home Assistant home location.",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "config_flow:solar_location default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#9e04a38ff9",
+  "path": "config.step.temperature.data_description.min_temperature",
+  "claim": "at night the limit is 0.5 K lower",
+  "claimed": "0.5",
+  "observed": "0.5",
+  "symbol": "optimizer:OptimizationConfig.get_temp_bounds",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#9e04a38ff9.1",
+  "path": "options.step.comfort.sections.band.data_description.min_temperature",
+  "claim": "at night the limit is 0.5 K lower",
+  "claimed": "0.5",
+  "observed": "0.5",
+  "symbol": "optimizer:OptimizationConfig.get_temp_bounds",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#a0fb78faab",
+  "path": "options.step.entities.sections.indoor.data_description.flow_heat_c",
+  "claim": "55 °C suits a supply target",
+  "claimed": "55.0",
+  "observed": "55.0",
+  "symbol": "config_flow:options entities form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#a29db0b181",
+  "path": "options.step.entities_pump.data_description.pump_duty_mode",
+  "claim": "sent again every 5 minutes",
+  "claimed": "5.0",
+  "observed": "5.0",
+  "symbol": "pump_arbiter:RETRY_MINUTES",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#a5e6c544e2",
+  "path": "config.error.dhw_window_too_short",
+  "claim": "time frame is shorter than",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "dhw_schedule:spec_problem",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#a5e6c544e2.1",
+  "path": "options.error.dhw_window_too_short",
+  "claim": "time frame is shorter than",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "dhw_schedule:spec_problem",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#a6570b5c8c",
+  "path": "options.error.combi_needs_store",
+  "claim": "a buffer tank of at least 100 L",
+  "claimed": "100.0",
+  "observed": "100.0",
+  "symbol": "const:BUFFER_STORE_MIN_VOLUME",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#a7819f33f0",
+  "path": "services.apply_manual_plan.fields.expires_at.description",
+  "claim": "Defaults to 20 hours from now",
+  "claimed": "20",
+  "observed": "20",
+  "symbol": "const:MANUAL_PLAN_WINDOW_HOURS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#ab2e8a469d",
+  "path": "options.step.heat_curve.data_description.heat_curve_persistent_writes_per_day",
+  "claim": "12 (six shift-and-return",
+  "claimed": "12",
+  "observed": "12",
+  "symbol": "const:DEFAULT_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#b2430da82f",
+  "path": "issues.dhw_legionella_unreachable.description",
+  "claim": "a day",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "legionella:DHW_LEGIONELLA_RETRY_HOURS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#b3f90f75a7",
+  "path": "options.step.building.sections.wood.data_description.wood_type",
+  "claim": "Mixed is the default.",
+  "claimed": "'mixed'",
+  "observed": "'mixed'",
+  "symbol": "const:DEFAULT_WOOD_TYPE",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#b47921a014",
+  "path": "options.step.learning_features.sections.model.data_description.capacity_curve_enabled",
+  "claim": "at least 60% of nameplate",
+  "claimed": "0.6",
+  "observed": "0.6",
+  "symbol": "const:CAPACITY_FLOOR_FRACTION",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#b7c13db233",
+  "path": "services.set_thermal_parameters.fields.heat_pump_cop_nominal.description",
+  "claim": "at 7°C outdoor temperature",
+  "claimed": "7.0",
+  "observed": "7.0",
+  "symbol": "thermal_model:ThermalParameters.cop_reference_temp",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#b94dd1b5cb",
+  "path": "options.step.building.sections.combi.data_description.combi_dhw_effectiveness",
+  "claim": "About 0.85 for a coil",
+  "claimed": "(0.85, 0.95, 0.75)",
+  "observed": "(0.85, 0.95, 0.75)",
+  "symbol": "const:COMBI_TANK_PRESETS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#b9ad43190c",
+  "path": "options.step.comfort.sections.weekend.data_description.comfort_temp_night_weekend",
+  "claim": "Defaults to the weekday night value.",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "config_flow:options comfort form defaults",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#ba26c65984",
+  "path": "options.step.entities_pump.data_description.pump_duty_mode",
+  "claim": "a share under 5 minutes",
+  "claimed": "5.0",
+  "observed": "5.0",
+  "symbol": "duty_legs:SPLIT_MIN_MINUTES",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#bc075e8f7e",
+  "path": "options.step.comfort.sections.weekend.data_description.comfort_temp_day_weekend",
+  "claim": "Defaults to the weekday daytime value.",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "config_flow:options comfort form defaults",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#bd9cafa1da",
+  "path": "options.error.invalid_peak_hours",
+  "claim": "\"07:00-19:00\"",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#c2d62a24b8",
+  "path": "services.apply_topology.fields.layout.description",
+  "claim": "two_tank_4way or valve_upper_direct_slab",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "topology:LAYOUTS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#c8f781c42a",
+  "path": "config.step.quick_setup.data_description.buffer_tank",
+  "claim": "(500 litres | default of 35 litres",
+  "claimed": "500.0 | 35.0",
+  "observed": "500.0 | 35.0",
+  "symbol": "quick_setup:QUICK_SETUP_BUFFER_VOLUME | config_flow:config zones form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#c8f781c42a.1",
+  "path": "options.step.quick_setup.data_description.buffer_tank",
+  "claim": "(500 litres | default of 35 litres",
+  "claimed": "500.0 | 35.0",
+  "observed": "500.0 | 35.0",
+  "symbol": "quick_setup:QUICK_SETUP_BUFFER_VOLUME | config_flow:config zones form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#c9bd908adf",
+  "path": "services.set_thermal_parameters.fields.dhw_windows.description",
+  "claim": "Frames may wrap past midnight.",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#cb9551c937",
+  "path": "options.error.invalid_grid_fee_rules",
+  "claim": "\"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\" | \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\"",
+  "claimed": "True | True",
+  "observed": "True | True",
+  "symbol": "grid_fee:parse_rules | grid_fee:parse_rules",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#cbd3ef9d90",
+  "path": "options.step.building.sections.combi.data_description.combi_dhw_effectiveness",
+  "claim": "from 0.1 to 1",
+  "claimed": "(0.1, 1.0)",
+  "observed": "(0.1, 1.0)",
+  "symbol": "config_flow:options building selector",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#cf38300349",
+  "path": "options.step.entities.sections.indoor.data_description.space_setpoint_power_feedback",
+  "claim": "On by default.",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "config_flow:options entities form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#d40d335169",
+  "path": "services.assign_entity.fields.key.description",
+  "claim": "buffer_tank_temp_entity",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "topology:ASSIGNABLE_KEYS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#d912b4ffd6",
+  "path": "config.step.quick_setup.data_description.wood_tank_top_entity",
+  "claim": "temperature plus 2 °C",
+  "claimed": "2.0",
+  "observed": "2.0",
+  "symbol": "const:WOOD_TANK_MIN_MARGIN",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#d912b4ffd6.1",
+  "path": "options.step.building.sections.wood.data_description.wood_tank_top_entity",
+  "claim": "temperature plus 2 °C",
+  "claimed": "2.0",
+  "observed": "2.0",
+  "symbol": "const:WOOD_TANK_MIN_MARGIN",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#d912b4ffd6.2",
+  "path": "options.step.quick_setup.data_description.wood_tank_top_entity",
+  "claim": "temperature plus 2 °C",
+  "claimed": "2.0",
+  "observed": "2.0",
+  "symbol": "const:WOOD_TANK_MIN_MARGIN",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#daa2324b4a",
+  "path": "options.step.entities_pump.data_description.dhw_hysteresis_entity",
+  "claim": "0 to 20 K",
+  "claimed": "20.0",
+  "observed": "20.0",
+  "symbol": "inputs:TEMPERATURE_DELTA_MAX_K",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#dd039b4a9c",
+  "path": "options.step.entities_pump.data_description.pump_duty_mode",
+  "claim": "capped at 90 minutes",
+  "claimed": "(90.0, 30.0, -10.0)",
+  "observed": "(90.0, 30.0, -10.0)",
+  "symbol": "pump_arbiter:LEASE_MINUTES/COLD_*",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#e12fbfdc88",
+  "path": "config.error.min_above_target",
+  "claim": "The minimum temperature is above the target",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#e12fbfdc88.1",
+  "path": "options.error.min_above_target",
+  "claim": "The minimum temperature is above the target",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#e27ae77431",
+  "path": "options.step.learning.data_description.debug_collect_enabled",
+  "claim": "(15 minutes at most",
+  "claimed": "900.0",
+  "observed": "900.0",
+  "symbol": "debugger:SELF_TEST_BUDGET",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#e4233bc99a",
+  "path": "options.step.entities.sections.indoor.data_description.flow_heat_c",
+  "claim": "(up to 70 °C)",
+  "claimed": "70.0",
+  "observed": "70.0",
+  "symbol": "const:FLOW_HEAT_C_MAX",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#e8f69548b5",
+  "path": "options.step.grid_fees.data_description.grid_fee_rules",
+  "claim": "\"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\"",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "grid_fee:parse_rules",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#eab459230e",
+  "path": "issues.dhw_legionella_overdue.description",
+  "claim": "a day",
+  "claimed": "24.0",
+  "observed": "24.0",
+  "symbol": "legionella:DHW_LEGIONELLA_RETRY_HOURS",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#ecb9f9eaec",
+  "path": "issues.dhw_disinfection_switch_lost.description",
+  "claim": "for half an hour",
+  "claimed": "30.0",
+  "observed": "30.0",
+  "symbol": "const:DHW_DISINFECTION_LOST_MINUTES",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#ef9089f575",
+  "path": "config.error.silent_mode_window_too_short",
+  "claim": "time frame is shorter than",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "dhw_schedule:spec_problem",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#ef9089f575.1",
+  "path": "options.error.silent_mode_window_too_short",
+  "claim": "time frame is shorter than",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "dhw_schedule:spec_problem",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#f4f514c654",
+  "path": "config.error.invalid_dhw_windows",
+  "claim": "\"06:00-08:30, 17:00-22:00\"",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#f4f514c654.1",
+  "path": "options.error.invalid_dhw_windows",
+  "claim": "\"06:00-08:30, 17:00-22:00\"",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "dhw_schedule:parse_windows",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#f739e8d6e5",
+  "path": "services.restore_learned_snapshot.fields.source.description",
+  "claim": "The weekly snapshot (default)",
+  "claimed": "True",
+  "observed": "True",
+  "symbol": "services:restore schema default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#f7906f4d7a",
+  "path": "services.debug_collect.description",
+  "claim": "week-long debug collection",
+  "claimed": "7",
+  "observed": "7",
+  "symbol": "debugger:COLLECT_SPAN",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#f83b0c5815",
+  "path": "options.step.building.sections.combi.data_description.dhw_combi_tank_enabled",
+  "claim": "a buffer of at least 100 L",
+  "claimed": "100.0",
+  "observed": "100.0",
+  "symbol": "const:BUFFER_STORE_MIN_VOLUME",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#fcc03fa222",
+  "path": "config.step.dhw.data_description.dhw_idle_min_temperature",
+  "claim": "roughly room temperature",
+  "claimed": "20.0",
+  "observed": "20.0",
+  "symbol": "config_flow:config dhw form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#fcc03fa222.1",
+  "path": "options.step.hot_water.sections.temperatures.data_description.dhw_idle_min_temperature",
+  "claim": "roughly room temperature",
+  "claimed": "20.0",
+  "observed": "20.0",
+  "symbol": "config_flow:config dhw form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#fcde73ad5d",
+  "path": "config.error.night_above_day",
+  "claim": "The night temperature is above the day",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#fcde73ad5d.1",
+  "path": "options.error.night_above_day",
+  "claim": "The night temperature is above the day",
+  "claimed": "(True, False)",
+  "observed": "(True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#fce54361a2",
+  "path": "config.error.day_window_empty",
+  "claim": "end at or before it starts",
+  "claimed": "(True, True, False)",
+  "observed": "(True, True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#fce54361a2.1",
+  "path": "options.error.day_window_empty",
+  "claim": "end at or before it starts",
+  "claimed": "(True, True, False)",
+  "observed": "(True, True, False)",
+  "symbol": "comfort_band:errors",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#feabf282d6",
+  "path": "options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+  "claim": "Off by default.",
+  "claimed": "False",
+  "observed": "False",
+  "symbol": "config_flow:options building form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#ff13edf073",
+  "path": "options.step.modbus_prefill.data_description.prefill_offer",
+  "claim": "Off by default",
+  "claimed": "False",
+  "observed": "False",
+  "symbol": "config_flow:options modbus_prefill form default",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#ff62ca0861",
+  "path": "config.step.quick_setup.data_description.wood_tank_top_entity",
+  "claim": "taken as 5 °C below it",
+  "claimed": "5.0",
+  "observed": "5.0",
+  "symbol": "external_heat:<bulk temperature from probe pair>",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#ff62ca0861.1",
+  "path": "options.step.building.sections.wood.data_description.wood_tank_top_entity",
+  "claim": "taken as 5 °C below it",
+  "claimed": "5.0",
+  "observed": "5.0",
+  "symbol": "external_heat:<bulk temperature from probe pair>",
+  "verdict": "true"
+ },
+ {
+  "unit": "custom_components/heatpump_optimizer/translations/en.json#ff62ca0861.2",
+  "path": "options.step.quick_setup.data_description.wood_tank_top_entity",
+  "claim": "taken as 5 °C below it",
+  "claimed": "5.0",
+  "observed": "5.0",
+  "symbol": "external_heat:<bulk temperature from probe pair>",
+  "verdict": "true"
+ }
+]

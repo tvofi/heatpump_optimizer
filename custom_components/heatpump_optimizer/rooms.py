@@ -286,8 +286,11 @@ def lifted(
 
     Per step the lift is the smallest of the held lift, the ramp, and what
     the step's band leaves over ``base`` under its comfort target, so the
-    lifted floor never passes the target the same solve pulls towards. The
-    ramp starts at the house's margin over the floor ``base`` already
+    lifted floor never passes the target the same solve pulls towards. It
+    reaches the target, with no headroom kept under it, and the plan's peak
+    may then pass the unlifted plan's: the plan stores heat above a floor held
+    at the target, a rise accepted rather than clipped (round-11 ruling,
+    2026-11-18; ``tests/features.py`` pins it). The ramp starts at the house's margin over the floor ``base`` already
     raised, never under zero. A step on a holiday date takes no lift, as a
     house that is away takes none.
 
