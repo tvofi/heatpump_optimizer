@@ -102,10 +102,14 @@ tunable the evaluated round may loosen.
   the Home Assistant floor in `hacs.json` and the typed version, and the
   price shapes and climates `tests/profiles.py` defines. An axis the flow
   leaves continuous (tank volume, house size) has the levels that file
-  declares (minimum, default, maximum), each read against the flow row and
-  default constant it was taken from; a row that moves makes the command
-  refuse, never print a stale level. A level the code gains or
-  loses moves the population with no edit here.
+  declares (minimum, default, maximum), read in the flow module against
+  every value it pairs with the row's key: minimum and maximum against each
+  `_number` widget's bounds, default against each other value (a dict's
+  value for the key, the argument after it in a call, a `default=`
+  keyword), less the markers the record lists as presenting none. A value
+  there that differs from its level or does not read as a number, or a key
+  with no widget or no default, makes the command refuse the axis. A level
+  the code gains or loses moves the population with no edit here.
   The population is the product of the axes, which no seat can walk; **the
   cells the term counts are every level of every axis and every pair of
   levels from two axes**, the two counts the command prints. An interaction
