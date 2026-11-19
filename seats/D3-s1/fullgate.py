@@ -76,7 +76,7 @@ def gate(key, mutant, msg):
         c1 = os.times()
         l1 = load1()
         sh("git", "reset", "-q", "--hard", BASE)
-        sh("python3", "tests/gate_lock.py", "release", "--label", LABEL, check=False)
+        sh("python3", "tests/gate_lock.py", "release", check=False)
     text = log.read_text(errors="replace")
     failed = sorted(set(re.findall(r"^>>> (?:FAILED|ENDED BEFORE ITS SUMMARY): ([^\n(]+?)\s*(?:\(|$)", text, re.M)))
     summary = [ln for ln in text.splitlines() if re.search(r"TEST SCRIPT\(S\)|ALL TEST SCRIPTS PASSED", ln)]

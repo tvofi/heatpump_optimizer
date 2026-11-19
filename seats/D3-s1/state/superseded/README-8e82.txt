@@ -1,0 +1,1 @@
+8e82d7a0b3617003 first gate 2026-11-18T15:31Z superseded: ran on the PREPARE-stripped working tree (closure.py selftest and entities.py failed on the strip, not the mutant); re-run on the clean baseline tree
