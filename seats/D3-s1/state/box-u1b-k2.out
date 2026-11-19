@@ -230,3 +230,8 @@
 2026-11-19T18:12:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:prices_from_entity_state GUARD_OFF 4cd28db0 L820 by=- ran=13 wall=1586.5s
 2026-11-19T18:12:43Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step GUARD_OFF 489080ca L1790 by=tests/harness_headers.py,tests/features.py ran=12 wall=1588.2s
 2026-11-19T18:19:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_snow_memory CMP_BOUND 2cf3d63f L7551 by=- ran=13 wall=1600.6s
+2026-11-19T18:27:49Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:PeakTracker.observe CMP_BOUND 74e2bb7d L279 by=- ran=12 wall=1596.8s
+2026-11-19T18:38:46Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps GUARD_OFF 3fea1a1d L9352 by=- ran=13 wall=1585.5s
+2026-11-19T18:44:45Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:classify_space_steps CMP_BOUND af803eea L2300 by=- ran=17 wall=1922.3s
+RESULT load1=1.03
+RESULT thread_factor=1.00
