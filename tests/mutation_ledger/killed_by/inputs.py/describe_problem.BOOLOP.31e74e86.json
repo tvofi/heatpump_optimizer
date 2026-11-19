@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:describe_problem BOOLOP 31e74e86",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    if problem == \"stale\" and (age := entry.get(\"age_minutes\")) is not None:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if problem == \"stale\" or (age := entry.get(\"age_minutes\")) is not None:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=8."
+}

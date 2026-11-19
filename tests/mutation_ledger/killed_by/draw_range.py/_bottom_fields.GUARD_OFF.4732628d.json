@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_bottom_fields GUARD_OFF 4732628d",
+  "killed_by": "tests/features.py",
+  "old": "    elif floor is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`elif False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

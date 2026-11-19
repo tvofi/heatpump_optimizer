@@ -6712,9 +6712,9 @@ R.check(
 # Two the audit brief flagged and this PR deliberately leaves alone, pinned so
 # a future "consistency" pass does not add a device class to either.
 R.check(
-    "ECL110 Displace stays bare: it is a parallel shift, not a temperature",
-    getattr(by_name["ECL110 Displace"], "_attr_device_class", None) is None
-    and by_name["ECL110 Displace"]._attr_native_unit_of_measurement == "°C",
+    "Heat-Curve Displace stays bare: it is a parallel shift, not a temperature",
+    getattr(by_name["Heat-Curve Displace"], "_attr_device_class", None) is None
+    and by_name["Heat-Curve Displace"]._attr_native_unit_of_measurement == "°C",
     "a TEMPERATURE device class would have HA convert a delta as an absolute",
 )
 R.check(
@@ -13225,7 +13225,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
         "internal_gains_kw", "learner_progress", "lower_floor", "pump_max_power",
-        "pump_max_power_reason", "pump_max_power_source", "solar_aperture",
+        "pump_max_power_reason", "pump_max_power_source", "pump_min_power",
+        "pump_min_power_reason", "pump_min_power_source", "solar_aperture",
         "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
@@ -42827,6 +42828,29 @@ R.check(
     "decision 0013",
     _SR_FAIL == [],
     f"missing: {_SR_FAIL}",
+)
+
+
+# `policy_budgets.json` keys a moved file's caps at its OLD path, the spelling
+# `canon` gives every listed file, so grepping the budget file for where the
+# file now lives finds no cap (R11-PRE-MACHINERY-LIMITER carry 5). The reader's
+# instrument is `--budgets`: each row prints the live path, and a moved file's
+# row names its key. Arms: a moved file (the audit README) prints at its live
+# path with its key; an unmoved one (tests/README.md) prints with no key, the
+# null control a printer naming a key on every row would fail.
+_BUDGET_ROWS = subprocess.run(
+    ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--budgets"],
+    capture_output=True, text=True).stdout.splitlines()
+_BR = lambda f: [ln for ln in _BUDGET_ROWS if ln.split()[:1] == [f]]  # noqa: E731
+R.check(
+    "`policy_lint.mjs --budgets` prints a moved policy file at its live path, "
+    "naming the old-path key its caps sit under; an unmoved file names no key",
+    len(_BR("dev/audit/README.md")) == 1
+    and _BR("dev/audit/README.md")[0].endswith("key tools/audit/README.md")
+    and _BR("tools/audit/README.md") == []  # layout:old=tools/audit/README.md
+    and len(_BR("tests/README.md")) == 1
+    and " key " not in _BR("tests/README.md")[0],
+    f"rows: {_BR('dev/audit/README.md') + _BR('tools/audit/README.md') + _BR('tests/README.md')}",
 )
 
 

@@ -23,6 +23,13 @@ PLATFORMS: Final = [
 # that needs migrating, and handle it in ``async_migrate_entry``.
 CONFIG_ENTRY_VERSION: Final = 7
 
+# How many intervals the forecast-accuracy ring keeps, and the cap on the
+# tariff's whole-house samples and the store's accuracy domain. At the default
+# 30-minute optimization interval this is a fortnight, which is long enough to
+# see a seasonal bias emerge without keeping an unbounded amount of state in
+# memory.
+HISTORY_LENGTH: Final = 672
+
 # Configuration keys
 CONF_TIBBER_TOKEN: Final = "tibber_token"
 CONF_PRICE_SOURCE: Final = "price_source"
@@ -608,6 +615,12 @@ OUTAGE_DHW_DELAY_MINUTES: Final = 45.0
 # the electricity, which is a trade worth taking; anyone who wants the starts
 # back has a knob denominated in real currency. `tests/validate.py` reports the
 # start count per scenario, which is how that decision gets made from evidence.
+# The option's default stays 0. One exception is applied at solve time, not
+# here: an install whose planned levels are clamped (it cannot duty-cycle)
+# and that prices no start plans at ``optimizer.CLAMPED_DEFAULT_START_PRICE``
+# (``OptimizationConfig.start_price``), because a clamped plan is committed to
+# whole runs and an unpriced commit can ship more starts than the plan it
+# replaced.
 CONF_CYCLING_COST: Final = "compressor_cycling_cost"
 DEFAULT_CYCLING_COST: Final = 0.0
 

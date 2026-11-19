@@ -31,6 +31,15 @@
 # A log it cannot write is skipped: no output, no status of its own.
 # The log is capped: past HPO_GH_LOG_MAX bytes (default 1048576) it is moved
 # to gh-calls.log.1, replacing the older one.
+#
+# OWNER-ONLY MODE (HPO_OWNER_ONLY set to anything, by tools/audit/seat/owner_only.py):
+# the seat of an owner-only dimension writes nothing to GitHub. After the log line,
+# every call is refused unless it is a read as tools/audit/seat/gh_read.py's is_read
+# has it -- `gh api` with no method but GET and no field or input (read here by
+# api_gate's stricter table: an unknown flag or a header other than Accept is refused
+# too), or `gh pr view` -- or `gh --version` alone. The refusal is the shim's own exit
+# 1; the real gh is never started.
+#
 # The log's directory, fixed at install: seat_venv.sh --install-shims bakes the next line's
 # placeholder; no caller's environment (HPO_STATE_DIR) picks the log.
 loghome=@HPO_GH_LOG_HOME@
@@ -282,7 +291,7 @@ api_gate() {
   [ "${#pos[@]}" -le 1 ] || return 1
   path=${pos[0]:-}
   if [ -z "$write" ]; then
-    case ${meth:-GET} in GET|get) return 0 ;; esac
+    case ${meth:-GET} in GET|get) API_READ=1; return 0 ;; esac
   fi
   norm "$path" || return 1
   low=$(printf '%s' "$fields" | tr 'A-Z' 'a-z')
@@ -303,6 +312,15 @@ api_gate() {
   done
   return 0
 }
+if [ -n "${HPO_OWNER_ONLY:-}" ]; then
+  API_READ=; ro=
+  case ${1-} in
+    api) api_gate "$@" && [ -n "$API_READ" ] && ro=1 ;;
+    pr) [ "${2-}" = view ] && ro=1 ;;
+    --version) [ $# -eq 1 ] && ro=1 ;;
+  esac
+  [ -n "$ro" ] || { echo "gh shim: owner-only mode: only a read passes (gh api with GET and no field, gh pr view); refused" >&2; exit 1; }
+fi
 gate() {
   case ${1-} in
     '') return 0 ;;

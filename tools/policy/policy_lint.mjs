@@ -7523,7 +7523,12 @@ function cmdBudgets(files) {
     const cap = b && b.files[r.file] != null ? String(b.files[r.file]) : '-'
     const tcap = b && b.files_tokens && b.files_tokens[r.file] != null ? String(b.files_tokens[r.file]) : '-'
     if (r.always) alwaysTokens += Math.round(r.bytes / 4)
-    console.log(r.file.padEnd(46), String(r.lines).padStart(5), cap.padStart(4), String(Math.round(r.bytes / 4)).padStart(8), tcap.padStart(5), r.always ? '  yes' : '')
+    // A moved file's cap is keyed at its OLD path (`canon`), so the row prints
+    // where the file lives and names the key: a reader grepping the live path
+    // finds its cap here, which the budget file alone does not give them.
+    const live = locate(r.file)
+    const key = live === r.file ? '' : `  key ${r.file}`
+    console.log(live.padEnd(46), String(r.lines).padStart(5), cap.padStart(4), String(Math.round(r.bytes / 4)).padStart(8), tcap.padStart(5), (r.always ? '  yes' : '') + key)
   }
   // The band is printed on every aggregate row, not once in a footer. A seat
   // reads one line to decide whether it is refused, and a cap that now sits

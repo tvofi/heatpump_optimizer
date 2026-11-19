@@ -355,6 +355,7 @@ from .thermal_model import (
     learner_room_unread,
     mold_safe_room_floor,
     learner_unmetered,
+    levels_clamped,
     immersion_level_kw,
     immersion_over,
     plan_step_runs,
@@ -934,11 +935,10 @@ def _cop_fold_blocked(coord: Any) -> bool:
 def _fold_flow_lift(coord: Any, now: datetime) -> None:
     """#1067: fold this interval's supply-vs-curve residual into the bias.
 
-    Module-level on ``_cop_fold_blocked``'s precedent: a method here would
-    cost ``coordinator_methods`` and a seam edge for a function that reads
-    four things off the coordinator and calls one learner.
+    Module-level on ``_cop_fold_blocked``'s precedent: as a method it would cost
+    ``coordinator_methods`` and a seam edge for four reads and one learner call.
 
-    Five gates, and each is somebody else's question already answered:
+    Six gates, and each is somebody else's question already answered:
 
     * a FRESH supply reading — ``last_supply_c`` is cleared every cycle the
       slot is unconfigured, unreadable or past its horizon, so this is also
@@ -953,13 +953,12 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     * a space-dominant interval by its attribution (the mode dwell where
       observed, else the commanded split), at the efficiency reference's
       ``_COP_CURVE_SHARE``: the curve is a SPACE heating curve, and a hot-water
-      interval runs the supply at the tank's charge temperature.
+      interval runs the supply at the tank's charge temperature;
+    * no throttling valve on a single-zone house: its supply is the valve's tank charge.
 
-    ``now`` is unused for arithmetic and taken anyway: this is called from
-    ``_record_accuracy``'s per-cycle block beside ``_observe_frequency``,
-    which is the one place a cycle's observations are booked, and every
-    observer there carries the cycle's timestamp so none of them can
-    disagree about when "this cycle" was.
+    ``now`` is unused and taken anyway: ``_record_accuracy``'s per-cycle block,
+    the one place a cycle's observations are booked, gives every observer the
+    cycle's timestamp so none can disagree about when "this cycle" was.
     """
     del now  # the fold is not time-weighted; see the docstring
     ctx = getattr(coord, "_ctx", coord)
@@ -967,6 +966,8 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     if supply is None:
         return
     params = ctx._thermal_params
+    if mixing_valve.is_throttling(params.mixing_valve_mode) and not params.two_zone_enabled:
+        return
     commanded = coord._commanded_power()
     if commanded < draw_range.power_floor_kw(coord._accuracy.draw, params):
         return
@@ -2431,14 +2432,18 @@ def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float
 
 
 def _solve_band(draw: draw_range.DrawRange, hub: ThermalParameters, config: Any) -> draw_range.SolveBand:
-    """This moment's ``draw_range.solve_band`` from the hub and the store."""
-    return draw_range.solve_band(draw, hub, probe_install(config), dt_util.now().timestamp())
+    """This moment's ``draw_range.solve_band`` from the hub and the store;
+    the learned floor applies where the plan's levels are clamped to the band."""
+    return draw_range.solve_band(
+        draw, hub, probe_install(config), dt_util.now().timestamp(),
+        applies_floor=levels_clamped(config),
+    )
 
 
 def _band_fields(band: draw_range.SolveBand) -> dict[str, float]:
-    """The solve copy's power range under ``band``; none where configured,
-    so a configured band leaves the copy the hub's figures byte for byte."""
-    if band.source == "configured":
+    """The solve copy's power range under ``band``; none where both ends are
+    configured, so such a band leaves the copy the hub's figures byte for byte."""
+    if band.source == "configured" and band.min_source == "configured":
         return {}
     return {"max_electrical_power": band.max_kw, "min_electrical_power": band.min_kw}
 
@@ -5330,11 +5335,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
-        params = ctx._thermal_params
-        # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release`` lets out.
-        for row in self._measured_cop.release(draw, params, dt_util.now()):
+        params, measured_heat, priced = ctx._thermal_params, probe_install(ctx._config).measured_heat, self._cop_scale
+        # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release``
+        # lets out, then the scale its heat-ask probe owes this cycle (``owed_scale``; owner ruling D4).
+        for row in self._measured_cop.release(draw, params, dt_util.now(), measured_heat):
             self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
-        if self._measured_power is not None and (refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw)):
+        if (owed := self._measured_cop.owed_scale(lambda: ctx._config.cop_scale, dt_util.now())) is not None:
+            self._apply_cop_scale(owed)
+        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw):
             return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
@@ -5358,14 +5366,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # v4.0.5: without a heat reading this ratio trains the scale only while the pump
         # plausibly runs the plan: outliers are judged against a walking ratio EWMA (a fixed gate
         # deadlocks past it), a draw off the ask on draw_range's evidence; heat skips both.
-        row = CopInterval(commanded, cast(float, self._measured_power), self._cop_reference_curve(), self._cop_scale, dt_util.now())
+        row = CopInterval(commanded, cast(float, self._measured_power), self._cop_reference_curve(), priced, dt_util.now())
         ewma = self._measured_cop.walk_ratio(row.ratio)
-        if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw)):
-            _LOGGER.debug(
-                "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
-                "against the running ratio %.2f -- not an efficiency reading",
-                refusal, commanded, self._measured_power, ewma,
-            )
+        if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw, measured_heat)):
             return refusal
         return self._fold_cop_evidence(commanded, row.drawn_kw, heat_kw, row.reference)
 

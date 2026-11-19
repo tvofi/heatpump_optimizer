@@ -74,8 +74,10 @@ REFERENCE_BASIS_META = "reference_basis"
 #: booked as simulated. Bump when the booked reference changes: 1 spread a
 #: valved horizon by steady demand (released in v7.1.15), so its months are old;
 #: 2 held a valve-limited two-zone house at level floors below the plant's
-#: ceiling (released in v7.1.17), where pull request 3587 holds it at the valve top.
-REFERENCE_BASIS = 3
+#: ceiling (released in v7.1.17), where pull request 3587 holds it at the valve top;
+#: 3 held a single-zone valved house short of its setpoint, its curve missing the
+#: slab in series (released in v10.0.0), which R11-VALVE-REFERENCE's curve reaches.
+REFERENCE_BASIS = 4
 
 #: What ``migrate_ledger_v1`` stamps: every month a v1 store booked savings in predates it.
 OLD_REFERENCE_BASIS = 0

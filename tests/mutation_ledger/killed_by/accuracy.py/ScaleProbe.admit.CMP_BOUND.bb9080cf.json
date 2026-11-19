@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleProbe.admit CMP_BOUND bb9080cf",
+  "killed_by": "tests/features.py",
+  "old": "            if not self.reseeded and not COP_SCALE_MIN < row.cop_scale < COP_SCALE_MAX:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if not self.reseeded and not COP_SCALE_MIN <= row.cop_scale < COP_SCALE_MAX:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3. Each of the 2 sites under this anchor was killed."
+}

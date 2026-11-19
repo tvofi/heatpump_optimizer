@@ -11,12 +11,17 @@ outdoor (wind 3 m/s, no rain or sun):
   one-tank  the synthetic fixture pull request 3481's ``fields`` arm builds
             (``profiles.house()``, single zone, the first throttling mode, a
             500 l wood tank, valve target unset).
+  combi     R10-COMBI-TANK's install shape (``r10_combi_tank.params()``:
+            single zone, ``smart_write`` valve, combi tank), the carry's
+            precondition for a single-zone valve on an install's own layout.
 
 Per row: ``held`` is ``_thermostat_held_state``'s room, upper and lower floor;
 ``end`` the same three where ``_compute_baseline_power``'s 96-step day ends;
 ``plant`` where ``simulate_step`` at ``max_electrical_power`` for 288 steps
 from the held state leaves them -- the plant's own ceiling, its tank at the
-cap. ``gap`` is the largest of the six held-to-end and held-to-plant moves, K.
+cap -- and ``settled`` the same after 960 steps, where a single-zone slab has
+stopped moving (R11-VALVE-REFERENCE: its curve's target is ``comfort_ceiling``).
+``gap`` is the largest of the six held-to-end and held-to-plant moves, K.
 The control is ``valve off``: the install with ``mixing_valve_mode`` none,
 whose held floors read 21.000 (no plant column: an unvalved pump at its
 maximum has no ceiling below the target).
@@ -25,6 +30,7 @@ Precondition, asserted (exit 1): every held room lies in [outdoor, 21].
 """
 
 import sys
+from pathlib import Path
 
 import numpy as np
 
@@ -32,7 +38,10 @@ from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig, 
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState, WeatherSeries
 from profiles import house, replay_install
 
-STEPS, DT_H, WIND = 96, 0.25, 3.0
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import r10_combi_tank  # noqa: E402
+
+STEPS, DT_H, WIND, SETTLED = 96, 0.25, 3.0, 960
 
 
 def one_tank():
@@ -62,10 +71,12 @@ def row(label, params, outdoor, ceiling=True):
     line = f"{label} {outdoor:+.0f} C: held {fmt(held)} end {fmt(end)}"
     if ceiling:
         plant = held
-        for _ in range(3 * STEPS):
+        for step in range(SETTLED):
             plant = model.simulate_step(plant, params.max_electrical_power, outdoor, WIND, 0.0, 0.0, DT_H)
-        gap = max(abs(a - b) for other in (end, plant) for a, b in zip(zones(held), zones(other)))
-        line += f" plant {fmt(plant)} gap {gap:.3f}"
+            if step + 1 == 3 * STEPS:
+                pumped = plant
+        gap = max(abs(a - b) for other in (end, pumped) for a, b in zip(zones(held), zones(other)))
+        line += f" plant {fmt(pumped)} settled {fmt(plant)} gap {gap:.3f}"
     print(line)
     return min(outdoor, 21.0) <= held.room_temperature <= 21.0
 
@@ -76,6 +87,7 @@ def main():
         ok &= row("install", ThermalParameters.from_config(replay_install()), outdoor)
         ok &= row("valve off", ThermalParameters.from_config(replay_install(mixing_valve_mode="none")), outdoor, False)
         ok &= row("one-tank", one_tank(), outdoor)
+        ok &= row("combi", r10_combi_tank.params(), outdoor)
     if not ok:
         print("PRECONDITION FAILED: a held room outside [outdoor, 21]")
         return 1

@@ -16,8 +16,11 @@ the plan to the owner.
 4. **Check the target's conditions**: admissible end to end, the spread rule,
    holdouts, fitness functions; a plan stopping at the floor with a cheap move
    left over is `revise`.
-5. **Check the time**: re-run the projection; the critical chain and the
-   hot-file order are as stated.
+5. **Check the time and the objective**: re-run `plan_audit.py
+   objective-check` at the plan SHA; the critical chain and the hot-file order
+   are as stated; attack three ranks and three keyed effects in the code, the
+   rank-1 groups with most predicted dS per finding first; read the floor cost
+   against step 4's cheap test.
 6. **Check the ADRs**: each serves a named scenario, its tradeoffs written.
 
 After two `revise` rounds the plan goes to the owner with the open points,

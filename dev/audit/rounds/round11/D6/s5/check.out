@@ -1,0 +1,16 @@
+RESULT units=3483
+RESULT rows=1359
+RESULT claims=1359
+RESULT false=3
+RESULT stale=6
+RESULT true=1296
+RESULT unverifiable=54
+RESULT unrowed=2124
+RESULT orphan=0
+RESULT malformed=0
+RESULT plant_refused=1 planted_units=1 in .claude/skills/steward/SKILL.md
+RESULT check_rc=1
+RESULT unrowed_listed=50 (check lists at most 50)
+RESULT thread_factor=1.00
+RESULT load1=3.31
+RESULT swapins=0

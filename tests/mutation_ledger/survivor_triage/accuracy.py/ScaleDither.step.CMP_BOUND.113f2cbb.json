@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleDither.step CMP_BOUND 113f2cbb",
+  "old": "        return self.levels(base)[(coin > 0) != second]",
+  "reason": "Equivalent (CMP_BOUND, `>` -> `>=`). `coin` is the first element of `ScaleDither.ahead`, which `step` alone writes, from `self.coin.choice((-1, 1))` or from the tuple it already holds: it is -1 or 1 and never 0, the one value on which the two comparisons differ. Driven by prepr.sh's diff-mutant step at 4fee736fbe over the tests/features.py block from `R.section(\"COP learner duty floor keys` to `R.section(\"R10-COP-GATE (#2262)`: the mutant survived.",
+  "verdict": "equivalent"
+}

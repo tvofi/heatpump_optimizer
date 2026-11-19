@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_stored_floor RETURN_DEL 76c53fb3",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    return (floor if keep else None), (min(max(since, 0), rows) if type(since) is int else 0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=2."
+}

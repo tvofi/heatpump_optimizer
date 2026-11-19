@@ -1,0 +1,45 @@
+{
+ "id": "D6-s5-01",
+ "step": "D6.M3",
+ "title": "dev/audit/README.md: the mock-use claim is false and the j5_gil reviewer pointer is stale",
+ "severity": "low",
+ "class_guess": "N-move-stale-path",
+ "files": [
+  "dev/audit/README.md"
+ ],
+ "claim": "dev/audit/README.md says tests/optimality.py is the only unittest.mock use in the suite and that `briefs/fix-review.md` section 9 sends a fix reviewer to j5_gil.py; five suite scripts import unittest.mock and no fix-review contract names j5_gil.py.",
+ "mechanism": "The builders table was written when optimality.py was the one mock user; doc_claims.py, dst_checks.py, entities.py and features.py have since imported unittest.mock. The briefs/ directory moved to dev/governance/roles/, and the moved fix-review.md carries no j5_gil.py reference.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_mock (and --only c_fix_review_j5)",
+  "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+  "value": 5,
+  "unit": "suite scripts importing unittest.mock (claim: 1)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 container (shared, light seat)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, other finder seats running; a count is contention-immune",
+  "tolerance": "exact",
+  "load1": 3.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/closure.py:test_scripts",
+ "perturbation": {
+  "change": "--perturb mock_suite: restrict closure.test_scripts() to the one script the README names",
+  "expected_direction": "down",
+  "observed_value": 1
+ },
+ "metric_definition": "count of closure.test_scripts() .py entries whose AST imports unittest.mock; second row: dev/governance/**.md files naming j5_gil.py (0)",
+ "phenomenon_property": "Every factual sentence of dev/audit/README.md about the suite and the contracts matches what the suite and dev/governance/ contain at the baseline.",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_main_guards",
+  "value": "true",
+  "note": "the same README's __main__-guard and import-time-exit lists check true against the AST"
+ },
+ "proposed_fix_scope": "Rewrite the two sentences in dev/audit/README.md: name the five mock users (or drop 'only'), and point the j5_gil.py row at the contract that sends a reviewer to it, or drop the pointer.",
+ "scope": "D6-s5",
+ "stop_rule_class": "hygiene",
+ "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_mock (and --only c_fix_review_j5)"
+ ]
+}

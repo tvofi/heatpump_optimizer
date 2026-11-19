@@ -62,9 +62,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.0.3
+# claims-for: 10.1.0
 #
-# v10.0.3: Self-test hotfix and round-11 preparation. The stamp empties the list; the
+# v10.1.0: learned pump minimum, clamped start price, self-setting pump test, valve reference, generic heat-curve text. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
@@ -786,3 +786,12 @@
 # the running rule and the 1.0 kW floor, starts by the edge count
 # (`runs.edge_count`), energy, predicted_cost, lowest room. Hot-water levels
 # under the floor are the planner's and are not committed here.
+# R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): the model status sensor
+# publishes which electrical minimum the plan used, so every coord capture gains,
+# under `sensors.model_status.extra_state_attributes`, `pump_min_power`,
+# `pump_min_power_reason` and `pump_min_power_source`. Those three leaves are
+# the whole diff in each fixture, each "present on one side only" and ADDED at
+# this head (the direction); no other leaf moves (tests/env_drift.py --all
+# against the merge base, one environment). Claimed rather than re-recorded, as
+# R10-COP-GATE-D's keys were: the committed files were patched in those three
+# paths alone, each null because a coord fixture holds no plan.

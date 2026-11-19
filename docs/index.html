@@ -251,7 +251,7 @@ pre.yaml .k { color: var(--accent) } pre.yaml .c { color: var(--ink-2) }
 .cp .pp > div { padding: 14px 18px 2px 0; display: grid; gap: 4px; align-content: start }
 .cp .pp > div + div { padding-left: 18px; border-left: 1px solid var(--line) }
 .cp .pp .one { grid-column: 1 / -1 }
-.cp:has(#cp1:checked) .p1, .cp:has(#cp2:checked) .p2, .cp:has(#cp3:checked) .p3, .cp:has(#cp0:checked) .p0 { display: grid }
+.cp:has(#cp1:checked) .p1, .cp:has(#cp2:checked) .p2, .cp:has(#cp4:checked) .p4, .cp:has(#cp5:checked) .p5, .cp:has(#cp3:checked) .p3, .cp:has(#cp0:checked) .p0 { display: grid }
 @supports not selector(:has(*)) { .cp .pp { display: grid; margin-top: 8px } }
 @media (max-width: 640px) { .cp .pp { grid-template-columns: 1fr } .cp .pp > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line) } }
 /* each answer's own name, shown only where every answer shows at once */
@@ -414,7 +414,7 @@ footer a { padding-block: 9px }
       </div></li>
       <li class="st" data-step="4"><div class="in">
         <h3 data-copy><span class="n" aria-hidden="true">4</span>Act</h3>
-        <p class="q" data-src="README.md#how-it-works">Publish plan sensors, switch the heat pump, ECL110 displace / frequency advice</p>
+        <p class="q" data-src="README.md#how-it-works">Publish plan sensors, switch the heat pump, heat-curve displace / frequency advice</p>
         <p data-src="README.md#known-limitations">The plan is re-solved once per optimization interval — 30 minutes by default — and holds until the next solve.</p>
       </div></li>
       <li class="st" data-step="5"><div class="in">
@@ -484,7 +484,7 @@ footer a { padding-block: 9px }
       <p>The heat-loss scale, tank cooling rates, the COP curve and its defrost derate, the solar aperture, internal gains, how the loss splits between floors, your hot-water draw statistics, your revealed comfort preference, and a cool-only heat-curve correction are all estimated from your own house. Every learner is snapshotted weekly (the last eight are kept), and a drift watchdog can roll them back to the last healthy snapshot.</p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span>
       <h3 data-feature>Knows what your electricity actually costs.</h3>
-      <p>Tibber spot prices, time-of-use grid transfer fees, the monthly capacity (effekt) tariff and its billing clock, PV self-consumption priced at what consuming actually costs you, and a learned diurnal price prior for the part of the horizon that has not been published yet. A live peak guard and a main-fuse headroom advisor act inside the metering window the plan never saw, and a contract comparison settles the month three ways so you can see what your tariff choice is worth.</p></article>
+      <p>Spot prices from Tibber or a price sensor, time-of-use grid transfer fees, the monthly capacity (effekt) tariff and its billing clock, PV self-consumption priced at what consuming actually costs you, and a learned diurnal price prior for the part of the horizon that has not been published yet. A live peak guard and a main-fuse headroom advisor act inside the metering window the plan never saw, and a contract comparison settles the month three ways so you can see what your tariff choice is worth.</p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6a4 4 0 0 0 4 4h8a4 4 0 0 1 4 4v2"/><circle cx="4" cy="4" r="1.5"/><circle cx="20" cy="20" r="1.5"/></svg></span>
       <h3 data-feature>Handles real plumbing.</h3>
       <p>A mixing valve is what lets a buffer tank store anything, so it is modelled explicitly. A wood furnace tank is a store of its own, drawn wood-first while it is usable, with an optional hot-water inlet coil. Your hydronic layout is picked from a catalog of drawn arrangements rather than described in prose, and circulation pumps — the hot-water loop and the space pump — are scheduled instead of left running.</p></article>
@@ -517,14 +517,18 @@ footer a { padding-block: 9px }
     <fieldset><legend><span class="eyebrow">Control path</span><span data-copy>How is your heat pump controlled?</span></legend>
       <div class="opts">
         <label><input type="radio" name="cp" id="cp1" checked>On/off switch</label>
-        <label><input type="radio" name="cp" id="cp2">ECL110 heat curve</label>
+        <label><input type="radio" name="cp" id="cp2">Heat curve, over MQTT</label>
+        <label><input type="radio" name="cp" id="cp4">Heat curve, offset entity</label>
+        <label><input type="radio" name="cp" id="cp5">Heat curve, stored parameter</label>
         <label><input type="radio" name="cp" id="cp3">Compressor frequency</label>
         <label data-copy><input type="radio" name="cp" id="cp0">None of these</label>
       </div>
     </fieldset>
     <div aria-live="polite">
       <div class="pp p1"><h3 class="pph">On/off switch</h3><div><span class="eyebrow">You provide</span><p>a switch that turns the heat pump on and off</p></div><div><span class="eyebrow">The optimizer writes</span><p>may turn it off during expensive hours</p></div></div>
-      <div class="pp p2"><h3 class="pph">ECL110 heat curve</h3><div><span class="eyebrow">You provide</span><p>a Danfoss ECL110-compatible weather-compensated controller, reachable over MQTT</p></div><div><span class="eyebrow">The optimizer writes</span><p>a heat-pump on/off decision and an integer parallel shift (displace) onto the controller's own heat curve</p></div></div>
+      <div class="pp p2"><h3 class="pph">Heat curve, over MQTT</h3><div><span class="eyebrow">You provide</span><p>a weather-compensated controller that takes its curve offset over MQTT (for example a Danfoss ECL110 through an MQTT bridge)</p></div><div><span class="eyebrow">The optimizer writes</span><p>a heat-pump on/off decision and an integer parallel shift (displace) onto the controller's own heat curve</p></div></div>
+      <div class="pp p4"><h3 class="pph">Heat curve, offset entity</h3><div><span class="eyebrow">You provide</span><p>a controller whose volatile whole-curve offset is a number entity (for example a Luxtronik SHI heating offset)</p></div><div><span class="eyebrow">The optimizer writes</span><p>the same displace as a temperature difference via number.set_value, bounded to ±3 K by default; 0 again when the optimizer is turned off or unloaded</p></div></div>
+      <div class="pp p5"><h3 class="pph">Heat curve, stored parameter</h3><div><span class="eyebrow">You provide</span><p>a controller with no volatile offset, whose stored curve setting is a number entity (kind persistent)</p></div><div><span class="eyebrow">The optimizer writes</span><p>its value before the first write plus the displace, within ±3 K and at most 12 writes a day by default; that value written back when the optimizer is turned off or unloaded</p></div></div>
       <div class="pp p3"><h3 class="pph">Compressor frequency</h3><div><span class="eyebrow">You provide</span><p>the compressor frequency exposed as a number entity (typically from Modbus or ESPHome)</p></div><div><span class="eyebrow">The optimizer writes</span><p>the recommended frequency via number.set_value — but only once you switch the mode to Control</p></div></div>
       <div class="pp p0"><h3 class="pph" data-copy>None of these</h3><div class="one"><span class="eyebrow" data-copy>With none of them</span><p>Each path is optional, the three are independent of each other, and with none of them configured “the plan is published on sensors for your own automations to act on”</p></div></div>
     </div>
@@ -597,7 +601,7 @@ footer a { padding-block: 9px }
     <a class="doc" data-doc="docs/dashboard-card.md" href="dashboard-card.html"><b>docs/dashboard-card.md</b><span>The card: options, interactions, editing limits</span></a>
     <a class="doc" data-doc="docs/automations.md" href="automations.html"><b>docs/automations.md</b><span>Complete automation examples using only the entities and services the integration creates</span></a>
     <a class="doc" data-doc="docs/architecture.md" href="architecture.html"><b>docs/architecture.md</b><span>Module map and how a plan is made, for anyone reading or changing the code</span></a>
-    <a class="doc" data-doc="docs/ecl110.md" href="ecl110.html"><b>docs/ecl110.md</b><span>ECL110 MQTT control</span></a>
+    <a class="doc" data-doc="docs/heat-curve.md" href="heat-curve.html"><b>docs/heat-curve.md</b><span>Heat-curve control, three ways: MQTT topics (for example a Danfoss ECL110), an offset entity, a stored curve parameter</span></a>
     <a class="doc" data-doc="DISCLAIMER.md" href="disclaimer.html"><b>DISCLAIMER.md</b><span>The full disclaimer</span></a>
   </div>
 </section>

@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 10.0.3
+# claims-for: 10.1.0
 #
-# v10.0.3: Self-test hotfix and round-11 preparation. The stamp empties the list; the
+# v10.1.0: learned pump minimum, clamped start price, self-setting pump test, valve reference, generic heat-curve text. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -808,3 +808,7 @@
 # advisor_empty move on advisor.step_grid, advisor_page also on
 # advisor.basis_history, savings_page on receipt.covers; the other 18 render
 # the What-if panel and move on whatif.no_windows_hint. Text nodes only.
+
+# R11-OWNER-GENERIC-CONTROL-TEXT carry (#3643): dearer becomes pricier in stats.dearer
+# (the what-if delta hint) and in why.sub_dearer (the hover's Because line), the short
+# form because "more expensive" wraps both at 375 px. Text nodes only.

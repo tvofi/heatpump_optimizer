@@ -35,10 +35,23 @@ tools/ci/gate.py:
   G-cancelled-red   a cancelled member is red, not unread.
   G-na              a skipped instrument-self-tests is read, not set aside.
   G-neither         one required name is in neither verdict.
+tools/audit/seat/cloud_dispatch.py (carry 10: the payload names the approved design):
+  D-design-line     a fixer's payload names no design.
+  D-part-clause     a part's design line says nothing of the two cuts.
+  D-part-always     an unsplit group's design line speaks of parts.
+  D-order           the design line follows the part line.
+  D-stale-approval  an approval of a design that has since moved is one.
+  D-no-verdict      a design with no verdict ref reads the verdict fetched last.
+tools/audit/seat/cloud-setup.sh (carry 11: a check read under each kernel class):
+  K-pin-kept        --kernels runs the command under the seat's pinned class every time.
+  K-probe           a class OpenBLAS does not load is run and counted.
+  K-red             a red class is not counted red.
+  K-none            no class run exits 0.
+  K-list            KERNELS is the pinned class alone.
 
     python3 dev/audit/harnesses/r11_toolchain_mutants.py
 
-EXPECTED RESULT mutants=26
+EXPECTED RESULT mutants=37
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -65,9 +78,11 @@ def repo_root(start):
 
 ROOT = repo_root(__file__)
 TOOLCHAIN, PRUNE, GATE = "tools/audit/seat/toolchain.py", "tools/audit/seat/prune_refs.py", "tools/ci/gate.py"
-#: What a copy holds: the three targets' own directories and what their self-tests read.
-COPIED = ("tools/audit/seat", "tools/ci", "tools/policy/fixtures", "tests/throwaway_git.py", "tests/closures.json",
-          ".github/workflows")
+DISPATCH, SETUP = "tools/audit/seat/cloud_dispatch.py", "tools/audit/seat/cloud-setup.sh"
+#: What a copy holds: the targets' own directories and what their self-tests read (`bus.sh`, which
+#: the dispatcher's reviewer path runs, refuses without `tools/pr`'s poster beside it).
+COPIED = ("tools/audit/seat", "tools/ci", "tools/policy", "tools/pr", "tests/throwaway_git.py", "tests/throwaway_git.sh",
+          "tests/closures.json", ".github/workflows")
 #: A plant is (file, old, new).
 PLANTS = {
     "M-absent-behind": (TOOLCHAIN, '    if git("rev-parse", "-q", "--verify", f"{TRACKING}^{{commit}}")[0]:\n', "    if False:\n"),
@@ -101,11 +116,24 @@ PLANTS = {
     "G-na": (GATE, '(jobs.get(n) or ("", ""))[1] != "skipped"]', "True]"),
     "G-neither": (GATE, "    return verdict([n for n in REQUIRED[cls] if n not in MACHINERY_JOBS]), verdict(MACHINERY_JOBS)\n",
                   "    return verdict([n for n in REQUIRED[cls] if n not in MACHINERY_JOBS][1:]), verdict(MACHINERY_JOBS)\n"),
+    "D-design-line": (DISPATCH, "        dline = design_line(group_id, approved, bool(pline))\n", '        dline = ""\n'),
+    "D-part-clause": (DISPATCH, '    if part:\n        line += (" Its parts', '    if False:\n        line += (" Its parts'),
+    "D-part-always": (DISPATCH, '    if part:\n        line += (" Its parts', '    if True:\n        line += (" Its parts'),
+    "D-order": (DISPATCH, "for ln in (dline, pline) if ln),", "for ln in (pline, dline) if ln),"),
+    "D-stale-approval": (DISPATCH, '    return tip if first == f"Design review: approve {tip}" else ""\n', "    return tip\n"),
+    "D-no-verdict": (DISPATCH, '    if not _git(repo_dir, "ls-remote", "origin", vref).split():\n        return ""\n',
+                     '    if not _git(repo_dir, "ls-remote", "origin", vref).split():\n        pass\n'),
+    "K-pin-kept": (SETUP, '    rc=0; OPENBLAS_CORETYPE=$k "$@" || rc=$?\n', '    rc=0; "$@" || rc=$?\n'),
+    "K-probe": (SETUP, '    if [ "$got" != "$k" ]; then\n', "    if false; then\n"),
+    "K-red": (SETUP, '    ran="$ran $k"; [ "$rc" = 0 ] || red="$red $k"\n', '    ran="$ran $k"\n'),
+    "K-none": (SETUP, '  [ -n "$ran" ] || return 2\n', ""),
+    "K-list": (SETUP, 'KERNELS="SkylakeX Haswell Sandybridge Nehalem"\n', 'KERNELS="Haswell"\n'),
 }
 
 
 def selftest(tree: Path, target: str) -> tuple:
-    r = subprocess.run([sys.executable, "-I", str(tree / target), "--self-test"], capture_output=True, text=True)
+    run = ["bash"] if target.endswith(".sh") else [sys.executable, "-I"]
+    r = subprocess.run([*run, str(tree / target), "--self-test"], capture_output=True, text=True)
     out = r.stdout + r.stderr
     return r.returncode, sum(1 for ln in out.splitlines() if ln.lstrip().startswith("FAIL"))
 
@@ -122,7 +150,7 @@ def copy(tmp: str, name: str) -> Path:
 def main() -> int:
     survived = 0
     with tempfile.TemporaryDirectory() as tmp:
-        for target in (TOOLCHAIN, PRUNE, GATE):
+        for target in (TOOLCHAIN, PRUNE, GATE, DISPATCH, SETUP):
             rc, failed = selftest(copy(tmp, "M0-" + Path(target).stem), target)
             print(f"RESULT mutant=M0 file={target} failed={failed} verdict={'null-ok' if rc == 0 and not failed else 'NULL-RED'}")
             if rc or failed:

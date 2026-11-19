@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.flow_target_for_indoor GUARD_OFF 89896ff5",
+  "killed_by": "tests/features.py",
+  "old": "        if not p.two_zone_enabled and p.mixing_valve_mode in mixing_valve.THROTTLING_MODES:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -34,7 +34,7 @@ from typing import Any, Callable, cast
 
 import numpy as np
 
-from .accuracy import utc_elapsed_seconds
+from .drift import utc_elapsed_seconds
 from .const import (
     DEFAULT_OPTIMIZATION_INTERVAL,
     DEFAULT_SLAB_HEAT_TRANSFER,

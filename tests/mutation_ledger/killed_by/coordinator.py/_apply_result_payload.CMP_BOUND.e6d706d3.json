@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_apply_result_payload CMP_BOUND e6d706d3",
+  "killed_by": "tests/features.py",
+  "old": "                        if result.displace_schedule and idx < len(result.displace_schedule)",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if result.displace_schedule and idx <= len(result.displace_schedule)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

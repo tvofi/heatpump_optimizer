@@ -48,6 +48,16 @@
 #                                (the golden fixtures' BLAS floats depend on
 #                                it); else REFUSE naming the variables; exit 0
 #                                or 1
+#   cloud-setup.sh --kernels <command> [<argument>...]
+#                                the command once per kernel class of KERNELS,
+#                                the pin lifted for it: one pinned kernel
+#                                reproduces CI on one of the classes its
+#                                runners load, so a check that reads a solve
+#                                is read under each before it is trusted
+#                                (tests/README.md, the BLAS kernels section).
+#                                A class OpenBLAS does not load here is named
+#                                as not run, never as green. Exit 0 every
+#                                class run is green, 1 one is red, 2 none ran
 #   cloud-setup.sh --self-test   the profile, variables and check arms, in a temp dir
 set -euo pipefail
 
@@ -55,6 +65,10 @@ REPO=${HPO_REPO:-/home/user/heatpump_optimizer}
 PREFIX=${HPO_PREFIX:-/opt/hpo}
 PROFILE=${HPO_PROFILE:-/etc/profile.d/hpo-toolchain.sh}
 CORETYPE=Haswell
+# The kernel classes --kernels reads a command under: the pin's own, and the
+# others .github/workflows/kernel-points.yml measures or its `native` runner
+# loads (SkylakeX, the class `tests / fast` drew red on in #3602).
+KERNELS="SkylakeX Haswell Sandybridge Nehalem"
 # The seat identity (P320): an author in the environment overrides `git config`,
 # so the four variables git reads first are exported; a runner default
 # (Claude <noreply@anthropic.com>) then cannot author a seat's commit. The values
@@ -92,12 +106,37 @@ check() { # prefix
   local py; py=$(command -v python3 || true)
   if [ "$py" = "$1/venv-ci/bin/python3" ] && [ -x "${HPO_TYPING_PYTHON:-}" ] \
     && [ "${OPENBLAS_CORETYPE:-}" = "$CORETYPE" ]; then
-    echo "cloud-setup check: OK python3 is $py"; return 0
+    echo "cloud-setup check: OK python3 is $py; OPENBLAS_CORETYPE is pinned to $CORETYPE, one of the kernel" \
+      "classes CI's runners load: read a check of a solve under each with cloud-setup.sh --kernels <command>"
+    return 0
   fi
   echo "cloud-setup check: REFUSE python3 is ${py:-absent}," \
     "HPO_TYPING_PYTHON is ${HPO_TYPING_PYTHON:-unset}, OPENBLAS_CORETYPE is ${OPENBLAS_CORETYPE:-unset};" \
     "set the environment's variables: $(variables "$1" | tr '\n' ' ')"
   return 1
+}
+
+loaded_kernel() { # the kernel class OpenBLAS reports loading under this environment; nothing when it reports none
+  local out; out=$(OPENBLAS_VERBOSE=2 python3 -c 'import numpy' 2>&1 >/dev/null || true)
+  sed -n '/^Core: */{s///p;q;}' <<<"$out"
+}
+
+kernels() { # command...
+  local k got rc ran="" red="" skipped=""
+  [ $# -gt 0 ] || { echo "usage: cloud-setup.sh --kernels <command> [<argument>...]" >&2; return 2; }
+  for k in $KERNELS; do
+    got=$(OPENBLAS_CORETYPE=$k loaded_kernel || true)
+    if [ "$got" != "$k" ]; then
+      echo "cloud-setup kernels: $k not run: asked for it, OpenBLAS loads ${got:-no kernel class} here"
+      skipped="$skipped $k"; continue
+    fi
+    rc=0; OPENBLAS_CORETYPE=$k "$@" || rc=$?
+    echo "cloud-setup kernels: $k exit $rc"
+    ran="$ran $k"; [ "$rc" = 0 ] || red="$red $k"
+  done
+  echo "cloud-setup kernels: ran${ran:- none}; red on${red:- none}; not run${skipped:- none}"
+  [ -n "$ran" ] || return 2
+  [ -z "$red" ]
 }
 
 # Every child runs with stdin from /dev/null: `env -i` drops SHLVL, and a
@@ -181,6 +220,48 @@ self_test() (
   [ "$out" = "$SEAT_NAME <$SEAT_EMAIL> $SEAT_NAME <$SEAT_EMAIL>" ]
   expect "a commit made under the exports is authored and committed as the seat even with a conflicting user.name in config" $?
 
+  # --kernels (R11-PRE-TOOLCHAIN-PIN carry 11). The fake python3 is numpy's load under
+  # OPENBLAS_VERBOSE=2: it reports the class asked for, another for a class in FAKE_FALLBACK
+  # (a processor that cannot run it), dies for one in FAKE_DIE, and reports none under FAKE_NOBLAS.
+  mkdir -p "$W/blas"; cat > "$W/blas/python3" <<'PY'
+#!/bin/sh
+case " ${FAKE_DIE:-} " in *" $OPENBLAS_CORETYPE "*) kill -ILL $$ ;; esac
+[ -z "${FAKE_NOBLAS:-}" ] || exit 0
+case " ${FAKE_FALLBACK:-} " in *" $OPENBLAS_CORETYPE "*) echo "Core not found: $OPENBLAS_CORETYPE" >&2; echo "Core: Nehalem" >&2; exit 0 ;; esac
+echo "Core: $OPENBLAS_CORETYPE" >&2
+PY
+  chmod +x "$W/blas/python3"
+  # The command under test: logs the kernel it was run under, red under $RED alone.
+  krun() { env -i HOME="$W" PATH="$W/blas:/usr/bin:/bin" LOG="$W/k.log" "$@" bash "$SELF" --kernels \
+    sh -c 'echo "$OPENBLAS_CORETYPE" >> "$LOG"; [ "$OPENBLAS_CORETYPE" != "${RED:-}" ]' </dev/null 2>&1; }
+  : > "$W/k.log"; out=$(krun "OPENBLAS_CORETYPE=$CORETYPE" RED=SkylakeX); rc=$?
+  [ "$rc" = 1 ] && [ "$(tr '\n' ' ' < "$W/k.log")" = "$KERNELS " ] \
+    && [ "$(grep -c '^cloud-setup kernels: SkylakeX exit 1$' <<< "$out")" = 1 ] \
+    && [ "$(grep -c ' exit 0$' <<< "$out")" = 3 ] && grep -q '; red on SkylakeX; not run none$' <<< "$out"
+  expect "a check red under one kernel class the pin is not is read red there: run under each class, exit 1 naming it" $?
+  env -i PATH="$W/blas:/usr/bin:/bin" "OPENBLAS_CORETYPE=$CORETYPE" RED=SkylakeX \
+    sh -c '[ "$OPENBLAS_CORETYPE" != "$RED" ]' </dev/null
+  expect "control: the same check under the seat's pinned class alone is green (the defect)" $?
+  out=$(krun "OPENBLAS_CORETYPE=$CORETYPE"); rc=$?
+  [ "$rc" = 0 ] && grep -q "^cloud-setup kernels: ran $KERNELS; red on none; not run none\$" <<< "$out"
+  expect "a check green under every class exits 0 naming each (null control)" $?
+  : > "$W/k.log"; out=$(krun FAKE_FALLBACK=SkylakeX RED=SkylakeX); rc=$?
+  [ "$rc" = 0 ] && ! grep -q SkylakeX "$W/k.log" && grep -q '; red on none; not run SkylakeX$' <<< "$out" \
+    && grep -q '^cloud-setup kernels: SkylakeX not run: asked for it, OpenBLAS loads Nehalem here$' <<< "$out"
+  expect "a class OpenBLAS falls back from is not run and is named so, neither green nor red" $?
+  : > "$W/k.log"; out=$(krun FAKE_DIE="Sandybridge Nehalem" RED=Nehalem); rc=$?
+  [ "$rc" = 0 ] && [ "$(tr '\n' ' ' < "$W/k.log")" = "SkylakeX Haswell " ] && grep -q '; not run Sandybridge Nehalem$' <<< "$out"
+  expect "a class whose load dies is not run" $?
+  : > "$W/k.log"; out=$(krun FAKE_NOBLAS=1); rc=$?
+  [ "$rc" = 2 ] && [ ! -s "$W/k.log" ] && grep -q '^cloud-setup kernels: ran none; red on none; not run '"$KERNELS"'$' <<< "$out"
+  expect "where no class loads (no OpenBLAS) nothing is measured: exit 2, not 0" $?
+  out=$(env -i PATH="$W/blas:/usr/bin:/bin" bash "$SELF" --kernels </dev/null 2>&1); rc=$?
+  [ "$rc" = 2 ] && case $out in usage:*) true ;; *) false ;; esac
+  expect "--kernels with no command is a usage error" $?
+  out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check)  # never-empty: vars is the seven-line output of variables, asserted above
+  case $out in *"pinned to $CORETYPE"*"cloud-setup.sh --kernels <command>"*) true ;; *) false ;; esac
+  expect "the check's OK line names the pinned class and the per-class run" $?
+
   printf 'cloud_setup self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
   [ "$fail" = 0 ]
 )
@@ -188,9 +269,10 @@ self_test() (
 case ${1:-} in
   --variables) variables "$PREFIX"; exit 0 ;;
   --check) check "$PREFIX"; exit $? ;;
+  --kernels) shift; kernels "$@"; exit $? ;;
   --self-test) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded cloud_setup bash "$0" --self-test; }; self_test; exit $? ;;
   "") ;;
-  *) echo "usage: cloud-setup.sh [--variables | --check | --self-test]" >&2; exit 2 ;;
+  *) echo "usage: cloud-setup.sh [--variables | --check | --kernels <command> | --self-test]" >&2; exit 2 ;;
 esac
 
 # The tree-rewriting hooks: the hiway-kit plugin's auto-format.py (PostToolUse)

@@ -286,7 +286,28 @@ ul.items li{margin:2px 0;break-inside:avoid}
 </style>"""
 
 
-def section(doc, bad: list | None = None, where: str = "", axis: tuple | None = None) -> str:
+#: The phases whose duration the plan's model prices: `phase_hours`, keyed by
+#: these ids, which `replan.build_plan` copies from `durations.json` into
+#: `generated.model` (`replan.MODEL_FIELDS`) and `plan_page.render` hands to
+#: `section`. One the model has no figure for is printed "duration
+#: unmeasured", never a typed constant or a zero.
+MODEL_TIMED = ("finders", "verify-judge", "plan")
+
+
+def _model_duration(r: dict, phase_hours: dict | None) -> str:
+    """The Planned cell of a phase with no forecast: the model's duration for a
+    phase it prices (not done), "duration unmeasured" where it has none, a dash
+    for every other phase."""
+    if r["status"] == "done" or r["phase"] not in MODEL_TIMED:
+        return "—"
+    h = (phase_hours or {}).get(r["phase"])
+    if isinstance(h, bool) or not isinstance(h, (int, float)) or h <= 0:
+        return "duration unmeasured"
+    return f"{h:g} h (plan model)"
+
+
+def section(doc, bad: list | None = None, where: str = "", axis: tuple | None = None,
+            phase_hours: dict | None = None) -> str:
     """The phases section for the plan page: a timeline and one row per phase,
     the running phases' items under them. `bad` (from `violations`) draws the
     UNAVAILABLE section instead, naming the first refusal. `axis` is the plan
@@ -301,7 +322,7 @@ def section(doc, bad: list | None = None, where: str = "", axis: tuple | None = 
     for r in rows:
         fc = r.get("forecast")
         planned = (f'start {_when(fc["start_from"])} to {_when(fc["start_to"])}'
-                   f'<div class="lanec">{e(fc["basis"])}</div>' if fc else "—")
+                   f'<div class="lanec">{e(fc["basis"])}</div>' if fc else _model_duration(r, phase_hours))
         items = ""
         if r.get("items") and r["status"] != "done":
             items = '<tr class="items"><td></td><td colspan="6"><ul class="items">' + "".join(

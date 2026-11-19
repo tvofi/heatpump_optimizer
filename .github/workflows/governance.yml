@@ -536,6 +536,27 @@ jobs:
         if: steps.scope.outputs.finder-overlap == 'true'
         run: python3 -I tools/audit/seat/finder_overlap.py --self-test
 
+      # The owner-only channel (R11-PRE-SECURITY-PRIVACY): a dimension whose
+      # scopes.json entry carries `owner_only: true` publishes nothing. The
+      # launcher's probe over a fixture view of an account, the corpus mirror
+      # over a stub of gh, git and HTTPS, the candidate detectors, and the
+      # harness that plants a canary on every public path of the pipeline.
+      - name: Show the owner-only launcher's probe refusing an account that can publish
+        id: owner-only-launcher
+        if: steps.scope.outputs.owner-only-launcher == 'true'
+        run: python3 -I tools/audit/seat/owner_only.py --self-test
+      - name: Show the corpus mirror pausing at its cursor under a rate limit and resuming exactly
+        id: corpus-mirror
+        if: steps.scope.outputs.corpus-mirror == 'true'
+        run: python3 -I tools/audit/seat/corpus_mirror.py --self-test
+      - name: Show the leak detectors firing on a planted twin and quiet once it is masked
+        id: leak-detectors
+        if: steps.scope.outputs.leak-detectors == 'true'
+        run: python3 -I tools/audit/leak_detectors.py --self-test
+      - name: Show a planted owner-only canary reaching no public path of the audit pipeline
+        id: owner-only-channel
+        if: steps.scope.outputs.owner-only-channel == 'true'
+        run: python3 -I dev/audit/harnesses/owner_only_channel.py
       # The convergence record's loop ledger (R11-PRE-ROUND-METRICS part 2; cards
       # P7 and L1): escapes by found_by and owning dimension, injected, refix and
       # the countermeasure loop per round and week; a partial ledger reads unread.

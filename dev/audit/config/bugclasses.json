@@ -100,7 +100,8 @@
       6,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D1-01",
@@ -139,7 +140,18 @@
       "R10 D1-s3-02",
       "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._current_spot_price",
       "R10 D7-s2-61",
-      "R10 D7-s4-81"
+      "R10 D7-s4-81",
+      "R11 D1-s2-01",
+      "R11 D1-s2-05",
+      "R11 D1-s2-06",
+      "R11 D1-s2-51",
+      "R11 D1-s3-01",
+      "R11 D1-s3-02",
+      "R11 D1-s3-03",
+      "R11 sw:custom_components/heatpump_optimizer/quiet_windows.py::measured_ceiling_kw_(line_388,_CONF_COMPRESSOR_FREQ_MIN_HZ)",
+      "R11 sw:custom_components/heatpump_optimizer/quiet_windows.py::measured_ceiling_kw_(line_390,_CONF_COMPRESSOR_FREQ_MAX_HZ)",
+      "R11 sw:custom_components/heatpump_optimizer/topology.py::_slot_extras_(manual_setpoint)",
+      "R11 sw:custom_components/heatpump_optimizer/early_cutoff.py::arm_(timedelta(minutes=cfg.optimization_interval),_via_EntryConfig.from_mapping)"
     ],
     "per_round": {
       "R1": 4,
@@ -150,9 +162,10 @@
       "R6": 2,
       "R8": 2,
       "R9": 16,
-      "R10": 4
+      "R10": 4,
+      "R11": 11
     },
-    "total": 37,
+    "total": 48,
     "max_per_round": 16,
     "detector": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py -- Arm 1 derives the boundary set from the tree; Arm 4 (round 9, F1.6) seeds every store through its real saver at an aware clock with a configured zone, substitutes every leaf, container and int-like dict key by kind (non-finite, wrong-type, magnitude, naive-twin), and scans everything the coordinator owns after the real loaders and consumers for a raise, a non-finite, a naive instant, an absurd magnitude or a number turned text",
     "detector_idea": "Enumerate every Store/async_load and every float field its from_dict reads; fuzz each with nan/inf/malformed strings across the whole store roster",
@@ -193,7 +206,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D10-03",
@@ -295,7 +309,38 @@
       "R10 ARCH2-s5-F1",
       "R10 ARCH3-s6-P3",
       "R10 D7-s3-8x-slotfloor",
-      "R10 D7-s3-8x-tariff"
+      "R10 D7-s3-8x-tariff",
+      "R11 D1-s2-52",
+      "R11 D1-s3-04",
+      "R11 D10-s2-01",
+      "R11 D12-s1-01",
+      "R11 D12-s2-01",
+      "R11 D12-s3-01",
+      "R11 D12-s3-02",
+      "R11 D15-s1-04",
+      "R11 D15-s1-05",
+      "R11 D16-s1-03",
+      "R11 D16-s2-03",
+      "R11 D17-s1-02",
+      "R11 D17-s1-03",
+      "R11 D17-s2-03",
+      "R11 D17-s3-01",
+      "R11 D17-s3-02",
+      "R11 D17-s3-51",
+      "R11 D2-s1-01",
+      "R11 D2-s1-02",
+      "R11 D2-s3-06",
+      "R11 D7-s3-04",
+      "R11 D8-s1-01",
+      "R11 D8-s1-03",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_THERMAL_PARAM_FIELDS.upper_floor_thermal_mass",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_THERMAL_PARAM_FIELDS.lower_floor_thermal_mass",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_THERMAL_PARAM_FIELDS.inter_zone_heat_transfer",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_apply_result_payload_(schedule_upper_temp/lower_temp)",
+      "R11 sw:custom_components/heatpump_optimizer/boost.py::_window_open",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._async_drive_pumps_(VVC_windows)",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_learning.py::DhwProfileLearner.async_fold_draw_stats_(draw_label)",
+      "R11 sw:custom_components/heatpump_optimizer/replay_doc.py::_number"
     ],
     "per_round": {
       "R1": 9,
@@ -307,9 +352,10 @@
       "R7": 4,
       "R8": 7,
       "R9": 27,
-      "R10": 34
+      "R10": 34,
+      "R11": 31
     },
-    "total": 100,
+    "total": 131,
     "max_per_round": 34,
     "detector": "PYTHONPATH=tests/hastub python3 tests/entities.py -- section 'P2: one fact, one owner': a registry keyed per fact on an AST shape (a decision-context read of a proxy key the canonical predicate's own body reads, a node pattern, a literal service domain, a bare call of a fenced cycle step on the cycle path, a literal running threshold on a power), its owner functions and reasoned dispositions; any other hit fails, as do OWNER-MISSING, DEAD-RULE, STALE-DISPOSITION and CENSUS-MISSING, with a planted sibling per fact",
     "detector_idea": "AST: callers of each named gate predicate against the structurally sibling functions that should share it",
@@ -357,7 +403,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R2 D0-03",
@@ -388,7 +435,8 @@
       "R10 D2-s1-71",
       "R10 D7-s2-58",
       "R10 sw:custom_components/heatpump_optimizer/store.py::DOMAINS.thermal_learning[cop_scale]",
-      "R10 sw:custom_components/heatpump_optimizer/store.py::DOMAINS.thermal_learning[solar_aperture/scale]"
+      "R10 sw:custom_components/heatpump_optimizer/store.py::DOMAINS.thermal_learning[solar_aperture/scale]",
+      "R11 D16-s2-04"
     ],
     "per_round": {
       "R2": 4,
@@ -398,9 +446,10 @@
       "R7": 2,
       "R8": 1,
       "R9": 6,
-      "R10": 5
+      "R10": 5,
+      "R11": 1
     },
-    "total": 29,
+    "total": 30,
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/features.py -- block R9-P3, arm (a): every max(E, c>0) on a ThermalParameters quantity, keyed on E resolved through single-assignment locals to attribute leaves with commutative operands sorted, must sit in one function with one constant and never beside a raw divisor of E; zero groups, no allow-list, a fixture probe of its own keying, and optimizer._power_fraction's band branch pinned as the named exception",
     "detector_idea": "Every max(<capacity>, <constant>) cross-referenced against unclamped reads of the same variable",
@@ -444,7 +493,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D0-01",
@@ -467,7 +517,10 @@
       "R9 D0-s2-02",
       "R10 D0-s1-01",
       "R10 D0-s2-01",
-      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::_solve_space"
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::_solve_space",
+      "R11 D0-s2-01",
+      "R11 D0-s3-02",
+      "R11 sw:custom_components/heatpump_optimizer/optimizer.py::_relaxed_plans"
     ],
     "per_round": {
       "R1": 2,
@@ -479,9 +532,10 @@
       "R7": 1,
       "R8": 1,
       "R9": 1,
-      "R10": 3
+      "R10": 3,
+      "R11": 3
     },
-    "total": 21,
+    "total": 24,
     "max_per_round": 4,
     "detector": "PYTHONPATH=tests/hastub python3 tests/optimality.py (the solve certificate, #1409)",
     "detector_idea": "Per fixture cell, production multi-start against a dense seed grid on the identical objective",
@@ -515,7 +569,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D2-01",
@@ -541,7 +596,11 @@
       "R9 D2-s4-81",
       "R9 D7-s2-01",
       "R9 P5-rca1",
-      "R10 D2-s3-72"
+      "R10 D2-s3-72",
+      "R11 D2-s3-10",
+      "R11 D7-s2-02",
+      "R11 sw:custom_components/heatpump_optimizer/sysid.py::SystemIdentification.step[cop]",
+      "R11 sw:custom_components/heatpump_optimizer/sysid.py::SystemIdentification.step[outdoor_temp]"
     ],
     "per_round": {
       "R1": 2,
@@ -553,9 +612,10 @@
       "R7": 1,
       "R8": 1,
       "R9": 6,
-      "R10": 1
+      "R10": 1,
+      "R11": 4
     },
-    "total": 24,
+    "total": 28,
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/features.py, R9-P5 block: every house_* keyword of SystemIdentification.step is fitted or names the sysid width the adoption interval prices it with, and every told-quantity night on the three presets, single- and two-zone, adopts within the bar of the plant's heat loss or is refused",
     "detector_idea": "Synthetic-bias sweep: the gate decision must be monotone in the true injected bias",
@@ -668,22 +728,29 @@
       2,
       3,
       5,
-      9
+      9,
+      11
     ],
     "instances": [
       "R2 D2-03",
       "R3 D2-02",
       "R5 D1-08",
-      "R9 D14-s4-01"
+      "R9 D14-s4-01",
+      "R11 D2-s3-07",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_schedule.py::hours_until_next_window",
+      "R11 sw:custom_components/heatpump_optimizer/thermal_model.py::ThermalModel.simulate_trajectory",
+      "R11 sw:custom_components/heatpump_optimizer/thermal_model.py::ThermalModel.simulate_trajectory_batch",
+      "R11 sw:custom_components/heatpump_optimizer/thermal_model.py::ThermalModel.simulate_trajectory_with_dhw"
     ],
     "per_round": {
       "R2": 1,
       "R3": 1,
       "R5": 1,
-      "R9": 1
+      "R9": 1,
+      "R11": 5
     },
-    "total": 4,
-    "max_per_round": 1,
+    "total": 9,
+    "max_per_round": 5,
     "detector": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 tests/dst_checks.py (its DST tracer section; tests/features.py runs the script)",
     "detector_idea": "Every datetime-difference and grid-construction site across the DST transition days, against a UTC reference",
     "barrier": "tests/dst_checks.py's DST tracer on the PR gate (F1.1, #1665; arms added by R9-F10.1c, #1756): the committed replay day, shifted onto a spring, an autumn and a plain day, runs through replay.run_fixture with Home Assistant's zoned clock traced, and a subtraction of two stamps sharing the zone, or a + timedelta on one, whose result differs from the UTC arithmetic fails the check, keyed on (file, function). Three arms drive it: the plain configuration, a config arm (a capacity tariff with an off-peak mask at 15 and at 60 minutes, and a manual plan applied through the real service before the fold) and a straddle arm (the solve fails for 2 hours across the transition, so stamps written before the fold are read after it). Reaches every seam those arms execute with operands that straddle the transition, including operands the static enumerator cannot name (result.timestamps). Not reached: a seam no arm drives (an option the arms leave off: months mask, sysid, away, boost, legionella, immersion; a stamp older than the 2 hour outage); a comparison of two stamps sharing the zone, which orders them as wall clock inside the repeated autumn hour (< and >= are not traced, only - and + timedelta); and arithmetic between two datetimes production builds itself from stored text. tariff._window_slot is exempt: a wall-clock tariff label by definition",
@@ -697,8 +764,8 @@
       "R9-F10.1c"
     ],
     "trigger": {
-      "per_round": false,
-      "cross_round": false,
+      "per_round": true,
+      "cross_round": true,
       "barriered_any": true,
       "class_rca_on_record": true
     }
@@ -713,7 +780,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D4-04",
@@ -729,7 +797,9 @@
       "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._command_valve_target_(climate_set_temperature_arm)",
       "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._command_valve_target_(number_set_value_arm)",
       "R10 ARCH3-s6-P2",
-      "R10 L1-smart-write-unit"
+      "R10 L1-smart-write-unit",
+      "R11 D14-s1-03",
+      "R11 D7-s3-01"
     ],
     "per_round": {
       "R1": 1,
@@ -738,9 +808,10 @@
       "R7": 1,
       "R8": 1,
       "R9": 2,
-      "R10": 6
+      "R10": 6,
+      "R11": 2
     },
-    "total": 14,
+    "total": 16,
     "max_per_round": 6,
     "detector": null,
     "detector_idea": "The published money unit is the price feed's currency: replay with a EUR/kWh feed on a SEK instance and count published money units in the instance currency (11/11 at 3490cb16; 0 when fixed). currency.py already is the one shared resolver, and it canonicalises the instance label, not the feed: forcing every surface through it (#1657's proposal) would lock the defect in (RCA-BULK-1)",
@@ -774,7 +845,8 @@
       6,
       7,
       8,
-      9
+      9,
+      11
     ],
     "instances": [
       "R1 D4-01",
@@ -813,7 +885,13 @@
       "R9 P9-rca1",
       "R9 P9-rca2",
       "R9 P9-rca3",
-      "R9 P9-rca4"
+      "R9 P9-rca4",
+      "R11 D4-s1-01",
+      "R11 D4-s1-03",
+      "R11 D4-s3-02",
+      "R11 D4-s3-03",
+      "R11 D4-s3-04",
+      "R11 D4-s3-05"
     ],
     "per_round": {
       "R1": 4,
@@ -824,9 +902,10 @@
       "R6": 1,
       "R7": 2,
       "R8": 1,
-      "R9": 12
+      "R9": 12,
+      "R11": 6
     },
-    "total": 37,
+    "total": 43,
     "max_per_round": 12,
     "detector": "node tests/card_browser.mjs (the browser job), its P9 grid: 31 card states in 9 cells (3 widths x en/sv light, 375 px dark, and HA's theme against the opposite OS scheme both ways, hass.themes.darkMode in lockstep), each asserting over every rendered node WCAG AA text contrast over what is underneath, zero shared glyph ink between text runs, pop-ups inside the viewport and their chart, listbox options distinct as shown, no unreachable clipped ink, and the 24 px target floor or WCAG 2.5.8's spacing exception; controls: every cell mounted and every driver step found its target, and every card rule that sets a colour rendered in some cell",
     "detector_idea": "The browser geometry sweep over every rendered node: hit-target floor, contrast, clip against its ancestor",
@@ -862,7 +941,8 @@
       5,
       6,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D9-02",
@@ -873,7 +953,8 @@
       "R9 D9-s1-03",
       "R9 D9-s2-01",
       "R10 D14-s1-01",
-      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_replay_interval"
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_replay_interval",
+      "R11 D9-s1-04"
     ],
     "per_round": {
       "R1": 1,
@@ -882,9 +963,10 @@
       "R5": 1,
       "R6": 1,
       "R9": 2,
-      "R10": 2
+      "R10": 2,
+      "R11": 1
     },
-    "total": 9,
+    "total": 10,
     "max_per_round": 2,
     "detector": null,
     "detector_idea": "Count model-kernel calls outside the process worker over a replayed day: 2304 on the loop at 3490cb16 (topology.py _advisor_replay), 0 with the advisor removed, 3926 on an executor thread when the worker is forced to fail (RCA-BULK-1 p10_loop_kernels.py); extend the kernel list to sysid",
@@ -930,7 +1012,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D10-04",
@@ -1029,7 +1112,72 @@
       "R10 sw:custom_components/heatpump_optimizer/optimizer.py::HeatPumpOptimizer._safety_release_steps",
       "R10 sw:custom_components/heatpump_optimizer/optimizer.py::HeatPumpOptimizer._compute_baseline_power",
       "R10 sw:custom_components/heatpump_optimizer/pump_arbiter.py::step_duty",
-      "R10 D9-s3-01"
+      "R10 D9-s3-01",
+      "R11 D10-s1-05",
+      "R11 D11-s1-03",
+      "R11 D11-s1-04",
+      "R11 D11-s3-03",
+      "R11 D11-s3-04",
+      "R11 D9-s3-01",
+      "R11 D9-s3-02",
+      "R11 sw:tools/audit/machinery_ratchet.py::governance.yml:policy-docs/Refuse_a_window_of_merges_past_the_machinery_caps_--check",
+      "R11 sw:tools/policy/fragments_sync.mjs::governance.yml:instrument-self-tests/fragment-check",
+      "R11 sw:tools/audit/seat/probe_bridge.py::governance.yml:instrument-self-tests/probe-bridge",
+      "R11 sw:tools/audit/seat/plan_public.py::governance.yml:instrument-self-tests/plan-public",
+      "R11 sw:tools/audit/seat/outside_intake.py::governance.yml:instrument-self-tests/outside-intake",
+      "R11 sw:tools/audit/seat/bottleneck_check.py::governance.yml:instrument-self-tests/bottleneck-alert",
+      "R11 sw:tools/audit/seat/scorecard.py::governance.yml:instrument-self-tests/scorecard",
+      "R11 sw:tools/audit/seat/toolchain.py::governance.yml:instrument-self-tests/toolchain",
+      "R11 sw:tools/audit/seat/round_metrics.py::governance.yml:instrument-self-tests/round-metrics",
+      "R11 sw:tools/audit/seat/plant_recall.py::governance.yml:instrument-self-tests/plant-recall",
+      "R11 sw:tools/audit/seat/finder_overlap.py::governance.yml:instrument-self-tests/finder-overlap",
+      "R11 sw:tools/audit/seat/loop_ledger.py::governance.yml:instrument-self-tests/loop-ledger",
+      "R11 sw:tools/policy/field_coverage.mjs::governance.yml:instrument-self-tests/field-coverage",
+      "R11 sw:tools/site/day_chart.mjs::governance.yml:instrument-self-tests/day-chart",
+      "R11 sw:tools/pr/merge_main_bot.py::governance.yml:instrument-self-tests/merge-main-bot",
+      "R11 sw:tools/pr/cancel_superseded.py::governance.yml:instrument-self-tests/superseded-run-canceller",
+      "R11 sw:tools/pr/dependabot_merge.py::governance.yml:instrument-self-tests/dependabot-merge-decision",
+      "R11 sw:tools/pr/depgraph.py::governance.yml:instrument-self-tests/dependency-graph-census",
+      "R11 sw:tools/audit/seat/bus.sh::governance.yml:instrument-self-tests/verdict-bus",
+      "R11 sw:tools/audit/machinery_ratchet.py::governance.yml:instrument-self-tests/machinery-ratchet",
+      "R11 sw:tools/audit/seat/tmp_paths.py::governance.yml:instrument-self-tests/temp-or-machine-path",
+      "R11 sw:tools/audit/seat/tmp_paths.py::governance.yml:instrument-self-tests/temp-or-machine-path_--check",
+      "R11 sw:tools/audit/seat/bare_array.py::governance.yml:instrument-self-tests/bare-array-expansion",
+      "R11 sw:tools/audit/seat/shell_hazard.py::governance.yml:instrument-self-tests/bare-array-expansion",
+      "R11 sw:tools/audit/seat/bare_array.py::governance.yml:instrument-self-tests/bare-array-expansion_--check",
+      "R11 sw:tools/audit/seat/ref_privacy.py::governance.yml:instrument-self-tests/push-names-the-host",
+      "R11 sw:tools/audit/seat/ref_privacy.py::governance.yml:instrument-self-tests/push-names-the-host_--check",
+      "R11 sw:tools/audit/seat/selftest_wiring.py::governance.yml:instrument-self-tests/selftest-wiring",
+      "R11 sw:tools/audit/seat/selftest_wiring.py::governance.yml:instrument-self-tests/selftest-wiring_--check",
+      "R11 sw:tools/audit/regret_oracle.py::governance.yml:instrument-self-tests/regret-oracle",
+      "R11 sw:tools/audit/archscore/gate.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/audit/check_scopes.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/audit/enumerate.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/audit/product_reads.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/audit/text_ledger.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/audit/merge_throughput.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/audit/worktree_gc.sh::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/coverage/partition.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/merge/ledger_merge.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/plan/replan.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/plan/size_durations.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/policy/policy_lint.mjs::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/policy/record-predicate/row_files_replay.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/pr/approve_held_runs.sh::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/pr/gate_priority.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/pr/head_note.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/release/stamp.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/policy/agreement_py.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tools/policy/role_pack.py::governance.yml:instrument-self-tests/self-tests-outside-seat",
+      "R11 sw:tests/throwaway_git.py::governance.yml:instrument-self-tests/throwaway-git-helper",
+      "R11 sw:tests/throwaway_git.py::governance.yml:instrument-self-tests/throwaway-git-helper_--check",
+      "R11 sw:tools/audit/seat/train.sh::governance.yml:instrument-self-tests/train-launcher",
+      "R11 sw:tools/policy/figure_lint.mjs::governance.yml:instrument-self-tests/figure-check",
+      "R11 sw:tools/policy/figure_census.mjs::governance.yml:instrument-self-tests/figure-census",
+      "R11 sw:tools/policy/agreement.mjs::governance.yml:wave-script/Show_the_agreement_lane_refusing_each_shape_it_exists_to_refuse",
+      "R11 sw:tools/audit/fold_ledger.py::governance.yml:wave-script/Check_the_bug-class_register_against_the_rounds_in_the_tree",
+      "R11 sw:tools/policy/friction_issues.mjs::governance.yml:record/filer_selftest",
+      "R11 sw:tests/ci_ratchet.py::tests.yml:ci-ratchet/Self-test_the_window_fetch_and_parse"
     ],
     "per_round": {
       "R1": 11,
@@ -1041,10 +1189,11 @@
       "R7": 2,
       "R8": 5,
       "R9": 14,
-      "R10": 15
+      "R10": 15,
+      "R11": 65
     },
-    "total": 97,
-    "max_per_round": 18,
+    "total": 162,
+    "max_per_round": 65,
     "detector": "python3 tests/mutation_table.py --scope changed --base origin/main (the mutation job): the ratchet pre-pass refuses before any mutant is driven",
     "detector_idea": "Count a kill only on at least one failing assertion; re-run previously surviving mutants",
     "barrier": "tests/mutation_table.py on the PR gate (F10.3, #1646): added_unpinned refuses every unpinned site the diff added by content -- (file, operator, stripped text) as a multiset -- not only a grown total, so a trade that nets the count to zero is refused; a site moved verbatim to another module under the same def is the base's (#1748); GUARD_OFF covers any one-line if/elif test (an else, a comment after the colon) and CLAMP_DROP numpy/math clamps. Not reached (tvofi's card C7): multi-line if tests, multi-line clamps, ternaries and ordering comparisons; the comparison-bound operator is F10.6 and the kill-ledger writer F10.5",
@@ -1090,7 +1239,8 @@
       4,
       5,
       8,
-      9
+      9,
+      11
     ],
     "instances": [
       "R2 D3-09",
@@ -1099,17 +1249,23 @@
       "R5 D3-02",
       "R5 D3-08@eaa2a06",
       "R8 D3-s1-02",
-      "R9 D14-s5-01"
+      "R9 D14-s5-01",
+      "R11 D0-s3-01",
+      "R11 D3-s2-01",
+      "R11 D5-s2-07",
+      "R11 sw:tools/audit/text_ledger.py::run_check_plant_target_files[0]_for_seat_D5-s1",
+      "R11 sw:tools/audit/seat/review_strength.py::self_test_(line_722)_and__self_test_guardrail_(line_1237)_read_dev/audit/rounds/round10/D13/yield-probe.md"
     ],
     "per_round": {
       "R2": 1,
       "R4": 1,
       "R5": 3,
       "R8": 1,
-      "R9": 1
+      "R9": 1,
+      "R11": 5
     },
-    "total": 7,
-    "max_per_round": 3,
+    "total": 12,
+    "max_per_round": 5,
     "detector": "python3 tests/closure.py check --in-dir D (the closures job, recording on Linux under strace)",
     "detector_idea": "Nightly strace -f of the gate against the committed closures, reporting files the recorder missed (child-process reads, .pyc-only loads); over-scope needs no barrier (RCA-BULK-2)",
     "barrier": "tests/closure.py record traces a Python script with every child it spawns under strace -f -y wherever strace exists (CI's Linux recorder, F10.3, #1663) and unions the repo files its Python processes opened with the audit hook's (a git child's content scan, a node child's reads and an INERT path stay out), so a file only a Python child reads is in the recording and check reports a committed closure that lacks it as UNDER-SCOPED; .pyc opens map through _pyc_source on both instruments. Over-scope gets no barrier (RCA-BULK-2: the safe direction, priced in CI seconds)",
@@ -1144,7 +1300,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D10-09",
@@ -1186,7 +1343,16 @@
       "R9 D11-s2-02",
       "R9 D13-s1-03",
       "R10 D11-s1-01",
-      "R10 D13-s1-01"
+      "R10 D13-s1-01",
+      "R11 D11-s1-01",
+      "R11 D11-s1-02",
+      "R11 D11-s1-05",
+      "R11 D11-s1-06",
+      "R11 D11-s2-01",
+      "R11 D11-s2-02",
+      "R11 D11-s2-03",
+      "R11 D11-s3-02",
+      "R11 sw:tools/pr/outside.py::class-O_approval_split_at_AGENT_DECLARED.search_(lines_292,_304,_504)"
     ],
     "per_round": {
       "R1": 1,
@@ -1198,10 +1364,11 @@
       "R7": 3,
       "R8": 6,
       "R9": 7,
-      "R10": 2
+      "R10": 2,
+      "R11": 9
     },
-    "total": 40,
-    "max_per_round": 8,
+    "total": 49,
+    "max_per_round": 9,
     "detector": "node tools/policy/field_coverage.mjs",
     "detector_idea": "The ruleset-reading code against the live ruleset; every required-context job checks out the PR head",
     "barrier": "field_coverage.mjs in governance.yml policy-docs (F11.3, #1648): every leaf of a registered check's input (settings.json hooks, the live ruleset, each capped policy file's size row, the budget-raise gate's owner review) is perturbed and the real check run; a leaf it stays green on is BLIND unless ignored with a reason; the check set is derived from policy_lint.mjs CHECKS, codeowners_gap.py PINNED and stamp.py rule 4, and an unregistered check is refused. Runs when its inputs change, and on the schedule. Not read: D11-s1-02, D11-s1-03, D11-s1-04, D13-s1-03, and the write-grant workflow pin's inputs in tests/entities.py (carry-1648's second entry: that pin is not callable without running the whole script).",
@@ -1239,7 +1406,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R2 D4-11",
@@ -1269,7 +1437,20 @@
       "R9 D13-s1-01",
       "R9 D14-s2-03",
       "R10 D13-s2-02",
-      "R10 D13-s2-51"
+      "R10 D13-s2-51",
+      "R11 D10-s2-03",
+      "R11 D15-s1-02",
+      "R11 D15-s2-01",
+      "R11 D15-s2-02",
+      "R11 D15-s2-05",
+      "R11 D15-s3-02",
+      "R11 D17-s1-01",
+      "R11 D2-s3-04",
+      "R11 D4-s2-01",
+      "R11 D4-s2-02",
+      "R11 D4-s2-51",
+      "R11 D6-s3-01",
+      "R11 D6-s4-01"
     ],
     "per_round": {
       "R2": 1,
@@ -1279,10 +1460,11 @@
       "R7": 8,
       "R8": 1,
       "R9": 4,
-      "R10": 2
+      "R10": 2,
+      "R11": 13
     },
-    "total": 28,
-    "max_per_round": 8,
+    "total": 41,
+    "max_per_round": 13,
     "detector": "node tools/policy/agreement.mjs (the wave-script job in governance.yml; --self-test in instrument-self-tests): the agreement lane, and grammar discovery",
     "detector_idea": "Per reader pair, generated boundary cases asserting both readers give the same verdict",
     "barrier": "agreement.mjs on the PR gate (round 9, F11.4; prototype handoff/r9-rca-i4@06bae072): every registered concept's real readers, imported or read from source and never copied (rule-frontmatter-paths, finding-class-id, merge-subject-pr, dead-member-liveness, governance-workflow-jobs, entity-names, budget-raise), answer one corpus (the Python readers run first under python3 -I, restored from the base, and hand agreement.mjs their answers as JSON) of live instances plus the findings' boundary cases, and any disagreement, a reader that throws, an empty corpus, or a live merge commit every reader answers null for is refused; a regex source in two or more governance code files must be registered with a disposition (pair:, module:, identical:, not-a-concept:) and a stale entry is DEAD. Declared and accepted: policy_lint.mjs's offline subject mode reads the squash shape only (enumSkipLine), a narrow declaration the lane refuses the moment it answers. The governance-workflow-jobs pair re-derives entities.py's _workflow_job_ids by regex in agreement_py.py (a disclosed copy of a three-line job-id scan, null-controlled by the 'briefs' job). budget-raise's train reader, merge_train.py's raise_hold, is not in the restore list: it is the pull request's copy, the graded artifact, against the gate restored from the base (R10-RCA-TRAIN-RAISE-HOLD). Not reached (tvofi's card C11, accepted): a second reader with a different grammar for a concept nobody registered; the A7/A8 policy text is F11.5's",
@@ -1312,7 +1494,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D10-05",
@@ -1415,7 +1598,46 @@
       "R10 D5-s3-51",
       "R10 sw:dev/governance/dimensions/D9.md::line_15_'record_all_51_scenarios'_(live_stress_set_54)",
       "R10 sw:tests/stress.py::line_4602_comment_'the_merge_base_solves_the_same_fifty-one_scenarios'_(live_54)",
-      "R10 ARCH2-s5-hot_water_pumps-label"
+      "R10 ARCH2-s5-hot_water_pumps-label",
+      "R11 D10-s1-06",
+      "R11 D10-s3-01",
+      "R11 D10-s3-02",
+      "R11 D11-s2-04",
+      "R11 D5-s10-03",
+      "R11 D5-s10-06",
+      "R11 D5-s2-01",
+      "R11 D5-s2-03",
+      "R11 D5-s2-04",
+      "R11 D5-s2-05",
+      "R11 D5-s2-08",
+      "R11 D5-s2-09",
+      "R11 D5-s2-10",
+      "R11 D5-s2-11",
+      "R11 D5-s3-01",
+      "R11 D5-s3-02",
+      "R11 D5-s4-02",
+      "R11 D5-s5-01",
+      "R11 D5-s5-04",
+      "R11 D5-s5-05",
+      "R11 D5-s5-06",
+      "R11 D5-s6-01",
+      "R11 D5-s6-02",
+      "R11 D5-s6-04",
+      "R11 D5-s6-05",
+      "R11 D5-s6-06",
+      "R11 D5-s6-07",
+      "R11 D5-s8-04",
+      "R11 D5-s8-05",
+      "R11 D6-s1-01",
+      "R11 D6-s1-02",
+      "R11 D6-s2-01",
+      "R11 D6-s4-02",
+      "R11 D6-s5-05",
+      "R11 D6-s5-07",
+      "R11 D6-s6-01",
+      "R11 D6-s7-01",
+      "R11 D6-s7-02",
+      "R11 sw:tools/policy/check-wave-script.mjs::comment_at_line_702-705_citing_yield_rounds.py_and_tools/audit/round7/D13/class_vocabulary.mjs"
     ],
     "per_round": {
       "R1": 9,
@@ -1427,10 +1649,11 @@
       "R7": 3,
       "R8": 6,
       "R9": 25,
-      "R10": 8
+      "R10": 8,
+      "R11": 39
     },
-    "total": 101,
-    "max_per_round": 25,
+    "total": 140,
+    "max_per_round": 39,
     "detector": "PYTHONPATH=tests/hastub python3 tests/doc_claims.py -- every arm derives its fact set by executing production code and its claim set from the whole reader corpus (README.md, the user docs, the blueprints), opens with a named anchor check, and carries a null control: the I5 barrier's arms (round 9, F10.4) price entity prose against the constructed entity set (counts, per-platform totals, enum state lists, the disabled-by-default census), backticked private names in the card, units in the translation catalogs, options-field labels and their pages against en.json, every stated multi-start count against optimizer._multi_start_minimize, and qs_py_typed_files against the shipped package; F8.3's service-fields arm prices every service paragraph against its registered schema; and R9-RO-PC1's prose-count census reads eleven count SHAPES -- the module total, the module-level importer count and the HA-free count, the option-page count in its four phrasings, the editable-page count, a named service's field count, the service count and the service-definition count -- across the whole corpus, each against the tree's own measurement, in tools/audit/prose_counts_census.py's seam enumeration",
     "detector_idea": "The claims table, link-graph walker and backticked-symbol resolver run per docs-touching PR",
     "barrier": "tests/doc_claims.py on the PR gate (F10.4, #1645): a docs or code change that leaves a claim of an arm's shape false fails the run, and a doc rewrite that moves an arm's anchor fails it by name instead of aborting the run (carry-1645.json). Not reached: prose that names a setting without its form label (D6-s1-02's own sentence, kept by F8.2's specific check), comment drift in code (D5-s2-51), flowchart and diagram content (D6-s2-02), translation meaning (D8-s3-02), and HA quality-scale code conformance flagged under this class. R9-RO-PC1 closed the largest of the former gaps -- a count stated in a document whose arm keys on a specific sentence -- with a corpus-wide census of count SHAPES in the same script, and its two remaining limits are named here: a count spelled as a word ('five pages', 'twelve files'), which no shape's digit grammar matches, and the ~60 `steps` cells in configuration.md's tables, which stay unread because C30 compares only the Default column and C31 the min/max -- planting 0.5 steps to 0.7 steps left every instrument green",
@@ -1518,7 +1741,8 @@
     "rounds": [
       3,
       4,
-      9
+      9,
+      11
     ],
     "instances": [
       "R3 D10-04",
@@ -1528,14 +1752,18 @@
       "R9 D1-s2-71",
       "R9 D10-s1-03",
       "R9 D14-s4-02",
-      "R9 D6-s1-81"
+      "R9 D6-s1-81",
+      "R11 D16-s1-05",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._async_set_pump",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._command_frequency"
     ],
     "per_round": {
       "R3": 1,
       "R4": 1,
-      "R9": 6
+      "R9": 6,
+      "R11": 3
     },
-    "total": 8,
+    "total": 11,
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/ha_contract.py",
     "detector_idea": "Per seam, an enumerating sweep that drives every production call site through a double whose behaviour is cited to upstream source or measured on the device; tests/entities.py's entity-action sweep (handoff/v6612-root-cause) is the first",
@@ -1634,7 +1862,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D9-01",
@@ -1651,7 +1880,9 @@
       "R9 RC-rca1",
       "R9 RC-rca2",
       "R9 RC-sw1",
-      "R10 D9-s1-01"
+      "R10 D9-s1-01",
+      "R11 D9-s1-01",
+      "R11 sw:custom_components/heatpump_optimizer/button.py::RunOptimizationButton.async_press"
     ],
     "per_round": {
       "R1": 1,
@@ -1661,9 +1892,10 @@
       "R7": 1,
       "R8": 1,
       "R9": 7,
-      "R10": 1
+      "R10": 1,
+      "R11": 2
     },
-    "total": 15,
+    "total": 17,
     "max_per_round": 7,
     "detector": "PYTHONPATH=tests/hastub python3 tests/stress.py, the production-call channel (round 9, F10.2): one member of every sweep family, the cheapest recorded, is solved on this tree and on the merge base in fresh interpreters under sys.monitoring, counting PY_START and CALL events per production file; growth beyond what the evaluation and simulate counts vouch for, over SCENARIO_CALLS_GROWTH (5 %, re-derived over 13 first-parent solver merges, 2.35 % largest legitimate) on an unchanged plan, fails. The count is exact, so a per-row or per-iterate recompute the CPU factors' noise hides is refused: RC-rca1's per-row loop re-introduced fires 16 of 20 scenarios at up to 3.3x, F2.2's and F2.5's fixes reverted fire 20 and 18 of 20",
     "detector_idea": "S5 enumerate.py: profiled call counts per (module, qualname) against a once-per-solve boundary; recompute_instances may only fall",
@@ -1699,7 +1931,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D7-06",
@@ -1717,7 +1950,12 @@
       "R10 D7-s3-02",
       "R10 D7-s3-51",
       "R10 D7-s3-52",
-      "R10 D7-s1-83"
+      "R10 D7-s1-83",
+      "R11 D7-s1-01",
+      "R11 D7-s1-02",
+      "R11 D7-s1-03",
+      "R11 D7-s1-04",
+      "R11 D7-s3-05"
     ],
     "per_round": {
       "R1": 1,
@@ -1726,9 +1964,10 @@
       "R7": 1,
       "R8": 2,
       "R9": 4,
-      "R10": 6
+      "R10": 6,
+      "R11": 5
     },
-    "total": 16,
+    "total": 21,
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/structure.py -- dead_methods by receiver and reachability over methods and properties, with the name-kept members printed as the shape it cannot measure; the coordinator found by role, so a coordinator.py helper handed it is a seam unit and a reach from another module is coordinator_private_reach; the self-check plants one example per past shape (#1686, #1738)",
     "detector_idea": "Liveness by reachability from production roots (tests are not roots), with a self-check planting one example per past shape and a printed count of shapes the metric cannot measure (RCA-BULK-2)",
@@ -1766,7 +2005,8 @@
       4,
       5,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R1 D8-03",
@@ -1778,7 +2018,8 @@
       "R5 D8-02@eaa2a06",
       "R9 D8-s3-01",
       "R10 D7-s3-53",
-      "R10 sw:tests/entities.py::#1760_family_block_(_fam_token/_FAM_OVERRIDES,_'every_declared_family_sorts_as_one_contiguous_run')"
+      "R10 sw:tests/entities.py::#1760_family_block_(_fam_token/_FAM_OVERRIDES,_'every_declared_family_sorts_as_one_contiguous_run')",
+      "R11 D8-s2-02"
     ],
     "per_round": {
       "R1": 1,
@@ -1787,9 +2028,10 @@
       "R4": 1,
       "R5": 3,
       "R9": 1,
-      "R10": 2
+      "R10": 2,
+      "R11": 1
     },
-    "total": 10,
+    "total": 11,
     "max_per_round": 3,
     "detector": null,
     "detector_idea": "S6 entity-family-name-sort-split enumerate.sh: per family, sort by name (en, sv) and entity_id and count unexplained splits",
@@ -1822,7 +2064,8 @@
       2,
       8,
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R2 D1-05",
@@ -1842,15 +2085,17 @@
       "R10 ARCH2-s2-P4",
       "R10 ARCH2-s2-P6",
       "R10 ARCH2-s2-P7",
-      "R10 D7-s1-82"
+      "R10 D7-s1-82",
+      "R11 D7-s2-03"
     ],
     "per_round": {
       "R2": 1,
       "R8": 2,
       "R9": 1,
-      "R10": 14
+      "R10": 14,
+      "R11": 1
     },
-    "total": 18,
+    "total": 19,
     "max_per_round": 14,
     "detector": "PYTHONPATH=tests/hastub python3 tests/arch_score_head.py -- hub_solve_writes (tools/audit/archscore/metrics/hub_solve_writes.py) enumerates every write into _opt_config, _thermal_params or _current_state reachable from async_run_optimization and async_simulate through calls, aliases and parameters, in any module",
     "detector_idea": "alt/evidence/m1_hub_writes.py: solve-path hub write sites must be 0 once the per-solve record lands (26 sites / 23 fields at c54b20d2); extend to _current_action and the what-if cache (#1752, #1753)",
@@ -1926,16 +2171,20 @@
     "kind": "instrument",
     "mechanism": "A return inside finally swallows an in-flight exception, cancellation included",
     "rounds": [
-      9
+      9,
+      11
     ],
     "instances": [
-      "R9 D7-s3-51"
+      "R9 D7-s3-51",
+      "R11 D14-s1-02",
+      "R11 sw:dev/archive/handoff/r9-f2-solver-4/mutation_proof.py::main"
     ],
     "per_round": {
-      "R9": 1
+      "R9": 1,
+      "R11": 2
     },
-    "total": 1,
-    "max_per_round": 1,
+    "total": 3,
+    "max_per_round": 2,
     "detector": null,
     "detector_idea": "S6 return-inside-finally enumerate.py (AST: return/break/continue whose scope escapes a finally)",
     "barrier": null,
@@ -1945,30 +2194,40 @@
     "aliases": [
       "new: return inside finally"
     ],
-    "rca": [],
+    "rca": [
+      "R11-N-finally-return"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
-      "cross_round": false,
+      "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-step-grid": {
     "kind": "production",
     "mechanism": "A number selector's minimum or default is not on its own step grid, so native validity flags legal values and a spinner click lands off-grid",
     "rounds": [
-      9
+      9,
+      11
     ],
     "instances": [
-      "R9 D4-s2-05"
+      "R9 D4-s2-05",
+      "R11 D14-s1-01",
+      "R11 D16-s1-01",
+      "R11 sw:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js::input.wi-temp",
+      "R11 sw:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js::input.wi-dhw-min",
+      "R11 sw:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js::input.wi-quiet-frac",
+      "R11 sw:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js::input.sp-setpoint"
     ],
     "per_round": {
-      "R9": 1
+      "R9": 1,
+      "R11": 6
     },
-    "total": 1,
-    "max_per_round": 1,
+    "total": 7,
+    "max_per_round": 6,
     "detector": null,
     "detector_idea": "S7 selector_min_off_step_grid enumerate.py: every box-mode NumberSelector (min - base) % step == 0",
     "barrier": null,
@@ -1978,15 +2237,18 @@
     "aliases": [
       "new: selector minimum off its own step grid"
     ],
-    "rca": [],
+    "rca": [
+      "R11-N-step-grid"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
-      "per_round": false,
-      "cross_round": false,
+      "per_round": true,
+      "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
-    }
+      "class_rca_on_record": true
+    },
+    "barrier_refusal": "tests/config_flow_steps.py r9_f5_text_and_menu_findings names the class (#1679, D4-s2-05) and pins one box-mode NumberSelector's step; it reads neither services.yaml, _widen_to_fit, the card inputs nor written values, so it is a site pin, not the class barrier (dev/audit/rca/R11-N-step-grid.md)"
   },
   "N-reap-lock": {
     "kind": "production",
@@ -2029,7 +2291,8 @@
     "mechanism": "A staleness limit is shorter than a report-on-change source's legitimate quiet interval, so a valid unchanged reading is declared stale or unavailable",
     "rounds": [
       9,
-      10
+      10,
+      11
     ],
     "instances": [
       "R9 D1-s5-51",
@@ -2038,13 +2301,16 @@
       "R10 sw:custom_components/heatpump_optimizer/const.py::INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY]",
       "R10 sw:custom_components/heatpump_optimizer/const.py::INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY]",
       "R10 sw:custom_components/heatpump_optimizer/const.py::INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY]",
-      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HUMIDITY_MAX_AGE_MINUTES"
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HUMIDITY_MAX_AGE_MINUTES",
+      "R11 D14-s2-01",
+      "R11 sw:custom_components/heatpump_optimizer/const.py::INPUT_ON_CHANGE_MAX_AGE_MINUTES[CONF_SOLAR_RADIATION_ENTITY]"
     ],
     "per_round": {
       "R9": 1,
-      "R10": 6
+      "R10": 6,
+      "R11": 2
     },
-    "total": 7,
+    "total": 9,
     "max_per_round": 6,
     "detector": null,
     "detector_idea": "S6 staleness-limit-shorter-than-quiet-interval enumerate.sh: silence cells beyond each INPUT_MAX_AGE limit",
@@ -2071,17 +2337,27 @@
     "kind": "instrument",
     "mechanism": "A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero",
     "rounds": [
-      10
+      10,
+      11
     ],
     "instances": [
       "R10 D1-s3-01",
-      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._fetch_weather_forecast"
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+      "R11 D10-s1-01",
+      "R11 D10-s1-02",
+      "R11 D15-s1-03",
+      "R11 D15-s2-03",
+      "R11 D15-s3-01",
+      "R11 D17-s3-03",
+      "R11 sw:custom_components/heatpump_optimizer/switch.py::TimedDutySwitch._press_->_boost.set_block_(refused_on-press)",
+      "R11 sw:tools/replay/debug_replay.py::main:_counts.get(name,_0)_/_smoke_verdict"
     ],
     "per_round": {
-      "R10": 2
+      "R10": 2,
+      "R11": 8
     },
-    "total": 2,
-    "max_per_round": 2,
+    "total": 10,
+    "max_per_round": 8,
     "detector": "node tools/policy/field_coverage.mjs --only census (policy-docs in governance.yml; its --self-test drives each verdict)",
     "detector_idea": "Register count-printing instruments (structure.py dead_*, stress sampling, policy_lint --stats) in field_coverage.mjs's perturb-to-red registry; merge_shape_guard for the merge-subject derivation",
     "barrier": "The census arm of field_coverage.mjs (round 9, F11.4; decided under the programme mandate, D8): each registered count-printing instrument runs on a temporary copy of the tree, as it is and with one planted member of what it counts, and its printed count must rise by exactly one; a count that does not move is BLIND and an unreadable count line is REFUSED, so a failure path that prints the same zero as success cannot pass. Registered: structure.py dead_methods and dead_top_level_symbols. The merge-subject derivation's silent zero is agreement.mjs's merge-shape guard (a live merge commit every reader answers null for is refused). Not registered, so not reached: policy_lint --stats (needs the live API), stress sampling, and any census nobody lists",
@@ -2105,8 +2381,8 @@
       "R9-F11.4"
     ],
     "trigger": {
-      "per_round": false,
-      "cross_round": false,
+      "per_round": true,
+      "cross_round": true,
       "barriered_any": true,
       "class_rca_on_record": true
     }
@@ -5067,6 +5343,472 @@
       "doc": [
         "dev/audit/rca/R10-RCA-PREPR-DARWIN-SELFTEST.md"
       ]
+    },
+    "R11-N-finally-return": {
+      "class": "N-finally-return",
+      "level": "class",
+      "subject": "N-finally-return class: a return inside finally swallows an in-flight exception, cancellation included (3 instances: R9 1, R11 2)",
+      "trigger": "class: cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) R9's fix protocol fixed the nightly_ha site and, at one instance, no trigger asked for a class search; nothing between rounds looks for the shape",
+      "countermeasure": "proposed barrier: compile tracked .py outside dev/archive with -W error::SyntaxWarning (PEP 765), or the AST walk (about 1 s; 16 s/release against 317 s/release)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-finally-return.md",
+      "doc": [
+        "dev/audit/rca/R11-N-finally-return.md"
+      ]
+    },
+    "R11-N-step-grid": {
+      "class": "N-step-grid",
+      "level": "class",
+      "subject": "N-step-grid class: a number selector's minimum or default is not on its own step grid, so native validity flags legal values and a spinner click lands off-grid (7 instances: R9 1, R11 6)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) R9's fix was scoped to config_flow._number; services.yaml, _widen_to_fit and the card were outside its unit; the write side had no brief before D16 (2026-11-15)",
+      "countermeasure": "proposed barrier: a static tests/ arm over config_flow and services.yaml selectors on the step grid, and one quantise-on-step write helper; card inputs stay an audit probe",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-step-grid.md",
+      "doc": [
+        "dev/audit/rca/R11-N-step-grid.md"
+      ]
+    },
+    "R11-N-leaf-imports-solver": {
+      "class": "N-leaf-imports-solver",
+      "level": "class",
+      "subject": "N-leaf-imports-solver class: a leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve (9 instances: R10 2, R11 7)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) R10 moved its two edges; closures.json and archscore both measure the edges and neither refuses one",
+      "countermeasure": "proposed barrier: a tests/ arm holding a declared leaf list's static import closures free of optimizer and scipy (est. 0.5 s; 8 s/release against 1058 s/release)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-leaf-imports-solver.md",
+      "doc": [
+        "dev/audit/rca/R11-N-leaf-imports-solver.md"
+      ]
+    },
+    "R11-N-uncleared-issue": {
+      "class": "N-uncleared-issue",
+      "level": "class",
+      "subject": "N-uncleared-issue class: a repair issue or alert raised on a failure is never cleared by the recovery path, so it outlives the condition it reports (4 instances: R11 4)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D1.md:52-53 asks a handler to recover; R10 D1 s3 ran it on the handler and coordinator state, never on a raised repair issue across a restart",
+      "countermeasure": "proposed barrier: a static tests/ arm pairing each async_create_issue id with a delete, with a reasoned user-cleared list (est. 0.5 s; catches the never-deleted half)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-uncleared-issue.md",
+      "doc": [
+        "dev/audit/rca/R11-N-uncleared-issue.md"
+      ]
+    },
+    "R11-N-dropped-refresh": {
+      "class": "N-dropped-refresh",
+      "level": "class",
+      "subject": "N-dropped-refresh class: a refresh request that lands while a solve is in flight is coalesced into that solve, which read its inputs before the request, so the request is lost until the next interval (12 instances: R11 12)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) #1754 fixed the direct refresh path it reproduced; the library's debounced request path, used by every other caller, was outside its unit",
+      "countermeasure": "proposed barrier: override async_request_refresh to set the re-run flag during a solve (one owner for 12 callers), with a tests/ arm on m4_race's debounced rows",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-dropped-refresh.md",
+      "doc": [
+        "dev/audit/rca/R11-N-dropped-refresh.md"
+      ]
+    },
+    "R11-N-unordered-tiebreak": {
+      "class": "N-unordered-tiebreak",
+      "level": "class",
+      "subject": "N-unordered-tiebreak class: a tie between equal candidates is broken by set or hash iteration order, so the published result depends on PYTHONHASHSEED and changes across restarts (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) no brief or test runs a published choice under more than one hash seed",
+      "countermeasure": "refused: a max(set(...), key=) matcher catches one idiom with one seam in the tree (q ~0.1); the fix's two-seed regression test is the guard",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-unordered-tiebreak.md",
+      "doc": [
+        "dev/audit/rca/R11-N-unordered-tiebreak.md"
+      ]
+    },
+    "R11-N-swallowed-failure": {
+      "class": "N-swallowed-failure",
+      "level": "class",
+      "subject": "N-swallowed-failure class: a failing operation is caught and recorded below WARNING or not at all, so a persistent failure is invisible to the user and the logs (25 instances: R11 25)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D1 step 5 was run; round 10's instrument counted records that repeat, and a handler that logs nothing passes it",
+      "countermeasure": "proposed barrier: a static tests/ arm over d1-excepts refusing a silent or sub-WARNING swallow not routed through log_held, outside a reasoned list (est. 0.5 s; 8 s/release against 2645 s/release)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-swallowed-failure.md",
+      "doc": [
+        "dev/audit/rca/R11-N-swallowed-failure.md"
+      ]
+    },
+    "R11-N-entry-data-placement": {
+      "class": "N-entry-data-placement",
+      "level": "class",
+      "subject": "N-entry-data-placement class: a setting the options flow edits is stored in ConfigEntry.data (or a flow-control value is persisted there), so options and data hold two copies of one setting (4 instances: R11 4)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) no brief step or test asks which container a stored key lands in; D17 first ran this round",
+      "countermeasure": "proposed barrier: a tests/ arm walking the setup flow and refusing an options key in entry.data or a flow-control key stored at all",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-entry-data-placement.md",
+      "doc": [
+        "dev/audit/rca/R11-N-entry-data-placement.md"
+      ]
+    },
+    "R11-N-entity-metadata": {
+      "class": "N-entity-metadata",
+      "level": "class",
+      "subject": "N-entity-metadata class: an entity declares a device_class, state_class or unit that does not describe its value, so Home Assistant converts, aggregates or offers it wrongly (2 instances: R11 2)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) tests/entities.py's TOTAL_INCREASING check reads declared attributes; the accumulators inherit theirs",
+      "countermeasure": "proposed barrier: tests/entities.py resolves effective (inherited) metadata and checks it against Home Assistant's device-class tables",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-entity-metadata.md",
+      "doc": [
+        "dev/audit/rca/R11-N-entity-metadata.md"
+      ]
+    },
+    "R11-N-mode-coupled-write": {
+      "class": "N-mode-coupled-write",
+      "level": "class",
+      "subject": "N-mode-coupled-write class: a write meant for one heat target also drives the other because the plant has no mode separating them, and the gate that should hold it back is floored below the case (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) actuator writes against the plan had no brief before D16 (2026-11-15); no rig modelled a pump with no heating-only mode",
+      "countermeasure": "refused: one seam, one plant topology, no generic detector (q 0); the fix's dhw_gate regression test is the guard, D16 cells stay the audit instrument",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-mode-coupled-write.md",
+      "doc": [
+        "dev/audit/rca/R11-N-mode-coupled-write.md"
+      ]
+    },
+    "R11-N-unreleased-hold": {
+      "class": "N-unreleased-hold",
+      "level": "class",
+      "subject": "N-unreleased-hold class: an actuator the optimizer took over has no release or restore owner on some exit (stale plan, Off, unload, remove, failed restore), so the device keeps the optimizer's last write (5 instances: R11 5)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) before D16 (2026-11-15) no brief graded what a written entity holds on each exit; off_restore registration is opt-in per site",
+      "countermeasure": "proposed barrier: one write path that arms off_restore before every actuator write, plus a tests/ arm over the write-site x exit matrix (m6_restore)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-unreleased-hold.md",
+      "doc": [
+        "dev/audit/rca/R11-N-unreleased-hold.md"
+      ]
+    },
+    "R11-N-stale-step-actuation": {
+      "class": "N-stale-step-actuation",
+      "level": "class",
+      "subject": "N-stale-step-actuation class: an actuator is commanded from the previous solve or step, so it holds or switches one interval late against the plan it serves (4 instances: R11 4)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) no brief graded write timing against plan steps before D16 (2026-11-15); the step tick serves only some channels",
+      "countermeasure": "proposed barrier: one step-boundary write path for every step-dependent channel, with a tests/ arm on timing.py's stale share",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-stale-step-actuation.md",
+      "doc": [
+        "dev/audit/rca/R11-N-stale-step-actuation.md"
+      ]
+    },
+    "R11-N-partial-window-extrapolation": {
+      "class": "N-partial-window-extrapolation",
+      "level": "class",
+      "subject": "N-partial-window-extrapolation class: a window or period figure is projected linearly from its elapsed part with no minimum-coverage rule, so early projections swing by orders of magnitude (3 instances: R11 3)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) no brief step drives a projection at low coverage; D17 first ran this round and D8 found the monthly swing this round",
+      "countermeasure": "refused: the two formulas share no idiom a static arm could see (q 0); each fix's own test is the guard; a coverage-floored projection helper is offered to the fix PR",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-partial-window-extrapolation.md",
+      "doc": [
+        "dev/audit/rca/R11-N-partial-window-extrapolation.md"
+      ]
+    },
+    "R11-N-dead-input": {
+      "class": "N-dead-input",
+      "level": "class",
+      "subject": "N-dead-input class: a configured input or option is accepted, stored and shown, but no consumer reads it into the plan, so changing it changes nothing (2 instances: R11 2)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) no brief perturbed an option and asked whether the plan moved before D17 (2026-11-15)",
+      "countermeasure": "refused: a static reader check catches neither instance (q 0); a per-option sensitivity gate costs a solve per option per PR; each fix's perturbation test is the guard",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-dead-input.md",
+      "doc": [
+        "dev/audit/rca/R11-N-dead-input.md"
+      ]
+    },
+    "R11-N-table-value": {
+      "class": "N-table-value",
+      "level": "class",
+      "subject": "N-table-value class: a constant in a production data table (preset, coefficient, rule) is wrong, so every install that selects it computes from a false number (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) a table's literal values are outside every brief step and every test",
+      "countermeasure": "refused: an oracle exists only where an ordering or source is known (37 tables, 0 further wrong values); the fix pins the era ordering",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-table-value.md",
+      "doc": [
+        "dev/audit/rca/R11-N-table-value.md"
+      ]
+    },
+    "R11-N-wrong-law": {
+      "class": "N-wrong-law",
+      "level": "class",
+      "subject": "N-wrong-law class: a physical law is coded with the wrong operator or sign (a derate added instead of subtracted, then clamped), so the effect it models never acts on any input (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(c) D2.md:30-31 asks a derate in [0, 1], bounded and continuous; R10 D2 s2 ran it, and a derate clamped at 1.0 passes",
+      "countermeasure": "refused: 0 further seams and no syntactic shape (q 0); the fix pins the documented law at grid points; m2_cop_laws stays a D2 instrument",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-wrong-law.md",
+      "doc": [
+        "dev/audit/rca/R11-N-wrong-law.md"
+      ]
+    },
+    "R11-N-objective-as-money": {
+      "class": "N-objective-as-money",
+      "level": "class",
+      "subject": "N-objective-as-money class: a solve-only adjustment (a risk premium or penalty weight) is carried into a figure published or booked as currency, so cost, baseline and savings include a number no meter bills (4 instances: R11 4)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D2.md:35 states predicted_cost == sum(price*power*dt), and R10 checked it on golden fixtures at the default lambda 0, where both series coincide",
+      "countermeasure": "proposed barrier: an invariant tests/ arm with lambda > 0 requiring each published cost to equal raw price x power x dt",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-objective-as-money.md",
+      "doc": [
+        "dev/audit/rca/R11-N-objective-as-money.md"
+      ]
+    },
+    "R11-N-missing-unit-scale": {
+      "class": "N-missing-unit-scale",
+      "level": "class",
+      "subject": "N-missing-unit-scale class: a declared unit (a minor currency unit, a prefixed energy unit) is recognised but its scale factor is never applied, so the value reaches the plan off by that factor (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) tests/features.py's _P8_FACTORS check reads the declared factors and never drives normalize_price_per_kwh with a minor unit",
+      "countermeasure": "proposed barrier: _P8_FACTORS drives normalize_price_per_kwh for every PRICE_MINOR_UNITS unit (est. 0.1 s inside an existing script)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-missing-unit-scale.md",
+      "doc": [
+        "dev/audit/rca/R11-N-missing-unit-scale.md"
+      ]
+    },
+    "R11-N-partial-payload-parse": {
+      "class": "N-partial-payload-parse",
+      "level": "class",
+      "subject": "N-partial-payload-parse class: a parser reads one part of an external payload and silently drops a sibling part the producer delivers, so the horizon or set it builds is short (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(c) D1.md:56-58 and D2.md:42-43 cover the parser and ran in R10; no round-10 input carried the tomorrow part",
+      "countermeasure": "refused: 0 further seams, the shape is per producer (q 0); the fix's two-period fixture is the guard",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-partial-payload-parse.md",
+      "doc": [
+        "dev/audit/rca/R11-N-partial-payload-parse.md"
+      ]
+    },
+    "R11-N-inverted-aggregate": {
+      "class": "N-inverted-aggregate",
+      "level": "class",
+      "subject": "N-inverted-aggregate class: an aggregate takes the wrong order statistic (the minimum for a peak, the k smallest for the k largest), so the billed or tracked figure is understated (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(c) D2.md:43-44 checks the peak is charged once, not which window is the peak; R10 D2 s3 ran it",
+      "countermeasure": "refused: one seam, no syntactic shape (q 0); the fix's two-window test is the guard; a fixer.md test-first sentence is proposed to the owner",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-inverted-aggregate.md",
+      "doc": [
+        "dev/audit/rca/R11-N-inverted-aggregate.md"
+      ]
+    },
+    "R11-N-untranslated-splice": {
+      "class": "N-untranslated-splice",
+      "level": "class",
+      "subject": "N-untranslated-splice class: a localized message interpolates text the integration does not translate (an upstream exception string), so sv/de users read an English fragment inside their language (9 instances: R11 9)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) D10's exception-translations rule grades the key, not the placeholder; D4 first drove the error states this round",
+      "countermeasure": "proposed barrier: a static tests/ arm refusing str(exception) as a translation placeholder, plus one card error helper through hass.localize",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-untranslated-splice.md",
+      "doc": [
+        "dev/audit/rca/R11-N-untranslated-splice.md"
+      ]
+    },
+    "R11-N-copy-style": {
+      "class": "N-copy-style",
+      "level": "class",
+      "subject": "N-copy-style class: user-facing copy breaks the style rule its sibling strings keep (title case, quote style, degree sign), so one surface reads inconsistently (6 instances: R11 6)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) the style rules are unwritten; D4-criteria grades legibility, not house style, and no test reads case, quotes or the degree sign",
+      "countermeasure": "proposed barrier: a text lint over strings, translations and card STRINGS, after the owner writes the house style into D4-criteria",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-copy-style.md",
+      "doc": [
+        "dev/audit/rca/R11-N-copy-style.md"
+      ]
+    },
+    "R11-N-comment-style": {
+      "class": "N-comment-style",
+      "level": "class",
+      "subject": "N-comment-style class: comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact (101 instances: R11 101)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) C5 is a finder criterion only; no lint, hook or pre-PR check reads sentence length",
+      "countermeasure": "proposed barrier: a one-sided ratchet on over-40-word D5 sentences, measured by text_ledger.py after N-instrument-locator's fix; a new budget key needs the owner (0013)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-comment-style.md",
+      "doc": [
+        "dev/audit/rca/R11-N-comment-style.md"
+      ]
+    },
+    "R11-N-orphan-doc": {
+      "class": "N-orphan-doc",
+      "level": "class",
+      "subject": "N-orphan-doc class: a reader document is linked from no other document in the reader set, so no navigation path reaches it (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(a) D5.md:25 finds orphans at audit time only; the file landed after R10 and no pre-merge check asks for an inbound link",
+      "countermeasure": "proposed barrier: a tests/ arm requiring an inbound link to every docs/*.md (est. 0.1 s)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-orphan-doc.md",
+      "doc": [
+        "dev/audit/rca/R11-N-orphan-doc.md"
+      ]
+    },
+    "R11-N-instrument-locator": {
+      "class": "N-instrument-locator",
+      "level": "class",
+      "subject": "N-instrument-locator class: an audit instrument reports the wrong location (line number or file) for the units it counts, so every seat that cites its output cites the wrong site (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(a) no step or check compares an instrument's reported location with the text there before D5 seats cite it",
+      "countermeasure": "refused: locator correctness is per instrument and lexical state (q ~0.1); the fix's self-test arm closes it; an INSTRUMENTS.md sentence is proposed to the owner",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-instrument-locator.md",
+      "doc": [
+        "dev/audit/rca/R11-N-instrument-locator.md"
+      ]
+    },
+    "R11-N-duplicated-rule": {
+      "class": "N-duplicated-rule",
+      "level": "class",
+      "subject": "N-duplicated-rule class: one rule is written as several agreeing copies where a single-owner prototype is admissible, so a later fix to one copy silently forks the rule (1 instances: R11 1)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "refused",
+      "parts_missing": [],
+      "process_state": "(c) archscore reads duplication_copies and saw all 18 copies; it is a score, not a gate",
+      "countermeasure": "refused: detection exists in archscore; gating it is a budget key for the owner; the eight one-owner edits go to the P3 move plan",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-duplicated-rule.md",
+      "doc": [
+        "dev/audit/rca/R11-N-duplicated-rule.md"
+      ]
+    },
+    "R11-N-unbounded-retention": {
+      "class": "N-unbounded-retention",
+      "level": "class",
+      "subject": "N-unbounded-retention class: a buffer or cache that serves a fixed time window never evicts rows older than the window, so retained memory grows linearly with uptime (3 instances: R11 3)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-11-18",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D9.md:12 asks for untrimmed collections and R10 D9 s2 measured retained bytes, without the daily pan that absorbs chunks",
+      "countermeasure": "proposed barrier: an eviction at each window cache's own constant, plus the card retained-rows slope arm in the card lane (2.1 s measured; 34 s/release against 159 s/release benefit)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-N-unbounded-retention.md",
+      "doc": [
+        "dev/audit/rca/R11-N-unbounded-retention.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5135,18 +5877,26 @@
     "kind": "production",
     "mechanism": "A last-known value is published and booked as current with no age bound once its source stops updating",
     "rounds": [
-      10
+      10,
+      11
     ],
     "instances": [
       "R10 D1-s2-02",
       "R10 sw:custom_components/heatpump_optimizer/coordinator.py::forecast_outdoor_now",
-      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_open_loop_plan_value"
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_open_loop_plan_value",
+      "R11 D1-s2-02",
+      "R11 D1-s2-03",
+      "R11 D14-s2-02",
+      "R11 D7-s3-03",
+      "R11 sw:custom_components/heatpump_optimizer/running_signal.py::source.reader",
+      "R11 sw:custom_components/heatpump_optimizer/early_cutoff.py::_plant_exempt"
     ],
     "per_round": {
-      "R10": 3
+      "R10": 3,
+      "R11": 6
     },
-    "total": 3,
-    "max_per_round": 3,
+    "total": 9,
+    "max_per_round": 6,
     "detector": null,
     "barrier": "tests/entities.py, check 'R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count' (_r10_covering_lookups reads every package module by AST; landed d7b171229, #2336).",
     "status": "barriered",
@@ -5170,7 +5920,8 @@
     "kind": "instrument",
     "mechanism": "A persisting condition is logged at WARNING on every cycle instead of once per transition",
     "rounds": [
-      10
+      10,
+      11
     ],
     "instances": [
       "R10 D1-s2-03",
@@ -5179,12 +5930,15 @@
       "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._price_series",
       "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator.async_run_optimization",
       "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._tariff_months",
-      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._tariff_hours"
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._tariff_hours",
+      "R11 D1-s3-06",
+      "R11 D14-s2-03"
     ],
     "per_round": {
-      "R10": 7
+      "R10": 7,
+      "R11": 2
     },
-    "total": 7,
+    "total": 9,
     "max_per_round": 7,
     "detector": null,
     "barrier": "tests/entities.py, check 'R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through log_held' (_r10_unlatched_logs reads every package module by AST; landed d7b171229, #2336). The RCA's countermeasure as built: log_latch.log_held is the latch, the arm refuses an unlatched per-cycle site off the reasoned list.",
@@ -5240,7 +5994,8 @@
     "kind": "instrument",
     "mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move",
     "rounds": [
-      10
+      10,
+      11
     ],
     "instances": [
       "R10 D13-s3-01",
@@ -5278,12 +6033,33 @@
       "R10 sw:dev/audit/rounds/round9/D14/s2/i4_roster.py::path_literal_tools/audit/bugclasses.json_(line_134)",
       "R10 sw:dev/audit/rounds/round9/D14/s2/i4_roster.py::path_literal_tools/audit/finding.schema.json_(line_136)",
       "R10 sw:dev/audit/rounds/round9/D14/s2/i4_roster.py::path_literal_tools/audit/scopes.json_(line_140)",
-      "R10 sw:dev/audit/rounds/round9/D4/s2/step_grid.py::path_literal_tools/audit/round9/D4/s2/step_grid.mjs_(line_147)"
+      "R10 sw:dev/audit/rounds/round9/D4/s2/step_grid.py::path_literal_tools/audit/round9/D4/s2/step_grid.mjs_(line_147)",
+      "R11 D5-s10-01",
+      "R11 D5-s10-04",
+      "R11 D5-s10-05",
+      "R11 D5-s5-02",
+      "R11 D5-s5-03",
+      "R11 D5-s6-03",
+      "R11 D5-s8-01",
+      "R11 D5-s8-02",
+      "R11 D5-s8-03",
+      "R11 D5-s9-01",
+      "R11 D5-s9-02",
+      "R11 D5-s9-03",
+      "R11 D6-s2-02",
+      "R11 D6-s2-03",
+      "R11 D6-s5-01",
+      "R11 D6-s5-02",
+      "R11 D6-s5-03",
+      "R11 D6-s5-04",
+      "R11 D6-s5-06",
+      "R11 D6-s5-08"
     ],
     "per_round": {
-      "R10": 36
+      "R10": 36,
+      "R11": 20
     },
-    "total": 36,
+    "total": 56,
     "max_per_round": 36,
     "detector": null,
     "barrier": "tests/entities.py, check 'every program live policy or a carry's remeasure tells a seat to run, under a historical prefix, loads and resolves the paths it opens (#2227)' (the RCA's form (ii); landed 7215e39df, #2289). Not reached, the RCA's own scope: a harness under a historical prefix that no live text cites is a record, kept as written (tests/layout.json `historical`); python3 tools/audit/seat/moved_paths.py <dir> enumerates those references for a seat that re-runs one.",
@@ -5339,19 +6115,27 @@
     "kind": "production",
     "mechanism": "An online estimator absorbs the error of an unmodelled or mis-modelled covariate into the parameter it learns",
     "rounds": [
-      10
+      10,
+      11
     ],
     "instances": [
       "R10 D2-s3-71",
       "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_async_learn_lower_floor_loss",
       "R10 sw:custom_components/heatpump_optimizer/accuracy.py::heat_loss_refit",
-      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_fold_internal_gains"
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_fold_internal_gains",
+      "R11 D12-s3-03",
+      "R11 D2-s3-09",
+      "R11 D2-s3-11",
+      "R11 D7-s2-01",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_fold_measured_cop",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_async_learn_lower_floor_loss"
     ],
     "per_round": {
-      "R10": 4
+      "R10": 4,
+      "R11": 6
     },
-    "total": 4,
-    "max_per_round": 4,
+    "total": 10,
+    "max_per_round": 6,
     "detector": null,
     "barrier": null,
     "status": "open",
@@ -5376,17 +6160,26 @@
     "kind": "production",
     "mechanism": "A leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve",
     "rounds": [
-      10
+      10,
+      11
     ],
     "instances": [
       "R10 ARCH3-s6-P4",
-      "R10 D7-s4-8x-layering"
+      "R10 D7-s4-8x-layering",
+      "R11 D7-s1-06",
+      "R11 sw:custom_components/heatpump_optimizer/disinfection.py::import_edge_via_inputs",
+      "R11 sw:custom_components/heatpump_optimizer/price_model.py::import_edge_via_inputs",
+      "R11 sw:custom_components/heatpump_optimizer/quiet_windows.py::import_edge_via_inputs",
+      "R11 sw:custom_components/heatpump_optimizer/setpoint_check.py::import_edge_via_inputs",
+      "R11 sw:custom_components/heatpump_optimizer/snapshots.py::import_edge_via_store",
+      "R11 sw:custom_components/heatpump_optimizer/sysid.py::import_edge_via_accuracy,_and_a_second_path_that_survives_the_accuracy_and_currency_cuts"
     ],
     "per_round": {
-      "R10": 2
+      "R10": 2,
+      "R11": 7
     },
-    "total": 2,
-    "max_per_round": 2,
+    "total": 9,
+    "max_per_round": 7,
     "detector": null,
     "barrier": null,
     "status": "open",
@@ -5394,29 +6187,34 @@
     "mechanism_difference": "I2 is a measured closure that diverges from the real dependency graph; here the graph itself is wrong (a production import edge into the solver), and the closure measures it faithfully",
     "minted": "R10",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R11-N-leaf-imports-solver"
+    ],
     "rules": [],
     "rca_planned": [],
     "trigger": {
-      "per_round": false,
-      "cross_round": false,
+      "per_round": true,
+      "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-order-coupling": {
     "kind": "production",
     "mechanism": "Two sibling updaters consume one shared interval and the first closes it destructively, so correctness depends on call order that only a comment and a source-order test hold",
     "rounds": [
-      10
+      10,
+      11
     ],
     "instances": [
-      "R10 D7-s4-8x-fabric"
+      "R10 D7-s4-8x-fabric",
+      "R11 D16-s3-03"
     ],
     "per_round": {
-      "R10": 1
+      "R10": 1,
+      "R11": 1
     },
-    "total": 1,
+    "total": 2,
     "max_per_round": 1,
     "detector": null,
     "barrier": null,
@@ -5439,15 +6237,18 @@
     "kind": "production",
     "mechanism": "A restore applies persisted state after an await during which a writer changed the same state, so the stale snapshot overwrites the live write (or the write lands on an object the restore then replaces)",
     "rounds": [
-      10
+      10,
+      11
     ],
     "instances": [
-      "R10 L3-restore-session-race"
+      "R10 L3-restore-session-race",
+      "R11 D1-s2-04"
     ],
     "per_round": {
-      "R10": 1
+      "R10": 1,
+      "R11": 1
     },
-    "total": 1,
+    "total": 2,
     "max_per_round": 1,
     "detector": null,
     "barrier": null,
@@ -5506,17 +6307,22 @@
     "kind": "instrument",
     "mechanism": "A record's writer holds one vocabulary and its reader holds another, so the writer accepts a word no read can close: roster_edit.py wrote stages as free strings (`459ef684a` appended a group in `in-review`; `94ece3d08` set R10-HOUSE-GRADE to `in-review` again) while roster_sync.py had no rule for that word, and the same writer accepted a `size` the duration model does not key (`d6308d77c`'s eight `XS` groups, where replan.build_plan:325's size_hours[...] raised KeyError 'XS'; tools/plan/ is INERT at tests/closure.py:336, so no gate read it). roster_edit.py:883 pinned the unclassified word in its own self-test, so the drift was asserted as the contract",
     "rounds": [
-      10
+      10,
+      11
     ],
     "instances": [
       "R10 459ef684a",
       "R10 94ece3d08",
-      "R10 d6308d77c"
+      "R10 d6308d77c",
+      "R11 D13-s2-01",
+      "R11 D13-s2-02",
+      "R11 sw:.claude/workflows/web-fix-wave.js::KNOWN_STAGES"
     ],
     "per_round": {
-      "R10": 3
+      "R10": 3,
+      "R11": 3
     },
-    "total": 3,
+    "total": 6,
     "max_per_round": 3,
     "detector": "roster_sync.py --self-test's two vocabulary scans (every stage a roster carries is classified; every size a roster carries is in the durations model, driven first on a planted roster so a green is a measurement) and roster_edit.py --self-test's refusal arms, each with a null control; measured red on main's writer at 21b1ed140 (roster_sync 4 FAIL, roster_edit 4 FAIL) and green at the fix head, where every plant of tools/audit/seat/r10_roster_ops_mutants.py (S1-S7) and r10_roster_sync_mutants.py (M21-M24) turns its own arm red",
     "detector_idea": null,
@@ -5899,5 +6705,1030 @@
       "R10-HOTFIX-PREPR-WC-PAD: a stub padding an already padded host wc (1386441425)"
     ],
     "non_round_note": "Process incidents on the operator's macOS seat counted by the root-cause seat (3 in round 10); not audit findings, not counted in total."
+  },
+  "N-uncleared-issue": {
+    "kind": "production",
+    "mechanism": "A repair issue or alert raised on a failure is never cleared by the recovery path, so it outlives the condition it reports",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D1-s1-01",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator.async_run_optimization",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._audit_grid_fee",
+      "R11 sw:custom_components/heatpump_optimizer/legionella.py::LegionellaGuard._drive_switch"
+    ],
+    "per_round": {
+      "R11": 4
+    },
+    "total": 4,
+    "max_per_round": 4,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-no-expiry",
+    "mechanism_difference": "the stale object is a raised alert the success path never deletes, not a published value read past its age",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-uncleared-issue"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-dropped-refresh": {
+    "kind": "production",
+    "mechanism": "A refresh request that lands while a solve is in flight is coalesced into that solve, which read its inputs before the request, so the request is lost until the next interval",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D1-s1-03",
+      "R11 sw:custom_components/heatpump_optimizer/boost.py::set_channel",
+      "R11 sw:custom_components/heatpump_optimizer/boost.py::set_block",
+      "R11 sw:custom_components/heatpump_optimizer/button.py::ResetHeatLossButton.async_press",
+      "R11 sw:custom_components/heatpump_optimizer/services.py::handle_reset_heat_loss",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::async_adopt_heat_loss_refit",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator.__init___(InputReturnWatch_callback)",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator.async_update_thermal_params",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator.async_clear_manual_plan",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator.async_restore_learned_snapshot",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator.async_arm_system_identification",
+      "R11 sw:custom_components/heatpump_optimizer/entity.py::publish_then_refresh"
+    ],
+    "per_round": {
+      "R11": 12
+    },
+    "total": 12,
+    "max_per_round": 12,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-restore-race",
+    "mechanism_difference": "nothing is overwritten: the request itself is swallowed by the debouncer instead of re-running",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-dropped-refresh"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-unordered-tiebreak": {
+    "kind": "instrument",
+    "mechanism": "A tie between equal candidates is broken by set or hash iteration order, so the published result depends on PYTHONHASHSEED and changes across restarts",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D1-s1-51"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I4",
+    "mechanism_difference": "one definition, not two: the nondeterminism is iteration order inside a single rule",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-unordered-tiebreak"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-swallowed-failure": {
+    "kind": "instrument",
+    "mechanism": "A failing operation is caught and recorded below WARNING or not at all, so a persistent failure is invisible to the user and the logs",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D1-s3-05",
+      "R11 D1-s3-07",
+      "R11 sw:custom_components/heatpump_optimizer/config_flow.py::_prefilled_values_(handler_config_flow.py:781)",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._maybe_refresh_price_tile_(handler_coordinator.py:10712)",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_replay_interval_(handler_coordinator.py:1086)",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_with_sensor_advisor_(handler_coordinator.py:2210)",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::_stored_fuse_advisor_(handler_coordinator.py:3055)",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription_(handler_coordinator.py:4174)",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._async_load_thermal_learning_(handler_coordinator.py:4581)",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._async_load_manual_plan_(handler_coordinator.py:8477)",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._track_curve_comfort_(handler_coordinator.py:9255)",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_learning.py::DhwProfileLearner.async_load_profile_(handler_dhw_learning.py:254)",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_planner.py::DhwPlanner._plan_dhw_min_cost_(handler_dhw_planner.py:1604)",
+      "R11 sw:custom_components/heatpump_optimizer/diagnosis.py::diagnose_record_(handler_diagnosis.py:151)",
+      "R11 sw:custom_components/heatpump_optimizer/duty_switch.py::_load_(handler_duty_switch.py:504)",
+      "R11 sw:custom_components/heatpump_optimizer/legionella.py::LegionellaGuard.async_load_(handler_legionella.py:227)",
+      "R11 sw:custom_components/heatpump_optimizer/off_restore.py::async_forget_(handler_off_restore.py:343)",
+      "R11 sw:custom_components/heatpump_optimizer/open_meteo.py::OpenMeteoSolar._fenced_(handler_open_meteo.py:400)",
+      "R11 sw:custom_components/heatpump_optimizer/open_meteo.py::OpenMeteoSolar._get_json_(handler_open_meteo.py:421)",
+      "R11 sw:custom_components/heatpump_optimizer/optimizer.py::HeatPumpOptimizer._co_optimize_(handler_optimizer.py:4000)",
+      "R11 sw:custom_components/heatpump_optimizer/optimizer.py::_avoid_priced_switches_(handler_optimizer.py:496)",
+      "R11 sw:custom_components/heatpump_optimizer/optimizer.py::_commit_runs_(handler_optimizer.py:705)",
+      "R11 sw:custom_components/heatpump_optimizer/setpoint_check.py::evaluate_(handler_setpoint_check.py:88)",
+      "R11 sw:custom_components/heatpump_optimizer/store.py::load_mapping_(handler_store.py:690)",
+      "R11 sw:custom_components/heatpump_optimizer/whatif.py::steady_pair_(handler_whatif.py:213)"
+    ],
+    "per_round": {
+      "R11": 25
+    },
+    "total": 25,
+    "max_per_round": 25,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-silent-zero",
+    "mechanism_difference": "the failure path returns nothing success-shaped; it simply records nothing visible",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-swallowed-failure"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-entry-data-placement": {
+    "kind": "production",
+    "mechanism": "A setting the options flow edits is stored in ConfigEntry.data (or a flow-control value is persisted there), so options and data hold two copies of one setting",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D10-s1-03",
+      "R11 D17-s2-05",
+      "R11 sw:custom_components/heatpump_optimizer/config_flow.py::HeatPumpOptimizerConfigFlow._async_save_reconfigure",
+      "R11 sw:custom_components/heatpump_optimizer/config_flow.py::HeatPumpOptimizerConfigFlow.async_step_reauth_confirm"
+    ],
+    "per_round": {
+      "R11": 4
+    },
+    "total": 4,
+    "max_per_round": 4,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P2",
+    "mechanism_difference": "no divergent guard: one value is persisted into the wrong container, so a later options save shadows or strands it",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-entry-data-placement"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-entity-metadata": {
+    "kind": "production",
+    "mechanism": "An entity declares a device_class, state_class or unit that does not describe its value, so Home Assistant converts, aggregates or offers it wrongly",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D10-s2-04",
+      "R11 D8-s3-01"
+    ],
+    "per_round": {
+      "R11": 2
+    },
+    "total": 2,
+    "max_per_round": 2,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P8",
+    "mechanism_difference": "the defect is in the metadata Home Assistant reads off one entity, not a precedence between surfaces",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-entity-metadata"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-mode-coupled-write": {
+    "kind": "production",
+    "mechanism": "A write meant for one heat target also drives the other because the plant has no mode separating them, and the gate that should hold it back is floored below the case",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D16-s1-02"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P2",
+    "mechanism_difference": "not two predicates for one fact: one actuator serves two targets and the second target has no gate at all",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-mode-coupled-write"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-unreleased-hold": {
+    "kind": "production",
+    "mechanism": "An actuator the optimizer took over has no release or restore owner on some exit (stale plan, Off, unload, remove, failed restore), so the device keeps the optimizer's last write",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D16-s1-04",
+      "R11 D16-s3-01",
+      "R11 D16-s3-02",
+      "R11 D16-s3-04",
+      "R11 sw:custom_components/heatpump_optimizer/pump_arbiter.py::release"
+    ],
+    "per_round": {
+      "R11": 5
+    },
+    "total": 5,
+    "max_per_round": 5,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-no-expiry",
+    "mechanism_difference": "the stale thing is a physical actuator state left held, not a published value read past its age",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-unreleased-hold"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-stale-step-actuation": {
+    "kind": "production",
+    "mechanism": "An actuator is commanded from the previous solve or step, so it holds or switches one interval late against the plan it serves",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D16-s2-01",
+      "R11 D16-s2-02",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._command_valve_target",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._async_peak_guard_transition"
+    ],
+    "per_round": {
+      "R11": 4
+    },
+    "total": 4,
+    "max_per_round": 4,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-no-expiry",
+    "mechanism_difference": "the value is fresh but applied to the wrong step: a timing offset between plan and write, not an age bound",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-stale-step-actuation"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-partial-window-extrapolation": {
+    "kind": "production",
+    "mechanism": "A window or period figure is projected linearly from its elapsed part with no minimum-coverage rule, so early projections swing by orders of magnitude",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D17-s1-05",
+      "R11 D8-s1-02",
+      "R11 sw:custom_components/heatpump_optimizer/ledger.py::pro_rata_factor"
+    ],
+    "per_round": {
+      "R11": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-period-rollover",
+    "mechanism_difference": "no reset ordering is involved: the projection itself is unguarded against a tiny elapsed sample",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-partial-window-extrapolation"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-dead-input": {
+    "kind": "production",
+    "mechanism": "A configured input or option is accepted, stored and shown, but no consumer reads it into the plan, so changing it changes nothing",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D17-s2-02",
+      "R11 D17-s2-04"
+    ],
+    "per_round": {
+      "R11": 2
+    },
+    "total": 2,
+    "max_per_round": 2,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P6",
+    "mechanism_difference": "the reverse of P6: the producer writes the key and no consumer reads it",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-dead-input"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-table-value": {
+    "kind": "instrument",
+    "mechanism": "A constant in a production data table (preset, coefficient, rule) is wrong, so every install that selects it computes from a false number",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D2-s1-51"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I5",
+    "mechanism_difference": "the false value is production data the code computes with, not prose describing it",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-table-value"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-wrong-law": {
+    "kind": "production",
+    "mechanism": "A physical law is coded with the wrong operator or sign (a derate added instead of subtracted, then clamped), so the effect it models never acts on any input",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D2-s2-02"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P2",
+    "mechanism_difference": "no second copy disagrees: the single implementation contradicts the law it documents",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-wrong-law"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-objective-as-money": {
+    "kind": "production",
+    "mechanism": "A solve-only adjustment (a risk premium or penalty weight) is carried into a figure published or booked as currency, so cost, baseline and savings include a number no meter bills",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D2-s3-01",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_planner.py::_baseline_dhw_economics_baseline_cost/predicted_cost/dhw_cost_(L519-524)",
+      "R11 sw:custom_components/heatpump_optimizer/optimizer.py::_settle_horizon/_deferred_energy_cost/_start_gap_cost_on_h.prices_(L6318-6355)",
+      "R11 sw:custom_components/heatpump_optimizer/optimizer.py::OptimizationResult.prices=h.prices_(L3869),_read_per_step_at_L6581_and_published"
+    ],
+    "per_round": {
+      "R11": 4
+    },
+    "total": 4,
+    "max_per_round": 4,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P8",
+    "mechanism_difference": "no divergent unit precedence: an objective term crosses into the money surface",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-objective-as-money"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-missing-unit-scale": {
+    "kind": "production",
+    "mechanism": "A declared unit (a minor currency unit, a prefixed energy unit) is recognised but its scale factor is never applied, so the value reaches the plan off by that factor",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D2-s3-02"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P8",
+    "mechanism_difference": "one surface and one resolution: the conversion is missing, not resolved differently elsewhere",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-missing-unit-scale"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-partial-payload-parse": {
+    "kind": "production",
+    "mechanism": "A parser reads one part of an external payload and silently drops a sibling part the producer delivers, so the horizon or set it builds is short",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D2-s3-03"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P6",
+    "mechanism_difference": "the key exists and the producer writes it; the reader never looks for it",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-partial-payload-parse"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-inverted-aggregate": {
+    "kind": "production",
+    "mechanism": "An aggregate takes the wrong order statistic (the minimum for a peak, the k smallest for the k largest), so the billed or tracked figure is understated",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D2-s3-05"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P2",
+    "mechanism_difference": "no sibling disagreement is needed: the single rule selects the wrong end of the distribution",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-inverted-aggregate"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-event-misattribution": {
+    "kind": "production",
+    "mechanism": "A sensor signature of one physical event is classified as another (a charge-start dip as a hot-water draw), so a counter or statistic books events that did not happen",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D2-s3-08"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-confounded-learner",
+    "mechanism_difference": "a discrete event label is wrong; no learned parameter absorbs a covariate",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-untranslated-splice": {
+    "kind": "instrument",
+    "mechanism": "A localized message interpolates text the integration does not translate (an upstream exception string), so sv/de users read an English fragment inside their language",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D4-s3-01",
+      "R11 sw:custom_components/heatpump_optimizer/services.py::_refuse_quiet_(services.py:439,_{error}=str(DHWWindowError))",
+      "R11 sw:custom_components/heatpump_optimizer/services.py::handle_set_thermal_params_dhw_windows_(services.py:672)",
+      "R11 sw:custom_components/heatpump_optimizer/services.py::handle_simulate_plan_invalid_windows_(services.py:810,_slice_of_Refused_text)",
+      "R11 sw:custom_components/heatpump_optimizer/services.py::handle_simulate_plan_simulate_plan_failed_(services.py:818,_str(error))",
+      "R11 sw:custom_components/heatpump_optimizer/services.py::handle_apply_schedule_dhw_windows_(services.py:1006)",
+      "R11 sw:custom_components/heatpump_optimizer/services.py::handle_set_manual_plan_manual_plan_invalid_slots_(services.py:1157,_whole_sv_message_=_English_ManualPlanError)",
+      "R11 sw:custom_components/heatpump_optimizer/services.py::handle_diagnose_interval_diagnose_interval_failed_(services.py:1285,_str(ProcessWorkerUnavailable))",
+      "R11 sw:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js::WhatIfPanel_simulate_result:_L('errors.could_not_simulate',{err:first.error})_(card.js:13428)_fed_by_coordinator.py:11234/11242_str(whatif.Refused|Exception)"
+    ],
+    "per_round": {
+      "R11": 9
+    },
+    "total": 9,
+    "max_per_round": 9,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I4",
+    "mechanism_difference": "not two definitions disagreeing: one surface splices a foreign-language runtime string into a translated template",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-untranslated-splice"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-copy-style": {
+    "kind": "production",
+    "mechanism": "User-facing copy breaks the style rule its sibling strings keep (title case, quote style, degree sign), so one surface reads inconsistently",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D4-s3-06",
+      "R11 D4-s3-07",
+      "R11 sw:custom_components/heatpump_optimizer/translations/en.json::quote_style_mixed:_61_straight_vs_3_typographic",
+      "R11 sw:custom_components/heatpump_optimizer/translations/sv.json::quote_style_mixed:_62_straight_vs_1_typographic",
+      "R11 sw:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js::STRINGS.en_straight_spans_(2)_beside_typographic_(3)",
+      "R11 sw:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js::STRINGS.sv_straight_spans_(2)_beside_typographic_(3)"
+    ],
+    "per_round": {
+      "R11": 6
+    },
+    "total": 6,
+    "max_per_round": 6,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P9",
+    "mechanism_difference": "text style, not layout, colour token or hit target",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-copy-style"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-comment-style": {
+    "kind": "instrument",
+    "mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D5-s10-07",
+      "R11 D5-s2-06",
+      "R11 D5-s3-03",
+      "R11 D5-s4-01",
+      "R11 D5-s5-07",
+      "R11 D5-s6-08",
+      "R11 D5-s7-01",
+      "R11 D5-s7-02",
+      "R11 D5-s7-03",
+      "R11 D5-s8-06",
+      "R11 D5-s9-04",
+      "R11 sw:custom_components/heatpump_optimizer/__init__.py::6_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/accuracy.py::12_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/away.py::4_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/batchmath.py::4_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/battery.py::4_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/binary_sensor.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/boost.py::9_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/button.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/climate.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/comfort_band.py::6_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/comfort_learning.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/config_flow.py::52_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/const.py::60_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/coordinator.py::114_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/currency.py::1_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/curve_learning.py::1_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/debugger.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/defrost.py::21_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/device_prefill.py::11_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_draws.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_learning.py::7_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_planner.py::39_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/dhw_schedule.py::9_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/diagnosis.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/diagnostics.py::11_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/disinfection.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/draw_range.py::11_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/drift.py::4_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/driving_grade.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/duty_legs.py::4_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/duty_switch.py::6_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/early_cutoff.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/entity.py::12_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/external_heat.py::6_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/flow_lift.py::9_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/flow_meter.py::1_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/freq_control.py::9_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/frontend.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/grid_fee.py::9_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/heat_curve.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/heat_energy.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/inputs.py::16_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/issues.py::1_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/learner_progress.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/ledger.py::7_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/legionella.py::10_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/manual_plan.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/mixing_valve.py::7_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/modbus_prefill.py::1_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/name_match.py::8_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/narrative.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/notifier.py::1_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/off_restore.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/open_meteo.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/optimizer.py::109_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/payload.py::8_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/plan_step.py::1_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/power_guard.py::1_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/prefill_offer.py::4_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/presets.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/price_model.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/price_tiles.py::10_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/pump_arbiter.py::39_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/pump_mode.py::9_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/pump_schedule.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/pump_signals.py::15_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/pv.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/quick_setup.py::7_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/quiet_windows.py::12_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/replay_doc.py::6_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/rooms.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/running_signal.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/runs.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/sensor.py::32_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/services.py::10_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/setpoint_check.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/silent_mode.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/slab_seed.py::2_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/snapshots.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/store.py::11_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/supply_hold.py::5_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/switch.py::3_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/sysid.py::64_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/tariff.py::33_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/thermal_model.py::93_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/topology.py::15_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/wear.py::4_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/whatif.py::4_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/wood_fuel.py::1_C5_sentence(s)_>40_words",
+      "R11 sw:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js::205_C5_sentence(s)_>40_words"
+    ],
+    "per_round": {
+      "R11": 101
+    },
+    "total": 101,
+    "max_per_round": 101,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I5",
+    "mechanism_difference": "the text is not false or stale, only over-long",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-comment-style"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-orphan-doc": {
+    "kind": "instrument",
+    "mechanism": "A reader document is linked from no other document in the reader set, so no navigation path reaches it",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D5-s2-02"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I5",
+    "mechanism_difference": "the text need not be false or stale: it is unreachable",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-orphan-doc"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-instrument-locator": {
+    "kind": "instrument",
+    "mechanism": "An audit instrument reports the wrong location (line number or file) for the units it counts, so every seat that cites its output cites the wrong site",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D5-s8-07"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I4",
+    "mechanism_difference": "the count is right and only the locator is wrong; no second definition disagrees",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-instrument-locator"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-duplicated-rule": {
+    "kind": "production",
+    "mechanism": "One rule is written as several agreeing copies where a single-owner prototype is admissible, so a later fix to one copy silently forks the rule",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D7-s1-05"
+    ],
+    "per_round": {
+      "R11": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P2",
+    "mechanism_difference": "the copies agree today: the defect is the unowned duplication, not a divergence already present",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-duplicated-rule"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-unbudgeted-background": {
+    "kind": "production",
+    "mechanism": "Background solves (what-ifs, advisors) stack onto the main solve with no per-cycle budget or in-flight guard, so a burst multiplies worker jobs and delays the scheduled solve",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D9-s1-02",
+      "R11 D9-s1-03"
+    ],
+    "per_round": {
+      "R11": 2
+    },
+    "total": 2,
+    "max_per_round": 2,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P10",
+    "mechanism_difference": "the work runs off the event loop as intended; the defect is its unbounded count per cycle",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-unbounded-retention": {
+    "kind": "production",
+    "mechanism": "A buffer or cache that serves a fixed time window never evicts rows older than the window, so retained memory grows linearly with uptime",
+    "rounds": [
+      11
+    ],
+    "instances": [
+      "R11 D9-s2-01",
+      "R11 sw:custom_components/heatpump_optimizer/price_model.py::PriceShapeLearner.days_seen",
+      "R11 sw:custom_components/heatpump_optimizer/price_model.py::PriceShapeLearner.quarter_days_seen"
+    ],
+    "per_round": {
+      "R11": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-no-expiry",
+    "mechanism_difference": "nothing stale is published; the cost is memory growth on a long-lived client",
+    "minted": "R11",
+    "aliases": [],
+    "rca": [
+      "R11-N-unbounded-retention"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
   }
 }

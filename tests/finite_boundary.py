@@ -1843,6 +1843,15 @@ def _a6_enrich(coord, t0) -> None:
         dhw_slots=None, expires_at=_A4_NOW + _dt.timedelta(hours=6), created_at=t0)
     coord._away_state.migrated_helpers = True
     coord._flow_bias.bias_k, coord._flow_bias.samples = 2.5, 4
+    # The draw window with a learned floor (R11-OUTSIDE-HONEST-METERED-FLOOR,
+    # Bankaifan #3529), so every draw/ leaf is driven, the floor's included.
+    from heatpump_optimizer.draw_range import DrawRange
+    draw = DrawRange(config=(1.0, 5.0), floor_kw=1.5, floor_since=2, overdraws=1)
+    draw.samples.extend([(1.25, 1.0), (1.75, 1.5), (2.5, 2.0)])
+    draw.commands.extend([(35.5, 55.0), (40.5, 55.0), (45.5, 55.0)])
+    draw.idle.extend([0.125, 0.375])
+    draw.ceiling.extend([(3.25, t0.timestamp() - 3600.0)])
+    coord._accuracy.draw = draw
     coord._measured_cop.record(3.17, True, 52.5, t0 - _dt.timedelta(hours=2))
     learner = coord._dhw_learner
     for name, low in (("hourly_profile", 0.5), ("profile_weekday", 0.75), ("profile_weekend", 0.25)):
@@ -1990,11 +1999,156 @@ def _a6_sampled(seed, path) -> bool:
     return True
 
 
+#: Bad values for a ``whole`` cost probe, kept where the field's domain refuses them.
+_A6_WRONG = (None, "x", [1])
+_A6_GONE = object()  # a leaf the load dropped
+
+#: The cell-only declarations whose bad value already cost other leaves when the
+#: cell half of the cost sweep landed (R11-OUTSIDE-HONEST-METERED-FLOOR p2, at
+#: head 2469c526), each with the most other leaves it cost. Each owes a
+#: ``whole=`` reason or a loader that keeps its neighbours (Carry:
+#: R11-INTAKE-R10-RESIDUE). The sweep refuses a cell-only field missing here
+#: that costs any other leaf, one listed here whose cost grew past its entry,
+#: and an entry whose field no longer costs one (stale: delete it).
+_A6_CELL_SPENT = {
+    "accuracy:accuracy/draw/idle/#": 1,
+    "accuracy:accuracy/lead_pending/#/#": 2,
+    "accuracy:accuracy/samples/#/t": 11,
+    "accuracy:comfort/configured_weight": 8,
+    "accuracy:comfort/evidence": 7,
+    "accuracy:comfort/history/#/delta_c": 1,
+    "accuracy:comfort/history/#/indoor_temp": 1,
+    "accuracy:comfort/history/#/planned_setpoint": 1,
+    "accuracy:comfort/history/#/relative_price": 1,
+    "accuracy:comfort/history/#/t": 1,
+    "accuracy:comfort/learned_weight": 8,
+    "accuracy:comfort/overrides": 7,
+    "accuracy:defrost/counts/#/#": 1,
+    "accuracy:defrost/duty/#/#": 2,
+    "accuracy:defrost/duty_counts/#/#": 2,
+    "accuracy:defrost/factors/#/#": 1,
+    "accuracy:dhw_accuracy/lead_pending/#/#": 2,
+    "accuracy:dhw_accuracy/samples/#/t": 11,
+    "accuracy:peaks/peaks/#": 3,
+    "accuracy:peaks/window_factor": 3,
+    "accuracy:peaks/window_samples": 2,
+    "accuracy:peaks/window_sum": 2,
+    "accuracy:peaks/window_weight": 3,
+    "accuracy:peaks/window_wsum": 3,
+    "away:migrated_helpers": 2,
+    "debug:snapshots/#/cycle": 2,
+    "debug:snapshots/#/data": 2,
+    "debug:snapshots/#/t": 2,
+    "dhw_draws:reservoirs/evening/#": 2,
+    "dhw_draws:reservoirs/morning/#": 1,
+    "dhw_legionella:last_attempt": 1,
+    "ledger:fuse_advisor/candidate_fuse_a": 8,
+    "ledger:fuse_advisor/candidate_kw": 8,
+    "ledger:fuse_advisor/comfort_shortfall_c": 8,
+    "ledger:fuse_advisor/cost_delta_sek_month": 8,
+    "ledger:fuse_advisor/current_fuse_a": 8,
+    "ledger:fuse_advisor/feasible": 8,
+    "ledger:fuse_advisor/month": 8,
+    "ledger:fuse_advisor/worst_margin_kw": 8,
+    "ledger:ledger/months/2025-12/lines/spot/kwh": 1,
+    "ledger:ledger/months/2025-12/lines/spot/sek": 1,
+    "ledger:ledger/months/2026-01/lines/savings_baseline/kwh": 3,
+    "ledger:ledger/months/2026-01/lines/savings_baseline/sek": 3,
+    "ledger:ledger/months/2026-01/meta/spot_price/count": 3,
+    "ledger:ledger/months/2026-01/meta/spot_price/sum": 3,
+    "ledger:month_reports/2025-12/basis/#": 10,
+    "ledger:month_reports/2025-12/compressor_starts": 10,
+    "ledger:month_reports/2025-12/contract_comparison/hourly_spot_sek": 10,
+    "ledger:month_reports/2025-12/contract_comparison/kwh": 10,
+    "ledger:month_reports/2025-12/contract_comparison/month": 10,
+    "ledger:month_reports/2025-12/lines/spot/kwh": 10,
+    "ledger:month_reports/2025-12/lines/spot/sek": 10,
+    "ledger:month_reports/2025-12/month": 10,
+    "ledger:month_reports/2025-12/reasons_reconcile": 10,
+    "ledger:month_reports/2025-12/total_kwh": 10,
+    "ledger:month_reports/2025-12/total_sek": 10,
+    "ledger:price_tiles/target_plus_1/days/#/count": 5,
+    "ledger:price_tiles/target_plus_1/days/#/day": 5,
+    "ledger:price_tiles/target_plus_1/days/#/sum": 5,
+    "ledger:price_tiles/target_plus_1/overrides/comfort_temp_day": 1,
+    "ledger:price_tiles/target_plus_1/overrides/target_temp": 1,
+    "ledger:score_day/day": 5,
+    "ledger:score_day/free_streak": 5,
+    "ledger:score_day/kwh": 5,
+    "ledger:score_day/sek": 5,
+    "ledger:score_day/spot_h": 5,
+    "ledger:score_day/spot_sum": 5,
+    "manual_plan:dhw_slots": 4,
+    "manual_plan:expires_at": 4,
+    "manual_plan:space_slots/#/end": 4,
+    "manual_plan:space_slots/#/start": 4,
+    "price_model:days_seen/#": 1,
+    "pump_duty:written/dhw_setpoint/#": 1,
+    "thermal_learning:capacity_envelope/-1/#": 1,
+    "thermal_learning:capacity_envelope/3/#": 1,
+    "thermal_learning:cop_baseline_measured/4/#": 1,
+    "thermal_learning:cop_baseline_measured/4:dhw/#": 1,
+    "thermal_learning:flow_bias/bias_k": 1,
+    "thermal_learning:flow_bias/samples": 1,
+    "thermal_learning:freq_map/2/#": 1,
+    "thermal_learning:freq_map/3/#": 1,
+    "thermal_learning:freq_map/4/#": 1,
+    "thermal_learning:freq_map/6/#": 1,
+    "thermal_learning:measured_cop/at": 3,
+    "thermal_learning:measured_cop/cop": 3,
+    "thermal_learning:measured_cop/dhw_temp": 3,
+}
+
+
+def _a6_cell_refusals(cell: dict) -> list[str]:
+    """The cell-only declarations ``cell`` (label -> measured cost) refuses
+    against :data:`_A6_CELL_SPENT`."""
+    out = []
+    for label, cost in sorted(cell.items()):
+        known = _A6_CELL_SPENT.get(label, 0)
+        if cost > known:
+            out.append(f"{label} costs {cost} other leaves, declared cell-only (recorded {known})")
+    out += [f"{label} recorded at {cost}, and no bad value costs another leaf (stale)"
+            for label, cost in sorted(_A6_CELL_SPENT.items()) if label in cell and not cell[label]]
+    out += [f"{label} recorded, and no cell-only field of that name was swept (stale)"
+            for label in sorted(_A6_CELL_SPENT) if label not in cell]
+    return out
+
+
+def _a6_whole_cost(store: str, seed, path, domain, savers) -> int:
+    """The most leaves of ``store`` other than ``path`` that one bad value at
+    ``path`` changes through the real loader and saver: what a ``whole``
+    declaration licenses, measured (R11-OUTSIDE-HONEST-METERED-FLOOR carry 2)."""
+    cost = 0
+    before = dict(_leaf_paths(seed))
+    for sub in [v for v in _a6_probes(domain)[0] + list(_A6_WRONG) if not _store.in_domain(domain, v)]:
+        mutant = json.loads(json.dumps(seed))
+        _set_path(mutant, path, sub)
+        after, esc = _a6_roundtrip(store, mutant, savers)
+        if esc or after is None:
+            return len(before)
+        now = dict(_leaf_paths(after))
+        cost = max(cost, sum(1 for k in before.keys() | now.keys()
+                             if k != tuple(path) and before.get(k, _A6_GONE) != now.get(k, _A6_GONE)))
+    return cost
+
+
 def _a6_store(store, seed, savers, out):
     """Drive one store's declared fields; append refusals to ``out``."""
     for path, is_key, domain, value in _store.stored_fields(store, seed):
         if domain is None or not _a6_sampled(seed, path):
             continue
+        # A ``whole`` declaration is a licence for a bad cell to cost its
+        # neighbours, so one no bad value uses is over-broad; a cell-only
+        # declaration licenses no such cost, so one a bad value spends is
+        # under-declared. The snapshot ring is skipped: its learner leaves
+        # alias the stores measured here, and a restore writes those stores,
+        # not the ring.
+        if not is_key and store != "snapshots":
+            label = f"{store}:{'/'.join('#' if isinstance(p, int) else str(p) for p in path)}"
+            cost = _a6_whole_cost(store, seed, path, domain, savers)
+            side = out["whole"] if domain.whole else out["cell"]
+            side[label] = max(side.get(label, 0), cost)
         outs, ins = _a6_probes(domain)
         label = f"{store}:{'/'.join('#' if isinstance(p, int) else str(p) for p in path)}"
         label += "~" if is_key else ""
@@ -2041,7 +2195,7 @@ def _domain_arm() -> None:
     _dt_util.DEFAULT_TIME_ZONE = ZoneInfo("Europe/Stockholm")
     _dt_util.freeze(_A4_NOW)
     savers = _a6_savers()
-    out = {"driven": 0, "refused": set(), "unreached": set()}
+    out = {"driven": 0, "refused": set(), "unreached": set(), "whole": {}, "cell": {}}
     try:
         disk = _a4_seed(enrich=_a6_enrich)
         seeds = {k.replace(const.DOMAIN + "_" + ENTRY_ID + "_", ""): v for k, v in disk.items()}
@@ -2062,6 +2216,34 @@ def _domain_arm() -> None:
         streak_back = (_a6_roundtrip("ledger", streak, savers)[0] or {}).get("score_day")
         for store in sorted(seeds):
             _a6_store(store, seeds[store], savers, out)
+        # The cost probe's own control, through the same sweep: a ``whole``
+        # planted on a cell-only leaf (the overdraw count) is refused, and the
+        # configuration that keys the draw record is not.
+        fields = _store.stored_fields
+        planted = ("accuracy", "draw", "overdraws")
+        _store.stored_fields = lambda name, payload: [
+            (p, k, d._replace(whole="planted") if p == planted and d else d, v)
+            for p, k, d, v in fields(name, payload)]
+        control_out = {"driven": 0, "refused": set(), "unreached": set(), "whole": {}, "cell": {}}
+        try:
+            _a6_store("accuracy", seeds["accuracy"], savers, control_out)
+        finally:
+            _store.stored_fields = fields
+        whole_control = [control_out["whole"].get(f"accuracy:accuracy/draw/{leaf}")
+                         for leaf in ("overdraws", "config/#")]
+        # The cell half's control: the configuration that keys the draw record,
+        # planted cell-only, is refused.
+        keyed = ("accuracy", "draw", "config", 0)
+        _store.stored_fields = lambda name, payload: [
+            (p, k, d._replace(whole="") if p[:3] == keyed[:3] and d else d, v)
+            for p, k, d, v in fields(name, payload)]
+        cell_out = {"driven": 0, "refused": set(), "unreached": set(), "whole": {}, "cell": {}}
+        try:
+            _a6_store("accuracy", seeds["accuracy"], savers, cell_out)
+        finally:
+            _store.stored_fields = fields
+        cell_control = [r for r in _a6_cell_refusals(cell_out["cell"])
+                        if r.startswith("accuracy:accuracy/draw/config/# ")]
     finally:
         _dt_util.freeze(None)
         _dt_util.DEFAULT_TIME_ZONE = zone_before
@@ -2075,6 +2257,20 @@ def _domain_arm() -> None:
     print(f"RESULT domain_probes={out['driven']} count")
     print(f"RESULT domain_refused={len(out['refused'])} count")
     print(f"RESULT domain_unreached={len(out['unreached'])} count")
+    unused = sorted(k for k, v in out["whole"].items() if not v)
+    for line in unused:
+        print(f"  WHOLE {line} declared whole, and no bad value costs more than the cell")
+    for label, cost in sorted(out["whole"].items()):
+        print(f"  COST {label} {cost} other leaves (whole)")
+    print(f"RESULT domain_whole_fields={len(out['whole'])} count")
+    print(f"RESULT domain_whole_unused={len(unused)} count")
+    spent = [k for k, v in out["cell"].items() if v]
+    cell_refused = _a6_cell_refusals(out["cell"])
+    for line in cell_refused:
+        print(f"  CELL {line}")
+    print(f"RESULT domain_cell_fields={len(out['cell'])} count")
+    print(f"RESULT domain_cell_spent={len(spent)} count")
+    print(f"RESULT domain_cell_refused={len(cell_refused)} count")
     print(f"RESULT domain_arm_seconds={time.monotonic() - t_start:.1f}")
     R.check(
         "every store the rich seed writes is seeded, and every field it writes is declared "
@@ -2107,6 +2303,30 @@ def _domain_arm() -> None:
         "no one bad grid cell costs its neighbours (class P1, card C1)",
         not out["refused"],
         f"refused={len(out['refused'])}",
+    )
+    R.check(
+        "every whole= declaration is used: some bad value of the field costs more than its own "
+        "cell through the real loader (R11-OUTSIDE-HONEST-METERED-FLOOR carry 2)",
+        out["whole"] and not unused,
+        f"whole={len(out['whole'])} unused={unused}",
+    )
+    R.check(
+        "the whole sweep refuses a whole planted on a cell-only leaf (the overdraw count), and "
+        "measures a cost on the configuration that keys the draw record (its own control)",
+        whole_control[0] == 0 and (whole_control[1] or 0) > 0,
+        f"overdraws={whole_control[0]} config={whole_control[1]}",
+    )
+    R.check(
+        "no cell-only declaration costs another leaf beyond its recorded entry: a bad value "
+        "the declaration says costs only its cell keeps every other leaf (#3714 review)",
+        out["cell"] and not cell_refused,
+        f"cell={len(out['cell'])} refused={cell_refused}",
+    )
+    R.check(
+        "the cell sweep refuses the configuration that keys the draw record when it is "
+        "planted cell-only (its own control)",
+        len(cell_control) == 1,
+        f"refused={cell_control}",
     )
     R.check(
         "every in-domain probe reaches live state (the out-probes are not vacuous)",

@@ -40,12 +40,13 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import const as c
-from .accuracy import HISTORY_LENGTH, LEAD_BUCKETS
+from .accuracy import LEAD_BUCKETS
 from .comfort_learning import COMFORT_WEIGHT_MAX, COMFORT_WEIGHT_MIN
 from .curve_learning import BIAS_MAX, BIAS_MIN
 from .defrost import DERATE_MAX, DERATE_MIN, STORE_VERSION
-from .draw_range import RUNNING_FLOOR_KW
+from .draw_range import ASK_FOLLOWS, ASK_IGNORED, ASK_PENDING, RUNNING_FLOOR_KW
 from .price_tiles import TILE_NAMES
+from .const import HISTORY_LENGTH
 from .drift import REFERENCE_PRIOR_COV, STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
@@ -285,6 +286,10 @@ _RESTATED = "ledger.restate_total re-derives them from the receipt's own lines o
 _DHW_INTENSITY = Domain("real", 0.0, 3.5, whole=_PROFILE)
 
 _DRAW_KEY = "the configuration keys the record: unreadable, the samples and the latch are dropped with it"
+#: ``DrawRange.from_dict`` keeps a record and drops an unreadable row: one
+#: sample (drawn, asked) or one ceiling reading (drawn, when) is read whole,
+#: and a command is its (written, ceiling) pair or none.
+_DRAW_ROW = "an unreadable cell drops its row's sample, or its command pair, never the record"
 #: A metered running draw: one at or below standby is not a running one, and is dropped.
 _RUNNING_KW = Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf))
 
@@ -309,20 +314,27 @@ _ACCURACY: dict[str, Domain | str] = {
     "promises/~": _DAY, "promises/*/start": _AT, "promises/*/step_minutes": Domain("real", _POS),
     "promises/*/room/#": _R, "promises/*/cost/#": _R,
     # The metered running draw beside the space level asked (draw_range).
-    "draw/samples/#/0": _RUNNING_KW,
-    "draw/samples/#/1": _Z,
+    "draw/samples/#/0": _RUNNING_KW._replace(whole=_DRAW_ROW),
+    "draw/samples/#/1": _Z._replace(whole=_DRAW_ROW),
     # R10-SETPOINT-BOOST: the flow set-point held and its ceiling, null where
     # nothing commanded the draw; and the readings taken at the gate.
-    "draw/samples/#/2": _N,
-    "draw/samples/#/3": _N,
+    "draw/samples/#/2": _N._replace(whole=_DRAW_ROW),
+    "draw/samples/#/3": _N._replace(whole=_DRAW_ROW),
     "draw/idle/#": _Z,
     # R10-CEILING-PROBE: the experiment's ceiling-commanded draws, each beside
     # its interval's start in epoch seconds, and the overdraws since.
-    "draw/ceiling/#/0": _RUNNING_KW,
-    "draw/ceiling/#/1": _R,
+    "draw/ceiling/#/0": _RUNNING_KW._replace(whole=_DRAW_ROW),
+    "draw/ceiling/#/1": _R._replace(whole=_DRAW_ROW),
     "draw/overdraws": _COUNT,
-    "draw/engaged": Domain("flag", whole=_DRAW_KEY),
+    # An unreadable latch reads disengaged (``from_dict``: ``is True``) and
+    # costs only itself; the samples stay.
+    "draw/engaged": _FLAG,
     "draw/config/#": Domain("real", whole=_DRAW_KEY),
+    # R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor (absent while
+    # unset) and the samples appended since it last moved; a bad cell reads
+    # unset or 0 (_stored_floor) and costs only itself, never the record.
+    "draw/floor_kw": Domain("real", _POS),
+    "draw/floor_since": _COUNT,
 }
 
 DOMAINS: dict[str, dict[str, Domain | str]] = {
@@ -348,6 +360,9 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         # MeasuredCop.from_dict: the learner refuses a COP at or under 0.1 before rounding.
         "measured_cop/cop": Domain("real", 0.1, null=True),
         "measured_cop/curve_dhw": _FLAG, "measured_cop/dhw_temp": _N, "measured_cop/at": _AT0,
+        # R11-OUTSIDE-SELF-SETTING-PUMP: MeasuredCop.from_dict reads it apart from the measurement.
+        "measured_cop/scale_response": Domain("choice", choices=(ASK_PENDING, ASK_FOLLOWS, ASK_IGNORED)),
+        "measured_cop/scale_base": Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX, null=True),
         # The cap, as Cusum.as_dict rounds it (1.2 * 1.5 is 1.7999999999999998).
         "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
         "cop_health_cusum_measured/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),

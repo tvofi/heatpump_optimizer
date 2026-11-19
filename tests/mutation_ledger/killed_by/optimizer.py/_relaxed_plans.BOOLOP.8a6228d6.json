@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_relaxed_plans BOOLOP 8a6228d6",
+  "killed_by": "tests/features.py",
+  "old": "    if opt.config.start_price > 0 and _priced_stops(opt) is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if opt.config.start_price > 0 or _priced_stops(opt) is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

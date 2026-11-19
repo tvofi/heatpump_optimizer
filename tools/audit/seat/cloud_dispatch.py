@@ -596,18 +596,30 @@ def design_tip(repo_dir: str, group_id: str) -> str:
     return out[0] if out else ""
 
 
-def design_approved(repo_dir: str, group_id: str) -> bool:
-    """Whether `design-verdict/<group>` reads `Design review: approve <sha>` at the tip
-    `design/<group>` holds now: an approval of a design that has since moved is not one."""
+def design_approved(repo_dir: str, group_id: str) -> str:
+    """The tip `design/<group>` holds now, where `design-verdict/<group>` reads `Design review:
+    approve <sha>` at it, else "": an approval of a design that has since moved is not one."""
     tip = design_tip(repo_dir, group_id)
     if not tip:
-        return False
+        return ""
     vref = f"refs/heads/design-verdict/{group_id}"
     if not _git(repo_dir, "ls-remote", "origin", vref).split():
-        return False
+        return ""
     _git(repo_dir, "fetch", "-q", "origin", vref)
     first = _git(repo_dir, "show", "FETCH_HEAD:verdict.md").split("\n", 1)[0]
-    return first == f"Design review: approve {tip}"
+    return tip if first == f"Design review: approve {tip}" else ""
+
+
+def design_line(group_id: str, sha: str, part: bool) -> str:
+    """The generated brief line naming the approved design a fixer builds from. A fixer of a part
+    is also told how the two cuts relate: `part_line` cuts by carry index and a design by seam, and
+    with neither naming the other each seat of R11-PRE-TOOLCHAIN-PIN chose a cut for itself."""
+    line = (f"Approved design (decision 0014): design.md at {sha}, the design/{group_id} tip "
+            f"(`git fetch origin {sha} && git show {sha}:design.md`).")
+    if part:
+        line += (" Its parts are cut by seam and are not the part line's, which is cut by carry index: the part "
+                 "line is what you build, in the shape the design gives it.")
+    return line
 
 
 def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
@@ -659,9 +671,11 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
             for other in roster.get("groups", []):  # a part's topic is a roster group's own: one seat ref, one wrong credit
                 if other is not group and topic in (_topic_of(other), roster_lib.norm_group(str(other.get("group")))):
                     raise Refusal(f"--part {part}: {topic} is the topic of {other.get('group')}")
-    design = ""
+    design = dline = ""
     if role == "fixer" and roster_lib.needs_design(group) and not design_exempt.strip():
-        if not design_approved(repo_dir, group_id):
+        approved = design_approved(repo_dir, group_id)
+        dline = design_line(group_id, approved, bool(pline))
+        if not approved:
             raise Refusal(f"{group_id} is size {group.get('size')}: no approved `Design review: approve "
                           f"<sha>` at design-verdict/{group_id} names the current design/{group_id} tip "
                           "(decision 0014). Run the designer and design reviewer, or pass "
@@ -683,7 +697,8 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
                        int(_git(repo_dir, "rev-list", "--count", vtip[0]).strip()))
     args = dict(design=design, verdict=verdict, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
                 pr=pr, topic=topic,
-                brief=group_brief(group, roster, fixer=role == "fixer") + (f"\n{pline}\n" if pline else ""),
+                brief=group_brief(group, roster, fixer=role == "fixer")
+                + "".join(f"\n{ln}\n" for ln in (dline, pline) if ln),
                 reviewed_head=reviewed_head)
     head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
     if role == "reviewer":
@@ -793,7 +808,9 @@ def _group_checks(check) -> None:
         alias = {"group": "R10-ALIAS", "brief": "Alias.\n", "resume": {"branch": "handoff/r10-clash-p3"}}
         selfp = {"group": "R10-SELF-P2", "brief": "Self.\n", "resume": {"branch": "handoff/r10-self"},
                  "carry": [f"Self {i}." for i in range(8)]}
-        land([grp, bad, big, two, cbad, ruled, legacy, prod, cons, share, donec, many, five, clash, clash2, alias, selfp])
+        # R11-PRE-TOOLCHAIN-PIN carry 10: an L group split into parts, its design approved below.
+        dsplit = {"group": "R10-DSPLIT", "size": "L", "brief": "Redesign in parts.\n", "carry": [f"Seam {i}." for i in range(8)]}
+        land([grp, bad, big, dsplit, two, cbad, ruled, legacy, prod, cons, share, donec, many, five, clash, clash2, alias, selfp])
         git(work, "remote", "add", "origin", str(origin))
         tip = git(work, "rev-parse", "origin/main").strip()
 
@@ -833,6 +850,7 @@ def _group_checks(check) -> None:
               refused("R10-BIG") and not git(work, "ls-remote", "origin", "refs/heads/dispatch/fixer-r10-big").strip())
         check("a fixer for an L group is dispatched with --design-exempt (the reason is the orchestrator's)",
               dispatch("R10-BIG", design_exempt="approved prototype on record") == "dispatch/fixer-r10-big")
+        exempt_text = fetched("dispatch/fixer-r10-big", "PROMPT.md")
         check("a designer for an S group is refused (only L and XL take a design)",
               refused("R10-X", "designer") and refused("R10-X", "design-reviewer"))
         check("a design reviewer with no design/<group> to review is refused, for that reason",
@@ -882,6 +900,16 @@ def _group_checks(check) -> None:
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {tip}\n"})
         check("a fixer is dispatched once the verdict approves the current design tip (null control)",
               dispatch("R10-BIG") == "dispatch/fixer-r10-big")
+        # R11-PRE-TOOLCHAIN-PIN carry 10: the payload names the design, and a part line's relation to it.
+        dnamed = (f"Approved design (decision 0014): design.md at {tip}, the design/R10-BIG tip "
+                  f"(`git fetch origin {tip} && git show {tip}:design.md`).")
+        btext = fetched("dispatch/fixer-r10-big", "PROMPT.md")
+        check("a fixer of a group with an approved design is given the design's ref and SHA in one generated line, its last",
+              sum(ln == dnamed for ln in btext.splitlines()) == 1 and btext.endswith("\n" + dnamed + "\n"))
+        check("a fixer dispatched design-exempt, and one of a group that takes no design, is given no such line (null control)",
+              "Approved design" not in exempt_text and "Redesign tools/y.py." in exempt_text
+              and "Approved design" not in fetched(line, "PROMPT.md") and "Fix the thing" in fetched(line, "PROMPT.md"))
+        check("an unsplit designed group's line carries no word of parts (null control)", "part line" not in btext)
         brief = work / "brief.txt"
         brief.write_text(group_brief(grp))  # what the group path briefs, so the two payloads can agree
         flags = ["--role", "fixer", "--head", tip, "--topic", "r10-x", "--brief", str(brief),
@@ -959,6 +987,18 @@ def _group_checks(check) -> None:
             p1text = fetched(dispatch("R10-SPLIT", part=1), "PROMPT.md")
             check("--part 1 keeps the group's own topic and names carries 0-4",
                   "topic r10-split, at head" in p1text and "\nPart 1 of 4: build carries 0-4; the others" in p1text)
+            # R11-PRE-TOOLCHAIN-PIN carry 10: a part of a designed group.
+            git(work, "push", "-q", "origin", f"{tip}:refs/heads/design/R10-DSPLIT")
+            check("a design with no verdict ref is not approved by another group's verdict of the same commit, fetched just before",
+                  design_approved(str(work), "R10-BIG") == tip and why_any("R10-DSPLIT", part=2).startswith("R10-DSPLIT is size L"))
+            _publish(str(work), "design-verdict/R10-DSPLIT", {"verdict.md": f"Design review: approve {tip}\n"})
+            stext = fetched(dispatch("R10-DSPLIT", part=2), "PROMPT.md").splitlines()
+            cuts = [ln for ln in stext if ln.startswith("Approved design (decision 0014): design.md at " + tip + ", the design/R10-DSPLIT tip")]
+            check("a part of a designed group names both cuts: the design line says its parts are not the part line's, "
+                  "and the part line follows it, the payload's last",
+                  len(cuts) == 1 and cuts[0].endswith(" Its parts are cut by seam and are not the part line's, which is cut by "
+                                                      "carry index: the part line is what you build, in the shape the design gives it.")
+                  and stext[-1].startswith("Part 2 of 2: build carries 5-7;") and stext[-3] == cuts[0])
             check("a part past the split, a part of a group of five or fewer, and a part for another role refuse",
                   "splits into 4 parts" in why_any("R10-SPLIT", part=5) and "five or fewer" in why_any("R10-FIVE", part=1)
                   and "fixer's" in why_any("R10-SPLIT", "probe", part=2))

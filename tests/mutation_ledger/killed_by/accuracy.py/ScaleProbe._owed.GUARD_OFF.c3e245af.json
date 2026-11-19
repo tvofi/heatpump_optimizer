@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleProbe._owed GUARD_OFF c3e245af",
+  "killed_by": "tests/features.py",
+  "old": "            if 0.0 <= utc_elapsed_seconds(now, self.parked_at) <= COP_HOLD_HORIZON_S:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

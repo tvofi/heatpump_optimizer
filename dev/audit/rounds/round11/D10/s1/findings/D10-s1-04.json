@@ -1,0 +1,48 @@
+{
+  "id": "D10-s1-04",
+  "scope": "D10-s1",
+  "step": "D10.M1",
+  "title": "two_zone_mode 'auto' forces two zones, so a single-zone install's options flow hides its whole-house heat loss",
+  "severity": "high",
+  "claim": "For an entry with no zone key, with two_zone_mode absent or 'auto' (2 of 2 single-zone entries), ThermalParameters.from_config reports two_zone_enabled=True and the options flow's thermal_model page does not render house_heat_loss_coefficient. The questionnaire also derives zone masses for a single-storey answer set. So the UI cannot configure the parameter the single-zone model reads, a config-flow (Bronze) failure (D10-criteria Q2). Null controls: two_zone_mode 'off' renders the field (1), and zone keys present hide it by design (1).",
+  "mechanism": "ThermalParameters.from_config tests `two_zone_mode in (const.TWO_ZONE_MODE_ON, const.DEFAULT_TWO_ZONE_MODE)`. DEFAULT_TWO_ZONE_MODE is 'auto', so 'auto' and every entry without the key take the forced-on branch, never the presence rule the function's own comment says 'auto' keeps. config_flow._single_zone, which gates the _OPTION_FIELDS row for house_heat_loss_coefficient (when=_single_zone), and presets.preset_from_config both read this predicate. The same predicate selects the model the solver runs; that consequence is outside this cell and is passed on as a lead.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
+    "value": 2,
+    "unit": "single-zone entries (of 2) whose thermal_model options page hides house_heat_loss_coefficient",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats and this seat's coverage run; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 23.45,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "thermal_model:ThermalParameters.from_config, config_flow:_single_zone, config_flow:HeatPumpOptimizerOptionsFlow.async_step_thermal_model, presets:preset_from_config",
+  "perturbation": {
+    "change": "--perturb: from_config recompiled in memory with the mode test `two_zone_mode == const.TWO_ZONE_MODE_ON` (the one-line fix)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Count of entries with no zone key and mode absent/auto whose options-flow thermal_model data_schema lacks house_heat_loss_coefficient.",
+  "phenomenon_property": "Each options page offers every field the model in force reads. A single-zone install (no zone key, mode auto or absent) resolves single-zone and is offered its whole-house heat loss.",
+  "seam_rule": "grep -nE 'two_zone_enabled|_single_zone|TWO_ZONE_MODE' custom_components/heatpump_optimizer/*.py",
+  "null_control": {
+    "command": "same harness, mode_off and zone_keys arms",
+    "value": "control_mode_off_renders=1; control_zone_keys_hides=1",
+    "note": "the page logic itself is correct when the predicate is. Under the perturbation the questionnaire arm derives no zone keys and joins the single-zone count (3 of 3 rendered)."
+  },
+  "reproduction_steps": [
+    "Create an entry with the Tibber token and weather entity only (Finish setup now)",
+    "Options > Thermal model: the 'House heat loss' field is absent, and the entry runs the two-zone model"
+  ],
+  "proposed_fix_scope": "thermal_model.py ThermalParameters.from_config: make 'auto' apply the presence rule (test == TWO_ZONE_MODE_ON only). Add a regression check that an entry without zone keys resolves single-zone and its thermal_model page renders the field. This is the same predicate tests/config_flow_steps.py's failing questionnaire and field-registry checks exercise.",
+  "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/presets.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

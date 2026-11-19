@@ -2804,6 +2804,8 @@ def check_product_page() -> None:
 # building nothing. The pages are then scanned for a third-party request.
 
 SITE_BUILD = ROOT / "tools" / "site" / "build_docs.mjs"
+# Old document path -> its new one; both addresses must resolve (build_docs.mjs's MOVED is the site half).
+MOVED_PAGES = {"docs/ecl110.md": "docs/heat-curve.md"}
 SITE_CHART = ROOT / "tools" / "site" / "day_chart.mjs"
 _BUILD_CACHE: dict[str, dict] = {}
 
@@ -2816,7 +2818,7 @@ def docs_build(root: pathlib.Path = ROOT) -> dict:
     key = str(root)
     if key in _BUILD_CACHE:
         return _BUILD_CACHE[key]
-    res: dict = {"rc": None, "fails": [], "stats": "", "pages": {}, "html": {}}
+    res: dict = {"rc": None, "fails": [], "stats": "", "pages": {}, "html": {}, "moved": {}}
     if not SITE_BUILD.is_file():
         res["fails"] = [f"{str(SITE_BUILD).removeprefix(str(ROOT) + os.sep)} does not exist"]
     else:
@@ -2839,6 +2841,8 @@ def docs_build(root: pathlib.Path = ROOT) -> dict:
                 if man.is_file():
                     res["pages"] = {b["src"]: b["out"] for b in json.loads(man.read_text())["built"]}
                     res["html"] = {b["out"]: (out / b["out"]).read_text() for b in json.loads(man.read_text())["built"]}
+                    res["moved"] = {m["src"]: (m["to"], (out / m["out"]).read_text())
+                                    for m in json.loads(man.read_text()).get("moved", [])}
     _BUILD_CACHE[key] = res
     return res
 
@@ -2873,6 +2877,17 @@ def check_docs_subpages() -> None:
     rows = {os.path.normpath(r) for r in re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M)}
     missing = sorted((rows | {"README.md"}) - set(b["pages"]))
     R.check("every README Documentation row is a built page", not missing, ", ".join(missing))
+    # A renamed page keeps its old address (R11-OWNER-GENERIC-CONTROL-TEXT): on GitHub the old file stays as a
+    # pointer to the new one, and on the site the build writes the old page name as a redirect to the new page.
+    for old, new in MOVED_PAGES.items():
+        to, page = b["moved"].get(old, ("", ""))
+        stub = (ROOT / old).read_text() if (ROOT / old).is_file() else ""
+        # The meta refresh drops the fragment; only the script line keeps it, so a deep link still lands.
+        keeps = f"location.replace({json.dumps(to)} + location.hash)" in page
+        R.check(f"{old} still resolves: a pointer to {new} in the tree, a redirect to its page on the site",
+                to == b["pages"].get(new) and f'url={to}"' in page and keeps and f"]({os.path.basename(new)})" in stub,
+                f"site redirect to {to or 'nothing'}, fragment kept: {keeps}; "
+                f"the in-tree file links {new}: {f']({os.path.basename(new)})' in stub}")
     bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
     R.check("no built page requests anything from a third party", bool(b["html"]) and not bad,
             "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else "") or "no page built")
@@ -3272,7 +3287,7 @@ def check_image_dimensions() -> None:
 WIRING_DOCS = ("docs/architecture.md", "README.md", "dev/README.md")
 # The user pages R10-USER-DOCS-FINAL drafts and R10-USER-DOCS-VERIFY re-checks. README.md is in both sets.
 USER_PAGES = ("README.md", "docs/setup.md", "docs/configuration.md", "docs/how-it-works.md", "docs/automations.md",
-              "docs/dashboard-card.md", "docs/ecl110.md")
+              "docs/dashboard-card.md", "docs/heat-curve.md")
 _COMMENT = re.compile(r"<!--.*?-->", re.S)
 # (e) reads every reader doc that draws a mermaid block, plus the onboarding.
 MERMAID_STYLE_DOCS = ("README.md", "docs/architecture.md", "docs/how-it-works.md", "docs/configuration.md",
@@ -5277,6 +5292,147 @@ def check_flow_text_claims() -> None:
             in flow_write_findings(planted, slots))
 
 
+#: The HA-free claim, in the spellings the package's docstrings and comments use.
+_HA_FREE_CLAIM = re.compile(
+    r"free of\s+(?:#\s*)?Home\s+(?:#\s*)?Assistant imports|no Home Assistant import"
+    r"|HA-free|imports no Home Assistant",
+    re.S,
+)
+#: A claim whose subject is another module: config_flow's ``_device_records``
+#: docstring says ``device_prefill`` stays free of Home Assistant imports.
+_HA_FREE_SUBJECT = {"config_flow": "device_prefill"}
+#: ADR-002 (round 11, D7-s1-06): a module that imports no Home Assistant
+#: itself imports without it, through its whole closure. Part 3 keeps two that
+#: reach it through glue imported at module level: setpoint_check (issues) and
+#: snapshots (store). Part 2's four ride on inputs.py's function-scope clock
+#: import, which an import does not execute, so they import cleanly here; the
+#: architecture score's layering metric counts them. An entry that imports
+#: cleanly is stale and refused, so the set only shrinks.
+_HA_REACHED_THROUGH_GLUE = frozenset({"setpoint_check", "snapshots"})
+#: Null control: a module that imports Home Assistant itself must fail under
+#: the same refusal, or the refusal is not running.
+_HA_GLUE_ANCHOR = "accuracy"
+
+_HA_REFUSED_CHILD = r"""
+import importlib, importlib.abc, sys, types
+class Refuse(importlib.abc.MetaPathFinder):
+    def find_spec(self, name, path=None, target=None):
+        if name == "homeassistant" or name.startswith("homeassistant."):
+            raise ImportError("homeassistant refused: " + name)
+        return None
+sys.meta_path.insert(0, Refuse())
+for n in ("custom_components", "custom_components.heatpump_optimizer"):
+    m = types.ModuleType(n); m.__path__ = [n.replace(".", "/")]; sys.modules[n] = m
+for mod in sys.argv[1:]:
+    for k in [k for k in sys.modules if k.startswith("custom_components.heatpump_optimizer.")]:
+        del sys.modules[k]
+    try:
+        importlib.import_module("custom_components.heatpump_optimizer." + mod)
+        print(mod, "OK")
+    except ImportError as exc:
+        print(mod, "NEEDS_HA", exc)
+"""
+
+
+def _imports_without_ha(modules):
+    """{module: outcome} for each package module imported in a fresh
+    interpreter with every ``homeassistant`` import refused and the package
+    ``__init__`` bypassed -- what a unit test without Home Assistant hits."""
+    env = dict(os.environ)
+    env["PYTHONPATH"] = "."  # no tests/hastub: Home Assistant genuinely absent
+    proc = subprocess.run(
+        [sys.executable, "-c", _HA_REFUSED_CHILD, *modules],
+        cwd=str(ROOT), env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, check=False,
+    )
+    out = {}
+    for line in proc.stdout.splitlines():
+        head, _, rest = line.partition(" ")
+        if head in modules:
+            out[head] = rest
+    return out
+
+
+def _imports_ha_itself(path):
+    """Does the module import ``homeassistant`` anywhere in its own source,
+    an import under ``if TYPE_CHECKING:`` (annotation only) excepted?"""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    typing_only = set()
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.If) and isinstance(node.test, ast.Name)
+                and node.test.id == "TYPE_CHECKING"):
+            for sub in node.body:
+                typing_only.update(id(n) for n in ast.walk(sub))
+    for node in ast.walk(tree):
+        if id(node) in typing_only:
+            continue
+        if isinstance(node, ast.Import):
+            names = [a.name for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.level == 0:
+            names = [node.module or ""]
+        else:
+            continue
+        if any(n == "homeassistant" or n.startswith("homeassistant.") for n in names):
+            return True
+    return False
+
+
+def check_ha_free_imports():
+    """D5-s3-01, D7-s1-06: a module said to be free of Home Assistant imports
+    imports with Home Assistant absent, through its whole import closure.
+
+    Claim set: every package module whose own source states the HA-free claim
+    (_HA_FREE_CLAIM), derived from the tree. Fact set: the import itself, in a
+    subprocess refusing ``homeassistant``. The kernel arm drives ADR-002 part
+    1's modules the same way; the anchor is a glue module that must fail."""
+    pkg = ROOT / "custom_components" / "heatpump_optimizer"
+    claimed = {}
+    for path in sorted(pkg.glob("*.py")):
+        m = _HA_FREE_CLAIM.search(path.read_text(encoding="utf-8"))
+        if m:
+            claimed[_HA_FREE_SUBJECT.get(path.stem, path.stem)] = path.name
+    R.check(
+        "the HA-free claim set is derived and non-empty (anchor: grid_fee states it)",
+        "grid_fee" in claimed,
+        f"claimed={sorted(claimed)}",
+    )
+    own_free = sorted(
+        path.stem for path in pkg.glob("*.py")
+        if path.stem != "__init__" and not _imports_ha_itself(path)
+    )
+    R.check(
+        "the own-import-free set is derived (anchors: grid_fee in it, accuracy out)",
+        "grid_fee" in own_free and _HA_GLUE_ANCHOR not in own_free,
+        f"{len(own_free)} modules",
+    )
+    modules = sorted(set(claimed) | set(own_free) | {_HA_GLUE_ANCHOR})
+    got = _imports_without_ha(modules)
+    R.check(
+        "null control: a module importing Home Assistant itself fails under the refusal",
+        got.get(_HA_GLUE_ANCHOR, "").startswith("NEEDS_HA"),
+        f"{_HA_GLUE_ANCHOR}: {got.get(_HA_GLUE_ANCHOR)!r}",
+    )
+    for mod in sorted(claimed):
+        R.check(
+            f"{claimed[mod]} says {mod} is free of Home Assistant imports, and it imports without it (D5-s3-01)",
+            got.get(mod) == "OK",
+            f"{mod}: {got.get(mod)!r}",
+        )
+    reached = sorted(m for m in own_free if got.get(m) != "OK")
+    R.check(
+        "a module importing no Home Assistant itself imports without it, but for "
+        "ADR-002's named glue-reached set (D7-s1-06)",
+        set(reached) <= _HA_REACHED_THROUGH_GLUE,
+        f"reached beyond the set: {sorted(set(reached) - _HA_REACHED_THROUGH_GLUE)}",
+    )
+    R.check(
+        "every entry of ADR-002's glue-reached set still needs Home Assistant "
+        "(a cleared entry leaves the set)",
+        _HA_REACHED_THROUGH_GLUE <= set(reached),
+        f"cleared, remove from the set: {sorted(_HA_REACHED_THROUGH_GLUE - set(reached))}",
+    )
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -5326,6 +5482,7 @@ def main() -> int:
     check_docs_strings_residue()
     check_stateless()
     check_combi_dhw_split()
+    check_ha_free_imports()
     return R.close("checks")
 
 

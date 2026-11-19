@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_low_end_kw CMP_BOUND 31c48e12",
+  "killed_by": "tests/features.py",
+  "old": "    return float(np.percentile(drawn, LOW_PERCENTILE)) if len(drawn) >= MIN_SAMPLES else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return float(np.percentile(drawn, LOW_PERCENTILE)) if len(drawn) > MIN_SAMPLES else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

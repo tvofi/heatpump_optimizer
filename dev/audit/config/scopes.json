@@ -311,7 +311,7 @@
   "mode": "cells",
   "universe": [
    "README.md",
-   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,heat-curve,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/*.py",
    "custom_components/heatpump_optimizer/www/*.js",
    "tools/**.{py,sh,js,mjs}",
@@ -487,7 +487,7 @@
    "docs/index.html",
    "docs/site/*.css",
    "tools/site/build_docs.mjs",
-   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,heat-curve,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
    "hacs.json",
    "blueprints/**",
@@ -546,7 +546,7 @@
       "docs/index.html",
       "docs/site/*.css",
       "tools/site/build_docs.mjs",
-      "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md"
+      "docs/{architecture,automations,configuration,dashboard-card,ecl110,heat-curve,how-it-works,setup}.md"
      ],
      "steps": [
       "M1",
