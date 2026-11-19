@@ -21,3 +21,7 @@
 2026-11-17T17:52:18Z REPORT.json assembled (1 finding); C2 M34-M36 fast drive relaunched, 3 workers, cutoff 18:38Z
 2026-11-17T17:53:59Z REPORT.json with report_md written (finalize.py); waiting C2 M34-M36 until 18:36Z
 2026-11-17T18:29:53Z C2 M34-M36 SURVIVED (fast net); M4 answered; REPORT.json final
+2026-11-18T22:52:08Z re-fire on D3-u1d: K1 complete (309: 67 KILLED/242 SURVIVED); K2 resumed, 105 of 242 complete; dirty worker trees w0-w3 removed (interrupted mutants)
+2026-11-18T23:05:21Z K2 stopped: cgroup OOM (limit 14.3 GB) at 4 workers SIGKILLed entities.py/features.py runs; 4 results with rc=-9 false kills (dd40fdb4, dc5c46bb, db984e8d, db9b59ec) moved to state/superseded/*-oom.json for re-drive; K2 restarted at 3 workers
+2026-11-18T23:29:44Z db9b59ec (coordinator.py:10331 _accumulate_energy) features.py SIGKILLed by cgroup OOM a second time (3 workers, 588.8 s); result moved to superseded, queued for a 1-worker re-drive with RSS measured
+2026-11-19T00:51:17Z re-fire 2 on D3-u1d: restored checkpoint (154 complete) and merged worktree lineage (+3 SURVIVED complete, +21 M4 answers); 5 complete results with rc=-9 runs (d0e60b10, db9b59ec, dc5c46bb, dc6c13ec, f3cc39df) moved to state/superseded/u1d-oom-refire for re-drive; null LIVES (16 drivers, load1 1.00), posctl 2/2 KILLED; K2 remaining 91 of 242
