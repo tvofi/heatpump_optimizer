@@ -97540,14 +97540,21 @@ R.check(
     _rl_peak_gap is not None and _rl_peak_gap[0] > 0.0 and set(_rl_peak_gap[7:]) == {0.0},
     f"gap to target {_rl_peak_gap and sorted(set(_rl_peak_gap))}",
 )
+# The room trajectories are solver output (multi-start L-BFGS-B), so they are compared within
+# _RL_PEAK_TOL_K, never bit for bit: the same tree plans them differently under OpenBLAS's
+# Haswell and SkylakeX kernels, which CI's runners pick by CPU (CLAUDE.md rule 3). 1e-3 K is
+# far under what the checks separate: the lift's 0.1 K headroom mutant and the 0.2 K peak rise.
+_RL_PEAK_TOL_K = 1e-3
+_rl_peak_null_k = float(np.max(np.abs(_rl_peak["zeros"] - _rl_peak["none"])))
 R.check(
     "the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the "
     "target past the ramp; null control, an all-zero margin array plans the unlifted plan",
-    float(_rl_peak["lift"].max()) > float(_rl_peak["none"].max())
-    and float(_rl_peak["lift"][12:].min()) >= 20.0 - 1e-6
-    and np.array_equal(_rl_peak["zeros"], _rl_peak["none"]),
-    f"peak none={_rl_peak['none'].max():.3f} zeros={_rl_peak['zeros'].max():.3f} "
-    f"lift={_rl_peak['lift'].max():.3f} lift min past 3 h={_rl_peak['lift'][12:].min():.3f}",
+    float(_rl_peak["lift"].max()) > float(_rl_peak["none"].max()) + _RL_PEAK_TOL_K
+    and float(_rl_peak["lift"][12:].min()) >= 20.0 - _RL_PEAK_TOL_K
+    and np.allclose(_rl_peak["zeros"], _rl_peak["none"], rtol=0.0, atol=_RL_PEAK_TOL_K),
+    f"peak none={_rl_peak['none'].max():.6f} zeros={_rl_peak['zeros'].max():.6f} "
+    f"lift={_rl_peak['lift'].max():.6f} lift min past 3 h={_rl_peak['lift'][12:].min():.6f} "
+    f"max |zeros-none|={_rl_peak_null_k:.6g} K, tolerance {_RL_PEAK_TOL_K} K",
 )
 
 
