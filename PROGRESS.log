@@ -235,3 +235,4 @@
 1795049527 INIT box D3-u1c
 1795049535 HB alive
 1795049540 SEAT D3-s1 running
+1795049543 HB container restart killed the K2 chain at ~121/245 complete; re-firing D3-s1 seat subagent (frugal:builder, model opus) to resume from its checkpoint
