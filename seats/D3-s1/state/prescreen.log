@@ -646,3 +646,4 @@
 2026-11-19T11:18:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CLAMP_DROP 22184b9a L4250 by=- ran=17 wall=1768.7s
 2026-11-19T11:18:52Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._max_pump_rise CLAMP_DROP d7363c5c L5103 by=- ran=15 wall=1773.5s
 2026-11-19T11:24:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_one_per_day CMP_BOUND b77e0794 L491 by=- ran=12 wall=1582.2s
+2026-11-19T11:35:59Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:PeakTracker.observe GUARD_OFF 84e98156 L235 by=- ran=12 wall=1575.5s
