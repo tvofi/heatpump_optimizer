@@ -1,0 +1,67 @@
+file                                           lines cap  ~tokens  cap always
+tests/README.md                                  461  800     6677  6686 
+dev/governance/roles/fixer.md                    313  315     5203  5216   key tools/audit/briefs/fixer.md
+dev/audit/README.md                              309  321     5934  6059   key tools/audit/README.md
+dev/governance/roles/orchestrator.md             293  295     4250  4251   key tools/audit/briefs/orchestrator.md
+CLAUDE.md                                        218  221     3616  3616   yes
+.claude/workflows/web-fragments.md               154  168     2417  2427 
+.claude/rules/defect-root-cause.md               151  151     1885  1885 
+dev/governance/roles/fix-review.md               138  140     2775  2775   key tools/audit/briefs/fix-review.md
+.claude/skills/steward/SKILL.md                  132  135     1528  1533 
+dev/governance/dimensions/D11.md                 126  126     1939  1939   key tools/audit/briefs/D11.md
+dev/governance/roles/COMMON.md                   115  115     1715  1715   key tools/audit/briefs/COMMON.md
+.claude/rules/ratchet-budgets.md                 114  114     1623  1664 
+.claude/rules/finding-propagation.md             101  101     1335  1336 
+dev/governance/dimensions/D16.md                  95   95     1523  1523 
+dev/governance/roles/architect-planner.md         89   89     1325  1325 
+.claude/rules/ci-autofix.md                       88   96     1469  1469 
+dev/governance/dimensions/D13.md                  84   84     1217  1217   key tools/audit/briefs/D13.md
+dev/governance/roles/root-cause.md                81   81      990   990   key tools/audit/briefs/root-cause.md
+dev/governance/dimensions/D0.md                   76   76     1111  1112   key tools/audit/briefs/D0.md
+dev/governance/dimensions/D12.md                  74   74      997   997   key tools/audit/briefs/D12.md
+dev/governance/dimensions/D1.md                   72   72      989   989   key tools/audit/briefs/D1.md
+.claude/rules/comment-readback.md                 67   68      874   883 
+.claude/rules/writing-for-agents.md               65   65      834   836 
+dev/governance/dimensions/D2.md                   65   65      869   869   key tools/audit/briefs/D2.md
+dev/governance/dimensions/D9.md                   64   65      898   901   key tools/audit/briefs/D9.md
+dev/governance/dimensions/D8.md                   63   63      915   915   key tools/audit/briefs/D8.md
+dev/governance/dimensions/DX0.md                  60   60      799   799 
+dev/governance/roles/designer.md                  60   60      877   878 
+.claude/rules/claim-files.md                      53   53      621   681 
+dev/governance/dimensions/D4.md                   53   53      670   678   key tools/audit/briefs/D4.md
+dev/governance/dimensions/criteria/D4-criteria.md    52   52      656   656 
+dev/governance/roles/design-review.md             52   53      778   778 
+.claude/rules/gate-scoping.md                     51   61      793   794 
+dev/governance/roles/standing.md                  50   50      547   553 
+dev/governance/dimensions/criteria/D9-criteria.md    49   49      641   641 
+dev/governance/dimensions/D5.md                   48   48      620   624   key tools/audit/briefs/D5.md
+dev/governance/dimensions/D3.md                   46   46      600   600   key tools/audit/briefs/D3.md
+dev/governance/dimensions/criteria/D5-criteria.md    43   43      546   546 
+.claude/rules/brief-citations.md                  42   42      888   893 
+dev/governance/roles/proposal-triage.md           42   42      594   594 
+dev/governance/dimensions/D7.md                   42   45      607   607   key tools/audit/briefs/D7.md
+dev/governance/dimensions/D15.md                  40   40      818   824 
+dev/governance/roles/verifier.md                  39   39      609   612   key tools/audit/briefs/verifier.md
+.github/PULL_REQUEST_TEMPLATE.md                  38   38      305   305 
+dev/governance/dimensions/D17.md                  37   37      450   450 
+dev/governance/roles/standing-merge.md            37   37      506   507 
+dev/governance/dimensions/D14.md                  35   35      472   472   key tools/audit/briefs/D14.md
+dev/governance/dimensions/D6.md                   33   35      487   487   key tools/audit/briefs/D6.md
+dev/governance/roles/standing-dispatch.md         32   39      475   509 
+dev/governance/dimensions/D10.md                  32   32      410   410   key tools/audit/briefs/D10.md
+dev/governance/dimensions/criteria/D10-criteria.md    30   30      425   425 
+dev/governance/roles/judge.md                     29   30      467   469   key tools/audit/briefs/judge.md
+dev/governance/roles/evaluator.md                 27   27      361   361 
+dev/governance/roles/plan-review.md               27   27      360   360 
+.claude/rules/delivery-status-tracking.md         25   35      575   766 
+AGENTS.md                                         12   13      166   183 
+dev/governance/roles/standing-roster.md            7    7       92    92 
+dev/governance/roles/standing-tick.md              6    6       83    83 
+
+always-loaded: ~3616 tokens, cap 3349 +band 500 = 3849
+corpus:        ~72206 tokens, cap 72206 +band 500 = 72706
+role fixer     ~6294 tokens, cap 5852 +band 500 = 6352
+role record    ~7248 tokens, cap 7405 +band 500 = 7905
+role policy    ~10027 tokens, cap 9958 +band 500 = 10458
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.

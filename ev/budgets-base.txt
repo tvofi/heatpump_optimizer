@@ -1,0 +1,3 @@
+CLAUDE.md                                        217  221     3604  3604   yes
+dev/governance/roles/COMMON.md                   114  114     1691  1691   key tools/audit/briefs/COMMON.md
+corpus:        ~71371 tokens, cap 71212 +band 500 = 71712
