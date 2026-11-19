@@ -607,3 +607,4 @@
 2026-11-19T04:20:34Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units GUARD_OFF 7c5d6837 L2962 by=tests/features.py ran=13 wall=1645.4s
 2026-11-19T04:32:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._stash_price_horizon CMP_BOUND 164830ff L4720 by=- ran=12 wall=1528.0s
 2026-11-19T04:43:47Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription GUARD_OFF 0284e2d5 L4168 by=tests/features.py ran=13 wall=1638.6s
+2026-11-19T04:45:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_slab_refusal GUARD_OFF ebe7af8b L892 by=- ran=12 wall=1639.5s
