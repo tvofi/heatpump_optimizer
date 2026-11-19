@@ -491,11 +491,13 @@ const CENSUSES = [
   {
     // A package from-import the importing module never loads (R11 D7-s1-03).
     // Planted in a module that already imports from .const, so no new edge.
-    name: 'structure.py unused_package_imports',
-    gate: 'unused_package_imports',
+    // LIVENESS_ROW does not match this row's name, so the registry does not
+    // demand this census; it is registered all the same.
+    name: 'structure.py unloaded_package_imports',
+    gate: 'unloaded_package_imports',
     instrument: STRUCTURE_PY,
     plant: { file: 'custom_components/heatpump_optimizer/away.py', add: '\n\nfrom .const import DOMAIN as _census_unused_package_import\n' },
-    read: (out) => /^RESULT unused_package_imports=(\d+)\b/m.exec(out)?.[1],
+    read: (out) => /^RESULT unloaded_package_imports=(\d+)\b/m.exec(out)?.[1],
   },
   {
     // One unused top-level card function: no other token names it.
