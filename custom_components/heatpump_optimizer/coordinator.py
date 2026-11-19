@@ -765,7 +765,8 @@ def _register_number_restore(key: str, entity_of: Any, restored: Any, write: Any
     """Register the entity ``entity_of(config)`` under ``key``; ``restored`` empties its owner's record."""
     def restorer(config: Any) -> off_restore.Restorer | None:
         entity_id = entity_of(EntryConfig.from_mapping(config))
-        return off_restore.Restorer(str(entity_id), write, baseline_of=reading, restored=restored) if entity_id else None
+        return off_restore.Restorer(
+            str(entity_id), write, baseline_of=reading, restored=restored, write_unread=True) if entity_id else None
 
     off_restore.register_consumer(key, restorer, write, stale=True)
 

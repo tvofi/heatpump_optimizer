@@ -80,6 +80,10 @@ class Restorer:
     ``restored(entry, entity_id, value)``, when given, is told each restore
     write that succeeded, so the consumer's own write record names what the
     entity was last told; the restore never edits that record itself.
+    ``write_unread``: an unreadable baseline arms a restore of nothing and the
+    write proceeds, rather than refusing it until a person acts; that entry
+    is kept until a restore drops it, so the optimizer's own write is never
+    captured as the baseline.
     """
 
     entity_id: str
@@ -87,6 +91,7 @@ class Restorer:
     neutral: float | None = None
     baseline_of: Callable[[HomeAssistant, str], float | None] | None = None
     restored: Callable[[Any, str, float], None] | None = None
+    write_unread: bool = False
 
 
 Factory = Callable[[Any], "Restorer | None"]
@@ -197,8 +202,8 @@ async def async_arm(
     The first arm captures the baseline of a consumer with no ``neutral`` and
     persists it with its entity: ``baseline_c`` where the consumer knows the
     reading is no baseline (its own last write), else the reading. A later
-    arm, in this run or after a restart, keeps it. An unreadable baseline refuses the write: what it would restore
-    is unknown. A baseline entry for another entity, or under a neutral
+    arm, in this run or after a restart, keeps it. An unreadable baseline refuses the write, what it would restore
+    being unknown, unless the restorer is ``write_unread``. A baseline entry for another entity, or under a neutral
     restorer, is restored first (rule R), and a failure refuses the write; a
     neutral entry under a baseline restorer is dropped unwritten, so a neutral
     is never written to a target that has none. A key whose restore is in
@@ -227,24 +232,31 @@ async def _arm_restorer(
     if key in held.armed:
         current = held.armed[key]
         if not isinstance(current, dict):
-            if current is not None or restorer.neutral is not None:
+            if current is not None or restorer.neutral is not None or restorer.write_unread:
                 return True  # #3299's entry, unchanged
             # A neutral entry under a baseline restorer: replaced below, never written.
         elif restorer.neutral is None and current["entity_id"] == restorer.entity_id:
             return True
         elif not await _restore_baseline(hass, entry, held, key, restorer, "rearm"):
             return False  # latched, still armed: nothing to save
-    baseline = None
-    if restorer.neutral is None:
-        baseline = baseline_c if baseline_c is not None else (
-            restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None)
-        if log_held(entry, f"off_restore_baseline_{key}", baseline is None,
-                    "No baseline readable from %s: not written, nothing to restore it to",
-                    restorer.entity_id):
-            return False
+    baseline = None if restorer.neutral is not None else _captured(hass, entry, key, restorer, baseline_c)
+    if baseline is None and restorer.neutral is None and not restorer.write_unread:
+        return False
     held.armed[key] = None if baseline is None else {"entity_id": restorer.entity_id, "value": baseline}
     await _save(held)
     return True
+
+
+def _captured(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, key: str, restorer: Restorer, baseline_c: float | None,
+) -> float | None:
+    """The baseline a first arm captures, or None unreadable (logged once, written or not)."""
+    baseline = baseline_c if baseline_c is not None else (
+        restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None)
+    log_held(entry, f"off_restore_baseline_{key}", baseline is None,
+             "No baseline readable from %s: %s, nothing to restore it to", restorer.entity_id,
+             "written" if restorer.write_unread else "not written")
+    return baseline
 
 
 async def _restore_baseline(
