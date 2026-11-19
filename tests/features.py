@@ -81370,8 +81370,18 @@ R.check(
 
 # D7-s3-04, naive instant: one zone for a naive stamp, UTC, whatever the host's
 # zone -- open_meteo read it as the host's and landed nine hours off under Tokyo.
+# wood_fuel's local-day cut and published window read a plan stamp in the
+# install's zone through the same rule: eight naive hourly stamps from 20:00 are
+# 21:00-04:00 Stockholm, so today's window ends at 23:00 UTC (Stockholm
+# midnight); read in Tokyo's zone it ran to 04:00 the next day.
 import os as _k11_os  # noqa: E402
 import time as _k11_time  # noqa: E402
+from zoneinfo import ZoneInfo as _k11_Zone  # noqa: E402
+
+from heatpump_optimizer import wood_fuel as _k11_wf  # noqa: E402
+
+_k11_wood_ts = [datetime(2026, 1, 15, 20, 0) + timedelta(hours=_k11_h) for _k11_h in range(8)]
+_k11_sthlm = _k11_Zone("Europe/Stockholm")
 
 _k11_saved_tz = _k11_os.environ.get("TZ")
 _k11_os.environ["TZ"] = "Asia/Tokyo"
@@ -81383,8 +81393,16 @@ try:
         "drift": _k11_drift.utc_instant(_k11_naive) == _k11_aware,
         "open_meteo": _k11_om.utc_instant is _k11_drift.utc_instant,
         "manual_plan": _k11_mp._instant(_k11_naive) == _k11_aware.timestamp(),
+        "manual_plan coerce": _k11_mp._coerce_awareness(_k11_aware, _k11_naive) == _k11_naive,
         "aware kept": _k11_drift.utc_instant(_k11_aware.astimezone()) == _k11_aware,
+        "wood day": _k11_wf.cheaper_windows(_k11_wood_ts, [True] * 8, _k11_sthlm)
+        == [(_k11_wood_ts[0], _k11_wood_ts[3])],
     }
+    _k11_wood_view = {}
+    _k11_wf._attach_windows(_k11_wood_view, {}, _k11_wood_ts, [True] * 8, _k11_sthlm)
+    _k11_zone["wood iso"] = _k11_wood_view.get("cheaper_windows") == [
+        {"start": "2026-01-15T21:00:00+01:00", "end": "2026-01-16T00:00:00+01:00"}
+    ]
 finally:
     if _k11_saved_tz is None:
         _k11_os.environ.pop("TZ", None)
@@ -81393,7 +81411,7 @@ finally:
     _k11_time.tzset()
 R.check(
     "D7-s3-04 naive instant: drift.utc_instant reads a naive stamp as UTC under a "
-    "Tokyo host; open_meteo and manual_plan read it there",
+    "Tokyo host; open_meteo, manual_plan and wood_fuel's day cut and windows read it there",
     all(_k11_zone.values()),
     f"{_k11_zone}",
 )
