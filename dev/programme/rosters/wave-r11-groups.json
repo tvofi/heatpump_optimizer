@@ -5379,7 +5379,9 @@
    "class": "production",
    "severity": "medium",
    "size": "L",
-   "issues": [],
+   "issues": [
+    3746
+   ],
    "fixes": [],
    "findings": [
     "D12-s3-03",
