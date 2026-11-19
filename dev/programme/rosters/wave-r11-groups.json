@@ -6513,7 +6513,9 @@
    "class": "production",
    "severity": "low",
    "size": "XL",
-   "issues": [],
+   "issues": [
+    3746
+   ],
    "fixes": [],
    "findings": [
     "D5-s4-01",
