@@ -659,3 +659,4 @@
 2026-11-19T14:55:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 051a1593 L1343 by=- ran=12 wall=1565.5s
 2026-11-19T14:55:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 051a1593 L1343 by=- ran=12 wall=1563.6s
 2026-11-19T14:57:59Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP 0a81eaf0 L1527 by=- ran=16 wall=1685.6s
+2026-11-19T15:23:29Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP 16576d0c L1528 by=- ran=16 wall=1759.0s
