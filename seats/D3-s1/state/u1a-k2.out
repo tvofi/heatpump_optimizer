@@ -54,3 +54,4 @@
 2026-11-19T05:58:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 8ea824b2 L2018 by=- ran=12 wall=1397.2s
 2026-11-19T06:02:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:<module> CONST a15838a8 L69 by=- ran=19 wall=1492.7s
 2026-11-19T06:08:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override CMP_BOUND 03186ecd L5156 by=- ran=13 wall=1395.3s
+2026-11-19T06:16:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_cop_health CMP_BOUND 70038ecd L9486 by=- ran=13 wall=1407.2s
