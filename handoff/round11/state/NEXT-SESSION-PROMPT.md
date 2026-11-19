@@ -24,7 +24,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-SEAM-kernel-step (stage in-progress, branch `handoff/r11-seam-kernel-step`): `git fetch origin handoff/r11-seam-kernel-step && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-plant-model (stage in-progress, branch `handoff/r11-seam-plant-model`): `git fetch origin handoff/r11-seam-plant-model && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-inputs-guards (stage in-progress, branch `handoff/r11-seam-inputs-guards`): `git fetch origin handoff/r11-seam-inputs-guards && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-money (stage in-progress, branch `handoff/r11-seam-money`): `git fetch origin handoff/r11-seam-money && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-money (stage carries-open, branch `handoff/r11-seam-money`): `git fetch origin handoff/r11-seam-money && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-solver (stage in-progress, branch `handoff/r11-seam-solver`): `git fetch origin handoff/r11-seam-solver && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-release (stage in-progress, branch `handoff/r11-seam-actuation-release`): `git fetch origin handoff/r11-seam-actuation-release && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-solve (stage in-progress, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
