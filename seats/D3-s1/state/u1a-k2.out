@@ -73,3 +73,4 @@
 2026-11-19T07:51:29Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.flow_lift_factor GUARD_OFF b66e49cc L3389 by=- ran=17 wall=1514.6s
 2026-11-19T07:51:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost RETURN_DEL 90660fdb#2 L1613 by=- ran=12 wall=1512.8s
 2026-11-19T08:02:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._on_power_event CMP_BOUND bbe3b0ca L8806 by=- ran=13 wall=1495.0s
+2026-11-19T08:06:06Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_diagnose_payload GUARD_OFF 842ffb16 L2605 by=tests/features.py ran=13 wall=1473.7s
