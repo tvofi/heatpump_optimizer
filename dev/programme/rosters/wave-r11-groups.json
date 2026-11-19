@@ -4559,7 +4559,9 @@
    "severity": "medium",
    "size": "M",
    "wave": 1,
-   "issues": [],
+   "issues": [
+    3766
+   ],
    "fixes": [],
    "after": [],
    "files": [
