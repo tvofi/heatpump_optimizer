@@ -156,6 +156,31 @@ check(
     len(_y1_two.times) == 2 and _y1_two.values == (100.0, 200.0),
     f"times={_y1_two.times}",
 )
+# Two stamps, one of them year 1: the survivor's resolution is inferred from
+# its gap to the dropped stamp, so its span reaches back to year 1 and a lone
+# survivor would claim every window before it. The block parses to nothing.
+_y1_lone_block = {"time": ["0001-01-01T00:00", "2026-08-21T00:00"],
+                  "shortwave_radiation": [1.0, 100.0]}
+_y1_lone = om._parse_block(_y1_lone_block, "shortwave_radiation")
+_y1_lone_at = datetime(2026, 8, 20, 22, 0, tzinfo=UTC)
+check(
+    "a lone sample left after the year-1 drop is no series: mean_over claims no window",
+    _y1_lone.times == () and _y1_lone.mean_over(_y1_lone_at, _y1_lone_at + timedelta(hours=3)) is None,
+    f"times={_y1_lone.times} resolution={_y1_lone.resolution}",
+)
+# Null control: the same survivor beside a second one-hour sample is a series
+# and reads a value over the same window, so the check above is not empty
+# on every block.
+_y1_lone_ctl = om._parse_block(
+    {"time": _y1_lone_block["time"] + ["2026-08-21T01:00"],
+     "shortwave_radiation": [1.0, 100.0, 100.0]},
+    "shortwave_radiation",
+)
+check(
+    "the lone-sample check reads a value once a second sample is kept (null control)",
+    _y1_lone_ctl.mean_over(_y1_lone_at, _y1_lone_at + timedelta(hours=3)) is not None,
+    f"times={_y1_lone_ctl.times}",
+)
 
 hourly = om._parse_block(block(0, [0.0, 0.0, 100.0, 300.0, 500.0]), "shortwave_radiation")
 check("parses an hourly block", len(hourly.times) == 5)
