@@ -1,0 +1,42 @@
+{
+ "id": "D5-s8-07",
+ "step": "D5.M4",
+ "title": "text_ledger scan_c_like reports wrong line numbers for 1175 of 1899 JS comment units",
+ "severity": "medium",
+ "claim": "tools/audit/text_ledger.py:scan_c_like loses one line each time a non-template string literal stops at a newline (break before line += 1, i = j + 1 consumes it), so the `line` column of 1175 of the seat's 1899 JavaScript comment units does not hold the unit's text (tests/card.mjs 690, policy_lint.mjs 353); Python units, numbered by tokenize, are 0 of 1200.",
+ "mechanism": "A quote inside a regex literal or a stray apostrophe opens a 'string' that ends at the newline; the newline is skipped without counting; the error accumulates down the file (card.mjs's DESIGN.md unit reports 10542, the text is at 10605). Ids are hashes, so `check` still passes and the defect is silent; a seat or fixer walking to a ledger row lands on the wrong code.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s8/ledger_lines.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s8/ledger_lines.py",
+  "value": 1175,
+  "unit": "mislocated JS comment units",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (light seat), Linux x86_64, 4 vCPU, venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (other seats on the box)",
+  "tolerance": "exact",
+  "load1": 2.6,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:scan_c_like",
+ "perturbation": {
+  "change": "--fixed: in scan_c_like, `line += 1` before the newline `break`, and on an escaped newline",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s8/ledger_lines.py",
+  "value": "py_mislocated=0 of 1200",
+  "note": "the Python path (tokenize) carries no drift in either arm"
+ },
+ "metric_definition": "JS/sh D5 comment units whose reported line does not contain the unit's first comment line, in the seat's cells.",
+ "phenomenon_property": "Every unit text_ledger.py lists carries the line it starts on.",
+ "seam_rule": "dev/audit/rounds/round11/D5/s8/ledger_lines.py (per-file RESULT lines; run over any cells list)",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "tools/audit/text_ledger.py"
+ ],
+ "proposed_fix_scope": "One-line instrument repair in scan_c_like (count the newline the string scan breaks on, and an escaped newline) plus a self-test arm with a quote in a regex literal; D6 string units share the scanner.",
+ "scope": "D5-s8"
+}

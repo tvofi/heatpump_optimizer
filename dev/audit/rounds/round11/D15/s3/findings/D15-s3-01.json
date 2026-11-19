@@ -1,0 +1,45 @@
+{
+  "id": "D15-s3-01",
+  "scope": "D15-s3",
+  "step": "D15.M7",
+  "title": "Solver self-test counts every restart's not-run publish as a 0 ms solve",
+  "severity": "low",
+  "claim": "On the real bundle, debugger._solver_smoke's week_solve_ms spread admits 10 rows whose payload was the not-run publish (no action, solve_time_ms 0), so the self-test reports min 0 ms and n 662 where 652 solves ran.",
+  "mechanism": "_apply_unsolved_payload publishes solve_time_ms 0 for a solve that never ran (the light first refresh after each restart); cycle_row copies it into payload_solve_time_ms and _solver_smoke spreads every row carrying the key, so 'did not run' and 'ran in 0 ms' are the same value.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_rowscan.py --bundle B",
+    "harness_path": "dev/audit/rounds/round11/D15/s3/m7_rowscan.py",
+    "value": 10,
+    "unit": "rows (solver_spread_unsolved_rows); solver_week_min_ms=0",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, CI venv",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, load1 about 22; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 21.84,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/debugger.py:_solver_smoke (via debugger:spread)",
+  "perturbation": {
+    "change": "--perturb solver-filter: the one-line edit in _solver_smoke's comprehension that drops a row whose payload_solve_time_ms is 0 (applied in memory by wrapping debugger.spread for that call)",
+    "expected_direction": "to_zero",
+    "observed_value": "solver_spread_unsolved_rows=0, solver_week_n=652, solver_week_min_ms=9806"
+  },
+  "metric_definition": "Rows the solver self-test's week_solve_ms spread admits whose payload carried no action and solve_time_ms 0 (n_spread minus rows with a positive solve time).",
+  "phenomenon_property": "A solve-time statistic over published payloads ranges only over payloads where a solve ran; the not-run payload's inert 0 is never read as a duration.",
+  "seam_rule": "grep -rn \"solve_time_ms\" custom_components/heatpump_optimizer/ tools/replay/ dev/audit/harnesses/",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_rowscan.py --bundle <dbg_bundle_gen.py --days 7 output>",
+    "value": 0,
+    "note": "the synthetic week has no restart, so no not-run publish enters the spread (solver_spread_unsolved_rows=0)"
+  },
+  "reproduction_steps": [
+    "Run the command on the owner's bundle: solver_spread_unsolved_rows=10, solver_week_min_ms=0, solver_week_rederived_equal=True (the recorded self-test carries the same min 0 and n 662).",
+    "Each of the 10 rows is the first row after a restart (unsolved_rows=10; 9 at a release change or 3-interval gap, the tenth after a 28 min gap with no release change).",
+    "Re-run with --perturb solver-filter: 0 rows, n 652, min about 9.8 s."
+  ],
+  "proposed_fix_scope": "debugger._solver_smoke (or cycle_row omitting payload_solve_time_ms when optimization_status is not_run); one line plus a test row in tests that feeds a not-run row.",
+  "files": ["custom_components/heatpump_optimizer/debugger.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "N-silent-zero"
+}

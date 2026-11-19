@@ -1,0 +1,52 @@
+RESULT file=tests/arch_score.py units=26 unresolved_units=0 long_sentence_units=3
+RESULT file=tests/arch_score_head.py units=12 unresolved_units=0 long_sentence_units=3
+RESULT file=tests/backtest.py units=18 unresolved_units=0 long_sentence_units=2
+RESULT file=tests/block_duty.py units=42 unresolved_units=0 long_sentence_units=0
+RESULT file=tests/boost_drift_replay.py units=48 unresolved_units=0 long_sentence_units=7
+RESULT file=tests/card.mjs units=712 unresolved_units=4 long_sentence_units=106
+RESULT file=tests/card_browser.mjs units=121 unresolved_units=0 long_sentence_units=22
+RESULT file=tests/card_drift.mjs units=30 unresolved_units=0 long_sentence_units=4
+RESULT file=tests/card_rig.mjs units=46 unresolved_units=0 long_sentence_units=12
+RESULT file=tests/ci_ratchet.py units=83 unresolved_units=0 long_sentence_units=19
+RESULT file=tests/closure.py units=329 unresolved_units=5 long_sentence_units=79
+RESULT file=tests/config_flow_steps.py units=327 unresolved_units=0 long_sentence_units=39
+RESULT file=tests/coverage_ratchet.py units=20 unresolved_units=0 long_sentence_units=7
+RESULT file=tests/debug_collect.py units=68 unresolved_units=0 long_sentence_units=7
+RESULT file=tests/delivery_status.py units=40 unresolved_units=0 long_sentence_units=14
+RESULT file=tests/deployment_shape.py units=20 unresolved_units=0 long_sentence_units=3
+RESULT file=tests/derive_closures.sh units=14 unresolved_units=0 long_sentence_units=7
+RESULT file=tests/doc_claims.py units=229 unresolved_units=3 long_sentence_units=30
+RESULT file=tests/dom_stub.mjs units=9 unresolved_units=0 long_sentence_units=2
+RESULT file=tests/dst_checks.py units=107 unresolved_units=0 long_sentence_units=12
+RESULT file=tests/gate_lock.py units=113 unresolved_units=0 long_sentence_units=6
+RESULT file=tests/golden.py units=91 unresolved_units=0 long_sentence_units=12
+RESULT file=tests/guard_pins.py units=36 unresolved_units=0 long_sentence_units=2
+RESULT file=tools/policy/agreement.mjs units=60 unresolved_units=0 long_sentence_units=11
+RESULT file=tools/policy/agreement_py.py units=23 unresolved_units=0 long_sentence_units=3
+RESULT file=tools/policy/brief_lint.mjs units=95 unresolved_units=0 long_sentence_units=16
+RESULT file=tools/policy/budget_raise_gate.py units=77 unresolved_units=0 long_sentence_units=13
+RESULT file=tools/policy/check-wave-script.mjs units=92 unresolved_units=0 long_sentence_units=15
+RESULT file=tools/policy/counts.mjs units=25 unresolved_units=0 long_sentence_units=6
+RESULT file=tools/policy/dependabot_contract.mjs units=6 unresolved_units=0 long_sentence_units=0
+RESULT file=tools/policy/field_coverage.mjs units=36 unresolved_units=0 long_sentence_units=3
+RESULT file=tools/policy/figure_census.mjs units=8 unresolved_units=0 long_sentence_units=2
+RESULT file=tools/policy/figure_lint.mjs units=34 unresolved_units=0 long_sentence_units=6
+RESULT file=tools/policy/fragments_sync.mjs units=5 unresolved_units=0 long_sentence_units=1
+RESULT file=tools/policy/friction_issues.mjs units=62 unresolved_units=1 long_sentence_units=15
+RESULT file=tools/policy/policy_lint.mjs units=463 unresolved_units=12 long_sentence_units=150
+RESULT file=tools/policy/policy_lint_envmatrix.mjs units=22 unresolved_units=0 long_sentence_units=6
+RESULT file=tools/policy/policy_lint_mutants.mjs units=26 unresolved_units=0 long_sentence_units=7
+RESULT file=tools/policy/record-predicate/row_files_replay.py units=5 unresolved_units=0 long_sentence_units=1
+RESULT file=tools/policy/record-predicate/sweep.mjs units=24 unresolved_units=0 long_sentence_units=3
+RESULT file=tools/policy/render_md.mjs units=3 unresolved_units=0 long_sentence_units=0
+RESULT file=tools/policy/role_pack.py units=15 unresolved_units=0 long_sentence_units=0
+RESULT file=tools/policy/rules_sync.mjs units=4 unresolved_units=0 long_sentence_units=1
+RESULT file=tools/policy/vendor/markdown-it.min.js units=2 unresolved_units=0 long_sentence_units=0
+RESULT units=3628 count
+RESULT references=2906 count
+RESULT units_with_unresolved_ref=25 count
+RESULT units_with_sentence_over_40_words=657 count
+RESULT units_naming_no_reference=2489 count
+RESULT thread_factor=1.000
+RESULT load1=2.20
+RESULT swapins=0
