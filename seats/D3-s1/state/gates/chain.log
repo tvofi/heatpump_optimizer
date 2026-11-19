@@ -13,3 +13,5 @@
 2026-11-18T20:15:49Z GATE pre:bdcf7589b0a0a6df :: RESULT gate_rc=1 code RESULT failed_scripts=6 count RESULT wall=13388 s RESULT thread_factor=1.0 ratio RESULT load1=7.15 RESULT killed=1 count VERDICT bdcf7589b0a0a6df KILLED python3 tests/features.py 
 /dev/disk3s5   228Gi   189Gi   7.9Gi    96%    3.3M   83M    4%   /System/Volumes/Data
 2026-11-18T22:07:46Z GATE c2:0e172028a23d9372 :: RESULT gate_rc=1 code RESULT failed_scripts=6 count RESULT wall=6701 s RESULT thread_factor=1.0 ratio RESULT load1=5.78 RESULT killed=1 count VERDICT 0e172028a23d9372 KILLED python3 tests/entities.py,python3 tests/features.py,python3 tests/stress.py 
+/dev/disk3s5   228Gi   185Gi    13Gi    94%    2.9M  138M    2%   /System/Volumes/Data
+2026-11-19T00:01:47Z GATE c2:d931ab195b940b0c :: RESULT gate_rc=1 code RESULT failed_scripts=5 count RESULT wall=6821 s RESULT thread_factor=1.0 ratio RESULT load1=246.46 RESULT killed=0 count VERDICT d931ab195b940b0c RED-AS-NULL  
