@@ -1,0 +1,11 @@
+RESULT baseline_rc=0
+KILLED   > 40 compare | a 40-word sentence (the null control) is accepted; a shell comment marker is stripped before the count; a rule line is not a word of the sentence after it
+KILLED   per-file compare | a 41-word sentence planted in a Python comment is refused; a 41-word sentence planted in a shell comment is refused; a file shrinking while another grows is refused per file
+KILLED   total compare | a long unit added in a new file is refused
+KILLED   new-file branch | a long unit moved to a new file is accepted
+KILLED   base resolution | a base the checkout cannot resolve refuses (a shallow clone fails closed)
+KILLED   .sh marker strip | a 40-word sentence (the null control) is accepted; a shell comment marker is stripped before the count; a rule line is not a word of the sentence after it; a list item ends the sentence before it
+KILLED   text-only code arm | a docstring edit does not read as code
+KILLED   text-only hunk arm | a line-neutral rewrite reads 0 shifted hunks, an added line 1
+KILLED   comment code strip | a shell comment edit does not read as code, a shell token does
+RESULT killed=9 survived=0
