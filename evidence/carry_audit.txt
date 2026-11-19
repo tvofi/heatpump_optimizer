@@ -1,0 +1,12 @@
+NOTE stale tree: ba4d4d2359a7e15add72e3fa836aa0f11081ca61 lacks origin/main 99436a082c67ad5dbb4afc293506af010d6ee8df; roster read at origin/main
+NOTE body item d68d8492: R11-PRE-SHARED-FILES
+NOTE body item 6aae4897: R11-PRE-SHARED-FILES
+NOTE body item bcd562ba: R11-PRE-SHARED-FILES
+NOTE body item 4819ff2c: dismissed:not reproduced at this head
+NOTE body item 5a84963e: dismissed:fixed in this pull request
+NOTE body item 59062190: dismissed:built into `precheck` in this pull request
+NOTE body item 98fd2dd3: dismissed:fixed in this pull request (`scrub_caller_env`)
+NOTE body item f2ab732a: dismissed:both seats' commits are in this head, in one line
+NOTE body item f25ed2c6: R11-PRE-SHARED-FILES
+NOTE body item 77ad12d1: dismissed:fixed in this pull request
+CARRY-AUDIT: 10 finding item(s): 10 routed, 0 unrouted, 0 bad destination(s)

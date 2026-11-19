@@ -1,0 +1,2 @@
+absorb grep accepts 0 reads (fixed site): rc=1 fails=1 :: ["FAIL the bot's step: absorb over a table the checkout's already holds adds nothing, keeps no table and is red, naming the re-record (null control)"]
+record runs drift step (older line): rc=0 fails=0 :: []
