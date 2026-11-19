@@ -11,7 +11,7 @@ What the port changes against the tag:
 
 ## Head
 
-adf0a38ba1347fe376ccd018e146969bdaf89df4, measured on merge base 9fe63d00b59f100aea67267ddddc95522e164aa1 (origin/main 8751943e17ef4d3ec699e7859ae829b4528d8ce7, 2026-11-18T16:28Z).
+d4e133dc1fa5bdf469531533b24f6eb756620760, the code head of this handoff: adf0a38b plus the commit killing the `_flow_target` CLAMP_DROP (Mutation proof, Red checks). The figures predating it were measured at adf0a38ba1347fe376ccd018e146969bdaf89df4, on merge base 9fe63d00b59f100aea67267ddddc95522e164aa1 (origin/main 8751943e17ef4d3ec699e7859ae829b4528d8ce7, 2026-11-18T16:28Z).
 
 ## Mutation proof
 
@@ -23,6 +23,7 @@ adf0a38ba1347fe376ccd018e146969bdaf89df4, measured on merge base 9fe63d00b59f100
   - `keep=not frozen` (distorted ignored): the same check fails; 1 of 33.
   - `keep=False`: that check and the window null's "rows were kept" fail; 2 of 33.
   - Restored: 33 of 33 pass.
+- `pump_arbiter._flow_target`'s `lo=min(m.floor_c, m.heat_c),` -> `lo=(m.floor_c),` (the CLAMP_DROP that `tests / mutation` and `mutation-autofix` left alive at 212e7976): `PYTHONPATH=tests/hastub python3 tests/features.py` with the mutant in place: `FAIL the heating floor is capped by the ceiling before the entity's minimum decides ...`, the only FAIL among 5540 checks; restored, 5540 ok and 0 FAIL. Both runs were stopped at 1500 s by `timeout`, and both had passed the block. CI's `tests / fast` runs the whole script.
 - The mutation draw over the diff's added lines is CI's `tests / mutation`.
 
 ## Null control
@@ -37,11 +38,11 @@ adf0a38ba1347fe376ccd018e146969bdaf89df4, measured on merge base 9fe63d00b59f100
 - Harness `dev/audit/harnesses/draw_map_rows.py` (sha1 057455db8d886d3b112e0c43a2b422d3de37e220), `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/draw_map_rows.py --synthetic`: head `RESULT store rows=672 draw_record_bytes_empty=83 draw_record_bytes_capped=58141 added_bytes=58058`, `RESULT open_loop rows=25 distinct_c=18 gain_kw_per_k=0.300 offset_kw=0.400 planted_gain=0.3 planted_offset=0.4`, null `RESULT shuffled ... gain_kw_per_k=0.023`; at main's code the harness stops (`AttributeError: 'DrawRange' object has no attribute 'map'`).
 - Typing: `cd custom_components && mypy --strict --ignore-missing-imports heatpump_optimizer/draw_range.py`: before the carry-12 narrowing 5 errors in `draw_range.py` (`take_pass` x4, `_stored_map` x1); after, none in `draw_range.py`. Local mypy is not CI's pinned pair; `tests / typing` is the authority.
 - Ratchet: `python3 tests/structure.py` reported one gain, `seam_cut_total` (the hot-water clock `_dhw_current_hour` left the coordinator class as a module function), recorded with `--record`; re-run clean.
-- Triage deleted with the tag: `tests/mutation_ledger/survivor_triage/pump_arbiter.py/_flow_target.CLAMP_DROP.38a077e7.json`; its `old` text `lo=min(floor_c, heat_c),` occurs once in main's `pump_arbiter.py` and zero times at the head (`grep -cF`).
+- Triage deleted with the tag: `tests/mutation_ledger/survivor_triage/pump_arbiter.py/_flow_target.CLAMP_DROP.38a077e7.json`; its `old` text `lo=min(floor_c, heat_c),` occurs once in main's `pump_arbiter.py` and zero times at the head (`grep -cF`). Its `equivalent` verdict did not hold. When the entity's minimum is above the configured ceiling, `SetpointGrid.bounded` drops the ceiling, so the mutant's `lo` becomes the floor. In the new features check, a 30 degC ceiling with a 35 degC minimum and a 40 degC tank writes 35.0 at all three levels (1.5, 3.5 and 5.5 kW) at the head, and 45.0 under the mutant (scratch probe, head against mutant). Null: a 20 degC minimum writes 30.0 and a 50 degC ceiling writes 50.0, under both texts. The site is now killed by that check, not triaged.
 - Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D` -> MODE line below; every script in `scope.run` run locally with `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`: 28 of 28 exit 0.
 - Sibling seams (`fixer.md` step 8), rule `git grep -n "judge_floor(" -- custom_components`: `coordinator._fold_measured_cop` (closed here, experiment flag); the heat-counter span close in `coordinator.py` (`_async_learn_heat_span`'s caller passes `close.refusal` first, which carries the cycle's `draw_off_ask`: already guarded, tag check "a heat counter span holding an experiment cycle folds no COP" passes). Rule `git grep -n "owed_scale(" -- custom_components`: `MeasuredCop.owed_scale` (closed here), its one caller (closed here).
 
-<!-- figure-block: scope-line mb=9fe63d00b59f100aea67267ddddc95522e164aa1 head=adf0a38ba1347fe376ccd018e146969bdaf89df4 -->
+<!-- figure-block: scope-line mb=9fe63d00b59f100aea67267ddddc95522e164aa1 head=d4e133dc1fa5bdf469531533b24f6eb756620760 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
@@ -83,7 +84,7 @@ Every site `tools/pr/ci_predict.py` lists as added and unpinned at this head, ea
 - `custom_components/heatpump_optimizer/draw_range.py:285 GUARD_OFF`: pinned by mutation-autofix (lane mutates custom_components/)
 - `custom_components/heatpump_optimizer/draw_range.py:287 RETURN_DEL`: pinned by mutation-autofix (lane mutates custom_components/)
 - `custom_components/heatpump_optimizer/draw_range.py:292 GUARD_OFF`: pinned by mutation-autofix (lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:972 CLAMP_DROP`: pinned by mutation-autofix (lane mutates custom_components/)
+- `custom_components/heatpump_optimizer/pump_arbiter.py:972 CLAMP_DROP`: survived the autofix lane at 212e7976. It is killed by the `tests/features.py` check "the heating floor is capped by the ceiling before the entity's minimum decides" (see Mutation proof), and mutation-autofix pinned it at 247ce3b6 (`tests/mutation_ledger/killed_by/pump_arbiter.py/_flow_target.CLAMP_DROP.6dfae9cd.json`).
 - `custom_components/heatpump_optimizer/pump_arbiter.py:1012 RETURN_DEL`: pinned by mutation-autofix (lane mutates custom_components/)
 - `custom_components/heatpump_optimizer/pump_arbiter.py:1369 GUARD_OFF`: pinned by mutation-autofix (lane mutates custom_components/)
 - `custom_components/heatpump_optimizer/pump_arbiter.py:1371 GUARD_OFF`: pinned by mutation-autofix (lane mutates custom_components/)
@@ -102,6 +103,8 @@ Every site `tools/pr/ci_predict.py` lists as added and unpinned at this head, ea
 - `tests / mutation` at adf0a38ba134 (red at 007e7be48d0f): red by construction on the 41 sites under `## Unpinned sites` (lines this diff adds, none yet in the ledger); `mutation-autofix` pins the killed sites after the push. Cheaper detector: `tools/pr/ci_predict.py`, which predicted it here offline in about a minute; it already runs in `prepr.sh`, so no countermeasure is owed.
 - `arch-score / arch-score` at 007e7be48d0f: `FAIL: dS -0.0006 WORSENS; unexplained: coord_footprint 2507->2508` because the body had no `## Architecture score` section; answered by the section above. Cheaper detector: `tools/audit/archscore/score.py --diff <merge base>`, offline in under a minute, which `prepr.sh` does not run (its `ci predict` step predicted no red here); no countermeasure is built in this group, whose seam is the draw map, not the pre-PR instruments.
 
+- `tests / mutation` and `gate` at 212e7976 (job 135087753389; gate job 135152747325 `FAIL tests / mutation`), with `mutation-autofix` (job 135113511239, `skip-nothing-killed`): `ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:972 CLAMP_DROP`, which no driver killed. Cause: the deleted triage's equivalence claim was wrong (see Figures), and no check covered an entity minimum above the ceiling. Fixed by the new features check. Cheaper detector: `tools/pr/ci_predict.py` lists the site as unpinned, but it cannot tell whether autofix will kill it. Only a local `mutation_table.py --anchor` drive would have told. No countermeasure is built here.
+
 ## Forward-carry
 
 - Carry 0 (D15 scope of the debug week and bundle): part F's, built with its debug week. Carry: R11-CARRY-DRAWMAP
@@ -113,3 +116,5 @@ Every site `tools/pr/ci_predict.py` lists as added and unpinned at this head, ea
 ## Friction
 
 none
+
+
