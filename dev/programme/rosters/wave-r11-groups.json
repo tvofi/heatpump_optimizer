@@ -4999,9 +4999,9 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-seam-plant-model",
-    "commit": null,
+    "commit": "1850e2e0da8c24886e4cc5f4d69601e834fb5023",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-008)",
     "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-dead-state): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
@@ -6733,12 +6733,13 @@
    ],
    "source": "audit",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-seam-comments-tests",
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-010)",
-    "note": null
+    "note": null,
+    "pr": 3808
    }
   },
   {
