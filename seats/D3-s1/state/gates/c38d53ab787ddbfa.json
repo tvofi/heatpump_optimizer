@@ -14,10 +14,10 @@
  "summary": [
   "ALL TEST SCRIPTS PASSED"
  ],
- "wall_s": 3414.4,
- "child_cpu_s": 4585.8,
- "load1_start": 0.01,
- "load1_end": 0.09,
+ "wall_s": 3455.7,
+ "child_cpu_s": 4675.1,
+ "load1_start": 0.23,
+ "load1_end": 0.0,
  "provisional": true,
  "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
