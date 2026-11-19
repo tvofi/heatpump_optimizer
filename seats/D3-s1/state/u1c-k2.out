@@ -201,3 +201,4 @@
 2026-11-19T09:35:51Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth CMP_BOUND 501fd0e7 L1073 by=- ran=12 wall=1799.4s
 2026-11-19T09:54:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:prices_from_entity_state BOOLOP 44f0178f L825 by=- ran=12 wall=1772.1s
 2026-11-19T10:00:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize CMP_BOUND f33dcd5d L1994 by=- ran=17 wall=1992.0s
+2026-11-19T10:03:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_cop_evidence GUARD_OFF 6deb0603 L5382 by=- ran=14 wall=1993.0s
