@@ -4924,8 +4924,7 @@
    "severity": "critical",
    "size": "L",
    "issues": [
-    3713,
-    3744
+    3713
    ],
    "fixes": [],
    "findings": [
