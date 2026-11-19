@@ -1,0 +1,42 @@
+{
+ "id": "D5-s2-11",
+ "scope": "D5-s2",
+ "step": "D5.M3",
+ "title": "setup.md says Quick setup is the last entry on the options first menu; Advanced settings follows it",
+ "severity": "low",
+ "claim": "docs/setup.md:131 says that under Configure 'Quick setup is the last entry on the first menu', but the options flow's async_step_init shows 9 entries with quick_setup second from the end and 'advanced' (Advanced settings) last.",
+ "mechanism": "async_step_init builds the menu from _TOP_MENU (eight pages ending in quick_setup) and then appends 'advanced'; the sentence counts the eight pages and forgets the Advanced settings entry the same menu ends with (README.md and configuration.md describe the two-menu layout correctly).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/menu_order.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s2/menu_order.py",
+  "value": "quick_setup_from_end=2; last_entry=advanced; menu_entries=9",
+  "unit": "position",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+  "cpu_or_wall": "count",
+  "contention_note": "box heavily loaded (load1 ~225); the value is deterministic",
+  "tolerance": "exact",
+  "load1": 224.58,
+  "thread_factor": 0.999
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:<options flow>.async_step_init (menu_options captured, translation lookup passed through)",
+ "perturbation": {
+  "change": "--perturb: the 'advanced' entry dropped from the shown menu in memory",
+  "expected_direction": "down",
+  "observed_value": "quick_setup_from_end 2 -> 1"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/menu_order.py",
+  "value": "setup_overview_index=0",
+  "note": "the first entry the docs name ('Your system, as configured') is first, so the harness reads the order the docs describe"
+ },
+ "metric_definition": "Position from the end of quick_setup among the menu_options async_step_init shows (1 = last, as the doc states).",
+ "phenomenon_property": "A reader document's statement of menu order matches the order the options flow shows.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/menu_order.py; grep -n -i 'last entry\\|first entry' README.md docs/*.md",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "docs/setup.md"
+ ],
+ "proposed_fix_scope": "setup.md:131: 'the last of the eight pages on the first menu, just above Advanced settings'. For D6: the sentence."
+}

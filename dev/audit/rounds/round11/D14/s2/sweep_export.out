@@ -1,0 +1,23 @@
+RESULT classes=36
+RESULT norow=0
+ROW I2 rc=0 wall_s=4.5 cpu_s=1.8 wired=.github/workflows/ci.yml,.github/workflows/governance.yml,.github/workflows/tests.yml,tests/run.sh,tests/entities.py note=check --in-dir needs a strace recording; self-test
+TAIL I2 ok   merge of the same recording writes the excepted file into the closure and only the INERT one under inert_reads |  | ALL 118 closure shrink pins PASSED
+ROW N-body-lint-bounce rc=2 wall_s=463.6 cpu_s=44.8 wired=.github/workflows/governance.yml,.github/workflows/pr-contract.yml,tests/run.sh,tests/features.py,tests/entities.py note=
+TAIL N-body-lint-bounce tools/pr/prepr.sh: eval: line 4017: syntax error: unexpected end of file | fatal: not a git repository (or any of the parent directories): .git | fatal: not a git repository (or any of the parent directories): .git
+ROW P2 rc=1 wall_s=107.2 cpu_s=67.8 wired=.github/workflows/ci.yml,.github/workflows/codeql.yml,.github/workflows/governance.yml,.github/workflows/marketplace.yml,.github/workflows/nightly.yml,.github/workflows/pages.yml,.github/workflows/pr-contract.yml,.github/workflows/release.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=section 'P2: one fact, one owner'
+TAIL P2 --diff-filter [(A|C|D|M|R|T|U|X|B)...[*]] | select files by diff type | --output <file>       output to a specific file
+ROW P3 rc=1 wall_s=1125.4 cpu_s=953.1 wired=.github/workflows/codeql.yml,.github/workflows/nightly.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=block R9-P3
+TAIL P3 $SCRATCH/base/tests/features.py:88327: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited | _ap_unload() | RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+ROW P7 rc=0 wall_s=65.1 cpu_s=60.8 wired=tests/run.sh,tests/features.py,tests/entities.py note=features.py spawns it
+TAIL P7 Update gap of 3584090 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating) | Update gap of 3584180 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating) | Update gap of 3584165 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heatin
+ROW R10-SELFTEST-RED-INTRODUCED rc=0 wall_s=72.3 cpu_s=45.2 wired=.github/workflows/governance.yml,.github/workflows/nightly.yml,.github/workflows/pr-contract.yml,.github/workflows/tests.yml,tests/entities.py note=introduced needs CI runs at a head; self-test
+TAIL R10-SELFTEST-RED-INTRODUCED roster_lib: no roster readable at origin/main; reading origin/main | roster_lib: no roster readable at origin/main; reading origin/main | roster_lib: no roster readable at origin/main; reading origin/main
+ROW R10-SELFTEST-TABLE-SHRINK rc=0 wall_s=167.3 cpu_s=25.6 wired=.github/workflows/ci.yml,.github/workflows/governance.yml note=check re-measures every step; the mutants are the barrier's pin
+TAIL R10-SELFTEST-TABLE-SHRINK == prune goes on over an unreadable table: self-test rc 1 | TypeError: 'NoneType' object is not subscriptable | SELFTEST-SCOPE MUTANTS: every mutant refused
+ROW R10-TOPIC-FAMILY rc=0 wall_s=0.0 cpu_s=0.0 wired=.github/workflows/governance.yml note=
+TAIL R10-TOPIC-FAMILY ok   group_of: exact, part, bare number behind a body check, triage, none | ok   owner_topic: the longest topic wins, shared topics share, none is empty | topic_grammar self-test: ok
+ROW R9-ROW-STALE rc=1 wall_s=0.4 cpu_s=0.4 wired=.github/workflows/governance.yml,.github/workflows/nightly.yml,tests/entities.py note=delivery_status.py reads the live PR list (gh); the barrier's guard self-test instead
+TAIL R9-ROW-STALE gh_read self-test: 146 checks, 0 failed | 2 self-test check(s) failed: body check passes the generated body over the reporter reds (rc 1: Node.js v22.23.4), a body that does not name nightly-status is refused (null control)
+RESULT thread_factor=1.000
+RESULT load1=0.12
+RESULT swapins=0

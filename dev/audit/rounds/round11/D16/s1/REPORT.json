@@ -1,0 +1,360 @@
+{
+ "dimension": "D16",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D16/s1/REPORT.md",
+ "exposure": "Read docs/configuration.md's Pump duty control table and strings.json's pump_duty_mode description to classify the observe/off supply-switch write and the documented DHW gate; no earlier findings read.",
+ "coverage": [
+  {
+   "step": "D16.M1",
+   "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+   "universe": 532,
+   "examined": 532,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py (cells_baseline.txt, per-cell table cells_table.json): every cell's site attributed on the stack of services.async_call / log_held, under 14 states x 5 rigs on coord_all_features plus the pump's slots; RESULT cells=532 examined=532 unattributed_calls=0; the 11 solve/fetch holds of coordinator.py driven into their latched branch per state (gate_cells=154, command_diff=2, both explained). Hold sites whose cause is absent in a state (heat_curve.py:366/399, off_restore.py:253, heat_curve.py:551 outside one state) read evaluations=0 there, with the guarded write's row graded. M1: each state's oracle is ORACLE in cells.py, written from D16.md's table before the sites were read."
+  },
+  {
+   "step": "D16.M2",
+   "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+   "universe": 532,
+   "examined": 532,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py (cells_baseline.txt, per-cell table cells_table.json): every cell's site attributed on the stack of services.async_call / log_held, under 14 states x 5 rigs on coord_all_features plus the pump's slots; RESULT cells=532 examined=532 unattributed_calls=0; the 11 solve/fetch holds of coordinator.py driven into their latched branch per state (gate_cells=154, command_diff=2, both explained). Hold sites whose cause is absent in a state (heat_curve.py:366/399, off_restore.py:253, heat_curve.py:551 outside one state) read evaluations=0 there, with the guarded write's row graded. M2: each command graded against its state's row and the entity's min/max/step; owed cells boost-partial (3562), disinfection (3452), min-cold-tank (R10-SETPOINT-BOOST) run on all 5 rigs. P1 moves arbiter_value_rows_failing 4->41, P2 4->35, P2doc 4->4."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D16-s1-01",
+   "scope": "D16-s1",
+   "step": "D16.M2",
+   "title": "Frequency control writes a decile mid that is not on the frequency entity's step",
+   "severity": "medium",
+   "claim": "On every heating state the compressor frequency write sends FrequencyMap's decile midpoint (23.5, 37.5, 51.5, 86.5 Hz) to a number entity whose step is 1 Hz, so the command lies off the entity's grid in 50 of 50 heating rows (10 states x 5 rigs).",
+   "mechanism": "coordinator._command_frequency sends round(target, 1) from freq_control.FrequencyMap.recommend, whose candidates are hz_min + (decile + 0.5) * span / 10; nothing puts the value on the entity's 'step' attribute, while every set-point write goes through inputs.write_setpoint, which does (setpoint_step). Home Assistant's number.set_value validates min/max only, so the off-step value reaches the device integration, which rounds, truncates or refuses it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+    "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+    "value": 50,
+    "unit": "rows (rig x state) with a frequency write off the entity step",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "count; contention-immune (two other seats on the box)",
+    "tolerance": "exact",
+    "load1": 1.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._command_frequency (via freq_control:FrequencyMap.recommend)",
+   "perturbation": {
+    "change": "--perturb freq_grid: FrequencyMap.recommend's answer rounded to the entity's 1 Hz step (the one-line production edit: quantise the target on the entity step before set_value)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Rows (rig x enumerator state) where a number.set_value to the frequency entity carries a value not equal to round(v/step)*step or outside min..max (count key: the value the seam delivered).",
+   "phenomenon_property": "Every number written to an actuator entity lies on that entity's own step and inside its min..max, whatever writer computes it.",
+   "seam_rule": "grep -n '\"set_value\"\\|services.async_call' custom_components/heatpump_optimizer/*.py  # every number write not routed through inputs.write_setpoint",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb freq_step_half",
+    "value": 0,
+    "note": "the same rigs with the frequency entity stating a 0.5 Hz step: every decile mid is on it and clause_grid reads 0"
+   },
+   "leave_one_out": {
+    "cells": 10,
+    "min": 5,
+    "max": 5,
+    "drop_most_favourable": 45
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep clause_grid  # 50",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb freq_grid | grep clause_grid  # 0"
+   ],
+   "proposed_fix_scope": "coordinator._command_frequency: quantise the target onto the frequency entity's step (inputs.setpoint_step / _on_step) inside its range before the call and the dedup.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/freq_control.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D16-s1-02",
+   "scope": "D16-s1",
+   "step": "D16.M2",
+   "title": "A space-only step on a pump with no heating-only mode charges a cold tank: the DHW gate is floored at 30 C",
+   "severity": "medium",
+   "claim": "With a mode select offering only Heating + DHW (GCHV), a step booking f kW of space heat and no hot water writes the tank set-point 30 C over a 20 C tank whose start hysteresis is 5 K, so the pump is asked to charge the tank on a step the plan booked none: 2 of 2 such rigs.",
+   "mechanism": "pump_arbiter.desired, space row with no Heating option: dhw_setpoint = _bounded(DHW_GATE_C=30, rounding down) \u2014 the entity's minimum but never below 30 C, independent of the tank reading; the hot-water entity in the rig accepts down to 10 C. A tank under 30 C less the pump's own hysteresis starts charging under Heating + DHW.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+    "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+    "value": 2,
+    "unit": "rigs (gchv-flow, gchv-indoor) where min-cold-tank asks the tank to charge",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "count; contention-immune (two other seats on the box)",
+    "tolerance": "exact",
+    "load1": 1.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/pump_arbiter.py:desired (DHW_GATE_C)",
+   "perturbation": {
+    "change": "--perturb dhw_gate: pump_arbiter.DHW_GATE_C = 10.0",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Rigs whose min-cold-tank row reads mode in {DHW, Heating+DHW} and tank set-point minus the pump's hysteresis above the tank reading after the step's writes.",
+   "phenomenon_property": "On a step the plan books no hot water, the pump is never left with a tank set-point its own thermostat would start a charge on, where the entity's range allows a lower one.",
+   "seam_rule": "grep -n 'DHW_GATE_C\\|FLOW_GATE_C' custom_components/heatpump_optimizer/pump_arbiter.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+    "value": 0,
+    "note": "the same gchv rigs at partial/full with the tank at 48 C: the 30 C gate asks no charge (rows ok); and the fork rigs at min-cold-tank, where the Heating mode gates the tank: rows ok"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep 'min-cold-tank'",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb dhw_gate | grep cold_tank_charge  # 0"
+   ],
+   "proposed_fix_scope": "pump_arbiter.desired's single-mode-less space row: gate the tank at the entity's minimum (or below the tank reading less the read hysteresis), not a fixed 30 C floor; doc table and strings.json follow.",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D16-s1-03",
+   "scope": "D16-s1",
+   "step": "D16.M2",
+   "title": "A space boost on an indoor set-point entity holds the plan's partial set-point, not the band top",
+   "severity": "high",
+   "claim": "With Boost Space Heating live on a partial step and an indoor space set-point entity, the pump holds optimal_setpoints[K] = 21.0 C while the boost's own action asks max_temperature 23.0 C, on 2 of 2 indoor rigs; the water rigs write the top (55 C).",
+   "mechanism": "pump_arbiter.desired passes boosted only for a water unit ('The boost fact is read for a water set-point only'); _space_target's indoor branch reads _planned_room(result, now), the plan's step, while boost.overlay replaced the action's setpoint with max_temp. The boost lifts the supply switch and mode but never the indoor set-point, so the pump's own thermostat stops at the plan's partial target.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+    "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+    "value": 2,
+    "unit": "rigs (fork-indoor, gchv-indoor) whose boost-partial set-point lies between floor and top",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "count; contention-immune (two other seats on the box)",
+    "tolerance": "exact",
+    "load1": 1.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/pump_arbiter.py:desired (_space_target indoor branch)",
+   "perturbation": {
+    "change": "--perturb boost_indoor: desired maps an indoor set-point under a live space boost to max_temperature",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Rigs whose indoor space entity, after the boost-partial step's writes, reads other than max_temperature (the boost overlay's setpoint).",
+   "phenomenon_property": "Under a live space boost the space channel's target is the top of its band on every space set-point unit, never the plan's partial level.",
+   "seam_rule": "grep -n 'boosted' custom_components/heatpump_optimizer/pump_arbiter.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+    "value": 0,
+    "note": "the flow rigs' boost-partial rows hold 55 C = the band top (rows ok); the indoor partial rows without a boost hold optimal_setpoints[K] (rows ok)"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep boost-partial",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb boost_indoor | grep boost_indoor_between  # 0"
+   ],
+   "proposed_fix_scope": "pump_arbiter.desired/_space_target: an indoor unit under a live space boost (or MODE_BOOST) writes the boost's setpoint (max_temperature on the entity grid).",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D16-s1-04",
+   "scope": "D16-s1",
+   "step": "D16.M2",
+   "title": "A plan that goes stale on an idle step leaves the supply switch off: the pump is never handed back",
+   "severity": "high",
+   "claim": "When the last fresh actuation switched the pump off (an idle step) and solves then fail, the power switch still reads off 100 and 130 minutes past the plan's end on 5 of 5 rigs, and the arbiter writes nothing, so the pump is not handed back to its own thermostats; with the switch on at that moment the baseline row holds on 5 of 5.",
+   "mechanism": "coordinator._apply_action returns before the supply write once _plan_is_stale ('the pump's own weather-compensated curve holds comfort'), supply_tick's step_supply answers None on a stale plan, and pump_arbiter._pump_off stops every arbiter write while the switch reads off, so the baseline row (Heating + DHW, configured tank, hold flow) is never written either. Nothing switches the supply on until a solve succeeds.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+    "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+    "value": 5,
+    "unit": "rigs whose baseline row reads the supply switch off past the plan",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "count; contention-immune (two other seats on the box)",
+    "tolerance": "exact",
+    "load1": 1.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_action (stale branch) with pump_arbiter:_pump_off",
+   "perturbation": {
+    "change": "--perturb stale_on: the stale branch of _apply_action also writes the supply on through _write_supply",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Rigs where the configured power switch reads off after the cycle and ticks 100-130 min past the plan's last step, the plan stale since that step.",
+   "phenomenon_property": "Whenever the optimizer stops actuating (stale or missing plan), every entity it switched is returned to the pump's own control: the supply allowed on and both circuits allowed.",
+   "seam_rule": "grep -n '_plan_is_stale()' custom_components/heatpump_optimizer/coordinator.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+    "value": 0,
+    "note": "baseline-on: the same staleness with the switch on at the last fresh step; the baseline row (switch on, Heating + DHW, configured tank) holds on 5 of 5 (NULL ... ok)"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'baseline'",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb stale_on | grep baseline_switch_off  # 0"
+   ],
+   "proposed_fix_scope": "coordinator._apply_action stale branch: release the supply (write on once, or restore its pre-optimizer state) and let the arbiter write its baseline row; adjacent to D1's staleness ownership.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D16-s1-05",
+   "scope": "D16-s1",
+   "step": "D16.M2",
+   "title": "A mode write to an unavailable select is recorded as made",
+   "severity": "low",
+   "claim": "With the mode select, hot-water and space entities unavailable at a partial step's switch-on, the arbiter records the mode write in held.written (and reports it to duty_switch) although Home Assistant's entity service call skips an unavailable entity, on 5 of 5 rigs.",
+   "mechanism": "pump_arbiter._write gates on 'state is None', never on state 'unavailable'; _lead_mode writes the step's mode ahead of the switch-on, services.async_call returns without error because Home Assistant leaves an unavailable entity out of the call, and held.written, _report_write (duty_switch.note_mode_write) and _persist record a write that never landed. The stub FakeServices records every call, so the suite cannot see it. The pump then starts in its previous mode; the next pass after the entity returns rewrites it (hold), so the cost is one tick and a phantom mode switch in the learner.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+    "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+    "value": 5,
+    "unit": "rigs whose unavailable row records a skipped write as made",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "count; contention-immune (two other seats on the box)",
+    "tolerance": "exact",
+    "load1": 1.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/pump_arbiter.py:_write (via _lead_mode)",
+   "perturbation": {
+    "change": "--perturb write_skips_unavailable: _write returns before the call when the slot's entity reads 'unavailable'",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Rigs where a slot whose service call the Home Assistant emulation skipped (entity state 'unavailable') is in pump_arbiter.state_for(coord).written after the pass.",
+   "phenomenon_property": "A write is recorded as made only when Home Assistant delivered it to an available entity.",
+   "seam_rule": "grep -n 'held.written\\[slot\\]\\|_pump_commanded\\[\\|_freq_last_write = \\|_valve_commanded_target = ' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb ha_skip_off",
+    "value": 0,
+    "note": "the emulation without Home Assistant's skip (the stub's behaviour): no write is skipped and the count reads 0, so the count keys on the skip"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep unavailable",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb write_skips_unavailable | grep unavailable_recorded  # 0"
+   ],
+   "proposed_fix_scope": "pump_arbiter._write: treat an entity reading unavailable/unknown as no write (as state None); tests/hastub's FakeServices to skip unavailable entities as Home Assistant does (ha_contract row).",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "tests/harness.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P11"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "idle: no mode written and the supply never switched on inside the step (5 rigs)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep ' idle '",
+   "value": "5/5 rows ok"
+  },
+  {
+   "claim": "min-cold-tank/partial/full on the fork transport: Heating mode, no tank charge asked; water set-point 33 < 44 < 55 C, all above the 25 C gate; indoor set-point equals optimal_setpoints[K]",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'LEVELS|partial|full'",
+   "value": "LEVELS water [33, 44, 55]; partial and full rows ok on 5/5 rigs; min-cold-tank ok on 3/3 fork rigs"
+  },
+  {
+   "claim": "dhw-only: DHW-only mode where offered, else the space set-point that calls for no heat; tank set-point the configured 55 C",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep dhw-only",
+   "value": "5/5 rows ok"
+  },
+  {
+   "claim": "both: hot water asked first, then the house, inside the one step",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep ' both '",
+   "value": "5/5 rows ok (fork: DHW then Heating; gchv: Heating + DHW, tank gated on the space leg at +7 min)"
+  },
+  {
+   "claim": "boost-partial on a water set-point writes the band top",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep boost-partial",
+   "value": "3/3 flow rigs ok (55 C)"
+  },
+  {
+   "claim": "disinfection: the tank write reaches the disinfection target with the integration's switch held on",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep disinfection",
+   "value": "5/5 rows ok (written 60 C, target 60 C, memo True)"
+  },
+  {
+   "claim": "restart and upgrade (store written by v10.0.2 through old_release.py): partial's row after the reload",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'restart|upgrade'",
+   "value": "10/10 rows ok"
+  },
+  {
+   "claim": "observe and off duty modes: no arbiter-slot write after the reload; each written entity returned once at the unload",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'observe|  off '",
+   "value": "10/10 rows ok"
+  },
+  {
+   "claim": "ECL110 MQTT displace and legacy heat_pump_on, the heat-curve offset/persistent entity, the circulation pump and the smart_write valve follow the plan's step K",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'clause_(mqtt|circ|valve|freq|stale)'",
+   "value": "clause_mqtt=0 clause_circ=0 clause_valve=0 clause_freq=0 clause_stale=0"
+  },
+  {
+   "claim": "The price, weather, solar, worker-timeout and solve-failure holds gate no actuator write: latched at step K, the state's commands are unchanged",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py | grep gate_cells",
+   "value": "gate_cells=154 evaluated=154 latched=112 command_diff=2 (the two baseline cells where the real solve refreshed the stale plan)"
+  },
+  {
+   "claim": "The enumerator misses no writer the 70 state runs reach",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep unattributed",
+   "value": "unattributed_calls=0"
+  },
+  {
+   "claim": "Null: the docstring edited alone (P2doc) moves no cell",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb P2doc | grep arbiter_value",
+   "value": "4 (unchanged)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D16/s1/cells.py",
+  "dev/audit/rounds/round11/D16/s1/old_release.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D16-s3",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._command_frequency",
+   "what": "No _plan_is_stale gate, unlike _apply_action and _space_pump_to_drive: in cells.py's baseline-on run the stale action's 3.0 kW was asked of FrequencyMap.recommend 100 min past the plan; the last frequency is held and never handed back on stale, off or unload (D16.M6 restore)."
+  },
+  {
+   "owner_seat": "D16-s2",
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_lead_mode / write_supply",
+   "what": "partial entered from idle (cell 3530): the switch-on writes only the mode ahead; the space set-point follows at the next one-minute tick (cells.py timeline fork-flow partial: 07:02 mode + switch on, 07:03 space 44 C), so the pump starts against the idle gate (25 C) for up to a minute (D16.M3/M4)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "desired (idle row) without heat_pump_switch_entity",
+   "what": "D12 configuration level: on an install with no power switch the idle row leaves the mode as last written (often Heating + DHW after a baseline) and holds the configured tank set-point, so the tank thermostat may charge on idle steps; not measured here (the rigs all configure a switch)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._apply_action (stale branch)",
+   "what": "D1 staleness neighbour of D16-s1-04: the plan-stale path and the supply switch; D1 owns whether the stale state is reached and announced."
+  }
+ ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "D9-s2-01",
+  "scope": "D9-s2",
+  "step": "D9.M1",
+  "title": "Card HistorySource never trims rows past its 48 h span: retained rows grow linearly with the card's life",
+  "severity": "low",
+  "claim": "On a long-lived card element whose plan dialog is panned into the past once a day, HistorySource retains 1,448 more rows per day (log 476, actionLog 152, seen keys 628, memoized overlay points 192; 60 covered chunks after 30 days against a 48 h reach of 4-5), with no plateau, while its own HISTORY_SPAN_MS caps what it can ever show at 48 h.",
+  "mechanism": "HistorySource is built once per card element (constructor) and survives every dialog session (ViewWindow.onDialogClosed resets only the range). absorb() appends every fetched row to this.log[field], this.actionLog and this.seen, and fetchChunk adds each chunk to this.covered; ensure() deletes only the stale live-edge chunk's 'loaded' mark. Nothing drops a row older than Date.now() - HISTORY_SPAN_MS, and overlays() re-materialises one point per plan step of every covered chunk into this.memo, so the memo also grows per day.",
+  "evidence": {
+    "command": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+    "harness_path": "dev/audit/rounds/round11/D9/s2/card_history_retained.mjs",
+    "value": 1448.0,
+    "unit": "retained rows per day (log + actionLog + seen + memo points), days 3-30",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Linux x86_64 container B2, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "count is contention-immune; heap_slope 140,157 B/day printed beside it is provisional (load1 8.5, two Python harnesses of this seat running)",
+    "tolerance": "exact for this fixture (tests/card_rig.mjs realisticHistory); +-1 % across fixture edits",
+    "load1": 8.53,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:HistorySource (ensure, fetchChunk, absorb, overlays), driven through tests/card_rig.mjs historyApi",
+  "perturbation": {
+    "change": "--arm trim: in-memory one-line edit of the card source, absorb()'s add() splices samples older than Date.now() - HISTORY_SPAN_MS after its sort",
+    "expected_direction": "down",
+    "observed_value": "log_rows_slope 476 -> 0.0 rows/day, memo_points_slope 192 -> 0.0; total 1448 -> 780 (actionLog and seen, untrimmed by this one line, still grow 152 + 628/day)"
+  },
+  "metric_definition": "Rows held by one HistorySource (log, actionLog, seen, memo points) after each simulated day; slope per day between day 3 and day 30.",
+  "phenomenon_property": "Every per-session collection of HistorySource (log, actionLog, seen, covered, memo) is bounded by HISTORY_SPAN_MS: after any number of days its size is at most what a fresh 48 h window holds.",
+  "seam_rule": "grep -n 'this\\.\\(log\\|actionLog\\|seen\\|covered\\|memo\\|chunks\\)\\b' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+  "null_control": {
+    "command": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm nopan",
+    "value": 0,
+    "note": "the same 30 days with the dialog never panned: no fetch, 0 rows retained, heap slope 1,320 B/day (noise); growth is caused by the history fetch path, not by the clock or the rig"
+  },
+  "reproduction_steps": [
+    "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+    "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm trim",
+    "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm nopan"
+  ],
+  "proposed_fix_scope": "HistorySource: drop log/actionLog rows, seen keys and covered chunks older than Date.now() - HISTORY_SPAN_MS when a chunk is absorbed (or clear the collaborator when the dialog session ends), and build overlays only over covered chunks inside the span.",
+  "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+  ],
+  "expected_golden_drift": [],
+  "stop_rule_class": "bug",
+  "class_guess": "N-no-expiry"
+}

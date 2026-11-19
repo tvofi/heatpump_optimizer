@@ -592,6 +592,89 @@ def population(axes, tree, show):
         used = {n.id for n in ast.walk(ast.parse(show(f))) if isinstance(n, ast.Name) and re.fullmatch(pattern, n.id)}
         return used - (req - opt)
 
+    def number(f, node):
+        """A literal number, or a Name bound to one in `f` or its const.py."""
+        mod = ast.parse(show(f))
+        const = f.rpartition("/")[0] + "/const.py" if "/" in f else "const.py"
+        if isinstance(node, ast.Name):
+            found = module_assign(mod, node.id)
+            if found is None and const in tree:
+                found = module_assign(ast.parse(show(const)), node.id)
+            if found is None:
+                raise ValueError(f"{node.id} is bound in neither {f} nor {const}")
+            node = found
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub) and isinstance(node.operand, ast.Constant):
+            node = ast.Constant(-node.operand.value)
+        if not (isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool)):
+            raise ValueError(f"{ast.unparse(node)} is not a literal number")
+        return float(node.value)
+
+    def flow_range_levels(ax):
+        """The levels the record declares (`levels`, each of min, default and max) for the options-flow
+        rows they were taken from, read against every value `file` presents for each row's `key`. The
+        bounds are every `_number(lo, hi, ...)` widget beside the key (a dict's value for it, or an
+        argument of a call that carries it), `lo` and `hi` literal or a starred range constant; they
+        must agree. The defaults are every other value paired with the key: a dict's value for it, the
+        argument after it in a call (the `_F` row's default), and the `default=` keyword of a call that
+        carries it; each must be a number (literal, or a constant in `file` or its const.py) unless the
+        row's `no_default` names it as a marker that presents none (`_SUGGESTED`). A declared value one
+        of them does not equal, a key presented with no widget or no default, widgets that disagree, a
+        default that is no number, or a level other than the three, is UNREADABLE."""
+        f, lv = ax["file"], ax.get("levels") or {}
+        if not lv or set(lv) - {"min", "default", "max"}:
+            raise ValueError(f"levels {sorted(lv)} are not among min, default and max, the levels a flow row reads")
+        mod = ast.parse(show(f))
+        def bounds(call):
+            args = []
+            for a in call.args:
+                if isinstance(a, ast.Starred):
+                    t = module_assign(mod, a.value.id) if isinstance(a.value, ast.Name) else a.value
+                    if not isinstance(t, (ast.Tuple, ast.List)):
+                        raise ValueError(f"{ast.unparse(a)} does not expand a literal range")
+                    args += t.elts
+                else:
+                    args.append(a)
+            return number(f, args[0]), number(f, args[1])
+        is_num = lambda n: isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "_number"
+        for row in ax.get("rows") or [{}]:
+            key = row.get("key")
+            if set(row) - {"field", "key", "no_default"}:
+                raise ValueError(f"row {key} carries {sorted(set(row) - {'field', 'key', 'no_default'})}, which the reader does not read (field, key, no_default)")
+            is_key = lambda n: isinstance(n, ast.Name) and n.id == key
+            found, presented = set(), []
+            for n in ast.walk(mod):
+                if isinstance(n, ast.Dict):
+                    for k, v in zip(n.keys, n.values):
+                        if is_key(k):
+                            (found.add(bounds(v)) if is_num(v) else presented.append(v))
+                elif isinstance(n, ast.Call) and any(is_key(a) for a in n.args):
+                    found |= {bounds(a) for a in n.args if is_num(a)}
+                    i = next(i for i, a in enumerate(n.args) if is_key(a))
+                    presented += [a for a in n.args[i + 1:i + 2] if not is_num(a)]
+                    presented += [k.value for k in n.keywords if k.arg == "default"]
+            if len(found) != 1:
+                raise ValueError(f"{key} is presented by {'no' if not found else 'disagreeing'} _number rows in {f}")
+            (lo, hi), = found
+            defaults = []
+            for v in presented:
+                if isinstance(v, ast.Name) and v.id in (row.get("no_default") or []):
+                    continue
+                try:
+                    defaults.append((v.lineno, number(f, v)))
+                except ValueError as e:
+                    raise ValueError(f"{key}'s default at {f} line {v.lineno} does not read: {e}")
+            if not defaults:
+                raise ValueError(f"{key} is presented with no default in {f}")
+            for name, value in lv.items():
+                want = value.get(row["field"]) if "field" in row and isinstance(value, dict) else value
+                if not isinstance(want, (int, float)) or isinstance(want, bool):
+                    raise ValueError(f"level {name} declares {want} for {key}, which is no number")
+                for line, read in ([(None, lo)] if name == "min" else [(None, hi)] if name == "max" else defaults):
+                    if float(want) != read:
+                        where = "the flow row reads" if line is None else f"{f} line {line} presents"
+                        raise ValueError(f"level {name} declares {want:g} for {key}, {where} {read:g}")
+        return list(lv)
+
     def levels(ax):
         k, f = ax.get("kind"), ax.get("file")
         if k == "glob":
@@ -606,6 +689,8 @@ def population(axes, tree, show):
             return [x for x in compare_levels(f, ax["function"], ax["argument"]) if isinstance(x, str)]
         if k == "name":
             return name_levels(f, ax["pattern"])
+        if k == "flow_range":
+            return flow_range_levels(ax)
         raise ValueError(f"unknown kind {k!r}")
 
     lines, sizes, noread, ok = [], [], 0, True
@@ -815,6 +900,44 @@ def population_self_test():
     cmp = {"axis": "c", "kind": "compare", "file": "p/m.py", "function": "f", "argument": "profile"}
     nr = {"axis": "n", "kind": None, "no_read": "why", "builder": "G1"}
     every = pop(tup("T"), tup("D"), tup("L"), binary, glob, cmp, nr)
+    # Line 3 is a defaults dict, line 4 the `_F` rows (a default argument, a positional after the widget that is
+    # no default, and the `_SUGGESTED` marker that presents none), line 5 a wizard defaults dict, line 8 a key-only tuple that pairs the key with no value.
+    flow2 = ("RANGE_L = (0.01, 1.0)\nW = {CONF_A: _number(20, 1000, 5, 'm2')}\nQD = {CONF_A: D_A, CONF_Q: 1}\n"
+             "R = (_F('t', CONF_V, D_V, _number(50, 1400, 10, 'L'), 'tank'), _F('m', CONF_L, _SUGGESTED, _number(*RANGE_L, 0.01)))\n"
+             "WZ = {CONF_L: D_L}\nW2 = {CONF_D: _number(50, 1400, 10)}\nR2 = (_F('u', CONF_D, D_V, _number(50, 1300, 10)),)\n"
+             "K = (CONF_V, CONF_A, CONF_L)\nW3 = {CONF_N: _number(1, 2, 1)}\n")
+    files["p/flow2.py"] = flow2
+    files["p/const.py"] += "D_V = 200.0\nD_A = 140.0\nD_L = 0.15\nD_V2 = 200\n"
+    rng_v = {"axis": "v", "kind": "flow_range", "file": "p/flow2.py", "levels": {"min": 50, "default": 200, "max": 1400},
+             "rows": [{"key": "CONF_V"}]}
+    lv = lambda a, l: {"heated_area_m2": a, "heat_loss_kw_per_c": l}
+    rng_s = {"axis": "s", "kind": "flow_range", "file": "p/flow2.py",
+             "levels": {"min": lv(20, 0.01), "default": lv(140, 0.15), "max": lv(1000, 1.0)},
+             "rows": [{"field": "heated_area_m2", "key": "CONF_A"},
+                      {"field": "heat_loss_kw_per_c", "key": "CONF_L", "no_default": ["_SUGGESTED"]}]}
+    def planted(old, new, *axes, also=()):
+        files["p/flow2.py"] = flow2.replace(old, new)
+        for o, n in also:
+            files["p/flow2.py"] = files["p/flow2.py"].replace(o, n)
+        assert files["p/flow2.py"] != flow2, old
+        try:
+            return pop(*axes)
+        finally:
+            files["p/flow2.py"] = flow2
+    rng_ok = pop(rng_v, rng_s)
+    moved_max = pop({**rng_v, "levels": {**rng_v["levels"], "max": 1500}})
+    files["p/const.py"] = files["p/const.py"].replace("D_L = 0.15", "D_L = 0.2")
+    moved_def = pop(rng_s)
+    files["p/const.py"] = files["p/const.py"].replace("D_L = 0.2", "D_L = 0.15")
+    moved_arg = planted("_F('t', CONF_V, D_V,", "_F('t', CONF_V, 300.0,", rng_v)
+    moved_dict = planted("QD = {CONF_A: D_A,", "QD = {CONF_A: 180.0,", rng_s)
+    kw_moved = planted("\nK = ", "\nO = v.Optional(CONF_V, default=250)\nK = ", rng_v)
+    kw_same = planted("\nK = ", "\nO = v.Optional(CONF_V, default=D_V2)\nK = ", rng_v)
+    second_moved = planted("\nK = ", "\nO = v.Optional(CONF_V, default=D_V2)\nK = ", rng_v, also=[("_F('t', CONF_V, D_V,", "_F('t', CONF_V, 300.0,")])
+    marker_unrecorded = pop({**rng_s, "rows": [rng_s["rows"][0], {"field": "heat_loss_kw_per_c", "key": "CONF_L"}]})
+    marker_only = planted("WZ = {CONF_L: D_L}", "WZ = {}", rng_s)
+    no_default = pop({**rng_v, "levels": {"min": 1, "default": 1, "max": 2}, "rows": [{"key": "CONF_N"}]})
+    stale_field = pop({**rng_v, "rows": [{"key": "CONF_V", "default": "D_V"}]})
     return {
         "a tuple axis resolves a Name through const.py": pop(tup("T"))[0][0] == "a\t2\tk,w",
         "a dict axis reads its keys": pop(tup("D"))[0][0] == "a\t2\td1,d2",
@@ -836,6 +959,41 @@ def population_self_test():
         "a name axis drops a key required everywhere or never presented":
             pop({"axis": "o", "kind": "name", "file": "p/flow.py", "pattern": "CONF_[A-Z]_ENTITY", "binary": True})[0][0]
             == "o\t6 binary axes\tCONF_B_ENTITY,CONF_C_ENTITY,CONF_E_ENTITY,CONF_F_ENTITY,CONF_G_ENTITY,CONF_H_ENTITY",
+        # A declared axis is read against the flow rows it was taken from: a `_F` row and a widget-dict row, a
+        # starred range constant in the flow module, defaults in const.py; one level of one row moved refuses it.
+        "a flow-range axis prints its declared levels once each matches its row":
+            rng_ok[1] and rng_ok[0][:2] == ["v\t3\tdefault,max,min", "s\t3\tdefault,max,min"] and rng_ok[0][-1] == "NO-READ AXES: 0",
+        "a flow-range level that is not its row's bound is UNREADABLE by level and key":
+            not moved_max[1] and moved_max[0][0] == "UNREADABLE v: level max declares 1500 for CONF_V, the flow row reads 1400",
+        "a flow-range level that is not the row's default constant is UNREADABLE":
+            not moved_def[1] and moved_def[0][0] == "UNREADABLE s: level default declares 0.15 for CONF_L, p/flow2.py line 5 presents 0.2",
+        # Every default the flow file presents for the key is read, not one constant the record names (fix review 3816 P3, P4).
+        "a flow-range `_F` row whose default argument moved off the level is UNREADABLE by line":
+            not moved_arg[1] and moved_arg[0][0] == "UNREADABLE v: level default declares 200 for CONF_V, p/flow2.py line 4 presents 300",
+        "a flow-range defaults-dict value that moved off the level is UNREADABLE by line":
+            not moved_dict[1] and moved_dict[0][0] == "UNREADABLE s: level default declares 140 for CONF_A, p/flow2.py line 3 presents 180",
+        "a flow-range default= keyword that moved off the level is UNREADABLE by line":
+            not kw_moved[1] and kw_moved[0][0] == "UNREADABLE v: level default declares 200 for CONF_V, p/flow2.py line 8 presents 250",
+        "a flow-range default= keyword naming another constant of the same value is read, not refused (null control)":
+            kw_same[1] and kw_same[0][0] == "v\t3\tdefault,max,min",
+        "a flow-range default that moved is UNREADABLE though an earlier one still matches (every default is read)":
+            not second_moved[1] and second_moved[0][0] == "UNREADABLE v: level default declares 200 for CONF_V, p/flow2.py line 4 presents 300",
+        "a flow-range default the record does not list as presenting none is UNREADABLE":
+            not marker_unrecorded[1] and marker_unrecorded[0][0]
+            == "UNREADABLE s: CONF_L's default at p/flow2.py line 4 does not read: _SUGGESTED is bound in neither p/flow2.py nor p/const.py",
+        "a flow-range key whose only defaults are recorded markers is UNREADABLE":
+            not marker_only[1] and marker_only[0][0] == "UNREADABLE s: CONF_L is presented with no default in p/flow2.py",
+        "a flow-range key presented with no default is UNREADABLE":
+            not no_default[1] and no_default[0][0] == "UNREADABLE v: CONF_N is presented with no default in p/flow2.py",
+        "a flow-range row carrying a field the reader does not read is UNREADABLE":
+            not stale_field[1] and stale_field[0][0] == "UNREADABLE v: row CONF_V carries ['default'], which the reader does not read (field, key, no_default)",
+        "a flow-range key no _number row presents is UNREADABLE by key":
+            pop({**rng_v, "rows": [{"key": "CONF_NONE"}]})[0][0] == "UNREADABLE v: CONF_NONE is presented by no _number rows in p/flow2.py",
+        "a flow-range key whose _number rows disagree is UNREADABLE":
+            pop({**rng_v, "rows": [{"key": "CONF_D"}]})[0][0] == "UNREADABLE v: CONF_D is presented by disagreeing _number rows in p/flow2.py",
+        "a flow-range level other than min, default and max is UNREADABLE by name":
+            pop({**rng_v, "levels": {**rng_v["levels"], "typical": 300}})[0][0]
+            == "UNREADABLE v: levels ['default', 'max', 'min', 'typical'] are not among min, default and max, the levels a flow row reads",
     }
 
 

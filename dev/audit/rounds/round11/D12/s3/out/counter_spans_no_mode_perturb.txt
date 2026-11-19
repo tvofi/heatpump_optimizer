@@ -1,0 +1,15 @@
+RESULT arm=unseen+no_mode+dhw_timer+no-subtract
+RESULT cycles_ok=16 count (of 16)
+RESULT plans_published=16 count
+RESULT spans_closed=7 count
+RESULT spans_with_dhw=0 count
+RESULT spans_observed=0 count
+RESULT spans_plan_dhw_share=1 count
+RESULT bad_spans=0 count
+RESULT cop_records=1 count
+RESULT dhw_cop_records=0 count
+RESULT dhw_cop_records_unseen=0 count
+RESULT wall_s=77.8 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=7.99
+RESULT swapins=0

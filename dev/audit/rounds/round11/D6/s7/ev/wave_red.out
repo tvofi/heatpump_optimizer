@@ -1,0 +1,13 @@
+RESULT tier_pairs_throwing=3 of 9 (expected 3: reviewer below fixer)
+RESULT tier_pairs_wrong=0 of 9
+calls (red arm): ["reconcile roster against origin","merge A","main after A","merge B","main after B"]
+RESULT merges_after_red=1 merges
+RESULT red_logged=1 lines
+RESULT red_arm_merged=2 groups
+RESULT red_arm_redMain=1
+RESULT null_merges_after_red=0 merges
+RESULT null_merges=2 merges
+RESULT cpu_ms=1.9 ms (provisional)
+RESULT thread_factor=1.000
+RESULT load1=4.10
+RESULT swapins=0
