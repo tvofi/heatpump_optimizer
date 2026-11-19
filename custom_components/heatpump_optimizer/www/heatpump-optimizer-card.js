@@ -20,31 +20,6 @@ const CARD_VERSION = "10.1.0";
 // Chromium's bgOf walk; #026aa8 clears the 4.5:1 browser witness.
 const ACCENT_READABLE = "#026aa8";
 
-// D4-s1-01: the status/error text colours (.whatif's warn hint, the remove
-// button's hover, and the cheaper/dearer result colours) sit on the card's
-// OWN background, which is #fff when the card is light and #1c1c1c when it
-// is dark. No single literal clears WCAG AA's 4.5:1 against both (the
-// light-safe literals below measure 3.68-3.76:1 on #1c1c1c), so the two
-// sets are chosen independently and picked in JS by `cardStyleBlock(darkMode)` --
-// never by a `prefers-color-scheme` media query, which reads the OS's
-// setting rather than HA's: `hass.themes.darkMode` is a profile switch a
-// user can set opposite their OS (HA dark on a light OS or the reverse),
-// and only the JS-visible flag sees that. The dark-mode literals are their
-// own AA-clearing colours (4.58-5.88:1 on #1c1c1c), not the theme's
-// `--error-color` etc: HA's stock dark theme sets `--error-color` to
-// #db4437, which is only 3.97:1 on #1c1c1c, so deferring to the CSS
-// variable (even as a fallback default) cannot be made AA-safe this way.
-// As a solid button background under white/`--text-primary-color` text
-// (.sp-save.confirm, .wi-save.confirm) the card's own theme never enters
-// the ratio -- one value clears 4.5:1 there regardless, so ERROR_READABLE
-// alone is used for backgrounds and needs no dark-mode counterpart.
-const ERROR_READABLE = "#ca4c46"; // 4.53:1 on #fff, white-on-it 4.53:1
-const SUCCESS_READABLE = "#24845d"; // 4.63:1 on #fff
-const WARNING_READABLE = "#a16900"; // 4.63:1 on #fff
-const ERROR_READABLE_DARK = "#e0574d"; // 4.58:1 on #1c1c1c
-const SUCCESS_READABLE_DARK = "#1fad6b"; // 5.88:1 on #1c1c1c
-const WARNING_READABLE_DARK = "#ad7e1f"; // 4.69:1 on #1c1c1c
-
 // The savings table's in-cell magnitude bar, as an opacity over currentColor.
 // Bounded both ways, and both bounds swept rather than argued: below 0.133 the
 // bar stops clearing the 1.3:1 perceptibility floor (the light card binds;
@@ -2508,6 +2483,26 @@ function L(key, vars) {
   return text;
 }
 
+/** The line a failed service call shows, in the viewer's language
+ * (D4-s3-01). Home Assistant formats a raised integration exception's
+ * `message` from the English translations before it knows who is looking,
+ * and sends its `translation_domain`, `translation_key` and
+ * `translation_placeholders` beside it; `hass.localize` turns those into the
+ * viewer's own text once the card has loaded the backend's `exceptions`
+ * category (`HeatpumpOptimizerCard`'s `set hass`). A rejection with no
+ * key, or a key the loaded translations do not hold, keeps the message. */
+function serviceFailureText(hass, err) {
+  if (err && err.translation_domain && err.translation_key &&
+      hass && typeof hass.localize === "function") {
+    const text = hass.localize(
+      `component.${err.translation_domain}.exceptions.${err.translation_key}.message`,
+      err.translation_placeholders || {}
+    );
+    if (text) return text;
+  }
+  return (err && err.message) || String(err);
+}
+
 function isoToDatetimeLocal(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -4290,6 +4285,11 @@ function setupSvgHtml(topo, ctx) {
   const drawnWidth = ctx.setupWidth ? ctx.setupWidth() : 0;
   const editing = ctx.editing;
   const W = SETUP_W;
+  // ViewBox units per CSS pixel at the width this drawing lands in, 0 until
+  // the canvas has been laid out once (the chart's #256 contract). Every
+  // target in here converts its pixel floor through this one value.
+  const unitsPerPx = drawnWidth > 0 ? W / drawnWidth : 0;
+  const r2 = (n) => Math.round(n * 100) / 100;
   // Whether the model runs the wood tank as its own store (issue #40).
   // Published by `describe_setup`; absent on older descriptions, where
   // false is the right answer because that is the model they ran.
@@ -4623,24 +4623,36 @@ function setupSvgHtml(topo, ctx) {
     // A pipe with no edge name is drawn but is not a connection of the
     // model's: nothing reads it as topology, and the editor cannot remove it.
     const edgeAttr = edge ? ` data-edge="${edge}"${pipeKb(edge)}` : "";
+    // While editing, a pipe is a click target, and its 3.5-unit stroke is a
+    // few pixels wide (D4-s1-01). An invisible twin on the same path takes
+    // the pointer at `_targetMinPx()`, as `.layout-port-hit` does for the
+    // ports; it carries `data-hit-edge`, not `data-edge`, so the drawn
+    // topology and the pipe's keyboard stop stay the visible path's. Pipes
+    // are drawn before the boxes and ports, so either still wins where the
+    // band overlaps it.
+    // The twin follows the pipe's ornament, which editing hides.
+    const hitW = unitsPerPx > 0 ? Math.max(3.5, _targetMinPx() * unitsPerPx) : 3.5;
+    const pipe = (d, deco) => `<path class="setup-pipe${extra}"${edgeAttr}
+      d="${d}" />` + deco + (editing && edge
+      ? `<path class="layout-pipe-hit" data-hit-edge="${edge}" d="${d}"
+      stroke-width="${r2(hitW)}" aria-hidden="true" />`
+      : "");
     if (a.x === b.x) {
       const upper = a.y < b.y ? a : b;
       const lower = a.y < b.y ? b : a;
       const x = a.x + 24;
       const yTop = upper.y + upper.h - SETUP_INSET;
       const yBot = lower.y + SETUP_INSET;
-      return `<path class="setup-pipe${extra}"${edgeAttr}
-        d="M ${x} ${yTop}
-        L ${x} ${yBot}" />` +
-        pipeDeco(x, yTop, x, yBot, true, a === upper ? 1 : -1, invalid);
+      return pipe(`M ${x} ${yTop}
+        L ${x} ${yBot}`,
+        pipeDeco(x, yTop, x, yBot, true, a === upper ? 1 : -1, invalid));
     }
     const f = anchor(a);
     const t = to(b);
-    return `<path class="setup-pipe${extra}"${edgeAttr}
-      d="M ${f.x} ${f.y}
+    return pipe(`M ${f.x} ${f.y}
       C ${f.x + 40} ${f.y},
-        ${t.x - 40} ${t.y}, ${t.x} ${t.y}" />` +
-      pipeDeco(f.x, f.y, t.x, t.y, false, t.x > f.x ? 1 : -1, invalid);
+        ${t.x - 40} ${t.y}, ${t.x} ${t.y}`,
+      pipeDeco(f.x, f.y, t.x, t.y, false, t.x > f.x ? 1 : -1, invalid));
   };
   const bufferBox = findPlace("buffer_tank");
   const houseBox = findPlace("upper_zone");
@@ -4754,10 +4766,6 @@ function setupSvgHtml(topo, ctx) {
   // `_targetMinPx()`, exactly as the row hit rects and the editor's ports do.
   // The paint sits OVER the twin with `pointer-events: none`, so the twin is
   // what is clicked and `:hover` on it is what lights the button.
-  // ViewBox units per CSS pixel at the width this drawing lands in, 0 until
-  // the canvas has been laid out once (the chart's #256 contract). Every
-  // target in here converts its pixel floor through this one value.
-  const unitsPerPx = drawnWidth > 0 ? W / drawnWidth : 0;
   const chip = (x, yTop, h, pageLines, attr, aria) => {
     const w = colW - 2 * SETUP_PAD;
     const hitH = unitsPerPx > 0
@@ -4778,7 +4786,6 @@ function setupSvgHtml(topo, ctx) {
           `<tspan x="${x + SETUP_CHIP_PAD}" y="${r2(yTop + 25 + i * SETUP_CHIP_LINE)}">${esc(t)}</tspan>`
         ).join("")}</text>`;
   };
-  const r2 = (n) => Math.round(n * 100) / 100;
 
   for (const b of boxes) {
     const rows = [];
@@ -5014,6 +5021,10 @@ const CARD_TOKENS = {
   "--hpo-warn-bg": { light: "#fbf1de", dark: "#352c1a" },
   "--hpo-crit": { light: "#b3261e", dark: "#f28b82" },
   "--hpo-crit-bg": { light: "#fbe9e7", dark: "#3b2322" },
+  // A filled error control under white text (an armed Clear or Save): the
+  // fill is the surface, so one literal serves both themes, 6.54:1 for
+  // white; --hpo-crit's dark literal is a text colour, 2.39:1 under white.
+  "--hpo-crit-fill": { light: "#b3261e", dark: "#b3261e" },
 };
 // The chart (R9-UI-4): each panel's surface, from the same darkMode switch
 // as the series colours drawn on it, and one token per series from
@@ -5060,9 +5071,6 @@ function themeFallbacks(css, darkMode) {
 // so the largest pure member of a 7,900-line god class is a visible
 // seam instead of one method among one hundred and eighty.
 function cardStyleBlock(darkMode) {
-  const warnColor = darkMode ? WARNING_READABLE_DARK : WARNING_READABLE;
-  const errorColor = darkMode ? ERROR_READABLE_DARK : ERROR_READABLE;
-  const successColor = darkMode ? SUCCESS_READABLE_DARK : SUCCESS_READABLE;
   /* #936 (D4-03): SC 2.5.8's 24 px target minimum is owed to every pointer,
      not only to touch -- under a mouse this floor used to be emitted solely
      inside @media (pointer: coarse), so the zoom pair laid out at 20.22 px
@@ -5232,6 +5240,15 @@ function cardStyleBlock(darkMode) {
         border-radius: var(--hpo-radius-m, 12px);
         padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); min-width: 0;
       }
+      /* D4-s3-02: a cell's label, value and caveat sit on the row tracks
+         of the grid it is in, so the values of one row share a line however
+         differently their labels wrap. */
+      .tile, .hl-stat {
+        display: grid; grid-template-rows: subgrid; row-gap: 0;
+        align-content: start;
+      }
+      .tile { grid-row: span 2; }
+      .hl-stat { grid-row: span 3; }
       .tile-k {
         display: block; font-size: var(--hpo-text-xs, 12px);
         color: var(--hpo-text-2, #727272);
@@ -5328,7 +5345,8 @@ function cardStyleBlock(darkMode) {
       .hl-fold:last-child { border-bottom: 1px solid var(--hpo-divider, #e0e0e0); }
       .hl-fold-head {
         display: flex; align-items: center; gap: var(--hpo-space-2, 8px);
-        width: 100%; min-height: 32px; margin: 0; box-sizing: border-box;
+        width: 100%; min-height: ${Math.max(32, targetFloorPx)}px; margin: 0;
+        box-sizing: border-box;
         padding: 4px var(--hpo-space-3, 12px) 4px 4px;
         background: none; border: 0; border-top: 1px solid var(--hpo-divider, #e0e0e0);
         color: var(--hpo-text, #212121); font: inherit;
@@ -5873,7 +5891,7 @@ function cardStyleBlock(darkMode) {
         stroke: var(--hpo-primary, #03a9f4); opacity: 0.9;
       }
       .setup-pipe.invalid {
-        stroke: var(--error-color, #db4437); opacity: 0.95;
+        stroke: var(--hpo-crit, #b3261e); opacity: 0.95;
         stroke-dasharray: 6 4;
       }
       .layout-port {
@@ -5884,6 +5902,10 @@ function cardStyleBlock(darkMode) {
       .layout-port-hit {
         fill: #fff; fill-opacity: 0.001; stroke: none;
         cursor: crosshair;
+      }
+      .layout-pipe-hit {
+        fill: none; stroke: #fff; stroke-opacity: 0.001;
+        pointer-events: stroke; cursor: pointer;
       }
       .layout-ghost {
         fill: none; stroke: var(--hpo-primary, #03a9f4);
@@ -5932,8 +5954,8 @@ function cardStyleBlock(darkMode) {
          any more, and it should not look like it. Same treatment as the
          what-if save's confirmation, which this flow is modelled on. */
       .sp-save.confirm {
-        border-color: ${ERROR_READABLE} !important;
-        background: ${ERROR_READABLE};
+        border-color: var(--hpo-crit-fill, #b3261e) !important;
+        background: var(--hpo-crit-fill, #b3261e);
         color: var(--hpo-on-primary, #ffffff); font-weight: 600;
       }
       .sp-note {
@@ -6175,7 +6197,7 @@ function cardStyleBlock(darkMode) {
          error: nothing is broken, but the number on screen is not the number
          that was saved, and that must not pass unremarked. */
       .whatif .wi-hint.wi-warn {
-        color: ${warnColor};
+        color: var(--hpo-warn, #8a5a00);
       }
       .whatif .wi-windows {
         display: flex; flex-direction: column; gap: 0.4em;
@@ -6214,7 +6236,7 @@ function cardStyleBlock(darkMode) {
         border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
         color: var(--hpo-text-2, #727272);
       }
-      .whatif .wi-remove:hover { color: ${errorColor}; }
+      .whatif .wi-remove:hover { color: var(--hpo-crit, #b3261e); }
       .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
       .whatif .wi-apply {
         border-color: var(--hpo-primary, #03a9f4);
@@ -6228,8 +6250,8 @@ function cardStyleBlock(darkMode) {
         color: var(--hpo-on-primary, #ffffff); font-weight: 600;
       }
       .whatif .wi-save.confirm {
-        border-color: ${ERROR_READABLE};
-        background: ${ERROR_READABLE};
+        border-color: var(--hpo-crit-fill, #b3261e);
+        background: var(--hpo-crit-fill, #b3261e);
       }
       .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
       ${htmlTargetFloor}
@@ -6261,10 +6283,29 @@ function cardStyleBlock(darkMode) {
         font-size: 0.88em; margin-top: 2px;
       }
       .whatif .wi-result.cheaper, .whatif .cheaper {
-        color: ${successColor};
+        color: var(--hpo-ok, #1c7350);
       }
       .whatif .wi-result.dearer, .whatif .dearer {
-        color: ${errorColor};
+        color: var(--hpo-crit, #b3261e);
+      }
+      /* The notices over the chart: a stripe for the role, the role's own
+         surface, and the ink paired with that surface. */
+      .wood-alert, .space-blocked-alert, .hist-note {
+        margin: 0 0 var(--hpo-space-2, 8px);
+        padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px);
+        font-size: var(--hpo-text-sm, 13px);
+      }
+      .wood-alert, .space-blocked-alert {
+        border-left: 3px solid var(--hpo-warn, #8a5a00);
+        background: var(--hpo-warn-bg, #fbf1de); color: var(--hpo-ink, #212121);
+      }
+      .hist-note {
+        border-left: 3px solid var(--hpo-ink-2, #727272);
+        background: var(--hpo-surface-2, #f7f9fb); color: var(--hpo-ink, #212121);
+      }
+      .savings-wood-note, .savings-floor-note {
+        margin-top: var(--hpo-space-2, 8px); font-size: var(--hpo-text-sm, 13px);
+        color: var(--hpo-text-2, #727272);
       }
       @media (max-width: 600px) {
         dialog.expanded { width: 96vw; padding: 12px; }
@@ -6882,11 +6923,10 @@ class PlanSource {
   woodAlertHtml() {
     const f = this.woodFuel();
     if (!f || !f.cheaper) return "";
-    // R5-D4-01 (#1318): the banner owned its border, background and size but
-    // never its colour, so the text inherited the ambient page colour --
-    // black on HA's dark card background, 1.21:1, wherever the host paints
-    // none. Every other text lane sets a token; this one now does too.
-    return `<div class="wood-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px solid var(--warning-color,#d98e00);background:var(--secondary-background-color,rgba(0,0,0,.06));font-size:.9em;color:var(--primary-text-color)">${esc(
+    // Styled by `.wood-alert` in cardStyleBlock: the warning role's stripe
+    // over its own surface, with the ink paired to that surface (R5-D4-01,
+    // #1318: text left to the ambient page colour read 1.21:1).
+    return `<div class="wood-alert" role="status">${esc(
       L("wood.alert")
     )}</div>`;
   }
@@ -7251,6 +7291,7 @@ class HistorySource {
   ensure(viewStart, liveEdge) {
     if (!this.api() || this.unavailable) return;
     if (!(viewStart < liveEdge)) return;
+    this.prune(liveEdge);
     // The live edge moves, and the chunk that contains it was fetched
     // THROUGH the live edge of that moment. A card left open on a wall
     // dashboard would otherwise hold the last recorded value across a seam
@@ -7272,6 +7313,48 @@ class HistorySource {
       if (chunk === last) this.askedThrough = liveEdge;
       this.fetchChunk(chunk, liveEdge);
     }
+  }
+
+  /** Drop what the pan can no longer reach (D9-s2-01). `ensure` never asks
+   * for a chunk wholly older than `now - HISTORY_SPAN_MS`, so a card left
+   * open on a wall dashboard would otherwise keep every chunk, row and
+   * dedup key it ever fetched. Each series keeps its last row before the
+   * cut: a recorded state holds until the next one, so that row is the
+   * value (or the mode, `actionRuns`) still in force at the window's left
+   * edge. */
+  prune(now) {
+    const cut = Math.floor((now - HISTORY_SPAN_MS) / HISTORY_CHUNK_MS);
+    for (const chunk of [...this.chunks.keys()]) {
+      if (chunk < cut) this.chunks.delete(chunk);
+    }
+    for (const chunk of [...this.covered]) {
+      if (chunk < cut) this.covered.delete(chunk);
+    }
+    const cutMs = cut * HISTORY_CHUNK_MS;
+    // `rows` is time-sorted; the kept slice starts at the last row before
+    // the cut, or at 0 when no row is older than it.
+    const keep = (rows) => {
+      let at = 0;
+      while (at + 1 < rows.length && rows[at + 1].t < cutMs) at += 1;
+      return rows[at] && rows[at].t < cutMs ? rows.slice(at) : rows;
+    };
+    let dropped = false;
+    for (const field of Object.keys(this.log)) {
+      const kept = keep(this.log[field]);
+      if (kept.length !== this.log[field].length) dropped = true;
+      this.log[field] = kept;
+    }
+    this.actionLog.sort((a, b) => a.t - b.t);
+    const actions = keep(this.actionLog);
+    if (actions.length !== this.actionLog.length) dropped = true;
+    this.actionLog = actions;
+    if (!dropped) return;
+    this.seen = new Set();
+    for (const [field, rows] of Object.entries(this.log)) {
+      for (const row of rows) this.seen.add(`${field}:${row.t}`);
+    }
+    for (const row of this.actionLog) this.seen.add(`mode:${row.t}`);
+    this.version += 1;
   }
 
   async fetchChunk(chunk, liveEdge) {
@@ -7477,20 +7560,16 @@ class HistorySource {
     return out;
   }
 
-  /** The status line over the chart: unavailable, or loading. Inline-styled
-   * like the wood alert, so the style block does not grow for a notice. */
+  /** The status line over the chart: unavailable, or loading (styled by
+   * `.hist-note` in cardStyleBlock). */
   noteHtml() {
-    const style =
-      "margin:0 0 .6em;padding:.45em .7em;border-left:3px solid " +
-      "var(--secondary-text-color,#888);background:var(--secondary-" +
-      "background-color,rgba(0,0,0,.06));font-size:.9em";
     if (this.unavailable) {
-      return `<div class="hist-note" role="status" style="${style}">${esc(
+      return `<div class="hist-note" role="status">${esc(
         L("plan.history_unavailable")
       )}</div>`;
     }
     if (this.loading > 0) {
-      return `<div class="hist-note" role="status" style="${style}">${esc(
+      return `<div class="hist-note" role="status">${esc(
         L("plan.history_loading")
       )}</div>`;
     }
@@ -11035,7 +11114,7 @@ function attachAdvisorInbox(host, root) {
           });
           note(L("advisor.applied_setpoint", { to }));
         } catch (err) {
-          note(L("advisor.apply_failed", { error: (err && err.message) || String(err) }));
+          note(L("advisor.apply_failed", { error: serviceFailureText(host.hass, err) }));
         }
         return;
       } else if (act === "try_degree") {
@@ -11079,7 +11158,7 @@ function attachAdvisorInbox(host, root) {
           });
           note(L("advisor.applied", { to }));
         } catch (err) {
-          note(L("advisor.apply_failed", { error: (err && err.message) || String(err) }));
+          note(L("advisor.apply_failed", { error: serviceFailureText(host.hass, err) }));
         }
         return;
       } else if (act === "adopt_refit" || act === "restore_snapshot") {
@@ -11088,7 +11167,7 @@ function attachAdvisorInbox(host, root) {
             act === "adopt_refit" ? { source: "refit" } : {});
           note(L("advisor.restarted"));
         } catch (err) {
-          note(L("advisor.apply_failed", { error: (err && err.message) || String(err) }));
+          note(L("advisor.apply_failed", { error: serviceFailureText(host.hass, err) }));
         }
         return;
       }
@@ -11638,7 +11717,7 @@ class ManualPlan {
       })
       .catch((err) => {
         this.slotResult(
-          L("errors.could_not_apply", { err: (err && err.message) || err }),
+          L("errors.could_not_apply", { err: serviceFailureText(this.host.hass, err) }),
           "dearer"
         );
       });
@@ -11657,7 +11736,7 @@ class ManualPlan {
       })
       .catch((err) => {
         this.slotResult(
-          L("errors.could_not_clear", { err: (err && err.message) || err }),
+          L("errors.could_not_clear", { err: serviceFailureText(this.host.hass, err) }),
           "dearer"
         );
       });
@@ -13329,7 +13408,7 @@ class WhatIfPanel {
     } catch (err) {
       out.className = "wi-result dearer";
       out.textContent = L("errors.could_not_save", {
-        err: (err && err.message) || err,
+        err: serviceFailureText(this.host.hass, err),
       });
     } finally {
       button.disabled = false;
@@ -13434,7 +13513,7 @@ class WhatIfPanel {
     } catch (err) {
       out.className = "wi-result dearer";
       out.textContent = L("errors.could_not_simulate", {
-        err: err && err.message ? err.message : err,
+        err: serviceFailureText(this.host.hass, err),
       });
     }
   }
@@ -13934,7 +14013,7 @@ class SetupPage {
       this.note = L("setup.saved_reloading", { label: L("setup.tanks") });
     } catch (err) {
       this.note = L("errors.could_not_save_layout", {
-        err: (err && err.message) || err,
+        err: serviceFailureText(hass, err),
       });
     }
     this.host.render();
@@ -14170,7 +14249,7 @@ class SetupPage {
               : L("setup.cleared_reloading");
         } catch (err) {
           this.note = L("errors.could_not_assign", {
-            err: (err && err.message) || err,
+            err: serviceFailureText(this.host.hass, err),
           });
         }
         this.host.render();
@@ -14920,9 +14999,10 @@ class LayoutEditor {
       return;
     }
     const data = (ev.target && ev.target.dataset) || {};
-    if (!data.edge) return;
+    const edge = data.edge || data.hitEdge;
+    if (!edge) return;
     stop(ev);
-    this.removeEdge(data.edge);
+    this.removeEdge(edge);
   }
 
   /** The keyboard route onto onDown/onMove/onUp/onClick above (D4-s1-04):
@@ -15095,7 +15175,7 @@ class LayoutEditor {
       this.edit = null;
     } catch (err) {
       this.host.setup.note = L("errors.could_not_save_layout", {
-        err: (err && err.message) || err,
+        err: serviceFailureText(this.host.hass, err),
       });
     }
     this.host.render();
@@ -15276,6 +15356,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // in step before anything renders. `_signature` includes the language,
     // so a switch re-renders even when the data has not changed.
     setLanguage(hass && hass.language);
+    // The frontend loads an integration's `exceptions` translations only
+    // when asked, and `serviceFailureText` reads them through
+    // `hass.localize`: ask once per language, before any service can fail.
+    if (hass && typeof hass.loadBackendTranslation === "function" &&
+        this._exceptionsLang !== hass.language) {
+      this._exceptionsLang = hass.language;
+      Promise.resolve(hass.loadBackendTranslation("exceptions", "heatpump_optimizer"))
+        .catch(() => {});
+    }
     this._maybeRender(false);
   }
 
@@ -15821,7 +15910,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The space-blocked banner sits beside the wood alert, above the chart,
     // so the dimmed traces carry their reason without crowding the plot.
     const spaceBlockedHtml = spaceBlocked
-      ? `<div class="space-blocked-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px solid var(--warning-color,#d98e00);background:var(--secondary-background-color,rgba(0,0,0,.06));font-size:.9em;color:var(--primary-text-color)">${esc(
+      ? `<div class="space-blocked-alert" role="status">${esc(
           L("plan.space_blocked")
         )}</div>`
       : "";
@@ -15901,11 +15990,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the decimal points out of line.
     const head = (key) => `${esc(L(key))} (${esc(cur)})`;
     const woodNote = wood
-      ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
+      ? `<div class="savings-wood-note">${esc(L("savings.wood_note"))}</div>`
       : "";
     // R10-SAV-METER-FLOOR: a month withheld under the meter floor says why.
     const floorNote = rows.some((r) => r && r.below_meter_floor)
-      ? `<div class="savings-floor-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.meter_floor_note"))}</div>`
+      ? `<div class="savings-floor-note">${esc(L("savings.meter_floor_note"))}</div>`
       : "";
     return `${top}<table class="savings-table">
       <thead><tr>

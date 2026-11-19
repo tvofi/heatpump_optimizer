@@ -2582,6 +2582,14 @@ check("the hand-scheduled reason has a label",
   };
   const fineCss = stripMedia(styleIn(false), /pointer:\s*coarse/);
   const coarseCss = stripMedia(styleIn(true), /pointer:\s*coarse/);
+  // D4-s1-03: a fold's header is a full-width button, 32 px tall under a
+  // mouse; under touch it owes the same 44 px the chips do.
+  const foldMin = (css) => [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter((m) => m[1].split(",").some((s) => s.trim() === ".hl-fold-head"))
+    .map((m) => (m[2].match(/min-height:\s*(\d+)px/) || [])[1]).filter(Boolean).map(Number);
+  check("a fold header is 32 px tall under a mouse and takes the 44 px touch floor under touch (D4-s1-03)",
+    foldMin(fineCss).join() === "32" && foldMin(coarseCss).join() === "44",
+    `fine ${foldMin(fineCss).join()}, coarse ${foldMin(coarseCss).join()}`);
   // A selector is floored when some rule names it as a whole selector token
   // (a group counts) and that rule's body sets both min-width and
   // min-height to the floor asked for.
@@ -3168,7 +3176,8 @@ check("the hand-scheduled reason has a label",
   check("a month under the meter floor states no saving and says why on the receipt and the table (en, sv); none above it",
     rcpFloorEn[0] === floorEn && rcpFloorEn[1] === floorEn && rcpFloorEn[2] === "no saving stated" &&
     rcpFloorSv[0] === floorSv && rcpFloorSv[1] === floorSv && rcpFloorSv[2] === "inget sparande anges" &&
-    !/floor-note|savings-floor/.test(rcpPage) && !/Saved 148\.00/.test(rcpFloor("en")),
+    !/floor-note|savings-floor/.test(rcpPage.replace(/<style>[\s\S]*?<\/style>/g, "")) &&
+      !/Saved 148\.00/.test(rcpFloor("en")),
     JSON.stringify([rcpFloorEn, rcpFloorSv]));
   check("UX-6: the money goes by reason, largest first",
     /Where the money went/.test(rcpPage) &&
@@ -4791,6 +4800,53 @@ const restartStates = (patch = {}) => {
       !/undefined/.test(c.layoutEditor.edit.verdict) &&
       /not modelled yet/.test(c.layoutEditor.edit.verdict),
       `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+  }
+
+  {
+    // (4b) D4-s1-01: removing a pipe is a click on it, so while editing each
+    // pipe owes the pointer floor (24 px, 44 under touch) at the width the
+    // diagram lands in -- a phone's 375 px here, where its 3.5-unit stroke
+    // is under 2 px. The band is an invisible twin on the same path,
+    // naming its pipe by `data-hit-edge`; the visible path keeps `data-edge`
+    // (the drawn topology) and the keyboard stop. A click on the twin
+    // removes its pipe, through the same handler a click on the pipe takes.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    const topo = c.plan.attrRaw("setup_topology", null);
+    const svgEl = c.shadowRoot.querySelector(".setup-svg");
+    const W = fn("SETUP_W");
+    const bandsAt = (widthPx, coarse) => {
+      svgEl.getBoundingClientRect = () => ({ width: widthPx, height: 0, left: 0, top: 0 });
+      coarseTouch.on = coarse;
+      try {
+        const { html } = c.setup.svg(topo, { editing: true, edit: c.layoutEditor.edit });
+        const pipes = [...html.matchAll(/<path class="setup-pipe[^"]*" data-edge="([^"]+)"/g)].map((m) => m[1]);
+        const hits = [...html.matchAll(/<path class="layout-pipe-hit" data-hit-edge="([^"]+)"[^>]*stroke-width="([\d.]+)"/g)]
+          .map((m) => ({ edge: m[1], px: (Number(m[2]) * widthPx) / W }));
+        return { pipes, hits };
+      } finally { coarseTouch.on = false; }
+    };
+    for (const [coarse, floor] of [[false, 24], [true, 44]]) {
+      const { pipes, hits } = bandsAt(375, coarse);
+      const short = hits.filter((h) => h.px < floor - 0.01);
+      check(`a pipe in the layout editor takes the pointer across ${floor} px at 375 px (${coarse ? "touch" : "mouse"}, D4-s1-01)`,
+        pipes.length > 0 && hits.length === pipes.length &&
+          hits.map((h) => h.edge).join() === pipes.join() && short.length === 0,
+        `${pipes.length} pipes, ${hits.length} hit twins; under: ${short.map((h) => `${h.edge} ${h.px.toFixed(1)}`).join(", ")}`);
+    }
+    svgEl.getBoundingClientRect = () => ({ width: 0, height: 0, left: 0, top: 0 });
+    const unlaid = c.setup.svg(topo, { editing: true, edit: c.layoutEditor.edit }).html;
+    const unlaidW = [...unlaid.matchAll(/class="layout-pipe-hit" data-hit-edge="[^"]+"[^>]*stroke-width="([\d.]+)"/g)].map((m) => m[1]);
+    check("before the diagram is laid out the twin is drawn at the pipe's own 3.5-unit stroke",
+      unlaidW.length > 0 && unlaidW.every((w) => w === "3.5"), unlaidW.join(", "));
+    const idle = c.setup.svg(topo, { editing: false, edit: null }).html;
+    check("outside editing no pipe draws a hit twin",
+      !/layout-pipe-hit/.test(idle) && /data-edge=/.test(idle));
+    const drawn = bandsAt(375, false);
+    const edge = (drawn.hits[0] || { edge: drawn.pipes[0] }).edge;
+    c.layoutEditor.onClick({ target: { dataset: { hitEdge: edge } }, stopPropagation() {} });
+    check("a click on a pipe's hit twin removes that pipe",
+      !edgesOf(c).includes(edge), `edges drawn: ${edgesOf(c).join(", ")}`);
   }
 
   {
@@ -12027,15 +12083,17 @@ check("without an indoor reading the corner now label is absent",
   }
 }
 
-// --- D4-s1-01 / P9-rca1: status text/button colours clear 4.5:1 on the ----
-// card's own background, in EITHER of HA's two profiles: #fff in the light
-// default theme, #1c1c1c in the dark one. No literal clears 4.5:1 against
-// both at once, so light-mode and dark-mode literals are chosen separately
-// and picked in JS by `hass.themes.darkMode` -- never by a
+// --- D4-s1-01 / P9-rca1 / D4-s3-04: one colour per status role ------------
+// Error, success and warning text reads the card's status tokens
+// (--hpo-crit, --hpo-ok, --hpo-warn), the same colour the pills, the setup
+// diagram's invalid pipe and the what-if result use for that role, so a role
+// is one colour on a page (D4-s3-04). The tokens' literals are picked in JS
+// by `hass.themes.darkMode` (tokenDeclarations), never by a
 // `prefers-color-scheme` media query (the OS setting, which HA's own dark
-// mode can disagree with), and never by deferring to the theme's own
-// `--error-color` etc: HA's stock dark theme sets `--error-color` to
-// #db4437, which is only 3.97:1 on #1c1c1c.
+// mode can disagree with), and never by the theme's own `--error-color` etc:
+// HA's stock dark theme sets `--error-color` to #db4437, 3.97:1 on #1c1c1c.
+// A filled error control under white text reads --hpo-crit-fill, whose one
+// literal clears 4.5:1 for white in both themes.
 {
   const hex = (h) => {
     const n = parseInt(h.slice(1), 16);
@@ -12049,43 +12107,53 @@ check("without an indoor reading the corner now label is absent",
     const la = lum(a), lb = lum(b);
     return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
   };
-  const white = hex("#ffffff");
-  const cardDark = hex("#1c1c1c");
-  for (const name of ["ERROR_READABLE", "SUCCESS_READABLE", "WARNING_READABLE"]) {
-    const c = hex(fn(name));
-    check(`${name} clears WCAG AA's 4.5:1 on a white card and as white-on-it`,
-      ratio(c, white) >= 4.5, `${fn(name)} measures ${ratio(c, white).toFixed(2)}:1`);
-  }
-  for (const name of ["ERROR_READABLE_DARK", "SUCCESS_READABLE_DARK", "WARNING_READABLE_DARK"]) {
-    const c = hex(fn(name));
-    check(`${name} clears WCAG AA's 4.5:1 on a dark (#1c1c1c) card`,
-      ratio(c, cardDark) >= 4.5, `${fn(name)} measures ${ratio(c, cardDark).toFixed(2)}:1`);
+  const TOKENS = fn("CARD_TOKENS");
+  const card = { light: hex("#ffffff"), dark: hex("#1c1c1c") };
+  for (const theme of ["light", "dark"]) {
+    for (const name of ["--hpo-crit", "--hpo-ok", "--hpo-warn"]) {
+      const c = hex(TOKENS[name][theme]);
+      check(`${name} (${theme}) clears WCAG AA's 4.5:1 on the ${theme} card`,
+        ratio(c, card[theme]) >= 4.5, `${TOKENS[name][theme]} measures ${ratio(c, card[theme]).toFixed(2)}:1`);
+    }
+    const fillLit = (TOKENS["--hpo-crit-fill"] || {})[theme];
+    const fill = fillLit ? hex(fillLit) : null;
+    check(`--hpo-crit-fill (${theme}) carries white text at 4.5:1`,
+      !!fill && ratio(fill, card.light) >= 4.5, fill ? `${fillLit} measures ${ratio(fill, card.light).toFixed(2)}:1` : "no --hpo-crit-fill token");
   }
   check("no prefers-color-scheme media query is left keying these colours to the OS",
     !/@media\s*\(\s*prefers-color-scheme/.test(cardSrc));
   const cardStyleBlockFn = fn("cardStyleBlock");
   const lightCss = cardStyleBlockFn(false);
   const darkCss = cardStyleBlockFn(true);
-  check("cardStyleBlock(false) paints .dearer with the light-safe literal",
-    lightCss.includes(`.dearer {\n        color: ${fn("ERROR_READABLE")};`),
-    lightCss.match(/\.dearer \{[\s\S]{0,40}/)[0]);
-  check("cardStyleBlock(true) paints .dearer with the dark-safe literal, not var(--error-color)",
-    darkCss.includes(`.dearer {\n        color: ${fn("ERROR_READABLE_DARK")};`) &&
-    !/\.dearer[\s\S]{0,10}var\(--error-color/.test(darkCss),
-    darkCss.match(/\.dearer \{[\s\S]{0,60}/)[0]);
+  // The second palette D4-s3-04 measured: the six status literals and the
+  // theme's own status variables. ACCENT_READABLE is the accent role's.
+  const SECOND = ["#ca4c46", "#24845d", "#a16900", "#e0574d", "#1fad6b", "#ad7e1f"];
+  for (const [theme, css] of [["light", lightCss], ["dark", darkCss]]) {
+    // A token's own fallback literal is the role's colour, not a second one.
+    const rules = css.replace(/:host \{[^}]*\}/, "").replace(/var\(--hpo-[\w-]+, #[0-9a-f]{6}\)/gi, "var()");
+    const stray = SECOND.filter((h) => rules.toLowerCase().includes(h))
+      .concat((rules.match(/var\(--(warning|error|success)-color[^)]*\)/g) || []));
+    check(`cardStyleBlock (${theme}) paints status text from the status tokens alone`,
+      stray.length === 0 &&
+        /\.dearer \{\s*color: var\(--hpo-crit, #[0-9a-f]{6}\);/.test(css) &&
+        /\.cheaper \{\s*color: var\(--hpo-ok, #[0-9a-f]{6}\);/.test(css) &&
+        /\.wi-warn \{\s*color: var\(--hpo-warn, #[0-9a-f]{6}\);/.test(css),
+      stray.join(", ") || (rules.match(/\.dearer \{[\s\S]{0,60}/) || [""])[0]);
+  }
 
   // End-to-end: hass.themes.darkMode -- not the OS scheme -- decides which
-  // literal a real render paints, and a toggle re-renders without any other
-  // state changing.
+  // literal the role token resolves to, and a toggle re-renders without any
+  // other state changing.
+  const critOf = (dump) => ((dump.match(/:host \{[^}]*?--hpo-crit: ([^;]+);/) || [])[1] || "").trim();
   const dmCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
   dmCard.hass = { states: dmCard._hass.states, themes: { darkMode: true } };
   const dmDump = collect(dmCard.shadowRoot).join("\n");
-  check("hass.themes.darkMode=true renders the dark-safe .dearer colour end to end",
-    dmDump.includes(`.dearer {\n        color: ${fn("ERROR_READABLE_DARK")};`));
+  check("hass.themes.darkMode=true resolves the error role to its dark literal end to end",
+    critOf(dmDump) === TOKENS["--hpo-crit"].dark, critOf(dmDump));
   dmCard.hass = { states: dmCard._hass.states, themes: { darkMode: false } };
   const dmDump2 = collect(dmCard.shadowRoot).join("\n");
-  check("toggling hass.themes.darkMode back to false re-renders the light-safe colour",
-    dmDump2.includes(`.dearer {\n        color: ${fn("ERROR_READABLE")};`));
+  check("toggling hass.themes.darkMode back to false re-renders the light literal",
+    critOf(dmDump2) === TOKENS["--hpo-crit"].light, critOf(dmDump2));
 }
 
 {
@@ -14058,6 +14126,125 @@ check("without an indoor reading the corner now label is absent",
   check("user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language",
     optInIds.length === 3 && optBad.length === 0, optBad.join("; "));
   build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // back to English
+}
+
+// --- A failed service call reads in the viewer's language (D4-s3-01) -------
+// Home Assistant rejects a call whose integration raised a translated
+// exception with `message` already formatted from en.json, and the key that
+// names it beside it (the websocket error's translation_domain,
+// translation_key, translation_placeholders). The stub below is that shape,
+// and `localize` is the frontend's over this integration's own translation
+// files, so the check reads the shipped sv text, not a test literal.
+{
+  const serviceFailureText = fn("serviceFailureText");
+  const trDir = path.join(testsDir, "..", "custom_components", "heatpump_optimizer", "translations");
+  const tr = (lang) => JSON.parse(fs.readFileSync(path.join(trDir, `${lang}.json`), "utf8"));
+  const fmtPh = (s, ph) => s.replace(/\{(\w+)\}/g, (m, k) => (ph && ph[k] !== undefined ? String(ph[k]) : m));
+  const localizeOver = (lang) => (key, ph) => {
+    const m = /^component\.heatpump_optimizer\.exceptions\.(\w+)\.message$/.exec(key);
+    const e = m && (tr(lang).exceptions || {})[m[1]];
+    return e ? fmtPh(e.message, ph) : "";
+  };
+  const KEY = "apply_topology_unsupported";
+  const PH = { layout: "two_tank_valve", requirement: "a wood tank" };
+  const enText = fmtPh(tr("en").exceptions[KEY].message, PH);
+  const svText = fmtPh(tr("sv").exceptions[KEY].message, PH);
+  const haError = () => Object.assign(new Error(enText), {
+    code: "home_assistant_error", translation_domain: "heatpump_optimizer",
+    translation_key: KEY, translation_placeholders: PH });
+  const sv = { localize: localizeOver("sv") };
+  check("failure text: a translated Home Assistant exception reads in the viewer's language",
+    svText !== enText && serviceFailureText(sv, haError()) === svText,
+    serviceFailureText(sv, haError()));
+  check("failure text: a rejection with no translation key, or one localize cannot resolve, keeps its message",
+    serviceFailureText(sv, new Error("Service call failed")) === "Service call failed" &&
+      serviceFailureText({ localize: () => "" }, haError()) === enText &&
+      serviceFailureText(null, haError()) === enText && serviceFailureText(sv, "boom") === "boom",
+    "fallbacks");
+  // The production route: the layout page's tank toggle, under sv, against a
+  // rejecting apply_topology. The card asks the frontend for the exceptions
+  // category once per language, before anything can fail.
+  const c = mkSetup();
+  const loads = [];
+  const svHass = (extra) => ({
+    states: c.hass.states, language: "sv", localize: localizeOver("sv"),
+    loadBackendTranslation: (cat, dom) => { loads.push(`${cat}/${dom}`); return Promise.resolve(); },
+    callService: async () => { throw haError(); }, ...(extra || {}),
+  });
+  c.hass = svHass();
+  c.hass = svHass();
+  await c.setup.persistTanks(true, false);
+  const note = String(c.setup.note || "");
+  check("failure text: a layout save failing under sv shows the sv exception and no en.json text",
+    note.includes(svText) && !note.includes(enText) && loads.join() === "exceptions/heatpump_optimizer",
+    `${note} | loads ${loads.join()}`);
+  c.hass = { ...svHass(), language: "en" };
+  check("failure text: a language switch asks for that language's exceptions once more",
+    loads.length === 2, loads.join());
+  build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // back to English
+}
+
+// --- The recorded past is bounded by the pan's own reach (D9-s2-01) ---------
+// A card left open on a wall dashboard, panned into the past once a day for
+// 30 days: HistorySource may only hold what `ensure` can still be asked for
+// (HISTORY_SPAN_MS), so its rows plateau and its covered chunks stay at the
+// 48 h span's 4-5. The control is a twin source whose prune is a no-op,
+// driven with the same calls: everything the window can still show reads the
+// same from both, so the bound drops nothing a user sees -- the mode band and
+// the held samples at the window's left edge included (each series keeps its
+// last row before the cut).
+{
+  const HistorySource = fn("HistorySource");
+  const SPAN = fn("HISTORY_SPAN_MS");
+  const CHUNK = fn("HISTORY_CHUNK_MS");
+  const DAY = 24 * HOUR;
+  const DAYS = 30;
+  const T0 = FROZEN;
+  let now = T0;
+  const savedDate = ctx.Date;
+  ctx.Date = class extends RealDate {
+    constructor(...a) { super(...(a.length ? a : [now])); }
+    static now() { return now; }
+  };
+  try {
+    const api = historyApi(realisticHistory(T0 + (DAYS + 1) * DAY, { spanMs: (DAYS + 3) * DAY }));
+    const states = withActuals(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+    const mkSource = () => new HistorySource({
+      hass: { states, callApi: api.callApi },
+      plan: { resolveEntity: (k) => (k === "space" ? DEFAULT_SPACE : k === "dhw" ? DEFAULT_DHW : null) },
+      renderForced() {},
+    });
+    const hs = mkSource();
+    const keepAll = mkSource();
+    keepAll.prune = () => {};
+    const rows = (s) => Object.values(s.log).reduce((n, a) => n + a.length, 0) + s.actionLog.length + s.seen.size;
+    const byDay = [];
+    for (let d = 1; d <= DAYS; d++) {
+      now = T0 + d * DAY;
+      for (let step = 0; step < 4; step++) {
+        for (const s of [hs, keepAll]) s.ensure(now - 10 * HOUR, now);
+        await flushHistory();
+        now += 15 * 60000;
+      }
+      byDay.push({ rows: rows(hs), covered: hs.covered.size });
+    }
+    const live = now - 15 * 60000;
+    const cutMs = Math.floor((live - SPAN) / CHUNK) * CHUNK;
+    const day10 = byDay[9], day30 = byDay[DAYS - 1];
+    check("history: a card panned daily for 30 days holds no more than the 48 h span's chunks, and its rows plateau",
+      day30.covered <= 5 && day30.rows === day10.rows && !hs.unavailable,
+      `covered ${day30.covered}, rows day 10 ${day10.rows} -> day 30 ${day30.rows}, unpruned twin ${rows(keepAll)}`);
+    const shown = (s) => {
+      const o = s.overlays() || { space: [], dhw: [], solar: [] };
+      return JSON.stringify(Object.fromEntries(Object.entries(o).map(([k, pts]) =>
+        [k, pts.filter((p) => Date.parse(p.t) >= cutMs)])));
+    };
+    const edgeModes = [cutMs, live - SPAN, live - SPAN + HOUR].map((t) => [hs.modeAt(t), keepAll.modeAt(t)]);
+    check("history: the bound drops nothing the window can show -- every overlay point and the mode at its left edge match an unpruned source",
+      shown(hs) === shown(keepAll) && edgeModes.every(([a, b]) => a === b && a !== null) &&
+        Object.values(hs.log).every((a) => !a.length || a[0].t < cutMs) && hs.actionLog[0].t < cutMs,
+      `modes ${JSON.stringify(edgeModes)}; first rows ${Object.values(hs.log).map((a) => a.length && a[0].t - cutMs).join(",")}`);
+  } finally { ctx.Date = savedDate; }
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
