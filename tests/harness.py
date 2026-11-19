@@ -156,9 +156,14 @@ class EagerHass:
     """A hass whose ``async_create_task`` starts the coroutine as upstream's
     eager background task does (``eager_start=True``): it runs up to its
     first suspension before the call returns. The fakes it drives never
-    suspend, so it completes there; one that suspends is refused."""
+    suspend, so it completes there; one that suspends is refused, and so is
+    a non-eager one (``eager_start=False``), which upstream defers to the
+    loop this fake does not have."""
 
-    def async_create_task(self, coro):
+    def async_create_task(self, coro, name=None, eager_start=True):
+        if not eager_start:
+            coro.close()
+            raise AssertionError("a non-eager background task under EagerHass, which has no loop")
         try:
             coro.send(None)
         except StopIteration:
@@ -184,8 +189,9 @@ class FakeHass:
         # could not tell a fixed call site from the blocking one.
         self.import_jobs = []
 
-    def async_create_task(self, coro):
-        # Nothing here awaits the setup tasks, and leaving the coroutine
+    def async_create_task(self, coro, name=None, eager_start=True):
+        # Upstream's signature (``name``, ``eager_start``); either way the task
+        # is not run. Nothing here awaits the setup tasks, and leaving the coroutine
         # un-awaited emits a warning that looks like a test failure.
         coro.close()
         return None
