@@ -109,7 +109,7 @@ Metrics (definitions, one line each; the code is the authority):
   import_cycle_modules        modules in a cycle of the package's import
                               graph, function-scope imports in and imports
                               under ``if TYPE_CHECKING:`` out (#1738)
-  unused_package_imports      ``from .<module> import N`` bindings the
+  unloaded_package_imports    ``from .<module> import N`` bindings the
                               importing module never loads, that no other
                               module re-imports from it and that no string in
                               it names (R11 D7-s1-03): dead_top_level_symbols
@@ -596,7 +596,7 @@ def bound_references(trees: list[tuple[Path, ast.Module]]) -> set[tuple[str, str
     return {(str(mods[m][0].relative_to(REPO_ROOT)), n) for m, n in found if m in mods}
 
 
-def unused_package_imports(trees: list[tuple[Path, ast.Module]]) -> list[tuple[str, int, str]]:
+def unloaded_package_imports(trees: list[tuple[Path, ast.Module]]) -> list[tuple[str, int, str]]:
     """``(rel, line, bound name)`` per package from-import nothing reads (R11 D7-s1-03).
 
     A binding ``from .<module> import N [as A]`` is unused when the importing
@@ -3094,7 +3094,7 @@ def measure() -> dict:
 
     clones = duplicate_clones(trees)
     in_fn_copies = in_function_copies(trees)
-    unused_imports = unused_package_imports(trees)
+    unused_imports = unloaded_package_imports(trees)
     cycles = import_cycle_modules(trees)
     excess, helper_loc = class_excess(trees, helpers)
     max_method_loc, max_cc = table_maxima(monsters, cc_scores)
@@ -3120,7 +3120,7 @@ def measure() -> dict:
         "max_cc": max_cc,
         "duplication_copies": sum(len(g) - 1 for g in clones),
         "in_function_copies": sum(len(places) - 1 for *_owner, places in in_fn_copies),
-        "unused_package_imports": len(unused_imports),
+        "unloaded_package_imports": len(unused_imports),
         "functions_cc_over_25": sum(1 for cc, *_ in cc_scores if cc > CC_LIMITS[0]),
         "functions_cc_over_15": len(cc_scores),
         "const_modules_over_50": sum(1 for n in const_fanout.values() if n > CONST_FANOUT_LIMIT),
@@ -4428,7 +4428,7 @@ def role_self_check() -> tuple[tuple[str, bool], ...]:
         return [len(places) for *_owner, places in in_function_copies(
             [(PACKAGE_DIR / "twice.py", ast.parse(source))])]
 
-    unused = {(rel.rsplit("/", 1)[-1], bound) for rel, _line, bound in unused_package_imports([
+    unused = {(rel.rsplit("/", 1)[-1], bound) for rel, _line, bound in unloaded_package_imports([
         (PACKAGE_DIR / m, ast.parse(src)) for m, src in UNUSED_IMPORT_SELF_CHECK_SOURCES.items()])}
 
     field_dead, field_kept = dead_members(

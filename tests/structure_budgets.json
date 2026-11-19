@@ -19,5 +19,5 @@
  "name_kept_members": 38,
  "recorded_at": "bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f",
  "seam_cut_total": 415,
- "unused_package_imports": 14
+ "unloaded_package_imports": 14
 }
