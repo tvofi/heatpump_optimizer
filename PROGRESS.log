@@ -141,21 +141,18 @@
 1795047369 CKPT D3-s1 533 file(s)
 1795047958 HB alive
 1795048565 HB alive
-1795048760 RESUMED from aebfc60768a3
-1795048760 INIT box D3-u1d
-1795048765 HB alive
-1795048788 HB container reboot ~00:37 UTC killed the re-fired D3-s1 seat and its full-net driver at 113/242 (results on disk survive); comms loop restarted; re-dispatching D3-s1 through gate
-1795048794 SEAT D3-s1 running
-1795049369 HB alive
-1795049477 CKPT D3-s1 639 file(s)
-1795049845 HB OOM at ~00:55 UTC: pre-screen survivor mutant GUARD_OFF coordinator.py:_ensure_worker L1864 ('if worker is not None and worker.poll() is None' -> 'if False') makes tests/boost_drift_replay.py spawn a new process_worker per solve (214 live, ~67 MB each) until the 14.3 GB memcg limit; the OOM killer then took the full-net driver and sibling mutants (2 logged SIGNAL, re-drive). Box seat killed the runaway pid 2397 tree by PID; told the D3-s1 seat.
-1795049974 HB alive
-1795050183 CKPT D3-s1 645 file(s)
-1795050579 HB alive
-1795051184 HB alive
-1795051789 HB alive
-1795052395 HB alive
-1795053000 HB alive
-1795053605 HB alive
-1795054211 HB alive
-1795054817 HB alive
+1795049173 CKPT D3-s1 533 file(s)
+1795049173 HB alive
+1795049191 CKPT D3-s1 533 file(s)
+1795049199 HB K2 OOM-killed twice since reboot (4 then 3 workers, rc=137); D3-s1 seat re-dispatched to resume from its checkpoint (82/242 complete)
+1795049779 HB alive
+1795050384 HB alive
+1795050712 CKPT D3-s1 540 file(s)
+1795050989 HB alive
+1795051628 HB alive
+1795052233 HB alive
+1795052838 HB alive
+1795053443 HB alive
+1795054048 HB alive
+1795054654 HB alive
+1795055259 HB alive
