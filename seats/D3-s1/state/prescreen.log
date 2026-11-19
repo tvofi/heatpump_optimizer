@@ -563,3 +563,4 @@
 2026-11-18T23:53:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CMP_BOUND 549bb130 L2598 by=- ran=13 wall=1165.3s
 2026-11-18T23:57:40Z COMPLETE TIMEOUT custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization RETURN_DEL 440ee7e3 L6360 by=- ran=13 wall=2692.4s
 2026-11-19T00:01:48Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._close_score_day CMP_BOUND 45c379dc L10561 by=tests/features.py ran=14 wall=1398.8s
+2026-11-19T00:05:09Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_immersion BOOLOP 2f74d22d L9107 by=tests/features.py ran=13 wall=1267.6s
