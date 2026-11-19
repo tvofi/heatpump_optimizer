@@ -1,21 +1,21 @@
 {
- "key": "050fdc4a20eba212",
+ "key": "65f121eb047174ad",
  "mutant": {
   "kind": "GUARD_OFF",
-  "file": "custom_components/heatpump_optimizer/thermal_model.py",
-  "line": 169,
-  "old": "    if not spec:",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 773,
+  "old": "    if not holiday_dates:",
   "new": "    if False:",
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_holiday_dhw_windows GUARD_OFF 4893b0a8"
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_holiday_flags_for GUARD_OFF dacd4cc6"
  },
  "gate_rc": 0,
  "failed_scripts": [],
  "summary": [
   "ALL TEST SCRIPTS PASSED"
  ],
- "wall_s": 3221.1,
- "child_cpu_s": 4233.8,
- "load1_start": 0.32,
+ "wall_s": 3151.1,
+ "child_cpu_s": 4144.4,
+ "load1_start": 0.11,
  "load1_end": 0.0,
  "provisional": true,
  "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
