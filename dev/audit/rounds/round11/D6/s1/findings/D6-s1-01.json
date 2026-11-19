@@ -1,0 +1,40 @@
+{
+  "id": "D6-s1-01",
+  "scope": "D6-s1",
+  "step": "D6.M3",
+  "title": "docs/configuration.md: three rows contradict the code (legionella interval 7 vs 10 days; 60 s echo grace not applied)",
+  "severity": "medium",
+  "claim": "docs/configuration.md holds 3 ledger rows whose executed check contradicts production: two settings-table rows give the anti-legionella interval default as 7 days while every _OPTION_FIELDS row and ThermalParameters default to 10, and line 894's sentence says readings in the first 60 s after a write are not counted while pump_arbiter.hold counts a differing reading at +5 s (and ECHO_GRACE_S is 20 s).",
+  "mechanism": "The table cell and the prose were written against a default and a grace the code does not carry: DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS is 10.0 (config_flow _OPTION_FIELDS hot_water row, thermal_model.ThermalParameters), and hold() drops the write record (counts a miss) on the first differing reading with no time gate, so no window of 60 s (or 20 s) is honoured.",
+  "evidence": {
+    "command": "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py && PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt && PYTHONPATH=tests/hastub python3 tools/audit/text_ledger.py --dim D6 --seat D6-s1 --repo REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 check dev/audit/rounds/round11/D6/s1/ledger.tsv",
+    "harness_path": "dev/audit/rounds/round11/D6/s1/ledger.py",
+    "value": 3,
+    "unit": "false rows in docs/configuration.md (ledger.py FILE line; check RESULT false=5 over the seat)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B1 (export /home/user/audit-r11-baseline)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 8.08,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.config_flow:_OPTION_FIELDS; heatpump_optimizer.pump_arbiter:hold",
+  "perturbation": {
+    "change": "claims.py --perturb-grace 60 (in-memory one-line edit of pump_arbiter.hold: `if observed is None:` -> `if observed is None or utc_elapsed_seconds(now, at) < 60:`) plus ledger.py --perturb-default dhw_legionella_interval_days=7 (with claims.py --perturb-legionella 7)",
+    "expected_direction": "to_zero",
+    "observed_value": "configuration.md false rows 3 -> 0; echo_grace_contradictions 6 -> 0 (6 -> 3 at --perturb-grace 20)"
+  },
+  "metric_definition": "Count of docs/configuration.md ledger rows whose executed check (option-row default/bounds, driven pump_arbiter.hold at +5..+90 s) contradicts the sentence.",
+  "phenomenon_property": "Every default, range and timing that docs/configuration.md states for a setting or a write path equals what the production seam delivers: the _OPTION_FIELDS row's default and selector bounds, and the arbiter's actual non-counting window after a write.",
+  "seam_rule": "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt  (rows FILE docs/configuration.md; FALSE lines)",
+  "null_control": {"command": "same pipeline with the perturbations above", "value": 0, "note": "rows the code agrees with stay true: 243 true rows in configuration.md, among them 92+ settings-table defaults/ranges"},
+  "reproduction_steps": [
+    "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py --skip-rolling  -> CLAIM echo_grace_60s FALSE, RESULT echo_grace_contradictions=6",
+    "git ls-tree -r --name-only 92d38ecb > TREE.txt; PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt -> FALSE docs/configuration.md#f452785306 L287, #f452785306.1 L478, #5c31343a33 L894"
+  ],
+  "proposed_fix_scope": "Decide the intended values (owner): either the legionella default returns to 7 days or both configuration.md rows say 10; and either hold() honours an echo window after a write (pump_arbiter) or line 894's sentence states the real window; then align the sentence to the measured value.",
+  "files": ["docs/configuration.md", "custom_components/heatpump_optimizer/const.py", "custom_components/heatpump_optimizer/pump_arbiter.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "I5"
+}

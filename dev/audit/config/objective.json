@@ -260,7 +260,7 @@
    "unit": "L",
    "basis": "the hot-water tank row of the options flow: config_flow.py's CONF_DHW_TANK_VOLUME field, _number(50, 1500, 10, 'L'), its default const.py's DEFAULT_DHW_TANK_VOLUME (200.0). The buffer and wood tank rows are other options, not this axis.",
    "no_read": "the levels are declared here and nothing reads them: no reader compares them with the flow row they were taken from, so a moved row leaves them stale",
-   "builder": "R11-INTAKE-R10-RESIDUE"
+   "builder": "R11-READS-RESIDUE"
   },
   {
    "axis": "house_size",
@@ -281,7 +281,7 @@
    },
    "basis": "the heated-area row of the building questionnaire (config_flow.py's CONF_HEATED_AREA field, _number(20, 1000, 5, 'm²'), default const.py's DEFAULT_HEATED_AREA 140.0) and the heat-loss row (CONF_HOUSE_HEAT_LOSS_COEFFICIENT over RANGE_HOUSE_HEAT_LOSS (0.01, 1.0) kW/°C, default DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT 0.15; a two-zone install splits it over the upper and lower rows, defaults 0.08 + 0.07). Each level pairs the two rows' minimum, default or maximum: a declaration, since the flow lets them vary apart.",
    "no_read": "the levels are declared here and nothing reads them: no reader compares them with the flow rows they were taken from, so a moved row leaves them stale",
-   "builder": "R11-INTAKE-R10-RESIDUE"
+   "builder": "R11-READS-RESIDUE"
   }
  ],
  "objects": {

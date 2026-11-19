@@ -1,0 +1,641 @@
+{
+ "dimension": "D7",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D7/s3/REPORT.md",
+ "exposure": "m5_train.py greps docs/*.md and README.md for `<module>.py` and counts the paragraphs; the seat read no docs text. No earlier round's findings were read: the previous baseline SHA was taken from the `baseline_sha` field of the round-10 report files left in the export (grep for the field only), as D7.M5's enumerator requires.",
+ "coverage": [
+  {
+   "step": "D7.M5",
+   "enumerator": "python3 dev/audit/rounds/round11/D7/s3/m5_train.py list  # the lines `git -C ~/hpo-orch/r10s6/r11/find-wt diff --name-status --diff-filter=A 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -- 'custom_components/*.py'` printed (the export has no .git)",
+   "universe": 29,
+   "examined": 29,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C2",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Per module: functions entered by the suite (fn_trace.sh over 20 scripts), deletion mutants (m5_train.py: 480 functions, pinned 285, swallowed 4, unentered 89, not driven through their long scripts 102), docstring, docs paragraphs and importers (m5_train.py pins: 29 of 29 have each). C1: the step now has its denominator, 29 modules and 480 functions. C2: the seven groups whose code is in this seat's cells were mutated the same way (131 functions: pinned 100, swallowed 0, unentered 12, not driven through their long scripts 19); the drift gate, the scoped gate and the stress budgets (tests/) and the card collaborators (www/) are outside the cells and are leads. The function-level remainder is under unfinished, by module."
+  },
+  {
+   "step": "D7.M6",
+   "enumerator": "for h in m6_dead m6_inner m6_stmt; do python3 dev/audit/rounds/round11/D7/s3/$h.py --list; done",
+   "universe": 25888,
+   "examined": 25888,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "m6_dead.py: 6969 definitions (functions, methods, classes, module constants, imports) by name reachability from the Home Assistant contract, with the function-entry trace as the runtime sentinel: dead 0, test_only 10, entered_unnamed 0, unused imports 4. m6_inner.py: 16241 parameters, locals, attribute stores, dataclass fields and module-function namings. m6_stmt.py: 2678 function bodies for statements dead by the AST. Each census carries a planted positive control (delta 1) and a reader perturbation (to 0)."
+  },
+  {
+   "step": "D7.M8",
+   "enumerator": "python3 dev/audit/rounds/round11/D7/s3/m8_enum.py --list",
+   "universe": 114,
+   "examined": 114,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "m8_enum.py --dispositions: 114 families (A token-stream clones, B one name in two modules, C near-equal literals, D seam rules as code, E scalar/batch twins, F inverse pairs); 30 driven by m8_agree.py's shared probes (22 agreement families, 45 disagreeing probes), 9 read side by side as AST-identical copies, 54 as siblings and 21 as unrelated, each with its reason in m8_families.tsv. Within D002 and D006 the named implementations were probed, not every one of the 61 sites each expression matches; E001, E006, E009 and E010 were driven as terms of the objective pair, not alone."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D7.M5",
+   "what": "Function-level deletion mutants not driven through every entering script: 102 of the 29 modules' functions (dhw_planner.py 2, draw_range.py 15, driving_grade.py 7, duty_switch.py 6, early_cutoff.py 11, entry_config.py 8, flow_meter.py 2, heat_curve.py 1, heat_energy.py 2, learner_progress.py 1, notifier.py 11, off_restore.py 2, price_tiles.py 15, quiet_windows.py 7, runs.py 4, supply_hold.py 2, whatif.py 6) and 18 of the C2 groups' (coordinator.py 1, dhw_schedule.py 2, optimizer.py 1, tariff.py 5, thermal_model.py 5, topology.py 2, wood_fuel.py 2). Each stayed green under the scripts driven so far; what is left is the 70-96 s tier where the second pass was cut (config_flow_steps.py, validate.py, edge.py, entities.py) and the long scripts never driven (tests/features.py at 6073 s here, finite_boundary.py, backtest.py, optimality.py, boost_drift_replay.py, manual_plan.py, dst_checks.py; load1 150-300); resume with `m5_train.py mutate --retry --max-script-seconds 4000 --out m5_mutants.json` (and `--c2 --out m5_c2_mutants.json`), which re-drives only the scripts not yet run. The golden differential (env_drift.py --all) was not run for any mutant: the export has no .git."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D7-s3-01",
+   "scope": "D7-s3",
+   "step": "D7.M8",
+   "title": "temperature_from_c is not the inverse of normalize_temperature_c: every Fahrenheit set-point write is wrong",
+   "severity": "high",
+   "claim": "inputs.temperature_from_c(c, unit) multiplies by the unit's to-Celsius factor instead of dividing by it, so for the three Fahrenheit spellings a value written and read back through normalize_temperature_c is not the value written: 21.5 degC is written as 43.94 degF (6.6 degC) instead of 70.7 degF.",
+   "mechanism": "const.TEMPERATURE_UNIT_TO_C holds (offset, factor) with degC = (value + offset) * factor. The forward rule (inputs.py:normalize_temperature_c) applies it; the backward rule (inputs.py:temperature_from_c) returns value_c * factor - offset where the inverse is value_c / factor - offset. Factor is 1.0 for degC and K, so only the 5/9 rows disagree. Callers: SetpointGrid.quantise (inputs.py:643-647), write_setpoint_c (inputs.py:770) and setpoint_check's Fix value (setpoint_check.py:183): every set-point the integration writes to an entity whose unit is degF.",
+   "evidence": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only temperature_roundtrip",
+    "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+    "value": 12,
+    "unit": "probes of 35 on which write-then-read differs (4 temperatures x 3 Fahrenheit spellings; 0 degC and the 4 Celsius/Kelvin spellings agree)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+    "tolerance": "exact",
+    "load1": 172.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.inputs:temperature_from_c",
+   "perturbation": {
+    "change": "attribute swap of inputs.temperature_from_c for `value_c / factor - offset` (m8_agree.py --only temperature_roundtrip --perturb)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "probes (unit, degC) with normalize_temperature_c(temperature_from_c(c, unit), unit) != c, over every unit of TEMPERATURE_UNIT_TO_C x 5 temperatures",
+   "phenomenon_property": "For every unit row u of a unit table and every value v in the model's unit, to_model(from_model(v, u), u) == v: a conversion written forwards and backwards is one rule, and the backward form is derived from the forward one (or tested against it) rather than written again.",
+   "seam_rule": "grep -n 'TEMPERATURE_UNIT_TO_C\\|_UNIT_TO_KW\\|_UNIT_TO_KWH\\|_UNIT_TO_KG_S' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only dhw_store_tap",
+    "value": 0,
+    "note": "the other forward/backward pair of the package (DhwStore.store_temp_for_tap / tap_temp_for_store) round-trips on 24 of 24 probes; the Celsius and Kelvin rows of the same table round-trip on 20 of 20"
+   },
+   "reproduction_steps": [
+    "from custom_components.heatpump_optimizer import inputs",
+    "inputs.temperature_from_c(21.5, '°F')  -> 43.944 (expected 70.7)",
+    "inputs.normalize_temperature_c(43.944, '°F') -> 6.64"
+   ],
+   "proposed_fix_scope": "inputs.py:temperature_from_c divides by the factor; a round-trip check over every row of TEMPERATURE_UNIT_TO_C in the suite. One owner: inputs.py (the table's only reader pair).",
+   "files": [
+    "custom_components/heatpump_optimizer/inputs.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "P8"
+  },
+  {
+   "id": "D7-s3-02",
+   "scope": "D7-s3",
+   "step": "D7.M6",
+   "title": "project_window_mean never reads `remaining`: the peak guard weights the live draw by elapsed time",
+   "severity": "high",
+   "claim": "power_guard.project_window_mean stores `remaining = window_minutes - elapsed` and returns (mean * elapsed + current_kw * elapsed) / window_minutes, so a constant 4 kW draw projects 0.0 kW at the window's start, 0.67 kW at minute 5 and 8.0 kW at minute 60 instead of 4.0 kW throughout.",
+   "mechanism": "The dead local is the term the formula needs: the remainder of the window is assumed to continue at current_kw, i.e. current_kw * remaining. With `elapsed` in its place the projection under-reads for the first half of every metering window (the guard cannot suppress electric DHW before the peak is booked) and over-reads in the second half (it suppresses on a draw that is under the threshold). The docstring's own two limits fail: 'at the window's start this is the current draw' reads 0, 'at its end it converges on the realised average' reads mean + current. Caller: coordinator.py:8794, whose result is GuardState.update's projection_kw against the capacity-tariff threshold.",
+   "evidence": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only window_mean",
+    "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+    "value": 7,
+    "unit": "probes of 8 on which a constant 4 kW draw does not project 4 kW (minutes 0, 5, 15, 45, 55, 60 and the no-samples case; minute 30 agrees because elapsed and remaining are equal there)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+    "tolerance": "exact",
+    "load1": 172.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.power_guard:project_window_mean",
+   "perturbation": {
+    "change": "attribute swap of power_guard.project_window_mean for the same body with `current_kw * (window_minutes - elapsed)` (m8_agree.py --only window_mean --perturb); the static twin: m6_inner.py's unread_local row power_guard.py:64 leaves the census",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "probes (elapsed minute of a 60 min window) at which project_window_mean(4.0, elapsed, 4.0, 60) != 4.0, plus the mean_so_far=None case",
+   "phenomenon_property": "Every local a production function stores is loaded on a path to its return value or a side effect; a stored-and-never-read local in arithmetic code is a term dropped from the formula until shown otherwise.",
+   "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m6_inner.py | grep '^ROW unread_local'",
+   "null_control": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only window_mean",
+    "value": 0,
+    "note": "the probe at minute 30 (elapsed and remaining are both 30) agrees in the same run: the one point of the window where the dropped term cannot show; the other seven unread locals of the census (coordinator.py:3121 i, coordinator.py:6619 done, optimizer.py:1212 solar, sysid.py:1977 rank1, sysid.py:2109 residuals, sysid.py:2322 outdoors and powers) are unpacking targets with no dropped term"
+   },
+   "reproduction_steps": [
+    "from custom_components.heatpump_optimizer.power_guard import project_window_mean",
+    "project_window_mean(4.0, 5.0, 4.0, 60.0) -> 0.667 (expected 4.0)",
+    "project_window_mean(None, 0.0, 4.0, 60.0) -> 0.0 (expected 4.0)"
+   ],
+   "proposed_fix_scope": "power_guard.py:project_window_mean reads `remaining`; the structure ratchet could carry an unread-local count (tests/structure.py has none).",
+   "files": [
+    "custom_components/heatpump_optimizer/power_guard.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D7-s3-03",
+   "scope": "D7-s3",
+   "step": "D7.M8",
+   "title": "`The plan step covering now` is written four times; two copies have no end rule and hold the last step forever",
+   "severity": "low",
+   "claim": "coordinator._covering_index and pump_arbiter._step_index answer `no step` once now is past the plan's last step, while pump_arbiter._planned_room and early_cutoff._planned_room keep returning the last step's value at any later instant (4 of 8 shared probes disagree, from the last step's end edge to a day past it).",
+   "mechanism": "All four start from bisect_right(timestamps, now) - 1. _covering_index (coordinator.py:591) and _step_index (pump_arbiter.py:543) add the half-open end of the last step (R10 N-no-expiry, #2229); the two _planned_room copies bound the index only by the series' length. Their callers are gated on plan_stale (age over three solve cycles) at pump_arbiter.py:1421 and early_cutoff.py:224, and ungated at pump_arbiter.py:632, 654, 1454 and 1646; a plan's horizon outlasts the stale limit on every shipped configuration, so no wrong write was produced here -- the copies disagree, and the class's barrier does not cover them.",
+   "evidence": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only step_covering_now",
+    "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+    "value": 4,
+    "unit": "probes of 8 on which the four implementations do not agree whether a step covers now",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+    "tolerance": "exact",
+    "load1": 172.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.early_cutoff:_planned_room",
+   "perturbation": {
+    "change": "attribute swap of pump_arbiter._planned_room and early_cutoff._planned_room for bodies that take their index from pump_arbiter._step_index (m8_agree.py --only step_covering_now --perturb)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "probes (an instant relative to an 8-step plan) at which {_covering_index, _step_index, arbiter._planned_room, early_cutoff._planned_room} disagree on `a step covers now`",
+   "phenomenon_property": "Every reader of `the plan step covering now` takes its index from one function with the half-open end rule; no reader indexes a plan series from a bare bisect.",
+   "seam_rule": "grep -n 'bisect_right(' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only step_covering_now",
+    "value": 0,
+    "note": "the four probes inside the plan (before, first, mid, last) agree in the same run"
+   },
+   "proposed_fix_scope": "pump_arbiter._planned_room and early_cutoff._planned_room index through pump_arbiter._step_index (or coordinator._covering_index moved to a leaf both import); pump_arbiter.py:1942's bare bisect with them. One owner: the step-index function.",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/early_cutoff.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "hygiene",
+   "class_guess": "N-no-expiry"
+  },
+  {
+   "id": "D7-s3-04",
+   "scope": "D7-s3",
+   "step": "D7.M8",
+   "title": "Three small rules have copies that disagree: water's heat capacity, a naive instant's zone, a finite number",
+   "severity": "low",
+   "claim": "Driven with the same probes, the package's copies of three small rules disagree on 12 of 21 probes: the heat that warms a litre of water by 1 K has three values (0.0011600, 0.0011605 and 0.0011631 kWh, spread 0.26 %); a naive datetime is read as UTC by drift._as_utc and manual_plan._instant and as the host's local zone by open_meteo._ensure_utc (9 h apart under TZ=Asia/Tokyo); and `is this a finite number` is answered four ways (finite_float refuses NaN and inf, entity.payload_number and sensor._as_float pass them, replay_doc.numeric passes True, 'nan' and 'inf').",
+   "mechanism": "Each rule has no single owner. Water: const.WATER_SPECIFIC_HEAT = 0.00116 kWh/(L K) (thermal_model's tank masses, external_heat), const.WATER_CP_KJ_PER_KG_K = 4.186 with WATER_KG_PER_L = 0.998 (flow_meter.thermal_output_kw), and the literal 4.187 / 3600 in sensor._gap_probe_terms. Naive instants: drift._as_utc (`replace(tzinfo=utc)`), open_meteo._ensure_utc (`astimezone(utc)`, the host zone), manual_plan._instant (UTC), and Home Assistant's dt_util.as_utc at coordinator._utc_age_seconds; debugger._aware keeps a naive stored stamp as UTC text where price_tiles._aware drops it. Numbers: four predicates with four domains. No wrong published value was produced from any of the three here -- the sensor base scrubs a non-finite native value, the 0.26 % sits inside the learners' noise -- so this is the structure, not a defect in an output.",
+   "evidence": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --quiet",
+    "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+    "value": 12,
+    "unit": "probes of 21 on which the copies disagree, over the families water_heat (1 of 1), naive_instant (2 of 3) and finite_number (9 of 17)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+    "tolerance": "exact",
+    "load1": 172.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sensor:_gap_probe_terms",
+   "perturbation": {
+    "change": "m8_agree.py --perturb: const.WATER_CP_KJ_PER_KG_K set from WATER_SPECIFIC_HEAT and sensor._gap_probe_terms re-executed with the literal replaced by it; open_meteo._ensure_utc swapped for drift._as_utc; entity.payload_number, sensor.payload_number and replay_doc.numeric swapped for finite_float",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "probes on which the production implementations of one rule return different answers, summed over the three families (m8_agree.py RESULT <family>_disagreements)",
+   "phenomenon_property": "A physical constant, a time-zone convention and a value-domain predicate each have one definition in the package, and every other site imports it; where two domains are meant (a payload number that may be NaN, a stored number that may not) the two predicates carry different names that say so.",
+   "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m8_enum.py --list | grep '^C003\\|^D002\\|^D003'",
+   "null_control": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --quiet",
+    "value": 0,
+    "note": "six families of the same run agree on every probe (dhw_store_tap 24, stored_number 13, soc 5, buffer_prior_in_bounds 8, effective 4, ua_from_rate 3), and naive_instant's aware-datetime probe agrees across all four implementations"
+   },
+   "proposed_fix_scope": "sensor._gap_probe_terms and flow_meter read one water constant from const.py; open_meteo._ensure_utc and drift._as_utc become one function in drift.py with the zone an argument; payload_number is named for what it admits (or refuses NaN). The seven `unknown`/`unavailable` literals (m8_agree.py --seams) join one tuple in inputs.py in the same change.",
+   "files": [
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/flow_meter.py",
+    "custom_components/heatpump_optimizer/open_meteo.py",
+    "custom_components/heatpump_optimizer/drift.py",
+    "custom_components/heatpump_optimizer/entity.py",
+    "custom_components/heatpump_optimizer/replay_doc.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "hygiene",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D7-s3-05",
+   "scope": "D7-s3",
+   "step": "D7.M6",
+   "title": "Dead state inside live code: 50 constants, parameters, locals, attributes and fields nothing in production reads",
+   "severity": "low",
+   "claim": "No definition of the package is unreachable by name (dead = 0 of 6969), but 50 pieces of state are stored by production and read by no production code: 6 config-key constants named only by tests, 4 unused imports, 16 parameters their function never loads, 7 locals stored and never loaded (beside the one in D7-s3-02), 8 instance attributes and 8 dataclass fields only tests read, and 1 dataclass field nothing reads.",
+   "mechanism": "Each is what a refactor left behind: const.py keeps CONF_BUFFER_TANK_LOSS, CONF_SOLAR_UPPER_FRACTION, CONF_HOUSE_HEAT_LOSS_SCALE and CONF_LOWER_FLOOR_LOSS_RATIO though production reads those keys by their string or through ThermalParameters; PVConfig.export_price_entity is set at coordinator.py:9796 while the coordinator reads the entity straight from the entry config (9802); optimizer._power_to_setpoints takes outdoor_temps and zips room_temps it never uses; tariff.window_factors takes dt_hours, optimizer._solve_space n_steps, sysid.slab_mode_identifiability config, dhw_planner._baseline_dhw_economics initial_state, coordinator._observe_frequency and CurveLearner.record_miss a `now` -- callers compute and pass each. The attributes (_last_manual_setpoint, _slab_fit_used, _step_dhw_draw_kw, _step_dhw_floor_injected, _step_dhw_refused, draws_dirty, last_return_c, manual_pins_active) are production writes whose only readers are tests: test hooks living as coordinator, model and optimizer state.",
+   "evidence": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_inner.py && python3 dev/audit/rounds/round11/D7/s3/m6_dead.py --trace <trace dir>",
+    "harness_path": "dev/audit/rounds/round11/D7/s3/m6_inner.py",
+    "value": 50,
+    "unit": "definitions (m6_dead.py: test_only constants 6, unused imports 4; m6_inner.py: unread_params 16, unread_locals 8 less the one of D7-s3-02, test_read_only attributes 8 and fields 8, unread_fields 1)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+    "tolerance": "exact",
+    "load1": 224.17,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._power_to_setpoints",
+   "perturbation": {
+    "change": "m6_inner.py --perturb and m6_dead.py --perturb: a reader of every reported name appended to an in-memory copy of its module takes write_only and dead to 0; one planted unreferenced definition raises each census by exactly 1 (planted_delta=1)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "definitions stored by production with no production load of their name (Name, Attribute or whole-string constant), by kind; framework-read names (`_attr_*`, Home Assistant stub members) excluded",
+   "phenomenon_property": "Every parameter a production function declares, every local and attribute it stores and every constant a module defines has a production reader; state kept for a test is read through a seam the test owns, not stored on the production object.",
+   "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m6_inner.py | grep '^ROW' ; python3 dev/audit/rounds/round11/D7/s3/m6_dead.py | grep '^ROW'",
+   "null_control": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_stmt.py --perturb",
+    "value": 0,
+    "note": "the statement census over the same 2678 function bodies finds 0 dead stores, 0 no-effect statements, 0 constant conditions, 0 duplicate dict keys, 0 repeated tests and 0 identical arms; its two self_operand rows are the `x != x` NaN test, and its one exhausted_else row is D7-s3-09"
+   },
+   "proposed_fix_scope": "Delete the four constants and four imports; drop the eight dead parameters at their call sites; move the test-only attributes behind the tests' own seams or delete them with the checks that read them. No behaviour changes; structure.py could ratchet the two counts.",
+   "files": [
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/dhw_planner.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/curve_learning.py",
+    "custom_components/heatpump_optimizer/pv.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "custom_components/heatpump_optimizer/external_heat.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/flow_lift.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D7-s3-06",
+   "scope": "D7-s3",
+   "step": "D7.M5",
+   "title": "This year's 29 modules: 93 of 480 functions can be deleted with no behaviour script failing",
+   "severity": "medium",
+   "claim": "Of the 480 non-trivial functions in the 29 modules added since the previous baseline, 89 are entered by no script of the behaviour suite and 4 more are entered but raise on every call with every script that enters them still green; 285 are pinned (a script reports a failing check it did not report unmutated) and 102 could not be driven through their long scripts in the window.",
+   "mechanism": "Every module has a module docstring, a docs paragraph and at least one importer, and 27 of the 28 that hold functions have a script that pins some of them (whatif.py's six are entered only by scripts this seat could not drive; payload.py holds types only); what is missing is per function. The unentered ones cluster (heat_curve 18, duty_switch 15, draw_range 14, duty_legs 9, heat_energy 9, runs 6): code paths a module ships that nothing in tests/ calls. The swallowed ones sit behind the coordinator's best-effort wrappers and diagnostics' never-breaks view, which turn a raise into a logged line no check reads. In this tree tests/entities.py also stops at line 9634 of 42669 on KeyError 'house_heat_loss_coefficient', so every check after it pins nothing (lead). Not counted: the golden differential (tests/golden.py, tests/env_drift.py) cannot run in an export without .git, so a function whose deletion only moves a golden reads unpinned here -- each row is a candidate for D3's gate, not a verdict on it.",
+   "evidence": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m5_train.py report --trace <trace dir> --out dev/audit/rounds/round11/D7/s3/m5_mutants.json",
+    "harness_path": "dev/audit/rounds/round11/D7/s3/m5_train.py",
+    "value": 93,
+    "unit": "functions of 480 (unentered 89, swallowed 4; pinned 285, not_reached 102)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+    "tolerance": "exact",
+    "load1": 224.17,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.early_cutoff:diagnostics_view",
+   "perturbation": {
+    "change": "a check that calls the function: m5_pin_demo.py reports 0 failing unmutated and 1 failing under HPO_FN_MUTATE=early_cutoff.py:329, where every suite script entering it stays green -- one such check per function takes `swallowed` down by one; the deletion mutant itself is the perturbation for the pinned rows (new failing checks 0 -> >=1)",
+    "expected_direction": "down",
+    "observed_value": 1
+   },
+   "metric_definition": "functions (file, qualified name, first line) of the 29 added modules with no tests/ script whose failing-check set grows when the function raises RuntimeError on entry",
+   "phenomenon_property": "Every function of a module added in a round is entered by a check that fails when the function is deleted; a function reached only through a swallow-and-log wrapper has a check on the value it contributes.",
+   "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m5_train.py report --trace <trace dir> | grep '^UNENTERED\\|^SWALLOWED'",
+   "null_control": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m5_train.py null --trace <trace dir>",
+    "value": 0,
+    "note": "the hook armed on a line no function starts at kills nothing in the three scripts driven; a pinned mutant's kill is a new failing check against the same script's unmutated log"
+   },
+   "proposed_fix_scope": "Tests, by module: a check per unentered function (or its deletion where m6 agrees nothing reaches it), and a value check behind each swallowing wrapper. D3 owns the gate-level verdict; the structure is this dimension's.",
+   "files": [
+    "custom_components/heatpump_optimizer/heat_curve.py",
+    "custom_components/heatpump_optimizer/duty_switch.py",
+    "custom_components/heatpump_optimizer/draw_range.py",
+    "custom_components/heatpump_optimizer/duty_legs.py",
+    "custom_components/heatpump_optimizer/heat_energy.py",
+    "custom_components/heatpump_optimizer/runs.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I1"
+  },
+  {
+   "id": "D7-s3-07",
+   "scope": "D7-s3",
+   "step": "D7.M8",
+   "title": "tariff._exact_topk_sum sums the k smallest excesses: the scalar capacity charge and its batch twin disagree",
+   "severity": "high",
+   "claim": "tariff._exact_topk_sum returns sum(sort(excess)[:k]), the k smallest values, where its docstring and its batch twin (`np.sort(x, axis=1)[:, -k:]`) take the k largest; for every k above 1 with more than k windows the scalar _plateau_aware_topk_sum differs from _plateau_aware_topk_sum_batch (4 of 12 probes), peak_cost_smooth from peak_cost_batch (1 of 4), and the solve's scalar objective from objective_batch under a per-window capacity tariff (2 of 8, relative difference 1.4).",
+   "mechanism": "The rule `the billed top-k` is written twice: once as tariff._exact_topk_sum (tariff.py:916), which the exact published charge peak_cost (tariff.py:1038) and the solver's scalar term _plateau_aware_topk_sum (tariff.py:958) call, and once inline in _plateau_aware_topk_sum_batch (tariff.py:943), which the batched objective calls for the finite-difference gradient. The scalar copy slices the wrong end of the sort. With [1, 5, 3, 4, 2, 0.5] and k = 2 the scalar returns 1.5 and the twin 9.0. It bites whenever more than k excesses are compared with k above 1: `Peaks on different days` off (peak_tariff_distinct_days False, the per-window rule the option's own text names), or a horizon spanning more plan days than peak_count. There the published projected_peak_cost bills the smallest excesses (often 0), and the solver's line search reads a capacity term its gradient was not taken from. On the default (distinct days, 3 peaks, a horizon of at most 3 days) k equals the number of day peaks and the two ends of the sort are the same sum, which is why the objective pair agrees there.",
+   "evidence": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_topk",
+    "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+    "value": 4,
+    "unit": "probes of 24 on which a row of the batch is not the scalar's value to the bit (plateau_aware at k = 2 and 3 on the random and one-spike matrices; the 12 smooth probes and every k = 1 probe agree); twin_peak_cost 1 of 4, twin_objective 2 of 8",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+    "tolerance": "exact",
+    "load1": 274.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:_exact_topk_sum",
+   "perturbation": {
+    "change": "attribute swap of tariff._exact_topk_sum for `float(np.sum(np.sort(excess)[-k:]))` (m8_agree.py --only twin_topk --perturb; the same swap under --only twin_peak_cost and --only twin_objective)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "probes (a matrix of window excesses, k) at which a row of _plateau_aware_topk_sum_batch / _smooth_topk_sum_batch differs in any bit from the scalar function on that row",
+   "phenomenon_property": "Every `_batch` twin returns, row for row and to the bit, what its scalar returns on that row; a rule both call (the exact top-k) is one function, not a helper on one side and an inline expression on the other.",
+   "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m8_enum.py --list | grep '^E'",
+   "null_control": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_trajectory",
+    "value": 0,
+    "note": "the other twins agree to the bit in the same harness: simulate_trajectory 9 of 9, wood_share 24 of 24, _day_peaks 4 of 4, switch_weight 3 of 3, _smooth_topk_sum 12 of 12, and the objective pair on all five no-tariff cases and on the distinct-days tariff case"
+   },
+   "reproduction_steps": [
+    "import numpy as np; from custom_components.heatpump_optimizer import tariff",
+    "x = np.array([[1.0, 5.0, 3.0, 4.0, 2.0, 0.5]])",
+    "tariff._plateau_aware_topk_sum(x[0], 2) -> 1.5; tariff._plateau_aware_topk_sum_batch(x, 2) -> [9.0]"
+   ],
+   "proposed_fix_scope": "tariff.py: _exact_topk_sum takes the sorted tail, and _plateau_aware_topk_sum_batch's exact arm calls the same rule (one owner: tariff.py). The row-parity grid the batch docstring cites gains a k > 1, more-than-k-windows row for the exact arm.",
+   "files": [
+    "custom_components/heatpump_optimizer/tariff.py"
+   ],
+   "expected_golden_drift": [
+    "any golden with a capacity tariff whose compared excesses outnumber peak_count: projected_peak_cost, and the plan where the per-window rule is on"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D7-s3-08",
+   "scope": "D7-s3",
+   "step": "D7.M8",
+   "title": "emitter_delivery lost its never-negative clamp: behind a valve the scalar model and its batch twin diverge",
+   "severity": "high",
+   "claim": "mixing_valve.emitter_delivery returns ua * (mix_temp - zone_temp) with no floor at zero, against its own docstring (`Never negative: a valve can shut, but it cannot cool a house`) and against the inline np.maximum(0.0, ...) of simulate_trajectory_batch; under every throttling valve mode simulate_trajectory and simulate_trajectory_batch then diverge once the tank falls to the zone it feeds (18 of 42 probes, buffer temperature up to 2.4 K apart within 24 h), where they are bitwise equal on all 24 probes without a valve.",
+   "mechanism": "The rule `what an emitter circuit takes from the mixed flow` is written twice: mixing_valve.emitter_delivery (mixing_valve.py:133), which the scalar two-zone step calls through thermal_model._valve_two_zone_delivery (thermal_model.py:2526, 2536), and inline in the batched trajectory (thermal_model.py:4673-4678). The scalar copy has no clamp, so with the pump off and the tank drained to the slab's temperature the scalar step moves heat from the slab back into the tank (slab 23.01 against the twin's 23.06 after one hour, tank 22.11 against 21.34): a mixing valve run in reverse. simulate_step is the model the coordinator predicts with and the solver's scalar objective integrates; the batch is what its finite-difference gradient is taken on, and the batch docstring states `bitwise parity is the contract`. On a valve install the objective and its gradient are therefore two different plants over every coast.",
+   "evidence": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_trajectory",
+    "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+    "value": 18,
+    "unit": "probes of 42 (a model variant x a weather, 4 schedules and 6 or 7 series each) on which a row of simulate_trajectory_batch is not simulate_trajectory to the bit: all 18 are the six valve variants (manual, smart_read, smart_write x one- and two-zone config) x 3 weathers; the 8 no-valve variants agree on 24 of 24",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+    "tolerance": "exact",
+    "load1": 290.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.mixing_valve:emitter_delivery",
+   "perturbation": {
+    "change": "attribute swap of mixing_valve.emitter_delivery for `max(0.0, ua * (mix_temp - zone_temp))` (m8_agree.py --only twin_trajectory --perturb)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "probes (model variant, weather) at which any series of simulate_trajectory_batch's row differs in any bit from simulate_trajectory on that schedule, over 4 schedules",
+   "phenomenon_property": "Every `_batch` twin returns, row for row and to the bit, what its scalar returns; a physical law both call (emitter delivery, the exact top-k) is one function the twin also calls or mirrors under a parity check that covers the regime where the law's clamp binds.",
+   "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m8_enum.py --list | grep '^E'",
+   "null_control": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_trajectory",
+    "value": 0,
+    "note": "the eight variants with no throttling valve (single- and two-zone config, big buffer, flow-Carnot COP, flow-curve COP, wood tank, wood coil) agree to the bit on 24 of 24 probes in the same run; within the valve variants the full-power schedule agrees and only the schedules that let the tank fall to the slab diverge"
+   },
+   "reproduction_steps": [
+    "from custom_components.heatpump_optimizer import mixing_valve",
+    "mixing_valve.emitter_delivery(mix_temp=22.0, zone_temp=23.0, ua=0.5) -> -0.5 (docstring: never negative)"
+   ],
+   "proposed_fix_scope": "mixing_valve.py:emitter_delivery floors at zero; the batch twin's two inline expressions call or mirror it under a parity row with the tank below the slab (the regime tests/features.py's equivalence grid does not hold today, or the suite would be red on it).",
+   "files": [
+    "custom_components/heatpump_optimizer/mixing_valve.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [
+    "every golden with a throttling mixing valve whose tank coasts to the slab temperature"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D7-s3-09",
+   "scope": "D7-s3",
+   "step": "D7.M6",
+   "title": "The presence rule for two zones is dead code: `auto`, the default mode, is resolved as `on`",
+   "severity": "high",
+   "claim": "ThermalParameters.from_config tests the two-zone mode with `in (TWO_ZONE_MODE_ON, DEFAULT_TWO_ZONE_MODE)`, and DEFAULT_TWO_ZONE_MODE is `auto`, so every entry with no mode key or with `auto` is modelled two-zone whatever keys it holds; the `else` arm that infers the mode from the zone keys is reached only by an unknown mode string. On 4 of 6 configs the default mode and an unknown mode -- which the function's own comment declares the same rule -- give different answers.",
+   "mechanism": "thermal_model.py:1122-1134: `if two_zone_mode in (ON, DEFAULT): True / elif == OFF: False / else: any(zone key in config)`. The three arms take all three values of const.TWO_ZONE_MODES between them, so the presence rule above them in the comment (`auto ... is the presence rule unchanged; an unknown value is treated as auto`) cannot run for a valid entry. An install that never chose a mode and stores no zone keys -- every single-zone house set up before the mode key, and tests/profiles.py's `house(two_zone=False)` -- is simulated, planned and identified as two zones with the default zone parameters. config_flow._single_zone takes its answer from the same call, so the options flow hides the whole-house loss field on those entries too.",
+   "evidence": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_two_zone_auto.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s3/m6_two_zone_auto.py",
+    "value": 4,
+    "unit": "configs of 6 on which `no mode key` or `auto` answers two_zone_enabled differently from an unknown mode on the same config (no zone keys, and a stored single-zone house: True against False; with zone keys both say True)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+    "tolerance": "exact",
+    "load1": 170.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:ThermalParameters.from_config",
+   "perturbation": {
+    "change": "the classmethod re-executed in memory with `(const.TWO_ZONE_MODE_ON, const.DEFAULT_TWO_ZONE_MODE)` replaced by `(const.TWO_ZONE_MODE_ON,)` (m6_two_zone_auto.py --perturb); the static twin: m6_stmt.py's exhausted_else row for thermal_model.py leaves the census",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "configs (zone keys absent, present, or a stored single-zone house) x (no mode key, auto) whose two_zone_enabled differs from the same config under an unknown mode string",
+   "phenomenon_property": "An if/elif chain over one subject whose arms take every value of the enumeration it tests has no further arm carrying logic: an `else` that holds a rule is reachable by a valid value, or the rule is not in force.",
+   "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m6_stmt.py | grep '^ROW exhausted_else'",
+   "null_control": {
+    "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_two_zone_auto.py",
+    "value": 0,
+    "note": "the explicit modes are untouched on all three configs (on -> True, off -> False), and with zone keys present the default mode and the unknown mode agree (2 of 2)"
+   },
+   "reproduction_steps": [
+    "from custom_components.heatpump_optimizer.thermal_model import ThermalParameters",
+    "ThermalParameters.from_config({}).two_zone_enabled -> True (the presence rule: False)",
+    "ThermalParameters.from_config({'two_zone_mode': 'x'}).two_zone_enabled -> False"
+   ],
+   "proposed_fix_scope": "thermal_model.py: `auto` falls through to the presence rule (the membership test names ON alone). Every golden and scenario built on a config with no zone keys moves back to one zone.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [
+    "every fixture whose config has no zone keys and no explicit mode: it is two-zone in this tree and single-zone after the fix"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No definition of the package is dead by name: every function, method, class and module constant is named by other package code, by the Home Assistant contract or by a class the framework calls.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_dead.py --trace <trace dir> --perturb",
+   "value": "dead=0 of 6969; planted_delta=1; dead_after_readers=0"
+  },
+  {
+   "claim": "No function body holds a statement dead by the AST alone: no store overwritten before a load, no effect-free expression statement, no constant condition, no duplicate dict key, no repeated if/elif test, no identical arms.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_stmt.py --perturb",
+   "value": "0 in each of six kinds over 2678 bodies; self_operand=2 (both the `x != x` NaN test); exhausted_else=1 (finding D7-s3-09); every planted kind reads delta 1"
+  },
+  {
+   "claim": "No instance attribute is written by production and read by nothing at all.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_inner.py --perturb",
+   "value": "write_only_attributes=0 (8 more are read only by tests: finding D7-s3-05); planted_delta=1"
+  },
+  {
+   "claim": "The eight module-level functions whose every naming is an attribute read (async_setup_debugger, async_setup_notifier, async_register_services and five more) are reached through the lazy module loader, not masked by a same-named method.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_inner.py | grep '^ROW masked'",
+   "value": "masked_functions=8, each entered in the trace or loaded through __init__._lazy"
+  },
+  {
+   "claim": "DhwStore.store_temp_for_tap and tap_temp_for_store are exact inverses, combi and not.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only dhw_store_tap",
+   "value": "0 of 24 probes disagree"
+  },
+  {
+   "claim": "duty_switch._stored_number and store._number admit the same stored numbers.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only stored_number",
+   "value": "0 of 13 probes disagree"
+  },
+  {
+   "claim": "StorageComponent.soc and VirtualBattery.soc are one rule.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only soc",
+   "value": "0 of 5 probes disagree"
+  },
+  {
+   "claim": "The buffer cooling-rate prior lies inside its own clamp at every volume, and the wood and hot-water tank UA both invert to their cooling rate.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only buffer_prior_in_bounds; cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only ua_from_rate",
+   "value": "0 of 8 and 0 of 3 probes disagree"
+  },
+  {
+   "claim": "Without a throttling valve simulate_trajectory_batch is simulate_trajectory row for row, to the bit: eight model variants (one- and two-zone config, big buffer, flow-Carnot and flow-curve COP, wood tank, wood coil) under three weathers and four schedules each.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_trajectory",
+   "value": "24 of 24 no-valve probes agree on every series; the 18 valve probes are finding D7-s3-08"
+  },
+  {
+   "claim": "The solve's objective_batch is its scalar objective row for row, to the bit, wherever no per-window capacity term is priced: five no-tariff cases and the distinct-days tariff.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_objective",
+   "value": "6 of 8 cases agree at relative difference 0; the two that do not are finding D7-s3-07"
+  },
+  {
+   "claim": "wood_share/_wood_share_vec, _smooth_topk_sum/_batch, _day_peaks/_batch and switch_weight/switch_weights_batch agree to the bit.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_wood_share (and twin_topk, twin_day_peaks, twin_switch_weight)",
+   "value": "0 of 24, 0 of 12 (smooth rows of twin_topk), 0 of 4, 0 of 3"
+  },
+  {
+   "claim": "dhw_schedule's formatters and parsers are inverses: every one of the 127 weekday sets, 9 clock times, 6 window specs and 4 weekly specs survives format-then-parse.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only parse_format",
+   "value": "0 of 146 probes disagree"
+  },
+  {
+   "claim": "Every class with both as_dict and from_dict reads back what it wrote (15 classes; a default instance, and one moved off its defaults after one admission).",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only as_from_dict",
+   "value": "0 of 29 probes disagree; AccuracySample has no default instance and was not driven"
+  },
+  {
+   "claim": "comfort_band.effective and config_flow._effective return the same value.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only effective",
+   "value": "0 of 4 probes disagree"
+  },
+  {
+   "claim": "Every one of the 29 added modules has a module docstring, at least one docs/ or README paragraph naming it, and at least one production importer.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m5_train.py pins --trace <trace dir>",
+   "value": "29 of 29 on each of the three; fewest: issues.py 6 docstring lines; 25 modules have exactly 1 docs paragraph; 7 have exactly one importer"
+  },
+  {
+   "claim": "The seven literals of `a state that holds no value` differ in membership ('none', '' and None are each missing somewhere), but no pair of production predicates was found to return different answers for a state Home Assistant can deliver; a static comparison of literals, reported and not raised.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only no_value_state",
+   "value": "3 of 5 members differ across 7 sites (inputs.py:69, inputs.py:447, away.py:180, away.py:626, coordinator.py:8723, price_model.py:824, supply_hold.py:65)"
+  },
+  {
+   "claim": "The deletion hook kills nothing when armed on a line no function starts at.",
+   "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m5_train.py null --trace <trace dir>",
+   "value": "null_new_failing=0"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D7/s3/fn_trace.sh",
+  "dev/audit/rounds/round11/D7/s3/trace_site/sitecustomize.py",
+  "dev/audit/rounds/round11/D7/s3/m5_train.py",
+  "dev/audit/rounds/round11/D7/s3/m5_pin_demo.py",
+  "dev/audit/rounds/round11/D7/s3/m6_dead.py",
+  "dev/audit/rounds/round11/D7/s3/m6_inner.py",
+  "dev/audit/rounds/round11/D7/s3/m6_stmt.py",
+  "dev/audit/rounds/round11/D7/s3/m6_two_zone_auto.py",
+  "dev/audit/rounds/round11/D7/s3/m8_enum.py",
+  "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+  "dev/audit/rounds/round11/D7/s3/m8_families.tsv",
+  "dev/audit/rounds/round11/D7/s3/m5_mutants.json",
+  "dev/audit/rounds/round11/D7/s3/m5_c2_mutants.json"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D3-s3",
+   "file": "tests/entities.py",
+   "symbol": "line 9634 `_low, _high = _NOMINAL[_key]`",
+   "what": "In this tree the script stops with KeyError 'house_heat_loss_coefficient' at line 9634 of 42669 (after 676 passing checks and 12 failing ones), so every later check is never evaluated; the same key is the `declared but not rendered {'thermal_model': ['house_heat_loss_coefficient']}` failure in tests/config_flow_steps.py."
+  },
+  {
+   "owner_seat": "D3-s3",
+   "file": "tests/",
+   "symbol": "the behaviour scripts' own verdicts in this tree",
+   "what": "Unmutated, on this box: block_duty 1 of 153 failing, config_flow_steps 5 of 585, debug_collect 1 of 163, guard_pins 1 of 91 (#1913 GCHV hold), manual_plan 5 of 132, optimality 5 of 84, finite_boundary 6 of 114, dst_checks 8 of 137, boost_drift_replay 5 of 46, plan_view `space slot energy 46.246 kWh != schedule 46.310 kWh`; deployment_shape and golden cannot run without .git. Logged per script by fn_trace.sh; this seat used them only as each mutant's baseline."
+  },
+  {
+   "owner_seat": "D3-s3",
+   "file": "tests/features.py",
+   "symbol": "the project_window_mean block (about line 19066)",
+   "what": "The check `project_window_mean(2.0, 30.0, 6.0, 60.0) == 4.0` sits at the one minute where D7-s3-02's dropped term cannot show (elapsed equals remaining); its neighbours at 45 and 60 minutes do see it."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/boost.py",
+   "symbol": "persist (and six sibling save wrappers: m8_enum.py --show A014, A028)",
+   "what": "Nine persist wrappers share one try/await-save/except shape; two (coordinator._async_save_thermal_learning, _async_save_energy_totals) await the store's async_wait_for_read first and seven do not. Whether a save can overtake a pending load on the seven is a lifecycle question for D1; not measured here."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "HeatPumpOptimizerOptionsFlow._disinfection_errors",
+   "what": "The disinfection mode is compared with FREQ_MODE_CONTROL (the frequency feature's constant, 'control'); no disinfection-mode constant exists. One word serving two vocabularies: right while both spell it the same."
+  },
+  {
+   "owner_seat": "D3-s3",
+   "file": "tests/env_drift.py",
+   "symbol": "C2: drift gate, scoped gate (tests/closure.py), stress budgets (tests/stress.py, tests/stress_budgets.json)",
+   "what": "Three of the additions round 10 handed over as C2 are test instruments, outside this seat's cells (custom_components/heatpump_optimizer/*.py): each still owes its fails-on-deletion check, doc paragraph and owner."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/www/",
+   "symbol": "C2: card collaborators",
+   "what": "The card's collaborator modules are JavaScript, outside this seat's cells; the same three questions are owed there."
+  }
+ ]
+}

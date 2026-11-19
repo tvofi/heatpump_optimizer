@@ -1,0 +1,40 @@
+{
+  "id": "D1-s3-02",
+  "scope": "D1-s3",
+  "step": "D1.M6",
+  "title": "ECL110 MQTT state parser takes a JSON boolean as a displacement (true -> 1.0, false -> 0.0)",
+  "severity": "low",
+  "claim": "_parse_ecl110_state accepts the payloads 'true', 'false' and '{\"displace\": true}' as displacements 1.0, 0.0 and 1.0, and _async_handle_ecl110_state_message stores and publishes them as the measured ECL110 displacement, where const.finite_float refuses a bool as 'a guess, not a reading'.",
+  "mechanism": "json.loads('true') is the bool True; `isinstance(data, (int, float))` admits it (bool subclasses int) and `float(raw)` turns True into 1.0, so a state topic pointed at a switch/flag topic (ON/true) or a hostile publisher sets _ecl110_current_displace and the published ecl110_displace_command/ecl110_effective_displace to a value no ECL110 reported. The plausibility window (round-9 D1-s2-02) does not catch it: 0 and 1 are inside every window.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110",
+    "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
+    "value": 3,
+    "unit": "boolean payloads stored as a displacement (of 3 sent)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out running; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 268.58,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message (-> heatpump_optimizer.coordinator:_parse_ecl110_state); read off coordinator._ecl110_current_displace",
+  "perturbation": {
+    "change": "_parse_ecl110_state refuses a bool: `elif isinstance(data, (int, float)) and not isinstance(data, bool)` and `None if raw is None or isinstance(raw, bool) else float(raw)` (`--perturb ecl110_refuse_bool`, recompiled in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Count of the payloads 'true', 'false', '{\"displace\": true}' after which the handler holds a non-None _ecl110_current_displace (reset to None before each message).",
+  "phenomenon_property": "An external-input parser hands on only a finite real number as a measurement: a bool is never a displacement, a temperature or a power (const.finite_float's rule), at every external parser seam.",
+  "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E '_parse_ecl110_state|parse_bool'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110 --perturb ecl110_refuse_bool",
+    "value": "RESULT ecl110_numeric_null_control=2 messages",
+    "note": "the numeric payloads 7 and '{\"displace\": \"3\"}' are still accepted (2 of 2) under the perturbation: the fix refuses bools only"
+  },
+  "proposed_fix_scope": "coordinator._parse_ecl110_state: refuse bool at both the bare-number and the dict-member arm (or route through const.finite_float); coordinator.py only.",
+  "files": ["custom_components/heatpump_optimizer/coordinator.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P1"
+}

@@ -1,0 +1,46 @@
+{
+  "id": "D4-s1-01",
+  "scope": "D4-s1",
+  "step": "D4.M1",
+  "title": "Layout editor: the pipe a user clicks to remove is a 2.75-5.75 px hit band, under F1's 24/44 px floor in every cell",
+  "severity": "medium",
+  "claim": "In the card's layout editor (setup page, editing on), every drawn pipe -- the target the card says is clicked to remove a connection -- takes the pointer only within a band of at most 2.75 px at 375 px, 3.25 px at 768 px and 5.75 px at 1280 px normal to the pipe, so 576 of 576 pipe targets over the 144 renders of layout_editing_dragged/tidy x de,en,sv x 3 viewports x light/dark x motion x pointer are under D4-criteria F1's 24 px (44 px coarse) floor.",
+  "mechanism": "cardStyleBlock widens pipes in editing mode only to `stroke-width: 3.5` viewBox units and relies on the painted stroke (pointer-events visiblePainted) as the hit area; there is no transparent wide hit path as the slots (`.slot-hit`) and ports (`.layout-port-hit`, 30.5 px median by the same scan) have. The SVG scales down with the card, so the band shrinks to 2.75 px on a phone.",
+  "evidence": {
+    "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_pipes.mjs",
+    "harness_path": "dev/audit/rounds/round11/D4/s1/m1_pipes.mjs",
+    "value": 576,
+    "unit": "pipe targets (of 576) whose elementFromPoint band normal to the pipe at its midpoint is under 24 px (44 px coarse)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B9, 4 vCPU, Chromium 158.0.8127.18 (playwright 1.65.0 lock, rev 1254), headless shell",
+    "cpu_or_wall": "count",
+    "contention_note": "the seat's own full M1 grid run (m1_browser.mjs, 8 workers) ran beside it; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 3.45,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (rule `.setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }`) through the rendered heatpump-optimizer-card",
+  "perturbation": {
+    "change": "m1_pipes.mjs PERTURB=1: in memory, `.setup-svg.editing .setup-pipe { stroke-width: 3.5;` -> `stroke-width: 60;`",
+    "expected_direction": "down",
+    "observed_value": 296
+  },
+  "metric_definition": "Per editing pipe: px along the normal through its midpoint where shadowRoot.elementFromPoint returns the pipe (0.25 px steps); counted when under 24 px (44 px coarse).",
+  "phenomenon_property": "Every pointer target the card's layout editor draws takes the pointer over at least 24 px (44 px under a coarse pointer) across its narrow axis, whatever the card's rendered width.",
+  "seam_rule": "dev/audit/rounds/round11/D4/s1/m1_browser.mjs (RESULT strict_small; m1_summarize.py <renders.jsonl> --check strictSmall lists each element class under the floor)",
+  "null_control": {
+    "command": "same run, RESULT port_hit_median_px",
+    "value": "30.5 px",
+    "note": "The same elementFromPoint scan on the editor's .layout-port-hit targets, which the card sizes with a transparent hit circle, reads 30.5 px median in the same renders: the scan measures a sized target as sized."
+  },
+  "leave_one_out": {"cells": 6, "min": 2.75, "max": 5.75, "drop_most_favourable": 5.75},
+  "reproduction_steps": [
+    "HPO_PLANDATA=$(mktemp -d)/plan.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
+    "run the command above; read RESULT pipe_hit_under_floor and the per viewport/pointer band lines",
+    "re-run with PERTURB=1: the count falls to 296"
+  ],
+  "proposed_fix_scope": "Draw a transparent wide hit path (stroke-width sized from _targetMinPx() in viewBox units, pointer-events: stroke) beside each editing pipe, as .slot-hit and .layout-port-hit do; keep the visible stroke as is.",
+  "files": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"],
+  "stop_rule_class": "bug",
+  "class_guess": "P9"
+}

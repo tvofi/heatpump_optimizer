@@ -1,0 +1,236 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D5/s1/REPORT.md",
+ "exposure": "Read README.md, docs/setup.md, docs/configuration.md (setup, grid peak tariff, transfer fees, heating system, hydronic layout catalog), docs/ecl110.md, docs/CONTRIBUTING.md, docs/architecture.md, docs/how-it-works.md, docs/dashboard-card.md, docs/automations.md (re-run). No earlier finding ids were sought; none read.",
+ "coverage": [
+  {
+   "step": "D5.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/enum_m1.py",
+   "universe": 27,
+   "examined": 27,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C2",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Re-run walked all 27 cells. Dead ends/contradictions per path: new-user 1 (D5-s1-02; dashboard-card.md install section, automations.md, how-it-works.md, architecture.md, ecl110.md, CONTRIBUTING.md add 0); feature 5 (two-tank rule stated two ways, D5-s1-01; ECL110 stored-kind denial, D5-s1-02; how-it-works names a nonexistent Grid costs page, D5-s1-03; fee refusal contradiction, D5-s1-04; dashboard-card.md setup page and automations.md headroom example consistent with code paths read; capacity tariff in configuration.md 0: configuration.md 'Grid peak tariff' + 'Transfer fees and contract' DSO preset reached from README L940 table, every field's default matches const.DEFAULT_PEAK_TARIFF_*); developer 1 (docs/CONTRIBUTING.md never says how to run the tests nor links tests/README.md; README L1124 and architecture.md L420 do link it). C2: the six docs/img figure scripts are not `document` rows of outline, so no reader path walks them; recorded as examined by that check, not as reader text."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D5-s1-01",
+   "scope": "D5-s1",
+   "step": "D5.M1",
+   "title": "Two-tank reader path: setup.md and configuration.md state the activation rule differently, and neither matches the code",
+   "severity": "medium",
+   "claim": "A user configuring two-tank storage reads in docs/setup.md (Quick setup, 'Wood buffer tank' row) that a throttling mixing valve plus the wood-tank probes switch the two-tank physics on, with no mention of the two-zone condition; docs/configuration.md (layout catalog) says valve + two zones + the wood-tank TOP sensor ('the switch for the two-tank model'). The code (ThermalParameters.topology_layout) needs valve + two zones + a top OR bottom probe (and the wood furnace on). On a 16-cell grid, setup.md's rule disagrees with the model on 3 cells (every single-zone house with a valve and a probe: the doc promises two-tank physics, the model runs single_tank_valve), configuration.md's on 1 (bottom probe only: the model runs two_tank_4way, the doc says it does not). Quick setup's 'Two-zone house: no' answer writes two_zone_mode=off (quick_setup.py), so a Quick-setup reader reaches the 3-cell case directly.",
+   "evidence": [
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/two_tank_gate.py",
+     "harness_path": "dev/audit/rounds/round11/D5/s1/two_tank_gate.py",
+     "value": 3,
+     "unit": "cells (setup_md_mismatch)",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "orchestrator Mac (local seat B1), darwin",
+     "cpu_or_wall": "count",
+     "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+     "tolerance": "exact",
+     "load1": 215.89,
+     "thread_factor": 1.0
+    },
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/two_tank_gate.py",
+     "harness_path": "dev/audit/rounds/round11/D5/s1/two_tank_gate.py",
+     "value": 1,
+     "unit": "cells (configuration_md_mismatch)",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "orchestrator Mac (local seat B1), darwin",
+     "cpu_or_wall": "count",
+     "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+     "tolerance": "exact",
+     "load1": 215.89,
+     "thread_factor": 1.0
+    }
+   ],
+   "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.topology_layout (via ThermalParameters.from_config(...).two_tank_modelled)",
+   "perturbation": "--perturb patches ThermalParameters.topology_layout in memory to drop the two-zone condition (valve + probe -> two_tank_4way): setup_md_mismatch 3 -> 0, configuration_md_mismatch 1 -> 4 (executed).",
+   "metric_definition": "Cells of the 16-cell grid (two_zone_mode on/off x valve manual/none x wood probes none/top/bottom/both, wood furnace on) where a doc's stated activation rule disagrees with two_tank_modelled.",
+   "phenomenon_property": "Every reader doc that states when the two-tank model runs states the same rule as ThermalParameters.topology_layout / const.topology_layout_valid (valve, two zones, any wood-tank probe, wood furnace on).",
+   "seam_rule": "grep -n -i 'two-tank\\|two tanks\\|wood tank top sensor' README.md docs/*.md",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "docs/setup.md",
+    "docs/configuration.md"
+   ],
+   "proposed_fix_scope": "Docs only: state the one rule (valve + two zones + a wood-tank probe, top or bottom) in setup.md's Wood buffer tank row and configuration.md's layout catalog bullet and table; link setup.md to the catalog section."
+  },
+  {
+   "id": "D5-s1-02",
+   "scope": "D5-s1",
+   "step": "D5.M1",
+   "title": "README contradicts itself on the control paths: 'three paths' over a five-row table, and Known limitations denies the stored-parameter kind the table and options page offer",
+   "severity": "medium",
+   "claim": "README 'Supported heat pumps and controls' says control goes 'over three paths' (and 'the other two', 'all three' elsewhere) above a table of five rows. Its 'Known limitations' ECL110 bullet says 'an absolute or stored curve parameter is not supported in this version', while the same README's table row 'Heat-curve stored parameter (kind persistent)', its Removal section, docs/ecl110.md's 'Kind persistent' section and the options page (config_flow._OPTION_FIELDS selector for heat_curve_target_kind offers ['offset', 'persistent']) all support it. A reader checking limitations before installing is told a supported path does not exist.",
+   "evidence": [
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/control_paths.py",
+     "harness_path": "dev/audit/rounds/round11/D5/s1/control_paths.py",
+     "value": 1,
+     "unit": "kinds (denied_kinds)",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "orchestrator Mac (local seat B1), darwin",
+     "cpu_or_wall": "count",
+     "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+     "tolerance": "exact",
+     "load1": 204.94,
+     "thread_factor": 1.0
+    },
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/control_paths.py",
+     "harness_path": "dev/audit/rounds/round11/D5/s1/control_paths.py",
+     "value": 5,
+     "unit": "rows (readme_path_rows, vs 3 stated)",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "orchestrator Mac (local seat B1), darwin",
+     "cpu_or_wall": "count",
+     "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+     "tolerance": "exact",
+     "load1": 204.94,
+     "thread_factor": 1.0
+    }
+   ],
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:_OPTION_FIELDS (row for CONF_HEAT_CURVE_TARGET_KIND, built from const.HEAT_CURVE_TARGET_KINDS)",
+   "perturbation": "--perturb cuts const.HEAT_CURVE_TARGET_KINDS to ('offset',) before config_flow is imported: denied_kinds 1 -> 0 (executed).",
+   "metric_definition": "Heat-curve target kinds the production options selector offers that README's Known-limitations ECL110 bullet declares not supported.",
+   "phenomenon_property": "README's control-path count and its limitations agree with its own path table and with the kinds the options page offers.",
+   "seam_rule": "grep -n -E 'three paths|other two|all three|not supported' README.md",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "README.md"
+   ],
+   "proposed_fix_scope": "README only: make the paths count match the table (or regroup the three heat-curve rows as one path with kinds) and remove the 'stored curve parameter is not supported' clause from Known limitations."
+  },
+  {
+   "id": "D5-s1-03",
+   "scope": "D5-s1",
+   "step": "D5.M1",
+   "title": "how-it-works.md sends the reader to a 'Grid costs page' that does not exist",
+   "severity": "low",
+   "claim": "docs/how-it-works.md (The DSO transfer fee; Capacity (effekt) tariffs) twice says to configure fees and the tariff month/hour/weekday masks 'on the Grid costs page'. The options menu has no such page: the masks are on 'Grid peak tariff' and the transfer fee on 'Advanced settings -> Transfer fees and contract'. The same section also calls the whole-house meter a 'baseline load entity', while the field is labelled 'Whole-house power meter'. A feature reader following how-it-works cannot find the page by its name.",
+   "evidence": [
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/page_names.py",
+     "harness_path": "dev/audit/rounds/round11/D5/s1/page_names.py",
+     "value": 1,
+     "unit": "pages (missing_pages; 2 references)",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "orchestrator Mac (local seat B1), darwin",
+     "cpu_or_wall": "count",
+     "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+     "tolerance": "exact",
+     "load1": 265.64,
+     "thread_factor": 1.0
+    }
+   ],
+   "instrumented_symbol": "custom_components/heatpump_optimizer/translations/en.json:options.step.{init,advanced}.menu_options (the menu labels the options flow renders)",
+   "perturbation": "--perturb renames the grid_fees menu label to 'Grid costs' in memory: missing_pages 1 -> 0 (executed).",
+   "metric_definition": "Distinct '<Name> page' references in docs/how-it-works.md whose Name is not an options-menu label.",
+   "phenomenon_property": "Every options page a reader doc names is named by its rendered menu label.",
+   "seam_rule": "grep -n -E '(on|in) the [A-Z][^.]* page' README.md docs/*.md",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "docs/how-it-works.md"
+   ],
+   "proposed_fix_scope": "Docs only: name 'Grid peak tariff' and 'Advanced settings -> Transfer fees and contract'; call the meter 'Whole-house power meter'."
+  },
+  {
+   "id": "D5-s1-04",
+   "scope": "D5-s1",
+   "step": "D5.M1",
+   "title": "how-it-works.md says an over-bound transfer fee is 'flagged, not refused'; configuration.md and the options page refuse it",
+   "severity": "low",
+   "claim": "docs/how-it-works.md says a fee component above the plausibility bound (10 SEK/kWh) 'is flagged, not refused' and the plan runs on what you configured. docs/configuration.md's Time-of-use fee rules row says such a rate 'is refused when the page is saved', and the validator grid_fee.spec_problem returns grid_fee_rules_implausible for all three probes, the doc's own 100x-slip example (= 25) included. A capacity/fee reader gets opposite answers; the 'flagged' path holds only for values that bypass the page (a live sensor, a stored entry).",
+   "evidence": [
+    {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/fee_refusal.py",
+     "harness_path": "dev/audit/rounds/round11/D5/s1/fee_refusal.py",
+     "value": 3,
+     "unit": "rules refused of 3",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "orchestrator Mac (local seat B1), darwin",
+     "cpu_or_wall": "count",
+     "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+     "tolerance": "exact",
+     "load1": 276.54,
+     "thread_factor": 1.0
+    }
+   ],
+   "instrumented_symbol": "custom_components/heatpump_optimizer/grid_fee.py:spec_problem",
+   "perturbation": "--perturb patches grid_fee.fee_bound to inf: refused_rules 3 -> 0 (executed).",
+   "metric_definition": "Over-bound rule texts for which the options-page validator refuses the save.",
+   "phenomenon_property": "Each doc that says what happens to an over-bound fee distinguishes the page's refusal (rules) from the runtime flag (live sensor, stored values), as grid_fee does.",
+   "seam_rule": "grep -n -i 'refused\\|not refused\\|plausibility bound' README.md docs/*.md",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "docs/how-it-works.md"
+   ],
+   "proposed_fix_scope": "Docs only: say rules above the bound are refused on save; the repair-issue flag applies to a live fee sensor or a value stored before the check."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Capacity-tariff reader path: every default in configuration.md's Grid peak tariff table equals const (enabled off, 45/kW, 3 peaks, 60 min, months/hours empty, weekends off, off-peak 1.0, distinct days on).",
+   "command": "grep -n DEFAULT_PEAK_TARIFF custom_components/heatpump_optimizer/const.py",
+   "value": "9 of 9 match"
+  },
+  {
+   "claim": "README ECL110 section and docs/ecl110.md agree that ECL110 settings live only on the Heat curve control options page and that topics ship empty.",
+   "command": "sed -n 1088,1098p README.md; sed -n 80,90p docs/ecl110.md",
+   "value": "0 contradictions"
+  },
+  {
+   "claim": "Developer path from README resolves: README L1124 and docs/architecture.md L420 link tests/README.md, which exists.",
+   "command": "grep -n tests/README README.md docs/architecture.md; ls tests/README.md",
+   "value": "2 links, target present"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D5/s1/two_tank_gate.py",
+  "dev/audit/rounds/round11/D5/s1/control_paths.py",
+  "dev/audit/rounds/round11/D5/s1/page_names.py",
+  "dev/audit/rounds/round11/D5/s1/fee_refusal.py",
+  "dev/audit/rounds/round11/D5/s1/enum_m1.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "README.md",
+   "symbol": "Quick start 'Your first week' (L522)",
+   "what": "for D6: 'All 82 entities appear' -- verify against the entity setup count; the Entities headings list 62 sensors + 6 binary + 6 buttons + switches/climate/datetime."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "docs/configuration.md",
+   "symbol": "Wood tank top sensor row (L993)",
+   "what": "for D6: 'The switch for the two-tank model' -- thermal_model.from_config also enables it on the bottom probe alone (wood_tank_configured = top or bottom)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "docs/CONTRIBUTING.md",
+   "symbol": "page as a whole",
+   "what": "M2/M3 structure: the contributor page has no link to tests/README.md or any test command; a fork contributor told to 'add its failing test by editing an existing test script' has no route to how to run it."
+  }
+ ]
+}

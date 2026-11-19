@@ -1,0 +1,50 @@
+{
+  "id": "D14-s3-03",
+  "scope": "D14-s3",
+  "step": "D14.M4",
+  "title": "P10: the what-if's schedule pricing simulates reference days on the event loop; the replay barrier's DHW-only day never reaches it",
+  "severity": "medium",
+  "claim": "Replaying the owner's recorded day (tests/replay/owner-2026-10-30-away.json, 1 h) through the real coordinator runs 384 ThermalModel.simulate_step calls on the event loop -- all via coordinator.async_simulate(steady=True) -> whatif.schedule_days -> HeatPumpOptimizer.reference_day -> _compute_baseline_power, reached from the fuse advisor's cycle step -- while tests/replay.py's P10 barrier, which replays only synthetic-dhw-only.json, reads 0 on the loop.",
+  "mechanism": "async_simulate prices a schedule ask inline: whatif.schedule_days calls reference_day on both the live and the what-if optimizer in the coordinator's own coroutine, and each distinct day is simulated twice over a day of steps; every other model kernel of the what-if goes through _await_optimize/_await_off_loop. The same call is reached by the what-if service (services.py, steady=True), the power-cap price tiles and the fuse advisor. The barrier's single fixture has no fuse/power-cap configuration, so its loop count is structurally 0.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm owner-1h",
+    "harness_path": "dev/audit/rounds/round11/D14/s3/p10_routes.py",
+    "value": 384,
+    "unit": "model-kernel calls on the event-loop route over 2 replayed cycles (owner-1h_loop); 773 over 4 cycles on the 2 h arm",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU Linux container, /root/venv-ci python",
+    "cpu_or_wall": "count",
+    "contention_note": "counts are contention-immune; the loop CPU of those calls, 18.8 ms on this box at load1 10.9, is provisional",
+    "tolerance": "exact",
+    "load1": 10.93,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.simulate_step (counted by route via process_worker:run_worker and FakeHass.async_add_executor_job flags); site heatpump_optimizer.whatif:schedule_days / heatpump_optimizer.optimizer:HeatPumpOptimizer.reference_day",
+  "perturbation": {
+    "change": "P10_PERTURB_WHATIF=1: whatif.schedule_days returns None (no reference day priced)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Model-kernel calls made in the coordinator's interpreter outside process_worker.run_worker and outside any executor job, over a replayed fixture, counted once at the outermost kernel.",
+  "phenomenon_property": "No model kernel (ThermalModel.simulate_*, the sysid fit, a reference-day or baseline simulation) runs on the event loop on any path a configured install reaches -- the cycle, its advisors, the what-if service and the price tiles -- on every replay fixture, not only the DHW-only one.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py  (every arm: synthetic, synthetic-learner, synthetic-surfaces, owner, owner-learner, owner-1h; prints each loop/executor seam with its package stack)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm synthetic",
+    "value": 0,
+    "note": "the barrier's own fixture: 0 loop kernels (tests/replay.py --kernels base agrees, 8932 in the worker). The perturbed owner arm reads 0 too, so all 384 are this one seam."
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm owner-1h  -> owner-1h_loop=384, stack loop optimizer.py:_compute_baseline_power <- optimizer.py:reference_day <- whatif.py:schedule_days <- coordinator.py:async_simulate <- coordinator.py:_maybe_run_fuse_advisor",
+    "P10_PERTURB_WHATIF=1 ... --arm owner-1h -> 0",
+    "... --arm synthetic -> 0 (the barrier's fixture)"
+  ],
+  "proposed_fix_scope": "Run whatif.schedule_days's two reference_day calls through _await_off_loop (both optimizers and inputs are already picklable job arguments of _await_optimize); and widen tests/replay.py's P10 arm to every committed fixture (or a fixture with the fuse advisor and power-cap tiles on), so the barrier enumerates the seams a full install reaches.",
+  "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/whatif.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/replay.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P10"
+}

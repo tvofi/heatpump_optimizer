@@ -1,0 +1,5 @@
+{"class": "N-finally-return", "instances": 1, "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/finally_return_enum.py .",
+ "instance_list": [
+  {"file": "dev/archive/handoff/r9-f2-solver-4/mutation_proof.py", "symbol": "main", "probe": "patch sh() to raise KeyboardInterrupt and clean() to return False: main() returns 2 instead of propagating the interrupt (finally `return 2` at line 224 swallows it)", "beyond_finding": true}
+ ]}

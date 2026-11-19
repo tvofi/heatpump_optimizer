@@ -1,0 +1,56 @@
+{
+ "class": "N-duplicated-rule",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_sites.py | grep '^SITE duplication_copies'  (controls: dev/audit/rounds/round11/D14/sweep_n_duplicated_rule.py)",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/drift.py",
+   "symbol": "Cusum._note / power_guard.GuardState._note",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only note  (ARM admissible, dS +; reverted +0.0000)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/binary_sensor.py",
+   "symbol": "available (+climate.py, sensor.py available)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only avail  (ARM admissible, dS +; reverted +0.0000)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_step_index / _planned_room",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only step  (ARM admissible, dS +; reverted +0.0000)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "symbol": "observe_day / observe_day_quarters",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only day  (ARM admissible, dS +; reverted +0.0000)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_update_current_state / _update_external_heat_detection (InputReader built twice)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only reader  (ARM admissible, dS +; reverted +0.0000)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "_lm_solve / _slab_ua_profile_halfwidth",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only fdjac  (ARM admissible, dS +; reverted +0.0000)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/ledger.py",
+   "symbol": "add / observe_meta_mean",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only entry  (ARM admissible, dS +; reverted +0.0000)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "symbol": "check_overdue / check_mode_block",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only notice  (ARM admissible, dS +; reverted +0.0000)",
+   "beyond_finding": false
+  }
+ ]
+}

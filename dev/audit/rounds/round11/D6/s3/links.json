@@ -1,0 +1,32 @@
+{
+ "custom_components/heatpump_optimizer/translations/en.json#6c186549fc": {
+  "url": "https://developer.tibber.com",
+  "status": 200,
+  "verdict": "true"
+ },
+ "custom_components/heatpump_optimizer/translations/en.json#6c186549fc.1": {
+  "url": "https://developer.tibber.com",
+  "status": 200,
+  "verdict": "true"
+ },
+ "custom_components/heatpump_optimizer/translations/en.json#3cf872f82d": {
+  "url": "https://developer.tibber.com",
+  "status": 200,
+  "verdict": "true"
+ },
+ "custom_components/heatpump_optimizer/translations/en.json#6c186549fc.2": {
+  "url": "https://developer.tibber.com",
+  "status": 200,
+  "verdict": "true"
+ },
+ "custom_components/heatpump_optimizer/translations/en.json#3cf872f82d.1": {
+  "url": "https://developer.tibber.com",
+  "status": 200,
+  "verdict": "true"
+ },
+ "custom_components/heatpump_optimizer/config_flow.py#37565eb5f1": {
+  "url": "https://developer.tibber.com",
+  "status": 200,
+  "verdict": "true"
+ }
+}

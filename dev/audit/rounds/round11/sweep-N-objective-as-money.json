@@ -1,0 +1,8 @@
+{"class": "N-objective-as-money", "instances": 3, "barriered": false,
+ "enumerator": "python3 -I dev/audit/rounds/round11/D14/enum_objective_as_money.py",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/optimizer.py", "symbol": "space solve: baseline_cost/predicted_cost from energy_cost_of (L5602-5603)", "probe": "D2-s3-01 runner: price_risk_lambda=1 with unknown-horizon sigma -> savings inflated 12.46 currency; lambda=0 -> 0", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/dhw_planner.py", "symbol": "_baseline_dhw_economics baseline_cost/predicted_cost/dhw_cost (L519-524)", "probe": "combi/DHW solve with price_risk_lambda>0 and sigma on unknown steps: baseline_cost - predicted_cost differs from the same powers priced at raw prices", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/optimizer.py", "symbol": "_settle_horizon/_deferred_energy_cost/_start_gap_cost on h.prices (L6318-6355)", "probe": "deferred_cost with lambda>0 != deferred_cost recomputed on the unadjusted price series for the same end states", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/optimizer.py", "symbol": "OptimizationResult.prices=h.prices (L3869), read per step at L6581 and published", "probe": "result.prices[i] on an unpublished step equals raw mean + lambda*sigma, not the price the meter bills", "beyond_finding": true}
+ ]}

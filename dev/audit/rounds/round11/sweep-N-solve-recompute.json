@@ -1,0 +1,6 @@
+{"class":"N-solve-recompute","instances":1,"barriered":true,
+ "enumerator":"python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/enumerate.py (controls: --controls)",
+ "instance_list":[
+  {"file":"custom_components/heatpump_optimizer/coordinator.py","symbol":"HeatPumpOptimizerCoordinator.async_diagnose_interval","probe":"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s1/h_diagnose_refresh.py","beyond_finding":false},
+  {"file":"custom_components/heatpump_optimizer/button.py","symbol":"RunOptimizationButton.async_press","probe":"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/probe_run_button.py","beyond_finding":true}
+ ]}

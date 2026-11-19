@@ -1,0 +1,40 @@
+{
+  "id": "D5-s2-03",
+  "scope": "D5-s2",
+  "step": "D5.M3",
+  "title": "No reader doc states the basis of the identification heat-loss figure; it sits 18.9 % below heat_loss_w_per_k",
+  "severity": "low",
+  "claim": "The Learning Model Status sensor publishes two heat-loss figures on different bases (heat_loss_w_per_k on the effective loss house_heat_loss_base x scale; system_identification.heat_loss_kw_per_c on the configured zone total U+L), and of the 5 reader-document units that describe the identification loss coefficient none states its basis, although on the two-zone test profile with a learned lower-floor ratio of 1.4 the two bases differ by 18.9 %.",
+  "mechanism": "sysid:_zone_heat_loss returns upper_floor_heat_loss + lower_floor_heat_loss (configured), while thermal_model:ThermalParameters.house_heat_loss_base uses lower_floor_heat_loss_learned; payload.py and sysid.py comments name the basis, but README.md (Learning Model Status row, line 623) and docs/how-it-works.md 'Active system identification' (lines 1197-1265) speak of 'the loss coefficient' with no basis, so a reader comparing the identification figure with the W/K figure on the same sensor sees an unexplained gap.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/basis.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s2/basis.py",
+    "value": "basis_gap_pct=18.9; sysid_loss_units=5; basis_stated=0",
+    "unit": "% and count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+    "cpu_or_wall": "ratio",
+    "contention_note": "box heavily loaded (load1 ~150); ratio and counts are contention-immune",
+    "tolerance": "exact (0.1 %)",
+    "load1": 148.94,
+    "thread_factor": 0.997
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.house_heat_loss_base and custom_components/heatpump_optimizer/sysid.py:_zone_heat_loss",
+  "perturbation": {
+    "change": "--doc-fix: one sentence naming the basis (configured zone total vs heat_loss_w_per_k's effective loss) added in memory to how-it-works.md's identification section",
+    "expected_direction": "up",
+    "observed_value": "basis_stated 0 -> 1"
+  },
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/basis.py --ratio 1.0",
+    "value": "basis_gap_pct=0.0",
+    "note": "with the lower-floor ratio at 1 the two bases coincide and the missing statement costs the reader nothing; the gap is the learned split's"
+  },
+  "metric_definition": "Relative gap (effective - zone_total)/zone_total of the two published heat-loss bases on the two-zone profile; count of identification heat-loss units in README+docs stating a basis.",
+  "phenomenon_property": "Every reader-document unit that describes a published figure with more than one possible basis (configured vs effective heat loss) states which basis it is on.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/basis.py  (names/states lines)",
+  "stop_rule_class": "hygiene",
+  "class_guess": "I5",
+  "files": ["docs/how-it-works.md", "README.md"],
+  "proposed_fix_scope": "One sentence in how-it-works.md 'Active system identification' (and the README Learning Model Status row) saying the identification loss coefficient is on the configured zone total U+L and reads below heat_loss_w_per_k (the effective loss) once the learned lower-floor ratio leaves 1. For D6: the sentence's truth against sysid.py."
+}

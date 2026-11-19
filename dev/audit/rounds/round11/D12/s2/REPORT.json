@@ -1,0 +1,175 @@
+{
+  "dimension": "D12",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "report_path": "dev/audit/rounds/round11/D12/s2/REPORT.md",
+  "exposure": "While tracing the history of one line (thermal_model.py's two-zone rule, found by the M2 grid first), I diffed that one file against the git object of the baseline SHA in /home/user/heatpump_optimizer. The export differs from the SHA at three lines of thermal_model.py: 1122 (the two-zone rule this finding measures), 1473 (declared_modulation) and 3391 (the Carnot flow factor). I diffed no other file. The finding was measured before the diff, by the grid. The other two lines are in other seats' cells and are passed on as leads only, without numbers. The export also holds macOS AppleDouble files that are not in `git ls-tree` of the SHA (translations/._de.json, www/._heatpump-optimizer-card.js), and enumerate.py lists them as cells.",
+  "coverage": [
+    {
+      "step": "D12.M2",
+      "enumerator": "python3 tools/audit/enumerate.py d12-cells | grep -E '^level (CONF_|layout=|mixing_valve_mode=|valve_write_target=|two_zone_mode=|combi_tank=|space_setpoint_unit=|wood_type=|wood_packing=|pump_duty_mode=|heat_curve_target_kind=|grid_fee_mode=|solar_source=|price_source=)'",
+      "universe": 133,
+      "examined": 131,
+      "not_reached": [
+        "level price_source=tibber",
+        "level solar_source=open_meteo"
+      ],
+      "redispatched": [
+        {
+          "item": "C1",
+          "state": "examined"
+        }
+      ],
+      "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 [--perturb two_zone] -> dev/audit/rounds/round11/D12/s2/out/grid_baseline.txt and grid_perturbed.txt. Each entity slot is driven absent (REF less the slot) and present (MIN plus the slot and its feature switch) through the coordinator constructor, one full _async_update_data cycle with the real solver, all six platforms' async_setup_entry and every entity property. C1: layout=valve_upper_direct_slab (no-wood two-zone valve plant) and an explicit layout=two_tank_4way are honoured by describe_setup and the model; slab_shunt falls back to the derived default. mixing_valve_mode=manual and smart_write ran with plans published. All checked by cells.py invented() #6. Not reached (stub gap: tests/hastub has no HTTP session, so the cycle stops at the network fetch with UpdateFailed before the bar's plan step; setup completed): price_source=tibber, solar_source=open_meteo."
+    },
+    {
+      "step": "D12.M4",
+      "enumerator": "python3 tools/audit/enumerate.py d12-cells",
+      "universe": 203,
+      "examined": 199,
+      "not_reached": [
+        "level price_source=tibber",
+        "level solar_source=open_meteo",
+        "level ha_version_floor=2025.2.0",
+        "level ha_version_typed=2026.11.1"
+      ],
+      "redispatched": [],
+      "evidence": "194 level cells through the usable bar (setup, cycle, plan or named refusal, entities, invent) in dev/audit/rounds/round11/D12/s2/cells.py --m4: 61 fail at baseline and 0 under --perturb two_zone, with 6 named refusals in both arms. 7 surface cells (5 blueprints, 2 card files) in dev/audit/rounds/round11/D12/s2/surfaces.py on MIN and REF: 0 dangling blueprint ids, card pages render on both plants, and the AppleDouble ._card.js fails to load (an export artefact, not baseline). Not reached: the tibber and open_meteo cells (stub gap: tests/hastub has no HTTP session, so the cycle stops at the network fetch with UpdateFailed before the bar's plan step; setup completed), and the two ha_version cells (the stub cannot run another Home Assistant version)."
+    }
+  ],
+  "unfinished": [
+    {
+      "step": "D12.M2",
+      "what": "price_source=tibber and solar_source=open_meteo: the usable bar past the network fetch needs an HTTP double (aiohttp session) in tests/hastub or the harness"
+    },
+    {
+      "step": "D12.M4",
+      "what": "the tibber and open_meteo cells (same stub gap); ha_version_floor=2025.2.0 and ha_version_typed=2026.11.1 need a real Home Assistant install of each version, which the stub cannot provide"
+    }
+  ],
+  "findings": [
+    {
+      "id": "D12-s2-01",
+      "scope": "D12-s2",
+      "step": "D12.M2",
+      "title": "two_zone_mode 'auto' (the default) forces the two-zone model on every one-zone install, ignoring its heat-loss figure",
+      "severity": "high",
+      "claim": "On every install that configures no lower-floor sensor, no zone key and no explicit two_zone_mode, ThermalParameters.from_config enables the two-zone model, so the coordinator plans a lower zone the config never gave it and plans the same energy whatever single-zone heat-loss figure the user entered (20.511 kWh at 0.10 and at 0.30 kW/K).",
+      "mechanism": "thermal_model.ThermalParameters.from_config: `if two_zone_mode in (const.TWO_ZONE_MODE_ON, const.DEFAULT_TWO_ZONE_MODE): two_zone_enabled = True`. DEFAULT_TWO_ZONE_MODE is 'auto', and a missing key also defaults to 'auto', so 'auto' is treated as 'on'. The presence rule the comment above it says 'auto' means sits in the else-branch, which only an unknown value can now reach. With two zones on, the options flow hides house_heat_loss_coefficient (it is gated `_single_zone`), and the model uses the upper/lower defaults 0.08 + 0.07 = 0.15 kW/K. The setup diagram (describe_setup) and the card's setup page then draw a 'Lower floor' box (2 on the minimal plant).",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py",
+        "harness_path": "dev/audit/rounds/round11/D12/s2/two_zone_auto.py",
+        "value": 47,
+        "unit": "cells of 47 one-zone M2 cells publishing two_zone_enabled=True",
+        "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+        "machine": "box B5 (shared), Linux x86_64, $HOME/venv-ci CPython",
+        "cpu_or_wall": "count",
+        "contention_note": "two other D12-s2 processes on the box; counts are contention-immune",
+        "tolerance": "exact",
+        "load1": 2.16,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalParameters.from_config (read through HeatPumpOptimizerCoordinator._async_update_data's published two_zone_enabled and schedule)",
+      "perturbation": {
+        "change": "--perturb: from_config is handed an absent/'auto' two_zone_mode as a value outside (on, auto, off), so its own presence-rule else-branch decides. This is equivalent to the one-line edit `if two_zone_mode == const.TWO_ZONE_MODE_ON:`",
+        "expected_direction": "to_zero",
+        "observed_value": "invented_zone_cells 47 -> 0; heat_loss_response_kwh 0.000 -> 32.794 (12.008 vs 44.802 kWh); published heat loss 0.15/0.15 -> 0.10/0.30; card setup page Lower-floor boxes on the minimal plant 2 -> 0 (surfaces.py); full M2+M4 grid (cells.py --m4): fail_cells 61 -> 0 (out/grid_baseline.txt vs out/grid_perturbed.txt). All 61 failures are this invention: the 47 one-zone entity 'present' cells plus the 14 building-questionnaire cells (structure/foundation/era/emitter), whose preset_from_config reads the same predicate and then writes zone keys."
+      },
+      "metric_definition": "Count of M2 cells with no lower-floor sensor, zone key or mode=on whose cycle publishes two_zone_enabled=True (plus |space kWh at heat loss 0.30 - 0.10| on MIN)",
+      "phenomenon_property": "Two-zone modelling turns on only when the config asks for it (mode on, or mode auto/absent with a zone key or lower-floor sensor present). A one-zone install's single-zone heat-loss and mass reach the model.",
+      "seam_rule": "python3 tools/audit/enumerate.py d12-cells | grep -E '^level (CONF_|two_zone_mode=)'  # every cell; plus: grep -n 'DEFAULT_TWO_ZONE_MODE' custom_components/heatpump_optimizer/*.py",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py [--perturb]",
+        "value": "null_ref_two_zone=1 under both arms",
+        "note": "The fully mapped reference plant (lower-floor sensor, zone keys, mode on) is two-zone under both arms, so the perturbation removes only invented zones. The surfaces.py reference card draws 5 Lower-floor boxes under both arms. On the grid, the other 133 of 194 cells pass the bar under both arms (6 of them as named refusals)."
+      },
+      "leave_one_out": {
+        "cells": 47,
+        "min": 1,
+        "max": 1,
+        "drop_most_favourable": 46
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py  -> invented_zone_cells=47, heat_loss_response_kwh=0.000",
+        "... two_zone_auto.py --perturb -> invented_zone_cells=0, heat_loss_response_kwh=32.794",
+        "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/surfaces.py [--perturb two_zone] -> card_lower_zone_min 2 -> 0",
+        "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 [--perturb two_zone] -> RESULT fail_cells=61 / 0 of 194"
+      ],
+      "proposed_fix_scope": "thermal_model.ThermalParameters.from_config: let 'auto' and an absent key reach the presence rule (compare with TWO_ZONE_MODE_ON only). Then re-check the options-flow `_single_zone` gate and the golden coord_minimal/coord_dhw fixtures, which were recorded as two-zone.",
+      "files": [
+        "custom_components/heatpump_optimizer/thermal_model.py"
+      ],
+      "expected_golden_drift": [
+        "coord_minimal",
+        "coord_dhw",
+        "coord_grid_fee",
+        "coord_all_features"
+      ],
+      "stop_rule_class": "bug",
+      "class_guess": "new"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "With the two-zone invention removed, every M2 and M4 level cell passes the usable bar: setup, one full cycle, a plan or a named refusal, every entity property evaluating, no actuation of an unconfigured entity, no DHW power without a tank, no PV self-consumption with PV off, no available reading for an unmapped thermometer, and a stored layout honoured",
+      "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 --perturb two_zone",
+      "value": "fail_cells=0 of 194; refusal_cells=6"
+    },
+    {
+      "claim": "Every optional entity omitted from the fully mapped plant (48 absent cells) leaves setup, cycle, plan and entities intact. An unmapped buffer, DHW, lower-floor or floor-return probe's sensor reports unavailable (the payload still carries the model state, e.g. buffer 40.0 and DHW 55.0, but the entity is not available)",
+      "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --cells '*=absent'",
+      "value": "48 of 48 ok (in out/grid_baseline.txt)"
+    },
+    {
+      "claim": "C1: a stored topology_layout is honoured when valid (no_valve, single_tank_valve, two_tank_4way, valve_upper_direct_slab) and slab_shunt falls back to the derived default; mixing_valve_mode none/manual/smart_read/smart_write all publish a plan",
+      "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --cells 'level layout=*' ; --cells 'level mixing_valve_mode=*'",
+      "value": "9 of 9 ok"
+    },
+    {
+      "claim": "Fixed operation modes comfort/boost/off publish no schedule but name it (optimization_status='not_run'), and an absent price entity raises a named UpdateFailed ('Price entity is empty'): named refusals, not crashes",
+      "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 --cells 'level operation_mode=*'",
+      "value": "3 named refusals, 2 ok"
+    },
+    {
+      "claim": "Unit variants (power 4, energy 3, flow 8, temperature 7), languages en/de/sv and all 8 price shapes and 5 climates pass the usable bar on the reference plant",
+      "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4",
+      "value": "38 of 38 ok (out/grid_baseline.txt)"
+    },
+    {
+      "claim": "Every blueprint's default entity id is built on both the minimal and the fully mapped plant, and the card loads and renders inline, plan, savings, advisor, health and setup on both",
+      "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/surfaces.py",
+      "value": "blueprint dangling 0/0; card bad_pages [] on min and ref"
+    }
+  ],
+  "harnesses": [
+    "dev/audit/rounds/round11/D12/s2/cells.py",
+    "dev/audit/rounds/round11/D12/s2/two_zone_auto.py",
+    "dev/audit/rounds/round11/D12/s2/surfaces.py",
+    "dev/audit/rounds/round11/D12/s2/card_surface.mjs"
+  ],
+  "leads": [
+    {
+      "owner_seat": "D12-s3",
+      "file": "custom_components/heatpump_optimizer/thermal_model.py",
+      "symbol": "declared_modulation",
+      "what": "Returns True (modulating) for compressor_modulation='on_off', where its docstring says on_off -> False. levels_clamped and duty_cycle_realizable then treat a declared on/off compressor as modulating. On the minimal plant clamp_planned_levels was False for auto, on_off and modulating alike, so a plant where the probe says it cannot duty-cycle is needed to show the effect."
+    },
+    {
+      "owner_seat": "D2-s2",
+      "file": "custom_components/heatpump_optimizer/thermal_model.py",
+      "symbol": "flow-temperature COP factor (return max(0.25, carnot_ref / carnot_flow))",
+      "what": "The factor is the reference Carnot COP over the flow one. If flow > reference that ratio exceeds 1, so a hotter flow would raise COP; D2.M2 asks for COP monotone in flow temperature. Not measured here."
+    },
+    {
+      "owner_seat": "D2-s1",
+      "file": "custom_components/heatpump_optimizer/presets.py",
+      "symbol": "_ERA_LOSS_W_PER_M2K",
+      "what": "low_energy is 0.85 W/m2K, above post_2005 (0.55) and 1980_2005 (0.80). derive() gives low_energy house_heat_loss_coefficient 0.119 against post_2005 0.077 (executed in my session, not in a committed harness)."
+    },
+    {
+      "owner_seat": "unknown",
+      "file": "custom_components/heatpump_optimizer/translations/._de.json",
+      "symbol": "tests/harness.py:SHIPPED_LANGS; tools/audit/enumerate.py:d12",
+      "what": "The seat export carries macOS AppleDouble files not in the baseline's git tree (._de.json, www/._heatpump-optimizer-card.js). SHIPPED_LANGS globs translations/*.json and enumerate.py lists both as cells, so instruments run on the export count a '._de' language and a card file that fails to load ('Invalid or unexpected token')."
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "D11-s3-03",
+  "scope": "D11-s3",
+  "step": "D11.M4",
+  "title": "policy_lint --hooks accepts a wired hook neutered to `exit 0`: it reads the self-test's exit status, never its tally",
+  "severity": "medium",
+  "claim": "Inserting `exit 0` as line 2 of any of the four hooks .claude/settings.json wires (pre-bash, pre-edit, session-start, stop-selfcheck) makes the hook refuse nothing and its --self-test print nothing, yet tools/policy/policy_lint.mjs:cmdHooks reports it `ok` and prints `HOOKS ok: 4 wired hook(s) exist and pass their own --self-test` (4 of 4 neutered arms accepted), while gutting only the hook's refusal exit is refused (3 of 3).",
+  "mechanism": "cmdHooks sets `verdict: code === 0 ? 'ok' : 'SELF-TEST FAILED'` from execFileSync('bash', [script, '--self-test']) and only prints the output's last line as `why`; an empty self-test exits 0. Every wired hook's self-test ends `printf '\\n%s passed, %s failed\\n'`, so the tally is available and unread. governance.yml (policy-docs) and prepr.sh's `hooks` step both run this check; it is the only CI read of the hooks.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/hooks_arms.py",
+    "harness_path": "dev/audit/rounds/round11/D11/s3/hooks_arms.py",
+    "value": 4,
+    "unit": "neutered hooks (of 4 wired) cmdHooks reports ok (gap_noop_accepted); control_refused=3 of 3, null_ok=4",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU container",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, other seats running; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 9.62,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/policy/policy_lint.mjs:cmdHooks",
+  "perturbation": {
+    "change": "cmdHooks: `verdict: code === 0 ? 'ok'` -> `verdict: code === 0 && /^[1-9]\\d* passed, 0 failed$/.test(tail) ? 'ok'` (harness --perturb, in a private worktree)",
+    "expected_direction": "to_zero",
+    "observed_value": "gap_noop_accepted 4 -> 0; null_ok stays 4; control_refused stays 3"
+  },
+  "metric_definition": "Count of wired hooks whose `exit 0`-neutered copy policy_lint.mjs --hooks reports with verdict `ok`.",
+  "phenomenon_property": "A hook passes the hooks check only when its self-test demonstrably ran cases (a non-zero passed count and zero failed), so a hook that refuses nothing cannot read as wired and tested.",
+  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/hooks_arms.py (its gap_<hook>_noop lines; the hooks are those .claude/settings.json wires)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/hooks_arms.py",
+    "value": "null 4 of 4 ok; control_<hook>_decision_gutted refused 3 of 3 (pre-bash, pre-edit, stop-selfcheck)",
+    "note": "the controls show cmdHooks alive on a hook whose self-test runs and fails; only the self-test that runs nothing passes. Driven by hand too: `sed -i '1a exit 0' .claude/hooks/pre-bash.sh; node tools/policy/policy_lint.mjs --hooks` in a worktree printed `ok ... pre-bash.sh` with an empty why and rc=0."
+  },
+  "reproduction_steps": [
+    "git worktree add --detach $T/wt HEAD; cd $T/wt; sed -i '1a exit 0' .claude/hooks/pre-bash.sh",
+    "node tools/policy/policy_lint.mjs --hooks  -> `ok PreToolUse .claude/hooks/pre-bash.sh` (blank), `HOOKS ok: 4 wired hook(s) ...`, rc 0"
+  ],
+  "proposed_fix_scope": "tools/policy/policy_lint.mjs cmdHooks: require the tail to match `<n> passed, 0 failed` with n >= 1 (one line), plus a fixtures/policy-rot/hooks case whose self-test exits 0 silently, beside always-fails.sh. Mechanisation (D11.M5): already mechanical; the fix is one condition, about 0 s per merge, no policy line.",
+  "files": ["tools/policy/policy_lint.mjs", "tools/policy/fixtures/policy-rot/hooks/"],
+  "stop_rule_class": "bug",
+  "class_guess": "I1"
+}

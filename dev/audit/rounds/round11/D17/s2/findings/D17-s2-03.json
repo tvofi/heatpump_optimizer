@@ -1,0 +1,44 @@
+{
+ "id": "D17-s2-03",
+ "scope": "D17-s2",
+ "step": "D17.M3",
+ "title": "Quick setup's wood furnace and wood-tank probe change nothing in the plan of the plant quick setup creates",
+ "severity": "medium",
+ "claim": "On an entry made by quick setup with wood furnace and wood buffer tank answered yes and the top probe picked, the planned energy is identical with the furnace on or off and the probe at 85 or 35 C, because the two-tank model also requires a throttling mixing valve the quick path never asks for.",
+ "mechanism": "ThermalParameters.topology_layout returns no_valve whenever mixing_valve_mode is not throttling, so wood_tank_configured (the probe) never selects two_tank_4way; the external-heat detector is enabled only by the separate options switch external_heat_detection_enabled (default False), so 'stand the pump down while the fire is lit' never happens either. quick_setup._quick_setup_schema's docstring calls the probes 'the two-tank model's own gate'. Grid cells (4, printed individually by the harness, below the five-cell leave-one-out threshold): all four 21.6738 kWh; leave-one-out spread 0.0.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/wood_quick.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s2/wood_quick.py",
+  "value": 0.0,
+  "unit": "kWh spread of planned space energy over furnace{on,off} x probe{85,35} C on the quick-setup entry",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+  "tolerance": "1e-6",
+  "load1": 3.1,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.topology_layout",
+ "perturbation": {
+  "change": "config: the same quick-setup entry with options mixing_valve_mode=smart_write (a throttling valve) stored",
+  "expected_direction": "up",
+  "observed_value": "valve_arm_plan_kwh_spread=11.805 kWh (furnace on, probe 85 C: 5.65 kWh vs probe 35 C: 14.90 kWh)"
+ },
+ "metric_definition": "Max-min of planned space kWh over the 2x2 grid furnace{on,off} x wood-probe{85,35} C on an entry created by the quick-setup path.",
+ "phenomenon_property": "A wood furnace answered yes with a probe assigned on quick setup changes the plan with the wood tank's heat (or the page says what else it needs), on the plant topology quick setup produces.",
+ "seam_rule": "grep -n \"wood_tank_configured\\|two_tank_modelled\\|topology_layout\" custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/wood_quick.py",
+  "value": "valve_arm_plan_kwh_spread=11.805",
+  "note": "the identical harness sees the probe move the plan once a valve exists"
+ },
+ "proposed_fix_scope": "quick_setup (ask for the valve, or enable detection with wood_furnace) or strings.json quick_setup wood_* descriptions naming the valve condition as buffer_tank's already does.",
+ "files": [
+  "custom_components/heatpump_optimizer/quick_setup.py",
+  "custom_components/heatpump_optimizer/thermal_model.py",
+  "custom_components/heatpump_optimizer/strings.json"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P2"
+}

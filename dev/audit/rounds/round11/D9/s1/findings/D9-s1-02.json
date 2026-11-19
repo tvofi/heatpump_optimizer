@@ -1,0 +1,57 @@
+{
+ "id": "D9-s1-02",
+ "scope": "D9-s1",
+ "step": "D9.M1",
+ "title": "Background what-if solves stack onto the main solve with no per-cycle budget; the fuse-advisor cycle fails B1 by 1.6x",
+ "severity": "low",
+ "claim": "With price tiles and the fuse advisor on, async_run_optimization runs the fuse what-if plus its steady pair (3 full solves) and the price tile (1 or 3) serially after the main solve in the same cycle, with no per-cycle budget. On an install that prices duty switches, the cycle that carries the fuse advisor reaches 690 reference solves of solver CPU against B1's 430 (quiet window; 793 against 388 at load1 6.4). The main solve alone peaks at 301.",
+ "mechanism": "coordinator.py async_run_optimization tail: _best_effort_cycle_step(_maybe_run_fuse_advisor) -> async_simulate(steady=True) -> _await_optimize + whatif.steady_pair (two _held_solve) ; _best_effort_cycle_step(_maybe_refresh_price_tile) -> async_simulate (steady for the cap tile). Each is a full solve of the same configuration as the main one, so its cost scales with the main solve's (2-3x when cycling_cost > 0 and a duty-switch stop is learned), and nothing bounds, defers or spreads them by the cycle's CPU already spent.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s1/h_solves_per_cycle.py --cycles 12 --arms duty,tiles_fuse_duty",
+  "harness_path": "dev/audit/rounds/round11/D9/s1/h_solves_per_cycle.py",
+  "value": 690.5,
+  "unit": "reference solves of solver thread CPU in the worst cycle (tiles_fuse_duty, cycle 0: main + fuse advisor + steady pair + price tile); B1 = 60 Pi-s = 429.6 reference solves at F=5 and reference 27.9 ms",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B1 container (4 vCPU, shared by three seats), CPython 3.14, OpenBLAS pinned to 1 thread",
+  "cpu_or_wall": "cpu",
+  "contention_note": "quiet window (load1 1.2, out/spc3.txt). Loaded runs (load1 6.4-8.7, out/spc1.txt and out/spc2.txt) read 793-806 ref solves with 5-7 of 12 cycles over; quiet reads 1 of 12 over (the fuse-advisor cycle). Provisional until the judge's quiet re-run.",
+  "tolerance": "\u00b115 % (worst cycle 19.29 / 24.54 / 26.77 s host over three runs, 690-806 ref solves)",
+  "load1": 1.18,
+  "thread_factor": 1.0,
+  "provisional": true
+ },
+ "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize (entries) and heatpump_optimizer.optimizer:optimize_in_process (thread CPU per job, tagged at heatpump_optimizer.coordinator:_await_process by the submitting coroutine: async_run_optimization / _maybe_run_fuse_advisor / steady_pair / _maybe_refresh_price_tile)",
+ "perturbation": {
+  "change": "price_tiles_enabled True -> False and main_fuse_amperes 20 -> 0 on the same priced-switch install (arm tiles_fuse_duty -> arm duty)",
+  "expected_direction": "down",
+  "observed_value": "quiet: worst cycle 690.5 -> 301.2 reference solves; cycles over B1 1 -> 0; msm entries per cycle max 14 -> 4 (out/spc3.txt). Loaded: 792.8 -> 376.5, 5 -> 0 (out/spc2.txt)."
+ },
+ "metric_definition": "Sum over one _async_update_data of the thread CPU of every optimize_in_process job it submits, divided by tests/stress.py:reference_solve's CPU; B1 bound = 60 s / (F=5 x reference).",
+ "phenomenon_property": "A cycle's total solver CPU (main solve plus every background what-if it triggers) stays within B1 whatever optional advisors are on; background what-if solves are budgeted against the CPU the cycle already spent, not run unconditionally after it.",
+ "seam_rule": "grep -n 'async_simulate(' custom_components/heatpump_optimizer/coordinator.py  # the background callers inside the cycle (_maybe_run_fuse_advisor, _maybe_refresh_price_tile) and whatif.steady_pair's two _held_solve",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s1/h_solves_per_cycle.py --cycles 12 --arms default,duty,tiles_fuse_duty",
+  "value": "duty arm (same install, no background what-ifs): worst cycle 301.2 ref solves, 0/12 over B1 (quiet). Default arm: 140.4, 0/12. tiles_fuse without duty pricing: worst 36.6 Pi-s, 0/12.",
+  "note": "the effect vanishes when the background what-ifs are off, so the overrun is the stacking, not the main solve"
+ },
+ "leave_one_out": {
+  "cells": 12,
+  "min": 135.0,
+  "max": 690.5,
+  "drop_most_favourable": 422.9
+ },
+ "reproduction_steps": [
+  "Run the command; read tiles_fuse_duty.cycle_max_ref_solves, .cycle_max_drop1_ref_solves, .cycles_over_b1_by_ref and b1_budget_ref_solves; compare duty.* (the perturbed arm).",
+  "Per-cycle series: tiles_fuse_duty.cpu_series_s against .main_cpu_series_s gives the background share per cycle (quiet cycle 0: 19.29 s total, 2.76 s main).",
+  "Leave-one-out over the 12 cycles (reference solves, quiet): min 3.77 s/27.93 ms = 135. Dropping the worst cycle leaves 422.9, just under B1's 429.6. The overrun is the cycle that carries the fuse advisor (weekly) on top of a tile and the main solve; the stacking itself (background share 2-17 s per cycle) is in every tile cycle."
+ ],
+ "proposed_fix_scope": "coordinator.py async_run_optimization's background tail: run at most one background what-if solve per cycle (fuse advisor and price tile alternate, steady pair spread over later cycles), or skip/defer them when the cycle's main solve already spent more than a share of B1; a stress-style check over the tiles+fuse+duty install.",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/whatif.py",
+  "custom_components/heatpump_optimizer/price_tiles.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

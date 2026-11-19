@@ -1,0 +1,33 @@
+{
+ "id": "D13-s3-01",
+ "scope": "D13-s3",
+ "step": "D13.M4",
+ "title": "dora_keys.cfr_keyings exclusion is inert: `record` never equals the check-run name `governance / record`",
+ "severity": "medium",
+ "claim": "dora_keys.cfr_keyings drops an exclusion key only when it equals the full check-run name (`names - drop`). Since the layout cut-over every governance job reports as `<unit> / <job>`, so cfr_exclusions.json's only key `record` matches nothing: over the window's 271 merges cfr_merge_keyed equals cfr_merge_unexcluded (0.808, delta 0.0), while keying the same list on the job id drops the 3 merges whose only red is `governance / record` (0.797, delta 0.011). The brief's own control -- one job added to the exclusion list moves the rate by exactly that job's count -- fails on the instrument: --exclude record leaves the instrument's rate at 0.808.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+  "harness_path": "dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+  "value": 0.0,
+  "unit": "cfr_raw_excl_delta_merge (rate delta the exclusion buys in dora_keys.cfr_keyings); job-keyed delta 0.011 (3 merges)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B8 (light seat), Linux 6.18.44 container; network-bound, GitHub-reported durations and counts",
+  "cpu_or_wall": "ratio",
+  "contention_note": "shared box during fan-out; the number is a count / GitHub-reported duration, contention-immune",
+  "tolerance": "exact",
+  "load1": 2.04,
+  "thread_factor": 1.009
+ },
+ "instrumented_symbol": "dev/audit/rounds/round4/D11/dora_keys.py:cfr_keyings (with :load_exclusions and :latest_by_name), driven on the window's live check-run listings",
+ "perturbation": "`--exclude 'governance / record'` (the full name as a key, in memory): cfr_raw_excl_delta_merge moves 0.0 -> 0.011 (up, by exactly the 3 merges); `--exclude record` leaves it at 0.0 while cfr_job_excl_delta_merge reads 0.011",
+ "metric_definition": "cfr_raw_excl_delta_merge = dora_keys.cfr_keyings(...)['merge_unexcluded'] - ['merge_keyed'] over the window's 271 first-parent merges, latest run per check-run name at the merge commit",
+ "phenomenon_property": "An exclusion key removes a check run from the change-failure rate exactly when it equals the job id the run's name carries, whatever `<unit> / ` prefix or ` (<matrix leg>)` suffix the name has",
+ "seam_rule": "grep -nE 'names - drop|name in names|in excl' dev/audit/rounds/round4/D11/dora_keys.py",
+ "stop_rule_class": "bug",
+ "class_guess": "N-vocabulary-drift",
+ "files": [
+  "dev/audit/rounds/round4/D11/dora_keys.py",
+  "dev/governance/config/cfr_exclusions.json"
+ ],
+ "proposed_fix_scope": "key the exclusion comparison in cfr_keyings on the job id (strip the unit prefix and matrix leg, as governance_cost.bare does) and pin it with a unit-prefixed name; S"
+}

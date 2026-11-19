@@ -1,0 +1,75 @@
+
+=== Stress and economics ===
+ARM clean: solves/cycle 2.00 payload 89220 B retained growth 9136 B/cycle yields/cycle 406.7
+ARM solves2x: solves/cycle 4.00 payload 89270 B retained growth 7617 B/cycle yields/cycle 884.7
+ARM payload2x: solves/cycle 2.00 payload 177853 B retained growth 5311 B/cycle yields/cycle 534.3
+ARM retain: solves/cycle 2.00 payload 89204 B retained growth 213862 B/cycle yields/cycle 534.3
+ARM noyield: solves/cycle 2.00 payload 89204 B retained growth 6873 B/cycle yields/cycle 534.3
+RESULT clean_solves_per_cycle=2.00 solves
+RESULT clean_payload_bytes=89220 bytes
+RESULT clean_retained_growth=9136 bytes/cycle
+RESULT clean_yields_per_cycle=406.7 calls
+GATE clean winter/1z/space: evals 42/42 simulate 131232/131232 calls 8/8 traced 1.072/1.072 MiB
+GATE clean winter/1z/dhw: evals 52/52 simulate 185426/185426 calls 8/8 traced 3.259/3.259 MiB
+GATE clean winter/2z/dhw: evals 820/820 simulate 3696722/3696722 calls 8/8 traced 3.263/3.263 MiB
+GATE clean heavy_old/shoulder: evals 864/864 simulate 3640369/3640369 calls 10/10 traced 3.240/3.240 MiB
+GATE clean winter/cycle: evals 1024/1024 simulate 4328594/4328594 calls 11/11 traced 3.242/3.242 MiB
+RESULT clean_gate_evals_max_dev=0.0000 ratio
+RESULT clean_gate_simulate_max_dev=0.0000 ratio
+RESULT clean_gate_calls_max_dev=0.0000 ratio
+RESULT clean_gate_traced_mb_max_dev=0.0000 ratio
+RESULT solves2x_solves_per_cycle=4.00 solves
+RESULT solves2x_payload_bytes=89270 bytes
+RESULT solves2x_retained_growth=7617 bytes/cycle
+RESULT solves2x_yields_per_cycle=884.7 calls
+GATE solves2x winter/1z/space: evals 42/42 simulate 131232/131232 calls 8/8 traced 1.067/1.072 MiB
+GATE solves2x winter/1z/dhw: evals 52/52 simulate 185426/185426 calls 8/8 traced 3.253/3.259 MiB
+GATE solves2x winter/2z/dhw: evals 820/820 simulate 3696722/3696722 calls 8/8 traced 3.265/3.263 MiB
+GATE solves2x heavy_old/shoulder: evals 864/864 simulate 3640369/3640369 calls 10/10 traced 3.238/3.240 MiB
+GATE solves2x winter/cycle: evals 1024/1024 simulate 4328594/4328594 calls 11/11 traced 3.238/3.242 MiB
+RESULT solves2x_gate_evals_max_dev=0.0000 ratio
+RESULT solves2x_gate_simulate_max_dev=0.0000 ratio
+RESULT solves2x_gate_calls_max_dev=0.0000 ratio
+RESULT solves2x_gate_traced_mb_max_dev=0.0044 ratio
+RESULT payload2x_solves_per_cycle=2.00 solves
+RESULT payload2x_payload_bytes=177853 bytes
+RESULT payload2x_retained_growth=5311 bytes/cycle
+RESULT payload2x_yields_per_cycle=534.3 calls
+GATE payload2x winter/1z/space: evals 42/42 simulate 131232/131232 calls 8/8 traced 1.067/1.072 MiB
+GATE payload2x winter/1z/dhw: evals 52/52 simulate 185426/185426 calls 8/8 traced 3.253/3.259 MiB
+GATE payload2x winter/2z/dhw: evals 820/820 simulate 3696722/3696722 calls 8/8 traced 3.265/3.263 MiB
+GATE payload2x heavy_old/shoulder: evals 864/864 simulate 3640369/3640369 calls 10/10 traced 3.235/3.240 MiB
+GATE payload2x winter/cycle: evals 1024/1024 simulate 4328594/4328594 calls 11/11 traced 3.238/3.242 MiB
+RESULT payload2x_gate_evals_max_dev=0.0000 ratio
+RESULT payload2x_gate_simulate_max_dev=0.0000 ratio
+RESULT payload2x_gate_calls_max_dev=0.0000 ratio
+RESULT payload2x_gate_traced_mb_max_dev=0.0049 ratio
+RESULT retain_solves_per_cycle=2.00 solves
+RESULT retain_payload_bytes=89204 bytes
+RESULT retain_retained_growth=213862 bytes/cycle
+RESULT retain_yields_per_cycle=534.3 calls
+GATE retain winter/1z/space: evals 42/42 simulate 131232/131232 calls 8/8 traced 1.066/1.072 MiB
+GATE retain winter/1z/dhw: evals 52/52 simulate 185426/185426 calls 8/8 traced 3.254/3.259 MiB
+GATE retain winter/2z/dhw: evals 820/820 simulate 3696722/3696722 calls 8/8 traced 3.260/3.263 MiB
+GATE retain heavy_old/shoulder: evals 864/864 simulate 3640369/3640369 calls 10/10 traced 3.240/3.240 MiB
+GATE retain winter/cycle: evals 1024/1024 simulate 4328594/4328594 calls 11/11 traced 3.240/3.242 MiB
+RESULT retain_gate_evals_max_dev=0.0000 ratio
+RESULT retain_gate_simulate_max_dev=0.0000 ratio
+RESULT retain_gate_calls_max_dev=0.0000 ratio
+RESULT retain_gate_traced_mb_max_dev=0.0055 ratio
+RESULT noyield_solves_per_cycle=2.00 solves
+RESULT noyield_payload_bytes=89204 bytes
+RESULT noyield_retained_growth=6873 bytes/cycle
+RESULT noyield_yields_per_cycle=534.3 calls
+GATE noyield winter/1z/space: evals 42/42 simulate 131232/131232 calls 8/8 traced 1.070/1.072 MiB
+GATE noyield winter/1z/dhw: evals 52/52 simulate 185426/185426 calls 8/8 traced 3.253/3.259 MiB
+GATE noyield winter/2z/dhw: evals 820/820 simulate 3696722/3696722 calls 8/8 traced 3.262/3.263 MiB
+GATE noyield heavy_old/shoulder: evals 864/864 simulate 3640369/3640369 calls 10/10 traced 3.237/3.240 MiB
+GATE noyield winter/cycle: evals 1024/1024 simulate 4328594/4328594 calls 11/11 traced 3.239/3.242 MiB
+RESULT noyield_gate_evals_max_dev=0.0000 ratio
+RESULT noyield_gate_simulate_max_dev=0.0000 ratio
+RESULT noyield_gate_calls_max_dev=0.0000 ratio
+RESULT noyield_gate_traced_mb_max_dev=0.0021 ratio
+RESULT thread_factor=1.000
+RESULT load1=14.00
+RESULT swapins=0

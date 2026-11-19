@@ -1,0 +1,40 @@
+{
+  "id": "D5-s2-09",
+  "scope": "D5-s2",
+  "step": "D5.M3",
+  "title": "how-it-works 'Compressor starts' describes a smooth step-to-step start term the optimizer no longer has",
+  "severity": "low",
+  "claim": "docs/how-it-works.md:827-831 says the start cost 'is modelled as a smooth term on the step-to-step power difference ... a true minimum-runtime constraint would make it a mixed-integer program', but the shipped term (optimizer:_start_cost_fn over runs.start_count) charges cycling_cost per off-to-on start, so a plan swinging 2-5 kW every step inside one run costs exactly what a flat run costs (difference 0.000), and the same document's 'A priced start is counted as one start' paragraph (lines 162-169) already describes the per-start commit.",
+  "mechanism": "The start model moved from a smooth swing penalty to a start count with a commit pass (runs.commit, the 'priced start' paragraph credits pull request 3529); the 'Compressor starts' section under Prices, grid costs and tariffs kept the older description, so the document now gives two contradictory mechanisms for one term (and line 844's 'prices swings in the total draw' leans on the old one).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/cycling.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s2/cycling.py",
+    "value": "swing_minus_flat=0.000; doc_smooth_units=1",
+    "unit": "currency and count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "box heavily loaded (load1 ~225); values are deterministic",
+    "tolerance": "exact",
+    "load1": 224.71,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:_start_cost_fn (calling runs.start_count)",
+  "perturbation": {
+    "change": "--perturb: runs.start_count replaced in memory by the doc's smooth term sum(|dP|)/p_max",
+    "expected_direction": "up",
+    "observed_value": "swing_minus_flat 0.000 -> 23.500"
+  },
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/cycling.py --null",
+    "value": "swing_minus_flat=22.000",
+    "note": "a plan that swings through zero (real off-to-on starts) is charged more by the shipped term, so the zero above is the term's indifference to in-run swings, not a dead harness"
+  },
+  "metric_definition": "Start term for a 2/5 kW every-step swing inside one run minus the term for a flat 3.5 kW run of equal length; plus how-it-works units describing a smooth step-to-step start term.",
+  "phenomenon_property": "Each mechanism the reader documents describe (here the start cost) matches the code path that implements it, and one document gives one description per mechanism.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/cycling.py; grep -n -i 'step-to-step\\|prices swings\\|smooth term' README.md docs/*.md",
+  "stop_rule_class": "hygiene",
+  "class_guess": "I5",
+  "files": ["docs/how-it-works.md"],
+  "proposed_fix_scope": "Rewrite how-it-works.md 'Compressor starts' first paragraph to the per-start term and the commit pass (or point to 'A priced start is counted as one start'), and line 844's 'prices swings in the total draw' to 'counts starts of the combined draw'. For D6: the rest of the section."
+}
