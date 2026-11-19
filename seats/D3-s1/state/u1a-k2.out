@@ -44,3 +44,4 @@
 2026-11-19T04:58:35Z COMPLETE KILLED custom_components/heatpump_optimizer/price_model.py:pull_prices GUARD_OFF 4f1a2dba#2 L896 by=tests/features.py ran=12 wall=1378.3s
 2026-11-19T05:02:47Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_mixed_water CMP_BOUND 8c38caee L4396 by=- ran=13 wall=1288.6s
 2026-11-19T05:10:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:parse_rules GUARD_OFF 4893b0a8 L219 by=- ran=12 wall=1282.1s
+2026-11-19T05:14:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._thermal_view GUARD_OFF 809d621e L7861 by=- ran=13 wall=1293.6s
