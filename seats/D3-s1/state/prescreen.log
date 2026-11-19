@@ -566,3 +566,4 @@
 2026-11-19T00:05:09Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_immersion BOOLOP 2f74d22d L9107 by=tests/features.py ran=13 wall=1267.6s
 2026-11-19T00:12:56Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CMP_BOUND d209e002 L1342 by=- ran=12 wall=1196.4s
 2026-11-19T00:19:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_slab_series CMP_BOUND 9cd2a896 L875 by=- ran=12 wall=1280.0s
+2026-11-19T00:21:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings CMP_BOUND fe16bdce L784 by=- ran=14 wall=1200.4s
