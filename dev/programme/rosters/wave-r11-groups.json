@@ -4723,7 +4723,9 @@
     "custom_components/heatpump_optimizer/power_guard.py"
    ],
    "brief": "The kernel's owners and their readers: plan_step owns \"the step covering now\" with its half-open end rule, read by the coordinator, the arbiter and both planned-room copies; water heat capacity, a naive instant's zone and the finite test get one definition each in const.py and drift.py; the two evidence-note methods share drift.py's owner. D7-s1-05 is kept here with its note and step arms; each other arm is carried by the group of the seam that owns the rule (entity-service, money, learners, actuation-release, inputs-freshness), and the finding closes when the last arm has merged. 3 findings (0 merged in), size M; class tags N-duplicated-rule, N-no-expiry, P2. Plan: ADR-001 is this group's approved design. It is the prerequisite of R11-SEAM-actuation-writes and R11-SEAM-inputs-freshness, which read the step owner. Refused shapes: two bodies folded under one function with nothing shared, and a helper handed a detector's list. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "- `custom_components/heatpump_optimizer/pump_arbiter.py`: shared with R11-SEAM-kernel-step with no edge; the second of the two to merge re-runs the finder's restore harness, the first command under Figures (design note section 6). Carry: dismissed: owed to R11-SEAM-kernel-step (the second of the two to merge re-runs the harness; the orchestrator writes it onto that group's brief)"
+   ],
    "source": "audit",
    "resume": {
     "stage": "in-progress",
