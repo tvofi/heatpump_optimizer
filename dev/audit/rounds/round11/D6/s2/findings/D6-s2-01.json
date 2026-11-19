@@ -1,0 +1,54 @@
+{
+ "id": "D6-s2-01",
+ "scope": "D6-s2",
+ "step": "D6.M2",
+ "title": "strings.json holds 6 false rows: five user-facing claims contradict the production symbol that decides them",
+ "severity": "high",
+ "claim": "In the tree under test, six strings.json sentences are contradicted by the production code deciding them: loose birch is not 0.60 of packed (wood_fuel), a flow sensor in L/min is read at 1/60 of its value (const.FLOW_UNIT_TO_KG_S), a fresh-water station carries 150 L of potable water not 0 (const.COMBI_TANK_PRESETS), Observe duty mode reaches the pump write (pump_arbiter._arbitrate), and the return-target off gate is 30 degC not 20 degC (pump_arbiter._gate_floor_c, two sentences).",
+ "mechanism": "The text states the shipped behaviour; the production symbol each sentence describes delivers a different value. Per row (ledger.tsv, verdict false): #538b900c1b wood_packing (birch loose/packed=1.667, pine and mixed 0.600); #25d4327206 flow units (FLOW_UNIT_TO_KG_S['L/min']=0.998/3600, so 10 L/min x 5 K reads 0.058 kW instead of 3.48 kW); #60b9412b58 '0 for a fresh-water station' (external_station potable_volume_l=150.0); #b6c5358b63 'Observe writes none either' (one _command, one _adopt and one night-schedule write per observe pass); #3102a60501 and #7a9d1fff5d '20 degC for a return target' (_as_target adds RETURN_SUPPLY_OFFSET_K for a return unit, so _gate_floor_c returns 30.0 and the W35 hold 40.0).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+  "harness_path": "dev/audit/rounds/round11/D6/s2/ledger.py",
+  "value": 6,
+  "unit": "false rows in custom_components/heatpump_optimizer/strings.json",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B2 (light seat), Linux 6.18 x86_64, CPython 3.14.7 (venv-ci), PYTHONPATH=tests/hastub",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out (load1 6.9-7.5); a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 7.49,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.wood_fuel:useful_kwh_m3; heatpump_optimizer.const:FLOW_UNIT_TO_KG_S; heatpump_optimizer.const:COMBI_TANK_PRESETS; heatpump_optimizer.pump_arbiter:_arbitrate; heatpump_optimizer.pump_arbiter:_gate_floor_c",
+ "perturbation": {
+  "change": "ledger.py --perturb: the five one-line production edits of probes.py --perturb applied in memory (birch row {packed:1900, loose:1140}; 'L/min': WATER_KG_PER_L/60.0; external_station CombiTankPreset(0.75, 0.0); 'if mode != DUTY_CONTROL or _pump_off(inp, held): return' in _arbitrate; 'supply_c - RETURN_SUPPLY_OFFSET_K' in _as_target)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Ledger rows of strings.json whose executed probe of the deciding production symbol contradicts the sentence (text_ledger verdict false).",
+ "phenomenon_property": "Every numeric or behavioural claim a strings.json sentence makes equals what the production symbol deciding it delivers.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # prints each false row; per mechanism: PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe {wood_packing_ratio,flow_unit_lmin,station_potable,observe_writes,return_gate}",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/strings.json",
+  "custom_components/heatpump_optimizer/wood_fuel.py",
+  "custom_components/heatpump_optimizer/const.py",
+  "custom_components/heatpump_optimizer/pump_arbiter.py"
+ ],
+ "proposed_fix_scope": "The text is the documented intent in all five; the fix is production (five one-line edits, the perturbation's), each owned by its seam's seat (leads to D2-s1, D8-s1, D1-s1); translations/*.json carry the same sentences and need no change once production matches.",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py --perturb",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --perturb"
+ ],
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # the same probes over the 97 rows it holds true",
+  "value": "97 true rows, e.g. const.DHW_GATE_C=30, LEASE_MINUTES=90/30 at -10 degC, SNAPSHOT_INTERVAL_DAYS=7, MANUAL_PLAN_WINDOW_HOURS=20",
+  "note": "the probe machinery reads true where production matches; the counted rows are not an artefact of the harness"
+ },
+ "expected_golden_drift": [
+  "fixing the flow-unit factor, the station preset, the birch row or the return offset may move golden fixtures that exercise them; claim per tests/golden/claimed_drift.txt"
+ ]
+}

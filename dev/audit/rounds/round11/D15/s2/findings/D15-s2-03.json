@@ -1,0 +1,40 @@
+{
+  "id": "D15-s2-03",
+  "scope": "D15-s2",
+  "step": "D15.M6",
+  "title": "The synthetic null bundle never runs the drift latch: observe_bias is called 0 times in 96 cycles",
+  "severity": "low",
+  "claim": "tools/replay/dbg_bundle_gen.py, D15's null control, generates its bundle without ever calling SnapshotRing.observe_bias (0 calls over 96 cycles on --days 2; the 7-day bundle's snapshots store records last_day ''), so D15.M6's latch comparison on the null control reads a clean, never-run latch as agreement: m6_monitor.py --fresh re-derives last_day 2026-01-21 over 7 counted days against a stored ''.",
+  "mechanism": "The generator drives tests/replay.py:run_fixture, whose FakeHass closes every spawned coroutine but the session restore, so the coordinator's _async_load_snapshots never runs, _snapshots_loaded stays false and _async_watch_learning_drift returns at its first line on every cycle. tools/replay/debug_replay.py already carries the remedy for the timeline replay (enable_store_loads runs the spawned loads), but the generator does not use it, so the null control's drift watch, weekly snapshot and accuracy_drift latch are never exercised and their stored state is the constructor's.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_null_ring.py --days 2",
+    "harness_path": "dev/audit/rounds/round11/D15/s2/m6_null_ring.py",
+    "value": "observe_bias_calls=0 over cycles=96; stored_last_day_set=0",
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "owner's macOS box (B8), venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 21.99,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.snapshots:SnapshotRing.observe_bias (driven through tools/replay/dbg_bundle_gen.py:build_bundle)",
+  "perturbation": {
+    "change": "--perturb loads: run the generator with tools/replay/debug_replay.py:enable_store_loads in force, so the coordinator's spawned store loads run",
+    "expected_direction": "up",
+    "observed_value": "observe_bias_calls=96, ring_days_counted=3, stored_last_day_set=1"
+  },
+  "metric_definition": "Calls of the production SnapshotRing.observe_bias while dbg_bundle_gen.build_bundle generates a bundle of --days days.",
+  "phenomenon_property": "The synthetic null bundle exercises every monitor D15's steps re-derive against it (the drift watch and its latch included), so a step's agreement on the null control is a measured agreement, not a never-run default.",
+  "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_null_ring.py --days 2",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_monitor.py --bundle <dbg_bundle_gen.py --days 7 bundle.json> --fresh",
+    "value": "latch_rederived last_day:2026-01-21 (7 ticks) against latch_stored last_day:'' -> latch_match=0",
+    "note": "the M6 re-derivation over the same null bundle shows the stored latch is the never-run default"
+  },
+  "proposed_fix_scope": "tools/replay/dbg_bundle_gen.py: build the bundle with debug_replay.enable_store_loads in force (restored after), and add a gate check that the generated bundle's snapshots store counted at least one day; tools/replay/debug_ingest.py or the D15 M6 harness may then compare the null bundle's latch.",
+  "files": ["tools/replay/dbg_bundle_gen.py", "tools/replay/debug_replay.py", "tests/replay.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "N-silent-zero"
+}

@@ -1,0 +1,45 @@
+{
+ "id": "D7-s3-03",
+ "scope": "D7-s3",
+ "step": "D7.M8",
+ "title": "`The plan step covering now` is written four times; two copies have no end rule and hold the last step forever",
+ "severity": "low",
+ "claim": "coordinator._covering_index and pump_arbiter._step_index answer `no step` once now is past the plan's last step, while pump_arbiter._planned_room and early_cutoff._planned_room keep returning the last step's value at any later instant (4 of 8 shared probes disagree, from the last step's end edge to a day past it).",
+ "mechanism": "All four start from bisect_right(timestamps, now) - 1. _covering_index (coordinator.py:591) and _step_index (pump_arbiter.py:543) add the half-open end of the last step (R10 N-no-expiry, #2229); the two _planned_room copies bound the index only by the series' length. Their callers are gated on plan_stale (age over three solve cycles) at pump_arbiter.py:1421 and early_cutoff.py:224, and ungated at pump_arbiter.py:632, 654, 1454 and 1646; a plan's horizon outlasts the stale limit on every shipped configuration, so no wrong write was produced here -- the copies disagree, and the class's barrier does not cover them.",
+ "evidence": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only step_covering_now",
+  "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+  "value": 4,
+  "unit": "probes of 8 on which the four implementations do not agree whether a step covers now",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+  "tolerance": "exact",
+  "load1": 172.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.early_cutoff:_planned_room",
+ "perturbation": {
+  "change": "attribute swap of pump_arbiter._planned_room and early_cutoff._planned_room for bodies that take their index from pump_arbiter._step_index (m8_agree.py --only step_covering_now --perturb)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "probes (an instant relative to an 8-step plan) at which {_covering_index, _step_index, arbiter._planned_room, early_cutoff._planned_room} disagree on `a step covers now`",
+ "phenomenon_property": "Every reader of `the plan step covering now` takes its index from one function with the half-open end rule; no reader indexes a plan series from a bare bisect.",
+ "seam_rule": "grep -n 'bisect_right(' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only step_covering_now",
+  "value": 0,
+  "note": "the four probes inside the plan (before, first, mid, last) agree in the same run"
+ },
+ "proposed_fix_scope": "pump_arbiter._planned_room and early_cutoff._planned_room index through pump_arbiter._step_index (or coordinator._covering_index moved to a leaf both import); pump_arbiter.py:1942's bare bisect with them. One owner: the step-index function.",
+ "files": [
+  "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "custom_components/heatpump_optimizer/early_cutoff.py",
+  "custom_components/heatpump_optimizer/coordinator.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "hygiene",
+ "class_guess": "N-no-expiry"
+}
