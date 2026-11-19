@@ -1,1 +1,0 @@
-('coordinator.py', 3518, '_LOGGER -> super().__init__')
