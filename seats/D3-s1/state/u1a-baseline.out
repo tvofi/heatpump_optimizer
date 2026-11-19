@@ -1,23 +1,23 @@
-2026-11-18T08:00:28Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=125.6s reach_ok=False
-2026-11-18T08:01:21Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=179.0s reach_ok=True
-2026-11-18T08:02:05Z BASELINE tests/optimality.py rc=0 failed=0 wall=96.6s reach_ok=True
-2026-11-18T08:02:22Z BASELINE tests/config_flow_steps.py rc=0 failed=0 wall=17.6s reach_ok=True
-2026-11-18T08:02:50Z BASELINE tests/finite_boundary.py rc=0 failed=0 wall=88.1s reach_ok=True
-2026-11-18T08:03:04Z BASELINE tests/arch_score_head.py rc=0 failed=0 wall=42.0s reach_ok=True
-2026-11-18T08:03:06Z BASELINE tests/validate.py rc=0 failed=0 wall=16.8s reach_ok=True
-2026-11-18T08:03:22Z BASELINE tests/structure.py rc=0 failed=0 wall=18.2s reach_ok=False
-2026-11-18T08:03:27Z BASELINE tests/typing_ruler.py rc=0 failed=0 wall=20.8s reach_ok=False
-2026-11-18T08:03:31Z BASELINE tests/doc_claims.py rc=0 failed=0 wall=8.8s reach_ok=False
-2026-11-18T08:03:34Z BASELINE tests/block_duty.py rc=0 failed=0 wall=6.4s reach_ok=True
-2026-11-18T08:03:35Z BASELINE tests/guard_pins.py rc=0 failed=0 wall=3.7s reach_ok=True
-2026-11-18T08:03:37Z BASELINE tests/deployment_shape.py rc=0 failed=0 wall=2.1s reach_ok=False
-2026-11-18T08:03:38Z BASELINE tests/plan_view.py rc=0 failed=0 wall=0.8s reach_ok=True
-2026-11-18T08:03:39Z BASELINE tests/manual_plan.py rc=0 failed=0 wall=5.4s reach_ok=True
-2026-11-18T08:03:39Z BASELINE tests/debug_collect.py rc=0 failed=0 wall=1.1s reach_ok=True
-2026-11-18T08:03:40Z BASELINE tests/wood_advisor.py rc=0 failed=0 wall=0.6s reach_ok=True
-2026-11-18T08:03:40Z BASELINE tests/solar_alignment.py rc=0 failed=0 wall=0.7s reach_ok=True
-2026-11-18T08:06:23Z BASELINE tests/entities.py rc=0 failed=0 wall=480.0s reach_ok=False
-2026-11-18T08:06:29Z BASELINE tests/env_drift.py rc=0 failed=0 wall=169.4s reach_ok=False
-2026-11-18T08:09:29Z BASELINE tests/features.py rc=0 failed=0 wall=666.3s reach_ok=False
-RESULT load1=1.09
+2026-11-18T08:15:34Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=152.0s reach_ok=False
+2026-11-18T08:16:41Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=219.0s reach_ok=True
+2026-11-18T08:17:36Z BASELINE tests/optimality.py rc=0 failed=0 wall=122.0s reach_ok=True
+2026-11-18T08:17:58Z BASELINE tests/config_flow_steps.py rc=0 failed=0 wall=21.8s reach_ok=True
+2026-11-18T08:18:28Z BASELINE tests/finite_boundary.py rc=0 failed=0 wall=107.0s reach_ok=True
+2026-11-18T08:18:50Z BASELINE tests/arch_score_head.py rc=0 failed=0 wall=52.0s reach_ok=True
+2026-11-18T08:18:50Z BASELINE tests/validate.py rc=0 failed=0 wall=22.0s reach_ok=True
+2026-11-18T08:19:12Z BASELINE tests/structure.py rc=0 failed=0 wall=22.3s reach_ok=False
+2026-11-18T08:19:16Z BASELINE tests/typing_ruler.py rc=0 failed=0 wall=26.4s reach_ok=False
+2026-11-18T08:19:23Z BASELINE tests/doc_claims.py rc=0 failed=0 wall=10.8s reach_ok=False
+2026-11-18T08:19:25Z BASELINE tests/block_duty.py rc=0 failed=0 wall=8.3s reach_ok=True
+2026-11-18T08:19:28Z BASELINE tests/guard_pins.py rc=0 failed=0 wall=5.2s reach_ok=True
+2026-11-18T08:19:31Z BASELINE tests/deployment_shape.py rc=0 failed=0 wall=2.8s reach_ok=False
+2026-11-18T08:19:31Z BASELINE tests/manual_plan.py rc=0 failed=0 wall=6.9s reach_ok=True
+2026-11-18T08:19:32Z BASELINE tests/plan_view.py rc=0 failed=0 wall=1.0s reach_ok=True
+2026-11-18T08:19:33Z BASELINE tests/wood_advisor.py rc=0 failed=0 wall=0.9s reach_ok=True
+2026-11-18T08:19:33Z BASELINE tests/debug_collect.py rc=0 failed=0 wall=1.5s reach_ok=True
+2026-11-18T08:19:34Z BASELINE tests/solar_alignment.py rc=0 failed=0 wall=0.8s reach_ok=True
+2026-11-18T08:22:44Z BASELINE tests/entities.py rc=0 failed=0 wall=581.8s reach_ok=False
+2026-11-18T08:23:18Z BASELINE tests/env_drift.py rc=0 failed=0 wall=224.5s reach_ok=False
+2026-11-18T08:27:12Z BASELINE tests/features.py rc=0 failed=0 wall=850.1s reach_ok=False
+RESULT load1=0.92
 RESULT thread_factor=1.00
