@@ -78,3 +78,9 @@
 2026-11-19T11:33:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps CLAMP_DROP 17730fd3 L5248 by=- ran=13 wall=1607.7s
 2026-11-19T11:49:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._seed_pinned_guess CLAMP_DROP 37394cac L5292 by=- ran=18 wall=1792.5s
 2026-11-19T11:57:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.summary CLAMP_DROP 2db6a2f4#2 L421 by=- ran=13 wall=1469.0s
+2026-11-19T12:01:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._power_to_displace_schedule CLAMP_DROP b85d473a L6504 by=- ran=17 wall=1789.5s
+2026-11-19T12:16:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion CLAMP_DROP f55b7c97 L139 by=- ran=12 wall=1597.9s
+2026-11-19T12:22:44Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:CapacityTariff.sample_factor CLAMP_DROP f2a372aa L148 by=tests/features.py ran=12 wall=1506.8s
+2026-11-19T12:27:01Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum CLAMP_DROP b7ede7f5 L746 by=tests/features.py ran=12 wall=1520.1s
+2026-11-19T12:41:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum CLAMP_DROP 7a6e15a0 L773 by=- ran=12 wall=1497.7s
+2026-11-19T12:52:55Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_tank_heat_loss_coefficient CLAMP_DROP 593f9749 L801 by=tests/features.py ran=19 wall=1810.5s
