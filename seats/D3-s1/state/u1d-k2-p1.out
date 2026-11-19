@@ -1,8 +1,0 @@
-2026-11-19T01:18:12Z COMPLETE queued=40 from=pre
-2026-11-19T01:45:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:<module> CONST 8c1b36af L85 by=- ran=19 wall=1614.6s
-2026-11-19T02:08:47Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep CMP_BOUND 87537df1 L4464 by=- ran=13 wall=1420.3s
-2026-11-19T02:32:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._power_headroom CMP_BOUND ab7034b4 L8900 by=- ran=13 wall=1407.8s
-2026-11-19T02:57:31Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture CMP_BOUND 13bad77a L9402 by=- ran=13 wall=1515.8s
-2026-11-19T03:22:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions CMP_BOUND 8a040c32 L10231 by=- ran=13 wall=1511.5s
-2026-11-19T03:47:52Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:_bucket_index CMP_BOUND 463ef486 L169 by=- ran=12 wall=1510.0s
-2026-11-19T04:12:51Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_window_floors CMP_BOUND fe4dab0c L1034 by=- ran=12 wall=1499.3s
