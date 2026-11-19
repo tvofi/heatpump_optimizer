@@ -240,3 +240,7 @@
 1795094178 HB alive
 1795094784 HB alive
 1795095342 CKPT D3-s1 726 file(s)
+1795095390 HB alive
+1795095395 HB alive
+1795095426 HB session restart ~13:35 UTC: comms loop restarted with the current proxy; full-net driver still running (236/242)
+1795095499 HB alive
