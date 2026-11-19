@@ -6034,7 +6034,8 @@
    "severity": "high",
    "size": "M",
    "issues": [
-    3746
+    3746,
+    3747
    ],
    "fixes": [],
    "findings": [
