@@ -1,0 +1,60 @@
+head a94deddd62ca54f9c81bc1a558c398887d67ddf7 reviewed-head bdcca2fb9f21edbeace79cfc108f38c38f4b1f46
+a94deddd62ca54f9c81bc1a558c398887d67ddf7 tvofi ci: re-record tests/entities.py's closure
+ tests/closures.json | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+diff --git a/tests/closures.json b/tests/closures.json
+index f87533d2aa..64f4b642b0 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -1817,6 +1817,7 @@
+    "tests/ci_budgets.json",
+    "tests/ci_ratchet.py",
+    "tests/closures.json",
++   "tests/comment_ratchet.py",
+    "tests/config_flow_steps.py",
+    "tests/coverage_budgets.json",
+    "tests/coverage_ratchet.py",
+@@ -2106,6 +2107,7 @@
+    "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/tmp_paths.py",
+    "tools/audit/seat/topic_grammar.py",
++   "tools/audit/text_ledger.py",
+    "tools/ci/alert_list.py",
+    "tools/ci/codescan_wait.py",
+    "tools/ci/gate.py",
+@@ -5875,7 +5877,7 @@
+   },
+   "tests/edge.py": {
+    "rc": 0,
+-   "seconds": 21.5
++   "seconds": 60.2
+   },
+   "tests/entities.py": {
+    "rc": 0,
+@@ -5891,7 +5893,7 @@
+   },
+   "tests/finite_boundary.py": {
+    "rc": 0,
+-   "seconds": 90.4
++   "seconds": 193.8
+   },
+   "tests/frontend.py": {
+    "rc": 0,
+@@ -5943,7 +5945,7 @@
+   },
+   "tests/stress.py": {
+    "rc": 0,
+-   "seconds": 463.0
++   "seconds": 928.7
+   },
+   "tests/structure.py": {
+    "rc": 0,
+@@ -5951,7 +5953,7 @@
+   },
+   "tests/typing_ruler.py": {
+    "rc": 0,
+-   "seconds": 20.8
++   "seconds": 0.6
+   },
+   "tests/validate.py": {
+    "rc": 0,
