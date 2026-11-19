@@ -592,6 +592,64 @@ def population(axes, tree, show):
         used = {n.id for n in ast.walk(ast.parse(show(f))) if isinstance(n, ast.Name) and re.fullmatch(pattern, n.id)}
         return used - (req - opt)
 
+    def number(f, node):
+        """A literal number, or a Name bound to one in `f` or its const.py."""
+        mod = ast.parse(show(f))
+        const = f.rpartition("/")[0] + "/const.py" if "/" in f else "const.py"
+        if isinstance(node, ast.Name):
+            found = module_assign(mod, node.id)
+            if found is None and const in tree:
+                found = module_assign(ast.parse(show(const)), node.id)
+            if found is None:
+                raise ValueError(f"{node.id} is bound in neither {f} nor {const}")
+            node = found
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub) and isinstance(node.operand, ast.Constant):
+            node = ast.Constant(-node.operand.value)
+        if not (isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool)):
+            raise ValueError(f"{ast.unparse(node)} is not a literal number")
+        return float(node.value)
+
+    def flow_range_levels(ax):
+        """The levels the record declares (`levels`, each of min, default and max) for the options-flow
+        rows they were taken from. Each row's `key` is presented in `file` by a `_number(lo, hi, ...)`
+        call beside it (a widget dict's value, or an argument of the same call), `lo` and `hi` literal or
+        a starred range constant; its default is the `default` constant. A declared value that is not
+        what its row reads, a key no `_number` row presents, rows that disagree, or a level other than
+        the three, is UNREADABLE: a moved row never leaves a stale level printed."""
+        f, lv = ax["file"], ax.get("levels") or {}
+        if not lv or set(lv) - {"min", "default", "max"}:
+            raise ValueError(f"levels {sorted(lv)} are not among min, default and max, the levels a flow row reads")
+        mod = ast.parse(show(f))
+        def bounds(call):
+            args = []
+            for a in call.args:
+                if isinstance(a, ast.Starred):
+                    t = module_assign(mod, a.value.id) if isinstance(a.value, ast.Name) else a.value
+                    if not isinstance(t, (ast.Tuple, ast.List)):
+                        raise ValueError(f"{ast.unparse(a)} does not expand a literal range")
+                    args += t.elts
+                else:
+                    args.append(a)
+            return number(f, args[0]), number(f, args[1])
+        is_num = lambda n: isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "_number"
+        for row in ax.get("rows") or [{}]:
+            key = row.get("key")
+            found = set()
+            for n in ast.walk(mod):
+                if isinstance(n, ast.Dict):
+                    found |= {bounds(v) for k, v in zip(n.keys, n.values) if isinstance(k, ast.Name) and k.id == key and is_num(v)}
+                elif isinstance(n, ast.Call) and any(isinstance(a, ast.Name) and a.id == key for a in n.args):
+                    found |= {bounds(a) for a in n.args if is_num(a)}
+            if len(found) != 1:
+                raise ValueError(f"{key} is presented by {'no' if not found else 'disagreeing'} _number rows in {f}")
+            (lo, hi), = found
+            read = {"min": lo, "max": hi, "default": number(f, ast.Name(row.get("default", "")))}
+            for name, value in lv.items():
+                want = value.get(row["field"]) if "field" in row and isinstance(value, dict) else value
+                if not isinstance(want, (int, float)) or isinstance(want, bool) or float(want) != read[name]:
+                    raise ValueError(f"level {name} declares {want} for {key}, the flow row reads {read[name]:g}")
+        return list(lv)
+
     def levels(ax):
         k, f = ax.get("kind"), ax.get("file")
         if k == "glob":
@@ -606,6 +664,8 @@ def population(axes, tree, show):
             return [x for x in compare_levels(f, ax["function"], ax["argument"]) if isinstance(x, str)]
         if k == "name":
             return name_levels(f, ax["pattern"])
+        if k == "flow_range":
+            return flow_range_levels(ax)
         raise ValueError(f"unknown kind {k!r}")
 
     lines, sizes, noread, ok = [], [], 0, True
@@ -815,6 +875,21 @@ def population_self_test():
     cmp = {"axis": "c", "kind": "compare", "file": "p/m.py", "function": "f", "argument": "profile"}
     nr = {"axis": "n", "kind": None, "no_read": "why", "builder": "G1"}
     every = pop(tup("T"), tup("D"), tup("L"), binary, glob, cmp, nr)
+    files["p/flow2.py"] = ("RANGE_L = (0.01, 1.0)\nW = {CONF_A: _number(20, 1000, 5, 'm2')}\n"
+                           "R = (_F('t', CONF_V, D_V, _number(50, 1400, 10, 'L')), _F('m', CONF_L, X, _number(*RANGE_L, 0.01)))\n")
+    files["p/const.py"] += "D_V = 200.0\nD_A = 140.0\nD_L = 0.15\n"
+    rng_v = {"axis": "v", "kind": "flow_range", "file": "p/flow2.py", "levels": {"min": 50, "default": 200, "max": 1400},
+             "rows": [{"key": "CONF_V", "default": "D_V"}]}
+    lv = lambda a, l: {"heated_area_m2": a, "heat_loss_kw_per_c": l}
+    rng_s = {"axis": "s", "kind": "flow_range", "file": "p/flow2.py",
+             "levels": {"min": lv(20, 0.01), "default": lv(140, 0.15), "max": lv(1000, 1.0)},
+             "rows": [{"field": "heated_area_m2", "key": "CONF_A", "default": "D_A"},
+                      {"field": "heat_loss_kw_per_c", "key": "CONF_L", "default": "D_L"}]}
+    rng_ok = pop(rng_v, rng_s)
+    moved_max = pop({**rng_v, "levels": {**rng_v["levels"], "max": 1500}})
+    files["p/const.py"] = files["p/const.py"].replace("D_L = 0.15", "D_L = 0.2")
+    moved_def = pop(rng_s)
+    files["p/const.py"] = files["p/const.py"].replace("D_L = 0.2", "D_L = 0.15")
     return {
         "a tuple axis resolves a Name through const.py": pop(tup("T"))[0][0] == "a\t2\tk,w",
         "a dict axis reads its keys": pop(tup("D"))[0][0] == "a\t2\td1,d2",
@@ -836,6 +911,16 @@ def population_self_test():
         "a name axis drops a key required everywhere or never presented":
             pop({"axis": "o", "kind": "name", "file": "p/flow.py", "pattern": "CONF_[A-Z]_ENTITY", "binary": True})[0][0]
             == "o\t6 binary axes\tCONF_B_ENTITY,CONF_C_ENTITY,CONF_E_ENTITY,CONF_F_ENTITY,CONF_G_ENTITY,CONF_H_ENTITY",
+        # A declared axis is read against the flow rows it was taken from: a `_F` row and a widget-dict row, a
+        # starred range constant in the flow module, defaults in const.py; one level of one row moved refuses it.
+        "a flow-range axis prints its declared levels once each matches its row":
+            rng_ok[1] and rng_ok[0][:2] == ["v\t3\tdefault,max,min", "s\t3\tdefault,max,min"] and rng_ok[0][-1] == "NO-READ AXES: 0",
+        "a flow-range level that is not its row's bound is UNREADABLE by level and key":
+            not moved_max[1] and moved_max[0][0] == "UNREADABLE v: level max declares 1500 for CONF_V, the flow row reads 1400",
+        "a flow-range level that is not the row's default constant is UNREADABLE":
+            not moved_def[1] and moved_def[0][0] == "UNREADABLE s: level default declares 0.15 for CONF_L, the flow row reads 0.2",
+        "a flow-range key no _number row presents is UNREADABLE": not pop({**rng_v, "rows": [{"key": "CONF_NONE", "default": "D_V"}]})[1],
+        "a flow-range level that is no row bound is UNREADABLE": not pop({**rng_v, "levels": {**rng_v["levels"], "typical": 300}})[1],
     }
 
 

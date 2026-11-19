@@ -101,8 +101,10 @@ tunable the evaluated round may loosen.
   axis), the translation files,
   the Home Assistant floor in `hacs.json` and the typed version, and the
   price shapes and climates `tests/profiles.py` defines. An axis the flow
-  leaves continuous (tank volume, house size) has no tracked levels: it is
-  NO-READ in that file, with what would read it. A level the code gains or
+  leaves continuous (tank volume, house size) has the levels that file
+  declares (minimum, default, maximum), each read against the flow row and
+  default constant it was taken from; a row that moves makes the command
+  refuse, never print a stale level. A level the code gains or
   loses moves the population with no edit here.
   The population is the product of the axes, which no seat can walk; **the
   cells the term counts are every level of every axis and every pair of

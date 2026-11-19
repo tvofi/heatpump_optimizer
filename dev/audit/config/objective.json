@@ -1,5 +1,5 @@
 {
- "_rule": "The objective function's machine-read half: dev/governance/decisions/0018-objective-function.md defines every key here, and tools/audit/check_scopes.py reads this file (--round at the baseline, --population for the install population). terms are in decision order, layer 1 first. thresholds and owner_criteria hold the owner's values: a null value is unset, makes every comparison or result that needs it undecided, and owes a card (0018 sections 1 and 2); proposed is the orchestrator's proposal and is read by nothing. population lists the axes of the supported install population, each with the tracked source its levels are read from; an axis with kind null is NO-READ and names what would read it; levels and basis on one are the owner's declared levels and the tracked rows they were taken from, which nothing reads yet. objects maps an object class to the globs whose tracked files are its objects. Only the owner changes this file (CODEOWNERS).",
+ "_rule": "The objective function's machine-read half: dev/governance/decisions/0018-objective-function.md defines every key here, and tools/audit/check_scopes.py reads this file (--round at the baseline, --population for the install population). terms are in decision order, layer 1 first. thresholds and owner_criteria hold the owner's values: a null value is unset, makes every comparison or result that needs it undecided, and owes a card (0018 sections 1 and 2); proposed is the orchestrator's proposal and is read by nothing. population lists the axes of the supported install population, each with the tracked source its levels are read from; an axis with kind null is NO-READ and names what would read it; an axis of kind flow_range carries the owner's declared levels (min, default, max), the tracked rows they were taken from in basis, and in rows each row's flow key and default constant, against which --population reads every level and refuses one a moved row has left stale. objects maps an object class to the globs whose tracked files are its objects. Only the owner changes this file (CODEOWNERS).",
  "terms": [
   "regret",
   "operation",
@@ -251,20 +251,26 @@
   },
   {
    "axis": "tank_volume",
-   "kind": null,
+   "kind": "flow_range",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
    "levels": {
     "min": 50,
     "default": 200,
     "max": 1500
    },
+   "rows": [
+    {
+     "key": "CONF_DHW_TANK_VOLUME",
+     "default": "DEFAULT_DHW_TANK_VOLUME"
+    }
+   ],
    "unit": "L",
-   "basis": "the hot-water tank row of the options flow: config_flow.py's CONF_DHW_TANK_VOLUME field, _number(50, 1500, 10, 'L'), its default const.py's DEFAULT_DHW_TANK_VOLUME (200.0). The buffer and wood tank rows are other options, not this axis.",
-   "no_read": "the levels are declared here and nothing reads them: no reader compares them with the flow row they were taken from, so a moved row leaves them stale",
-   "builder": "R11-READS-RESIDUE"
+   "basis": "the hot-water tank row of the options flow: config_flow.py's CONF_DHW_TANK_VOLUME field, _number(50, 1500, 10, 'L'), its default const.py's DEFAULT_DHW_TANK_VOLUME (200.0). The buffer and wood tank rows are other options, not this axis."
   },
   {
    "axis": "house_size",
-   "kind": null,
+   "kind": "flow_range",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
    "levels": {
     "min": {
      "heated_area_m2": 20,
@@ -279,9 +285,19 @@
      "heat_loss_kw_per_c": 1.0
     }
    },
-   "basis": "the heated-area row of the building questionnaire (config_flow.py's CONF_HEATED_AREA field, _number(20, 1000, 5, 'm²'), default const.py's DEFAULT_HEATED_AREA 140.0) and the heat-loss row (CONF_HOUSE_HEAT_LOSS_COEFFICIENT over RANGE_HOUSE_HEAT_LOSS (0.01, 1.0) kW/°C, default DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT 0.15; a two-zone install splits it over the upper and lower rows, defaults 0.08 + 0.07). Each level pairs the two rows' minimum, default or maximum: a declaration, since the flow lets them vary apart.",
-   "no_read": "the levels are declared here and nothing reads them: no reader compares them with the flow rows they were taken from, so a moved row leaves them stale",
-   "builder": "R11-READS-RESIDUE"
+   "rows": [
+    {
+     "field": "heated_area_m2",
+     "key": "CONF_HEATED_AREA",
+     "default": "DEFAULT_HEATED_AREA"
+    },
+    {
+     "field": "heat_loss_kw_per_c",
+     "key": "CONF_HOUSE_HEAT_LOSS_COEFFICIENT",
+     "default": "DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT"
+    }
+   ],
+   "basis": "the heated-area row of the building questionnaire (config_flow.py's CONF_HEATED_AREA field, _number(20, 1000, 5, 'm²'), default const.py's DEFAULT_HEATED_AREA 140.0) and the heat-loss row (CONF_HOUSE_HEAT_LOSS_COEFFICIENT over RANGE_HOUSE_HEAT_LOSS (0.01, 1.0) kW/°C, default DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT 0.15; a two-zone install splits it over the upper and lower rows, defaults 0.08 + 0.07). Each level pairs the two rows' minimum, default or maximum: a declaration, since the flow lets them vary apart."
   }
  ],
  "objects": {
