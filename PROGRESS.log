@@ -149,3 +149,4 @@
 1795049369 HB alive
 1795049477 CKPT D3-s1 639 file(s)
 1795049845 HB OOM at ~00:55 UTC: pre-screen survivor mutant GUARD_OFF coordinator.py:_ensure_worker L1864 ('if worker is not None and worker.poll() is None' -> 'if False') makes tests/boost_drift_replay.py spawn a new process_worker per solve (214 live, ~67 MB each) until the 14.3 GB memcg limit; the OOM killer then took the full-net driver and sibling mutants (2 logged SIGNAL, re-drive). Box seat killed the runaway pid 2397 tree by PID; told the D3-s1 seat.
+1795049974 HB alive
