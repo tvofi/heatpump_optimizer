@@ -5724,7 +5724,8 @@
    "severity": "medium",
    "size": "M",
    "issues": [
-    3746
+    3746,
+    3758
    ],
    "fixes": [],
    "findings": [
