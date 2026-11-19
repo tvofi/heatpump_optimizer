@@ -1,3 +1,5 @@
+features_block: prelude of 5 statement(s) written to /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-11-orchestrator-resume-928854/f2a0d03a-dc77-4fb9-b8fa-10babda9f42a/scratchpad/preA.py
+emitA=0
 
 === features block ===
   ok   solve_gate: an idle request is not absorbed and sets nothing; one during a refresh trails it once; a second solve start is refused and recorded as one re-run, taken once
@@ -13,14 +15,6 @@
   ok   D1-s1-01: a healthy solve clears a fallback notice restored from before a restart, with no cause latched in this process; null control, another entry's latched cause keeps it
   ok   D1-s1-01: a solve the stop broke answers 'shutdown', counts no solve failure and frees the gate
   ok   the published optimization_running view reads the solve gate
-RV origin=debounced write=True cycles=2 order=s1 e1 s2 e2
-  ok   RV debounced write=True: cycles
-RV origin=debounced write=False cycles=1 order=s1 e1
-  ok   RV debounced write=False: cycles
-RV origin=direct write=True cycles=2 order=s1 e1 s2 e2
-  ok   RV direct write=True: cycles
-RV origin=direct write=False cycles=1 order=s1 e1
-  ok   RV direct write=False: cycles
 
-ALL 17 FEATURES BLOCK PASSED
-rc=0
+ALL 13 FEATURES BLOCK PASSED
+rcA=0

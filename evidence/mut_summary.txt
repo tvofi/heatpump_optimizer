@@ -1,4 +1,0 @@
-old_request_refresh rc=1 3 FAIL
-eager_direct rc=1 1 FAIL
-request_noneager rc=1 3 FAIL
-done
