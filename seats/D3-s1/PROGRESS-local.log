@@ -22,3 +22,4 @@
 2026-11-17T17:53:59Z REPORT.json with report_md written (finalize.py); waiting C2 M34-M36 until 18:36Z
 2026-11-17T18:29:53Z C2 M34-M36 SURVIVED (fast net); M4 answered; REPORT.json final
 2026-11-19T14:10:50Z box D3-u1a re-fire: K1 309/309 and K2 236/236 already complete in checkpoint; tally/M4 re-run, REPORT.json/md assembled (u1a_report.py), 0 findings, 178 prescreened survivors
+2026-11-19T14:12:36Z REPORT.json: added M1/M4/M5 rows and C1/C4/C7/C8/C9; box wording sourced only; check_report ok

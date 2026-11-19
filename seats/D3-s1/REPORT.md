@@ -14,7 +14,7 @@ K0 key file state/keys-D3-u1a.txt (309 keys, sha256 8f30aae5ec9f17c0...). K1 pre
 Kills by driver: pre_first_kill[tests/typing_ruler.py] 27; pre_first_kill[tests/env_drift.py] 11; pre_first_kill[tests/manual_plan.py] 9; pre_first_kill[tests/plan_view.py] 6; pre_first_kill[tests/finite_boundary.py] 5; pre_first_kill[tests/structure.py] 5; pre_first_kill[tests/validate.py] 3; pre_first_kill[tests/solar_alignment.py] 2; pre_first_kill[tests/doc_claims.py] 2; pre_first_kill[tests/config_flow_steps.py] 2; pre_first_kill[tests/block_duty.py] 1; pre_every_kill[tests/typing_ruler.py] 27; pre_every_kill[tests/env_drift.py] 11; pre_every_kill[tests/manual_plan.py] 9; pre_every_kill[tests/plan_view.py] 6; pre_every_kill[tests/finite_boundary.py] 5; pre_every_kill[tests/structure.py] 5; pre_every_kill[tests/validate.py] 3; pre_every_kill[tests/solar_alignment.py] 2; pre_every_kill[tests/doc_claims.py] 2; pre_every_kill[tests/config_flow_steps.py] 2; pre_every_kill[tests/block_duty.py] 1; complete_first_kill[tests/features.py] 52; complete_first_kill[tests/entities.py] 4; complete_first_kill[tests/harness_headers.py] 2; complete_every_kill[tests/features.py] 57; complete_every_kill[tests/entities.py] 4; complete_every_kill[tests/harness_headers.py] 2
 
 ## Findings
-None from this box: D3.md step 3 makes the full-net survivors candidates; the GATE_SCOPE=full GOLDEN_MODE=drift gate is box D3-top6's.
+None from this box: D3.md step 3 makes the full-net survivors candidates; the GATE_SCOPE=full GOLDEN_MODE=drift gate is box D3-top6's (RESUME brief K2).
 
 ## Prescreened survivors (D3.M4 answers), 178
 | key | line | kind | symbol | patch | scripts executing the line | check that should have failed |
@@ -206,8 +206,11 @@ None from this box: D3.md step 3 makes the full-net survivors candidates; the GA
 - M4: every full-net survivor's line has an answer; 177 of 178 lines are executed by at least one gate script unmutated (asserted on by none): `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m4_u1a.py` -> survivors=178, executed_by_none=1; --drop-driver tests/features.py -> executed_by_none=39 (up)
 
 ## Coverage
+- D3.M1: universe 1260, examined 1260, not_reached 0 item(s)/group(s)
 - D3.M2: universe 1260, examined 333, not_reached 10 item(s)/group(s)
 - D3.M3: universe 271, examined 238, not_reached 33 item(s)/group(s)
+- D3.M4: universe 271, examined 271, not_reached 0 item(s)/group(s)
+- D3.M5: universe 27, examined 23, not_reached 4 item(s)/group(s)
 
 ## Harnesses
 - dev/audit/rounds/round11/D3/s1/build_report.py

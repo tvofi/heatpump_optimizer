@@ -31,7 +31,7 @@ def main() -> int:
     tab = [l.split("\t") for l in (S / "u1a-tab.tsv").read_text().splitlines() if l.count("\t") >= 7]
     mine = {k.strip() for k in (S / "keys-D3-u1a.txt").read_text().split()}
     surv = [r for r in tab if r[4] == "SURVIVED" and r[0] in ("pre", "c2", "c3c6")]
-    m3_nr = [f"{r[2]} {r[3]} {r[1]} ({r[0]}, carried survivor outside this box's key slice: full net assigned to box D3-top6)"
+    m3_nr = [f"{r[2]} {r[3]} {r[1]} ({r[0]}, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)"
              for r in surv if r[6] == "-"]
     killed_full = [r for r in tab if r[0] == "pre" and r[1] in mine and r[6] == "KILLED"]
     d3r = json.loads((HERE / "REPORT-D3R.json").read_text())
@@ -45,7 +45,7 @@ def main() -> int:
     byfile = Counter(km[k]["file"].rsplit("/", 1)[1] for k in rest)
     lo, hi = "000221f3921dd956", "3daa55123b452546"
     m2_nr = [f"custom_components/heatpump_optimizer/{f}: {n} unpinned sites not pre-screened here "
-             f"(keys outside [{lo},{hi}): assigned to boxes D3-u1b, D3-u1c, D3-u1d)" for f, n in sorted(byfile.items())]
+             f"(keys outside [{lo},{hi}), another box's slice of the RESUME split; not driven by box D3-u1a)" for f, n in sorted(byfile.items())]
     ex2 = len(pre_res & set(km))
     assert ex2 + len(rest) == len(km)
     note = f"provisional: true; {MACHINE}; load1 0.5-1.3 during K1/K2; thread_factor 1.00"
@@ -75,6 +75,22 @@ def main() -> int:
                       f"plus 2 carried completes (both KILLED). C3 (GATE_SCOPE=full GOLDEN_MODE=drift gate on the top six) is box D3-top6's. "
                       f"C5: REPORT.md written by this box.")},
     ]
+    def carried(step):
+        c = dict(next(x for x in d3r["coverage"] if x["step"] == step))
+        if isinstance(c["evidence"], list):
+            c["evidence"] = " | ".join(f"{e['command']} -> {e['value']}" for e in c["evidence"])
+        c["evidence"] = "Carried unchanged from boxes local/D3R (REPORT-D3R.json); box D3-u1a measured nothing in this step. " + c["evidence"]
+        return c
+    nk = len(killed_full)
+    cov = [carried("D3.M1")] + cov + [
+        {"step": "D3.M4", "enumerator": cov[1]["enumerator"], "universe": len(surv), "examined": len(surv),
+         "not_reached": [], "redispatched": [],
+         "evidence": (f"PYTHONPATH=tests/hastub python3 {R}m4_u1a.py -> survivors={m4r['survivors']} answered (line, file, "
+                      f"check that should have failed; executed_by_none={m4r['executed_by_none']}); {nk} slice survivors the full "
+                      f"net killed are answered by their killing driver (REPORT.json full_net_killed); the {len(surv) - len(m4) - nk} "
+                      f"carried survivors are answered in m4_answers.json (boxes local/D3R).")},
+        carried("D3.M5")]
+    assert len(m4) + nk + 35 == len(surv)
     nf = [
         {"claim": "Null control: the fast net LIVES on the unmutated tree on this box",
          "command": f"PYTHONPATH=tests/hastub python3 {R}prescreen.py null", "value": "null_verdict=LIVES over 16 drivers (state/u1a-r2-null.out)"},
@@ -111,7 +127,7 @@ def main() -> int:
           f"| fast (pre) | {t['pre_driven']} | {t['pre_killed']} | {t['pre_survived']} | {t['pre_timeout']} | {t['pre_skipped_by_reach']} | {t['pre_unparseable']} |",
           f"| full (complete) | {t['complete_driven']} | {t['complete_killed']} | {t['complete_survived']} | {t['complete_timeout']} | {t['complete_skipped_by_reach']} | {t['complete_unparseable']} |", "",
           "Kills by driver: " + "; ".join(f"{k} {v}" for k, v in t.items() if "kill[" in k), "",
-          "## Findings", "None from this box: D3.md step 3 makes the full-net survivors candidates; the GATE_SCOPE=full GOLDEN_MODE=drift gate is box D3-top6's.", "",
+          "## Findings", "None from this box: D3.md step 3 makes the full-net survivors candidates; the GATE_SCOPE=full GOLDEN_MODE=drift gate is box D3-top6's (RESUME brief K2).", "",
           f"## Prescreened survivors (D3.M4 answers), {len(m4)}",
           "| key | line | kind | symbol | patch | scripts executing the line | check that should have failed |", "|---|---|---|---|---|---|---|"]
     for x in m4:

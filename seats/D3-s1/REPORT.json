@@ -5,21 +5,35 @@
  "exposure": "No docs/ or GitHub read. Redispatch items C2/C3/C6 name round-10 mutant ids from dev/audit/rounds/round10/D3/s1/mutants.py, which the export strips: the seat read that one file from the worktree's object store (git show HEAD:...) only to re-draw its seed-10 sample at this baseline (c2_mutants.json, c3c6_mutants.json); no round-10 report, verdict or finding text was read. `git diff --stat HEAD^1 HEAD -- custom_components` was run once to confirm the env_drift comparison ref HEAD^1 (2c84a85c) carries production byte-identical to the baseline. Box D3R run (inline in the box session, the Agent spawn being refused by the frugal guard): read COMMON.md, D3.md, dev/audit/README.md, finding.schema.json (through a haiku extractor), the seat's own carried harnesses and state, and the three new survivor lines in custom_components; no docs/ or GitHub read beyond the box's own dispatch/inbox/wip refs. Box D3-u1a: read COMMON.md, D3.md, finding.schema.json, the seat's own carried harnesses/state/REPORT.json; no docs/ or GitHub read.",
  "coverage": [
   {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Carried unchanged from boxes local/D3R (REPORT-D3R.json); box D3-u1a measured nothing in this step. PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline) | cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)"
+  },
+  {
    "step": "D3.M2",
    "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
    "universe": 1260,
    "examined": 333,
    "not_reached": [
-    "custom_components/heatpump_optimizer/coordinator.py: 261 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)",
-    "custom_components/heatpump_optimizer/defrost.py: 32 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)",
-    "custom_components/heatpump_optimizer/dhw_planner.py: 95 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)",
-    "custom_components/heatpump_optimizer/flow_lift.py: 3 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)",
-    "custom_components/heatpump_optimizer/grid_fee.py: 23 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)",
-    "custom_components/heatpump_optimizer/optimizer.py: 195 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)",
-    "custom_components/heatpump_optimizer/price_model.py: 45 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)",
-    "custom_components/heatpump_optimizer/sysid.py: 118 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)",
-    "custom_components/heatpump_optimizer/tariff.py: 41 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)",
-    "custom_components/heatpump_optimizer/thermal_model.py: 114 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546): assigned to boxes D3-u1b, D3-u1c, D3-u1d)"
+    "custom_components/heatpump_optimizer/coordinator.py: 261 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)",
+    "custom_components/heatpump_optimizer/defrost.py: 32 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)",
+    "custom_components/heatpump_optimizer/dhw_planner.py: 95 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)",
+    "custom_components/heatpump_optimizer/flow_lift.py: 3 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)",
+    "custom_components/heatpump_optimizer/grid_fee.py: 23 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)",
+    "custom_components/heatpump_optimizer/optimizer.py: 195 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)",
+    "custom_components/heatpump_optimizer/price_model.py: 45 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)",
+    "custom_components/heatpump_optimizer/sysid.py: 118 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)",
+    "custom_components/heatpump_optimizer/tariff.py: 41 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)",
+    "custom_components/heatpump_optimizer/thermal_model.py: 114 unpinned sites not pre-screened here (keys outside [000221f3921dd956,3daa55123b452546), another box's slice of the RESUME split; not driven by box D3-u1a)"
    ],
    "redispatched": [
     {
@@ -39,39 +53,39 @@
    "universe": 271,
    "examined": 238,
    "not_reached": [
-    "dhw_planner.py:473 GUARD_OFF 0318c921405fefbe (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "thermal_model.py:169 GUARD_OFF 050fdc4a20eba212 (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "flow_lift.py:47 CONST 0c3e91a6a349409a (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "grid_fee.py:173 GUARD_OFF 121362d48b408236 (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "defrost.py:559 GUARD_OFF 23621370731667b7 (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "flow_lift.py:183 GUARD_OFF 3885e472b8297a90 (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "sysid.py:610 GUARD_OFF 460217277822d5bd (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "price_model.py:201 GUARD_OFF 4b3795aece73ba73 (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "coordinator.py:687 GUARD_OFF 61f74c4474262dad (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "dhw_planner.py:75 GUARD_OFF 639d439d71b731ce (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "optimizer.py:773 GUARD_OFF 65f121eb047174ad (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "price_model.py:198 GUARD_OFF 73bc722df73caecb (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "sysid.py:677 GUARD_OFF a35e03bd09f563c7 (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "thermal_model.py:270 GUARD_OFF acc8fa3942789f45 (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "coordinator.py:539 GUARD_OFF bdcf7589b0a0a6df (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "tariff.py:64 GUARD_OFF fb16c7b0cbbfc63d (pre, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "sysid.py:2246 R10C2 0e172028a23d9372 (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "price_model.py:337 R10C2 2719aef4cbb8b464 (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "defrost.py:783 R10C2 66f8a4fb50e0b1f3 (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "sysid.py:1549 R10C2 8e82d7a0b3617003 (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "grid_fee.py:355 R10C2 95779f9d6d71c50d (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "flow_lift.py:188 R10C2 a0b3b28854fa500c (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "sysid.py:1593 R10C2 aae7c9c380c3c5cf (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "tariff.py:64 R10C2 ad5900dadd86e9f9 (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "price_model.py:252 R10C2 c38d53ab787ddbfa (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "tariff.py:744 R10C2 d931ab195b940b0c (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "price_model.py:532 R10C2 fc395b83eeb1ddbf (c2, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "dhw_planner.py:1559 R10C2 0911281eca895664 (c3c6, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "thermal_model.py:2593 R10C2 22b5ec8775d5bd50 (c3c6, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "grid_fee.py:383 R10C2 5cc84148fa68bda1 (c3c6, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "coordinator.py:8806 R10C2 5e8d48eff7e4fa8d (c3c6, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "tariff.py:595 R10C2 6e6026d857732e96 (c3c6, carried survivor outside this box's key slice: full net assigned to box D3-top6)",
-    "thermal_model.py:835 R10C2 a4b00ac3ca662eec (c3c6, carried survivor outside this box's key slice: full net assigned to box D3-top6)"
+    "dhw_planner.py:473 GUARD_OFF 0318c921405fefbe (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "thermal_model.py:169 GUARD_OFF 050fdc4a20eba212 (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "flow_lift.py:47 CONST 0c3e91a6a349409a (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "grid_fee.py:173 GUARD_OFF 121362d48b408236 (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "defrost.py:559 GUARD_OFF 23621370731667b7 (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "flow_lift.py:183 GUARD_OFF 3885e472b8297a90 (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "sysid.py:610 GUARD_OFF 460217277822d5bd (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "price_model.py:201 GUARD_OFF 4b3795aece73ba73 (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "coordinator.py:687 GUARD_OFF 61f74c4474262dad (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "dhw_planner.py:75 GUARD_OFF 639d439d71b731ce (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "optimizer.py:773 GUARD_OFF 65f121eb047174ad (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "price_model.py:198 GUARD_OFF 73bc722df73caecb (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "sysid.py:677 GUARD_OFF a35e03bd09f563c7 (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "thermal_model.py:270 GUARD_OFF acc8fa3942789f45 (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "coordinator.py:539 GUARD_OFF bdcf7589b0a0a6df (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "tariff.py:64 GUARD_OFF fb16c7b0cbbfc63d (pre, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "sysid.py:2246 R10C2 0e172028a23d9372 (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "price_model.py:337 R10C2 2719aef4cbb8b464 (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "defrost.py:783 R10C2 66f8a4fb50e0b1f3 (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "sysid.py:1549 R10C2 8e82d7a0b3617003 (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "grid_fee.py:355 R10C2 95779f9d6d71c50d (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "flow_lift.py:188 R10C2 a0b3b28854fa500c (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "sysid.py:1593 R10C2 aae7c9c380c3c5cf (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "tariff.py:64 R10C2 ad5900dadd86e9f9 (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "price_model.py:252 R10C2 c38d53ab787ddbfa (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "tariff.py:744 R10C2 d931ab195b940b0c (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "price_model.py:532 R10C2 fc395b83eeb1ddbf (c2, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "dhw_planner.py:1559 R10C2 0911281eca895664 (c3c6, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "thermal_model.py:2593 R10C2 22b5ec8775d5bd50 (c3c6, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "grid_fee.py:383 R10C2 5cc84148fa68bda1 (c3c6, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "coordinator.py:8806 R10C2 5e8d48eff7e4fa8d (c3c6, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "tariff.py:595 R10C2 6e6026d857732e96 (c3c6, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)",
+    "thermal_model.py:835 R10C2 a4b00ac3ca662eec (c3c6, carried fast-net survivor outside this box's key slice; full net not driven by box D3-u1a)"
    ],
    "redispatched": [
     {
@@ -84,6 +98,46 @@
     }
    ],
    "evidence": "prescreen.py complete --src pre --keys state/keys-D3-u1a-surv.txt (no early stop over the full closure): complete_driven=236, killed=58 (features.py 57, entities.py 4, harness_headers.py 2, every-kill), survived=178; plus 2 carried completes (both KILLED). C3 (GATE_SCOPE=full GOLDEN_MODE=drift gate on the top six) is box D3-top6's. C5: REPORT.md written by this box."
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t' | grep -P '^(pre|c2|c3c6)\\t'",
+   "universe": 271,
+   "examined": 271,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m4_u1a.py -> survivors=178 answered (line, file, check that should have failed; executed_by_none=1); 58 slice survivors the full net killed are answered by their killing driver (REPORT.json full_net_killed); the 35 carried survivors are answered in m4_answers.json (boxes local/D3R)."
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "tests/card.mjs",
+    "tests/card_drift.mjs",
+    "tests/golden.py",
+    "tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "Carried unchanged from boxes local/D3R (REPORT-D3R.json); box D3-u1a measured nothing in this step. cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not. | PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01) | PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1 | cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2"
   }
  ],
  "unfinished": [],
