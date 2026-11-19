@@ -31,6 +31,10 @@ The note's items for the fixer: p3a1 (cites re-anchored at this base), p3a2 (one
 
 ## Head
 
+`aa98d2b6fbb55ba4a79a7fcd428d2b11ab0e8e30` is the bot's `ci: pin killed mutants` on `9144d3c07a`: one `killed_by` row, `room_history.py/_fit.CLAMP_DROP.65dcfd06.json` (the `room_history.py:276 CLAMP_DROP` site `## Unpinned sites` left for mutation-autofix), no other file. This round of the body changes `## Red checks` only.
+
+`9144d3c07a99905537453cc2ca5f59b564575a91` merges the authored code head `e95018f9ce2d66049c4ea70c996e925040be8369`.
+
 `e95018f9ce2d66049c4ea70c996e925040be8369` merges the bot's `ci: pin killed mutants` `0703282a31` (three `killed_by` rows, no other file) into the authored code head `885f82e12b8b1bbadb575ada7f643cfec4efdb54`.
 
 `885f82e12b8b1bbadb575ada7f643cfec4efdb54`
@@ -64,7 +68,7 @@ The 4 sites `python3 tools/pr/ci_predict.py --base origin/main` listed as `ADDED
 ## Figures
 
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`.
-<!-- figure-block: scope-line mb=7c2f4c30cab5610cf8f5b040c326836ab544d27d head=e95018f9ce2d66049c4ea70c996e925040be8369 -->
+<!-- figure-block: scope-line mb=7c2f4c30cab5610cf8f5b040c326836ab544d27d head=aa98d2b6fbb55ba4a79a7fcd428d2b11ab0e8e30 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
@@ -204,10 +208,12 @@ The 94 sites `python3 tools/pr/ci_predict.py --base origin/main` listed as `ADDE
 
 ## Red checks
 
+- `code-scanning alert 57 (py/overly-permissive-file)` and `code-scanning alert 58 (py/overly-permissive-file)` (read at `aa98d2b6fb` by `pr-contract / pr-contract`, which turned `gate` red): inherited from main, not from this diff. Both are open on `refs/heads/main`, raised at main's `cccff0fcad` (2026-11-17), in `tools/audit/seat/postmerge.py:130` and `tools/audit/seat/roster_lib.py:1166`; this diff touches neither file. A re-run of the failed jobs read the same two alerts, so the red is the body's, not the runner's. Cheaper detector: none that runs before push; CodeQL runs only in CI, and the alerts belong to the tools that own those two files.
+- `tests / nightly-status` (at `aa98d2b6fb`, not required): inherited from main. It read the dispatched nightly `44270682877` (main `f567988`, `slow` failed), the last concluded at 00:52Z; a later dispatch on main, `44403259638` at `fd847a55`, concluded `success`. This diff changes no nightly lane. Cheaper detector: none; the check reads main's dispatches, not this head.
 - `tests / mutation` (at 1fe21304 and 9597676033): `MUTATION TABLE REFUSED` on the diff's added unpinned sites. The bot's and the orchestrator's pin commits (`8518497c1a`, `3f9fa5f4f6`) pinned all but one (`room_history.py:276 CLAMP_DROP` at the merge head), which the block kills (`## Mutation proof`), left for mutation-autofix. The cheaper detector is `tools/pr/ci_predict.py` (`prepr.sh` step 6d), which predicts which sites are unpinned, not which survive; the review's hand mutants are not the ratchet's operators, and no instrument in the tree generates them.
 - `governance / wave-script` (at 9597676033): answered in the previous round's body (the DIRTY state's red, repaired by that round's main merge); inherited at `478e2ab92c`, where `python3 tools/audit/seat/merge_train.py classify 478e2ab92c36b309c73e8cc29903671434f73375 --pr 3711` reads `WAIT ... pending: gate red: none`. Cheaper detector: none that runs before main moves; the merge was the repair.
-- `pr-contract / pr-contract` (at 9597676033): answered in the previous round's body (a bot push moved the head under the body); this body's figure block is refreshed at its own head.
-- `gate` (at 1fe21304 and 9597676033): the aggregate of the runs above; no cause of its own.
+- `pr-contract / pr-contract` (at 9597676033 and aa98d2b6fb): at 9597676033, answered in the previous round's body (a bot push moved the head under the body); at `aa98d2b6fb`, the two code-scanning alerts above, unanswered in that body. This body's figure block is refreshed at its own head.
+- `gate` (at 1fe21304, 9597676033 and aa98d2b6fb): the aggregate of the runs above; no cause of its own.
 
 ## Forward-carry
 
@@ -217,3 +223,5 @@ The 94 sites `python3 tools/pr/ci_predict.py --base origin/main` listed as `ADDE
 ## Friction
 
 none
+
+
