@@ -142,3 +142,12 @@ K2R START 2026-11-19T01:25:00Z load1=0.68
 2026-11-19T03:07:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CMP_BOUND 4f3bbbac L2587 by=- ran=12 wall=1468.8s
 2026-11-19T03:10:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch CMP_BOUND 2a84495f L828 by=- ran=12 wall=1463.4s
 2026-11-19T03:12:41Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:in_frost_band CMP_BOUND a90cc8c2 L111 by=tests/features.py ran=13 wall=1777.8s
+2026-11-19T03:31:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:<module> CONST 2207fee4 L2156 by=- ran=21 wall=1765.9s
+2026-11-19T03:33:48Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run GUARD_OFF 02a7162c L2056 by=tests/features.py ran=16 wall=1572.9s
+2026-11-19T03:37:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:CapacityTariff.marginal_price_per_kw CMP_BOUND 9b86f195 L128 by=- ran=12 wall=1571.1s
+2026-11-19T03:38:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP a1bf87cc L1535 by=- ran=16 wall=1572.8s
+2026-11-19T03:58:18Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_window_floors GUARD_OFF fe4dab0c L1034 by=tests/features.py ran=12 wall=1583.0s
+2026-11-19T04:00:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab CMP_BOUND d0694ab6 L2325 by=- ran=12 wall=1575.8s
+2026-11-19T04:03:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.summary CMP_BOUND 91fc9037 L642 by=- ran=12 wall=1586.8s
+2026-11-19T04:09:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CMP_BOUND b65ba388 L4249 by=- ran=17 wall=1806.9s
+2026-11-19T04:14:34Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_sim_dhw_low GUARD_OFF 90837e87 L2630 by=tests/features.py ran=13 wall=976.7s
