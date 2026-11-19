@@ -82,5 +82,47 @@
   "should_fail": "none: at swing==0 the fall-through returns dhw_inlet_temp - 0.0*cos(phase) == dhw_inlet_temp; max_abs_delta_swing0=0.0 over days 1..366, means 4/10/15 C",
   "input": "swing=0.0",
   "direction": "none"
+ },
+ "121362d48b408236": {
+  "site": "grid_fee.py:173",
+  "src": "pre",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_121362d4.py",
+  "baseline": "rules=-1 (GridFeeError), verdict invalid_grid_fee_rules",
+  "mutant": "rules=1 parsed, verdict None",
+  "null_delta": "0 count",
+  "verdict": "finding",
+  "symbol": "grid_fee:_parse_rule line 173 (missing '=' guard)",
+  "reach": "reach_calls_without_eq=2: config_flow.spec_problem (config_flow.py:3927) and GridFeeSchedule.from_config (grid_fee.py:287)",
+  "should_fail": "tests/features.py bad-rule cases (~17831-17847) never feed a rule with no '='",
+  "input": "rules text '0.5'",
+  "direction": "accepted rules up -1 -> 1; the validation verdict is lost"
+ },
+ "95779f9d6d71c50d": {
+  "site": "grid_fee.py:355",
+  "src": "c2",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+  "baseline": "max_abs_component source label=fixed",
+  "mutant": "label=rules",
+  "null_delta": "0 count (rule-rule tie and untied)",
+  "verdict": "finding (low: label only, value_delta=0.0)",
+  "symbol": "grid_fee:GridFeeSchedule.max_abs_component line 355",
+  "reach": "reach_from_config_tie=1: from_config builds the fixed/rule tie; the label feeds the repair-issue placeholder at coordinator.py:7623",
+  "should_fail": "tests/features.py has no fixed/rule tie case for max_abs_component",
+  "input": "fixed=0.25 and a rule '= 0.25'",
+  "direction": "label_changed 0 -> 1 (fixed -> rules)"
+ },
+ "2719aef4cbb8b464": {
+  "site": "price_model.py:337",
+  "src": "c2",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_2719aef4.py",
+  "baseline": "expected_daily_min(level=0)=None",
+  "mutant": "0.0",
+  "null_delta": "0.0",
+  "verdict": "non-finding (unreachable through production)",
+  "symbol": "price_model:expected_daily_min line 337",
+  "reach": "0: the only caller (coordinator.py ~4370) is guarded by level > 1e-6 (reach_caller_guard_level_gt_1e6=1 of reach_callers_total=1)",
+  "should_fail": "none through production; a direct unit call at level==0 separates",
+  "input": "level=0.0",
+  "direction": "None -> 0.0 on direct call only"
  }
 }

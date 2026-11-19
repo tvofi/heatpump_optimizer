@@ -6,14 +6,18 @@
 # EXPECTED RESULT holiday_flags_mutant=[False, False, False, False, False]
 # EXPECTED RESULT moved=1 count
 # EXPECTED RESULT null_delta=0 count  (a non-empty holiday set: the guard is false either way)
-# EXPECTED RESULT reach_empty_calls=SEE_OUTPUT count (calls with an empty set while driving HeatPumpOptimizer.optimize)
+# EXPECTED RESULT reach_empty_calls=1 count (one optimize() with default empty holiday_dates)
+# EXPECTED RESULT reach_plan_maxabs_diff_kw=0.0 kW (whole-plan power_schedule identical in both arms)
 # Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-rem (4 vCPU Xeon @ 2.10GHz).
 # Instrumented symbol: custom_components.heatpump_optimizer.optimizer:_holiday_flags_for (line 773
 #   `    if not holiday_dates:`), called at optimizer.py:4403 with self.config.holiday_dates.
 # Perturbation: line 773 -> `    if False:` (GUARD_OFF 65f121eb047174ad), applied in memory (function recompiled from
 #   its own source, patched onto the module for the mutant arm only). Direction: None -> array of n+1 False.
-#   Downstream the array is only read as flags, so an all-False array differs from None only in shape/cost,
-#   not in plan value: see reach_plan_equal below (plan cost/power equal in both arms).
+#   VERDICT: EQUIVALENT on every observable. The only consumer of holiday_flags is
+#   dhw_planner:_dhw_windows_at (dhw_planner.py:75), which reads `holiday = False` for None and
+#   bool(flag)=False for an all-False array, so windows_for_day gets holiday=False either way; the
+#   returned array differs only in its allocation. The probe prints the returned value moving
+#   (None vs all-False) and the full plan not moving.
 # Null control: holiday_dates={date} non-empty; mutant and baseline return identical arrays.
 import os
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
