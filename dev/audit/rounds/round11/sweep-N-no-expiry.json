@@ -1,0 +1,50 @@
+{
+  "class": "N-no-expiry",
+  "instances": 2,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-N-no-expiry/enumerate.py  (--self-test: positive 5/5 finding sites, null 0, perturbation +1 per family A-D)",
+  "instance_list": [
+    {
+      "file": "custom_components/heatpump_optimizer/running_signal.py",
+      "symbol": "source.reader",
+      "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-no-expiry/probes.py  # P1: a 2.0 kW meter state 24 h old (limit 30 min) reads kw=2.0, compressor booked running",
+      "beyond_finding": true
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/early_cutoff.py",
+      "symbol": "_plant_exempt",
+      "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-no-expiry/probes.py  # P2: a defrost flag 'on' 24 h old (limit 30 min) returns 'defrost'; sibling pump_arbiter._lit reads it fresh-only",
+      "beyond_finding": true
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/coordinator.py",
+      "symbol": "HeatPumpOptimizerCoordinator._pv_measured_production",
+      "probe": "D1-s2-02 harness (dev/audit/rounds/round11/D1/s2/)",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/coordinator.py",
+      "symbol": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/price_weather.py (D1-s2-03)",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/coordinator.py",
+      "symbol": "HeatPumpOptimizerCoordinator._current_weather",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/covering_census.py (D14-s2-02)",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/early_cutoff.py",
+      "symbol": "_planned_room",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only step_covering_now (D7-s3-03)",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+      "symbol": "_planned_room",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only step_covering_now (D7-s3-03)",
+      "beyond_finding": false
+    }
+  ]
+}

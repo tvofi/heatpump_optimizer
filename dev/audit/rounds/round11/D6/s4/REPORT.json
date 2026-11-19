@@ -1,0 +1,269 @@
+{
+ "dimension": "D6",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D6/s4/REPORT.json",
+ "exposure": "None from docs/ or GitHub: the seat's cells are translations/sv.json and www/heatpump-optimizer-card.js only. Read translations/en.json at the same keys as a number/placeholder cross-check (en.json is D6-s3's cell; not measured). Ran tests/card.mjs once to see whether its i18n parity arm sees finding 01.",
+ "coverage": [
+  {
+   "step": "D6.M1",
+   "enumerator": "python3 tools/audit/text_ledger.py --dim D6 units custom_components/heatpump_optimizer/translations/sv.json custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "universe": 3913,
+   "examined": 3913,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "dev/audit/rounds/round11/D6/s4/LEDGER.tsv rows all 3913 units (sv.json 2303, card 1610): 2180 claim, 1733 no-claim (labels under 6 words with no digit). C2: every behavioural sentence of the cells is a numbered unit row (claim). C3 names docs/how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md, automations.md: D6-s1's cells, outside this seat; recorded as a lead."
+  },
+  {
+   "step": "D6.M2",
+   "enumerator": "python3 tools/audit/text_ledger.py --dim D6 units custom_components/heatpump_optimizer/translations/sv.json custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "universe": 3913,
+   "examined": 2108,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/translations/sv.json: 1277 claim units rowed NOT CHECKED (verdict unverifiable) in LEDGER.tsv, mostly behavioural prose of options/config data_description, issues and services",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js: 528 claim units rowed NOT CHECKED (verdict unverifiable) in LEDGER.tsv: en/sv/de explanatory prose and HTML-template literals"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s4/ledger.py -> checked_true=372, checked_false=3, not_checked=1805, no_claim=1733 (examined = 1733 + 375). Checks execute production: 41 const/module lookups (horizon, economy widening, buffer 100 L/35 L, outage 2 h/45 min, slab 12 K, manual plan 20 h, snapshot 7 d, COP gate 30 %, driving 20 %, score references, forecast 8 h, ...), card_probe.mjs (production L render of every placeholder unit, setConfig hours 1..168, stale constants vs coordinator), persistent_budget.py. C1 in these cells: '20 manual-plan hours' checked true (MANUAL_PLAN_WINDOW_HOURS=20, 2 units); '23 options pages', '8 weekly snapshots' and '±12 %' do not occur in sv.json or the card (sv.json carries 26 options step entries and no page count; weekly copy checked as SNAPSHOT_INTERVAL_DAYS=7); links: the cells hold no hyperlink (only the SVG namespace URI), so no HEAD is owed. C4: behavioural claims not checked against golden scenarios here (they are in the 1805 NOT CHECKED rows); its link half is empty in these cells."
+  },
+  {
+   "step": "D6.M3",
+   "enumerator": "python3 tools/audit/text_ledger.py --dim D6 units custom_components/heatpump_optimizer/translations/sv.json custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "universe": 3913,
+   "examined": 3913,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "python3 tools/audit/text_ledger.py --dim D6 --plant check dev/audit/rounds/round11/D6/s4/LEDGER.tsv <sv.json> <card.js> -> units=3913 rows=3913 claims=2180 true=372 false=3 unverifiable=1805 unrowed=0 orphan=0 malformed=0 plant_refused=1 (exit 0); the same with the card first -> plant_refused=1."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D6.M2",
+   "what": "1805 claim units have no executed check (sv.json 1277, card 528), rowed NOT CHECKED in LEDGER.tsv: mainly behavioural prose ('the optimizer will ...', write/hold rules of pump_duty_mode, combi tank, heat-curve kinds, issue texts) needing flow, coordinator or golden-scenario harnesses; also the card's 'modelled COP 0.1 or lower' and 'In auto and economy mode the pump runs on its own curve' sentences."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D6-s4-01",
+   "scope": "D6-s4",
+   "step": "D6.M2",
+   "title": "Swedish stale-plan pill tooltip renders a literal {minuter} instead of the minute limit",
+   "severity": "medium",
+   "claim": "Under hass.language sv, the card's stale-plan status pill title produced by statusPill() reads 'Ingen ny plan på mer än {minuter} min.' with the placeholder unsubstituted, because STRINGS.sv['status.stale_title'] names {minuter} while the call site passes {minutes}.",
+   "mechanism": "statusPill() calls L('status.stale_title', { minutes: Math.round(age.limit) }); L() substitutes only names present in vars and leaves any other {name} verbatim; the sv translation renamed the token to {minuter}. tests/card.mjs's R10-I18N-DE parity arm does refuse it when run here (FAIL 'sv: status.stale_title drops {minutes}; adds {minuter}', with HPO_PLANDATA from tests/plan_view.py), so the baseline carries a red card.mjs check; why it reached the baseline is a lead for the D3/D11 owner, not measured here.",
+   "evidence": {
+    "command": "node dev/audit/rounds/round11/D6/s4/card_placeholders.mjs",
+    "harness_path": "dev/audit/rounds/round11/D6/s4/card_placeholders.mjs",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B13 finder box, linux x86_64",
+    "cpu_or_wall": "count",
+    "contention_note": "shared finder box during fan-out; count is load-immune",
+    "tolerance": "exact",
+    "load1": 1.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:statusPill (and :L)",
+   "perturbation": {
+    "change": "in memory: STRINGS.sv['status.stale_title'] with {minuter} replaced by {minutes} (--perturb)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of {name} tokens left in statusPill(plan,now).title under setLanguage('sv-SE') for a plan whose last solve is 200 min old (limit 90).",
+   "phenomenon_property": "Every card translation renders through L() with no literal {name} token left when the call site passes the placeholders the English source names (plus any listed call-site extras).",
+   "seam_rule": "node dev/audit/rounds/round11/D6/s4/card_placeholders.mjs   (RESULT unresolved_<lang> enumerates every key of every STRINGS dictionary rendered through production L; offender lines name each seam)",
+   "null_control": {
+    "command": "node dev/audit/rounds/round11/D6/s4/card_placeholders.mjs",
+    "value": "unresolved_en=0, unresolved_de=0",
+    "note": "the same render over the en source and the de translation leaves no token; only sv/status.stale_title is an offender"
+   },
+   "reproduction_steps": [
+    "node dev/audit/rounds/round11/D6/s4/card_placeholders.mjs -> stale_title_literal_tokens=1, unresolved_sv=1 (offender sv status.stale_title {minuter})",
+    "... --perturb -> 0 and 0"
+   ],
+   "proposed_fix_scope": "Rename {minuter} to {minutes} in STRINGS.sv['status.stale_title'] (card lines ~1793-1795).",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I5"
+  },
+  {
+   "id": "D6-s4-02",
+   "scope": "D6-s4",
+   "step": "D6.M2",
+   "title": "sv persistent heat-curve write budget text: '0 or 1 writes nothing', 'one always kept for the restore' are false",
+   "severity": "medium",
+   "claim": "translations/sv.json options.step.heat_curve.data_description.heat_curve_persistent_writes_per_day says one write is always kept back for the off-restore and that a budget of 0 or 1 writes nothing, but production heat_curve._write_persistent_target sends 1 plan write a day at budget 1 and 12 at budget 12, so with the unbudgeted restore a day reaches budget+1 writes.",
+   "mechanism": "The refusal is `writes_today(state, now) + 1 > budget`, which admits the write that reaches the budget itself; nothing holds one back for off_restore's restore, which _persistent_restored then counts to the day. The text (and the module docstring's I2) state the stricter rule.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s4/persistent_budget.py",
+    "harness_path": "dev/audit/rounds/round11/D6/s4/persistent_budget.py",
+    "value": 1,
+    "unit": "count (plan_writes_B1; text claims 0)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B13 finder box, linux x86_64",
+    "cpu_or_wall": "count",
+    "contention_note": "shared finder box during fan-out; count is load-immune",
+    "tolerance": "exact",
+    "load1": 1.42,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/heat_curve.py:_write_persistent_target",
+   "perturbation": {
+    "change": "one-line production edit (applied in memory by --perturb): `writes_today(state, now) + 1 > budget` -> `writes_today(state, now) + 2 > budget`",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "heat_curve._send calls made by _write_persistent_target in one local day with the plan asking a new target every 61 min (dwell 60), at budget B=1; key: the seam's send calls.",
+   "phenomenon_property": "For every budget B the persistent arm's plan writes in a local day are at most max(B-1, 0), so plan writes plus the off-restore never exceed B, and B in {0,1} sends nothing.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s4/persistent_budget.py   (RESULT over_text_B<n> for B in 0,1,2,12; every nonzero is a seam)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s4/persistent_budget.py",
+    "value": "plan_writes_B0=0, over_text_B0=0",
+    "note": "at budget 0 the arm sends nothing, as the text says; the excess is exactly one write at every B>=1 (B1:1, B2:2, B12:12)"
+   },
+   "reproduction_steps": [
+    "harness -> plan_writes_B1=1, B2=2, B12=12; total_with_restore = B+1",
+    "--perturb -> 0, 1, 11"
+   ],
+   "proposed_fix_scope": "Either make heat_curve._write_persistent_target keep one write back (as the text and the module's I2 say), or correct the sentence in every language file and strings.json; the fixer decides which side is wrong, the property above holds the code to whichever text survives.",
+   "files": [
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "custom_components/heatpump_optimizer/heat_curve.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I5"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "sv.json numbers agree key-for-key with en.json (no translation changed a figure)",
+   "command": "python3 dev/audit/rounds/round11/D6/s4/sv_en_numbers.py",
+   "value": "RESULT number_diffs=3, all formatting (1.0 in two sv labels, kl. 13 vs 13:00); 1511 leaves"
+  },
+  {
+   "claim": "sv.json placeholders match en.json at every key, and **, (), [] are balanced",
+   "command": "python3 dev/audit/rounds/round11/D6/s4/sv_en_numbers.py",
+   "value": "RESULT placeholder_diffs=0 (and **, (), [] balanced in every sv leaf)"
+  },
+  {
+   "claim": "card hours bound 'between 1 and 168' (en/sv/de errors.cfg_hours)",
+   "command": "node dev/audit/rounds/round11/D6/s4/card_probe.mjs (production setConfig)",
+   "value": "0.9 refused, 1 accepted, 168 accepted, 169 refused"
+  },
+  {
+   "claim": "card stale pill 'more than {minutes} min' uses the coordinator's staleness rule",
+   "command": "card_probe.mjs stale vs coordinator.PLAN_STALE_INTERVALS/PLAN_STALE_FLOOR_MINUTES",
+   "value": "card (3, 90) = coordinator (3, 90.0)"
+  },
+  {
+   "claim": "card 'moved more than 30 % away from its recent average' (tracking gate)",
+   "command": "ledger.py CHECKS",
+   "value": "const.COP_TRACKING_ERROR_GATE=0.3"
+  },
+  {
+   "claim": "card score texts: 20 % below flat scores 100, 50 typical envelope, 100 matching history, 20 samples per band",
+   "command": "ledger.py CHECKS",
+   "value": "FULL_SAVING=0.2, REFERENCE=0.0, SCORE_REFERENCE envelope 50.0 machine 100.0, COP_BASELINE_MIN_SAMPLES=20"
+  },
+  {
+   "claim": "card 'next 8 hours' forecast explanation",
+   "command": "ledger.py CHECKS",
+   "value": "slot_drivers.FORECAST_LOOKAHEAD_H=8.0"
+  },
+  {
+   "claim": "sv manual plan 'kommande 20 timmarna' / 'Standard är 20 timmar' and horizon 24 h",
+   "command": "ledger.py CHECKS",
+   "value": "MANUAL_PLAN_WINDOW_HOURS=20; OptimizationConfig().horizon_hours=24.0"
+  },
+  {
+   "claim": "sv buffer/combi thresholds: minst 100 L, standard 35 L, 3 L potable limit",
+   "command": "ledger.py CHECKS",
+   "value": "BUFFER_STORE_MIN_VOLUME=100.0, DEFAULT_BUFFER_TANK_VOLUME=35.0, COMBI_LEGIONELLA_POTABLE_LIMIT_L=3.0"
+  },
+  {
+   "claim": "sv floor-return gate 'mer än 12 K över rummet ignoreras'",
+   "command": "ledger.py CHECKS",
+   "value": "slab_seed.SLAB_SEED_MAX_ABOVE_ROOM_K=12.0"
+  },
+  {
+   "claim": "sv outage window 'tvåtimmarsfönster ... köar 45 minuter', capacity floor 60 %, confidence cap 0,8 °C, economy 1,5 K, open window 1 K",
+   "command": "ledger.py CHECKS",
+   "value": "(2.0, 45.0), 0.6, 0.8, 1.5, 1.0"
+  },
+  {
+   "claim": "sv flow-target defaults 55 °C / max 70 °C / lift 5 K, start hold 5 min, legionella hold 20 min, heat-curve 3 K bands, 60 min dwell, 12 writes default",
+   "command": "ledger.py CHECKS",
+   "value": "55.0, 70.0, 5.0, 5.0 min, 20.0, (3.0, 3.0), 60, 12"
+  },
+  {
+   "claim": "de card dictionary renders every placeholder",
+   "command": "node dev/audit/rounds/round11/D6/s4/card_placeholders.mjs",
+   "value": "unresolved_de=0 (en 0)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D6/s4/ledger.py",
+  "dev/audit/rounds/round11/D6/s4/card_probe.mjs",
+  "dev/audit/rounds/round11/D6/s4/card_placeholders.mjs",
+  "dev/audit/rounds/round11/D6/s4/persistent_budget.py",
+  "dev/audit/rounds/round11/D6/s4/sv_en_numbers.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D6-s3",
+   "file": "custom_components/heatpump_optimizer/translations/en.json",
+   "symbol": "options.step.heat_curve.data_description.heat_curve_persistent_writes_per_day",
+   "what": "Same sentences as D6-s4-02 ('one is always kept for it', '0 or 1 writes nothing'); persistent_budget.py measures the code side."
+  },
+  {
+   "owner_seat": "D6-s2",
+   "file": "custom_components/heatpump_optimizer/strings.json",
+   "symbol": "options.step.heat_curve.data_description.heat_curve_persistent_writes_per_day",
+   "what": "Same false budget sentences as D6-s4-02."
+  },
+  {
+   "owner_seat": "D6-s6",
+   "file": "custom_components/heatpump_optimizer/translations/de.json",
+   "symbol": "options.step.heat_curve.data_description.heat_curve_persistent_writes_per_day",
+   "what": "Same false budget sentences as D6-s4-02 ('0 oder 1 ...')."
+  },
+  {
+   "owner_seat": "D6-s3",
+   "file": "custom_components/heatpump_optimizer/heat_curve.py",
+   "symbol": "module docstring (I2) / _write_persistent_target",
+   "what": "Docstring says one write is always kept back for the restore; the refusal `writes_today + 1 > budget` keeps none (persistent_budget.py)."
+  },
+  {
+   "owner_seat": "D6-s1",
+   "file": "docs/how-it-works.md, docs/architecture.md, docs/dashboard-card.md, docs/ecl110.md, docs/setup.md, docs/automations.md",
+   "symbol": "prose claims",
+   "what": "Redispatched C3 (prose claims of these files not extracted) belongs to these cells, not D6-s4."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tests/card.mjs",
+   "symbol": "R10-I18N-DE parity arm",
+   "what": "Run here it FAILs on sv status.stale_title (drops {minutes}, adds {minuter}) and its null-control arm also FAILs, along with other card.mjs checks; how a baseline carries a red card.mjs is for the D3/D11 owner to measure."
+  }
+ ]
+}

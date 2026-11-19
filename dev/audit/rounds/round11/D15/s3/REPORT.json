@@ -1,0 +1,137 @@
+{
+  "dimension": "D15",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "report_path": "dev/audit/rounds/round11/D15/s3/REPORT.md",
+  "exposure": "",
+  "coverage": [
+    {
+      "step": "D15.M7",
+      "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M7 --bundle B",
+      "universe": 25,
+      "examined": 24,
+      "not_reached": ["redispatched:C3 solve-time outliers re-checked at baseline"],
+      "redispatched": [{"item": "C1", "state": "examined"}, {"item": "C3", "state": "not_reached"}],
+      "evidence": "m7_rowscan.py --bundle B: 11 row checks over all 662 rows, 7 of 7 snapshots (0 action/plan mismatches beyond user overlays), 5 of 5 self-tests re-derived (stores, sensors, feeds, solver equal; accuracy store bias within 0.006 C on 192 samples). C3: the 6.7.17 outlier rows belong to the round-10 bundle, which this seat was not given; on this bundle 0 of 652 solves exceed 3x their release median in any of 9 releases (max 49.9 s on 7.1.12, 31.7 s on 10.0.0), and a cross-host solve-time comparison has no ruler on the owner's host. Null control: the synthetic week (dbg_bundle_gen.py --days 7) ran first; its rows broke feed_health (finding D15-s3-02)."
+    },
+    {
+      "step": "D15.M8",
+      "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M8 --bundle B",
+      "universe": 12,
+      "examined": 5,
+      "not_reached": [
+        "anomaly:unsolved_publish:after_restart",
+        "anomaly:row_gaps:restart_gaps",
+        "anomaly:row_gaps:off_cadence_publishes",
+        "anomaly:accuracy_sample_lag:tracker_paused",
+        "anomaly:self_test_stores:off_domain:off_restore",
+        "anomaly:self_test_stores:off_domain:snapshots",
+        "anomaly:self_test_stores:off_domain:thermal_learning"
+      ],
+      "redispatched": [{"item": "C2", "state": "examined"}, {"item": "C4", "state": "examined"}],
+      "evidence": "m8_replay.py --bundle B --start-h 18.5 --end-h 23 (18 cycles, debug_replay seeding, three arms): solve_wall_ms:wall_twice_payload reproduced as 0.667 what-if solves per scheduled solve, 0.0 with tiles-off (seam fetch, _maybe_refresh_price_tile; design); dhw_window_floor reproduced as 5 of 12 in-window cycles under the window minimum, 0 of them not heating (seam core; holds at baseline); self_test_solver:week_solve_ms_counts_unsolved_rows reproduced at baseline by m7_rowscan.py --perturb solver-filter (finding D15-s3-01). C4: two anomalies reproduced by debug_replay over --start/--end windows with their perturbations, plus finding D15-s3-03 in the replay instrument. Not reached: the unsolved publish needs a cold restart run_fixture does not model (its reloads hand over the last payload); the store off-domain anomalies are documents, not windows (leads to D15-s1, M4); restart gaps, off-cadence publishes and sample lag were not replayed in this window."
+    },
+    {
+      "step": "D15.M9",
+      "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M9 --bundle B",
+      "universe": 8,
+      "examined": 0,
+      "not_reached": ["install_day:day0", "install_day:day1", "install_day:day2", "install_day:day3", "install_day:day4", "install_day:day5", "install_day:day6", "install_day:day7"],
+      "redispatched": [],
+      "evidence": "m9_costs.py --bundle B computes C_real and C_model per install-day from the rows' distinct accuracy samples (coverage 0.53-0.96 of a day's intervals) and the model gap |C_real-C_model|/C_real: range 0.10..1.87 over 8 days, mean 0.80, 0.90 with the most favourable day dropped; --null reads 0 on every day, --plant-scale 1.2 moves it. C_same is not computed on any day: the bundle carries the exogenous inputs at decision time for the replay half's single day only, and the tree has no measured-house plant other than the learned model the oracle excludes. No day is examined in full."
+    }
+  ],
+  "unfinished": [
+    {"step": "D15.M7", "what": "C3: the round-10 bundle's 6.7.17 solve-time outliers; that bundle was not an input this round."},
+    {"step": "D15.M8", "what": "7 anomalies not reproduced through debug_replay: unsolved_publish (needs a cold-restart arm in run_fixture), restart_gaps, off_cadence_publishes, accuracy_sample_lag, and the three store off-domain anomalies (document, not window)."},
+    {"step": "D15.M9", "what": "C_same for all 8 install-days: needs exogenous inputs per decision time beyond the replay half's one day and a measured-house plant independent of the learned model (D0 step 8's method has none for a live bundle)."}
+  ],
+  "findings": [
+    {
+      "id": "D15-s3-01",
+      "scope": "D15-s3",
+      "step": "D15.M7",
+      "title": "Solver self-test counts every restart's not-run publish as a 0 ms solve",
+      "severity": "low",
+      "claim": "On the real bundle, debugger._solver_smoke's week_solve_ms spread admits 10 rows whose payload was the not-run publish (no action, solve_time_ms 0), so the self-test reports min 0 ms and n 662 where 652 solves ran.",
+      "mechanism": "_apply_unsolved_payload publishes solve_time_ms 0 for a solve that never ran (the light first refresh after each restart); cycle_row copies it into payload_solve_time_ms and _solver_smoke spreads every row carrying the key.",
+      "evidence": {"command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_rowscan.py --bundle B", "harness_path": "dev/audit/rounds/round11/D15/s3/m7_rowscan.py", "value": 10, "unit": "rows (solver_spread_unsolved_rows); solver_week_min_ms=0", "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692", "machine": "macOS arm64, CI venv", "cpu_or_wall": "count", "contention_note": "shared box, load1 about 22; a count", "tolerance": "exact", "load1": 21.84, "thread_factor": 1.0},
+      "instrumented_symbol": "custom_components/heatpump_optimizer/debugger.py:_solver_smoke (via debugger:spread)",
+      "perturbation": {"change": "--perturb solver-filter: _solver_smoke's spread drops a row whose payload_solve_time_ms is 0 (in memory)", "expected_direction": "to_zero", "observed_value": "0 rows, n 652, min 9806 ms"},
+      "metric_definition": "Rows the solver self-test's week_solve_ms spread admits whose payload carried no action and solve_time_ms 0 (n_spread minus rows with a positive solve time).",
+      "phenomenon_property": "A solve-time statistic over published payloads ranges only over payloads where a solve ran; the not-run payload's inert 0 is never read as a duration.",
+      "seam_rule": "grep -rn \"solve_time_ms\" custom_components/heatpump_optimizer/ tools/replay/ dev/audit/harnesses/",
+      "null_control": {"command": "m7_rowscan.py --bundle <dbg_bundle_gen.py --days 7 bundle>", "value": 0, "note": "no restart in the synthetic week"},
+      "proposed_fix_scope": "debugger._solver_smoke (or cycle_row omitting the key when optimization_status is not_run), one line and a test row.",
+      "files": ["custom_components/heatpump_optimizer/debugger.py"],
+      "stop_rule_class": "bug",
+      "class_guess": "N-silent-zero"
+    },
+    {
+      "id": "D15-s3-02",
+      "scope": "D15-s3",
+      "step": "D15.M7",
+      "title": "dbg_bundle_gen's null-control rows are a diverged copy of cycle_row; feed self-test raises on them",
+      "severity": "medium",
+      "claim": "Every row tools/replay/dbg_bundle_gen.py writes differs from debugger.cycle_row's row for the same payload (48 of 48 in one day), and debugger.feed_health raises TypeError on them, so D15's mandated null control cannot run M7's self-test re-derivation.",
+      "mechanism": "build_bundle.recording_tick builds its row with its own dict literal: keeps None-valued keys (production drops them), no version, no t on the accuracy sample, no manifest self_tests.",
+      "evidence": {"command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py", "harness_path": "dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py", "value": 48, "unit": "rows diverging of 48 (rows_with_explicit_none=48, samples_without_t=47, feed_health_completes=False)", "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692", "machine": "macOS arm64, CI venv", "cpu_or_wall": "count", "contention_note": "shared box, load1 about 12; counts", "tolerance": "exact", "load1": 11.82, "thread_factor": 1.0},
+      "instrumented_symbol": "tools/replay/dbg_bundle_gen.py:build_bundle against debugger:cycle_row and debugger:feed_health",
+      "perturbation": {"change": "--perturb production-row: row = debugger.cycle_row(self, data, dt_util.now(), wall_ms) in build_bundle's source, in memory", "expected_direction": "to_zero", "observed_value": "0 diverging, 0 explicit None, feed_health completes"},
+      "metric_definition": "Rows of one generated day whose keys or values differ from cycle_row's row for the same coordinator and payload at the same tick (solve_wall_ms by presence).",
+      "phenomenon_property": "The null-control bundle is produced by the production collector's own functions, so every reader of a real bundle runs unchanged on the synthetic one.",
+      "seam_rule": "grep -n \"row = {\\|payload_snapshots.append\\|\\\"manifest\\\":\" tools/replay/dbg_bundle_gen.py custom_components/heatpump_optimizer/debugger.py",
+      "null_control": {"command": "m7_nullcontrol_rows.py", "value": "null_feed_health_on_production_rows=True", "note": "production rows for the same payloads read cleanly"},
+      "proposed_fix_scope": "dbg_bundle_gen builds rows, snapshots and self_tests through debugger's functions; a gate_checks arm runs feed_health and sensor_sanity on a generated row.",
+      "files": ["tools/replay/dbg_bundle_gen.py"],
+      "stop_rule_class": "bug",
+      "class_guess": "P2"
+    },
+    {
+      "id": "D15-s3-03",
+      "scope": "D15-s3",
+      "step": "D15.M8",
+      "title": "debug_replay seeds unmasked entity ids into a masked replay; learned heat-loss learners reset",
+      "severity": "medium",
+      "claim": "On the owner's bundle, debug_replay.seed_stores writes 4 store-held entity ids that name no entity of the masked replay half; over the 18-cycle window the replayed coordinator voids 2 learned heat-loss learners ('its zone sensor changed') and warns 1 input unreadable, and remapping the ids through the mask brings both counts to 0.",
+      "mechanism": "seed_stores remaps the store key onto test_entry but copies each document verbatim; thermal_learning's zone entities, dhw_legionella, off_restore and snapshots keep the install's real ids while the replay config holds masked ones, so _void_heat_loss_learners resets house_heat_loss_scale and lower_floor_loss_ratio and every M5/M8 reproduction plans on configuration defaults; the five replay judges stay 0, so the lane's verdict does not show it.",
+      "evidence": {"command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m8_replay.py --bundle B --start-h 18.5 --end-h 23", "harness_path": "dev/audit/rounds/round11/D15/s3/m8_replay.py", "value": 2, "unit": "learner resets; seeded_foreign_entity_ids=4, unreadable_warnings=1", "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692", "machine": "macOS arm64, CI venv", "cpu_or_wall": "count", "contention_note": "three arms in parallel beside other seats, load1 55-280; counts", "tolerance": "exact", "load1": 269.97, "thread_factor": 1.0},
+      "instrumented_symbol": "tools/replay/debug_replay.py:seed_stores (counted through coordinator:HeatPumpOptimizerCoordinator._void_heat_loss_learners and the unreadable-input warning)",
+      "perturbation": {"change": "--perturb remap-ids: store-held ids rewritten to the masked id of the same configuration key before seeding", "expected_direction": "to_zero", "observed_value": "0 foreign ids, 0 learner resets, 0 unreadable warnings"},
+      "metric_definition": "Over the replay window: WARNING records voiding a learned heat-loss learner because its zone sensor changed, beside the count of seeded ids absent from the masked replay half.",
+      "phenomenon_property": "A replay seeded from a bundle's stores names only entities of the replay half it runs on, and starts from the learned state the install held.",
+      "seam_rule": "grep -n \"entity_id\\|_entities\" custom_components/heatpump_optimizer/off_restore.py custom_components/heatpump_optimizer/legionella.py custom_components/heatpump_optimizer/snapshots.py custom_components/heatpump_optimizer/coordinator.py (every store document seed_stores copies, store.DOMAINS)",
+      "null_control": {"command": "same command with --perturb remap-ids", "value": 0, "note": "no learner voided, no input unreadable"},
+      "proposed_fix_scope": "debug_replay.seed_stores maps every entity id in a seeded document through the replay half's mask (pairs from the replay entry's configuration keys), or refuses an id outside it; a gate_checks arm proves no learner is voided.",
+      "files": ["tools/replay/debug_replay.py"],
+      "stop_rule_class": "bug",
+      "class_guess": "new"
+    }
+  ],
+  "non_findings": [
+    {"claim": "No solve failure in 662 rows", "command": "m7_rowscan.py --bundle B", "value": "solve_failures_added=0, solve_failure_increments=0"},
+    {"claim": "No solve-time outlier: 0 solves over 3x their release median in 9 releases", "command": "m7_rowscan.py --bundle B", "value": "payload_solve_outliers_over3x=0; max 49.9 s (7.1.12), 31.7 s (10.0.0)"},
+    {"claim": "solve_wall_ms about twice the payload solve time is the price tiles' what-if solve (price_tiles_enabled on); 10.0.0 rows follow the 2-2-1 rotation with one 4x cap refresh, 7.1.x rows an extra solve every cycle (older release only); reproduced at baseline", "command": "m7_rowscan.py --bundle B; m8_replay.py --bundle B --start-h 18.5 --end-h 23 [--perturb tiles-off]", "value": "wall classes 10.0.0 {1:14, 2:30, 4:1}; simulate_per_solve=0.667, tiles-off 0.0"},
+    {"claim": "Price feed healthy: no cycle without prices, no short horizon after 14:00 local", "command": "m7_rowscan.py --bundle B", "value": "no_price_rows=0, short_horizon_after_14h=0"},
+    {"claim": "Weather forecast never stale", "command": "m7_rowscan.py --bundle B", "value": "weather_stale_rows=0 (production omits the key when fresh)"},
+    {"claim": "Action fields consistent: no off action with the pump on or power drawn, no heating mode with the pump off", "command": "m7_rowscan.py --bundle B", "value": "action_contradictions=0"},
+    {"claim": "Each payload snapshot's action equals the plan's current step except user boost overlays", "command": "m7_rowscan.py --bundle B", "value": "5 agree, 2 overlay (boost_space, boost_dhw), 0 differ"},
+    {"claim": "Self-tests sensors, feeds, solver and stores re-derive exactly at the baseline; accuracy store window re-derived from rows", "command": "m7_rowscan.py --bundle B", "value": "rederived_equal=True x4; accuracy bias delta 0.006 C on 192/192 samples"},
+    {"claim": "The 10 no-action rows are the not-run first publish after each restart (8 at a release change, 2 after downtime or a short restart)", "command": "m7_rowscan.py --bundle B", "value": "unsolved_rows=10, restart_gaps=2, release_changes=8"},
+    {"claim": "Hot-water tank under the window minimum inside a demand window is drawn down while the plan is heating, at baseline over the replay window", "command": "m8_replay.py --bundle B --start-h 18.5 --end-h 23", "value": "5 of 12 in-window cycles below the floor, 0 not heating; whole week 68 of 159 rows below floor, 4 on 10.0.0"}
+  ],
+  "harnesses": [
+    "dev/audit/rounds/round11/D15/s3/s3_enumerate.py",
+    "dev/audit/rounds/round11/D15/s3/m7_rowscan.py",
+    "dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+    "dev/audit/rounds/round11/D15/s3/m8_replay.py",
+    "dev/audit/rounds/round11/D15/s3/m9_costs.py"
+  ],
+  "leads": [
+    {"owner_seat": "D15-s1", "file": "dev/audit/harnesses/d15_restart_gaps.py", "symbol": "GAP_INTERVALS rule", "what": "On the owner's bundle the 3-interval rule finds 2 restart gaps while the not-run first publish (row with no action_mode and payload_solve_time_ms 0) marks 10 restarts, 8 of them upgrades with gaps of 2-28 min; M1's attribution by gap would miss them (rows here carry version, so attribution is unaffected this round)."},
+    {"owner_seat": "D15-s1", "file": "custom_components/heatpump_optimizer/store.py", "symbol": "DOMAINS['off_restore'], DOMAINS['snapshots'], DOMAINS['thermal_learning']", "what": "The stores self-test re-derives 82 off-domain paths at baseline: off_restore armed/* is declared real but written as an {entity_id, value} dict, so the domain never checks the restored value; snapshots hold pre-rename learners/thermal_learning/cop_baseline and cop_health_cusum (80 paths); thermal_learning capacity_envelope/*/1 is below its declared minimum 1 in one entry."},
+    {"owner_seat": "D15-s2", "file": "tools/replay/debug_replay.py", "symbol": "run_seeded", "what": "Stores are seeded from the download instant, 1-2 days after the replay window: the ledger, pump_duty and duty_switch stamps are bounded as 'ahead of the clock', and learned state from after the window enters the timeline replay."},
+    {"owner_seat": "D2-s1", "file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_record_accuracy (predicted_power_kw vs actual_power_kw)", "what": "Over the week's distinct accuracy samples, planned power exceeds measured by interval kind: hot_water 1.66 vs 0.72 kW mean (127 samples), user boost 4.94 vs 2.39 (102), pre_heat 3.07 vs 1.15 (11), eco 1.55 vs 1.46 (81); the per-day cost model gap is 10-187 percent (m9_costs.py)."},
+    {"owner_seat": "D0-s3", "file": "dev/governance/dimensions/D0.md", "symbol": "step 8, same-information oracle", "what": "For a live bundle, C_same has no measured-house plant other than the learned model the oracle excludes, and exogenous inputs at decision time exist only for the replay half's day; D15.M9 cannot be completed until the method names that plant."},
+    {"owner_seat": "D9-s1", "file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_maybe_refresh_price_tile", "what": "On the owner's host the tile solve doubles the cycle's wall (median 19 s over the payload solve on 7.1.x); at baseline 0.667 extra solves per scheduled solve (solves_per_cycle axis)."}
+  ]
+}

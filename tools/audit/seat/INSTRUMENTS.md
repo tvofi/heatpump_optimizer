@@ -6,15 +6,14 @@ real lane reaches for it, and which refusal saves you. The obligations live in
 runs offline. Each linked line below indexes one instrument; its text is
 `instruments/<name>.md`, beside this file.
 
-Directories here that are records, not instruments: `round3/`..`round9/`,
-`round5-fix/`, `round7-fix/`, `round8-fix/`, `handoff/`, `rca/`,
-`w5-partition/`, `w5-g5-195-coverage/`, `briefs/` (the seat contracts and
-dimension briefs), `archscore/`, `ci-version-edit/`, `ledger-layout/`,
-`record-predicate/` (sub-tools with their own READMEs), and the JSON/schema
-files (`bugclasses.json`, `scopes.json`, `rotation.json`,
-`finding.schema.json`), which the instruments read. `harnesses/` holds the
-re-runnable measurement harnesses a fixer or judge lands with a PR — its
-`README.md` indexes them; anything a later seat must rerun belongs there
+The records are not here: round evidence is under `dev/audit/rounds/`,
+root-cause analyses under `dev/audit/rca/`, the seat contracts and dimension
+briefs under `dev/governance/`, the architecture score under
+`tools/audit/archscore/`, and the JSON and schema files the instruments read
+(`bugclasses.json`, `scopes.json`, `rotation.json`, `finding.schema.json`)
+under `dev/audit/config/`. `dev/audit/harnesses/` holds the
+re-runnable measurement harnesses a fixer or judge lands with a PR — 
+`dev/audit/README.md` indexes them; anything a later seat must rerun belongs there
 (fixer contract step 18), not in a session's scratch.
 
 ## tools/audit/

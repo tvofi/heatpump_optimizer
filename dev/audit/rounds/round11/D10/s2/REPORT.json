@@ -1,0 +1,291 @@
+{
+ "dimension": "D10",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D10/s2/REPORT.json",
+ "exposure": "Read README.md and docs/how-it-works.md for the docs-* gold rules; fetched Home Assistant developer docs (quality-scale rules, tiers.json) and HA core source (sensor const/entity/recorder, tags 2025.2.0-2026.6.0) from upstream; ran tests/entities.py once at the baseline (no finding rests on it).",
+ "coverage": [
+  {
+   "step": "D10.M1",
+   "enumerator": "python3 dev/audit/rounds/round11/D10/s2/enum_gold.py",
+   "universe": 21,
+   "examined": 21,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    }
+   ],
+   "evidence": "one executed check per gold rule: entity_census.py, exempt_rows.py, diag_locations.py, exc_translations.py, repair_issues.py, reconfig_shadow.py, docs_gold.py; enum_gold.py --checklist equals the register's 21 gold rows (Q1). C1: rule pages fetched (rules/*.md), the 7 docs-* rules counted separately by docs_gold.py, entity-category (24 diagnostic/58 primary/0 config), entity-device-class (38 with class, 3 impossible pairs, 3 bare deltas) and entity-disabled-by-default (20) counted by entity_census.py."
+  },
+  {
+   "step": "D10.M2",
+   "enumerator": "python3 dev/audit/rounds/round11/D10/s2/enum_gold.py",
+   "universe": 21,
+   "examined": 21,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "tier table in REPORT.md (21 rows), draft register quality_scale.draft.yaml (gold: 3 todo, 14 done, 4 exempt); minimum HA release for the todo needing a newer API: TEMPERATURE_DELTA, 2025.11.0 (absent at 2025.10.0) against the hacs.json floor 2025.2.0."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D10-s2-01",
+   "scope": "D10-s2",
+   "step": "D10.M1",
+   "title": "Reconfigure reports success but changes nothing once Options saved the Entities page",
+   "severity": "high",
+   "claim": "After one save of the Options flow's Entities page, a reconfigure that changes the indoor sensor and the weather entity aborts with reconfigure_successful while the effective configuration keeps both old values (2 of 2 changed keys shadowed; 0 on an entry with no options), and the reopened form is prefilled from entry.data rather than the running value.",
+   "mechanism": "_async_save_reconfigure writes the first screen's answers into entry.data only; the coordinator runs on {**entry.data, **entry.options}; the Entities options page (_OPTION_FIELDS rows with step 'entities') stores the same keys (price source/entity, token, weather, indoor, outdoor, ...) in entry.options, which then win over every later reconfigure. The prefill reads self._reconfigure_entry.data, so it also shows a value that is not running. D10-criteria Q2: the reconfiguration-flow row's done fails at this site.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/reconfig_shadow.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s2/reconfig_shadow.py",
+    "value": 2,
+    "unit": "first-screen keys whose reconfigured answer is not the effective config",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "local macOS box B2 (orchestrator machine), Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 42.99,
+    "thread_factor": 0.999
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow._async_save_reconfigure",
+   "perturbation": {
+    "change": "--perturb: wrap _async_save_reconfigure in memory so it also removes the first-screen keys from entry.options before writing entry.data",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "shadowed = first-screen keys a reconfigure changed whose value in {**entry.data, **entry.options} after reconfigure_successful differs from the answer",
+   "phenomenon_property": "A reconfigure that reports success leaves every first-screen key it was given in force in the effective configuration the coordinator is built from, and the reconfigure form is prefilled from that effective configuration.",
+   "seam_rule": "grep -n 'def _async_save_reconfigure\\|def async_step_reconfigure\\|add_suggested_values_to_schema' custom_components/heatpump_optimizer/config_flow.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/reconfig_shadow.py",
+    "value": "shadowed_null=0",
+    "note": "the same reconfigure on an entry whose options were never saved takes effect in full"
+   },
+   "reproduction_steps": [
+    "Set up an entry (entity price source) with indoor sensor A and weather.home.",
+    "Options -> Entities: change the indoor sensor to B and save.",
+    "Entry menu -> Reconfigure: the form shows indoor A; choose C and weather.other; it reports success.",
+    "The coordinator still reads indoor B and weather.home."
+   ],
+   "proposed_fix_scope": "config_flow.py: the reconfigure write (and its prefill) operate on the effective configuration -- drop the written keys from entry.options in the same async_update_entry, and prefill from {**data, **options}",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D10-s2-02",
+   "scope": "D10-s2",
+   "step": "D10.M1",
+   "title": "Three ENERGY sensors publish state class measurement, a pair HA declares impossible",
+   "severity": "high",
+   "claim": "Lifetime Space Heating Energy, DHW Energy (lifetime) and Lifetime Total Energy publish device class energy with state class measurement (3 sensors), which Home Assistant's DEVICE_CLASS_STATE_CLASSES forbids (energy admits only total/total_increasing), so HA logs the impossible-state-class warning and the recorder compiles mean statistics instead of a sum, keeping them out of the Energy dashboard the README says they feed.",
+   "mechanism": "sensor._AccumulatingSensor declares _attr_state_class = SensorStateClass.MEASUREMENT although its own docstring calls it the base of the TOTAL_INCREASING accumulators; the three cost subclasses override to TOTAL, the three energy subclasses inherit MEASUREMENT. The entity-device-class row's done (D10-criteria Q2) fails at these three sites: the device class is declared but HA rejects the pair.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s2/entity_census.py",
+    "value": 3,
+    "unit": "sensors with a (device_class, state_class) pair HA's table forbids",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "local macOS box B2 (orchestrator machine), Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 42.64,
+    "thread_factor": 0.999
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:_AccumulatingSensor",
+   "perturbation": {
+    "change": "--perturb-state: set sensor._AccumulatingSensor._attr_state_class = 'total_increasing' in memory",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "impossible_pairs = sensors (all 62, via each platform's async_setup_entry) whose published device_class and state_class form a pair outside HA core's DEVICE_CLASS_STATE_CLASSES",
+   "phenomenon_property": "Every sensor's published (device_class, state_class) pair is one Home Assistant's DEVICE_CLASS_STATE_CLASSES admits; every lifetime kWh accumulator is total_increasing.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py | grep IMPOSSIBLE",
+   "reproduction_steps": [
+    "Run the harness: IMPOSSIBLE SpaceEnergySensor/DHWEnergySensor/TotalEnergySensor: energy+measurement.",
+    "In HA core (homeassistant/components/sensor/entity.py) the state write logs 'is using state class measurement which is impossible considering device class (energy)'; sensor/recorder.py compiles mean/min/max for measurement, no sum."
+   ],
+   "proposed_fix_scope": "sensor.py: _AccumulatingSensor's state class TOTAL_INCREASING (the cost subclasses keep TOTAL)",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D10-s2-03",
+   "scope": "D10-s2",
+   "step": "D10.M1",
+   "title": "German run_optimization_no_prices message names {entry_id}; both raise sites pass entry_ids",
+   "severity": "low",
+   "claim": "Of 37 translated exception sites, 2 (button.py ForceOptimizationButton.async_press and services.py's run_optimization handler) raise run_optimization_no_prices with placeholder entry_ids while translations/de.json's message reads {entry_id}, so the German message's placeholders do not match the English one and HA's translation-placeholder validation drops it, showing German users the English text.",
+   "mechanism": "de.json exceptions.run_optimization_no_prices.message uses {entry_id}; strings.json, en.json and sv.json use {entry_ids}. HA validates a localized string's placeholders against the English ones on load (helpers/translation.py) and discards a mismatch. D10-criteria Q2: the exception-translations row's done fails at these two raise sites in one shipped language.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/exc_translations.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s2/exc_translations.py",
+    "value": 2,
+    "unit": "(raise site, catalogue) pairs with a missing key or mismatched placeholders",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "local macOS box B2 (orchestrator machine), Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 42.99,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.button:ForceOptimizationButton.async_press",
+   "perturbation": {
+    "change": "--perturb: delete the en catalogue's entry for the first literal key met (in memory)",
+    "expected_direction": "up",
+    "observed_value": 4
+   },
+   "metric_definition": "bad = (HomeAssistantError-family construction site, shipped catalogue) pairs whose key is missing or whose message fields differ from the placeholders the site passes",
+   "phenomenon_property": "Every translated exception's message in every shipped catalogue has exactly the placeholders its raise sites pass.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/exc_translations.py | grep BAD",
+   "proposed_fix_scope": "translations/de.json: run_optimization_no_prices message reads {entry_ids}",
+   "files": [
+    "custom_components/heatpump_optimizer/translations/de.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D10-s2-04",
+   "scope": "D10-s2",
+   "step": "D10.M2",
+   "title": "Three degC difference sensors stay classless where HA >= 2025.11.0 offers TEMPERATURE_DELTA",
+   "severity": "low",
+   "claim": "ECL110 Displace, ECL110 Effective Displace and Prediction Accuracy publish temperature differences in degC with no device class (3 sensors); Home Assistant 2025.11.0 added SensorDeviceClass.TEMPERATURE_DELTA (measurement), so on any install at or above 2025.11.0 a device class is possible and unused, and a Fahrenheit user sees these deltas unconverted.",
+   "mechanism": "The rows were left bare deliberately because TEMPERATURE converts a delta as an absolute; the floor in hacs.json (2025.2.0) predates TEMPERATURE_DELTA (absent in core 2025.10.0's sensor/const.py, present from 2025.11.0). The rule asks for device classes where possible; a getattr(SensorDeviceClass, 'TEMPERATURE_DELTA', None) keeps the floor working. Per D10.M2 this is the todo needing an API newer than the floor, with its minimum release.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s2/entity_census.py",
+    "value": 3,
+    "unit": "sensors in degC with no device class",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "local macOS box B2 (orchestrator machine), Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 42.64,
+    "thread_factor": 0.999
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:ECL110DisplaceSensor",
+   "perturbation": {
+    "change": "--perturb-delta: set sensor.ECL110DisplaceSensor._attr_device_class = 'temperature_delta' in memory",
+    "expected_direction": "down",
+    "observed_value": 2
+   },
+   "metric_definition": "delta_bare = sensors (via async_setup_entry) whose native unit is degC or K and whose published device class is None",
+   "phenomenon_property": "Every sensor publishing a temperature difference declares TEMPERATURE_DELTA wherever the running Home Assistant provides it, and none declares TEMPERATURE.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py | grep DELTA_BARE",
+   "proposed_fix_scope": "sensor.py: the three delta sensors take SensorDeviceClass.TEMPERATURE_DELTA when the running core has it (getattr fallback to None at the 2025.2.0 floor)",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Q1 gold: every checklist gold rule has a register row and vice versa",
+   "command": "diff <(python3 dev/audit/rounds/round11/D10/s2/enum_gold.py | sort) <(python3 dev/audit/rounds/round11/D10/s2/enum_gold.py --checklist | sort)",
+   "value": "21 = 21, no diff"
+  },
+  {
+   "claim": "diagnostics: no part of a coordinate leaves in Download diagnostics with the solar location in options, in data, the HA home fallback, or a device_tracker away presence (debug bundle and recorder replay half included)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/diag_locations.py",
+   "value": "leaks=0 (each arm 0); --perturb 31"
+  },
+  {
+   "claim": "devices: every entity lands on one service device",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py",
+   "value": "devices_no_device_info=0, devices_not_service=0, distinct_devices=1 over 82 entities"
+  },
+  {
+   "claim": "entity-translations: every entity has a translation key with a name, and every enum option a state, in strings/en/sv/de; no hard-coded name",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py",
+   "value": "translation_name_missing=0, translation_state_missing=0, hardcoded_name=0, no_translation_key=0"
+  },
+  {
+   "claim": "icon-translations: every entity has an icons.json entry and none pins an icon in code",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py",
+   "value": "icon_translation_missing=0, icon_pinned_in_code=0"
+  },
+  {
+   "claim": "entity-category: machinery sensors are diagnostic",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py",
+   "value": "category_diagnostic=24, category_none=58, category_on_controls=0 (judgement: buttons left primary)"
+  },
+  {
+   "claim": "entity-disabled-by-default: the entities the ordinary install cannot light ship disabled, and the README lists exactly them",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/docs_gold.py",
+   "value": "disabled_census=20, disabled_listed=20, no difference"
+  },
+  {
+   "claim": "repair-issues: every raised notice has title and description or fix flow in 4 catalogues with its placeholders; the one fixable notice has a flow",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/repair_issues.py",
+   "value": "sites=29, bad=0, orphan_keys=0; --perturb 1"
+  },
+  {
+   "claim": "exempt rows stay true (Q3): discovery, discovery-update-info, dynamic-devices, stale-devices",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/exempt_rows.py",
+   "value": "q3_contradictions=0 (0 discovery keys/steps, 0 device-registry writes, no remove hook, 1 device); --perturb 1"
+  },
+  {
+   "claim": "docs-supported-functions/data-update/examples/known-limitations/supported-devices/troubleshooting/use-cases hold in README.md and docs/how-it-works.md",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/docs_gold.py",
+   "value": "docs_bad=0; entities_named=82/82; interval 30=30; blueprints 5/5; sections 10/6/43/9 entries; --perturb 1"
+  },
+  {
+   "claim": "entity-device-class: five SEK figures are not MONETARY because they are measurement, which MONETARY does not admit (only total)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py",
+   "value": "unit_without_device_class=14, of which SEK measurement 5, SEK/kWh 2, % 1, kWh forecast/quantile 2 (no class admits them), degC deltas 3 (D10-s2-04)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D10/s2/entity_census.py",
+  "dev/audit/rounds/round11/D10/s2/exc_translations.py",
+  "dev/audit/rounds/round11/D10/s2/reconfig_shadow.py",
+  "dev/audit/rounds/round11/D10/s2/diag_locations.py",
+  "dev/audit/rounds/round11/D10/s2/repair_issues.py",
+  "dev/audit/rounds/round11/D10/s2/exempt_rows.py",
+  "dev/audit/rounds/round11/D10/s2/docs_gold.py",
+  "dev/audit/rounds/round11/D10/s2/enum_gold.py",
+  "dev/audit/rounds/round11/D10/s2/_census.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D10-s1",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "HeatPumpOptimizerConfigFlow.async_step_reauth_confirm",
+   "what": "reauth writes the new Tibber token into entry.data only, while a saved Entities options page stores tibber_token in entry.options (reconfig_shadow.py's OPTIONS_SAVE line lists it), so a reauth after an Options save may leave the refused token in force (same shadowing as D10-s2-01, silver reauthentication-flow)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "README.md",
+   "symbol": "Entities / Energy, power and efficiency table",
+   "what": "the three lifetime kWh sensors are described as 'Accumulating, for the Energy dashboard'; with state class measurement (D10-s2-02) they produce no sum statistics."
+  },
+  {
+   "owner_seat": "D10-s1",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "HeatPumpOptimizerOptionsFlow._save_or_menu / _omit_unstored_defaults",
+   "what": "tests/entities.py at this baseline prints FAIL 'an untouched save of the <page> page cannot flip two-zone' for 23 option pages and 'an untouched save leaves a legacy entry single-zone'; not measured by this seat."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "ThermalBatterySensor / SensorGapAdvisorSensor",
+   "what": "tests/entities.py at this baseline prints FAIL on the thermal battery naming modelled stores and on the sensor-gap advisor's spread ordering and null control, and dies on KeyError 'house_heat_loss_coefficient' in _NOMINAL; not measured by this seat."
+  }
+ ]
+}

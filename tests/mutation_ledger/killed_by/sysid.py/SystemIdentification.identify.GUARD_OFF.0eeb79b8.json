@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 0eeb79b8",
+  "killed_by": "tests/features.py",
+  "old": "                    if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

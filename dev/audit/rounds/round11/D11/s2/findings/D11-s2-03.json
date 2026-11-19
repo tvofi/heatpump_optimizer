@@ -1,0 +1,47 @@
+{
+ "id": "D11-s2-03",
+ "scope": "D11-s2",
+ "step": "D11.M2",
+ "title": "The release asset users install carries no provenance; the attestation covers the tag tree only",
+ "severity": "medium",
+ "claim": "Of the last 5 releases, 0 `heatpump_optimizer.zip` assets (the file hacs.json's zip_release install fetches) have a GitHub attestation for their sha256, while 5 of 5 tag-tree tars (the subject release.yml attests) do; Scorecard Signed-Releases finds 0 of 5 with a signature or provenance asset.",
+ "mechanism": "release.yml's 'Attest the tag's tree' step sets subject-digest to `git archive --format=tar <tag> | sha256sum`, a serialisation no user downloads; the zip the same job builds and uploads is never a subject. SLSA v1.0 Build L1 asks for provenance of the distributed artifact, so the release path meets L1 (and L2) for an artefact no one installs and L0 for the one installed.",
+ "evidence": {
+  "command": "python3 dev/audit/rounds/round11/D11/s2/provenance.py",
+  "harness_path": "dev/audit/rounds/round11/D11/s2/provenance.py",
+  "value": 0,
+  "unit": "zip assets attested (of 5 releases; tag tars attested 5)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B7 (4 vCPU, shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats on the box; counts over fixed snapshots, contention-immune",
+  "tolerance": "exact",
+  "load1": 11.91,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": ".github/workflows/release.yml:'Attest the tag's tree' (subject-digest = git archive --format=tar <tag> | sha256sum)",
+ "perturbation": {
+  "change": "--perturb: query the zip row with the step's subject digest (subject moved onto the distributed asset)",
+  "expected_direction": "up",
+  "observed_value": "zip_attested 0 -> 5"
+ },
+ "metric_definition": "releases (last 5) whose distributed zip asset's sha256 has >=1 attestation via GET /repos/tvofi/heatpump_optimizer/attestations/sha256:<digest>",
+ "phenomenon_property": "Every release asset a user installs is a subject of a signed build-provenance attestation.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D11/s2/provenance.py --n 30 (one line per release asset)",
+ "null_control": {
+  "command": "python3 dev/audit/rounds/round11/D11/s2/provenance.py",
+  "value": "tar_attested=5",
+  "note": "the attestation API answers for the digests release.yml does attest, so the zero is not an unreachable API"
+ },
+ "reproduction_steps": [
+  "python3 dev/audit/rounds/round11/D11/s2/provenance.py",
+  "python3 dev/audit/rounds/round11/D11/s2/provenance.py --perturb"
+ ],
+ "proposed_fix_scope": "Add the zip as a second subject of attest-build-provenance (subject-path: the asset) in release.yml; optionally upload the bundle as *.intoto.jsonl/.sigstore.json so Scorecard Signed-Releases reads it.",
+ "files": [
+  ".github/workflows/release.yml",
+  "hacs.json"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

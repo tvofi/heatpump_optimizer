@@ -1,0 +1,2044 @@
+{
+  "box": "B7",
+  "missing": [],
+  "reports": {
+    "D11-s2": {
+      "dimension": "D11",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D11/s2/REPORT.md",
+      "exposure": "GitHub REST via the box proxy: rulesets 22628467/23698884/23937752, branches/main/protection (404), community/profile; environments, actions/secrets, actions/permissions refused by the proxy; for the 52 window merges (v10.0.0..92d38ecb64): /commits/<sha>/pulls, pulls/<n>, reviews, issue comments, commits, head check-runs filter=all, gate check-runs with suite ids; #3394 comments since 2026-11-14 (119); check-runs 132926513148/132924658083/132946211939 and annotations; check-suite 118403819214; actions runs 43734029821, 43743322607, 43730909577, 43730909685, 43743346934; releases (30); attestations for 10 digests; 5 release zips downloaded; policy_lint.mjs --stats --since v10.0.0 (52 PR bodies/verdicts); Scorecard API (no result). Standards text fetched: Scorecard docs/checks.md, slsa.dev v1.0 levels, OpenSSF BP criteria.md, OWASP LLM 2025 titles, NIST AI 600-1 and AI RMF core pages (api/standards/).",
+      "coverage": [
+        {
+          "step": "D11.M2",
+          "enumerator": "python3 dev/audit/rounds/round11/D11/s2/standards.py --list",
+          "universe": 35,
+          "examined": 35,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/standards.py: 35 criteria each with an executed check (24 PASS, 7 PARTIAL, 4 FAIL, 0 NOT-RUN); C1 answered with a denominator of 35; C3: SLSA L1/L2/L3 (standards.py + provenance.py), OpenSSF BP 13 criteria, NIST AI 100-1/600-1 GOVERN 5 points (+oversight.py), OWASP LLM01/05/06, Scorecard CI-Tests/SAST/Maintained/Signed-Releases all run; findings D11-s2-01..03"
+        },
+        {
+          "step": "D11.M3",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/m3_universe.py",
+          "universe": 251,
+          "examined": 251,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "size: policy_lint.mjs --budgets (5 aggregates) + ratio 1648/969=1.701 (policy_health.py); recurrence: policy_lint.mjs --stats --since v10.0.0 ran 1m46s over 52 merges (api/stats_v10.0.0.out, 7 would-open keys, each with RCA records); conformance: conformance.py over all 52 window PRs, 4 obligations (O1 46/52, O2 49/52, O3 48/52, O4 52/52), no sample; staleness: staleness.py over 18 decisions, HANDOVER, plan; duplication: policy_health.py over 84 policy files (16 duplicate units); rulings: 88 live entries, 26389 bytes, overlap 1. C2 answered with a denominator of 251; C4 friction histogram, added/deleted ratio, full conformance table and staleness of decisions/handover all run"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D11-s2-01",
+          "scope": "D11-s2",
+          "step": "D11.M2",
+          "title": "main admitted a merge while a gate run at the merged head was red by the repository's own platform reader",
+          "severity": "high",
+          "claim": "Of the 52 merges in round 11's window, 1 (#3618) reached main while a check suite at its merged head carried a red latest `gate` run (CI code run 43734029821, gate failed 19:18:44Z, its codeql/Analyze (python) still running and later failed) and 1 (#3644) while a gate re-run was in progress; `merge_train.platform_gate`, documented as GitHub's own required-check evaluation, reads #3618 red, so the ruleset's required `gate` check does not enforce what the train assumes it enforces.",
+          "mechanism": "main-protect-checks requires the context `gate` (integration 15368). Every ci.yml run (edit, review, code, dispatched code) publishes its own `gate` check run in its own check suite at the head. GitHub admitted the merge with four suites' gates green and the dispatched code run's gate red; the train's platform_gate requires every required gate run to pass. The only refusal of a red-gate merge is therefore client-side (merge_train / merge_pr.sh), which a merge under the owner account outside the train does not pass through.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/gate_at_merge.py",
+            "harness_path": "dev/audit/rounds/round11/D11/s2/gate_at_merge.py",
+            "value": 2,
+            "unit": "merges not green at merged_at (1 red, 1 wait)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7 (4 vCPU, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "other finder seats on the box; counts over fixed snapshots, contention-immune",
+            "tolerance": "exact",
+            "load1": 4.87,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/seat/merge_train.py:platform_gate",
+          "perturbation": {
+            "change": "--perturb: add FAILURE to merge_train.PLATFORM_PASS (the reader accepts a red gate run)",
+            "expected_direction": "down",
+            "observed_value": "platform_gate_red 1 -> 0 (merged_not_green 2 -> 1, the wait remains)"
+          },
+          "metric_definition": "count of window merges whose merged head, at merged_at, platform_gate reads not green over each check suite's latest gate run completed by then",
+          "phenomenon_property": "No merge reaches main while any check suite at the merged head carries a red or unfinished latest `gate` run; the platform, not only the train, refuses it.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/gate_at_merge.py (one line per merge in the window not green at merged_at)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/gate_at_merge.py",
+            "value": "50 of 52 merges green at merged_at",
+            "note": "the same reader over the same snapshot is green for the other 50, so the reader is not red by construction"
+          },
+          "reproduction_steps": [
+            "python3 dev/audit/rounds/round11/D11/s2/fetch_window.py && python3 dev/audit/rounds/round11/D11/s2/fetch_window.py --gates (refreshes api/)",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/gate_at_merge.py",
+            "api/pr3618_gate_runs.json: suite 118403819214 (run 43734029821, workflow_dispatch 'CI code') latest gate before 19:51:14Z is failure; merged_by tvofi"
+          ],
+          "proposed_fix_scope": "Make the platform refuse it: either one gate per head (the code run's gate the only check run named `gate`, the others renamed), or a required check whose single run reads every suite at the head; and record in decision 0011/0013 that platform_gate is stricter than GitHub so a non-train merge is not covered.",
+          "files": [
+            ".github/workflows/ci.yml",
+            "tools/ci/gate.py",
+            "tools/audit/seat/merge_train.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D11-s2-02",
+          "scope": "D11-s2",
+          "step": "D11.M2",
+          "title": "The human oversight point is not provable from GitHub's records: 0 of 52 window merges carry the owner's own approval",
+          "severity": "medium",
+          "claim": "In round 11's window, 31 of 52 merges carry an approval at head under the owner's account and all 31 are agent-declared; 0 carry one `budget_raise_gate.approval` reads as the owner's own, 49 of 52 were merged by the owner's account, and the agent/human split is made by review-body text alone (deleting the AGENT_DECLARED words turns all 31 into the owner's own with no GitHub-recorded field changed).",
+          "mechanism": "Mandate 6893738184 (scope all, decision 0013) lets the orchestrator approve and merge as tvofi. GitHub's record (login, id, type) is identical for the agent and the owner, so the code-owner review that main-protect-checks requires, the only human-in-the-loop point GitHub enforces, is satisfied by an agent; whether a human acted is recoverable only from what the agent wrote, which is the 'comment's word' D11's NIST AI 600-1 bar excludes.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/oversight.py",
+            "harness_path": "dev/audit/rounds/round11/D11/s2/oversight.py",
+            "value": 0,
+            "unit": "window merges with an owner-own approval at head (of 52; 31 owner-account approvals all agent-declared)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7 (4 vCPU, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "other finder seats on the box; counts over fixed snapshots, contention-immune",
+            "tolerance": "exact",
+            "load1": 9.13,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/policy/budget_raise_gate.py:approval",
+          "perturbation": {
+            "change": "--perturb: delete every AGENT_DECLARED match from the owner-account review bodies (an undeclared agent)",
+            "expected_direction": "up",
+            "observed_value": "owner_own_at_head 0 -> 31"
+          },
+          "metric_definition": "window merges with an APPROVED review at merged head under login tvofi that budget_raise_gate.approval (no mandate reader) reads as the owner's own",
+          "phenomenon_property": "Every merge's required human approval is attributable to a human from GitHub-recorded identity, not from body text an agent writes.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/oversight.py (per window; the seams are every reader that keys on AGENT_DECLARED: grep -rn AGENT_DECLARED tools/)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/oversight.py --perturb",
+            "value": 31,
+            "note": "the classifier is not blind: with the declaration text gone it reads all 31 as the owner's own, which is the text-keyed dependence the finding states"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/oversight.py",
+            "the same with --perturb"
+          ],
+          "proposed_fix_scope": "For the owner to rule: a separate GitHub identity for agent approvals under mandate (an App or a machine user listed as code owner only while a mandate is in force) so records alone separate agent from owner; or record per merge an owner act GitHub signs (the owner's own review) at a sampled rate.",
+          "files": [
+            "tools/policy/budget_raise_gate.py",
+            "tools/audit/seat/merge_pr.sh",
+            "dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new"
+        },
+        {
+          "id": "D11-s2-03",
+          "scope": "D11-s2",
+          "step": "D11.M2",
+          "title": "The release asset users install carries no provenance; the attestation covers the tag tree only",
+          "severity": "medium",
+          "claim": "Of the last 5 releases, 0 `heatpump_optimizer.zip` assets (the file hacs.json's zip_release install fetches) have a GitHub attestation for their sha256, while 5 of 5 tag-tree tars (the subject release.yml attests) do; Scorecard Signed-Releases finds 0 of 5 with a signature or provenance asset.",
+          "mechanism": "release.yml's 'Attest the tag's tree' step sets subject-digest to `git archive --format=tar <tag> | sha256sum`, a serialisation no user downloads; the zip the same job builds and uploads is never a subject. SLSA v1.0 Build L1 asks for provenance of the distributed artifact, so the release path meets L1 (and L2) for an artefact no one installs and L0 for the one installed.",
+          "evidence": {
+            "command": "python3 dev/audit/rounds/round11/D11/s2/provenance.py",
+            "harness_path": "dev/audit/rounds/round11/D11/s2/provenance.py",
+            "value": 0,
+            "unit": "zip assets attested (of 5 releases; tag tars attested 5)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7 (4 vCPU, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "other finder seats on the box; counts over fixed snapshots, contention-immune",
+            "tolerance": "exact",
+            "load1": 11.91,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": ".github/workflows/release.yml:'Attest the tag's tree' (subject-digest = git archive --format=tar <tag> | sha256sum)",
+          "perturbation": {
+            "change": "--perturb: query the zip row with the step's subject digest (subject moved onto the distributed asset)",
+            "expected_direction": "up",
+            "observed_value": "zip_attested 0 -> 5"
+          },
+          "metric_definition": "releases (last 5) whose distributed zip asset's sha256 has >=1 attestation via GET /repos/tvofi/heatpump_optimizer/attestations/sha256:<digest>",
+          "phenomenon_property": "Every release asset a user installs is a subject of a signed build-provenance attestation.",
+          "seam_rule": "python3 dev/audit/rounds/round11/D11/s2/provenance.py --n 30 (one line per release asset)",
+          "null_control": {
+            "command": "python3 dev/audit/rounds/round11/D11/s2/provenance.py",
+            "value": "tar_attested=5",
+            "note": "the attestation API answers for the digests release.yml does attest, so the zero is not an unreachable API"
+          },
+          "reproduction_steps": [
+            "python3 dev/audit/rounds/round11/D11/s2/provenance.py",
+            "python3 dev/audit/rounds/round11/D11/s2/provenance.py --perturb"
+          ],
+          "proposed_fix_scope": "Add the zip as a second subject of attest-build-provenance (subject-path: the asset) in release.yml; optionally upload the bundle as *.intoto.jsonl/.sigstore.json so Scorecard Signed-Releases reads it.",
+          "files": [
+            ".github/workflows/release.yml",
+            "hacs.json"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D11-s2-04",
+          "scope": "D11-s2",
+          "step": "D11.M3",
+          "title": "Policy mandates stated verbatim in two policy files, and rulings policy already states",
+          "severity": "low",
+          "claim": "Over the 84-file policy set D11.md names, 16 normalized units of >= 8 words occur verbatim in two or more files; 6 of them are live mandates outside the recorded deliberate pair and the decision history (root-cause.md/defect-root-cause.md RCA cost rule; standing-roster.md/standing-tick.md retirement constraint; steward SKILL.md/claim-files.md merge-tree check; D4.md/D4-criteria.md and D5.md/D5-criteria.md owner criteria; D11.md/RULINGS.md mechanise-first), and 1 further live RULINGS.md entry quotes text D6.md states (rulings_overlap=1), against the owner's one-mandate-one-file rule (tvofi 2026-11-15).",
+          "mechanism": "Nothing measures cross-file restatement: policy_lint's `duplicates` class compares generated copies only, and RULINGS.md's rule (1) 'an entry policy already states is dropped' has no detector, so a mandate copied into a second role, brief or criteria file, or kept in RULINGS after a brief adopts it, stays until an audit reads it.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/policy_health.py --list",
+            "harness_path": "dev/audit/rounds/round11/D11/s2/policy_health.py",
+            "value": 16,
+            "unit": "duplicate units (>= 8 words) across the policy set; rulings_overlap=1",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7 (4 vCPU, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "other finder seats on the box; a count over the tree",
+            "tolerance": "exact",
+            "load1": 9.13,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/text_ledger.py:units_of",
+          "perturbation": {
+            "change": "--perturb: delete, in memory, one file's copy of every duplicate unit and every corpus sentence an overlapping ruling quotes",
+            "expected_direction": "to_zero",
+            "observed_value": "dup_units 16 -> 0, rulings_overlap 1 -> 0"
+          },
+          "metric_definition": "normalized text_ledger D6 units of >= 8 words present in >= 2 policy files (.claude/rules folded onto source), plus live RULINGS entries a corpus file states",
+          "phenomenon_property": "Each mandate is stated once, in the most authoritative policy file owning it, and pointed to elsewhere; no live RULINGS.md entry is stated by a policy file.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/policy_health.py --list (DUP and OVERLAP lines)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/policy_health.py --list",
+            "value": "0 DUP lines pair a .claude/rules copy with its dev/governance/rules source",
+            "note": "the rules_sync-held generated pair, identical by construction, is folded and does not count, so the count is not inflated by the copies the brief excludes"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/policy_health.py --list"
+          ],
+          "proposed_fix_scope": "Keep each of the 6 mandates in its owning file and replace the other copy with a pointer; drop the two RULINGS entries D6.md and D11.md state; report CLAUDE.md/orchestrator.md section 8 (recorded deliberate) and the four criteria files' shared provenance sentence to the owner; mechanise: a policy_lint class over text_ledger units refusing a new verbatim cross-file unit.",
+          "files": [
+            "dev/governance/roles/root-cause.md",
+            "dev/governance/rules/defect-root-cause.md",
+            "dev/governance/roles/standing-roster.md",
+            "dev/governance/roles/standing-tick.md",
+            ".claude/skills/steward/SKILL.md",
+            "dev/governance/rules/claim-files.md",
+            "dev/governance/dimensions/D4.md",
+            "dev/governance/dimensions/criteria/D4-criteria.md",
+            "dev/governance/dimensions/D5.md",
+            "dev/governance/dimensions/criteria/D5-criteria.md",
+            "dev/governance/dimensions/D11.md",
+            "dev/governance/dimensions/D6.md",
+            "dev/programme/RULINGS.md"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every window merge carries an APPROVED review at its merged head from a login other than the author (stale-approval gap in the ruleset is compensated in practice)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/standards.py (accountability row)",
+          "value": "52/52, 0 self-approvals"
+        },
+        {
+          "claim": "No workflow expands untrusted github context inside run:, and pull_request_target/workflow_run never check out PR heads (Scorecard Dangerous-Workflow, OWASP LLM01/LLM05)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/standards.py",
+          "value": "0 patterns over 18 workflows; 9 untrusted values passed via env only"
+        },
+        {
+          "claim": "Every action is pinned by commit sha and every pip install is hash-locked (Scorecard Pinned-Dependencies)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/standards.py",
+          "value": "140/140 uses pinned; 0 unhashed pip/npm install lines"
+        },
+        {
+          "claim": "CI-Tests and SAST run green at every merged head of the window",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/standards.py",
+          "value": "52/52 test, 52/52 CodeQL"
+        },
+        {
+          "claim": "Maintained: a commit in each of the last 13 weeks",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/standards.py",
+          "value": "13/13"
+        },
+        {
+          "claim": "OpenSSF BP versioning, release notes, test policy and private vulnerability reporting criteria hold; every window merge touching custom_components/ also touches tests/",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/standards.py",
+          "value": "12/13 BP criteria PASS; tests_are_added 6/6; v10.* tags all have notes"
+        },
+        {
+          "claim": "A required check red at merge is always answered under ## Red checks",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/conformance.py",
+          "value": "O4 52/52 (no REQUIRED context still red at merged_at)"
+        },
+        {
+          "claim": "Every programme merge (non-record, non-dependabot) has its #3394 Merged line",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/conformance.py --table",
+          "value": "O3 48/52; the 4 unmet are #3610 (dependabot) and record PRs #3617 #3634 #3650"
+        },
+        {
+          "claim": "The five policy aggregates sit within cap+band",
+          "command": "node tools/policy/policy_lint.mjs --budgets",
+          "value": "always-loaded 3598/3849, corpus 69244/69744, fixer 6273/6352, record 7230/7905, policy 10006/10458 (three past the recorded cap, inside the band)"
+        },
+        {
+          "claim": "Each friction class at or over the --stats threshold in the window already has root-cause records",
+          "command": "node tools/policy/policy_lint.mjs --stats --since v10.0.0; grep -rli <key> dev/audit/rca",
+          "value": "class-open 28, introduced-red 2, ci-red 18, mutation-vacuous 21, head-moved 19, fixer.md 63, untaught 10 RCA files"
+        },
+        {
+          "claim": "The merge enumerator's PR set equals the API's (trap #677)",
+          "command": "python3 dev/audit/rounds/round11/D11/s2/fetch_window.py (api/window.json merges[].api_prs vs subject_pr)",
+          "value": "0 mismatches over 52"
+        },
+        {
+          "claim": "The process-measurement instrument fires (NIST GOVERN measurement)",
+          "command": "python3 -I tools/audit/seat/scorecard.py --self-test",
+          "value": "rc=0, ok (with mutants)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D11/s2/fetch_window.py",
+        "dev/audit/rounds/round11/D11/s2/conformance.py",
+        "dev/audit/rounds/round11/D11/s2/gate_at_merge.py",
+        "dev/audit/rounds/round11/D11/s2/oversight.py",
+        "dev/audit/rounds/round11/D11/s2/provenance.py",
+        "dev/audit/rounds/round11/D11/s2/standards.py",
+        "dev/audit/rounds/round11/D11/s2/policy_health.py",
+        "dev/audit/rounds/round11/D11/s2/staleness.py",
+        "dev/audit/rounds/round11/D11/s2/m3_universe.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D11-s1",
+          "file": "tools/audit/seat/merge_train.py",
+          "symbol": "platform_gate",
+          "what": "The docstring calls this GitHub's own required-check evaluation (every required gate run must pass), but GitHub admitted #3618 with 1 of 5 gate suites red. The M1 inventory row for main-protect-checks should record that one green suite satisfies `gate` (see D11-s2-01)."
+        },
+        {
+          "owner_seat": "D13-s1",
+          "file": "dev/audit/rounds/round11/D11/s2/api/conformance_table.txt",
+          "symbol": "verdict coverage by class",
+          "what": "6 window merges carry no Fix review comment: record PRs #3617 #3634 #3650 #3660, dependabot #3610, and #3618 (a policy PR merged under the owner account). 3 first pr-contract runs were red: #3593, #3618, #3640."
+        },
+        {
+          "owner_seat": "D11-s3",
+          "file": "dev/governance/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md",
+          "symbol": "front matter status/superseded-by",
+          "what": "This record has status: accepted with superseded-by [0007]. No instrument reads decision front matter, so a mechanisation candidate for M5 (staleness.py measures 1/18)."
+        },
+        {
+          "owner_seat": "D11-s3",
+          "file": "tools/policy/policy_lint.mjs",
+          "symbol": "cmdStats friction rule id keys",
+          "what": "One contract is split across three keys (`tools/audit/briefs/fixer.md` 3 PRs, `fixer` 1, `fixer-step-6` 1), and the would-open issue title names a pre-move path that is not in the tree (api/stats_v10.0.0.out)."
+        }
+      ]
+    },
+    "D11-s3": {
+      "dimension": "D11",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D11/s3/REPORT.md",
+      "exposure": "GitHub's own records (D11's exception): GET repos/tvofi/heatpump_optimizer/rulesets and rulesets/22628467 read live 2026-11-16 ~20:30Z (gh api, read-only); rules/branches/main and rulesets/22628467, 23698884, 23937752 as captured by this seat's earlier run of the same day into data/. No pull request, check run or comment was read or written. Incidental: a `git grep` for the ruleset ids printed lines of dev/archive/carries/carry-1300.json, dev/archive/rosters/wave-d11-groups.json, dev/audit/harnesses/r10_carry_field_verdicts.json and dev/programme/rosters/wave-r10-groups.json (earlier-round carry and roster text), read only for whether another reader of the two rulesets exists.",
+      "coverage": [
+        {
+          "step": "D11.M4",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/inventory.py",
+          "universe": 229,
+          "examined": 66,
+          "not_reached": [
+            "policy-tool tools/policy/agreement.mjs",
+            "policy-tool tools/policy/agreement_py.py",
+            "policy-tool tools/policy/check-wave-script.mjs",
+            "policy-tool tools/policy/dependabot_contract.mjs",
+            "policy-tool tools/policy/field_coverage.mjs",
+            "policy-tool tools/policy/figure_census.mjs",
+            "policy-tool tools/policy/figure_lint.mjs",
+            "policy-tool tools/policy/friction_issues.mjs",
+            "policy-tool tools/policy/policy_lint_envmatrix.mjs",
+            "policy-tool tools/policy/render_md.mjs",
+            "policy-tool tools/policy/role_pack.py",
+            "gate-script tests/arch_score.py",
+            "gate-script tests/arch_score_head.py",
+            "gate-script tests/backtest.py",
+            "gate-script tests/block_duty.py",
+            "gate-script tests/boost_drift_replay.py",
+            "gate-script tests/card.mjs",
+            "gate-script tests/card_drift.mjs",
+            "gate-script tests/config_flow_steps.py",
+            "gate-script tests/debug_collect.py",
+            "gate-script tests/deployment_shape.py",
+            "gate-script tests/doc_claims.py",
+            "gate-script tests/edge.py",
+            "gate-script tests/entities.py",
+            "gate-script tests/features.py",
+            "gate-script tests/finite_boundary.py",
+            "gate-script tests/frontend.py",
+            "gate-script tests/golden.py",
+            "gate-script tests/guard_pins.py",
+            "gate-script tests/ha_contract.py",
+            "gate-script tests/harness_headers.py",
+            "gate-script tests/layout.py",
+            "gate-script tests/manual_plan.py",
+            "gate-script tests/md_tables.mjs",
+            "gate-script tests/open_meteo.py",
+            "gate-script tests/optimality.py",
+            "gate-script tests/plan_view.py",
+            "gate-script tests/solar_alignment.py",
+            "gate-script tests/stress.py",
+            "gate-script tests/typing_ruler.py",
+            "gate-script tests/validate.py",
+            "gate-script tests/wood_advisor.py",
+            "pr-tool tools/pr/app_approve.sh",
+            "pr-tool tools/pr/app_comment.sh",
+            "pr-tool tools/pr/app_mint.sh",
+            "pr-tool tools/pr/app_push.sh",
+            "pr-tool tools/pr/approve_held_runs.sh",
+            "pr-tool tools/pr/cancel_superseded.py",
+            "pr-tool tools/pr/ci_predict.py",
+            "pr-tool tools/pr/codeql_scope.py",
+            "pr-tool tools/pr/dependabot_merge.py",
+            "pr-tool tools/pr/depgraph.py",
+            "pr-tool tools/pr/figure_block.py",
+            "pr-tool tools/pr/gate_priority.py",
+            "pr-tool tools/pr/gh_comment.py",
+            "pr-tool tools/pr/head_note.py",
+            "pr-tool tools/pr/local_alerts.py",
+            "pr-tool tools/pr/merge_main_bot.py",
+            "pr-tool tools/pr/outside.py",
+            "pr-tool tools/pr/preflight.sh",
+            "pr-tool tools/pr/push.sh",
+            "plan-tool tools/plan/replan.py",
+            "plan-tool tools/plan/size_durations.py",
+            "ci-tool tools/ci/alert_list.py",
+            "ci-tool tools/ci/alert_list_mutants.sh",
+            "ci-tool tools/ci/codescan_wait.py",
+            "ci-tool tools/ci/ghapi.py",
+            "ci-tool tools/ci/prelude.py",
+            "ci-tool tools/ci/ruleset_cutover.py",
+            "ci-tool tools/ci/selftest_scope.py",
+            "ci-tool tools/ci/selftest_scope_mutants.sh",
+            "ci-tool tools/ci/selftest_step.sh",
+            "ci-tool tools/ci/sweep.py",
+            "ci-tool tools/ci/sweep_selftest.py",
+            "seat-instrument tools/audit/seat/bare_array.py",
+            "seat-instrument tools/audit/seat/beat_jobs.py",
+            "seat-instrument tools/audit/seat/beatd.py",
+            "seat-instrument tools/audit/seat/body_patch.sh",
+            "seat-instrument tools/audit/seat/body_push.sh",
+            "seat-instrument tools/audit/seat/bottleneck_check.py",
+            "seat-instrument tools/audit/seat/bus.sh",
+            "seat-instrument tools/audit/seat/carry_fold.py",
+            "seat-instrument tools/audit/seat/ci-watch.sh",
+            "seat-instrument tools/audit/seat/ci_critpath.py",
+            "seat-instrument tools/audit/seat/ci_pause.py",
+            "seat-instrument tools/audit/seat/ci_priority.py",
+            "seat-instrument tools/audit/seat/ci_probe.py",
+            "seat-instrument tools/audit/seat/closeout.py",
+            "seat-instrument tools/audit/seat/cloud-setup.sh",
+            "seat-instrument tools/audit/seat/cloud_dispatch.py",
+            "seat-instrument tools/audit/seat/cloud_relay.sh",
+            "seat-instrument tools/audit/seat/daemonize.py",
+            "seat-instrument tools/audit/seat/delivery_row.sh",
+            "seat-instrument tools/audit/seat/failure_logs.sh",
+            "seat-instrument tools/audit/seat/features_block.py",
+            "seat-instrument tools/audit/seat/finder_overlap.py",
+            "seat-instrument tools/audit/seat/flow_metrics.py",
+            "seat-instrument tools/audit/seat/gantt_drift.py",
+            "seat-instrument tools/audit/seat/gh_calls.py",
+            "seat-instrument tools/audit/seat/gh_read_run.py",
+            "seat-instrument tools/audit/seat/handoff_push.sh",
+            "seat-instrument tools/audit/seat/handover_prompt.py",
+            "seat-instrument tools/audit/seat/heartbeat.sh",
+            "seat-instrument tools/audit/seat/hooks_setup.py",
+            "seat-instrument tools/audit/seat/ledger.py",
+            "seat-instrument tools/audit/seat/loop_ledger.py",
+            "seat-instrument tools/audit/seat/merge_pr.sh",
+            "seat-instrument tools/audit/seat/merge_train.py",
+            "seat-instrument tools/audit/seat/moved_paths.py",
+            "seat-instrument tools/audit/seat/mutant_run.py",
+            "seat-instrument tools/audit/seat/offline_spy.py",
+            "seat-instrument tools/audit/seat/open_driver.py",
+            "seat-instrument tools/audit/seat/open_pr.sh",
+            "seat-instrument tools/audit/seat/orchestrator_tick.py",
+            "seat-instrument tools/audit/seat/outside_intake.py",
+            "seat-instrument tools/audit/seat/owed_unactioned.py",
+            "seat-instrument tools/audit/seat/owed_watch.py",
+            "seat-instrument tools/audit/seat/plan_audit.py",
+            "seat-instrument tools/audit/seat/plan_page.py",
+            "seat-instrument tools/audit/seat/plan_public.py",
+            "seat-instrument tools/audit/seat/plan_table.py",
+            "seat-instrument tools/audit/seat/plant_recall.py",
+            "seat-instrument tools/audit/seat/policy_reread_check.py",
+            "seat-instrument tools/audit/seat/postmerge.py",
+            "seat-instrument tools/audit/seat/pr_args.sh",
+            "seat-instrument tools/audit/seat/pr_cap.py",
+            "seat-instrument tools/audit/seat/probe_bridge.py",
+            "seat-instrument tools/audit/seat/proof_watch.py",
+            "seat-instrument tools/audit/seat/prune_refs.py",
+            "seat-instrument tools/audit/seat/pulse.py",
+            "seat-instrument tools/audit/seat/queue_pre_flight.py",
+            "seat-instrument tools/audit/seat/r10_ledger_mutants.py",
+            "seat-instrument tools/audit/seat/r10_mandate_guard_mutants.py",
+            "seat-instrument tools/audit/seat/r10_roster_ops_mutants.py",
+            "seat-instrument tools/audit/seat/r10_stamp_round_mutants.py",
+            "seat-instrument tools/audit/seat/record_beat.py",
+            "seat-instrument tools/audit/seat/record_row.py",
+            "seat-instrument tools/audit/seat/ref_privacy.py",
+            "seat-instrument tools/audit/seat/resume_doc.py",
+            "seat-instrument tools/audit/seat/review_carry.py",
+            "seat-instrument tools/audit/seat/review_packet.py",
+            "seat-instrument tools/audit/seat/review_strength.py",
+            "seat-instrument tools/audit/seat/roster_edit.py",
+            "seat-instrument tools/audit/seat/roster_lib.py",
+            "seat-instrument tools/audit/seat/roster_queue.py",
+            "seat-instrument tools/audit/seat/roster_sync.py",
+            "seat-instrument tools/audit/seat/round_metrics.py",
+            "seat-instrument tools/audit/seat/run_twins.py",
+            "seat-instrument tools/audit/seat/scorecard.py",
+            "seat-instrument tools/audit/seat/seat_gen.py",
+            "seat-instrument tools/audit/seat/seat_venv.sh",
+            "seat-instrument tools/audit/seat/selftest_wiring.py",
+            "seat-instrument tools/audit/seat/state_docs.py",
+            "seat-instrument tools/audit/seat/survivor_list.py",
+            "seat-instrument tools/audit/seat/sweep_driver.py",
+            "seat-instrument tools/audit/seat/sweep_gantt.py",
+            "seat-instrument tools/audit/seat/sweep_render.py",
+            "seat-instrument tools/audit/seat/tick_loop.sh",
+            "seat-instrument tools/audit/seat/tmp_paths.py",
+            "seat-instrument tools/audit/seat/topic_grammar.py",
+            "seat-instrument tools/audit/seat/train.sh",
+            "seat-instrument tools/audit/seat/update_pr.sh",
+            "seat-instrument tools/audit/seat/verdict_audit.py"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C2",
+              "state": "examined"
+            }
+          ],
+          "evidence": "Harnesses run at baseline on box B7, each with its --perturb arm: ruleset_arms.py (3 rulesets + the `gate` context; controls 7/1/4, gap arms 4 of 4 unmoved -> D11-s3-01), gate_arms.py (21 of 21 gate-required drops refused; perturb 21->8), policy_lint_mutants.mjs (24 checks + record-known-bad pinned, exit status DRIVEN, 0 survivors; cmdHooks via hooks_arms.py -> D11-s3-03), brief_arms.py (controls 3/3, 2 rosters unlinted -> D11-s3-02), sync_arms.py (rules 32/32, fragments 52/52; perturb 52->0), counts.mjs via ruleset_arms.py, raise_body_arms.py (budget_raise_gate digit arms 5/5; perturb 5->3), structure_arms.py (18/18 keys, 3 malformed refused, end-to-end probe 6 keys; perturb 18->0), claim_arms.py (env_drift validators + both claim files, 8/8; perturb 8->6), prepr_arms.py (function mutant killed 9, step-5 wiring mutant survives -> D11-s3-04), hooks_arms.py (4 hooks)."
+        },
+        {
+          "step": "D11.M5",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/inventory.py",
+          "universe": 229,
+          "examined": 66,
+          "not_reached": [
+            "policy-tool tools/policy/agreement.mjs",
+            "policy-tool tools/policy/agreement_py.py",
+            "policy-tool tools/policy/check-wave-script.mjs",
+            "policy-tool tools/policy/dependabot_contract.mjs",
+            "policy-tool tools/policy/field_coverage.mjs",
+            "policy-tool tools/policy/figure_census.mjs",
+            "policy-tool tools/policy/figure_lint.mjs",
+            "policy-tool tools/policy/friction_issues.mjs",
+            "policy-tool tools/policy/policy_lint_envmatrix.mjs",
+            "policy-tool tools/policy/render_md.mjs",
+            "policy-tool tools/policy/role_pack.py",
+            "gate-script tests/arch_score.py",
+            "gate-script tests/arch_score_head.py",
+            "gate-script tests/backtest.py",
+            "gate-script tests/block_duty.py",
+            "gate-script tests/boost_drift_replay.py",
+            "gate-script tests/card.mjs",
+            "gate-script tests/card_drift.mjs",
+            "gate-script tests/config_flow_steps.py",
+            "gate-script tests/debug_collect.py",
+            "gate-script tests/deployment_shape.py",
+            "gate-script tests/doc_claims.py",
+            "gate-script tests/edge.py",
+            "gate-script tests/entities.py",
+            "gate-script tests/features.py",
+            "gate-script tests/finite_boundary.py",
+            "gate-script tests/frontend.py",
+            "gate-script tests/golden.py",
+            "gate-script tests/guard_pins.py",
+            "gate-script tests/ha_contract.py",
+            "gate-script tests/harness_headers.py",
+            "gate-script tests/layout.py",
+            "gate-script tests/manual_plan.py",
+            "gate-script tests/md_tables.mjs",
+            "gate-script tests/open_meteo.py",
+            "gate-script tests/optimality.py",
+            "gate-script tests/plan_view.py",
+            "gate-script tests/solar_alignment.py",
+            "gate-script tests/stress.py",
+            "gate-script tests/typing_ruler.py",
+            "gate-script tests/validate.py",
+            "gate-script tests/wood_advisor.py",
+            "pr-tool tools/pr/app_approve.sh",
+            "pr-tool tools/pr/app_comment.sh",
+            "pr-tool tools/pr/app_mint.sh",
+            "pr-tool tools/pr/app_push.sh",
+            "pr-tool tools/pr/approve_held_runs.sh",
+            "pr-tool tools/pr/cancel_superseded.py",
+            "pr-tool tools/pr/ci_predict.py",
+            "pr-tool tools/pr/codeql_scope.py",
+            "pr-tool tools/pr/dependabot_merge.py",
+            "pr-tool tools/pr/depgraph.py",
+            "pr-tool tools/pr/figure_block.py",
+            "pr-tool tools/pr/gate_priority.py",
+            "pr-tool tools/pr/gh_comment.py",
+            "pr-tool tools/pr/head_note.py",
+            "pr-tool tools/pr/local_alerts.py",
+            "pr-tool tools/pr/merge_main_bot.py",
+            "pr-tool tools/pr/outside.py",
+            "pr-tool tools/pr/preflight.sh",
+            "pr-tool tools/pr/push.sh",
+            "plan-tool tools/plan/replan.py",
+            "plan-tool tools/plan/size_durations.py",
+            "ci-tool tools/ci/alert_list.py",
+            "ci-tool tools/ci/alert_list_mutants.sh",
+            "ci-tool tools/ci/codescan_wait.py",
+            "ci-tool tools/ci/ghapi.py",
+            "ci-tool tools/ci/prelude.py",
+            "ci-tool tools/ci/ruleset_cutover.py",
+            "ci-tool tools/ci/selftest_scope.py",
+            "ci-tool tools/ci/selftest_scope_mutants.sh",
+            "ci-tool tools/ci/selftest_step.sh",
+            "ci-tool tools/ci/sweep.py",
+            "ci-tool tools/ci/sweep_selftest.py",
+            "seat-instrument tools/audit/seat/bare_array.py",
+            "seat-instrument tools/audit/seat/beat_jobs.py",
+            "seat-instrument tools/audit/seat/beatd.py",
+            "seat-instrument tools/audit/seat/body_patch.sh",
+            "seat-instrument tools/audit/seat/body_push.sh",
+            "seat-instrument tools/audit/seat/bottleneck_check.py",
+            "seat-instrument tools/audit/seat/bus.sh",
+            "seat-instrument tools/audit/seat/carry_fold.py",
+            "seat-instrument tools/audit/seat/ci-watch.sh",
+            "seat-instrument tools/audit/seat/ci_critpath.py",
+            "seat-instrument tools/audit/seat/ci_pause.py",
+            "seat-instrument tools/audit/seat/ci_priority.py",
+            "seat-instrument tools/audit/seat/ci_probe.py",
+            "seat-instrument tools/audit/seat/closeout.py",
+            "seat-instrument tools/audit/seat/cloud-setup.sh",
+            "seat-instrument tools/audit/seat/cloud_dispatch.py",
+            "seat-instrument tools/audit/seat/cloud_relay.sh",
+            "seat-instrument tools/audit/seat/daemonize.py",
+            "seat-instrument tools/audit/seat/delivery_row.sh",
+            "seat-instrument tools/audit/seat/failure_logs.sh",
+            "seat-instrument tools/audit/seat/features_block.py",
+            "seat-instrument tools/audit/seat/finder_overlap.py",
+            "seat-instrument tools/audit/seat/flow_metrics.py",
+            "seat-instrument tools/audit/seat/gantt_drift.py",
+            "seat-instrument tools/audit/seat/gh_calls.py",
+            "seat-instrument tools/audit/seat/gh_read_run.py",
+            "seat-instrument tools/audit/seat/handoff_push.sh",
+            "seat-instrument tools/audit/seat/handover_prompt.py",
+            "seat-instrument tools/audit/seat/heartbeat.sh",
+            "seat-instrument tools/audit/seat/hooks_setup.py",
+            "seat-instrument tools/audit/seat/ledger.py",
+            "seat-instrument tools/audit/seat/loop_ledger.py",
+            "seat-instrument tools/audit/seat/merge_pr.sh",
+            "seat-instrument tools/audit/seat/merge_train.py",
+            "seat-instrument tools/audit/seat/moved_paths.py",
+            "seat-instrument tools/audit/seat/mutant_run.py",
+            "seat-instrument tools/audit/seat/offline_spy.py",
+            "seat-instrument tools/audit/seat/open_driver.py",
+            "seat-instrument tools/audit/seat/open_pr.sh",
+            "seat-instrument tools/audit/seat/orchestrator_tick.py",
+            "seat-instrument tools/audit/seat/outside_intake.py",
+            "seat-instrument tools/audit/seat/owed_unactioned.py",
+            "seat-instrument tools/audit/seat/owed_watch.py",
+            "seat-instrument tools/audit/seat/plan_audit.py",
+            "seat-instrument tools/audit/seat/plan_page.py",
+            "seat-instrument tools/audit/seat/plan_public.py",
+            "seat-instrument tools/audit/seat/plan_table.py",
+            "seat-instrument tools/audit/seat/plant_recall.py",
+            "seat-instrument tools/audit/seat/policy_reread_check.py",
+            "seat-instrument tools/audit/seat/postmerge.py",
+            "seat-instrument tools/audit/seat/pr_args.sh",
+            "seat-instrument tools/audit/seat/pr_cap.py",
+            "seat-instrument tools/audit/seat/probe_bridge.py",
+            "seat-instrument tools/audit/seat/proof_watch.py",
+            "seat-instrument tools/audit/seat/prune_refs.py",
+            "seat-instrument tools/audit/seat/pulse.py",
+            "seat-instrument tools/audit/seat/queue_pre_flight.py",
+            "seat-instrument tools/audit/seat/r10_ledger_mutants.py",
+            "seat-instrument tools/audit/seat/r10_mandate_guard_mutants.py",
+            "seat-instrument tools/audit/seat/r10_roster_ops_mutants.py",
+            "seat-instrument tools/audit/seat/r10_stamp_round_mutants.py",
+            "seat-instrument tools/audit/seat/record_beat.py",
+            "seat-instrument tools/audit/seat/record_row.py",
+            "seat-instrument tools/audit/seat/ref_privacy.py",
+            "seat-instrument tools/audit/seat/resume_doc.py",
+            "seat-instrument tools/audit/seat/review_carry.py",
+            "seat-instrument tools/audit/seat/review_packet.py",
+            "seat-instrument tools/audit/seat/review_strength.py",
+            "seat-instrument tools/audit/seat/roster_edit.py",
+            "seat-instrument tools/audit/seat/roster_lib.py",
+            "seat-instrument tools/audit/seat/roster_queue.py",
+            "seat-instrument tools/audit/seat/roster_sync.py",
+            "seat-instrument tools/audit/seat/round_metrics.py",
+            "seat-instrument tools/audit/seat/run_twins.py",
+            "seat-instrument tools/audit/seat/scorecard.py",
+            "seat-instrument tools/audit/seat/seat_gen.py",
+            "seat-instrument tools/audit/seat/seat_venv.sh",
+            "seat-instrument tools/audit/seat/selftest_wiring.py",
+            "seat-instrument tools/audit/seat/state_docs.py",
+            "seat-instrument tools/audit/seat/survivor_list.py",
+            "seat-instrument tools/audit/seat/sweep_driver.py",
+            "seat-instrument tools/audit/seat/sweep_gantt.py",
+            "seat-instrument tools/audit/seat/sweep_render.py",
+            "seat-instrument tools/audit/seat/tick_loop.sh",
+            "seat-instrument tools/audit/seat/tmp_paths.py",
+            "seat-instrument tools/audit/seat/topic_grammar.py",
+            "seat-instrument tools/audit/seat/train.sh",
+            "seat-instrument tools/audit/seat/update_pr.sh",
+            "seat-instrument tools/audit/seat/verdict_audit.py"
+          ],
+          "redispatched": [],
+          "evidence": "Each examined row's mechanisation verdict: D11-s3-01..04 each carry a costed mechanisation proposal in proposed_fix_scope (all extend an existing script; none adds a policy line); the other examined rows are already mechanical with a live control the harness drove (a self-test, a mutant lane or a --check), so no proposal is owed; the unexamined rows were not judged."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D11.M4",
+          "what": "163 of 229 inventory rows not perturbed: every seat-instrument (89), 19 pr-tools, 31 gate-scripts, 11 policy-tools, 11 ci-tools, 2 plan-tools (named in coverage.not_reached); and prepr.sh's other 23 `step ... $?` call sites (D11-s3-04's seam_rule)."
+        },
+        {
+          "step": "D11.M5",
+          "what": "the same 163 rows carry no mechanisation verdict"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D11-s3-01",
+          "scope": "D11-s3",
+          "step": "D11.M4",
+          "title": "The tree's only ruleset reader never reads main-protect (deletion, non-fast-forward) or the release-tag ruleset",
+          "severity": "medium",
+          "claim": "tools/policy/counts.mjs:liveRequiredContexts fetches only rulesets that contribute a required_status_checks rule, so 1 of the repository's 3 active rulesets is compared with its record: dropping main-protect 22628467's deletion and non_fast_forward rules, adding an always-bypass actor to it, disabling it, or emptying release-tags-protect 23937752 each leaves requiredContextsDrift at 0 errors, while the same class of edit on 23698884 yields 1-7.",
+          "mechanism": "The reader builds `ids` from branch rules filtered to type required_status_checks (counts.mjs, the `if (r.type !== 'required_status_checks') continue` line precedes `ids.add`), and requiredContextsDrift compares only the fetched objects; tools/ci/ruleset_cutover.py pins RULESET_ID = 23698884 alone. No other tracked script reads 22628467 or 23937752. The fixture's _comment records the choice: 22628467 is described there ('carries deletion and non-fast-forward') but deliberately left out of `rulesets`, so its rules are stated and never compared. Live re-read 2026-11-16 20:3x: 22628467's rules equal the capture.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/ruleset_arms.py",
+            "harness_path": "dev/audit/rounds/round11/D11/s3/ruleset_arms.py",
+            "value": 1,
+            "unit": "rulesets read (of 3 on the repository); gap_arms_unmoved=4 of 4, controls_fired=3 of 3",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, 4 vCPU container",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, other seats running; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 0.42,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/policy/counts.mjs:liveRequiredContexts (and requiredContextsDrift)",
+          "perturbation": {
+            "change": "counts.mjs:liveRequiredContexts: move `if (r.ruleset_id != null) ids.add(r.ruleset_id)` above the required_status_checks filter (harness --perturb)",
+            "expected_direction": "up",
+            "observed_value": "rulesets_read 1 -> 2; gap_22628467_bypass_added_errors 0 -> 1; gap_arms_unmoved 4 -> 2"
+          },
+          "metric_definition": "Count of distinct ruleset ids liveRequiredContexts fetches from the captured API reads, and per arm the count of requiredContextsDrift error findings.",
+          "phenomenon_property": "Every active ruleset targeting main or release tags is read and compared field by field with a committed record, so a change to any of them turns a check red.",
+          "seam_rule": "gh api repos/tvofi/heatpump_optimizer/rulesets --jq '.[].id' (each id not in the `read` list dev/audit/rounds/round11/D11/s3/ruleset_arms.py prints for the null arm)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/ruleset_arms.py",
+            "value": "null arm 0 errors; control arms on 23698884: 7, 1, 4",
+            "note": "the controls show the comparator alive on the ruleset it reads, so the unmoved gap arms are the reader's scope, not a dead comparator"
+          },
+          "reproduction_steps": [
+            "run the harness: null_errors=0, controls 7/1/4, every gap_* arm 0",
+            "run with --perturb: rulesets_read 2 and the 22628467 bypass arm fires"
+          ],
+          "proposed_fix_scope": "tools/policy/counts.mjs liveRequiredContexts also reads every other ruleset GET rulesets lists (main-protect 22628467, release-tags-protect 23937752) and compares each with a committed object in tools/policy/fixtures/required-contexts.json under a key of its own, beside ruleset_objects; the `rulesets` list keeps its #1300 meaning (the ids the required contexts are read out of), which the fixture's own _comment says must not name 22628467. bypass_actors stays token-hidden in CI as today. Mechanisation (D11.M5): extends an existing mechanical reader; cost about two API GETs per policy-docs run and about 20 lines, no policy line.",
+          "files": [
+            "tools/policy/counts.mjs",
+            "tools/policy/fixtures/required-contexts.json"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I3"
+        },
+        {
+          "id": "D11-s3-02",
+          "scope": "D11-s3",
+          "step": "D11.M4",
+          "title": "brief_lint's CI run never lints the live rosters in dev/programme/rosters/ (66 live groups; 3 rotted citations)",
+          "severity": "medium",
+          "claim": "The no-argument run of tools/policy/brief_lint.mjs (tests.yml `briefs`) lints 1 roster file, .claude/workflows/wave-3l-groups.json (1 live group), and not dev/programme/rosters/wave-r10-groups.json (52 live groups) or wave-r9-groups.json (14): an unresolvable path appended to a live brief there leaves TOTAL at 0, the same edit in wave-3l moves it to 1, and the r10 roster already carries 3 path:line errors that only a named-file run prints.",
+          "mechanism": "main() takes `files = workflowFiles(ROSTER_FILE_RE)`, which lists .claude/workflows/ and dev/programme/carries/ only; ROSTERS_DIR is read by rosterIssues (the issue index) but never linted. roster_edit.py's write gate lints the roster by name but demotes every error the base already has to `WARN pre-existing, re-pin owed`, so a citation that rots after its write is refused by nothing.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/brief_arms.py",
+            "harness_path": "dev/audit/rounds/round11/D11/s3/brief_arms.py",
+            "value": 2,
+            "unit": "live roster files in ROSTERS_DIR the CI run does not lint (gap_arms_unmoved=2 of 2; named_wave_r10_groups_errors=3; controls_fired=3 of 3)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, 4 vCPU container",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, other seats running; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 6.83,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/policy/brief_lint.mjs:main (workflowFiles roster list)",
+          "perturbation": {
+            "change": "brief_lint.mjs main(): `? workflowFiles(ROSTER_FILE_RE)` -> also list ROSTERS_DIR's wave-*-groups.json (harness --perturb)",
+            "expected_direction": "up",
+            "observed_value": "rosters_linted 1 -> 3; null TOTAL 0 -> 3; gap_r10_path 0 -> 4, gap_r9_path 0 -> 4; live_rosters_in_rosters_dir_unlinted 2 -> 0"
+          },
+          "metric_definition": "Per arm, the TOTAL error count of brief_lint.mjs's no-argument run in a worktree of the baseline, and the roster files whose `== file ==` header that run prints.",
+          "phenomenon_property": "Every roster file holding a live (non-done) group is linted by the required no-argument brief_lint run, so a citation that stops resolving in any live brief turns `briefs` red.",
+          "seam_rule": "git ls-files '*wave-*-groups.json' | grep -v fixtures (each file not printed under `== ... ==` by `node tools/policy/brief_lint.mjs`)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/brief_arms.py",
+            "value": "null 0; control_3l_path 1, control_3l_count 1, control_playbook_path 1",
+            "note": "the same probe edit in the one roster the run reads, and a playbook rename, each turn the run red, so the unmoved gap arms are the input list, not a dead linter"
+          },
+          "reproduction_steps": [
+            "node tools/policy/brief_lint.mjs  (in a full checkout: TOTAL 0 across 40 files; no dev/programme/rosters header)",
+            "node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json  (TOTAL 3: R10-RELAY-NOBODY-STALL path:line anchors moved)"
+          ],
+          "proposed_fix_scope": "brief_lint.mjs main() lints ROSTERS_DIR rosters on the no-argument run (one line; a named r10 run measured about 5 s here, provisional), the 3 rotted R10-RELAY-NOBODY-STALL anchors re-pinned in the same pull request, and brief-citations.md's first sentence names the roster directory. Mechanisation (D11.M5): this replaces the manual 're-pin owed' WARN that roster_edit.py prints with a refusal; cost one line of code, no policy line.",
+          "files": [
+            "tools/policy/brief_lint.mjs",
+            "dev/programme/rosters/wave-r10-groups.json",
+            "dev/governance/rules/brief-citations.md",
+            "tools/audit/seat/roster_edit.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I3"
+        },
+        {
+          "id": "D11-s3-03",
+          "scope": "D11-s3",
+          "step": "D11.M4",
+          "title": "policy_lint --hooks accepts a wired hook neutered to `exit 0`: it reads the self-test's exit status, never its tally",
+          "severity": "medium",
+          "claim": "Inserting `exit 0` as line 2 of any of the four hooks .claude/settings.json wires (pre-bash, pre-edit, session-start, stop-selfcheck) makes the hook refuse nothing and its --self-test print nothing, yet tools/policy/policy_lint.mjs:cmdHooks reports it `ok` and prints `HOOKS ok: 4 wired hook(s) exist and pass their own --self-test` (4 of 4 neutered arms accepted), while gutting only the hook's refusal exit is refused (3 of 3).",
+          "mechanism": "cmdHooks sets `verdict: code === 0 ? 'ok' : 'SELF-TEST FAILED'` from execFileSync('bash', [script, '--self-test']) and only prints the output's last line as `why`; an empty self-test exits 0. Every wired hook's self-test ends `printf '\\n%s passed, %s failed\\n'`, so the tally is available and unread. governance.yml (policy-docs) and prepr.sh's `hooks` step both run this check; it is the only CI read of the hooks.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/hooks_arms.py",
+            "harness_path": "dev/audit/rounds/round11/D11/s3/hooks_arms.py",
+            "value": 4,
+            "unit": "neutered hooks (of 4 wired) cmdHooks reports ok (gap_noop_accepted); control_refused=3 of 3, null_ok=4",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, 4 vCPU container",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, other seats running; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 9.62,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/policy/policy_lint.mjs:cmdHooks",
+          "perturbation": {
+            "change": "cmdHooks: `verdict: code === 0 ? 'ok'` -> `verdict: code === 0 && /^[1-9]\\d* passed, 0 failed$/.test(tail) ? 'ok'` (harness --perturb, in a private worktree)",
+            "expected_direction": "to_zero",
+            "observed_value": "gap_noop_accepted 4 -> 0; null_ok stays 4; control_refused stays 3"
+          },
+          "metric_definition": "Count of wired hooks whose `exit 0`-neutered copy policy_lint.mjs --hooks reports with verdict `ok`.",
+          "phenomenon_property": "A hook passes the hooks check only when its self-test demonstrably ran cases (a non-zero passed count and zero failed), so a hook that refuses nothing cannot read as wired and tested.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/hooks_arms.py (its gap_<hook>_noop lines; the hooks are those .claude/settings.json wires)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/hooks_arms.py",
+            "value": "null 4 of 4 ok; control_<hook>_decision_gutted refused 3 of 3 (pre-bash, pre-edit, stop-selfcheck)",
+            "note": "the controls show cmdHooks alive on a hook whose self-test runs and fails; only the self-test that runs nothing passes. Driven by hand too: `sed -i '1a exit 0' .claude/hooks/pre-bash.sh; node tools/policy/policy_lint.mjs --hooks` in a worktree printed `ok ... pre-bash.sh` with an empty why and rc=0."
+          },
+          "reproduction_steps": [
+            "git worktree add --detach $T/wt HEAD; cd $T/wt; sed -i '1a exit 0' .claude/hooks/pre-bash.sh",
+            "node tools/policy/policy_lint.mjs --hooks  -> `ok PreToolUse .claude/hooks/pre-bash.sh` (blank), `HOOKS ok: 4 wired hook(s) ...`, rc 0"
+          ],
+          "proposed_fix_scope": "tools/policy/policy_lint.mjs cmdHooks: require the tail to match `<n> passed, 0 failed` with n >= 1 (one line), plus a fixtures/policy-rot/hooks case whose self-test exits 0 silently, beside always-fails.sh. Mechanisation (D11.M5): already mechanical; the fix is one condition, about 0 s per merge, no policy line.",
+          "files": [
+            "tools/policy/policy_lint.mjs",
+            "tools/policy/fixtures/policy-rot/hooks/"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I1"
+        },
+        {
+          "id": "D11-s3-04",
+          "scope": "D11-s3",
+          "step": "D11.M4",
+          "title": "prepr.sh --self-test never drives main-flow step 5: `no version edit` wired to 0 still gives 553 passed, 0 failed",
+          "severity": "medium",
+          "claim": "Replacing the main flow's `step \"no version edit\" $? \"$STAMPED\"` in tools/pr/prepr.sh with `step \"no version edit\" 0 \"$STAMPED\"` (prepr then reports ok on a branch that moves VERSION, the manifest version or a notes heading) leaves tools/pr/prepr.sh --self-test at 553 passed, 0 failed, identical to the unedited null arm, while gutting the version_edit() function it calls kills 9 cases.",
+          "mechanism": "The self-test drives version_edit() through `ve`/`veco` and the `--version-edit` entry point pr-contract runs (exiting before the main flow), but no case runs the main flow over a VERSION-moving branch and reads step 5's verdict; the step's own comment calls it the cheaper detector for the same refusal, so its wiring has no live control. The refusal still exists later (pr-contract's --version-edit, the pre-edit hook, the stamp), which bounds the consequence to a slower detection.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/prepr_arms.py",
+            "harness_path": "dev/audit/rounds/round11/D11/s3/prepr_arms.py",
+            "value": 0,
+            "unit": "self-test failures under step5_wiring_gutted (null 0; version_edit_gutted 9); mutants_killed=1 of 2",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, 4 vCPU container",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, other seats running; the tally is a count and contention-immune. thread_factor 1.358 is the residual over about 0.3 s of the harness's own CPU (the arms are subprocesses on deliberate worker threads, whose 0.087 s is subtracted); no BLAS is loaded and no timing is reported",
+            "tolerance": "exact",
+            "load1": 3.59,
+            "thread_factor": 1.358
+          },
+          "instrumented_symbol": "tools/pr/prepr.sh:step (the main flow's step 5 call site) and its --self-test",
+          "perturbation": {
+            "change": "the harness's two arms are the one-line production edits: step5_wiring_gutted (`$?` -> `0` at the step-5 call) and version_edit_gutted (`out=$(stamp_paths ...)` -> `out=\"\"` in version_edit)",
+            "expected_direction": "up",
+            "observed_value": "failed: null 0 -> version_edit_gutted 9 (control fires); step5_wiring_gutted 0 (the gap)"
+          },
+          "metric_definition": "The `<p> passed, <f> failed` tally of tools/pr/prepr.sh --self-test in a worktree carrying the arm's one-line edit; an arm is killed when f exceeds the null arm's f.",
+          "phenomenon_property": "Every refusal step of prepr.sh's main flow is driven by its --self-test end to end, so wiring a step's status to a constant turns the self-test red.",
+          "seam_rule": "grep -nE '^\\s*step \"[^\"]+\" \\$\\?' tools/pr/prepr.sh (24 call sites; each one's `$?` -> `0` is a mutant prepr_arms.py's ARMS table can carry)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/prepr_arms.py",
+            "value": "null arm 553 passed, 0 failed; version_edit_gutted 544 passed, 9 failed",
+            "note": "the null arm shows the self-test green unedited and the function mutant shows it alive, so the surviving wiring mutant is the self-test's reach, not a dead tally; each arm checks its edit applied exactly once before it runs"
+          },
+          "reproduction_steps": [
+            "git worktree add --detach $T/wt HEAD; in it, edit tools/pr/prepr.sh line 4613 to `step \"no version edit\" 0 \"$STAMPED\"`",
+            "bash tools/pr/prepr.sh --self-test -> `553 passed, 0 failed`"
+          ],
+          "proposed_fix_scope": "tools/pr/prepr.sh --self-test: one end-to-end case running the main flow (PREPR_SKIP_CODE, a throwaway repo whose branch moves VERSION) and asserting `REFUSE no version edit`; then the other 23 step call sites measured by the same mutant (seam_rule). Mechanisation (D11.M5): a generic `step` wiring mutant lane, as policy_lint_mutants.mjs does for policy_lint, costs one script and about one self-test run per call site (about 15-25 min each here, provisional), so it fits a nightly lane, not a per-merge one.",
+          "files": [
+            "tools/pr/prepr.sh"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I1"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "tests/structure.py:ratchet refuses a one-unit rise on every budget key and every malformed budget; end to end a 210-line dead coordinator method trips 6 keys (D11.M4, C2 structure.py)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/structure_arms.py [--perturb]",
+          "value": "armA_keys_firing=18 of 18, armA_malformed_refused=3, armB_probe_new_fail_keys=6, null rc 0; --perturb (`current > budget + 1`) keys_firing 18 -> 0"
+        },
+        {
+          "claim": "The claim-file validators (tests/env_drift.py claim_version_error, may_drift_error, may_drift_coverage_error; tests/card_rig.mjs claimVersionError) refuse every one-edit perturbation of both claim files (D11.M4, C2 claim files)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/claim_arms.py [--perturb]",
+          "value": "arms_refused=8 of 8, null_refusals=0; --perturb (version compared with itself) 8 -> 6"
+        },
+        {
+          "claim": "rules_sync.mjs --check and fragments_sync.mjs --check refuse a one-character edit of every generated policy copy, an orphan .mdc and a deleted copy",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/sync_arms.py [--perturb]",
+          "value": "rules_refused=32 of 32, fragment_refused=52 of 52, arms_not_applied=0, null rc 0/0; --perturb fragment_refused 52 -> 0"
+        },
+        {
+          "claim": "The policy_lint mutation lane pins every enumerated corpus and record check (emptied -> acceptance red) and drives the exit status both ways",
+          "command": "node tools/policy/policy_lint_mutants.mjs",
+          "value": "25 PIN lines (11 corpus, 13 record checks + record-known-bad), 0 survivors, `DRIVEN entry exit-status`, MUTANTS ok; wall 3m23s provisional (load ~8)"
+        },
+        {
+          "claim": "tools/ci/gate.py:self_test refuses the removal of any one of the 21 gate-required contexts from REQUIRED",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/gate_arms.py [--perturb]",
+          "value": "dropped_refused=21 of 21, null rc 0; --perturb (gate_required() returns the fixture) 21 -> 8"
+        },
+        {
+          "claim": "budget_raise_gate.py:justified refuses a Raise justification whose last score line differs from the measured score.py line by one digit, a swapped verdict, a wrong trailing line or a missing payments line",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/raise_body_arms.py [--perturb]",
+          "value": "digit_arms_refused=5 of 5, other_refusal_arms_refused=3 of 3, null accepted; --perturb (2-decimal compare) 5 -> 3"
+        },
+        {
+          "claim": "counts.mjs:requiredContextsDrift is alive on the ruleset it reads (main-protect-checks 23698884), read through both the branch endpoint and the ruleset object",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/ruleset_arms.py",
+          "value": "control arms 7 (bypass actor added), 1 (code-owner review off), 4 (`gate` dropped); null 0"
+        },
+        {
+          "claim": "brief_lint.mjs's no-argument run refuses a rotted path or a literal count in the roster it reads and a renamed playbook path",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/brief_arms.py",
+          "value": "control_3l_path 1, control_3l_count 1, control_playbook_path 1; null 0"
+        },
+        {
+          "claim": "prepr.sh --self-test kills a gutted version_edit() (the function pr-contract's --version-edit shares)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/prepr_arms.py",
+          "value": "version_edit_gutted 544 passed, 9 failed vs null 553/0"
+        },
+        {
+          "claim": "policy_lint --hooks refuses a wired hook whose refusal exit is gutted (its self-test then fails)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/hooks_arms.py",
+          "value": "control_refused=3 of 3 (pre-bash, pre-edit, stop-selfcheck); session-start refuses nothing and has no such arm"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D11/s3/inventory.py",
+        "dev/audit/rounds/round11/D11/s3/ruleset_arms.py",
+        "dev/audit/rounds/round11/D11/s3/brief_arms.py",
+        "dev/audit/rounds/round11/D11/s3/structure_arms.py",
+        "dev/audit/rounds/round11/D11/s3/claim_arms.py",
+        "dev/audit/rounds/round11/D11/s3/prepr_arms.py",
+        "dev/audit/rounds/round11/D11/s3/sync_arms.py",
+        "dev/audit/rounds/round11/D11/s3/hooks_arms.py",
+        "dev/audit/rounds/round11/D11/s3/gate_arms.py",
+        "dev/audit/rounds/round11/D11/s3/raise_body_arms.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D11-s2",
+          "file": "tools/policy/fixtures/required-contexts.json",
+          "symbol": "ruleset_objects.23698884.bypass_actors (live ruleset main-protect-checks)",
+          "what": "Two bypass actors with bypass_mode `always` (Integration 5094721, the hpo-ledger App, and DeployKey) on the ruleset carrying the `gate` context and the code-owner pull_request rule; read live 2026-11-16. D11.M2 Branch-Protection / NIST accountability: whether a merge to main can land with no review or a red `gate` through that App, and whether its use is provable from GitHub's records."
+        },
+        {
+          "owner_seat": "D11-s1",
+          "file": "tools/policy/policy_lint_mutants.mjs",
+          "symbol": "CORPUS_CHECK_NAMES / LOOP_CHECK_NAMES enumeration",
+          "what": "The mutation lane's universe is the two check lists; policy_lint's standalone modes (`--hooks` cmdHooks, and others the mode table names) are outside it, so the M1 inventory's control column for those rows is not this lane (D11-s3-03 measured one consequence)."
+        }
+      ]
+    },
+    "D14-s1": {
+      "dimension": "D14",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D14/s1/REPORT.md",
+      "exposure": "bugclasses.json (all open/prototype-only entries) and, from this worktree's .git, the instances' fix and pre-fix commits: 957f4a1ed7 and 772da27fd4 (D7-s3-51), 1938fc88de and parent 26704a4e9f (D4-s2-05), 234087a510 (#2371 leaf imports), 81ae048e8b (#2329 registry leak) with dev/audit/harnesses/r10_registry_leak.py (its scaffolding copied into registry_sweep.py and future_clamp.py), 3defa2d58 (#1760), 35b7548073 (D7-s3-53 message), 3490cb16 (P8/P10 pre-fix), c4e1e0c072 (P10), 1c4d70fdd (D1-s2-05), adcb782bd1 (#2230 message); dev/audit/rca/r10-process-worker-hang.md (first 60 lines), dev/audit/harnesses/silent_peer_waits.py header; the in-tree barriers tests/replay.py P10 arm, tests/entities.py #1760 block and D7-s3-51 pin, tests/features.py R10-LEAF-IMPORTS and D1-s2-05 blocks, tests/config_flow_steps.py D4-s2-05 block. No GitHub read.",
+      "coverage": [
+        {
+          "step": "D14.M2",
+          "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 20,
+          "examined": 20,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C6",
+              "state": "examined"
+            }
+          ],
+          "evidence": "Every open/prototype-only class has a disposition: 9 measured here with a committed detector (P8, P10, N-name-sort, N-finally-return, N-step-grid, N-reap-lock, N-registry-leak, N-future-clamp, N-leaf-imports-solver), 11 under unfinished with the reason. C2: P8 now has a detector (currency_precedence.py, 5 seams at baseline, 18 at 3490cb16). C6: N-name-sort (name_sort.py), N-step-grid (step_grid.py), N-reap-lock (reap_lock.py) all picked and measured."
+        },
+        {
+          "step": "D14.M3",
+          "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 20,
+          "examined": 9,
+          "not_reached": [
+            "N-postreview-merge-red: its census reads check-runs at recarry heads from the GitHub API; D14 may not read GitHub and no local arm was built",
+            "N-approval-rebuy: needs per-PR reviewed vs merged patch-ids from GitHub reviews; not readable under the wall",
+            "N-gate-yield: needs the blocked-verdict population from PR reviews on GitHub",
+            "N-period-rollover: a detector over every period-boundary aggregate (tariff.PeakTracker month, ledger months, day counters) was not built for time",
+            "N-confounded-learner: needs a covariate-error probe per residual-fed learner; not built for time",
+            "N-order-coupling: needs an enumeration of destructively-read shared intervals and call-order permutation; not built for time",
+            "N-restore-race: needs a writer injected inside every store load await; not built for time",
+            "N-p2b-assembly-reader: no detector idea in the ledger; needs CI push-run history",
+            "N-dispatch-overreach: the ledger detector reads the Actions API; a static arm (5 code dispatch callers found: stamp.py dispatch_record_beat, merge_train.py launch, beat_jobs.py pages.yml, ci_probe.py, sweep_selftest.py) evaluating each target workflow's job if: under workflow_dispatch was not built for time",
+            "N-stamp-claim-conflict: a throwaway-repo arm (base with claim lines, stamp commit emptying them, branch adding a claim, merge through the claimnotes driver) was not built for time",
+            "N-orphaned-handoff: the predicate reads handoff refs and PRs on origin; not readable under the wall"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "examined"
+            },
+            {
+              "item": "C5",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "Detectors under dev/audit/rounds/round11/D14/s1/: each re-finds at a pre-fix tree and moves under a one-line perturbation. finally_escape.py 1 seam (957f4a1ed7^: 1); step_grid.py 40 (26704a4e9f: box_pinned 43); currency_precedence.py 5 (3490cb16: 18; null 0); p10_kernels.py 0 over 5 arms (3490cb16: 2304 loop calls, topology._advisor_replay; c4e1e0c072^: 0; perturb 3 seams); name_sort.py 0 (3defa2d58^: 3); reap_lock.py 0 (1c4d70fdd^: ratio 1.007/1.008; perturb 3 routes); registry_sweep.py 0 over 107 containers (perturb torn_alive 5, 11 registries); future_clamp.py 0 over 16 stores (perturb 2); leaf_imports.py 0 over 95 modules (234087a510^1: 7; perturb 15). C1: c4e1e0c072^ base arm re-run (0 loop calls: the advisor seam was already moved on that branch), 3490cb16 re-finds 2304; the _replay_interval seam is driven by tests/replay.py's learner arm (worker 1168 vs base 1163, 0 loop). C3: P8 re-found at 3490cb16 (18 surfaces); config_flow fee-bound seams probed (_fee_placeholders, fee_bound: a seam on a HUF instance). C5 not reached: N-staleness is barriered, D14-s2's axis."
+        },
+        {
+          "step": "D14.M4",
+          "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 20,
+          "examined": 9,
+          "not_reached": [
+            "N-postreview-merge-red: no detector this round (see D14.M3)",
+            "N-approval-rebuy: no detector this round (see D14.M3)",
+            "N-gate-yield: no detector this round (see D14.M3)",
+            "N-period-rollover: no detector this round (see D14.M3)",
+            "N-confounded-learner: no detector this round (see D14.M3)",
+            "N-order-coupling: no detector this round (see D14.M3)",
+            "N-restore-race: no detector this round (see D14.M3)",
+            "N-p2b-assembly-reader: no detector this round (see D14.M3)",
+            "N-dispatch-overreach: no detector this round (see D14.M3)",
+            "N-stamp-claim-conflict: no detector this round (see D14.M3)",
+            "N-orphaned-handoff: no detector this round (see D14.M3)"
+          ],
+          "redispatched": [
+            {
+              "item": "C4",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "Findings D14-s1-01 (N-step-grid), -02 (N-finally-return), -03 (P8); non-findings with a class detector for P10, N-name-sort, N-reap-lock, N-registry-leak, N-future-clamp, N-leaf-imports-solver. C4 not reached: the detector/barriered-axis sweep is D14-s2's cells."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D14.M3",
+          "what": "N-postreview-merge-red: its census reads check-runs at recarry heads from the GitHub API; D14 may not read GitHub and no local arm was built"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-approval-rebuy: needs per-PR reviewed vs merged patch-ids from GitHub reviews; not readable under the wall"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-gate-yield: needs the blocked-verdict population from PR reviews on GitHub"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-period-rollover: a detector over every period-boundary aggregate (tariff.PeakTracker month, ledger months, day counters) was not built for time"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-confounded-learner: needs a covariate-error probe per residual-fed learner; not built for time"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-order-coupling: needs an enumeration of destructively-read shared intervals and call-order permutation; not built for time"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-restore-race: needs a writer injected inside every store load await; not built for time"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-p2b-assembly-reader: no detector idea in the ledger; needs CI push-run history"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-dispatch-overreach: the ledger detector reads the Actions API; a static arm (5 code dispatch callers found: stamp.py dispatch_record_beat, merge_train.py launch, beat_jobs.py pages.yml, ci_probe.py, sweep_selftest.py) evaluating each target workflow's job if: under workflow_dispatch was not built for time"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-stamp-claim-conflict: a throwaway-repo arm (base with claim lines, stamp commit emptying them, branch adding a claim, merge through the claimnotes driver) was not built for time"
+        },
+        {
+          "step": "D14.M3",
+          "what": "N-orphaned-handoff: the predicate reads handoff refs and PRs on origin; not readable under the wall"
+        },
+        {
+          "step": "D14.M3",
+          "what": "C5 (N-staleness quiet-night fixture, MODE_LAST_GOOD consequence): barriered class, outside this seat's axis (D14-s2)"
+        },
+        {
+          "step": "D14.M4",
+          "what": "C4 (detector/barriered classes swept for new seams): outside this seat's axis (D14-s2)"
+        },
+        {
+          "step": "D14.M3",
+          "what": "coverage limits of the delivered detectors: registry_sweep.py and future_clamp.py drive one topology (minimal resp. coord_all_features, no boost press, away set or manual plan), so stores and registries only those actions populate are unexercised; reap_lock.py cannot simulate a child stuck in the kernel (D state)"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D14-s1-01",
+          "scope": "D14-s1",
+          "step": "D14.M4",
+          "title": "N-step-grid: services.yaml thermal selectors keep the off-grid (min, step) pairs #1679 removed from the config flow",
+          "severity": "medium",
+          "claim": "At 92d38ecb, 6 of 47 services.yaml number selectors (set_thermal_parameters: slab_thermal_mass, slab_heat_transfer, upper/lower_floor_thermal_mass, inter_zone_heat_transfer, window_area) have both their max and their documented example off their own min+k*step grid in HA's default slider mode (12 seams), the same (min, step) pairs the R9 D4-s2-05 fix took off the options flow; and config_flow._widen_to_fit moves a slider's grid base to a stored out-of-range value, putting the field's own default off grid on 28 of 28 slider fields with a constant default.",
+          "mechanism": "The grid base of an HTML number input and ha-slider is min. #1679 set step \"any\" on box fields in config_flow._number only; the service surface declares the same min/step pairs in YAML (0.02 + k*0.1 never reaches 0.8 or 5.0), and _widen_to_fit rewrites min to the stored value without snapping it to the field's step, so every nominal value of a widened slider becomes unreachable.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/step_grid.py",
+            "harness_path": "dev/audit/rounds/round11/D14/s1/step_grid.py",
+            "value": 40,
+            "unit": "seams (seams_services=12, seams_widen=28, seams_options=0)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, x86_64, 4 vCPU, Python 3.14.7 (venv-ci)",
+            "cpu_or_wall": "count",
+            "contention_note": "two other D14 seats on the box; the count is contention-immune",
+            "tolerance": "exact",
+            "load1": 5.94,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.config_flow:_widen_to_fit (and config_flow:_OPTION_FIELDS / _number delivered configs; services.yaml selectors as loaded)",
+          "perturbation": {
+            "change": "--perturb-svc: services.yaml number selectors read with step \"any\" (the #1679 fix carried to the service surface); --perturb-widen: _widen_to_fit snaps the widened min onto the field's own grid; --perturb-min: target-temperature slider min 15.2",
+            "expected_direction": "to_zero",
+            "observed_value": "seams_services 12 -> 0; seams_widen 28 -> 0; seams_options 0 -> 2 under --perturb-min (up)"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/step_grid.py",
+            "value": "box_pinned=0, seams_options=0 (49 box fields with step any are guarded)",
+            "note": "the fixed surface reads zero, so the detector is not counting every selector"
+          },
+          "metric_definition": "count of delivered number-selector configs whose max or numeric default/example is not min + k*step (|k-round(k)|>=1e-6), step != any",
+          "phenomenon_property": "Every number selector the integration exposes (options flow, widened options field, service field) admits its own max and its own default/example as reachable values: either step is \"any\" or (value - min) is an integer multiple of step.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/step_grid.py",
+          "reproduction_steps": [
+            "run the command; SEAM lines list services:set_thermal_parameters.* and widen:* seams",
+            "re-find at the R9 pre-fix tree: T=$(mktemp -d); git archive 26704a4e9f custom_components tests/hastub | tar -x -C $T; PYTHONPATH=$T/tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/step_grid.py --tree $T -> box_pinned=43, seams_options=10 (the same slab/inter-zone/window pairs)"
+          ],
+          "proposed_fix_scope": "services.yaml set_thermal_parameters number selectors: mode box + step any (or min on the step grid); config_flow._widen_to_fit: when widening a slider, snap the new min down to old_min - ceil((old_min - v)/step)*step; barrier: this detector as a tests/config_flow_steps.py check over all three surfaces (sub-second)",
+          "files": [
+            "custom_components/heatpump_optimizer/services.yaml",
+            "custom_components/heatpump_optimizer/config_flow.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-step-grid"
+        },
+        {
+          "id": "D14-s1-02",
+          "scope": "D14-s1",
+          "step": "D14.M4",
+          "title": "N-finally-return: one live return-inside-finally seam and no class barrier beyond the single nightly_ha pin",
+          "severity": "low",
+          "claim": "An AST walk of all 1069 .py files in the export finds 1 jump escaping a finally (dev/archive/handoff/r9-f2-solver-4/mutation_proof.py:224, which returns 2 from the restore finally and so discards a KeyboardInterrupt or runner exception in flight from sh()), re-finds the R9 D7-s3-51 seam at 957f4a1ed7^ (tests/nightly_ha.py:1274), and the only shipped guard is tests/entities.py's behavioural pin of that one function.",
+          "mechanism": "A return/break/continue in a finally body replaces the in-flight exception (PEP 765); CPython 3.14 only emits a SyntaxWarning at compile, which a cached .pyc or a warnings filter hides, and no lint lane makes it an error.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 -W ignore dev/audit/rounds/round11/D14/s1/finally_escape.py",
+            "harness_path": "dev/audit/rounds/round11/D14/s1/finally_escape.py",
+            "value": 1,
+            "unit": "seams (RESULT seams_baseline)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, x86_64, 4 vCPU, Python 3.14.7 (venv-ci)",
+            "cpu_or_wall": "count",
+            "contention_note": "two other D14 seats on the box; the count is contention-immune",
+            "tolerance": "exact",
+            "load1": 3.66,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tests/nightly_ha.py:_async_check_a4 (re-found at 957f4a1ed7^) and every ast.Try.finalbody in the tree; runtime arm drives an in-flight asyncio.CancelledError through the re-introduced shape",
+          "perturbation": {
+            "change": "--reintroduce: a one-line `return None` inserted in memory at the first finally of custom_components/heatpump_optimizer/coordinator.py (line 1942)",
+            "expected_direction": "up",
+            "observed_value": "RESULT seams 1 -> 2; runtime_swallowed 0 -> 1"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 -W ignore dev/audit/rounds/round11/D14/s1/finally_escape.py",
+            "value": "runtime_swallowed_control=0; custom_components/ and tests/ contribute 0 seams",
+            "note": "a finally without a jump lets CancelledError propagate"
+          },
+          "metric_definition": "count of Return nodes, or Break/Continue whose loop lies outside the finally, inside any try.finalbody (nested defs excluded), over every .py file under the export root",
+          "phenomenon_property": "No return/break/continue escapes a finally anywhere in the repository; an exception in flight from the try always propagates.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 -W ignore dev/audit/rounds/round11/D14/s1/finally_escape.py",
+          "proposed_fix_scope": "dev/archive/handoff/r9-f2-solver-4/mutation_proof.py: set a flag in the finally and return after it; barrier: the AST walk (about 1 s over 1069 files, provisional) as a tests/ or tools/policy lint check, or `python -W error::SyntaxWarning -m compileall -f -q` in the lint lane",
+          "files": [
+            "dev/archive/handoff/r9-f2-solver-4/mutation_proof.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-finally-return"
+        },
+        {
+          "id": "D14-s1-03",
+          "scope": "D14-s1",
+          "step": "D14.M4",
+          "title": "P8: the options dialog labels and bounds money in the instance currency while every published figure is in the feed's",
+          "severity": "medium",
+          "claim": "On a SEK instance priced by a EUR/kWh entity feed, 5 of 20 money surfaces at 92d38ecb resolve to SEK while the feed and all 13 entity surfaces resolve to EUR: the four options-flow money fields built by config_flow._money (grid_fee_fixed, contract_fixed_price, wood_price_sek_m3, compressor_replacement_cost) and the grid-fee page's currency placeholder; on a HUF instance the grid-fee validation bound (config_flow._fee_placeholders -> grid_fee.fee_bound) is 500 against a feed-scaled 10, a sixth seam; a SEK/kWh feed (null) reads 0.",
+          "mechanism": "#1657 moved the coordinator to feed-first precedence (coordinator._feed_currency or resolve_currency) but config_flow._money, _fee_placeholders and _grid_fee_errors still call currency.resolve_currency (instance-first). The value typed into those fields is added unconverted to feed-denominated prices (grid_fee.GridFeeSchedule.from_config), so the label names the wrong currency and the implausible-fee bound is scaled by the wrong currency; the price_currency repair names the disagreement but does not remove it.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/currency_precedence.py",
+            "harness_path": "dev/audit/rounds/round11/D14/s1/currency_precedence.py",
+            "value": 5,
+            "unit": "money surfaces disagreeing with the feed currency (of 20)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, x86_64, 4 vCPU, Python 3.14.7 (venv-ci)",
+            "cpu_or_wall": "count",
+            "contention_note": "two other D14 seats on the box; the count is contention-immune",
+            "tolerance": "exact",
+            "load1": 4.86,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.config_flow:_money / _fee_placeholders (via config_flow.resolve_currency), coordinator:_feed_currency, the live sensor entities' native_unit_of_measurement",
+          "perturbation": {
+            "change": "--perturb: config_flow.resolve_currency bound to the coordinator's precedence (coordinator._feed_currency(hass, cfg) or the instance currency), one line",
+            "expected_direction": "to_zero",
+            "observed_value": "money_seams 5 -> 0"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/currency_precedence.py --null",
+            "value": 0,
+            "note": "a SEK/kWh feed on the SEK instance: every surface agrees, so the count is the precedence, not the enumeration"
+          },
+          "metric_definition": "count of money surfaces (entity unit/currency attr, options money-field unit, grid-fee placeholder and bound, coordinator.currency) whose delivered currency code differs from the feed's declared code",
+          "phenomenon_property": "Every surface that shows, accepts or bounds a money amount resolves its currency by one precedence: the price feed's declared currency first, the instance currency only where the feed declares none.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/currency_precedence.py --instance HUF",
+          "reproduction_steps": [
+            "run the command: SEAM lines list the 4 options fields and the placeholder",
+            "--instance HUF adds options:grid_fees:fee_bound (500 vs 10)",
+            "pre-fix re-find: T=$(mktemp -d); git archive 3490cb16 custom_components tests | tar -x -C $T; cd $T && $HOME/venv-ci/bin/python3 <abs path>/currency_precedence.py --tree $T -> money_seams=18 (13 entity surfaces, 4 options fields, coordinator.currency)"
+          ],
+          "proposed_fix_scope": "one resolver for money surfaces that takes the entry config (feed first) used by config_flow._money, _fee_placeholders, _grid_fee_errors and the coordinator; barrier: this detector as a tests/config_flow_steps.py or tests/entities.py check (one coordinator build, about 3 s, provisional)",
+          "files": [
+            "custom_components/heatpump_optimizer/config_flow.py",
+            "custom_components/heatpump_optimizer/currency.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P8"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "P10: no CPU kernel (ThermalModel.simulate_*, sysid fits, HeatPumpOptimizer.optimize, scipy minimize/linprog, numpy.linalg solve/lstsq/inv/pinv/cholesky) runs on the loop in any of the 5 replay arms, nor on an executor outside the fallback arm",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/p10_kernels.py",
+          "value": "seams=0; base worker=1163 loop=0; fallback executor=1160 loop=0; sysid worker=2330; away 1346; learner 1168; --perturb (worker hop removed) seams=3, base loop=1163; 3490cb16 base loop=2304"
+        },
+        {
+          "claim": "N-name-sort: no family splits under the en/sv/de name sorts over the 82 live entities, families from key tokens, overrides and shared English lead words",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/name_sort.py",
+          "value": "split_families=0 over 16 families; --perturb 1; 3defa2d58^ 3 (en/sv away, sv compressor)"
+        },
+        {
+          "claim": "N-reap-lock: every stop route reaps a real worker running a live silent job without waiting on _PROCESS_LOCK",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/reap_lock.py",
+          "value": "pool/pool_at_exit/pool_stopped ratios 0.000/0.000/0.000, lock free after; --perturb 1.010/1.012/1.226 (3 seams); --idle 0.024/0.000/0.001; 1c4d70fdd^ 1.007/1.008 (provisional wall, load1 8.8-12)"
+        },
+        {
+          "claim": "N-registry-leak: no torn coordinator stays reachable and no module-level container grows per cycle, reload and remove+add arms",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/registry_sweep.py [--fresh-entry]",
+          "value": "torn_alive=0, registry_seams=0 over 107 containers; --perturb torn_alive=5, 11 registries; fresh-entry arm first read off_restore._RECORDS 0->5, a harness gap (tests/harness.py keeps removed entries in hass.config_entries), 0 once removal is modelled"
+        },
+        {
+          "claim": "N-future-clamp: no instant the integration saved is rewritten by its own load at the same clock",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/future_clamp.py",
+          "value": "clamp_seams=0 over 16 stores, 15 future leaves (accuracy lead_pending, snapshots); --perturb (ahead_h=0) 2"
+        },
+        {
+          "claim": "N-leaf-imports-solver: no module outside the solver side and the coordinator's platforms loads the optimizer or scipy",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/leaf_imports.py",
+          "value": "leaf_seams=0 of 95 (84 clean, 3 solver side: coordinator, dhw_planner, optimizer; 8 via coordinator); --perturb 15; 234087a510^1: 7"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D14/s1/finally_escape.py",
+        "dev/audit/rounds/round11/D14/s1/step_grid.py",
+        "dev/audit/rounds/round11/D14/s1/currency_precedence.py",
+        "dev/audit/rounds/round11/D14/s1/p10_kernels.py",
+        "dev/audit/rounds/round11/D14/s1/name_sort.py",
+        "dev/audit/rounds/round11/D14/s1/reap_lock.py",
+        "dev/audit/rounds/round11/D14/s1/registry_sweep.py",
+        "dev/audit/rounds/round11/D14/s1/future_clamp.py",
+        "dev/audit/rounds/round11/D14/s1/leaf_imports.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/sensor.py",
+          "symbol": "entity_category of family members (learning, optimization, dhw, cost, indoor, prediction, wood)",
+          "what": "7 of 16 entity families split across entity_category (none vs diagnostic), so Home Assistant's device page shows them on separate cards although the name sort keeps them together (name_sort.py RESULT category_split_families=7, informational); outside the name-sort class"
+        }
+      ]
+    },
+    "D14-s2": {
+      "dimension": "D14",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D14/s2/REPORT.json",
+      "exposure": "bugclasses.json (instances/barrier/detector text) and git history of listed instances: pre-fix trees 3e9f1878bd^ (R9 D1-s5-51), 9c988fc580^ (R10 D14-s3-02), d7b1712297^1 (#2336 N-log-flood/N-no-expiry instances), git log -1/show --stat of those commits; this seat's own checkpoint from its killed first run (restored, re-run); sibling seats' checkpoint file names (not contents) visible in the box comms tree",
+      "coverage": [
+        {
+          "step": "D14.M1",
+          "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\" or .value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 56,
+          "examined": 56,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "python3 dev/audit/rounds/round11/D14/s2/ledger_check.py: classes=56, counts_fail=0, paths_exist_fail=0, detector_cmd_fail=0, status_vocab_fail=1 (N-orphaned-handoff 'prototype-only', a status D14.md M1 does not define); --plant moves counts_fail +1"
+        },
+        {
+          "step": "D14.M2",
+          "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 36,
+          "examined": 36,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "not_reached"
+            },
+            {
+              "item": "C6",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "every detector/barriered class owned by D14-s2 and given a sweep.py row (RESULT classes=36, norow=0). C2 (P8 detector) and C6 (N-name-sort, N-step-grid, N-reap-lock) are open classes outside this seat's M2-M4 axis (detector,barriered): leads to D14-s1"
+        },
+        {
+          "step": "D14.M3",
+          "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 36,
+          "examined": 34,
+          "not_reached": [
+            "I1",
+            "N-livehead-operator-cancel"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "not_reached"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            },
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "sweep.py ran each class's detector/barrier at the baseline (sweep.out walled, sweep_export.out git-less export, sweep_clean.out clean git worktree; non-zero rows re-run clean: all rc 0 except environmental gaps named in non_findings); P9 via plan_view+card_browser (p9_card_browser.out), N-solve-recompute via GOLDEN_REF=HEAD^1 (stress_goldenref.out: 116 of 116). Pre-fix re-finds: staleness_detector.py --at 3e9f1878bd^ refind_D1_s5_51=1, --at 9c988fc580^ refind_D14_s3_02=1 (C5), mode_quiet.py onchange 0 / --perturb 60 -> 8; barrier_refind.py N-log-flood 6/6 and N-no-expiry 2/2 at d7b1712297^1, 0 at baseline. I1 and N-livehead-operator-cancel: only argv parse (need origin/main diff / Actions API). C1, C3 concern open classes P10/P8: outside the axis, leads to D14-s1"
+        },
+        {
+          "step": "D14.M4",
+          "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 36,
+          "examined": 34,
+          "not_reached": [
+            "I1",
+            "N-livehead-operator-cancel"
+          ],
+          "redispatched": [
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "new-seam reach probes: staleness_detector.py (13 q255 seams, D14-s2-01), covering_census.py (20 constant-index candidates vs barrier 6, D14-s2-02), logflood_shape.py (exception/critical/log/alias counted 0, D14-s2-03), prepr_1a3_eval.py (syntax_errors=1, D14-s2-04); the other 30 examined classes' barriers pass at baseline with their planted controls (sweep rows) and no new seam was found"
+        },
+        {
+          "step": "D14.M5",
+          "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\" or .value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 56,
+          "examined": 56,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "python3 dev/audit/rounds/round11/D14/s2/m5_barriers.py: barriered_ci=31 offline=0 none=0 (--plant -> offline 1); detector_ci=2 offline=3; open_none=18 open_offline=1; prototype_only_none=1. Gate seconds (provisional) in the sweep ROW lines: features.py 1023 s, entities.py 641 s, prepr.sh --self-test 548 s, field_coverage.mjs 327 s, card_browser 314 s, stress 210 s, finite_boundary 159 s, optimality 158 s"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D14.M3",
+          "what": "I1 (mutation_table.py --scope changed needs an origin/main diff) and N-livehead-operator-cancel (--fetch needs the Actions API) ran argv parse only; pre-fix re-finds done for N-staleness, N-log-flood, N-no-expiry only, other barriered classes rest on their own in-tree planted controls"
+        },
+        {
+          "step": "D14.M4",
+          "what": "I1 and N-livehead-operator-cancel not swept for new seams; D14-s2-01's 7 non-flag q255 seam keys listed but not driven to their published consequence; D14-s2-02's 20 census candidates not dispositioned; REPORT.md could not be written (the session's tool policy refused a report .md file) -- its content is in the returned report"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D14-s2-01",
+          "scope": "D14-s2",
+          "step": "D14.M3",
+          "title": "Push-mode pump flags quiet past their 30/60 min on-change limit publish Input Problem on a healthy pump",
+          "severity": "medium",
+          "claim": "With the six pump-flag inputs configured as report-on-change sources that legitimately hold their value for 255 min, one real coordinator cycle publishes all six in stale_inputs and turns the Input Problem binary sensor on; the same flags changed 10 min ago, or re-reported 1 min ago, publish none.",
+          "mechanism": "INPUT_ON_CHANGE_MAX_AGE_MINUTES keeps the polling limit (30 min defrost/online/backup/booster/capacity-limited, 60 min fault) for the pump flags, on the barrier's disposition 'fails safe'. That reason covers the control consequence (a stale flag demotes to None). It does not cover the reader's other consequence: InputHealth.stale_keys feeds payload stale_inputs, and InputHealthBinarySensor.is_on reads it. const.py's own comment says the reference integration's MQTT push mode 'does not poll at all -- it pushes on change', and a defrost flag 'off' through a mild day or an online flag 'on' for days is the legitimate quiet interval the class names. The barrier census only drives each key at limit+1 and checks the reader's stale flag against the named list. It never reads what a named-equal key publishes.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+            "harness_path": "dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+            "value": 6,
+            "unit": "pump-flag keys in stale_inputs (quiet_stale_flags); quiet_input_problem_on=1",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, linux, 4 cpu",
+            "cpu_or_wall": "count",
+            "contention_note": "shared compute box, other finder seats running; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 5.18,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._update_current_state (via inputs:InputReader.read_bool, inputs:age_limit_for) and binary_sensor:InputHealthBinarySensor.is_on",
+          "perturbation": {
+            "change": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[k] = inf for the six flag keys (harness --perturb inf, in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": "quiet_stale_flags 6 -> 0, quiet_input_problem_on 1 -> 0"
+          },
+          "metric_definition": "Count of the six pump-flag keys in the real payload's stale_inputs after one cycle with each flag an on-change source held 255 min; plus InputHealthBinarySensor.is_on.",
+          "phenomenon_property": "No reading of a report-on-change source is published as stale, in stale_inputs, input_problems or the Input Problem sensor, for a quiet interval its source legitimately holds. Where a key keeps a finite on-change limit because staleness is the safe control direction, that limit must not also raise the user-facing problem flag, or the problem must be withheld for on-change sources.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_detector.py   (SEAM arm=quiet q=255 lines: every age-limited key InputReader declares stale after a 255 min on-change hold; the 13 at baseline are external_heat, heat_pump_backup_heater, heat_pump_capacity_limited, heat_pump_defrost, heat_pump_dhw_booster, heat_pump_fault, heat_pump_online, outdoor_temp, pv_production, solar_radiation, valve_outlet_temp, wood_tank_bottom, wood_tank_top; the six pump flags are demonstrated through the coordinator here, the other seven are listed and not driven to their published consequence)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+            "value": "null_stale_flags=0, null_input_problem_on=0 (flags changed 10 min ago); polled_stale_flags=0, polled_input_problem_on=0 (same 255 min hold, re-reported 1 min ago)",
+            "note": "The effect needs both an on-change source and a quiet spell longer than the limit"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_flags.py  -> quiet_stale_flags=6, quiet_input_problem_on=1",
+            "... --perturb inf -> quiet_stale_flags=0, quiet_input_problem_on=0",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_detector.py -> quiet_stale_q255=13, polled_stale_q255=0"
+          ],
+          "proposed_fix_scope": "inputs.py age gate / const.INPUT_ON_CHANGE_MAX_AGE_MINUTES for the six pump flags (inf, as power and mode already are, since pump_signals reads None and a live value alike for control), or a separate 'acts as absent but is not a problem' disposition for on-change keys kept finite. Barrier: extend tests/features.py's R10 N-staleness census so each named-equal key also asserts what the payload's stale_inputs and InputHealthBinarySensor publish for an on-change hold of the class's quiet spell.",
+          "files": [
+            "custom_components/heatpump_optimizer/const.py",
+            "custom_components/heatpump_optimizer/inputs.py",
+            "custom_components/heatpump_optimizer/binary_sensor.py",
+            "tests/features.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-staleness"
+        },
+        {
+          "id": "D14-s2-02",
+          "scope": "D14-s2",
+          "step": "D14.M3",
+          "title": "_current_weather books forecast row 0's wind as current at any age; the N-no-expiry barrier cannot see an index-0 read",
+          "severity": "medium",
+          "claim": "During a weather-fetch outage of 1 to 72 h, HeatPumpOptimizerCoordinator._current_weather returns the wind of the held forecast's first row, not the row covering now (or none past the horizon), at all 72 of 72 hours. At 30 h the diagnosis record books 10.0 m/s where the covering row says 40.0. The fixed sibling forecast_outdoor_now, over the same rows, mismatches at 0 of 72 hours.",
+          "mechanism": "_current_weather reads self._weather_forecast[0] with no timestamp match and no end bound. The forecast is kept verbatim when a fetch fails or returns empty: _fetch_weather keeps the previous list and only marks _weather_stale_since, and no learner freezes on that. So once the source stops updating, the row booked as 'now' drifts back by the outage length. It feeds the house and lower-floor loss replay (_replay_interval -> _replay_step's weather argument) and the #52 diagnosis capture's planned.wind_speed. forecast_outdoor_now's own docstring names this exact assumption as wrong ('Assuming entry 0 is the current hour ... a stale forecast ... reads hours out of phase'), and #2229 fixed that sibling with _covering_index. The class barrier, tests/entities.py's _r10_covering_lookups, counts only the AST shape `bisect_right(...) - 1`, so a lookup that indexes [0] or walks a loop is invisible to it.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/current_weather.py",
+            "harness_path": "dev/audit/rounds/round11/D14/s2/current_weather.py",
+            "value": 72,
+            "unit": "outage hours (of 72) at which _current_weather's wind is not the covering row's",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, linux, 4 cpu",
+            "cpu_or_wall": "count",
+            "contention_note": "shared compute box; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 8.48,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._current_weather (and _capture_diagnosis_inputs; sibling control coordinator:forecast_outdoor_now)",
+          "perturbation": {
+            "change": "swap _current_weather in memory for the same body indexed by coordinator._covering_index over the rows' own timestamps (harness --perturb covering)",
+            "expected_direction": "to_zero",
+            "observed_value": "wind_mismatch_hours 72 -> 0; booked_planned_wind_h30 10.0 -> 40.0"
+          },
+          "metric_definition": "Hours H in 1..72 after the last good hourly fetch at which _current_weather()[0] differs from the wind of the row _covering_index picks at now (0 when none covers).",
+          "phenomenon_property": "Every read of a time-indexed series as 'the value now' selects the row covering now with an end bound, and yields nothing past it. A positional read such as entry [0] or [-1], or a loop that falls through to the last row, is a covering lookup too and goes through _covering_index.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/covering_census.py   (lists every read of a forecast/series container by constant index [0]/[-1] and every loop fall-through to the last element in the package, beside the barrier's bisect_right count)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/current_weather.py",
+            "value": "h0_match=1 (fresh fetch: row 0 covers now); outdoor_sibling_mismatch_hours=0 of 72",
+            "note": "The effect needs an outage. The bounded sibling over the same rows shows the rows and clock are honest."
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/current_weather.py -> wind_mismatch_hours=72, booked_planned_wind_h30=10.0",
+            "... --perturb covering -> wind_mismatch_hours=0, booked 40.0"
+          ],
+          "proposed_fix_scope": "coordinator._current_weather: match now by row timestamp through _covering_index, as forecast_outdoor_now does, and return the no-wind default past the horizon. Barrier: widen tests/entities.py's _r10_covering_lookups beyond the bisect_right shape to constant-index reads of a timed series attribute (_weather_forecast, _solar_radiation_forecast, price lists), with a reasoned list.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "tests/entities.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-no-expiry"
+        },
+        {
+          "id": "D14-s2-03",
+          "scope": "D14-s2",
+          "step": "D14.M4",
+          "title": "N-log-flood barrier counts only _LOGGER.warning/.error: an unlatched per-cycle .exception or .critical passes it",
+          "severity": "low",
+          "claim": "An unlatched per-cycle _LOGGER.exception or _LOGGER.critical site (or a _LOGGER.log(level, ...) call, or a logger alias) planted in coordinator.py moves tests/entities.py's _r10_unlatched_logs count by 0, where the same site as _LOGGER.warning moves it by 1; widening the barrier's one attribute test makes exception and critical count 1.",
+          "mechanism": "_r10_unlatched_logs matches a Call only when func.attr is in (\"warning\", \"error\") and func.value unparses to exactly \"_LOGGER\". _LOGGER.exception logs at ERROR with a traceback (the heaviest flood shape, and the idiom of an except handler that runs every cycle), _LOGGER.critical logs above it, and _LOGGER.log(logging.WARNING, ...) or a rebinding logs the same records; none is read. The class's RCA countermeasure is that an unlatched per-cycle site off the reasoned list is refused, so the barrier does not make the class impossible, only the two spelled methods. At the baseline the package has one blind-shape site, sysid.py:1850 (_finish's fit-raised handler, once per experiment, not a per-cycle instance), so this is a reach gap with no live instance.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py",
+            "harness_path": "dev/audit/rounds/round11/D14/s2/logflood_shape.py",
+            "value": 0,
+            "unit": "barrier count delta for a planted unlatched _LOGGER.exception (counted_exception); counted_critical=0, counted_log_level=0, counted_alias=0, control counted_warning=1",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, linux, 4 cpu",
+            "cpu_or_wall": "count",
+            "contention_note": "shared compute box, other finder seats running; AST counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 9.99,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tests/entities.py:_r10_unlatched_logs (extracted by AST from the baseline file and run over the package's own sources plus one planted site per shape)",
+          "perturbation": {
+            "change": "the barrier's attribute test widened to (\"warning\", \"error\", \"exception\", \"critical\") in memory (harness --widen)",
+            "expected_direction": "up",
+            "observed_value": "counted_exception 0 -> 1, counted_critical 0 -> 1, barrier_sites_baseline 71 -> 72 (the sysid _finish site)"
+          },
+          "metric_definition": "Change in sum(_r10_unlatched_logs(package).values()) when one unlatched site of a given logging shape is appended to coordinator.py.",
+          "phenomenon_property": "Every logging call in the package that can emit at WARNING or above, whatever method or logger binding spells it, is either latched or on the reasoned list with its exact count.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py   (SITE lines: every live call the barrier cannot see; 1 at baseline, sysid.py:1850 _LOGGER.exception)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py --no-control",
+            "value": "the counted_warning control plant reads 1 when present; the blind shapes read 0 either way",
+            "note": "The plant mechanism is honest: the same site spelled .warning is counted."
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py -> counted_warning=1, counted_exception=0, counted_critical=0, counted_log_level=0, counted_alias=0, live_blind_sites=1",
+            "... --widen -> counted_exception=1, counted_critical=1"
+          ],
+          "proposed_fix_scope": "tests/entities.py _r10_unlatched_logs: count exception and critical beside warning/error, and _LOGGER.log with a level >= WARNING; refuse any other logger binding in the package (or resolve aliases of _LOGGER); add sysid.py _finish to the 'once per event' reasoned group. Barrier cost: AST pass already in entities.py, under 1 s.",
+          "files": [
+            "tests/entities.py",
+            "custom_components/heatpump_optimizer/sysid.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-log-flood"
+        },
+        {
+          "id": "D14-s2-04",
+          "scope": "D14-s2",
+          "step": "D14.M3",
+          "title": "prepr.sh --self-test evals an unterminated step-1a3 block: every run prints a bash syntax error and its null pin passes through it",
+          "severity": "low",
+          "claim": "The self-test's step-1a3 extraction (sed from '# --- 1a3.' to '# --- 1b0.') now ends inside the open `if [ -n \"$REUSE\" ]; then ... else` that was inserted before 1b0, so the null-control arm's eval raises 1 bash syntax error on every run (the 'eval: syntax error: unexpected end of file' tail of each prepr.sh --self-test), and the pin 'step 1a3 lets a body naming this head run every step' passes on output produced after the parse failure.",
+          "mechanism": "bash's eval runs complete top-level commands as it parses them, so the leading 1a3 `if` executes (the refuse arm exits 1 inside it, the null arm falls past it), then the parser meets the unterminated REUSE `if` and aborts the eval; `echo FELL-THROUGH` after the eval prints regardless. The null pin keys on FELL-THROUGH alone, never on the eval's status or stderr, so it cannot tell 'the arm let the body through' from 'the eval died'. The block also carries the PREPR_RECORDER_CACHE line, so the self-test writes a stray /tmp/prepr-recpy.<pid>. The pins still pass (rc 0), so the defect is silent: the barrier's drive is no longer the code it says it drives.",
+          "evidence": {
+            "command": "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py",
+            "harness_path": "dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py",
+            "value": 1,
+            "unit": "bash syntax errors raised by the self-test's eval of its extracted step-1a3 block (null arm); refuse_pin=1, null_pin=1, block_lines=18",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, linux, 4 cpu",
+            "cpu_or_wall": "count",
+            "contention_note": "shared compute box; a parse-error count is contention-immune. The same stderr line ends the full prepr.sh --self-test run in sweep.py's N-body-lint-bounce row (rc 0) in a clean git worktree and in the walled export",
+            "tolerance": "exact",
+            "load1": 1.21,
+            "thread_factor": 0.999
+          },
+          "instrumented_symbol": "tools/pr/prepr.sh: the --self-test's blk1a3 extraction and early_head drive (the extraction is read from prepr.sh and run as written)",
+          "perturbation": {
+            "change": "the extraction's end anchor moved from '^# --- 1b0\\.' to '^# One interpreter resolution' (the first line after step 1a3's fi), in memory (harness --anchor)",
+            "expected_direction": "to_zero",
+            "observed_value": "syntax_errors 1 -> 0, block_lines 18 -> 11, refuse_pin and null_pin stay 1"
+          },
+          "metric_definition": "Count of 'syntax error' lines bash writes when the self-test's own blk1a3 extraction is eval'd by its early_head drive with stub arm rc 1 and rc 0.",
+          "phenomenon_property": "Every block a self-test extracts by line range and evals parses on its own (bash -n clean), and a fall-through pin also asserts the eval returned without a parse error.",
+          "seam_rule": "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py   (this seam; the other extracted-and-eval'd blocks of tools/pr/prepr.sh -- bcg, blk1a2, blk3, the take_slot and heavy_skip copies -- were bash -n checked by hand at the baseline and parse)",
+          "null_control": {
+            "command": "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py --anchor",
+            "value": "syntax_errors=0 with both pins still 1",
+            "note": "The pins' verdicts are not what is wrong; the drive under them is."
+          },
+          "reproduction_steps": [
+            "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py -> syntax_errors=1, refuse_pin=1, null_pin=1",
+            "... --anchor -> syntax_errors=0",
+            "bash tools/pr/prepr.sh --self-test (clean git worktree) -> rc 0, output tail 'tools/pr/prepr.sh: eval: line 4017: syntax error: unexpected end of file'"
+          ],
+          "proposed_fix_scope": "tools/pr/prepr.sh --self-test: end blk1a3's range at step 1a3's own closing fi (or add a '# --- 1a4.' marker before the REUSE block), and make early_head fail on a non-empty eval stderr. A one-line instrument repair (README: made in place, no issue).",
+          "files": [
+            "tools/pr/prepr.sh"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "N-body-lint-bounce"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every barriered class's barrier is a script a CI entry point runs",
+          "command": "python3 dev/audit/rounds/round11/D14/s2/m5_barriers.py",
+          "value": "barriered_ci=31, barriered_offline=0, barriered_none=0"
+        },
+        {
+          "claim": "N-log-flood and N-no-expiry AST barriers re-find every listed package instance at the pre-fix tree and none at baseline",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/barrier_refind.py",
+          "value": "N_log_flood_prefix_refound=6 of 6, N_no_expiry_prefix_refound=2 of 2, baseline 0 and 0; --plant +1 each"
+        },
+        {
+          "claim": "N-staleness quiet-night detector re-finds R9 D1-s5-51 and R10 D14-s3-02 at their pre-fix trees (C5)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_detector.py --at 3e9f1878bd^ ; ... --at 9c988fc580^",
+          "value": "refind_D1_s5_51=1 (q255=25 keys); refind_D14_s3_02=1; baseline polled arm 0"
+        },
+        {
+          "claim": "A quiet on-change mode select keeps its live capability through an 8 h night (MODE_LAST_GOOD no longer expires it)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/mode_quiet.py",
+          "value": "onchange_wrong_cycles=0 of 16, polled 0; --perturb 60 -> 8"
+        },
+        {
+          "claim": "Every Store in the package is a QuarantiningStore (P1/N-future-instant store seam)",
+          "command": "grep -n 'QuarantiningStore(\\|\\bStore(' custom_components/heatpump_optimizer/*.py",
+          "value": "17 QuarantiningStore constructions, 0 raw Store("
+        },
+        {
+          "claim": "Space pump drive past the plan horizon is guarded",
+          "command": "read: coordinator._space_pump_to_drive",
+          "value": "returns None on _plan_is_stale in AUTO/ECONOMY (#1449); the clamp in pump_schedule.plan_commands_heat is not reached on a stale plan"
+        },
+        {
+          "claim": "Barrier suites pass at baseline in a clean git worktree",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/sweep.py --only ... (cwd: clean git worktree of the baseline)",
+          "value": "entities.py ALL 2723 passed; features.py rc 0; optimality 84/84; card_browser ALL BROWSER CHECKS PASSED; stress (GOLDEN_REF=HEAD^1) 116/116; closure selftest 118/118; record_row/gh_read self-tests pass"
+        },
+        {
+          "claim": "Harness gap, not a defect: reds in the walled worktree / git-less export",
+          "command": "sweep.py in the walled worktree and in a git archive export",
+          "value": "closure selftest 2/118 FAIL and entities.py rc 1 (walled: deleted round files); entities/features/prepr/record_row rc!=0 (no .git); all pass in a clean git worktree"
+        },
+        {
+          "claim": "Harness gap: stress.py at a baseline equal to origin/main compares a tree against itself",
+          "command": "PYTHONPATH=tests/hastub python3 tests/stress.py",
+          "value": "7 of 113 FAIL ('origin/main IS this commit'); GOLDEN_REF=HEAD^1: 116 of 116 pass"
+        },
+        {
+          "claim": "Harness gap: card_browser.mjs needs plan_view.py first and HPO_PLANDATA as a file path",
+          "command": "node tests/card_browser.mjs",
+          "value": "rc 1 'plan payload not found' alone; rc 0 after plan_view.py"
+        },
+        {
+          "claim": "Other self-test eval extractions in prepr.sh parse",
+          "command": "bash -n on the take_slot, --body-check, bcg, blk1a2, blk3 and body_push prepr_trailer extractions",
+          "value": "all parse; only blk1a3 does not (D14-s2-04)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D14/s2/barrier_refind.py",
+        "dev/audit/rounds/round11/D14/s2/covering_census.py",
+        "dev/audit/rounds/round11/D14/s2/current_weather.py",
+        "dev/audit/rounds/round11/D14/s2/ledger_check.py",
+        "dev/audit/rounds/round11/D14/s2/logflood_shape.py",
+        "dev/audit/rounds/round11/D14/s2/m5_barriers.py",
+        "dev/audit/rounds/round11/D14/s2/mode_quiet.py",
+        "dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py",
+        "dev/audit/rounds/round11/D14/s2/staleness_detector.py",
+        "dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+        "dev/audit/rounds/round11/D14/s2/sweep.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D14-s1",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._replay_interval (P10)",
+          "what": "C1 carried: P10 pre-fix re-find at c4e1e0c07^ and the house/lower-floor loss-learner seam (not driven: DHW-only fixture). Open class, outside D14-s2's detector/barriered M2-M4 axis"
+        },
+        {
+          "owner_seat": "D14-s1",
+          "file": "dev/audit/config/bugclasses.json",
+          "symbol": "P8 (currency precedence)",
+          "what": "C2/C3 carried: P8 has no detector; re-find its instances at pre-fix commits (e.g. 3490cb16) and probe the config_flow fee-bound seams. Open class, outside this seat's axis"
+        },
+        {
+          "owner_seat": "D14-s1",
+          "file": "dev/audit/config/bugclasses.json",
+          "symbol": "N-name-sort, N-step-grid, N-reap-lock",
+          "what": "C6 carried: open classes not picked last round (detectors). Outside this seat's axis"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "dev/audit/config/bugclasses.json",
+          "symbol": "N-orphaned-handoff.status",
+          "what": "status 'prototype-only' is not one of D14.md M1's three statuses (open/detector/barriered) though scopes.json's axis carries it; brief and ledger vocabularies disagree (ledger_check.py status_vocab_fail=1)"
+        }
+      ]
+    },
+    "D14-s3": {
+      "dimension": "D14",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D14/s3/REPORT.md",
+      "exposure": "bugclasses.json in full; git history of listed instances: 3490cb16 (exported, replayed), c4e1e0c07, 3be1d4ac6e (exported, replayed), 31717a8f91, 3dfebc1690 (exported, replayed), 3e9f1878bd/d1ed32a810 (parent exported, replayed), 9c988fc58, 5dfa6684f (log lines); in-tree tests citing earlier ids read as context (tests/features.py N-staleness census and R9 P8 pins, tests/entities.py #1760 block, tests/replay.py P10 arms); carries C1-C6 from the task text. No round-10 harness or report opened.",
+      "coverage": [
+        {
+          "step": "D14.M1",
+          "enumerator": "jq -r 'to_entries[]|select(.value|type==\"object\")|select(.key|startswith(\"_\")|not)|.key' dev/audit/config/bugclasses.json",
+          "universe": 56,
+          "examined": 56,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "Every class read (status, kind, instances, detector/barrier fields); table in REPORT.md 'M1 class ledger as read'. 28 production classes are replay-hostable in principle, 28 instrument/process classes are not on this axis."
+        },
+        {
+          "step": "D14.M2",
+          "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 19,
+          "examined": 19,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C6",
+              "state": "examined"
+            }
+          ],
+          "evidence": "Each open class assigned: 12 production classes to this axis's replay detectors (M3 universe); 7 instrument classes (N-postreview-merge-red, N-approval-rebuy, N-finally-return, N-gate-yield, N-p2b-assembly-reader, N-dispatch-overreach, N-stamp-claim-conflict) are not exercised by a replayed day and stay with D14-s1's open axis. C2: P8 detectors p8_currency.py and p8_surfaces.py. C6: name_sort.py, step_grid.py, reap_lock.py."
+        },
+        {
+          "step": "D14.M3",
+          "enumerator": "jq -r 'to_entries[]|select(.value|type==\"object\")|select(.value.status==\"open\" and .value.kind==\"production\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 12,
+          "examined": 6,
+          "not_reached": [
+            "N-future-clamp",
+            "N-period-rollover",
+            "N-confounded-learner",
+            "N-leaf-imports-solver",
+            "N-order-coupling",
+            "N-restore-race"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "examined"
+            },
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "Replay detectors with pre-fix re-finds where a pre-fix tree replays: P10 p10_routes.py (3dfebc1690: 96 loop; baseline synthetic 0; reintroduce 59; owner 384/773), P8 p8_currency.py (3490cb16: 14 SEK leaves; baseline 0) and p8_surfaces.py (3490cb16: 5; baseline 3; null 0), N-name-sort name_sort.py (0; perturb up), N-step-grid step_grid.py (0 of 181; perturb 93), N-reap-lock reap_lock.py (stop 0.00 s guarded; reload 5.00/17.00 s), N-registry-leak registry_reload.py (0; perturb 2). C1: P10 at c4e1e0c07^ (3be1d4ac6e) 0 and at the real pre-fix 3dfebc1690 96; _replay_interval driven for the house and lower-floor learners on the owner fixture (worker route). C3: P8 re-found at 3490cb16; config_flow fee-bound seams probed (S3-S5 of p8_surfaces.py). C5: quiet-night fixture re-finds R9 D1-s5-51 at 3e9f1878bd^ (56) and reads 0 at baseline; MODE_LAST_GOOD consequence measured (3 cycles of unservable space heat planned)."
+        },
+        {
+          "step": "D14.M4",
+          "enumerator": "jq -r 'to_entries[]|select(.value|type==\"object\")|select(.value.status==\"open\" and .value.kind==\"production\")|.key' dev/audit/config/bugclasses.json",
+          "universe": 12,
+          "examined": 6,
+          "not_reached": [
+            "N-future-clamp",
+            "N-period-rollover",
+            "N-confounded-learner",
+            "N-leaf-imports-solver",
+            "N-order-coupling",
+            "N-restore-race"
+          ],
+          "redispatched": [
+            {
+              "item": "C4",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "One finding per class with a surviving seam: P8 D14-s3-01, N-reap-lock D14-s3-02, P10 D14-s3-03; N-name-sort, N-step-grid, N-registry-leak held (non_findings). C4: only N-staleness (barriered) swept through the replay for new seams (0 new); the other barriered/detector production classes not swept."
+        },
+        {
+          "step": "D14.M5",
+          "enumerator": "jq -r '.findings[].class_guess' dev/audit/rounds/round11/D14/s3/REPORT.json | sort -u",
+          "universe": 3,
+          "examined": 3,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "Barrier per finding class (REPORT.md): P8 -- p8_surfaces.py's arms as a tests/replay.py control, ~5-8 s wall (provisional); P10 -- tests/replay.py's kernel arm over every committed fixture, the owner fixture costing ~260 s per hour of day at load1 11 (provisional), so nightly not per-PR, plus the synthetic arms at ~11 s; N-reap-lock -- reap_lock.py's reload arm as a tests/features.py check with a short job (~25 s at JOB_S=6, ~8 s at 2 s; provisional)."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D14.M3",
+          "what": "No replay detector yet for N-future-clamp, N-period-rollover, N-confounded-learner, N-leaf-imports-solver, N-order-coupling, N-restore-race: month-boundary time-shifted day (N-period-rollover), reload with a persisted future instant (N-future-clamp), restore racing a cycle write (N-restore-race); N-leaf-imports-solver/N-order-coupling/N-confounded-learner need non-replay or learner-specific arms."
+        },
+        {
+          "step": "D14.M4",
+          "what": "C4: barriered/detector production classes other than N-staleness not swept through the replay for new seams; cycle_cost reds of the full lane await the quiet re-take."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D14-s3-01",
+          "scope": "D14-s3",
+          "step": "D14.M4",
+          "title": "P8: options-dialog money fields and the grid-fee bound resolve the instance currency while every figure is the feed's",
+          "severity": "medium",
+          "claim": "On a replayed install whose price feed declares HUF on a SEK-configured Home Assistant, 3 of 6 money surfaces resolve the instance currency (the options money-field label and its maximum, and the grid-fee rules bound), so a 20 HUF/kWh grid fee -- which the integration's own price_currency repair issue says must be entered in HUF -- is refused by both the field (max 5) and the rules validator (bound 10), while the entities, the repair issue and the coordinator's fee notice all resolve HUF.",
+          "mechanism": "currency.py's precedence (the feed's declared code first, the instance label only where the feed declares none) is applied by the coordinator (_feed_currency or resolve_currency) for entity units and the runtime fee notice, but config_flow._money, config_flow._fee_placeholders and OptionsFlow._grid_fee_errors call resolve_currency(hass) alone; money_scale/fee_bound therefore scale by the label, not by the currency the entered numbers are in.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py",
+            "harness_path": "dev/audit/rounds/round11/D14/s3/p8_surfaces.py",
+            "value": 3,
+            "unit": "divergent surfaces of 6 (feed HUF, instance SEK)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, 4 vCPU Linux container, /root/venv-ci python",
+            "cpu_or_wall": "count",
+            "contention_note": "two other finder seats on the box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 7.56,
+            "thread_factor": 1.033
+          },
+          "instrumented_symbol": "heatpump_optimizer.config_flow:resolve_currency (as called by _money via _OPTION_FIELDS['grid_fee_fixed'].widget.of, _fee_placeholders, HeatPumpOptimizerOptionsFlow._grid_fee_errors); heatpump_optimizer.coordinator:_feed_currency",
+          "perturbation": {
+            "change": "--perturb: config_flow.resolve_currency resolves the price feed's declared code first (currency.declared_currency on the price entity's unit/attributes), as the coordinator does",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Of six money surfaces of one replayed install (feed HUF, instance SEK), how many resolve to SEK or refuse a 20 HUF/kWh fee the HUF bound admits.",
+          "phenomenon_property": "Every surface that labels, bounds or validates a money amount resolves its currency by the same precedence as the published figures (the feed's declared code, then the instance label); no surface asks the user for an amount in one currency and bounds it in another.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py  (prints each surface and its resolved currency; grep -n 'resolve_currency(' custom_components/heatpump_optimizer/*.py lists the call sites that skip the feed)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py --arm huf_instance",
+            "value": 0,
+            "note": "feed and instance both HUF: every surface agrees, field max 250, rules bound 500, 20 HUF/kWh accepted. Pre-fix re-find at 3490cb16 (git archive): 5 divergent (null arm 3, the bounds then unscaled)."
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py   -> huf_feed_sek_instance_divergent_surfaces=3 (S3 'SEK/kWh', S4 'refuses 20: above the maximum 5', S5 error grid_fee_rules_implausible, bound '10'); huf_instance 0",
+            "... --perturb -> 0 and 0",
+            "git archive 3490cb16 | tar -x -C $T; ... --tree $T -> 5 / 3"
+          ],
+          "proposed_fix_scope": "One resolver for a money amount's currency that takes the feed first (currency.py), called by config_flow._money, _fee_placeholders and _grid_fee_errors as by the coordinator; the price_currency_mismatch text then stops contradicting the dialog. Barrier: p8_surfaces' arms as a tests/replay.py control (counts, <10 s).",
+          "files": [
+            "custom_components/heatpump_optimizer/config_flow.py",
+            "custom_components/heatpump_optimizer/currency.py",
+            "custom_components/heatpump_optimizer/grid_fee.py",
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P8"
+        },
+        {
+          "id": "D14-s3-02",
+          "scope": "D14-s3",
+          "step": "D14.M4",
+          "title": "N-reap-lock: an entry unload cancels its refresh but not the solve, so the reloaded entry's first solve waits out every orphan",
+          "severity": "medium",
+          "claim": "When an entry is unloaded (an options save reloads it) while a solve is in flight, async_shutdown cancels the refresh task awaiting coordinator._await_process but the executor thread keeps running _run_in_process under _PROCESS_LOCK, and nothing on the unload path reaps the worker, so the new entry's first job waits out the orphan's remaining time (ratio 1.00) and, after three reloads, out three whole orphaned solves (17.0 s behind 6 s jobs, 2.83x one job).",
+          "mechanism": "Teardown ordered behind the lock a solve holds, on the unload seam: the stop path (_shutdown_process_pool, HA stop only) kills first and bounds its lock wait to 5 s (guarded, 0.00 s measured), but async_unload_entry -> async_shutdown only cancels the asyncio side; run_in_executor cannot cancel a started thread, and each orphan job still queued on _PROCESS_LOCK runs its full solve after acquiring it, its result discarded.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py",
+            "harness_path": "dev/audit/rounds/round11/D14/s3/reap_lock.py",
+            "value": 17.0,
+            "unit": "s wall for a 0 s job submitted after 3 cancelled 6 s refreshes (reload3_first_job_wall_s); single reload 5.00 s = 1.00 x the orphan's remaining time",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, 4 vCPU Linux container, /root/venv-ci python, real process_worker child",
+            "cpu_or_wall": "wall",
+            "contention_note": "provisional: two other finder seats on the box (load1 ~9); the jobs are time.sleep in the real worker, so the wall is set by the job length, not by CPU contention",
+            "tolerance": "+-0.3 s",
+            "load1": 8.87,
+            "thread_factor": 1.573
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:_await_process / _run_in_process / _PROCESS_LOCK / _shutdown_process_pool (cancel semantics of HeatPumpOptimizerCoordinator.async_shutdown's refresh.cancel())",
+          "perturbation": {
+            "change": "--reap-on-unload: after the cancel, the unload also runs coordinator._shutdown_process_pool on the executor (what HA's stop already does)",
+            "expected_direction": "down",
+            "observed_value": "reload3 17.00 s -> 0.04 s; reload 5.00 s -> 0.03 s"
+          },
+          "metric_definition": "Wall seconds from submitting a 0 s job through coordinator._await_process to its return, after N refreshes awaiting 6 s jobs were cancelled as async_shutdown cancels them.",
+          "phenomenon_property": "No teardown of an entry (stop, unload, reload) leaves a solve it no longer wants holding _PROCESS_LOCK or the worker: the next entry's first solve never waits on an orphaned one, and orphaned solves never run.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py  (stop and reload seams); grep -n '_PROCESS_LOCK\\|_shutdown_process_pool\\|refresh.cancel' custom_components/heatpump_optimizer/*.py lists the lock's holders and the teardown paths",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py",
+            "value": "reload_null_wall_s=0.04 s, stop_null_wall_s=0.01 s",
+            "note": "the same calls with no job in flight. The stop seam is guarded: stop_wall_s=0.00 s with a 6 s job in flight, and 5.00 s when the kill is made a no-op (--perturb), the _SHUTDOWN_LOCK_TIMEOUT_S bound."
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py  -> reload_first_job_wall_s=5.00, reload3_first_job_wall_s=17.00, stop_wall_s=0.00",
+            "... --reap-on-unload -> 0.03 / 0.04",
+            "... --perturb -> stop_wall_s=5.00 (the stop seam's own guard moves)"
+          ],
+          "proposed_fix_scope": "async_unload_entry (or async_shutdown) reaps the worker the way the stop path does when a refresh it cancelled had a job in the worker -- kill first, bounded swap -- so the orphan's read breaks and its queued siblings fail fast; or a per-job generation token checked after acquiring _PROCESS_LOCK so a job whose awaiter was cancelled is dropped before it runs. Real cost on a Raspberry Pi: solves of median 18 s, max 426 s (the constants' own comment), one discarded per options save during a solve.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/__init__.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-reap-lock"
+        },
+        {
+          "id": "D14-s3-03",
+          "scope": "D14-s3",
+          "step": "D14.M4",
+          "title": "P10: the what-if's schedule pricing simulates reference days on the event loop; the replay barrier's DHW-only day never reaches it",
+          "severity": "medium",
+          "claim": "Replaying the owner's recorded day (tests/replay/owner-2026-10-30-away.json, 1 h) through the real coordinator runs 384 ThermalModel.simulate_step calls on the event loop -- all via coordinator.async_simulate(steady=True) -> whatif.schedule_days -> HeatPumpOptimizer.reference_day -> _compute_baseline_power, reached from the fuse advisor's cycle step -- while tests/replay.py's P10 barrier, which replays only synthetic-dhw-only.json, reads 0 on the loop.",
+          "mechanism": "async_simulate prices a schedule ask inline: whatif.schedule_days calls reference_day on both the live and the what-if optimizer in the coordinator's own coroutine, and each distinct day is simulated twice over a day of steps; every other model kernel of the what-if goes through _await_optimize/_await_off_loop. The same call is reached by the what-if service (services.py, steady=True), the power-cap price tiles and the fuse advisor. The barrier's single fixture has no fuse/power-cap configuration, so its loop count is structurally 0.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm owner-1h",
+            "harness_path": "dev/audit/rounds/round11/D14/s3/p10_routes.py",
+            "value": 384,
+            "unit": "model-kernel calls on the event-loop route over 2 replayed cycles (owner-1h_loop); 773 over 4 cycles on the 2 h arm",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B7, 4 vCPU Linux container, /root/venv-ci python",
+            "cpu_or_wall": "count",
+            "contention_note": "counts are contention-immune; the loop CPU of those calls, 18.8 ms on this box at load1 10.9, is provisional",
+            "tolerance": "exact",
+            "load1": 10.93,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.simulate_step (counted by route via process_worker:run_worker and FakeHass.async_add_executor_job flags); site heatpump_optimizer.whatif:schedule_days / heatpump_optimizer.optimizer:HeatPumpOptimizer.reference_day",
+          "perturbation": {
+            "change": "P10_PERTURB_WHATIF=1: whatif.schedule_days returns None (no reference day priced)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Model-kernel calls made in the coordinator's interpreter outside process_worker.run_worker and outside any executor job, over a replayed fixture, counted once at the outermost kernel.",
+          "phenomenon_property": "No model kernel (ThermalModel.simulate_*, the sysid fit, a reference-day or baseline simulation) runs on the event loop on any path a configured install reaches -- the cycle, its advisors, the what-if service and the price tiles -- on every replay fixture, not only the DHW-only one.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py  (every arm: synthetic, synthetic-learner, synthetic-surfaces, owner, owner-learner, owner-1h; prints each loop/executor seam with its package stack)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm synthetic",
+            "value": 0,
+            "note": "the barrier's own fixture: 0 loop kernels (tests/replay.py --kernels base agrees, 8932 in the worker). The perturbed owner arm reads 0 too, so all 384 are this one seam."
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm owner-1h  -> owner-1h_loop=384, stack loop optimizer.py:_compute_baseline_power <- optimizer.py:reference_day <- whatif.py:schedule_days <- coordinator.py:async_simulate <- coordinator.py:_maybe_run_fuse_advisor",
+            "P10_PERTURB_WHATIF=1 ... --arm owner-1h -> 0",
+            "... --arm synthetic -> 0 (the barrier's fixture)"
+          ],
+          "proposed_fix_scope": "Run whatif.schedule_days's two reference_day calls through _await_off_loop (both optimizers and inputs are already picklable job arguments of _await_optimize); and widen tests/replay.py's P10 arm to every committed fixture (or a fixture with the fuse advisor and power-cap tiles on), so the barrier enumerates the seams a full install reaches.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/whatif.py",
+            "custom_components/heatpump_optimizer/optimizer.py",
+            "tests/replay.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P10"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "P10: synthetic and synthetic-learner arms keep every kernel in the worker",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm synthetic; ... --arm synthetic-learner",
+          "value": "loop 0, executor 0 (worker 12802 / 12813)"
+        },
+        {
+          "claim": "P10: diagnostics, every button and every options page run no kernel off the worker",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm synthetic-surfaces",
+          "value": "0 surface kernels"
+        },
+        {
+          "claim": "P10 pre-fix re-find",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm synthetic --tree <git archive 3dfebc1690>",
+          "value": "96 loop calls of topology._advisor_replay; 0 at 3be1d4ac6e; reintroduce at baseline 59"
+        },
+        {
+          "claim": "P8: entity money units follow the feed",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_currency.py",
+          "value": "EUR feed/SEK instance 0 SEK leaves (14 EUR); perturb 14; pre-fix 3490cb16 14"
+        },
+        {
+          "claim": "N-staleness: a 5 h quiet night publishes nothing unavailable",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/staleness_quiet.py",
+          "value": "quiet5 0 (perturb 56; pre-fix 3e9f1878bd^ 56); quiet7 14 by design"
+        },
+        {
+          "claim": "MODE_LAST_GOOD expiry consequence",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/staleness_quiet.py --arm mode5",
+          "value": "3 cycles plan 30.5-33.3 kWh space heat for a hot-water-only pump after 180 min (documented direction, repair issue)"
+        },
+        {
+          "claim": "N-name-sort: published rosters sort families contiguously",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/name_sort.py",
+          "value": "0 splits en/sv/de on both fixtures; 5 by entity id (frozen ids)"
+        },
+        {
+          "claim": "N-step-grid: every number field on its grid",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/step_grid.py",
+          "value": "0 of 181 stepped fields (412 total); perturb 93"
+        },
+        {
+          "claim": "N-registry-leak: reloads leak no coordinator",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/registry_reload.py",
+          "value": "0 excess (perturb 2)"
+        },
+        {
+          "claim": "N-reap-lock stop seam guarded",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py",
+          "value": "stop 0.00 s with a 6 s job in flight (perturb 5.00 s)"
+        },
+        {
+          "claim": "Stop rule: no functional invariant break in the nightly replay",
+          "command": "PYTHONPATH=tests/hastub python3 tests/replay.py",
+          "value": "finite/unit/no_default/agreement/cycle/not_frozen/away ok on both fixtures; cycle_cost red provisional (load1 5-12)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D14/s3/p10_routes.py",
+        "dev/audit/rounds/round11/D14/s3/p8_currency.py",
+        "dev/audit/rounds/round11/D14/s3/p8_surfaces.py",
+        "dev/audit/rounds/round11/D14/s3/staleness_quiet.py",
+        "dev/audit/rounds/round11/D14/s3/name_sort.py",
+        "dev/audit/rounds/round11/D14/s3/step_grid.py",
+        "dev/audit/rounds/round11/D14/s3/reap_lock.py",
+        "dev/audit/rounds/round11/D14/s3/registry_reload.py",
+        "dev/audit/rounds/round11/D14/s3/replaykit.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D3-s3",
+          "file": "tests/replay.py",
+          "symbol": "COST_BUDGETS / class_budget (cycle_cost)",
+          "what": "Full lane at load1 5-12: owner cpu_ratio 534.6 over budget 332.8 (graded class None, fallback budget) and synthetic 2.163 over 2.084; needs a quiet re-take to tell a regression from contention."
+        }
+      ]
+    }
+  }
+}
