@@ -6,3 +6,4 @@
 2026-11-19T01:14:09Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:classify_dhw_steps CMP_BOUND bfb0b1a6 L2363 by=tests/features.py ran=16 wall=1459.2s
 2026-11-19T01:20:14Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._window_offset_steps CLAMP_DROP 490abb71 L4069 by=tests/features.py ran=13 wall=1634.5s
 2026-11-19T01:21:43Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:derate_from_duty CLAMP_DROP f390db79 L204 by=- ran=15 wall=1519.7s
+2026-11-19T01:23:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._max_pump_rise GUARD_OFF 9f0fd699 L5108 by=- ran=15 wall=1624.6s
