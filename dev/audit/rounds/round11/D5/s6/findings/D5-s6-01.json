@@ -1,0 +1,46 @@
+{
+ "id": "D5-s6-01",
+ "scope": "D5-s6",
+ "step": "D5.M4",
+ "title": "stamp.py record-class comment counts three regexes over six and cites two moved paths",
+ "severity": "low",
+ "claim": "The comment above tools/release/stamp.py:RECORD_CLASS_RES says the node copy carries 'the same three regexes' and lives at .claude/workflows/policy_lint.mjs, and register_argv's docstring cites tools/audit/README.md's section 'A harness at the evidence tag may measure the tag, not your tree'; at the baseline RECORD_CLASS_RES holds 6 regexes, .claude/workflows/policy_lint.mjs does not exist (the copy is tools/policy/policy_lint.mjs), and no tools/audit/README.md exists.",
+ "mechanism": "The record classes gained a second (dev/programme/) layout per class and the lint and README moved out of .claude/workflows/ and tools/audit/; the comments kept the pre-move count and paths. Fails D5-criteria C1 (count), C2 (two paths).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "value": 3,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 container (shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 3.59,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/release/stamp.py:RECORD_CLASS_RES, tools/release/stamp.py:register_argv",
+ "perturbation": {
+  "change": "--perturb stamp: stamp RECORD_CLASS_RES cut to its first three regexes in memory, the cited policy_lint.mjs and README section planted at the cited paths in a temp tree",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Comment claims in stamp.py contradicted by the executed module: stated regex count vs len(RECORD_CLASS_RES), cited copy path exists and holds RECORD_CLASS_RES, cited README section exists.",
+ "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "tools/release/stamp.py"
+ ],
+ "proposed_fix_scope": "Comment edits in tools/release/stamp.py only: 'six regexes, two per class', tools/policy/policy_lint.mjs, and the README section by its current home or dropped.",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb stamp"
+ ],
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "value": "roster_edit.py's BRIEF_LINT_OLD/.claude/workflows/brief_lint.mjs is flagged by the same path scan and dismissed: it is a deliberate old-layout fallback in code",
+  "note": "a moved path the code itself still reads is not counted"
+ }
+}

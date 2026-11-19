@@ -1,0 +1,16 @@
+# day=15 log=7140 action=2280 seen=9420 covered=30 memo=2840 total=21680 heap=12360064
+# day=20 log=9520 action=3040 seen=12560 covered=40 memo=3800 total=28920 heap=12946984
+# day=25 log=11900 action=3800 seen=15700 covered=50 memo=4760 total=36160 heap=13495344
+# day=30 log=14280 action=4560 seen=18840 covered=60 memo=5720 total=43400 heap=14431304
+RESULT retained_rows_slope=1448.0 rows/day
+RESULT log_rows_slope=476.0 rows/day
+RESULT action_rows_slope=152.0 rows/day
+RESULT seen_keys_slope=628.0 keys/day
+RESULT memo_points_slope=192.0 points/day
+RESULT covered_chunks=60 chunks (48 h span = 4-5)
+RESULT retained_rows_day30=43400 rows
+RESULT heap_slope=140157 B/day (provisional)
+RESULT thread_factor=1.000
+RESULT cpu_s=3.91 s (provisional)
+RESULT load1=8.53
+RESULT swapins=0

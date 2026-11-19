@@ -1,0 +1,29 @@
+# N-log-flood: 6 listed package-function instances: [('coordinator.py', '_fetch_solar_forecast'), ('coordinator.py', '_solar_location'), ('coordinator.py', '_price_series'), ('coordinator.py', 'async_run_optimization'), ('coordinator.py', '_tariff_months'), ('coordinator.py', '_tariff_hours')]
+SEAM N-log-flood arm=prefix coordinator.py::_fetch_solar_forecast flagged=yes found/allowed=(1, 0)
+SEAM N-log-flood arm=prefix coordinator.py::_solar_location flagged=yes found/allowed=(1, 0)
+SEAM N-log-flood arm=prefix coordinator.py::_price_series flagged=yes found/allowed=(2, 0)
+SEAM N-log-flood arm=prefix coordinator.py::async_run_optimization flagged=yes found/allowed=(1, 0)
+SEAM N-log-flood arm=prefix coordinator.py::_tariff_months flagged=yes found/allowed=(1, 0)
+SEAM N-log-flood arm=prefix coordinator.py::_tariff_hours flagged=yes found/allowed=(1, 0)
+RESULT N_log_flood_prefix_refound=6 of 6
+RESULT N_log_flood_prefix_mismatches=29
+SEAM N-log-flood arm=baseline coordinator.py::_fetch_solar_forecast flagged=no found/allowed=match
+SEAM N-log-flood arm=baseline coordinator.py::_solar_location flagged=no found/allowed=match
+SEAM N-log-flood arm=baseline coordinator.py::_price_series flagged=no found/allowed=match
+SEAM N-log-flood arm=baseline coordinator.py::async_run_optimization flagged=no found/allowed=match
+SEAM N-log-flood arm=baseline coordinator.py::_tariff_months flagged=no found/allowed=match
+SEAM N-log-flood arm=baseline coordinator.py::_tariff_hours flagged=no found/allowed=match
+RESULT N_log_flood_baseline_refound=0 of 6
+RESULT N_log_flood_baseline_mismatches=0
+# N-no-expiry: 2 listed package-function instances: [('coordinator.py', 'forecast_outdoor_now'), ('coordinator.py', '_open_loop_plan_value')]
+SEAM N-no-expiry arm=prefix coordinator.py::forecast_outdoor_now flagged=yes found/allowed=(1, 0)
+SEAM N-no-expiry arm=prefix coordinator.py::_open_loop_plan_value flagged=yes found/allowed=(1, 0)
+RESULT N_no_expiry_prefix_refound=2 of 2
+RESULT N_no_expiry_prefix_mismatches=7
+SEAM N-no-expiry arm=baseline coordinator.py::forecast_outdoor_now flagged=no found/allowed=match
+SEAM N-no-expiry arm=baseline coordinator.py::_open_loop_plan_value flagged=no found/allowed=match
+RESULT N_no_expiry_baseline_refound=0 of 2
+RESULT N_no_expiry_baseline_mismatches=0
+RESULT thread_factor=1.000
+RESULT load1=6.93
+RESULT swapins=0

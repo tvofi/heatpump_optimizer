@@ -1,0 +1,104 @@
+{
+ "class": "N-dropped-refresh",
+ "instances": 11,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/boost.py",
+   "symbol": "set_channel",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN boost.py:681 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/boost.py",
+   "symbol": "set_block",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN boost.py:696 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/button.py",
+   "symbol": "ResetHeatLossButton.async_press",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN button.py:192 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "handle_reset_heat_loss",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN services.py:1194 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "async_adopt_heat_loss_refit",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:1449 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.__init__ (InputReturnWatch callback)",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:3592 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_update_thermal_params",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:6592 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_clear_manual_plan",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:8609 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_restore_learned_snapshot",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:9760 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_arm_system_identification",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:11049 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/entity.py",
+   "symbol": "publish_then_refresh",
+   "probe": "python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN entity.py:339 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_away",
+   "probe": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin debounced (stale row); python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:9921 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_mode",
+   "probe": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin debounced (stale row); python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:6541 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_apply_manual_plan",
+   "probe": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin debounced (stale row); python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:8583 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/button.py",
+   "symbol": "ResetComfortWeightButton.async_press",
+   "probe": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin debounced (stale row); python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN button.py:175 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.__init__ (away/holiday listener)",
+   "probe": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin debounced (stale row); python3 dev/audit/rounds/round11/D14/n_dropped_refresh.py | grep -x 'OPEN coordinator.py:3590 .*' (line present = unguarded; drive as m4_race.py --origin debounced with this writer)",
+   "beyond_finding": false
+  }
+ ]
+}

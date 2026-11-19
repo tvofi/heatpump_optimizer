@@ -1,0 +1,45 @@
+{
+ "id": "D4-s3-06",
+ "scope": "D4-s3",
+ "step": "D4.M3",
+ "title": "Six first-run setup page titles are Title Case among sentence-case titles (en; three in sv)",
+ "severity": "low",
+ "claim": "Of the 41 config/options page titles in translations/en.json, 6 -- all on the first-run path (user 'Heat Pump Optimizer Setup', temperature 'Temperature Settings', thermal, zones, dhw, weather_sensitivity) -- are Title Case while the rest read in sentence case ('Your building', 'Heat Pump Optimizer options'); sv carries 3 of the same pattern ('Termisk modell & Optimering', 'Värmepumpsoptimering - Konfiguration', 'Tvåzons- & Solkonfiguration').",
+ "mechanism": "The older initial-flow step titles were written in Title Case and translated literally; the later pages (building, options) follow sentence case, the Home Assistant UI convention, so a new user meets both styles in consecutive pages.",
+ "evidence": {
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B10 (4 vCPU, Linux, CPython 3.14 venv-ci, Node 22)",
+  "cpu_or_wall": "count",
+  "contention_note": "a count over file-delivered strings, contention-immune",
+  "tolerance": "exact",
+  "load1": 0.5,
+  "thread_factor": 1.0,
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+  "harness_path": "dev/audit/rounds/round11/D4/s3/m3_text.py",
+  "value": 6,
+  "unit": "count of en config/options step titles with a capitalised non-first word that is neither an acronym nor a proper name (of 41)"
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/translations/en.json and sv.json: config.step.*.title / options.step.*.title (the strings Home Assistant renders as the form heading)",
+ "perturbation": {
+  "change": "--perturb=sentence_titles: every en/sv page title sentence-cased in memory, acronyms and the product's proper names kept",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "en step titles in which some word after the first starts with an uppercase letter followed by lowercase and is not in the proper-name list",
+ "phenomenon_property": "Every config and options page title in en and sv uses one casing convention (sentence case, the one the other 35 titles use).",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D4/s3/m3_text.py | grep 'title-case title'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+  "value": "35 of 41 en titles counted 0",
+  "note": "sentence-case titles with proper names ('Heat Pump Optimizer options') are not counted, so the proper-name exclusion does not hide or invent hits"
+ },
+ "proposed_fix_scope": "Sentence-case the six en titles (and the three sv ones) in strings.json/translations; de is unaffected (nouns capitalised).",
+ "files": [
+  "custom_components/heatpump_optimizer/strings.json",
+  "custom_components/heatpump_optimizer/translations/en.json",
+  "custom_components/heatpump_optimizer/translations/sv.json"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "criteria_statement": "'look professional' (D4.M3 typography consistency)"
+}

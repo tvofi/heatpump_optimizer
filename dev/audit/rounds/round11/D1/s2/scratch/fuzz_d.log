@@ -1,0 +1,57 @@
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  FAIL the boundary quarantines nan at every depth  [scrubbed={'leaf': nan, 'nested': [[nan], {'k': nan}]}]
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  FAIL the boundary quarantines str-nan at every depth  [scrubbed={'leaf': 'NaN', 'nested': [['NaN'], {'k': 'NaN'}]}]
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  ok   the boundary quarantines an absurd magnitude as it does a non-finite (class P1)
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the class oracle flags a planted naive, magnitude, non-finite and number-turned-text label, and nothing on the healthy set (its own control)
+RESULT healthy_stores=17 count  (missing=[])
+CTRL price_model: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT price_model_mutants=200 count
+RESULT price_model_loader_raise=0 count
+RESULT price_model_cycle_fail=0 count
+RESULT price_model_task_raise=0 count
+RESULT price_model_repeat_fence=0 count
+RESULT price_model_log_multi=2 count
+RESULT price_model_log_repeat=0 count
+RESULT price_model_nonfinite_live=0 count
+  EX price_model/log_multi: op=instant_far path=['model', 'residual_var', '0', '10'] c1=ok tasks=[] load_exc=[] fence=[] extra=['WARNING:heatpump_optimizer.price_model:Persisted %s has a non-finite or unreadable bin; restarting it', 'WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s'] nf=[]
+CTRL pump_duty: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT pump_duty_mutants=200 count
+RESULT pump_duty_loader_raise=0 count
+RESULT pump_duty_cycle_fail=0 count
+RESULT pump_duty_task_raise=0 count
+RESULT pump_duty_repeat_fence=0 count
+RESULT pump_duty_log_multi=0 count
+RESULT pump_duty_log_repeat=0 count
+RESULT pump_duty_nonfinite_live=0 count
+CTRL snapshots: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT snapshots_mutants=200 count
+RESULT snapshots_loader_raise=0 count
+RESULT snapshots_cycle_fail=0 count
+RESULT snapshots_task_raise=0 count
+RESULT snapshots_repeat_fence=0 count
+RESULT snapshots_log_multi=0 count
+RESULT snapshots_log_repeat=0 count
+RESULT snapshots_nonfinite_live=0 count
+CTRL thermal_learning: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT thermal_learning_mutants=200 count
+RESULT thermal_learning_loader_raise=0 count
+RESULT thermal_learning_cycle_fail=0 count
+RESULT thermal_learning_task_raise=0 count
+RESULT thermal_learning_repeat_fence=0 count
+RESULT thermal_learning_log_multi=1 count
+RESULT thermal_learning_log_repeat=0 count
+RESULT thermal_learning_nonfinite_live=0 count
+  EX thermal_learning/log_multi: op=instant_far path=['heat_loss_zone_entities', 'lower_floor_temp_entity'] c1=ok tasks=[] load_exc=[] fence=[] extra=['WARNING:heatpump_optimizer.coordinator:Learned %s reset to the configuration: %s', 'WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s'] nf=[]
+RESULT thread_factor=1.000
+RESULT load1=169.13
+RESULT swapins=2

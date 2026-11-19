@@ -1,0 +1,72 @@
+# D10-s1 draft register, Bronze and Silver rows only (this seat's cells;
+# Gold and Platinum are D10-s2's, except the two M3 rows this seat measured).
+# Each status is what this seat's executed checks show on the round-11 export
+# tree. Evidence: qs_rules.py plus the per-finding harnesses in this directory.
+# No todo below needs a Home Assistant API newer than the hacs.json floor
+# (2025.2.0): ServiceValidationError/HomeAssistantError with translation keys,
+# async_create_entry(options=...) and the flow-test patterns all predate it.
+rules:
+  # Bronze
+  action-setup: done
+  appropriate-polling: done
+  brands: done
+  common-modules: done
+  config-flow:
+    status: todo
+    comment: >-
+      D10-s1-03: the wizard stores 41 non-connection settings in
+      ConfigEntry.data. D10-s1-04: 'auto' two-zone mode hides the whole-house
+      heat loss from a single-zone install's options page.
+      data_description holds for every field (0 missing).
+  config-flow-test-coverage:
+    status: todo
+    comment: >-
+      D10-s1-05: 51 of 53 rendered flow errors are never followed to a
+      finished flow. Only reauthentication is tested to recovery.
+  dependency-transparency: done
+  docs-actions: done
+  docs-triggers:
+    status: exempt
+    comment: the integration provides no triggers (0 trigger platforms)
+  docs-conditions:
+    status: exempt
+    comment: the integration provides no conditions (0 condition platforms)
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions:
+    status: todo
+    comment: >-
+      D10-s1-01: set_away acknowledges an unparseable return_time. D10-s1-02:
+      the system-identification and diagnose buttons report success when
+      refused or failed.
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable:
+    status: done
+    comment: >-
+      One line per outage and one per recovery. The outage line is ERROR, not
+      the info level the rule page names, which matches Home Assistant's own
+      coordinator.
+  parallel-updates: done
+  reauthentication-flow: done
+  test-coverage:
+    status: todo
+    comment: >-
+      D10-s1-06: 34 of 95 modules are below 95% under all gate scripts on
+      the round's tree (package 91.38%). 15 of 25 gate scripts exit non-zero
+      on this tree.
+# Platinum strict-typing (M3, measured here): done. mypy --strict with
+# homeassistant-stubs gives 0 package errors.

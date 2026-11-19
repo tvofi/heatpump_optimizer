@@ -1,0 +1,79 @@
+{
+ "totals": {
+  "ledger": {
+   "log_multi": 1
+  },
+  "manual_plan": {
+   "log_multi": 2
+  },
+  "notifier": {},
+  "off_restore": {}
+ },
+ "examples": {
+  "ledger": {
+   "log_multi": [
+    {
+     "i": 143,
+     "op": "instant_far",
+     "path": [
+      "ledger",
+      "months",
+      "2026-01",
+      "lines",
+      "savings_baseline",
+      "sek"
+     ],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [],
+     "load_exc": [],
+     "fence": [],
+     "extra": [
+      "WARNING:heatpump_optimizer.ledger:Quarantined %d malformed ledger month(s) on load; the rest of the ledger was kept",
+      "WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s"
+     ],
+     "text": "{\"ledger\": {\"months\": {\"2026-01\": {\"lines\": {\"savings_baseline\": {\"kwh\": 2.0, \"sek\": \"2999-01-01T00:00:00+00:00\"}}, \"meta\": {\"spot_price\": {\"sum\": 1.25, \"count\": 1}}}}}, \"starts\": {\"lifetime\": 0, \"months\": {}, \"running\": false}, \"month_reports\": {}, \"score_day\": {}, \"operation_score\": null, \"operati",
+     "nf": []
+    }
+   ]
+  },
+  "manual_plan": {
+   "log_multi": [
+    {
+     "i": 68,
+     "op": "instant_far",
+     "path": [],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [],
+     "load_exc": [],
+     "fence": [],
+     "extra": [
+      "WARNING:heatpump_optimizer.coordinator:Discarding unreadable stored manual plan: %s",
+      "WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s"
+     ],
+     "text": "\"2999-01-01T00:00:00+00:00\"",
+     "nf": []
+    },
+    {
+     "i": 97,
+     "op": "instant_far",
+     "path": [],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [],
+     "load_exc": [],
+     "fence": [],
+     "extra": [
+      "WARNING:heatpump_optimizer.coordinator:Discarding unreadable stored manual plan: %s",
+      "WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s"
+     ],
+     "text": "\"2999-01-01T00:00:00+00:00\"",
+     "nf": []
+    }
+   ]
+  },
+  "notifier": {},
+  "off_restore": {}
+ }
+}
