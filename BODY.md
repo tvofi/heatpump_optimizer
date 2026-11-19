@@ -7,7 +7,7 @@ Both rows are recorded at their values measured at origin/main ae0ed64af8. The c
 
 ## Head
 
-045f358a4f4f74f5e216ec4b1fee50e15271acf4, measured against origin/main ae0ed64af898d8923ac35afe6e9c031ac1e6b111 (2026-11-18 UTC).
+`0dfa61d887bb9f78c587579680e9e3d53fa21387` is this PR's code head: 382df86816 plus a merge of origin/main 99436a082c and one commit that re-records `module_excess_loc` (21549 -> 21536) and `recorded_at` (ae0ed64af8 -> 99436a082c). Measured against origin/main 99436a082c67ad5dbb4afc293506af010d6ee8df (2026-11-19 08:33 UTC).
 
 ## Raise justification
 
@@ -33,21 +33,26 @@ The finder's harness is `$EXPORT/dev/audit/rounds/round11/D7/s1/m1_ratchet_censu
 - origin/main ae0ed64af8: `ratchet_const_modules_over_50=3`, `any_spelling_const_modules_over_50=4`, `const_unseen_modules=1`. Under `--perturb const-respell` the ratchet falls to 2 while any_spelling stays at 4. Under `--perturb module-growth`, `coordinator_py_unpriced_loc` goes 2986 -> 4409 with `ratchet_rows_off_budget=0`: the defect.
 - HEAD 045f358a4f: `ratchet_const_modules_over_50=4`, `const_unseen_modules=0`. Under `--perturb const-respell` the ratchet stays at 4. Under `--perturb module-growth`, `ratchet_module_excess_loc=22972` and `ratchet_rows_off_budget=1 (module_excess_loc 21549->22972)`. The added 1423 lines are priced.
 - At HEAD the harness's `recount_mismatches` reads 1 (`RECOUNT const_modules_over_50 ratchet=4 recount=3 MISMATCH`). The harness recounts with the old from-import rule that this PR replaces, so this line reads the fix rather than a regression.
+- The introduced red, failing then passing, on the predicate the four self-test rows reach: `review_packet.structure_at_merge(main, head)`, which `review_packet.py handoff` (run by `body_push.sh`) turns into a refusal. With main = origin/main 99436a082c: head 382df86816 (before) returns `'table with this change, and say in the commit which rows moved.'` (structure.py's IMPROVED tail, a refusal); head 0dfa61d887 (after) returns `None` (no refusal). Command: a three-line script importing `tools/audit/seat/review_packet.py` and printing `structure_at_merge(<main>, <head>)` for each head. The whole `prepr.sh --self-test` was not re-run locally (it ran at ~2 rows a minute on this host); CI's `governance / instrument-self-tests` at the new head is the authority for it.
 
 ## Figures
 
-<!-- figure-block: scope-line mb=ae0ed64af898d8923ac35afe6e9c031ac1e6b111 head=045f358a4f4f74f5e216ec4b1fee50e15271acf4 -->
+<!-- figure-block: scope-line mb=99436a082c67ad5dbb4afc293506af010d6ee8df head=0dfa61d887bb9f78c587579680e9e3d53fa21387 -->
 ~~~text
 MODE: SCOPED -- 8 script(s) run, 25 scoped out.
 ~~~
 <!-- /figure-block -->
-- `PYTHONPATH=tests/hastub python3 tests/structure.py`: `const_modules_over_50=4`, `module_excess_loc=21549` (MODULE_LOC_LIMIT 2000), both at budget. The four modules over the const limit are config_flow.py, thermal_model.py, entry_config.py and coordinator.py.
+- `PYTHONPATH=tests/hastub python3 tests/structure.py`: `const_modules_over_50=4`, `module_excess_loc=21536` (MODULE_LOC_LIMIT 2000), both at budget, at 0dfa61d887 (rc 0). At db0831f278 (382df86816 merged with origin/main 99436a082c, before the re-record) the same command exits 2: `module_excess_loc 21549 -> 21536 BETTER`, `1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED`. The -13 is main's own: module spans past 2000 lines moved coordinator.py -23, config_flow.py +3, sensor.py +7 between ae0ed64af8 and 99436a082c (an `ast` span count over `git show` of each module at both commits). The four modules over the const limit are config_flow.py, thermal_model.py, entry_config.py and coordinator.py.
 - `python3 tools/audit/archscore/score.py --diff origin/main HEAD`: dS +0.0000 NULL.
 - Harness figures: see `## Null control`, with the command and sha1 named there.
 
 ## Red checks
 
-- `budget-raise-gate`: red by design until tvofi approves at the head, because `const_modules_over_50` goes 3 -> 4. The owner's ruling of 2026-11-18 is quoted under `## Raise justification`. This is no defect, so the root-cause question does not arise: the gate is the cheapest detector, it is the one that fired, and it waits on the owner's review.
+- `budget-raise-gate / budget-raise-gate`: red by design until tvofi approves at the head, because `const_modules_over_50` goes 3 -> 4. The owner's ruling of 2026-11-18 is quoted under `## Raise justification`. This is no defect, so the root-cause question does not arise: the gate is the cheapest detector, it is the one that fired, and it waits on the owner's review.
+- `governance / instrument-self-tests` (step "Show the pre-PR self-check refusing its own fixtures") at 382df86816: introduced by this PR, and fixed at 0dfa61d887. Cause: on the PR merged with main, `tests/structure.py` exited 2 (`module_excess_loc` IMPROVED AND NOT YET RECORDED, 21549 -> 21536, a gain main made after the row was recorded at ae0ed64af8). `review_packet.py handoff` refuses a head whose merge with main `tests/structure.py` refuses, and `body_push.sh` runs it, so four body_push rows of `prepr.sh --self-test` failed (`566 passed, 4 failed`): "and pushes a body the lint passes", "and that body's commit names the handoff head ... (V147)", "and refuses a body whose carry its group does not hold ... (CARRY 11)", "and pushes, saying so, when the roster cannot be read". Fix: the re-record commit 0dfa61d887. Proof under `## Null control`. The cheaper detector exists and fired: `python3 tests/structure.py` on the merged tree, which the fixer contract runs before every push; the head 382df86816 was a `ci: merge main` push made without re-running it.
+- `tests / fast (3.14)` at 382df86816: the same cause (`FAILED python3 tests/structure.py`, exit 2, IMPROVED AND NOT YET RECORDED), fixed by the same commit.
+- `governance / env-matrix` at 382df86816: cancelled at its 10-minute `timeout-minutes` (started 06:01:57Z, cancelled 06:12:11Z), not a failure this PR introduced. The PR's diff (tests/structure.py, tests/structure_budgets.json, its delivery row) reaches nothing the environment matrix builds. The re-run at the new head is the answer.
+- Inherited from main, not from this diff: `tests / nightly-status`, `code-scanning alert 57 (py/overly-permissive-file)`, `code-scanning alert 58 (py/overly-permissive-file)`, `code-scanning alert 59 (js/insecure-temporary-file)`, `code-scanning alert 60 (js/file-system-race)`, `code-scanning alert 61 (py/insecure-temporary-file)`, `code-scanning alert 62 (py/insecure-temporary-file)`, `code-scanning alert 63 (py/insecure-temporary-file)`, `code-scanning alert 64 (py/incomplete-url-substring-sanitization)`, `code-scanning alert 65 (py/incomplete-url-substring-sanitization)`, `code-scanning alert 66 (py/overly-permissive-file)` and `code-scanning alert 67 (py/overly-permissive-file)`. Each alert's most recent instance is on refs/heads/main, in tools/audit/seat/postmerge.py, tools/audit/seat/roster_lib.py or a dev/audit/rounds/round11/ harness, none of which this diff touches (`git diff --stat 99436a082c...0dfa61d887`: dev/programme/delivery/3735.md, tests/structure.py, tests/structure_budgets.json). The cheaper detector is the CodeQL scan that raised them, which already runs on main.
 
 ## Forward-carry
 
@@ -56,3 +61,5 @@ none
 ## Friction
 
 none
+
+
