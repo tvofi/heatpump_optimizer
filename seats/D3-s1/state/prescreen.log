@@ -566,3 +566,4 @@
 2026-11-19T02:47:00Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum GUARD_OFF 882f6ce6 L766 by=tests/features.py ran=12 wall=1356.1s
 2026-11-19T02:48:31Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostWindow.peek CLAMP_DROP b8c9f531 L804 by=- ran=12 wall=1459.4s
 2026-11-19T02:48:31Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_lm_solve CLAMP_DROP eb89783b L848 by=- ran=12 wall=1460.6s
+2026-11-19T03:09:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_open_meteo GUARD_OFF dad3676f L7422 by=- ran=14 wall=1456.0s
