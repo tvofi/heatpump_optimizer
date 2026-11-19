@@ -1,0 +1,23 @@
+Fix review: merge b77df3f88d8664d606bc92e2eaaf79f4d7971ce2
+
+bus-nonce: 400e655e8a5052a8f4d82c0c614d9d7a
+
+## Scope
+
+Round 2, a delta review (the owner's 2026-11-09 rule): `git diff 6274b7c26b b77df3f88d`. The previous verdict, `Fix review: blocked 1846ba754b mutation-vacuous: RUNNING_INIT`, measured 1846ba754b. 6274b7c26b merges origin/main 5dd66fd994 into it. Its tree equals `git merge-tree --write-tree 1846ba754b 5dd66fd994` (24ea9b606a), so it carries no hand resolution (`ev/merge-6274b7.txt`). The delta is one commit and two files: a new check in `tests/features.py`, the R11-OUTSIDE-HONEST-DHW-RUNS block, and the `everything_on` reason text in `tests/golden/claimed_drift.txt`. No production line moved (`custom_components/` delta empty), so a full re-review has no named reason. Detached worktree at the head; a second at the head merged into origin/main 99436a082c; a third at origin/main.
+
+## Evidence
+
+- RESULT prior finding (RUNNING_INIT) resolved. Same command as the previous review: `features_block.py` over the group's block with that review's static prelude (`ev/ri.sh`). Null at the head: `2 of 54 FEATURES BLOCK FAILED`, the same two combi checks as the previous null; CI's full run passes both. The new check `while the compressor runs the store program enters on a run ...` is `ok` (`ev/dhw-null.txt`). Under the mutant (`row = sum(lengths) - 1`), the result is `3 of 54`: the two plus the new check, which reads `[None True]`. Killed (`ev/dhw-RUNNING_INIT.txt`). The check is the shape the previous review asked for. Step 0 is closed to a start and the first step's draw takes the tank under its floor. The run entry charges step 0. The pause entry returns None. With every start allowed, both entries give the run entry's plan, so the null arm shows the entry alone decides. It asserts behaviour and does not restate the formula.
+- RESULT prior note (claims-figure) resolved. The `everything_on` reason now reads starts 4 -> 3, energy 67.09 -> 66.48 kWh, predicted_cost 60.71 -> 60.39 (down). These are the figures the previous review measured at merge base 7ae05284d5. Only the reason text changed: the claimed fixture set is the same, `claims-for: 10.1.0` equals `VERSION`, and CI's `env_drift.py --all` in `tests / fast` at the merge ref printed `ok`.
+- RESULT finder's harness, null control, structure, archscore, class: production code is unchanged from the reviewed head, so the previous readings carry. CI `arch-score` and `budget-raise-gate` are green at this head.
+- RESULT merge: `git merge-tree --write-tree origin/main <head>` rc=0. Its tree, efb4c3e121, equals CI's `refs/pull/3805/merge` tree (`ev/merge_tree.txt`).
+- RESULT body head: the body's `## Head` names `b77df3f88d8664d606bc92e2eaaf79f4d7971ce2`, the head this review measured.
+- RESULT version: `VERSION`, the manifest and the `RELEASE_NOTES.md` heading are untouched.
+- RESULT CI at the head's merge ref (run 44481639248): `tests / fast (3.14)` is red, `1 of 5962 FEATURE CHECKS FAILED`. The failing check is `the lift may raise the plan's peak over the unlifted plan's ...` (job 135433688207, `ev/ci-fast-135433688207.txt`). That check is not in this pull request. #3803 (R11-CARRY-ROOM-LIFT, 338aa528f9) added it to main at 99436a082c, after this head's base. It is inherited, not introduced. The same check fails with the same figures (`peak none=20.241 zeros=20.241 lift=20.453`) on #3729 (job 135446716075) and #3738 (job 135447271434), whose diffs share nothing with this one. On this box it passes in block mode at both the merge and origin/main (`ev/room-lift-red-inherited.txt`, `ev/rl-*.txt`). `tests / mutation` was still running when this was written; every other check finished is green.
+
+## Findings
+
+- Note: owed-red: `tests / fast (3.14)` at the merge ref is red on main's #3803 room-lift check, and the body's `## Red checks` does not name it. It is inherited from main and fails identically on the merge refs of unrelated PRs (#3729, #3738), so it owes this PR no root cause. It is #3803's check, and its owner is R11-CARRY-ROOM-LIFT's follow-up. Carry: dismissed: inherited from main's 99436a082c (#3803); answered here, with the same failure named on #3729 and #3738
+- Note: delivery-row: `dev/programme/delivery/3709.md` still names #3709 and not #3805, carried from the previous review. Carry: dismissed: a record row the orchestrator's record beat owns, named here for it
+- Note: block-mode: the two combi checks fail in block mode on this box at the unmutated head, as in the previous review; CI's full script passes them. Carry: dismissed: one box's block-mode reading; the full script is the gate's

@@ -1,0 +1,2 @@
+features_block: prelude of 16 statement(s) written to ../rl-prelude-merge.py
+emit rc=0
