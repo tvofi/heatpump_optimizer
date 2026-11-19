@@ -181,3 +181,5 @@
 1795049504 HB alive
 1795050110 HB alive
 1795050715 HB alive
+1795050909 HB alive
+1795050912 HB container restarted mid-gate (65f121 optimizer:773); worktree reset to baseline, stale lease released, gate queue resumed; done so far: 121362 SURVIVED, 050fdc SURVIVED, 3885e4, 460217
