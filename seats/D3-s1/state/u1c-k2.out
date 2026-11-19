@@ -170,3 +170,4 @@
 2026-11-19T05:56:31Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab CLAMP_DROP 6ca2df8a L2375 by=- ran=12 wall=1681.0s
 2026-11-19T06:08:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CLAMP_DROP 85664bbe L4234 by=- ran=17 wall=1887.9s
 2026-11-19T06:08:02Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_shutdown_process_pool GUARD_OFF 7b2fde58 L1915 by=tests/features.py ran=14 wall=1761.5s
+2026-11-19T06:12:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CMP_BOUND 0d9190a8 L2075 by=- ran=16 wall=1671.0s
