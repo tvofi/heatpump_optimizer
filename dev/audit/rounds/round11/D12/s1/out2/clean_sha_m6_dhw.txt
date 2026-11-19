@@ -1,0 +1,35 @@
+FAIL level layout=no_valve	[minimal+prereq] published dhw_enabled=False but the cell declares dhw=on; [minimal+prereq] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published dhw_enabled=False but the cell declares dhw=on; [reference] sensor dhw_temperature unavailable although its entity is mapped
+FAIL level layout=two_tank_4way	[reference] published dhw_enabled=False but the cell declares dhw=on; [reference] sensor dhw_temperature unavailable although its entity is mapped
+FAIL level two_zone_mode=on	[reference] published dhw_enabled=False but the cell declares dhw=on; [reference] sensor dhw_temperature unavailable although its entity is mapped
+FAIL level two_zone_mode=off	[minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published dhw_enabled=False but the cell declares dhw=on; [reference] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] sensor dhw_temperature unavailable although its entity is mapped
+FAIL level wood_type=birch	[minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published dhw_enabled=False but the cell declares dhw=on; [reference] sensor dhw_temperature unavailable although its entity is mapped
+FAIL level CONF_DHW_TEMP_ENTITY=present	[minimal+entity] published dhw_enabled=False but the cell declares dhw=on; [minimal+entity] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [minimal+entity] sensor dhw_temperature unavailable although its entity is mapped; [reference] published dhw_enabled=False but the cell declares dhw=on
+FAIL level CONF_PV_PRODUCTION_ENTITY=present	[minimal+entity] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published dhw_enabled=False but the cell declares dhw=on; [reference] sensor dhw_temperature unavailable although its entity is mapped
+FAIL level CONF_LOWER_FLOOR_TEMP_ENTITY=present	[reference] published dhw_enabled=False but the cell declares dhw=on; [reference] sensor dhw_temperature unavailable although its entity is mapped
+FAIL level operation_mode=auto	[minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published dhw_enabled=False but the cell declares dhw=on; [reference] sensor dhw_temperature unavailable although its entity is mapped
+FAIL level grid_fee_mode=rules	[minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published dhw_enabled=False but the cell declares dhw=on; [reference] sensor dhw_temperature unavailable although its entity is mapped
+
+failure reasons (pattern -> cells):
+    12  published dhw_enabled=False but the cell declares dhw=on
+          e.g. level layout=no_valve [minimal+prereq]
+          e.g. level layout=no_valve [reference]
+          e.g. level layout=two_tank_4way [reference]
+    11  sensor dhw_temperature unavailable although its entity is mapped
+          e.g. level layout=no_valve [reference]
+          e.g. level layout=two_tank_4way [reference]
+          e.g. level two_zone_mode=on [reference]
+     8  plan carries a lower#zone trajectory the cell does not have (#/# published rows carry upper/lower)
+          e.g. level layout=no_valve [minimal+prereq]
+          e.g. level two_zone_mode=off [minimal]
+          e.g. level two_zone_mode=off [reference]
+RESULT cells_run=10 count
+RESULT cells_skipped=0 count
+RESULT runs=20 count
+RESULT runs_reused=0 count
+RESULT fail_cells=10 count
+RESULT fail_runs=17 count
+RESULT shrink=dhw invent_zone=0 fix_zone_auto=0 fix_plan_zone=0
+RESULT cpu_s=302.2 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=3.06
+RESULT swapins=0

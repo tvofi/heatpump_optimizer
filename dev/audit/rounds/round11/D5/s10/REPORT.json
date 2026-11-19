@@ -1,0 +1,444 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D5/s10/REPORT.md",
+ "exposure": "Read dev/governance/roles/COMMON.md, dev/governance/dimensions/D5.md and criteria/D5-criteria.md, dev/audit/README.md, dev/audit/config/{scopes,finding.schema,bugclasses}.json, dev/programme/HANDOVER.md (grep for its traps section only, to resolve a comment's citation), tools/policy/{policy_lint,rules_sync,fragments_sync}.mjs and tools/audit/{text_ledger,check_scopes}.py and tools/audit/seat/moved_paths.py (the code the cells' comments describe). The cells' comments cite earlier finding ids (e.g. round-10 D11-s1-01 in pre-edit.sh, D13-05 and D13-s2-01 in web-fix-wave.js, #2066/#2065 in cop_duty_floor.py); read as context only. No docs/ file and no GitHub record read.",
+ "coverage": [
+  {
+   "step": "D5.M1",
+   "enumerator": "bash dev/audit/rounds/round11/D5/s10/enumerate.sh M1",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "text_ledger.py outline over the seat's 329 cells prints 0 rows (every cell is .py/.sh/.js/.mjs; check_scopes lists 0 non-code files); null control: the same outline over D5-s2 prints 9 document, 207 heading, 175 link rows. C4: the reader-path universe over the code/JS cells is empty by the brief's enumerator (no document rows), so the step is complete for these cells. C2 (two-tank, ECL110, capacity-tariff paths through docs/) lies in D5-s1's cells (README.md, docs/**), outside this seat; routed as a lead."
+  },
+  {
+   "step": "D5.M2",
+   "enumerator": "bash dev/audit/rounds/round11/D5/s10/enumerate.sh M2",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "text_ledger.py outline over the seat's 329 cells prints 0 rows (every cell is .py/.sh/.js/.mjs; check_scopes lists 0 non-code files); null control: the same outline over D5-s2 prints 9 document, 207 heading, 175 link rows. C5: the heading/link universe over the code/JS cells is empty, so there is no structure to measure there."
+  },
+  {
+   "step": "D5.M3",
+   "enumerator": "bash dev/audit/rounds/round11/D5/s10/enumerate.sh M3",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "text_ledger.py outline over the seat's 329 cells prints 0 rows (every cell is .py/.sh/.js/.mjs; check_scopes lists 0 non-code files); null control: the same outline over D5-s2 prints 9 document, 207 heading, 175 link rows, so the D6 units of those documents are 0 lines: C1's denominator for this seat is 0 and closes. C6: every docstring of the cells is a D5 unit and is rowed by M4's ledger (657 docstring units, text_ledger check unrowed=0); mechanism docstrings of the hooks and workflows were checked by execution (pre_bash_claims.sh 21 examples, workflow_claims.py 6 claims, three hook harnesses). C3 (how-it-works.md, configuration.md) lies in D5-s2's cells; routed as a lead."
+  },
+  {
+   "step": "D5.M4",
+   "enumerator": "bash dev/audit/rounds/round11/D5/s10/enumerate.sh M4",
+   "universe": 1794,
+   "examined": 1794,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C7",
+     "state": "examined"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --ledger dev/audit/rounds/round11/D5/s10/m4_ledger.tsv: 1794 rows (1137 comment, 657 docstring) over 329 files; text_ledger.py check --dim D5 --seat D5-s10 --plant on the ledger: rows=1794 claims=1794 true=1781 false=8 unverifiable=5 unrowed=0 orphan=0 malformed=0 plant_refused=1. Each row carries an executed check: path and file:symbol resolution against git ls-tree at the baseline (26 unresolved, 24 units, each ruled by an executed git cat-file or harness command in m4_adjudicate.tsv), C5 sentence length, and the cited-number-vs-adjacent-constant check (4 candidates, all hold). C7: the cited-number-vs-constant check is now automated over these cells (m4_ledger.py num_check); the www/*.js and README/docs parts of C7 lie in D5-s4's and D5-s2's cells and are routed as leads. Semantic C1 depth: see unfinished."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D5.M4",
+   "what": "Every unit is rowed with an executed mechanical check (C2 path/symbol resolution, C5 length, cited-number-vs-constant), and C1 semantic truth was executed for the 5 hooks and 9 workflow scripts (three hook harnesses, pre_bash_claims.sh, workflow_claims.py) and for the 29 adjudicated units. Left: C1 semantic truth of the remaining docstring/comment claims in the 315 dev/audit/harnesses/** files beyond resolution (e.g. 'Expected ...' values against a re-run of each harness), and C3 (restatement) and C4 (history share) for every unit; C5's 339 long sentences are counted, not each re-read."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D5-s10-01",
+   "scope": "D5-s10",
+   "step": "D5.M4",
+   "title": "pre-edit.sh names .claude/rules/ as the source of .cursor/rules and sends seats to edit a generated copy",
+   "severity": "medium",
+   "claim": "pre-edit.sh's header (line 14) and its .cursor/rules refusal (lines 94-97) say the Cursor rules are generated from .claude/rules/ and tell the seat to edit that source and regenerate, but rules_sync.mjs generates both .claude/rules/ and .cursor/rules/ from dev/governance/rules/, so an edit made where the hook says is discarded by the regeneration (edit_reaches_cursor=0) and the hook lets that generated directory through (unguarded_generated=1).",
+   "mechanism": "R9-RO-5 moved the canonical rules to dev/governance/rules/ and made .claude/rules/ a second generated output (tools/policy/rules_sync.mjs SRC/CLAUDE_OUT/CURSOR_OUT); the hook's comment, refusal text and guard still describe the pre-move layout, and its self-test pins the stale reading ('the SOURCE rule is allowed', .claude/rules/gate-scoping.md).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/pre_edit_source.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "harness_path": "dev/audit/rounds/round11/D5/s10/pre_edit_source.py",
+    "value": 0,
+    "unit": "bool (edit_reaches_cursor)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.92,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/hooks/pre-edit.sh:decide (HPO_PRE_EDIT_PY block), driven end to end; tools/policy/rules_sync.mjs:SRC",
+   "perturbation": {
+    "change": "--perturb: replace .claude/rules/ with dev/governance/rules/ in the hook copy's refusal message (the one-line fix)",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "edit_reaches_cursor: 1 if a line planted in the dir the hook's refusal names as source survives rules_sync.mjs regeneration into .cursor/rules/<rule>.mdc, else 0",
+   "phenomenon_property": "Every directory a hook comment or refusal names as the source of a generated file is the directory the generator reads, and every generator output directory is refused by the hook.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/pre_edit_source.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  (RESULT named_source, unguarded_generated over rules_sync.mjs's *_OUT dirs)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/pre_edit_source.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "value": "null_prod_rc=0, cursor_refused_rc=2",
+    "note": "production code is allowed and .cursor/rules is still refused; only the named source and the .claude/rules guard are wrong"
+   },
+   "reproduction_steps": [
+    "run the command; read RESULT named_source=.claude/rules/ and edit_reaches_cursor=0",
+    "re-run with --perturb: named_source=dev/governance/rules/, edit_reaches_cursor=1"
+   ],
+   "proposed_fix_scope": "pre-edit.sh lines 13-16 and 93-98: name dev/governance/rules/ as the source; refuse .claude/rules/** as generated too; flip the self-test case at line 146 to refuse and add a dev/governance/rules/ allow null control",
+   "files": [
+    ".claude/hooks/pre-edit.sh"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-move-stale-path"
+  },
+  {
+   "id": "D5-s10-02",
+   "scope": "D5-s10",
+   "step": "D5.M4",
+   "title": "stop-selfcheck.sh's policy prefix list misses AGENTS.md and dev/audit/README.md, which policy_lint measures",
+   "severity": "medium",
+   "claim": "stop-selfcheck.sh's comments say POLICY_PREFIXES covers 'the paths whose contents policy_lint ... measure' (the same set, lines 11-13 and 24-27), but 2 of the 65 baseline files POLICY_GLOBS measures (AGENTS.md, dev/audit/README.md) do not match it, so a turn touching only those ends with no lint (e2e rc 0 against a red linter where CLAUDE.md gives 2); the header's 'runs only when the branch's three-dot diff touches' is also false (an uncommitted edit runs it).",
+   "mechanism": "The prefix list is a second, hand-kept definition of policy_lint.mjs's POLICY_GLOBS; AGENTS.md was added to the globs and the harness contract moved from tools/audit/README.md to dev/audit/README.md without the list following. The #1547 change widened CHANGED to worktree, index and untracked without updating the header.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/stop_prefixes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "harness_path": "dev/audit/rounds/round11/D5/s10/stop_prefixes.py",
+    "value": 2,
+    "unit": "files (escaped)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.21,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/hooks/stop-selfcheck.sh:touches_policy (POLICY_PREFIXES) and the hook end to end; tools/policy/policy_lint.mjs:POLICY_GLOBS",
+   "perturbation": {
+    "change": "--perturb: add AGENTS\\.md|dev/audit/ to POLICY_PREFIXES in the hook copy",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "escaped: tracked files at the ref matched by policy_lint POLICY_GLOBS for which the hook's touches_policy returns non-zero",
+   "phenomenon_property": "Every path policy_lint.mjs POLICY_GLOBS measures makes stop-selfcheck.sh run the linter.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/stop_prefixes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  (lists each escaped path)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/stop_prefixes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "value": "e2e_claude_md_rc=2, e2e_prod_rc=0",
+    "note": "a listed prefix refuses on a red linter and a non-policy path does not; only the escaped paths read 0"
+   },
+   "reproduction_steps": [
+    "run the command: escaped=2 (AGENTS.md, dev/audit/README.md), e2e_agents_md_rc=0",
+    "--perturb: escaped=0, e2e_agents_md_rc=2"
+   ],
+   "proposed_fix_scope": "derive the prefix set from policy_lint (or add AGENTS.md and dev/audit/README.md), add self-test cases for both; correct the header's three-dot sentence to the four change states the code reads",
+   "files": [
+    ".claude/hooks/stop-selfcheck.sh"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I4"
+  },
+  {
+   "id": "D5-s10-03",
+   "scope": "D5-s10",
+   "step": "D5.M4",
+   "title": "session-start.sh header miscounts its own report and cites a 'HANDOVER trap 11' that does not exist",
+   "severity": "low",
+   "claim": "session-start.sh's header says the behind-main lines are 'the fifth and sixth lines' and the trap 'the other three could not see', but report() prints them as lines 4 and 5 and the WHY THESE list carries four other items (mismatches=3). Its 'HANDOVER trap 11' citation resolves to nothing: dev/programme/HANDOVER.md's traps are unnumbered bullets (handover_trap_11_found=0).",
+   "mechanism": "The toolchain item and its line were added after the sentence was written; the ordinals and count were not re-derived.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/session_start_lines.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "harness_path": "dev/audit/rounds/round11/D5/s10/session_start_lines.py",
+    "value": 3,
+    "unit": "mismatches",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.17,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/hooks/session-start.sh:report, run in a scratch repository",
+   "perturbation": {
+    "change": "--perturb: insert one printf line in report() before 'behind main:' in the hook copy",
+    "expected_direction": "down",
+    "observed_value": 1
+   },
+   "metric_definition": "mismatches = (behind_pos != 5) + (tip_pos != 6) + (other WHY-THESE items != 3), positions read from report()'s real output",
+   "phenomenon_property": "Every ordinal or count a hook comment states about the hook's own output equals what the hook prints.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/session_start_lines.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "proposed_fix_scope": "session-start.sh lines 36-37: 'The fourth and fifth lines, and the trap the other four could not see' (or drop the ordinals); cite the shallow-clone trap by its words ('A shallow clone turns \"commits ahead\" into fiction') instead of 'trap 11'",
+   "files": [
+    ".claude/hooks/session-start.sh"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5"
+  },
+  {
+   "id": "D5-s10-04",
+   "scope": "D5-s10",
+   "step": "D5.M4",
+   "title": "k1725_blas_kernel_gap.py docstring cites tools/audit/README.md, absent at the baseline",
+   "severity": "low",
+   "claim": "The module docstring of dev/audit/harnesses/k1725_blas_kernel_gap.py names tools/audit/README.md as the reference it relies on, and that path is not in the baseline tree (the harness contract moved to dev/audit/README.md), so the C2 resolvability check fails for that unit.",
+   "mechanism": "A file move or discharge left the docstring's path citation behind; nothing checks prose path citations in harness docstrings.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --file dev/audit/harnesses/k1725_blas_kernel_gap.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s10/m4_ledger.py",
+    "value": 1,
+    "unit": "unresolved paths in the file's D5 units",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.6,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of over dev/audit/harnesses/k1725_blas_kernel_gap.py (the unit text as delivered), resolved against git ls-tree at the baseline",
+   "perturbation": {
+    "change": "--rewrite tools/audit/README.md=dev/audit/README.md (the one-line comment fix, in memory)",
+    "expected_direction": "down",
+    "observed_value": 0
+   },
+   "metric_definition": "unresolved_paths: repository paths named in the file's D5 units that neither exist at the ref nor resolve as a relative tail",
+   "phenomenon_property": "Every repository path a harness docstring cites as current exists in the tree at the ref.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --show | grep 'unresolved=[1-9]'",
+   "proposed_fix_scope": "dev/audit/harnesses/k1725_blas_kernel_gap.py: cite dev/audit/README.md",
+   "files": [
+    "dev/audit/harnesses/k1725_blas_kernel_gap.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5"
+  },
+  {
+   "id": "D5-s10-05",
+   "scope": "D5-s10",
+   "step": "D5.M4",
+   "title": "thermal_parity.py docstring cites tools/audit/README.md, absent at the baseline",
+   "severity": "low",
+   "claim": "The module docstring of dev/audit/harnesses/thermal_parity.py names tools/audit/README.md as the reference it relies on, and that path is not in the baseline tree (the harness contract moved to dev/audit/README.md), so the C2 resolvability check fails for that unit.",
+   "mechanism": "A file move or discharge left the docstring's path citation behind; nothing checks prose path citations in harness docstrings.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --file dev/audit/harnesses/thermal_parity.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s10/m4_ledger.py",
+    "value": 1,
+    "unit": "unresolved paths in the file's D5 units",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.6,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of over dev/audit/harnesses/thermal_parity.py (the unit text as delivered), resolved against git ls-tree at the baseline",
+   "perturbation": {
+    "change": "--rewrite tools/audit/README.md=dev/audit/README.md (the one-line comment fix, in memory)",
+    "expected_direction": "down",
+    "observed_value": 0
+   },
+   "metric_definition": "unresolved_paths: repository paths named in the file's D5 units that neither exist at the ref nor resolve as a relative tail",
+   "phenomenon_property": "Every repository path a harness docstring cites as current exists in the tree at the ref.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --show | grep 'unresolved=[1-9]'",
+   "proposed_fix_scope": "dev/audit/harnesses/thermal_parity.py: cite dev/audit/README.md",
+   "files": [
+    "dev/audit/harnesses/thermal_parity.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5"
+  },
+  {
+   "id": "D5-s10-06",
+   "scope": "D5-s10",
+   "step": "D5.M4",
+   "title": "cop_duty_floor.py docstring cites dev/programme/carries/carry-2065.json, absent at the baseline",
+   "severity": "low",
+   "claim": "The module docstring of dev/audit/harnesses/cop_duty_floor.py names dev/programme/carries/carry-2065.json as the reference it relies on, and that path is not in the baseline tree (discharged by a49c3d5c07 at carry closure), so the C2 resolvability check fails for that unit.",
+   "mechanism": "A file move or discharge left the docstring's path citation behind; nothing checks prose path citations in harness docstrings.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --file dev/audit/harnesses/cop_duty_floor.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s10/m4_ledger.py",
+    "value": 2,
+    "unit": "unresolved paths in the file's D5 units",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.6,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of over dev/audit/harnesses/cop_duty_floor.py (the unit text as delivered), resolved against git ls-tree at the baseline",
+   "perturbation": {
+    "change": "--rewrite dev/programme/carries/carry-2065.json=dev/programme/carries/carry-1645.json (the one-line comment fix, in memory)",
+    "expected_direction": "down",
+    "observed_value": 1
+   },
+   "metric_definition": "unresolved_paths: repository paths named in the file's D5 units that neither exist at the ref nor resolve as a relative tail",
+   "phenomenon_property": "Every repository path a harness docstring cites as current exists in the tree at the ref.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --show | grep 'unresolved=[1-9]'",
+   "proposed_fix_scope": "dev/audit/harnesses/cop_duty_floor.py: cite the carry discharge or the landed #2065 cap instead of the discharged carry file",
+   "files": [
+    "dev/audit/harnesses/cop_duty_floor.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5"
+  },
+  {
+   "id": "D5-s10-07",
+   "scope": "D5-s10",
+   "step": "D5.M4",
+   "title": "339 comment sentences over 40 words across 193 of 329 cell files (criterion C5)",
+   "severity": "low",
+   "claim": "Counted within prose paragraphs only (list items, RESULT lines and indentation steps split apart), 339 sentences in the D5 units of the seat's 329 files exceed the 40-word ceiling D5-criteria.md C5 sets, in 193 files; the hooks alone carry examples of 41-53 words (pre-edit.sh lines 4-7, 34-40, 211-216).",
+   "mechanism": "Comments accrete narrative history (who measured, which PR) inside a single sentence joined by dashes and semicolons; no lint bounds sentence length.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv",
+    "harness_path": "dev/audit/rounds/round11/D5/s10/m4_ledger.py",
+    "value": 339,
+    "unit": "sentences",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; a count, contention-immune",
+    "tolerance": "\u00b15 % (the textual splitter: an abbreviation can split early, a list without a marker can merge)",
+    "load1": 2.6,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of and :sentences over every D5 unit of the seat's cells",
+   "perturbation": {
+    "change": "--rewrite ', so =. So ' (splitting each such sentence at its ', so' clause, in memory)",
+    "expected_direction": "down",
+    "observed_value": 275
+   },
+   "metric_definition": "long_sentences: sentences (text_ledger.sentences within a prose paragraph of a D5 unit) longer than 40 whitespace words",
+   "phenomenon_property": "No sentence in a comment or docstring of the cells exceeds 40 words.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --show | grep 'long('",
+   "proposed_fix_scope": "split or cut the flagged sentences, history clauses first (C4); a sentence-length lint over D5 units would hold it",
+   "files": [
+    ".claude/hooks/pre-edit.sh",
+    ".claude/hooks/pre-bash.sh",
+    ".claude/hooks/stop-selfcheck.sh",
+    ".claude/hooks/session-start.sh",
+    "dev/audit/harnesses/**"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "pre-bash.sh's header examples (refused: pkill, killall, pgrep-fed kill, bash -c/eval bodies, past sudo/env, in ( ) and $( ); allowed: kill by PID, quoted/comment/heredoc/grep words; known gaps: $K x, sudo -u root pkill x, p=$(pgrep x); kill $p) all behave as stated",
+   "command": "bash dev/audit/rounds/round11/D5/s10/pre_bash_claims.sh",
+   "value": "examples=21 mismatches=0"
+  },
+  {
+   "claim": "workflow comments hold: audit-fix/audit-wave prompts are byte-identical mirrors, chunks of at most three, SHARD_SIZE 15 and one verifier per dimension, no sibling import, web-*.js fragments in sync",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/workflow_claims.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": "claims=6 mismatches=0 (perturbed copy: 1)"
+  },
+  {
+   "claim": "always-fails.sh: its self-test fails (exit 2, '0 passed, 1 failed'), plain run exits 0, it is not wired in .claude/settings.json, and the fixture it names wires it",
+   "command": "bash .claude/hooks/always-fails.sh --self-test; grep -c always-fails .claude/settings.json; cat tools/policy/fixtures/policy-rot/hooks/self-test-fails.json",
+   "value": "rc=2; 0; fixture names .claude/hooks/always-fails.sh"
+  },
+  {
+   "claim": "cited numbers beside numeric constants hold: r10_cop_partload MCP_KW_K=1.68 = 0.4 kg/s x 4.19 kJ/(kg K) and x5 K = 8.4 kW (~8); r10_dhw_charge_settle_p90 DIP_PEAK_MIN 15 = 10-min charge + 5 min; audit-verify VERIFIERS_PER_DIMENSION=1 and r10_triage_p391 cite only dates",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --show | grep num_check; python3 -c 'print(0.4*4.19, 1.68*5)'",
+   "value": "number_vs_constant_candidates=4, 0 contradicted (1.676, 8.4)"
+  },
+  {
+   "claim": "no `file.py:symbol` citation in the cells' comments names a symbol absent from that file",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": "unresolved_symbols=0"
+  },
+  {
+   "claim": "pr_contract_shapes.py docstring's tools/audit/prepr.sh is true of its code and of the pre-move commits it measures; moved_paths.py lists the harness STALE?, so dev/audit/README.md makes it a record, not a current comment",
+   "command": "git -C /home/user/heatpump_optimizer cat-file -e 3b0a39216b~1:tools/audit/prepr.sh",
+   "value": "rc=0"
+  },
+  {
+   "claim": "18 of the 24 unresolved-path units cite placeholders (tests/x.py, tools/x.py, custom_components/elsewhere.py), a hypothetical file the unit says was not created, an external package path, or evidence at an archived ref or commit that resolves there",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv",
+   "value": "adjudicated true=16 + record 1 + external 1; 5 unverifiable (evidence paths absent at their archived refs: seat-local evidence never pushed)"
+  },
+  {
+   "claim": "the web-decomp-stage/web-fix-wave/web-stamp/web-triage citations of .claude/rules/gate-scoping.md resolve (the generated copy is byte-equal to its dev/governance/rules/ source)",
+   "command": "cmp .claude/rules/gate-scoping.md dev/governance/rules/gate-scoping.md",
+   "value": "identical"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D5/s10/enumerate.sh",
+  "dev/audit/rounds/round11/D5/s10/m4_ledger.py",
+  "dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv",
+  "dev/audit/rounds/round11/D5/s10/m4_ledger.tsv",
+  "dev/audit/rounds/round11/D5/s10/pre_edit_source.py",
+  "dev/audit/rounds/round11/D5/s10/stop_prefixes.py",
+  "dev/audit/rounds/round11/D5/s10/session_start_lines.py",
+  "dev/audit/rounds/round11/D5/s10/pre_bash_claims.sh",
+  "dev/audit/rounds/round11/D5/s10/workflow_claims.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D11-s1",
+   "file": "tools/audit/seat/moved_paths.py",
+   "symbol": "main (tracked = git ls-files)",
+   "what": "In a tree with no .git (every finder export) `git ls-files` returns nothing, tracked is empty, and every directory reads as moved: 557 STALE? hits over these 329 files versus 45 with the baseline's tracked set (git ls-tree). An empty tracked set is read as a valid answer instead of refused, so a seat following dev/audit/README.md's retirement rule in an export gets a list that is almost all noise."
+  },
+  {
+   "owner_seat": "D5-s1",
+   "file": "docs/**",
+   "symbol": "M1 feature reader paths",
+   "what": "Redispatched C2 (two-tank storage, ECL110 and capacity-tariff reader paths walked paragraph by paragraph for dead ends and forward references) was handed to D5-s10, whose cells hold no document; it belongs to D5-s1's M1 cells."
+  },
+  {
+   "owner_seat": "D5-s2",
+   "file": "docs/how-it-works.md, docs/configuration.md, README.md",
+   "symbol": "M3 mechanism paragraphs; M4 README/docs cell",
+   "what": "Redispatched C3 (trace each mechanism paragraph of how-it-works.md and configuration.md to its code path) and C7's README/docs M4 part were handed to D5-s10; both are D5-s2's cells."
+  },
+  {
+   "owner_seat": "D5-s4",
+   "file": "custom_components/heatpump_optimizer/www/*.js",
+   "symbol": "M4 comment symbol scan",
+   "what": "C7's www/*.js part (scan card comments for the symbols they name) is D5-s4's cell; m4_ledger.py's resolver and num_check run unchanged with --file over those files."
+  }
+ ]
+}

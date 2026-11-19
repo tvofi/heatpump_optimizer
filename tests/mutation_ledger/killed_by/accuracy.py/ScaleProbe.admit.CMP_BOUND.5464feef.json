@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleProbe.admit CMP_BOUND 5464feef",
+  "killed_by": "tests/features.py",
+  "old": "            if self.voided >= PROBE_VOID_CAP:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if self.voided > PROBE_VOID_CAP:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
