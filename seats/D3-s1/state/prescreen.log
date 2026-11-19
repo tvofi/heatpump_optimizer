@@ -664,3 +664,13 @@
 2026-11-19T16:57:32Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run RETURN_DEL c4692fb8 L2058 by=tests/features.py ran=13 wall=1666.9s
 2026-11-19T17:06:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 7f740eda L1214 by=- ran=16 wall=1808.2s
 2026-11-19T17:18:32Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._max_pump_rise CLAMP_DROP d7363c5c L5103 by=- ran=15 wall=1870.0s
+2026-11-19T17:18:47Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CLAMP_DROP 22184b9a L4250 by=- ran=17 wall=1992.3s
+2026-11-19T17:25:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_one_per_day CMP_BOUND b77e0794 L491 by=- ran=12 wall=1657.9s
+2026-11-19T17:34:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:PeakTracker.observe GUARD_OFF 84e98156 L235 by=- ran=12 wall=1685.4s
+2026-11-19T17:45:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_open_loop_plan_value CMP_BOUND 57e31d9b L2540 by=- ran=13 wall=1642.1s
+2026-11-19T17:46:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 90b95b5b L4690 by=- ran=12 wall=1647.5s
+2026-11-19T17:52:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab GUARD_OFF 8acc76b0 L2315 by=- ran=12 wall=1637.2s
+2026-11-19T18:01:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._slab_outcome CLAMP_DROP 016f09c9 L2411 by=- ran=12 wall=1622.0s
+2026-11-19T18:12:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:prices_from_entity_state GUARD_OFF 4cd28db0 L820 by=- ran=13 wall=1586.5s
+2026-11-19T18:12:43Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step GUARD_OFF 489080ca L1790 by=tests/harness_headers.py,tests/features.py ran=12 wall=1588.2s
+2026-11-19T18:19:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_snow_memory CMP_BOUND 2cf3d63f L7551 by=- ran=13 wall=1600.6s
