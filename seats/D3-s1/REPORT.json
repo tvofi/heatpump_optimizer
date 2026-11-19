@@ -45,7 +45,7 @@
      "state": "examined"
     }
    ],
-   "evidence": "D3-u1c slice: 309 keys, 0 unparseable, 309 driven by the fast net (fast closure scripts + env_drift --all HEAD^1): 64 killed, 245 survived, 0 timeout, 0 with every driver skipped by reach; first kills typing_ruler.py 26, env_drift.py 11, plan_view.py 7, solar_alignment.py 6, manual_plan.py 6, structure.py 4, finite_boundary.py 2, doc_claims.py 1, block_duty.py 1; driver skips by the gate's reach rule 1600, by the relaxed rule 152. Carried runs (B1, D3R) examined 31. Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/u1c_slice.py. Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1525 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.30GHz, 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5."
+   "evidence": "D3-u1c slice: 309 keys, 0 unparseable, 309 driven by the fast net (fast closure scripts + env_drift --all HEAD^1): 64 killed, 245 survived, 0 timeout, 0 with every driver skipped by reach; first kills typing_ruler.py 26, env_drift.py 11, plan_view.py 7, solar_alignment.py 6, manual_plan.py 6, structure.py 4, finite_boundary.py 2, doc_claims.py 1, block_duty.py 1; driver skips by the gate's reach rule 1600, by the relaxed rule 152. Carried runs (B1, D3R) examined 31. Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/u1c_slice.py. Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1525 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (re-fire host; 2.30GHz before the restart), 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5."
   },
   {
    "step": "D3.M3",
@@ -97,7 +97,7 @@
      "state": "examined"
     }
    ],
-   "evidence": "D3-u1c full net (prescreen.py complete, every deferred/relaxed-skipped closure driver, no relaxation, no early stop) on 245 of 245 slice survivors: 54 killed, 190 survived, 1 timeout; kills per driver (every kill) features.py 49, entities.py 6, harness_headers.py 3; sole killer features.py 46, entities.py 5. C3 (the GATE_SCOPE=full GOLDEN_MODE=drift gate on the top six) is box D3-top6's, not driven here; this box's full-net survivors are listed for it under prescreened. Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1525 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.30GHz, 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5."
+   "evidence": "D3-u1c full net (prescreen.py complete, every deferred/relaxed-skipped closure driver, no relaxation, no early stop) on 245 of 245 slice survivors: 54 killed, 190 survived, 1 timeout; kills per driver (every kill) features.py 49, entities.py 6, harness_headers.py 3; sole killer features.py 46, entities.py 5. C3 (the GATE_SCOPE=full GOLDEN_MODE=drift gate on the top six) is box D3-top6's, not driven here; this box's full-net survivors are listed for it under prescreened. Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1525 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (re-fire host; 2.30GHz before the restart), 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5."
   },
   {
    "step": "D3.M4",

@@ -6,13 +6,13 @@ Seat D3-s1, resume box D3-u1c: the D3.M2 slice `state/keys-D3-u1c.txt` (309 keys
 
 R0 restored c0adbc19's s1/ directory. R1: state/baselines.json was box D3R's, so all 21 drivers' traced baselines were re-taken here (`prescreen.py baseline --workers 4`, all rc=0 failed=0; D3R's kept as state/superseded/baselines-D3R.json) and the env_drift capture child re-traced (`prescreen.py trace-capture`, procs 2/2). Null control LIVES (16 fast drivers); positive control 2/2 KILLED by tests/manual_plan.py. K1: `prescreen.py run --anchors state/keys-D3-u1c.txt --sub pre --workers 4` (fresh tree per mutant). K2: `prescreen.py complete --src pre --keys state/keys-D3-u1c-surv.txt --workers 4`. Driven by u1c_chain.sh, checkpointed by u1c_ckloop.sh (every 25 pre-screened keys, every full-net result).
 
-Machine: box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.30GHz, 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box. Every wall figure is provisional: true; counts and verdicts are final.
+Machine: box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (re-fire host; 2.30GHz before the restart), 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box. Every wall figure is provisional: true; counts and verdicts are final.
 
 ## Tally
 
 - D3-u1c slice: 309 keys, 0 unparseable, 309 driven by the fast net (fast closure scripts + env_drift --all HEAD^1): 64 killed, 245 survived, 0 timeout, 0 with every driver skipped by reach; first kills typing_ruler.py 26, env_drift.py 11, plan_view.py 7, solar_alignment.py 6, manual_plan.py 6, structure.py 4, finite_boundary.py 2, doc_claims.py 1, block_duty.py 1; driver skips by the gate's reach rule 1600, by the relaxed rule 152.
 - D3-u1c full net (prescreen.py complete, every deferred/relaxed-skipped closure driver, no relaxation, no early stop) on 245 of 245 slice survivors: 54 killed, 190 survived, 1 timeout; kills per driver (every kill) features.py 49, entities.py 6, harness_headers.py 3; sole killer features.py 46, entities.py 5.
-- Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1525 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.30GHz, 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5.
+- Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1525 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (re-fire host; 2.30GHz before the restart), 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5.
 
 ## Coverage
 

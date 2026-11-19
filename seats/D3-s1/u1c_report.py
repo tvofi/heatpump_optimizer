@@ -31,7 +31,7 @@ BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
 BOX = "D3-u1c"
 LO, HI = "8206a42b98c8dd86", "c0ecc8e0b6b66ded"
 OTHERS = "D3-u1a, D3-u1b or D3-u1d"
-MACHINE = ("box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.30GHz, "
+MACHINE = ("box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (re-fire host; 2.30GHz before the restart), "
            "16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box")
 
 
