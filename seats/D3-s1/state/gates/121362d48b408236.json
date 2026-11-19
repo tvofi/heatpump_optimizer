@@ -13,9 +13,9 @@
  "summary": [
   "ALL TEST SCRIPTS PASSED"
  ],
- "wall_s": 3305.9,
- "child_cpu_s": 4395.7,
- "load1_start": 0.85,
+ "wall_s": 3298.1,
+ "child_cpu_s": 4430.9,
+ "load1_start": 0.08,
  "load1_end": 0.0,
  "provisional": true,
  "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
