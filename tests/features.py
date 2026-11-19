@@ -94034,16 +94034,62 @@ _dsp_days = {
     # numpy's dispatch has no AVX.
     for day, kw in (("mild", {"out_mean": 1.0}), ("cold", {"out_mean": -1.0}))
 }
+# What the commit stage guarantees is read where it decides: each commit call
+# scores the committed form of every relaxed plan (one per descent) on the
+# true objective, start term included, and ships the lowest. The solve's final
+# objective is not that score (stages after the commit move it), so which arm
+# alone ships the lower final objective is a property of one non-convex solve
+# per arm and moved with the CPU class (``fixer.md`` step 15): with hot water
+# committed as runs the 2 degC day's operand arm alone scored under both
+# descents on one CI runner class and on arm64 and above them on another, and
+# the 1 degC day chosen over four x86 kernel classes failed on arm64.
+_dsp_real_best, _dsp_real_commit = _dsp_om._best_runs, _dsp_om._commit_runs
+
+
+def _dsp_commit_calls(**kw):
+    """Per commit call of one priced duty-cycle solve with both descents:
+    each descent's committed (score, plan) and the plan that shipped."""
+    calls = []
+
+    def best(*args):
+        out = _dsp_real_best(*args)
+        calls[-1][0].append((float(out[0]), np.array(out[1], float)))
+        return out
+
+    def commit(*args, **kwargs):
+        calls.append(([], None))
+        out = _dsp_real_commit(*args, **kwargs)
+        calls[-1] = (calls[-1][0], np.array(out[0], float))
+        return out
+
+    _dsp_om._best_runs, _dsp_om._commit_runs = best, commit
+    try:
+        _dsp_solve(_DSP_PAIR, _DSP_OFF, **kw)
+    finally:
+        _dsp_om._best_runs, _dsp_om._commit_runs = _dsp_real_best, _dsp_real_commit
+    return calls
+
+
+_dsp_stage = {day: _dsp_commit_calls(**kw) for day, kw in (("mild", {}), ("cold", {"out_mean": -1.0}))}
+_dsp_stage_calls = [c for calls in _dsp_stage.values() for c in calls]
+_dsp_stage_scores = [[round(c[0], 6) for c in cands] for cands, _ in _dsp_stage_calls]
 R.check(
-    "a solve that prices a stop commits both descents and ships the lower: on "
-    "the mild day (duty-cycle, price phase 30, 1 degC) the unpriced descent's "
-    "plan, which the operand's descent alone scores above; on the cold day "
-    "(the same at -1 degC) the operand's, which the unpriced descent alone scores above",
-    _dsp_days["mild"]["both"] <= _dsp_days["mild"]["unpriced"] + 1e-9
-    and _dsp_days["mild"]["both"] < _dsp_days["mild"]["operand"] - 0.01
-    and _dsp_days["cold"]["both"] <= _dsp_days["cold"]["operand"] + 1e-9
-    and _dsp_days["cold"]["both"] < _dsp_days["cold"]["unpriced"] - 0.01,
-    f"{_dsp_days}",
+    "a solve that prices a stop commits both descents and ships the lower: on the "
+    "duty-cycle days at 2 and -1 degC every commit call scores one committed plan per "
+    "descent and ships the one that scores lowest",
+    bool(_dsp_stage_calls)
+    and all(
+        len(cands) == 2 and shipped is not None
+        and np.array_equal(shipped, min(cands, key=lambda c: c[0])[1])
+        for cands, shipped in _dsp_stage_calls
+    ),
+    f"{_dsp_stage_scores}",
+)
+R.check(
+    "and the choice is live: on some commit call the unpriced descent's committed plan "
+    "scores below the operand's, so shipping the first descent's plan would ship the higher",
+    any(len(cands) == 2 and cands[1][0] < cands[0][0] - 1e-9 for cands, _ in _dsp_stage_calls),
+    f"{_dsp_stage_scores}",
 )
 R.check(
     "the relaxed descent still leaves a priced switch: with the switch operand "
