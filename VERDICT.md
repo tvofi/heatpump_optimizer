@@ -1,25 +1,16 @@
-Fix review: merge bdcca2fb9f21edbeace79cfc108f38c38f4b1f46
-bus-nonce: 9a2d2c5fec354887f54bd2d04690f3bd
+Fix review: merge a94deddd62ca54f9c81bc1a558c398887d67ddf7
+bus-nonce: 0e702255ad33108b0cd5a44ac9593a93
 
-Round 1, full scope: three-dot diff `99436a082c...bdcca2fb9f` (23 files), from a detached worktree at the head. `fix-review.md` at the merge base equals main's (`git diff <mb>...origin/main -- dev/governance/roles/` empty).
+Round 2, delta scope (later-rounds ruling): `git diff bdcca2fb9f a94deddd62`, from a detached worktree at the head. Prior verdict: merge at bdcca2fb9f.
 
 ## Evidence
 
-- Step 1, mutation: the fixer's `r11_comments_ratchet_mutants.py` re-run at the head: `RESULT baseline_rc=0`, `RESULT killed=9 survived=0`, every kill a named arm. My own five mutants on predicates the PR does not name (`ev/rev_mutants.py`): `_split_trailing`, `_is_heading`, `_is_code`, `_is_break` killed by their named arms; `_is_rule -> False` survives the self-test (see the notes).
-- Step 1, wiring end to end: `doc_claims.py` at the head, clean tree `ALL 441 checks PASSED` (both ratchet rows ok); with a 41-word comment planted in `tests/edge.py`, `1 of 441 checks FAILED` on the ratchet row, `REFUSE tests/edge.py: long units 0 -> 1`, rc 1; plant removed after (`ev/doc_claims_clean.txt`, `ev/doc_claims_plant.txt`).
-- Step 2, the finder's harness (`plan/r11` `D5/s9/comments.py`, exported, not the fixer's): at the merge base 99436a082c `RESULT C5-long=824`, 15 of them in p1 files (`tests/hastub/**`, `tests/throwaway_git.sh`); at the head `RESULT C5-long=809`, 0 in p1 files. The harness's `--perturb` arm moves at the head (`perturb_C5 ... long 1->0`, `perturb_C2 ... 18->0`). `C2-path=3`, `C2-moved=15` flat at both ends.
-- Step 3, null control: outside p1 the harness reads 824 - 15 = 809 at both ends, so no other file moved. The ratchet at the head against the merge base: `RESULT base=99436a082c67 files=96 long_units_base=1642 long_units_head=1618`, `comment_ratchet: OK`; `--self-test` OK.
-- `--text-only 99436a082c`: `RESULT code_changed_files=5 line_shifted_hunks=9`; CODE lines name only `comment_ratchet.py`, `doc_claims.py`, `entities.py`, `run.sh` and the new file; no `tests/hastub/` file or `throwaway_git.sh` changes a code token or a line count. The 14 text files read as sentence splits that keep each claim.
-- Step 4/5: `VERSION`, the manifest, `RELEASE_NOTES.md`, both claim files and both budget files are byte-identical to the merge base.
-- Step 6, the class: the rule is the ratchet over SCOPE; every in-scope tracked `tests/` file but `tests/closure.py` is in `doc_claims.py`'s recorded closure (95 of 96), and a `closure.py` edit forces FULL, so no in-scope edit escapes the arm. CI runs `run.sh` with `fetch-depth: 0` and `GOLDEN_REF` set, so the ratchet base resolves there.
-- Step 13: `git merge-tree --write-tree origin/main bdcca2fb9f` exit 0.
-- Step 14: the `closures.json` growth (doc_claims closure + 54 entries, seconds 11.4 -> 31.0) and the three INERT removals are the reads `comment_ratchet.gate` makes; removing the arm removes them. `closure.py selftest`: `ALL 118 closure shrink pins PASSED`.
-- Step 15: the design note at a2823ffea0 (Notes for the fixer) permits the ratchet as an arm of an existing gate script when the script-run budgets bind, so the `doc_claims.py` route is inside the design, not a departure.
-- Step 7/12: PR head is bdcca2fb9f at review time, the body names it, author `hpo-author[bot]` (the packet's open point that the author shows as tvofi does not hold).
-- Step 11, checks at the head: the one red, `gate` (run 44484273149, `pull_request` edit run), prints `FAIL run(s) [44484251682] at this head are still being judged; their gate decides`: a pending-sequencing red that the code run's own gate will re-decide, not a code finding. The code run's `tests/*` lanes were still queued when I read them; this verdict cites CI for the suite and asserts nothing about it.
+- The delta is one commit, a94deddd62 `ci: re-record tests/entities.py's closure`, touching only `tests/closures.json` (`evidence/delta-a94deddd62...txt`).
+- Structural diff of the JSON: `closures["tests/entities.py"]` gains `tests/comment_ratchet.py` and `tools/audit/text_ledger.py` and loses nothing; no other closure changes. These are exactly the two files this branch's `tests/closure.py` (unchanged since bdcca2fb9f) moves out of INERT (`NOT_A_TEST` / `INERT_EXCEPT`), so the recording matches the classification the prior round reviewed.
+- The other four changes are `recorded[*].seconds` timings (edge, finite_boundary, stress, typing_ruler) from the same Linux recordings artifact. They are measurements only and are not used for scope selection.
+- `tests / closures` and `tests / closure-scope` pass at the head; the gate digest in the packet is green (`evidence/packet-a94deddd62.md`, `evidence/checks-a94deddd62.txt`).
+- Prior findings: no code, test or harness file changed in the delta, so the round-1 evidence (mutation kills, wiring plant, finder harness at both ends) still holds as-is.
 
-## Notes (non-blocking)
+## Notes
 
-- Note: carry-missing: the body's three hand-off notes (harness-only units classed by the reconcile harness; how comments-production consumes `comment_ratchet.in_scope` through `check_comment_length` and re-records with `--single`; the design-section-6 reconcile) are not in either group's `brief` on `plan/r11` `.claude/workflows/wave-r11-groups.json` (no keyword of them present in R11-SEAM-comments-tests or R11-SEAM-comments-production at 50a932de3b); a PR body does not propagate them. Neither group id is a token `carry_audit.py` accepts (upper-case only), which is P-R11-84. Carry: dismissed: no parseable destination exists until P-R11-84; the orchestrator lands the three texts in those two roster briefs on plan/r11
-- Note: test-gap: `_is_rule` replaced by `False` survives `--self-test`, because `_is_heading` also catches dash, equals, hash and tilde rules; only an underscore or asterisk rule line would join the next sentence, and the effect is a false refusal (fail-closed). On the head tree the mutant changes no count: 1618 long units both ways (`ev/is_rule_tree.txt`). Carry: dismissed: fail-closed predicate with zero effect on the measured tree
-- Note: stale-figure: the body prices the arm at `doc_claims.py` "11 s"; the closure this PR records reads `"seconds": 31.0`. Carry: dismissed: body figure only, the recorded closure carries the measured value
+- `governance / env-matrix` was cancelled once at its 10-minute timeout on this head after every declared outcome held. A rerun passed. This is not caused by the PR; the proposal is filed locally for round-end triage.
