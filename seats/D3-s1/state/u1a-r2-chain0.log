@@ -1,6 +1,0 @@
-REFIRE START 2026-11-19T01:03:38Z nproc=4 load1=0.95 cpu= Intel(R) Xeon(R) Processor @ 2.10GHz
-baseline rc=0 2026-11-19T01:16:25Z
-trace-capture rc=0 2026-11-19T01:18:07Z
-null rc=0 2026-11-19T01:24:07Z
-posctl rc=0 2026-11-19T01:24:22Z
-DONE 2026-11-19T01:24:22Z load1=1.22
