@@ -3635,15 +3635,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if unsub is not None:
                 unsub()
 
-    def _spawn(self, coro: Any) -> Any:
+    def _spawn(self, coro: Any, **create: Any) -> Any:
         """Fire-and-forget a coroutine, but keep the task until it lands.
 
-        Home Assistant tracks tasks itself; this set exists so
-        ``async_shutdown`` can let in-flight store writes finish rather
-        than orphan them against a torn-down entry. The bare test stub
-        closes the coroutine and returns None -- nothing to track then.
+        Home Assistant tracks tasks itself; this set exists so ``async_shutdown``
+        can let in-flight store writes finish rather than orphan them against a
+        torn-down entry; ``create`` goes to ``async_create_task`` (``eager_start``).
+        The bare test stub closes the coroutine and returns None -- nothing to track then.
         """
-        task = self.hass.async_create_task(coro)
+        task = self.hass.async_create_task(coro, **create)
         if task is None:
             return None
         self._background_tasks.add(task)
@@ -6169,7 +6169,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         finally:
             self._refresh_task = None
             if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:
-                self._spawn(self.async_request_refresh())  # lands once the debouncer is free
+                self._spawn(self.async_refresh(), eager_start=False)  # direct, once this returns: a debouncer running it holds its lock till then
 
     async def async_request_refresh(self) -> None:
         """Request a refresh; one landing on a running solve or refresh follows it (D1-s1-03)."""

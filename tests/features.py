@@ -97116,11 +97116,12 @@ R.check(
 
 
 async def _sg_trailing():
-    """A write lands while the refresh fetches: the refresh's end requests one more."""
+    """A write lands while the refresh fetches: the refresh's end runs one more."""
     _hass, _entry, coord = _r9f13_make("sg_trailing")
     loop = _sg_aio.get_running_loop()
-    coord.hass.async_create_task = lambda coro: loop.create_task(coro)
-    calls = []
+    coord.hass.async_create_task = (
+        lambda coro, name=None, eager_start=True: _sg_aio.Task(coro, loop=loop, eager_start=eager_start))
+    calls, refreshes = [], []
 
     async def _call():
         calls.append(1)
@@ -97131,8 +97132,10 @@ async def _sg_trailing():
     real_state = coord._update_current_state
 
     async def _state_with_write():
+        refreshes.append(1)
         await real_state()
-        await coord.async_request_refresh()  # a user write mid-refresh
+        if len(refreshes) == 1:
+            await coord.async_request_refresh()  # a user write mid-refresh
 
     coord._debounced_refresh.async_call = _call
     coord.async_run_optimization = _solve
@@ -97140,15 +97143,149 @@ async def _sg_trailing():
     await coord.async_refresh()
     for _ in range(5):
         await _sg_aio.sleep(0)
-    return len(calls), solve_gate.gate_for(coord).trailing
+    return len(calls), len(refreshes), solve_gate.gate_for(coord).trailing
 
 
 _sg_trail = _sg_aio.run(_sg_trailing())
 R.check(
-    "D1-s1-03: a request landing while a refresh runs is answered by one more debounced "
-    "refresh once it ends, and the trailing mark is spent",
-    _sg_trail == (1, False),
-    f"{_sg_trail}",
+    "D1-s1-03: a request landing while a refresh runs is answered by one more refresh once it "
+    "ends, run directly rather than through the debouncer, and the trailing mark is spent",
+    _sg_trail == (0, 2, False),
+    f"debouncer calls, refreshes, trailing: {_sg_trail}",
+)
+
+
+class _SgUpstreamDebouncer:
+    """``homeassistant.helpers.debounce.Debouncer``'s call path as of 2025.2.0
+    (cooldown, ``immediate=True``), the part the stub's inline one lacks.
+
+    ``async_call`` holds ``_execute_lock`` while it awaits the job, which
+    ``hass.async_run_hass_job`` runs as a separate eagerly started task, and
+    arms the cooldown only after that task ends. A call meeting the held lock
+    with no timer armed is dropped ("any call is good, so abort"); one inside
+    the cooldown runs at its end. The stub awaits the job inline and arms the
+    timer before any spawned task runs, so it cannot show the drop.
+    """
+
+    def __init__(self, function, cooldown):
+        self.function, self.cooldown = function, cooldown
+        self._execute_lock = _sg_aio.Lock()
+        self._timer_task = None
+        self._execute_at_end_of_timer = False
+        self._shutdown_requested = False
+
+    def _async_schedule_or_call_now(self):
+        if self._shutdown_requested:
+            return False
+        if self._timer_task:
+            self._execute_at_end_of_timer = True
+            return False
+        if self._execute_lock.locked():
+            return False
+        return True
+
+    async def _run_job(self):
+        try:
+            await _sg_aio.Task(self.function(), eager_start=True)
+        finally:
+            self._schedule_timer()
+
+    async def async_call(self):
+        if not self._async_schedule_or_call_now():
+            return
+        async with self._execute_lock:
+            if self._timer_task:
+                return
+            await self._run_job()
+
+    async def _handle_timer_finish(self):
+        self._timer_task = None
+        if not self._execute_at_end_of_timer:
+            return
+        self._execute_at_end_of_timer = False
+        if self._execute_lock.locked():
+            return
+        async with self._execute_lock:
+            if self._timer_task:
+                return
+            await self._run_job()
+
+    def _on_debounce(self):
+        self._timer_task = None
+        _sg_aio.Task(self._handle_timer_finish(), eager_start=True)
+
+    def _schedule_timer(self):
+        if not self._shutdown_requested:
+            self._timer_task = _sg_aio.get_running_loop().call_later(self.cooldown, self._on_debounce)
+
+    def async_cancel(self):
+        if self._timer_task:
+            self._timer_task.cancel()
+            self._timer_task = None
+        self._execute_at_end_of_timer = False
+
+    def async_shutdown(self):
+        self._shutdown_requested = True
+        self.async_cancel()
+
+
+async def _sg_upstream_trailing(origin, write=True):
+    """Refreshes run when a write lands mid-refresh, under upstream's debouncer and
+    eager ``async_create_task``; every state read suspends, as a real one does.
+    Returns the count and the refreshes' nesting, ``(`` at each ``async_refresh``
+    entry and ``)`` at its return: a trailing refresh started inside the one
+    that owed it publishes before it, and the older data lands last."""
+    _hass, _entry, coord = _r9f13_make(f"sg_up_{origin}_{write}")
+    loop = _sg_aio.get_running_loop()
+    coord.hass.async_create_task = (
+        lambda coro, name=None, eager_start=True: _sg_aio.Task(coro, loop=loop, eager_start=eager_start))
+    real_refresh, nesting = coord.async_refresh, []
+
+    async def _refresh_traced():
+        nesting.append("(")
+        try:
+            await real_refresh()
+        finally:
+            nesting.append(")")
+
+    coord.async_refresh = _refresh_traced
+    coord._debounced_refresh = _SgUpstreamDebouncer(coord.async_refresh, cooldown=0.05)
+    refreshes = []
+
+    async def _solve():
+        return None
+
+    real_state = coord._update_current_state
+
+    async def _state_suspending():
+        refreshes.append(1)
+        await _sg_aio.sleep(0)
+        await real_state()
+        if write and len(refreshes) == 1:
+            await coord.async_request_refresh()  # a user write mid-refresh, not solving
+
+    coord.async_run_optimization = _solve
+    coord._update_current_state = _state_suspending
+    if origin == "debounced":
+        await coord.async_request_refresh()
+    else:
+        await coord.async_refresh()
+    for _ in range(15):
+        await _sg_aio.sleep(0.02)
+    return len(refreshes), "".join(nesting)
+
+
+_sg_up = {
+    (origin, write): _sg_aio.run(_sg_upstream_trailing(origin, write))
+    for origin in ("debounced", "direct") for write in (True, False)
+}
+R.check(
+    "D1-s1-03: under upstream's debouncer, a write landing while a debounced refresh runs is "
+    "answered by one more refresh once it has returned, never nested inside it, as one during "
+    "a direct refresh is; null control: with no write each origin runs exactly one",
+    _sg_up == {("debounced", True): (2, "()()"), ("direct", True): (2, "()()"),
+               ("debounced", False): (1, "()"), ("direct", False): (1, "()")},
+    f"refreshes by (origin, write): {_sg_up}",
 )
 
 
