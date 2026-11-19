@@ -615,3 +615,4 @@
 2026-11-19T07:45:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch CLAMP_DROP 8322628c L821 by=- ran=12 wall=1425.7s
 2026-11-19T07:52:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CLAMP_DROP 7c0715b8 L1974 by=- ran=12 wall=1530.4s
 2026-11-19T08:06:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:mold_safe_room_floor CLAMP_DROP 89ce35db L2856 by=- ran=12 wall=1518.8s
+2026-11-19T08:07:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power CMP_BOUND 508ee035 L1604 by=- ran=12 wall=1524.8s
