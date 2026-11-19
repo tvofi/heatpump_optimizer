@@ -1,0 +1,37 @@
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  FAIL the boundary quarantines nan at every depth  [scrubbed={'leaf': nan, 'nested': [[nan], {'k': nan}]}]
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  FAIL the boundary quarantines str-nan at every depth  [scrubbed={'leaf': 'NaN', 'nested': [['NaN'], {'k': 'NaN'}]}]
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  ok   the boundary quarantines an absurd magnitude as it does a non-finite (class P1)
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the class oracle flags a planted naive, magnitude, non-finite and number-turned-text label, and nothing on the healthy set (its own control)
+CTRL LEDGER_STORE_VERSION v1->2: c1=ok c2=ok tasks=[] fences=[] months_to_stamp=1 extra_warnings=[]
+RESULT ledger_store_version_mutants=200 count
+RESULT ledger_store_version_loader_raise=0 count
+RESULT ledger_store_version_cycle_fail=0 count
+RESULT ledger_store_version_task_raise=0 count
+RESULT ledger_store_version_repeat_fence=0 count
+RESULT ledger_store_version_log_multi=1 count
+RESULT ledger_store_version_log_repeat=0 count
+RESULT ledger_store_version_nonfinite_live=0 count
+  EX ledger_store_version/log_multi: ('instant_far', ['ledger', 'months', '2026-01', 'lines', 'savings_baseline'], 'ok', ['WARNING:heatpump_optimizer.ledger:Quarantined %d malformed ledger month(s) on load; the rest of the ledger was kept', 'WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s'], [])
+CTRL defrost STORE_VERSION v1->2: c1=ok c2=ok tasks=[] fences=[] months_to_stamp=None extra_warnings=[]
+RESULT defrost_mutants=200 count
+RESULT defrost_loader_raise=0 count
+RESULT defrost_cycle_fail=0 count
+RESULT defrost_task_raise=0 count
+RESULT defrost_repeat_fence=0 count
+RESULT defrost_log_multi=0 count
+RESULT defrost_log_repeat=0 count
+RESULT defrost_nonfinite_live=0 count
+RESULT thread_factor=1.000
+RESULT load1=198.17
+RESULT swapins=2

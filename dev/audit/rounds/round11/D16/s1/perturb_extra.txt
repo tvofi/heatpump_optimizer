@@ -1,0 +1,8 @@
+### freq_step_half
+RESULT arbiter_value_rows_failing=4 rows (rig x value state, untagged arbiter clauses; P1 and P2 raise it, P2doc leaves it)
+RESULT clause_grid=0 rows (rig x state)
+RESULT unavailable_recorded=5 rigs
+### write_skips_unavailable
+RESULT arbiter_value_rows_failing=4 rows (rig x value state, untagged arbiter clauses; P1 and P2 raise it, P2doc leaves it)
+RESULT clause_grid=50 rows (rig x state)
+RESULT unavailable_recorded=0 rigs

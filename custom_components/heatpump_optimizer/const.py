@@ -22,6 +22,17 @@ PLATFORMS: Final = [
 # Schema version of the config entry. Bump when stored keys change in a way
 # that needs migrating, and handle it in ``async_migrate_entry``.
 CONFIG_ENTRY_VERSION: Final = 7
+# The minor version: 2 stores each key in its one place (``entry_config.placed``).
+# Minor, so a release that knows only 7.1 still loads the entry: it refuses only
+# a newer major, and reads ``{**data, **options}``, which placing leaves equal.
+CONFIG_ENTRY_MINOR_VERSION: Final = 2
+
+# How many intervals the forecast-accuracy ring keeps, and the cap on the
+# tariff's whole-house samples and the store's accuracy domain. At the default
+# 30-minute optimization interval this is a fortnight, which is long enough to
+# see a seasonal bias emerge without keeping an unbounded amount of state in
+# memory.
+HISTORY_LENGTH: Final = 672
 
 # Configuration keys
 CONF_TIBBER_TOKEN: Final = "tibber_token"
@@ -768,9 +779,9 @@ CONF_HEAT_PUMP_COP_PARTLOAD_DERATE: Final = "heat_pump_cop_partload_derate"
 # Two-zone model parameters
 #
 # Whether the two-zone model runs was historically inferred from whether any
-# zone key exists at all — which an options page can never undo, because the
-# initial flow writes the keys into entry.data where options cannot erase
-# them. The mode is the explicit override (v4.0.0): "auto" (the default, and
+# zone key exists at all — which an options page can never undo, because an
+# options page saves a value and never removes a key. The mode is the explicit
+# override (v4.0.0): "auto" (the default, and
 # what every untouched install effectively has) keeps the presence rule
 # byte-for-byte; "on"/"off" force the model regardless of which keys exist.
 CONF_TWO_ZONE_MODE: Final = "two_zone_mode"

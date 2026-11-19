@@ -1,0 +1,51 @@
+{
+  "id": "D1-s3-05",
+  "scope": "D1-s3",
+  "step": "D1.M5",
+  "title": "A persistently failing store save is logged only at DEBUG at all 17 persist handlers; state stops persisting",
+  "severity": "medium",
+  "claim": "Every persist handler (17, persist_seams.py) catches any exception from building and saving its store payload and logs it only at DEBUG; with the save body forced to fail on every pass across setup, two refreshes, unload, restart and a refresh, each of the 10 handlers the lifecycle reaches added zero WARNING-or-higher records, so a payload-builder bug or a failing save silently stops the ledger, accuracy, thermal-learning, price-model, snapshot, away, legionella, notifier, off-restore and energy stores from persisting until a restart loses the unsaved state.",
+  "mechanism": "Pattern `try: await store.async_save(<payload built inline>) except Exception as err: _LOGGER.debug('Could not persist ...: %s', err)` in coordinator._async_save_{thermal_learning,price_model,ledger,accuracy,energy_totals,manual_plan,snapshots}, away.persist_override, boost.persist, dhw_learning.async_save_{profile,draws}, duty_switch._persist, legionella.async_save, notifier._async_save, off_restore._save, pump_arbiter._persist, debugger.DebugCollector.async_save. The payload is built inside the try, so a programming error in any learner's as_dict (an AttributeError, a non-serialisable value) is caught with the transport failures and logged below Home Assistant's default level on every cycle; nothing latches it (log_held exists for exactly this) and no repair issue is raised.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/persist_family.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s3/persist_family.py",
+    "value": 10,
+    "unit": "persist handlers (of 10 reached) whose persistent save failure added no WARNING+ record",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out running (load1 ~180); count is contention-immune",
+    "tolerance": "exact",
+    "load1": 181.27,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_save_ledger (and the 9 sibling persist handlers), each try body forced to raise by d1s3hook.py's import-time rewrite, driven through async_setup_entry / async_refresh / async_unload_entry on a real asyncio loop",
+  "perturbation": {
+    "change": "coordinator.py: `_LOGGER.debug(\"Could not persist ledger: %s\", err)` -> `_LOGGER.warning(...)` (`--perturb`, applied in memory at import via excepts_inject.py --edit)",
+    "expected_direction": "down",
+    "observed_value": 9
+  },
+  "metric_definition": "Persist handlers reached by the lifecycle whose save body, raising on every pass (setup, 2 refreshes, unload, restart, refresh), added 0 WARNING+ integration records over the control.",
+  "phenomenon_property": "A persistent store-save failure is visible above DEBUG once per outage (a held warning that says Resolved on the first save that lands), at every persist seam.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/persist_seams.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --reach",
+    "value": "control_proc_phases_ok=9/9, control_inproc_phases_ok=9/9",
+    "note": "the fault-free control run is the baseline every added-record count is taken over; the same harness counts WARNING+ for the weather fetch handler (coordinator.py:7103) at 1 per outage, so the count is able to see a warning"
+  },
+  "proposed_fix_scope": "One held-warning helper (log_latch.log_held) across the 17 persist handlers, keyed per store; optionally build the payload outside the try so a builder bug is not filed as a save failure.",
+  "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/boost.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/duty_switch.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/notifier.py",
+    "custom_components/heatpump_optimizer/off_restore.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/debugger.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

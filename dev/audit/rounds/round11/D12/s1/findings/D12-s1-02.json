@@ -1,0 +1,53 @@
+{
+ "id": "D12-s1-02",
+ "scope": "D12-s1",
+ "step": "D12.M1",
+ "title": "Export tree: two_zone_mode 'auto' (the default) turns on a second zone for installs that store no zone key",
+ "severity": "high",
+ "claim": "In the export handed to this seat, every install that stores no zone key and leaves two_zone_mode at its default publishes two_zone_enabled=True and a plan with distinct upper and lower floor trajectories (6 of 6 such plants), while thermal_model.py's own comment and const.py's TWO_ZONE_MODE comment state that 'auto' is the presence rule; a clean git archive of 92d38ecb reads 0 of 6.",
+ "mechanism": "ThermalParameters.from_config in the export tests `two_zone_mode in (TWO_ZONE_MODE_ON, DEFAULT_TWO_ZONE_MODE)`; DEFAULT_TWO_ZONE_MODE is 'auto', so the presence branch is reached only for unknown strings and every default install is modelled two-zone with the lower floor's default mass and loss. At the baseline SHA the line reads `== TWO_ZONE_MODE_ON`.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s1/plan_zone.py",
+  "harness_path": "dev/audit/rounds/round11/D12/s1/plan_zone.py",
+  "value": 6,
+  "unit": "plants with no zone key published two_zone_enabled=True (of 6)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692 as exported to the seat (the export's thermal_model.py differs from the SHA; a clean git archive of the SHA gives 0)",
+  "machine": "box B4, 4 vCPU shared container, Python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "counts; load1 5.5 from other seats",
+  "tolerance": "exact",
+  "load1": 5.56,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.from_config (driven through async_setup_entry and _async_update_data; read off the published two_zone_enabled)",
+ "perturbation": {
+  "change": "--presence-rule: from_config decides two_zone_mode 'auto' by the presence of a zone key (in memory, classmethod swap)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "invented_zone_plants = plants storing no zone key and no two_zone_mode 'on' whose cycle publishes two_zone_enabled=True",
+ "phenomenon_property": "A plant is modelled, solved and published two-zone only when its configuration says so (a zone key stored or two_zone_mode 'on'); the default 'auto' never adds a zone.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s1/cells.py --quiet (the check 'published two_zone_enabled=True but the cell declares zone=off' lists every cell, 138 in the export, 0 at the clean SHA)",
+ "null_control": {
+  "command": "same command; CONTROL two-zone plant and the two 'mode off' plants",
+  "value": "control two_zone_enabled=True with 96 split rows on both arms; the two plants with two_zone_mode 'off' publish False on both arms; clean archive of 92d38ecb: invented_zone_plants=0",
+  "note": "the effect vanishes at the baseline SHA and under the documented rule"
+ },
+ "leave_one_out": {
+  "cells": 6,
+  "min": 1,
+  "max": 1,
+  "drop_most_favourable": 5
+ },
+ "reproduction_steps": [
+  "run the command at the export root: invented_zone_plants=6",
+  "--presence-rule: 0, control unchanged",
+  "same command at a clean git archive of 92d38ecb: 0"
+ ],
+ "proposed_fix_scope": "thermal_model.py ThermalParameters.from_config: 'auto' falls to the presence rule (as at 92d38ecb); establish why the export differs from the baseline SHA before filing",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

@@ -1,0 +1,47 @@
+{
+ "id": "D5-s2-01",
+ "scope": "D5-s2",
+ "step": "D5.M2",
+ "title": "One home per fact fails: options-page table twice (14/24 rows drifted), 15 repeated paragraphs, 4 repeated diagrams",
+ "severity": "low",
+ "claim": "README.md and docs/*.md carry 15 paragraph repeats and 4 repeated fenced diagrams (S3 'one home per fact'): the 24-row options-menu table exists in README.md and configuration.md with 14 rows whose descriptions now differ, three in substance (Fuse and peak guards: silent mode only in configuration.md; Heat curve control: controller time constant only in README; Sensors and entities: 'Tibber token' vs 'Price source'); the setup-flow mermaid diagram is kept verbatim in README.md, configuration.md and setup.md; and the 'one optimization interval' sequence diagram in README.md and how-it-works.md shares 62 % of its lines with 18 lines differing (README's solve step names the legionella clock and fuse caps, how-it-works's names the hot-water-first LP and the co-optimization pass).",
+ "mechanism": "The options-menu page list is maintained by hand in two documents (README.md 'Changing settings after setup' and docs/configuration.md 'Changing settings later'); the setup-wizard and options-page setting tables in configuration.md also repeat 9 setting rows verbatim. Edits land in one copy only, so the copies drift.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/structure.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s2/structure.py",
+  "value": "dup_paragraph=15; menu_twin_drift=14 of 24 twin rows; dup_fence=4",
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+  "cpu_or_wall": "count",
+  "contention_note": "box heavily loaded (load1 120-165); counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 145.63,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:outline (and BLOCK_START paragraph splitter) driven over README.md and docs/*.md",
+ "perturbation": {
+  "change": "--dedupe: in memory, README.md's two options-page tables replaced by one link to docs/configuration.md#changing-settings-later",
+  "expected_direction": "down",
+  "observed_value": "dup_paragraph 15 -> 9; menu_twin_drift 14 -> 0"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/structure.py --plant",
+  "value": "dup_paragraph 15 -> 16 with one planted repeat",
+  "note": "the repeat detector counts a planted repeat; anchors planted dead count 0 -> 2"
+ },
+ "metric_definition": "Repeated paragraphs (>=12 words, normalised; a table row is one) across README+docs/*.md; twin menu-table rows that differ; fenced blocks in two docs sharing >=60% of lines.",
+ "phenomenon_property": "Every fact in README.md and docs/*.md has one home: no paragraph or table row is repeated across or within those documents, and the options-page list exists in one place the other links to.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/structure.py  (dup_paragraph, menu_twin_drift and dup_fence lines)",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "README.md",
+  "docs/configuration.md"
+ ],
+ "proposed_fix_scope": "README.md keeps one sentence and a link to docs/configuration.md's page tables; configuration.md's options-page setting rows that repeat the wizard rows are replaced by a pointer (or the wizard table points to the options page). For D6: which of the drifted twins is true (silent mode on Fuse and peak guards; controller time constant on Heat curve control; Tibber token vs price source on Sensors and entities). The interval sequence diagram keeps one home (how-it-works.md) and README links to it, or the two are made one pinned copy; the setup-flow diagram's three verbatim copies are reduced to one plus links unless a pin (tests/doc_claims.py) is meant to keep them identical, which then belongs in the docs' own text.",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/structure.py | grep -E 'dup_paragraph|menu_'",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/structure.py --dedupe | grep -E 'dup_paragraph|menu_'"
+ ]
+}

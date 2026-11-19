@@ -1,0 +1,13 @@
+  candidate tests/boost_drift_replay.py:84 BAND=0.05 comment numbers [-50.0]
+  candidate tests/card_browser.mjs:3027 ROW_TOL=0.6 comment numbers [-1.0]
+  candidate tests/closure.py:1927 SECONDS_BAND=2.0 comment numbers [60.0, 72.0, 21.0, 3.0]
+  candidate tests/closure.py:3747 LANE_CAP_CI=3 comment numbers [8.0]
+  candidate tests/coverage_ratchet.py:105 TOLERANCE=0.1 comment numbers [95.0016, 95.0]
+  candidate tests/delivery_status.py:111 STALE_AFTER_COMMITS=12 comment numbers [8.0, 4.0]
+  candidate tests/gate_lock.py:79 LEASE_SECONDS=1800 comment numbers [735.0, 560.0]
+  candidate tests/gate_lock.py:117 SLOT_MIN_SECONDS=69 comment numbers [760.0, 100.0]
+RESULT pairs=28 count
+RESULT candidates=8 count
+RESULT thread_factor=1.000
+RESULT load1=2.07
+RESULT swapins=0
