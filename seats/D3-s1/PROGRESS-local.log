@@ -21,4 +21,3 @@
 2026-11-17T17:52:18Z REPORT.json assembled (1 finding); C2 M34-M36 fast drive relaunched, 3 workers, cutoff 18:38Z
 2026-11-17T17:53:59Z REPORT.json with report_md written (finalize.py); waiting C2 M34-M36 until 18:36Z
 2026-11-17T18:29:53Z C2 M34-M36 SURVIVED (fast net); M4 answered; REPORT.json final
-2026-11-18T22:52:08Z re-fire on D3-u1d: K1 complete (309: 67 KILLED/242 SURVIVED); K2 resumed, 105 of 242 complete; dirty worker trees w0-w3 removed (interrupted mutants)
