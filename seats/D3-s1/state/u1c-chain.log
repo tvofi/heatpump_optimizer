@@ -1,0 +1,7 @@
+2026-11-18T08:48:05Z K1 start
+2026-11-18T12:50:31Z K1 exit 0
+2026-11-18T12:50:36Z K2 start 245
+2026-11-19T00:54:15Z re-fire after container restart; posctl-D3-u1c-r2 KILLED 2/2; chain relaunched
+2026-11-19T00:54:21Z K1 start
+2026-11-19T00:54:24Z K1 exit 0
+2026-11-19T00:54:27Z K2 start 245
