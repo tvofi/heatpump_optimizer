@@ -1,0 +1,37 @@
+[
+ {
+  "claim": "T2 full gate: tariff.py:64 _window_slot GUARD_OFF is pinned by the suite (KILLED)",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src pre --key fb16c7b0cbbfc63d",
+  "value": "killed_by=python3 tests/features.py; wall 3968.4 s, load1 7.17..6.36 (provisional)"
+ },
+ {
+  "claim": "T2 full gate: price_model.py:201 PriceShapeModel.observe_day non-finite guard GUARD_OFF is pinned by the suite (KILLED)",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src pre --key 4b3795aece73ba73",
+  "value": "killed_by=python3 tests/features.py,python3 tests/structure.py; wall 4927.1 s, load1 5.14..5.33 (provisional)"
+ },
+ {
+  "claim": "T2 full gate: coordinator.py:539 _parse_ecl110_state nested command.displace GUARD_OFF is pinned by the suite (KILLED)",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src pre --key bdcf7589b0a0a6df",
+  "value": "killed_by=python3 tests/features.py; wall 13388.1 s, load1 3.95..7.15 (provisional)"
+ },
+ {
+  "claim": "T2 full gate: sysid.py:2246 R10 C2 M27 and -> or (drift refusal) is pinned by the suite (KILLED)",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key 0e172028a23d9372",
+  "value": "killed_by=python3 tests/entities.py,python3 tests/features.py,python3 tests/stress.py; wall 6700.5 s, load1 6.98..5.78 (provisional)"
+ },
+ {
+  "claim": "T1: C3C6 M22 (tariff.py:595 mask_active, key 6e6026d857732e96) re-driven after its disk-full TIMEOUT; the TIMEOUT is dropped",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/prescreen.py run --mutants <M22 dict> --sub c3c6-redrive",
+  "value": "SURVIVED 12 fast drivers in 293.0 s on cloud box D3-top6 (provisional); state/results/c3c6-redrive/6e6026d857732e96.json. It stays owed to T3."
+ },
+ {
+  "claim": "R1 controls on the local host: the prescreen null control LIVES and the positive control kills 2 of 2 ledger-pinned sites",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/prescreen.py null; ... run --anchors dev/audit/rounds/round11/D3/s1/posctl_anchors.txt --sub posctl-D3-top6-local",
+  "value": "null_verdict=LIVES (16 drivers); posctl 2/2 KILLED (tests/manual_plan.py)"
+ },
+ {
+  "claim": "Full-gate null control (comment-only marker in tariff.py) on this host",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null",
+  "value": "gate_rc=1; red scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py', 'python3 tests/optimality.py', 'python3 tests/stress.py'] with failed-check counts {'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 2, 'python3 tests/optimality.py': 1, 'python3 tests/stress.py': 2, 'python3 tests/harness_headers.py': 4}, all host artefacts: optimality's claimed cell closes under Accelerate, closure.py selftest and entities.py instrument checks differ on macOS, harness_headers.py flags this seat's own untracked harnesses, and stress.py budgets fail under load. wall 3637.9 s (provisional). A mutant counts as killed only when it fails more checks than this."
+ }
+]

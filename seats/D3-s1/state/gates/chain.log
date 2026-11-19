@@ -1,0 +1,18 @@
+2026-11-18T11:05:59Z GATE null :: RESULT gate_rc=1 code RESULT failed_scripts=4 count RESULT wall=4268 s RESULT thread_factor=1.0 ratio RESULT load1=14.05 
+/dev/disk3s5   228Gi   189Gi   9.2Gi    96%    3.3M   96M    3%   /System/Volumes/Data
+2026-11-18T11:13:14Z chain aborted after null (card.mjs OOM at node default heap, standalone 5120 MB passes); first mutant gate fb16 aborted at 18 s, moved to superseded/gates-aborted; restarting with D3S1_NODE_HEAP=5120
+2026-11-18T13:00:13Z GATE null :: RESULT gate_rc=1 code RESULT failed_scripts=3 count RESULT wall=6418 s RESULT thread_factor=1.0 ratio RESULT load1=6.26 
+/dev/disk3s5   228Gi   187Gi    11Gi    95%    3.2M  116M    3%   /System/Volumes/Data
+2026-11-18T14:06:35Z GATE pre:fb16c7b0cbbfc63d :: RESULT gate_rc=1 code RESULT failed_scripts=4 count RESULT wall=3968 s RESULT thread_factor=1.0 ratio RESULT load1=6.36 RESULT killed=1 count VERDICT fb16c7b0cbbfc63d KILLED python3 tests/features.py 
+/dev/disk3s5   228Gi   186Gi    12Gi    94%    3.2M  126M    2%   /System/Volumes/Data
+2026-11-18T15:30:51Z GATE pre:4b3795aece73ba73 :: RESULT gate_rc=1 code RESULT failed_scripts=5 count RESULT wall=4927 s RESULT thread_factor=1.0 ratio RESULT load1=5.33 RESULT killed=1 count VERDICT 4b3795aece73ba73 KILLED python3 tests/features.py,python3 tests/structure.py 
+/dev/disk3s5   228Gi   188Gi    10Gi    95%    3.2M  108M    3%   /System/Volumes/Data
+2026-11-18T15:31:50Z chain aborted at bdcf (21 s): stress.py and harness_headers.py were SKIPPED in null, fb16 and 4b37 (lease wait: HPO_GATE_LOCK_LABEL unset). fb16 and 4b37 KILLED verdicts stand (a skipped script can only hide a kill). Re-running null + bdcf, 0e17, d931, 8e82 with the label exported.
+2026-11-18T16:32:28Z GATE null :: RESULT gate_rc=1 code RESULT failed_scripts=5 count RESULT wall=3638 s RESULT thread_factor=1.0 ratio RESULT load1=4.5 
+/dev/disk3s5   228Gi   189Gi   9.5Gi    96%    3.2M  100M    3%   /System/Volumes/Data
+2026-11-18T20:15:49Z GATE pre:bdcf7589b0a0a6df :: RESULT gate_rc=1 code RESULT failed_scripts=6 count RESULT wall=13388 s RESULT thread_factor=1.0 ratio RESULT load1=7.15 RESULT killed=1 count VERDICT bdcf7589b0a0a6df KILLED python3 tests/features.py 
+/dev/disk3s5   228Gi   189Gi   7.9Gi    96%    3.3M   83M    4%   /System/Volumes/Data
+2026-11-18T22:07:46Z GATE c2:0e172028a23d9372 :: RESULT gate_rc=1 code RESULT failed_scripts=6 count RESULT wall=6701 s RESULT thread_factor=1.0 ratio RESULT load1=5.78 RESULT killed=1 count VERDICT 0e172028a23d9372 KILLED python3 tests/entities.py,python3 tests/features.py,python3 tests/stress.py 
+/dev/disk3s5   228Gi   185Gi    13Gi    94%    2.9M  138M    2%   /System/Volumes/Data
+2026-11-19T00:01:47Z GATE c2:d931ab195b940b0c :: RESULT gate_rc=1 code RESULT failed_scripts=5 count RESULT wall=6821 s RESULT thread_factor=1.0 ratio RESULT load1=246.46 RESULT killed=0 count VERDICT d931ab195b940b0c RED-AS-NULL  
+/dev/disk3s5   228Gi   180Gi    18Gi    91%    3.2M  188M    2%   /System/Volumes/Data
