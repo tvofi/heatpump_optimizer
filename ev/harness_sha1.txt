@@ -1,0 +1,4 @@
+2798c36ffd4249510a855e85e57531890b7cd312  /tmp/tmp.EtFObOPiee/export/dev/audit/rounds/round11/D2/s3/m4_tariff.py
+d95eec998a7f629aab218fe8500ab8225d43a008  /tmp/tmp.EtFObOPiee/export/dev/audit/rounds/round11/D8/s1/monthly.py
+200265afa332b0419c5ae9cb8766df6ff1f415e3  /tmp/tmp.EtFObOPiee/export/dev/audit/rounds/round11/D14/s1/currency_precedence.py
+398cc7980ab6b7cc2cc3c15886f7424f69465fe8  /tmp/tmp.EtFObOPiee/export/dev/audit/rounds/round11/D17/s1/h_guard.py

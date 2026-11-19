@@ -1,0 +1,23 @@
+== golden/claims/VERSION diff
+== enumerators
+custom_components/heatpump_optimizer/coordinator.py:2886:    if declared is None or declared == resolve_currency(hass):
+custom_components/heatpump_optimizer/coordinator.py:2899:            "configured": resolve_currency(hass),
+custom_components/heatpump_optimizer/currency.py:41:def resolve_currency(hass: HomeAssistant) -> str:
+custom_components/heatpump_optimizer/currency.py:85:    return feed_currency(hass, feed) or adopted or resolve_currency(hass)
+custom_components/heatpump_optimizer/ledger.py:132:def pro_rata_factor(now: datetime) -> float:
+custom_components/heatpump_optimizer/ledger.py:134:    days = calendar.monthrange(now.year, now.month)[1]
+custom_components/heatpump_optimizer/ledger.py:158:def month_hours(now: datetime) -> float:
+custom_components/heatpump_optimizer/ledger.py:167:def coverage_factor(meta: Mapping[str, Any], now: datetime) -> float | None:
+custom_components/heatpump_optimizer/ledger.py:188:        return None if settled < MIN_COVERAGE_HOURS else max(1.0, month_hours(now) / settled)
+custom_components/heatpump_optimizer/ledger.py:191:    return pro_rata_factor(now)
+custom_components/heatpump_optimizer/ledger.py:540:            factor = coverage_factor(self.months[key].get("meta") or {}, now) if estimated else 1.0
+== structure
+  class_excess_loc = 17382 (every class's span past 300, summed; the coordinator's 557 helper lines count in its span)
+RESULT class_excess_loc=17382 count
+RESULT duplication_copies=7 count
+RESULT functions_cc_over_15=26 count
+  ok   class_excess_loc 17382 <= 17382
+  ok   duplication_copies 7 <= 7
+  ok   functions_cc_over_15 26 <= 26
+  ok   seam_cut_total 415 <= 415
+STRUCTURE RATCHET PASSED

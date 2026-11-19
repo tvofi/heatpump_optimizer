@@ -1,0 +1,103 @@
+=== wtb D8/s1/monthly.py
+RESULT avail_none_cycles=1 count
+RESULT first_scale=672.0 ratio
+RESULT swing=1700.77 currency
+RESULT cycles=17 count
+RESULT thread_factor=1.000
+RESULT load1=0.24
+RESULT swapins=0
+=== wtb D2/s3/m4_tariff.py
+RESULT coverage_full_month_boundary=1.000000 ratio
+RESULT peak_cost_err_max=0.0003 currency
+RESULT tracker_peak_err_max=0.0000 kW
+RESULT capacity_line_err_max=0.00e+00 currency
+RESULT fee_mismatch_steps=0 count
+RESULT unit_mismatches=0 count
+RESULT tibber_rows_dropped=0 count
+RESULT tibber_known_steps_at_14h=96 count
+RESULT pv_piecewise_err=1.42e-14 currency
+RESULT thread_factor=1.0003
+RESULT load1=0.46
+RESULT swapins=0
+=== wtb D14/s1/currency_precedence.py
+SEAM options:tuning:compressor_replacement_cost:unit -> SEK (feed EUR)
+SEAM options:grid_fees:grid_fee_fixed:unit -> SEK/kWh (feed EUR)
+SEAM options:grid_fees:contract_fixed_price:unit -> SEK/kWh (feed EUR)
+SEAM options:grid_fees:placeholder.currency -> SEK (feed EUR)
+RESULT instance=SEK feed_declared=EUR
+RESULT money_surfaces=20 surfaces
+RESULT entity_surfaces=13 surfaces
+RESULT options_surfaces=6 surfaces
+RESULT money_seams=5 surfaces
+RESULT thread_factor=1.000
+RESULT load1=0.50
+RESULT swapins=0
+=== wtb D17/s1/h_guard.py
+ROW draw=0.8 kW listeners=1 should_suppress=False first_suppressed_minute=None suppressed_minutes=0 wrong_minutes=0
+ROW draw=1.2 kW listeners=1 should_suppress=False first_suppressed_minute=None suppressed_minutes=0 wrong_minutes=0
+ROW draw=1.8 kW listeners=1 should_suppress=True first_suppressed_minute=1 suppressed_minutes=59 wrong_minutes=0
+ROW draw=3.0 kW listeners=1 should_suppress=True first_suppressed_minute=1 suppressed_minutes=59 wrong_minutes=0
+ROW draw=9.0 kW listeners=1 should_suppress=True first_suppressed_minute=1 suppressed_minutes=59 wrong_minutes=0
+RESULT guard_wrong_minutes_total=0 over 5 draws
+RESULT guard_wrong_minutes_range=0..0
+RESULT guard_wrong_minutes_drop_most_favourable=0
+RESULT null_suppressed_minutes=0 (listeners=0)
+RESULT thread_factor=1.0
+RESULT load1=0.5029296875
+RESULT swapins=0
+=== wtb port
+RESULT entity_surfaces=13 surfaces
+RESULT options_surfaces=6 surfaces
+RESULT money_seams=5 surfaces
+RESULT thread_factor=1.000
+RESULT load1=0.50
+RESULT swapins=0
+=== wt D8/s1/monthly.py
+RESULT avail_none_cycles=0 count
+RESULT first_scale=0.0 ratio
+RESULT swing=0.00 currency
+RESULT cycles=17 count
+RESULT thread_factor=1.000
+RESULT load1=0.50
+RESULT swapins=0
+=== wt D2/s3/m4_tariff.py
+RESULT coverage_full_month_boundary=1.000000 ratio
+RESULT peak_cost_err_max=0.0003 currency
+RESULT tracker_peak_err_max=0.0000 kW
+RESULT capacity_line_err_max=0.00e+00 currency
+RESULT fee_mismatch_steps=0 count
+RESULT unit_mismatches=0 count
+RESULT tibber_rows_dropped=0 count
+RESULT tibber_known_steps_at_14h=96 count
+RESULT pv_piecewise_err=1.42e-14 currency
+RESULT thread_factor=1.0003
+RESULT load1=0.67
+RESULT swapins=0
+=== wt D14/s1/currency_precedence.py
+Traceback (most recent call last):
+  File "/tmp/tmp.EtFObOPiee/export/dev/audit/rounds/round11/D14/s1/currency_precedence.py", line 131, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/tmp.EtFObOPiee/export/dev/audit/rounds/round11/D14/s1/currency_precedence.py", line 103, in main
+    w = w.of(hass)
+TypeError: <lambda>() missing 1 required positional argument: 'cur'
+=== wt D17/s1/h_guard.py
+ROW draw=0.8 kW listeners=1 should_suppress=False first_suppressed_minute=None suppressed_minutes=0 wrong_minutes=0
+ROW draw=1.2 kW listeners=1 should_suppress=False first_suppressed_minute=None suppressed_minutes=0 wrong_minutes=0
+ROW draw=1.8 kW listeners=1 should_suppress=True first_suppressed_minute=1 suppressed_minutes=59 wrong_minutes=0
+ROW draw=3.0 kW listeners=1 should_suppress=True first_suppressed_minute=1 suppressed_minutes=59 wrong_minutes=0
+ROW draw=9.0 kW listeners=1 should_suppress=True first_suppressed_minute=1 suppressed_minutes=59 wrong_minutes=0
+RESULT guard_wrong_minutes_total=0 over 5 draws
+RESULT guard_wrong_minutes_range=0..0
+RESULT guard_wrong_minutes_drop_most_favourable=0
+RESULT null_suppressed_minutes=0 (listeners=0)
+RESULT thread_factor=1.0
+RESULT load1=0.6708984375
+RESULT swapins=0
+=== wt port
+RESULT entity_surfaces=13 surfaces
+RESULT options_surfaces=6 surfaces
+RESULT money_seams=0 surfaces
+RESULT thread_factor=1.000
+RESULT load1=0.67
+RESULT swapins=0
