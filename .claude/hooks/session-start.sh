@@ -104,7 +104,9 @@ base_fresh() { # the `base fresh:` line
   if [ ! -f "$tool" ]; then
     echo "UNREAD -- this tree has no $tool, so it predates the check: start from origin/main"; return
   fi
-  out=$(python3 -I "$tool" tree --fetch-timeout 10 2>&1 </dev/null); rc=$?
+  # HPO_BASE_LINE_NO_FETCH is the self-test's: its byte comparisons call the report in sequence, and a
+  # fetch that lands between two of them, or times out in one, changes this line with no defect in the hook.
+  if [ -n "${HPO_BASE_LINE_NO_FETCH:-}" ]; then rc=2; else out=$(python3 -I "$tool" tree --fetch-timeout 10 2>&1 </dev/null); rc=$?; fi
   if [ "$rc" = 2 ]; then
     out=$(python3 -I "$tool" tree --no-fetch 2>&1 </dev/null); rc=$?
     note=" (origin/main was not fetched: judged against the local ref)"
@@ -186,6 +188,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # `GIT_TEST_DATE_NOW` is git's own pin, inherited by every `bash "$0"` below.
   # A caller's pin stands, so a test can drive a ticking clock through it.
   : "${GIT_TEST_DATE_NOW:=$(date +%s)}"; export GIT_TEST_DATE_NOW
+  export HPO_BASE_LINE_NO_FETCH=1  # pinned for the same reason; base_line below drives the fetching line
   out=$(report)
   pass=0; fail=0
   st() { if printf '%s' "$out" | grep -E "$1" >/dev/null; then pass=$((pass+1)); printf '  ok   %s\n' "$2"
@@ -204,7 +207,7 @@ if [ "${1:-}" = "--self-test" ]; then
   B=$(mktemp -d)
   bg() { env -u GIT_DIR -u GIT_WORK_TREE GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=t GIT_COMMITTER_NAME=t \
     GIT_AUTHOR_EMAIL=1+t@users.noreply.github.com GIT_COMMITTER_EMAIL=1+t@users.noreply.github.com git "$@"; }
-  base_line() { ( cd "$1" && bg status >/dev/null && env -u GIT_DIR GIT_CONFIG_GLOBAL=/dev/null bash -c "$(declare -f base_fresh); base_fresh" </dev/null ); }
+  base_line() { ( cd "$1" && bg status >/dev/null && env -u GIT_DIR -u HPO_BASE_LINE_NO_FETCH GIT_CONFIG_GLOBAL=/dev/null bash -c "$(declare -f base_fresh); base_fresh" </dev/null ); }
   ans() { if case $1 in "$2"*) true ;; *) false ;; esac; then pass=$((pass+1)); printf '  ok   %s\n' "$3"
           else fail=$((fail+1)); printf '  FAIL %s (got: %s)\n' "$3" "$1"; fi; }
   bg init -q -b main "$B/s" && mkdir -p "$B/s/tools/audit/seat" "$B/s/dev/governance/roles" \
