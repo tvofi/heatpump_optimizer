@@ -394,10 +394,9 @@ INERT = (
     # docs/automations.md and imported by users through HA's blueprint
     # importer -- shipped, read by users, read by no gate script.
     "blueprints/",
-    # Driven by the `browser` CI job, which is never scoped and runs on every
-    # pull request regardless. It is a real test; it is simply not one of
-    # THIS gate's scripts.
-    "tests/card_browser.mjs",
+    # tests/card_browser.mjs, tests/setup_qa_render.mjs and tests/throwaway_git.sh
+    # left this list (R11-SEAM-comments-tests): doc_claims.py's comment ratchet
+    # reads the comments of every tests/ script, so each is in its closure.
     # Its playwright manifest (#1548): the `browser` job copies it beside its
     # package-lock.json for `npm ci`. The lock is NOT listed: tests/entities.py
     # reads every tracked package-lock.json for its integrity fields.
@@ -430,13 +429,6 @@ INERT = (
     # EVERY workflow file, because the property it pins -- the seat author's
     # token reaches no `pull_request` path -- is violated by a reference in
     # any of them, and each of these three runs on `pull_request`.
-    # A manual QA render (writes ../setup-qa/). No gate script reads it.
-    "tests/setup_qa_render.mjs",
-    # The shell twin of tests/throwaway_git.py. Only shell self-tests source
-    # it (prepr.sh, app_approve.sh, bus.sh, the stop hook), and governance runs
-    # those, never this gate; tests/throwaway_git.py's own --self-test, which
-    # pins the twin's variables, runs there too.
-    "tests/throwaway_git.sh",
     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
     # is one "no gate script reads and none ever will". The first half held and
     # still does -- it stays on NOT_A_TEST above, and nothing in this gate runs
@@ -590,6 +582,10 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # R11-SEAM-comments-tests: tests/doc_claims.py's comment ratchet imports the
+    # D5 unit enumerator. Same route as orchestrator_tick.py: tools/audit/ stays
+    # INERT, this file joins the recorded closure.
+    "tools/audit/text_ledger.py",
     # R10-FLY-REPLAN-DEFECTS: tests/entities.py runs the orchestrator tick's
     # self-test, whose closure holds roster_lib.py (a roster_lib edit must run it).
     # CI's closures-autofix refused: INERT and read. Same route as the files below:

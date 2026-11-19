@@ -3,11 +3,11 @@
 ``get_significant_states`` over states a test records with ``record(hass,
 entity_id, states)``: each a ``State``-shaped object (``state``,
 ``attributes``, ``last_updated``, ``last_reported``), oldest first. Upstream
-reads the database; what is kept is its window rule, read at the 2025.2.0
+reads the database. What is kept is its window rule, read at the 2025.2.0
 floor (``history/modern.py``): every state updated after ``start_time`` and
 before ``end_time``, and, with ``include_start_time_state``, the last one
 updated before ``start_time``, which upstream returns stamped AT
-``start_time`` -- its start-state query selects ``literal(0)`` as
+``start_time``. Its start-state query selects ``literal(0)`` as
 ``last_updated_ts`` and ``LazyState`` falls back to ``start_time_ts``, as
 ``last_reported`` then falls back to that. ``significant_changes_only`` is
 ignored: every recorded state is a change.

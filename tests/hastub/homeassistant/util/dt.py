@@ -34,7 +34,7 @@ def freeze(when: datetime | None) -> None:
     """Pin the clock, or pass ``None`` to release it.
 
     The pinned value is normalised on the way out, not stored normalised, so
-    a zone set after the freeze still applies: ``now`` returns it in the
+    a zone set after the freeze still applies. ``now`` returns it in the
     configured zone and ``utcnow`` in UTC, whatever tzinfo it was frozen with
     (round-9 D14-s4-02: a fixed-offset freeze made both clocks return a
     ``+01:00`` datetime upstream never hands out).
@@ -44,10 +44,10 @@ def freeze(when: datetime | None) -> None:
 
 
 def now():
-    # A frozen value is normalised on the way out: an aware one is converted
+    # A frozen value is normalised on the way out. An aware one is converted
     # into the configured zone (UTC when none is, upstream's default zone),
     # and a naive one is read as wall time in the zone, the way ``as_local``
-    # reads one (round-9 D14-s4-02: a fixed-offset freeze was handed out as
+    # reads one. (round-9 D14-s4-02: a fixed-offset freeze was handed out as
     # a ``+01:00`` datetime upstream never returns).
     #
     # Aware in UTC when no zone is configured, as upstream's is (round-9
@@ -72,8 +72,8 @@ def utcnow():
 def as_utc(value: datetime) -> datetime:
     """Upstream ``as_utc`` verbatim: naive is treated as UTC, aware is converted.
 
-    Under the default identity-timezone stub both clocks are naive, and
-    ``replace`` preserves the wall difference between two naive stamps --
+    Under the default identity-timezone stub both clocks are naive. ``replace``
+    preserves the wall difference between two naive stamps --
     the same result their direct subtraction gives -- so routing the age
     seams through here changes nothing in that mode while fixing the
     shared-ZoneInfo subtraction under ``HASTUB_TZ`` (#1299).

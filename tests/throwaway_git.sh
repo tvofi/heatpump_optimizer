@@ -12,12 +12,12 @@
 # and change nothing in the caller. What each sets and why -- auto-maintenance off through the
 # environment AND the repository's own config, GIT_CONFIG_PARAMETERS dropped
 # because git reads it after GIT_CONFIG_COUNT -- is the Python module's
-# docstring; `python3 tests/throwaway_git.py --self-test` pins that this file
+# docstring. `python3 tests/throwaway_git.py --self-test` pins that this file
 # sets the same variables to the same values.
 
 # GIT_CONFIG_GLOBAL is a path under this regular file (ENOTDIR: git reads no
 # global config, and no process can create one there), resolved at source time
-# because throwaway_git_init calls the env after a cd. tests/throwaway_git.py's
+# because throwaway_git_init calls the env after a cd. `tests/throwaway_git.py`'s
 # NO_GLOBAL_CONFIG is its twin; the paths differ by the file each names.
 _hpo_throwaway_git_global="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/throwaway_git.sh/no-global-config"
 

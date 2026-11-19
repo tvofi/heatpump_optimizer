@@ -6,13 +6,13 @@ reaction chain -- ``UpdateFailed -> last_update_success False -> entities
 unavailable``, the debouncer, the listener fan-out. They now run the chain as
 upstream 2025.2.0 does -- including ``always_update=True`` as the constructor
 default, so listeners fan out on every successful refresh, not only when data
-or success moved -- and ``tests/ha_contract.py`` pins each observable against
+or success moved. ``tests/ha_contract.py`` pins each observable against
 both this stub and the real package (nightly lane).
 
 What is deliberately still absent (the inventory entry in ha_contract.py is
 the authority): the loop-driven interval scheduler -- the fakes carry no
-``hass.loop`` and no test may grow a background poller mid-run --
-``update_method``/``setup_method``, the manual-push setters, and the
+``hass.loop`` and no test may grow a background poller mid-run. Also
+absent: ``update_method``/``setup_method``, the manual-push setters, and the
 wrong-state warning ``async_config_entry_first_refresh`` logs upstream (at
 the 2025.2.0 floor it warns and continues, so skipping it changes nothing).
 """
@@ -38,7 +38,7 @@ class Debouncer:
     an ``asyncio.Lock`` because the suite drives one coordinator across many
     ``asyncio.run`` scopes and a Lock binds itself to its first loop. The
     trailing run rides ``hass.async_create_task`` where the hass has one,
-    which under the shared fakes closes it -- a fake that never runs tasks
+    which under the shared fakes closes it. A fake that never runs tasks
     cannot run the trailing refresh either, and that divergence is the
     environment's, recorded here rather than papered over.
     """
@@ -148,7 +148,7 @@ class DataUpdateCoordinator(Generic[_DataT]):
         # Upstream's default (:75, :92) is True, and the integration's
         # coordinator constructs with no override, so listeners are fanned
         # out on EVERY successful refresh, not only when data or success
-        # moved (#924 round 2: the stub had pinned the change-only arm as
+        # moved. (#924 round 2: the stub had pinned the change-only arm as
         # if it were the whole condition).
         self.always_update = always_update
         self.data = None

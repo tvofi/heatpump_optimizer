@@ -7,7 +7,7 @@ that package's ``__init__``, which names them in ``__all__``).
 
 Faithful to upstream in the two places that are easy to get wrong, because
 real Home Assistant is not installed here and this stub is what the tests
-actually execute: a ``None`` value and an empty string are **skipped**, not
+actually execute. A ``None`` value and an empty string are **skipped**, not
 redacted, so ``async_redact_data({"k": None}, {"k"})["k"]`` is ``None`` and
 not the marker. ``to_redact`` is a plain iterable of key names; upstream has
 no mapping-of-replacements form.
