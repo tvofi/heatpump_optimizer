@@ -18,6 +18,8 @@ The shared GitHub REST quota was not needed: no API read was made.
 
 ## Head
 
+`6c854c212d1d2ad151efa807be225ef0da17b91a` merges `origin/main` `7ae05284d5` into `6bb827793e`. It is a merge, not a re-cut. `git merge-tree --write-tree origin/main 6bb827793e` reported two conflicts. `dev/audit/config/rotation.json`: both sides are kept. Main's D17 round-11 coverage record is taken whole, and this branch's `DX0` entry follows it. The diff against main is the `DX0` entry alone. `.claude/workflows/audit-find.js`: `DIMS` keeps this branch's `DX0`. The generated FINDING-SCHEMA block was re-written by `fold_ledger.py sync` from the merged `finding.schema.json`. So `CLASS_GUESS` equals main's, and `FINDING_REPORT` carries main's new class ids with this branch's `X0` patterns. `fold_ledger.py check`: 0 violations. `check_scopes.py --repo .`: ok. `check-wave-script.mjs`: 296 passed, 0 failed. `agreement.mjs`: finding-class-id and finder-report-form, 0 divergent. The scoped gate at this head (`MODE: SCOPED -- 1 script(s) run, 32 scoped out`) was still running at handoff on a host at load 62; closure.py selftest passed, and CI is the authority.
+
 da818594a3804a94b09acf1976384d4025237962, branch fix/r11-pre-security-privacy-p2, merge base ae0ed64af898d8923ac35afe6e9c031ac1e6b111 (origin/main at measurement, 2026-11-18).
 
 prepr: passed rc=0 at da818594a3804a94b09acf1976384d4025237962
@@ -50,7 +52,7 @@ Unpinned sites: `audit-verify.js`'s step-yield regex `/^D(?:\d+|X0)\.(M\d+)$/` s
 - Self-tests at the head, each rc 0: `ref_privacy.py` (132 checks), `fold_ledger.py`, `finder_overlap.py` (with mutants), `check_scopes.py`, `roster_lib.py` (104 checks).
 - `python3 tools/audit/archscore/score.py --diff ae0ed64af898 HEAD`: `Architecture score: dS +0.0000 NULL`.
 
-<!-- figure-block: scope-line mb=ae0ed64af898d8923ac35afe6e9c031ac1e6b111 head=da818594a3804a94b09acf1976384d4025237962 -->
+<!-- figure-block: scope-line mb=7ae05284d5bceb254230b471a4eb936c2b072174 head=6c854c212d1d2ad151efa807be225ef0da17b91a -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
@@ -84,3 +86,4 @@ Pending; none is claimed here. A policy pull request: it merges on tvofi's appro
 ## Friction
 
 none
+
