@@ -582,3 +582,5 @@
 2026-11-19T06:24:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_learner_payloads GUARD_OFF 00ba86b8 L9628 by=- ran=14 wall=1577.9s
 2026-11-19T06:26:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling GUARD_OFF ca0830c1 L5671 by=- ran=13 wall=1423.6s
 2026-11-19T06:35:34Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:in_frost_band CMP_BOUND a90cc8c2 L111 by=tests/features.py ran=13 wall=1596.4s
+2026-11-19T06:38:25Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CMP_BOUND 4f3bbbac L2587 by=- ran=12 wall=1321.4s
+2026-11-19T06:38:43Z COMPLETE KILLED custom_components/heatpump_optimizer/price_model.py:extend_price_series GUARD_OFF 6c8cede1 L513 by=tests/features.py ran=12 wall=726.3s
