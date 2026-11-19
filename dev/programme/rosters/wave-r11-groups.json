@@ -6236,7 +6236,8 @@
    "severity": "low",
    "size": "M",
    "issues": [
-    3779
+    3779,
+    3782
    ],
    "fixes": [],
    "findings": [
