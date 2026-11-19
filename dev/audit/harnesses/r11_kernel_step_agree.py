@@ -78,6 +78,10 @@ CLASSES = (
     ("a naive stamp aligned to a reference's zone, for comparison",
      lambda s: re.search(r"replace\(tzinfo=(naive_zone|(\w+\.)?tzinfo|tz)\b", s)),
     ("a zone stripped after conversion, for a naive reference", lambda s: "replace(tzinfo=None)" in s),
+    ("a zone conversion read through drift.utc_instant first",
+     lambda s: "utc_instant(" in s and ".astimezone(" in s),
+    # Shape cannot see a guard: every site here is dispositioned by hand in
+    # the PR body (a tzinfo test before it, or an aware-only input).
     ("an aware conversion", lambda s: ".astimezone(" in s),
     ("a naive test guarding one of the above", lambda s: "tzinfo is None" in s),
 )
