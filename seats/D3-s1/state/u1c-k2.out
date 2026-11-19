@@ -152,3 +152,5 @@
 2026-11-19T03:51:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_price_ranked_start CMP_BOUND fc7a9935 L2126 by=- ran=17 wall=1875.9s
 2026-11-19T03:53:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling GUARD_OFF 384d6fb8 L6070 by=- ran=13 wall=1544.5s
 2026-11-19T04:06:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_fetch_failed GUARD_OFF 643e387c L7118 by=- ran=13 wall=1646.8s
+2026-11-19T04:16:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 3e0642e4 L1942 by=- ran=12 wall=1631.0s
+2026-11-19T04:18:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._outage_dhw_hold CMP_BOUND 936e7a6e L9051 by=- ran=13 wall=1632.1s
