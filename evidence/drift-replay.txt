@@ -1,0 +1,12 @@
+head: 00d07210bd41a89c38f477f60490b3be091d4f72 (merge base fe6f06c337b624d2e6695c513994697a84f0b52a)
+measured = main's selftest-closures artifact, run 44451107719 (byte-identical to the head's tools/ci/selftest_closures.json: cmp IDENTICAL)
+selftest_scope.drift(table, measured, workflow_steps):
+  base table: 127 gated, 5 refusals (policy-lint-mutants probes, dependency-graph-census dirs, temp-or-machine-path probes, self-tests-outside-seat dirs, prepr dirs)
+  head table: 127 gated, 0 refusals
+select --change M:docs/x.md at head: MODE: SCOPED -- 22 step(s) run
+CI at head: governance / instrument-self-tests success (job 135360674833)
+git merge-tree --write-tree origin/main(8ab5dc566f) head: rc 0
+directories new on origin/main since merge base: none (git ls-tree -r -d comm)
+VERSION / manifest / RELEASE_NOTES.md: untouched
+duplicate list entries: base 0; head 13 across 6 steps' probes (open-pr, policy-lint-mutants x8, pr-args, push-names-the-host, temp-or-machine-path, update-pr), e.g. tools/audit/round4/**
+  cause: selftest_scope.compact_probes concatenates collapse(keep) (which can emit D/**) with probes' existing D/** entries, no dedup
