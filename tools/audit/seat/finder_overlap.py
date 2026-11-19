@@ -54,7 +54,7 @@ import plant_recall  # noqa: E402 -- the judge's merge grammar has one reader, t
 TWIN_FROM = 71
 
 
-SEAT_RE = re.compile(r"(D[0-9]+)-(s[0-9]+)")
+SEAT_RE = re.compile(r"(D(?:[0-9]+|X0))-(s[0-9]+)")
 
 
 def owner_only(scopes: dict) -> set[str]:
@@ -336,11 +336,11 @@ def owner_only_cases(m) -> dict[str, bool]:
         r["owner-only null: a D15 seat of the committed scopes is admitted beside an owner-only dimension"] = \
             "s1" in base["D15"]["seats"] and n["rc_s"] == 0 and n["wrote"] \
             and f"round{rnd}/D15/s1-twin/REPORT.json" in n["txt_s"] and n["rc_e"] == 0 and "n1=1" in n["txt_e"]
-    pair, why = m.seat_pair(base, "D18-s1", "a", "b", rnd)
-    declared = isinstance(base.get("D18"), dict)
-    r["owner-only: D18-s1 over the committed scopes is refused (no seat until the dimension lands, owner-only after)"] = \
+    pair, why = m.seat_pair(base, "DX0-s1", "a", "b", rnd)
+    declared = isinstance(base.get("DX0"), dict)
+    r["owner-only: DX0-s1 over the committed scopes is refused (no seat until the dimension lands, owner-only after)"] = \
         pair is None and (("owner-only" in why) if declared else ("no seat of scopes.json" in why)) \
-        and (not declared or base["D18"].get("owner_only") is True)
+        and (not declared or base["DX0"].get("owner_only") is True)
     return r
 
 
@@ -360,7 +360,7 @@ MUTANTS = {
     "null report": ("if ids_a is None or ids_b is None:", "if ids_a is None:", "missing report"),
     "null judge": ('if not judge or not judge.get("verdicts"):', "if not judge:", "no judge verdicts"),
     "twin ids": ("TWIN_FROM = 71", "TWIN_FROM = 72", "twin's ids start at 71"),
-    "any dimension number": ('SEAT_RE = re.compile(r"(D[0-9]+)-(s[0-9]+)")',
+    "any dimension number": ('SEAT_RE = re.compile(r"(D(?:[0-9]+|X0))-(s[0-9]+)")',
                              'SEAT_RE = re.compile(r"(D(?:1[0-5]|[0-9]))-(s[0-9]+)")', "flag removed is admitted"),
     "owner-only declared": ('e.get("owner_only") is True', 'e.get("owner_only") is not None', "flag false is admitted"),
     "owner-only seat": ("    if owner_only_seat(scopes, seat):\n", "    if False:\n", "canary seat is refused"),
