@@ -6397,7 +6397,9 @@
    "class": "process",
    "severity": "low",
    "size": "M",
-   "issues": [],
+   "issues": [
+    3746
+   ],
    "fixes": [],
    "findings": [
     "D6-s5-02",
