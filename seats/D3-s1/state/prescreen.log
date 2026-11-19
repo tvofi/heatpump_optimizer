@@ -613,3 +613,4 @@
 2026-11-19T09:31:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:extend_price_series CLAMP_DROP 2eb5c32b L532 by=- ran=12 wall=1493.2s
 2026-11-19T09:37:44Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair GUARD_OFF c7e9ea85 L2790 by=tests/entities.py,tests/features.py ran=13 wall=1689.2s
 2026-11-19T09:46:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:<module> CONST fac59c9f L51 by=- ran=21 wall=1679.3s
+2026-11-19T09:47:31Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CLAMP_DROP d283bb4f L4235 by=- ran=17 wall=1687.5s
