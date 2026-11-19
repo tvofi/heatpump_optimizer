@@ -91,7 +91,8 @@ Commands are run from the repository root. `$EXPORT` is `git archive origin/plan
 ## Red checks
 
 - `tests / fast` and `gate`: `tests/features.py`'s lift-peak check is red on main at cb8edb65a5. It is inherited from main, not caused by this diff. The cause is a BLAS-dependent float, and hotfix #3815 is in flight for it. This diff changes no code token in any production file (`--text-only` above), so it cannot move that float. No cheaper detector is owed here; the hotfix carries the root cause.
-- Any red #3808's own head carries, such as `closures`, `closures-autofix` or `pr-contract` on bdcca2fb9f, is inherited from the stacked predecessor. It is answered on #3808, not here.
+- `tests / closures`, `tests / closures-autofix` and `tests / fast (3.14)`: red on the stacked predecessor's commits (#3808, `fix/r11-seam-comments-tests`), which this branch carries as ancestry. They are inherited from #3808, not caused by this diff, which adds no code token to any production file. The cheaper detector is the one that already caught them, #3808's own check run; its cause and countermeasure are answered on #3808, so no second detector is owed here, and they clear when #3808 merges and this branch is rebased onto main.
+- Any other red #3808's own head carries, such as `pr-contract`, is inherited from the stacked predecessor too. It is answered on #3808, not here.
 
 ## Forward-carry
 
