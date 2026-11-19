@@ -1,0 +1,980 @@
+<unknown>:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+BENIGN	tests/entities.py#9645eceb2e	C2-path	file.py	no tracked file of that name
+BENIGN	tests/entities.py#c894dc51de	C2-path	tests/other.py	no tracked file or directory
+BENIGN	tests/entities.py#9519b94416	C2-path	other.py	no tracked file of that name
+BENIGN	tests/entities.py#d24848f472	C2-path	resource_r5.py	no tracked file of that name
+BENIGN	tests/entities.py#6b7892d499	C2-path	out/scripts.tsv	not tracked; same name at dev/audit/waves/w5-g5-195-coverage/coverage/scripts.tsv
+BENIGN	tests/entities.py#6b7892d499	C2-path	out/per/provenance.tsv	no tracked file or directory
+BENIGN	tests/entities.py#d252e0f846	C2-path	tests/a.py	no tracked file or directory
+BENIGN	tests/entities.py#d252e0f846	C2-path	tests/b.py	no tracked file or directory
+BENIGN	tests/entities.py#bf10514027	C2-path	homeassistant/const.py	not tracked; same name at custom_components/heatpump_optimizer/const.py, tests/hastub/homeassistant/const.py
+BENIGN	tests/entities.py#84edf6e61b	C2-ident	async_get_info_file_contents	no code token of that name in the tree
+BENIGN	tests/entities.py#ea29921a13	C2-path	docs/arch.md	no tracked file or directory
+BENIGN	tests/entities.py#ea29921a13	C2-ident	showGitHubWeb	no code token of that name in the tree
+BENIGN	tests/entities.py#be6a698f77	C2-ident	no_score	no code token of that name in the tree
+BENIGN	tests/entities.py#67ec8f330c	C2-path	climate/const.py	not tracked; same name at custom_components/heatpump_optimizer/const.py, tests/hastub/homeassistant/const.py
+BENIGN	tests/entities.py#62423304aa	C2-path	sensor/const.py	not tracked; same name at custom_components/heatpump_optimizer/const.py, tests/hastub/homeassistant/const.py
+BENIGN	tests/entities.py#ba49346321	C2-path	translations/en.json	not tracked; same name at custom_components/heatpump_optimizer/translations/en.json
+BENIGN	tests/entities.py#07f5ef285a	C2-path	www/heatpump-optimizer-card.js	not tracked; same name at custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+BENIGN	tests/entities.py#ebd4a1c18e	C2-ident	fa3b1e0	no code token of that name in the tree
+BENIGN	tests/entities.py#ebd4a1c18e	C2-ident	a801d7c	no code token of that name in the tree
+BENIGN	tests/entities.py#42dee0417f	C2-ident	SEAT_AUTHOR_TOKEN	no code token of that name in the tree
+BENIGN	tests/entities.py#790b4dc214	C2-path	sensor/__init__.py	not tracked; same name at custom_components/heatpump_optimizer/__init__.py, tests/hastub/homeassistant/__init__.py, tests/hastub/homeassistant/components/__init__.py
+BENIGN	tests/entities.py#a9711cb173	C2-path	sensor/const.py	not tracked; same name at custom_components/heatpump_optimizer/const.py, tests/hastub/homeassistant/const.py
+BENIGN	tests/entities.py#2cc4cb5fb1	C2-path	sensor/__init__.py	not tracked; same name at custom_components/heatpump_optimizer/__init__.py, tests/hastub/homeassistant/__init__.py, tests/hastub/homeassistant/components/__init__.py
+BENIGN	tests/entities.py#8314eefd82	C2-path	icons.py	no tracked file of that name
+BENIGN	tests/entities.py#3ee1374b8a	C2-path	script/hassfest/translations.py	no tracked file or directory
+BENIGN	tests/entities.py#247e22eb5a	C2-ident	a93a43b	no code token of that name in the tree
+BENIGN	tests/entities.py#247e22eb5a	C2-ident	a93a43b	no code token of that name in the tree
+BENIGN	tests/entities.py#59050a1e89	C2-path	X.py	no tracked file of that name
+BENIGN	tests/entities.py#b1901f64b4	C2-path	plants.py	no tracked file of that name
+BENIGN	tests/entities.py#f27fec92a9	C2-path	disposition.py	no tracked file of that name
+BENIGN	tests/entities.py#ee51d2bf04	C2-path	a.py	no tracked file of that name
+BENIGN	tests/entities.py#ee51d2bf04	C2-path	b.py	no tracked file of that name
+BENIGN	tests/entities.py#ee51d2bf04	C2-path	gone.py	no tracked file of that name
+BENIGN	tests/entities.py#ee51d2bf04	C2-path	a.py	no tracked file of that name
+BENIGN	tests/entities.py#ee51d2bf04	C2-path	a.py	no tracked file of that name
+BENIGN	tests/entities.py#ee51d2bf04	C2-path	gone.py	no tracked file of that name
+BENIGN	tests/entities.py#ee51d2bf04	C2-path	b.py	no tracked file of that name
+BENIGN	tests/entities.py#ee51d2bf04	C2-path	b.py	no tracked file of that name
+BENIGN	tests/entities.py#ee51d2bf04	C2-path	gone.py	no tracked file of that name
+BENIGN	tests/entities.py#afeb7f4a48	C2-path	a.py	no tracked file of that name
+BENIGN	tests/entities.py#d54a7b2255	C2-path	p40.py	no tracked file of that name
+BENIGN	tests/entities.py#75e6f4949d	C2-path	tests/x.py	no tracked file or directory
+BENIGN	tests/entities.py#75e6f4949d	C2-path	tests/p1.py	no tracked file or directory
+BENIGN	tests/entities.py#10331175a2	C2-path	per/provenance.tsv	no tracked file or directory
+BENIGN	tests/entities.py#bbfde7788c	C2-path	measure/rev/c1_consumers.sh	not tracked; same name at dev/audit/harnesses/r10_ci_layout_p1/c1_consumers.sh
+BENIGN	tests/entities.py#8d34441028	C2-moved	tests/pv.py	not tracked; same name at custom_components/heatpump_optimizer/pv.py
+BENIGN	tests/entities.py#564f0514a8	C2-path	tests/a.py	no tracked file or directory
+BENIGN	tests/entities.py#f67b58349d	C2-path	tests/a.py	no tracked file or directory
+BENIGN	tests/entities.py#578cf230fd	C2-path	tests/a.py	no tracked file or directory
+BENIGN	tests/entities.py#d2925966be	C2-path	tests/a.py	no tracked file or directory
+BENIGN	tests/ha_contract.py#21718b7b18	C2-ident	xfail	no code token of that name in the tree
+BENIGN	tests/ha_contract.py#d97e04dafa	C2-path	helpers/selector.py	not tracked; same name at tests/hastub/homeassistant/helpers/selector.py
+BENIGN	tests/ha_floor.py#1c5056eec5	C2-path	climate/__init__.py	not tracked; same name at custom_components/heatpump_optimizer/__init__.py, tests/hastub/homeassistant/__init__.py, tests/hastub/homeassistant/components/__init__.py
+BENIGN	tests/harness_headers.py#d7c89f115c	C2-ident	cpu_used_s	no code token of that name in the tree
+BENIGN	tests/hastub/homeassistant/components/binary_sensor.py#8f998a385c	C2-path	components/binary_sensor/__init__.py	not tracked; same name at custom_components/heatpump_optimizer/__init__.py, tests/hastub/homeassistant/__init__.py, tests/hastub/homeassistant/components/__init__.py
+BENIGN	tests/hastub/homeassistant/components/diagnostics.py#c26f2bdca3	C2-path	diagnostics/util.py	no tracked file or directory
+BENIGN	tests/hastub/homeassistant/components/diagnostics.py#c26f2bdca3	C2-path	diagnostics/const.py	not tracked; same name at custom_components/heatpump_optimizer/const.py, tests/hastub/homeassistant/const.py
+BENIGN	tests/hastub/homeassistant/components/diagnostics.py#c26f2bdca3	C2-ident	__all__	no code token of that name in the tree
+BENIGN	tests/hastub/homeassistant/components/recorder/__init__.py#6f58b797d5	C2-path	recorder/util.py	no tracked file or directory
+BENIGN	tests/hastub/homeassistant/components/recorder/__init__.py#b5b47c7645	C2-ident	SCHEMA_VERSION	no code token of that name in the tree
+BENIGN	tests/hastub/homeassistant/components/recorder/history.py#4ee824f3d9	C2-path	history/modern.py	no tracked file or directory
+BENIGN	tests/hastub/homeassistant/components/recorder/history.py#4ee824f3d9	C2-ident	start_time_ts	no code token of that name in the tree
+BENIGN	tests/hastub/homeassistant/components/sensor.py#4358b8ac05	C2-path	components/sensor/__init__.py	not tracked; same name at custom_components/heatpump_optimizer/__init__.py, tests/hastub/homeassistant/__init__.py, tests/hastub/homeassistant/components/__init__.py
+BENIGN	tests/hastub/homeassistant/components/sensor.py#2fd5e1e0c4	C2-path	components/sensor/__init__.py	not tracked; same name at custom_components/heatpump_optimizer/__init__.py, tests/hastub/homeassistant/__init__.py, tests/hastub/homeassistant/components/__init__.py
+BENIGN	tests/hastub/homeassistant/components/sensor.py#2178e9418b	C2-path	sensor/__init__.py	not tracked; same name at custom_components/heatpump_optimizer/__init__.py, tests/hastub/homeassistant/__init__.py, tests/hastub/homeassistant/components/__init__.py
+BENIGN	tests/hastub/homeassistant/components/sensor.py#8332ffc16e	C2-path	sensor/__init__.py	not tracked; same name at custom_components/heatpump_optimizer/__init__.py, tests/hastub/homeassistant/__init__.py, tests/hastub/homeassistant/components/__init__.py
+BENIGN	tests/hastub/homeassistant/components/sensor.py#8332ffc16e	C2-ident	STATE_UNKNOWN	no code token of that name in the tree
+BENIGN	tests/hastub/homeassistant/components/sensor.py#92fe2f1424	C2-path	sensor/const.py	not tracked; same name at custom_components/heatpump_optimizer/const.py, tests/hastub/homeassistant/const.py
+BENIGN	tests/hastub/homeassistant/config_entries.py#6b99eaa597	C2-ident	data_entry_flow.FlowHandler	no code token of that name in the tree
+BENIGN	tests/hastub/homeassistant/config_entries.py#6b99eaa597	C2-ident	FlowHandler	no code token of that name in the tree
+BENIGN	tests/hastub/homeassistant/config_entries.py#d30f204b08	C2-path	homeassistant/config_entries.py	not tracked; same name at tests/hastub/homeassistant/config_entries.py
+BENIGN	tests/hastub/homeassistant/data_entry_flow.py#fba305b634	C2-path	homeassistant/data_entry_flow.py	not tracked; same name at tests/hastub/homeassistant/data_entry_flow.py
+BENIGN	tests/hastub/homeassistant/exceptions.py#b8eb88c979	C2-ident	async_on_load	no code token of that name in the tree
+BENIGN	tests/hastub/homeassistant/helpers/entity.py#77ea00dcd7	C2-path	helpers/entity.py	not tracked; same name at custom_components/heatpump_optimizer/entity.py, tests/hastub/homeassistant/helpers/entity.py
+BENIGN	tests/layout.py#274acb2216	C2-path	a/b.md	no tracked file or directory
+BENIGN	tests/mutation_table.py#dad82832e6	C2-ident	fork_exec	no code token of that name in the tree
+BENIGN	tests/nightly_ha.py#7a70fffb01	C2-ident	block_async_io._check_import_call_allowed	no code token of that name in the tree
+BENIGN	tests/nightly_status.py#9693771c21	C2-ident	disabled_fork	no code token of that name in the tree
+RESULT units=3762
+RESULT files=69
+RESULT refs_checked=3649
+RESULT const_cited=2
+RESULT C2-moved=15
+RESULT C2-path=3
+RESULT C2-line=0
+RESULT C2-symbol=0
+RESULT C2-ident=0
+RESULT C2-call=0
+RESULT C1-const=1
+RESULT C5-long=824
+RESULT C2-benign=78
+RESULT units_false=609
+RESULT units_no_claim=85
+FILE tests/edge.py C5-long=1
+FILE tests/entities.py C2-moved=11 C2-path=3 C5-long=470
+FILE tests/env_drift.py C5-long=34
+FILE tests/ha_contract.py C5-long=4
+FILE tests/ha_floor.py C5-long=2
+FILE tests/harness_headers.py C5-long=8
+FILE tests/hastub/homeassistant/components/diagnostics.py C5-long=1
+FILE tests/hastub/homeassistant/components/recorder/history.py C5-long=1
+FILE tests/hastub/homeassistant/config_entries.py C5-long=4
+FILE tests/hastub/homeassistant/exceptions.py C5-long=1
+FILE tests/hastub/homeassistant/helpers/issue_registry.py C5-long=1
+FILE tests/hastub/homeassistant/helpers/storage.py C5-long=2
+FILE tests/hastub/homeassistant/helpers/update_coordinator.py C5-long=3
+FILE tests/hastub/homeassistant/util/dt.py C5-long=1
+FILE tests/host_probe.py C5-long=2
+FILE tests/issue996_count.py C5-long=2
+FILE tests/lane_skip.py C5-long=8
+FILE tests/layout.py C5-long=3
+FILE tests/manual_plan.py C5-long=4
+FILE tests/md_tables.mjs C5-long=3
+FILE tests/mutation_table.py C5-long=31
+FILE tests/nightly_ha.py C5-long=17
+FILE tests/nightly_status.py C5-long=9
+FILE tests/open_meteo.py C5-long=2
+FILE tests/optimality.py C5-long=18
+FILE tests/plan_view.py C5-long=1
+FILE tests/replay.py C5-long=30
+FILE tests/rolling.py C5-long=3
+FILE tests/run.sh C1-const=1 C2-moved=3 C5-long=15
+FILE tests/setup_qa_render.mjs C5-long=1
+FILE tests/stress.py C5-long=112
+FILE tests/structure.py C2-moved=1 C5-long=17
+FILE tests/throwaway_git.py C5-long=2
+FILE tests/throwaway_git.sh C5-long=1
+FILE tests/typing_ruler.py C5-long=4
+FILE tests/validate.py C5-long=3
+FILE tests/wood_advisor.py C5-long=1
+FILE tests/worker_deadlines.py C5-long=2
+HIT	tests/edge.py#100ffa8010	143	C5-long	41 words	-- #3616 R11-OUTSIDE-ROOMS-P2: the room lift through the production solve ---- rooms.lifted's own array as SolveLimits.m
+HIT	tests/entities.py#bf10514027	157	C5-long	59 words	The stub in tests/hastub carries only the members this integration uses, and nothing stops it carrying one Home Assistan
+HIT	tests/entities.py#db41acd6a5	606	C5-long	42 words	The version this replaced compared the README's binary-sensor and button headings against the literals 4 and 4 -- it sup
+HIT	tests/entities.py#fe488a856c	645	C5-long	50 words	Sensors keep the heading count and lose only the ROW count: #558 B10 split the section into labelled `####` groups under
+HIT	tests/entities.py#66323d8051	748	C5-long	51 words	A home page may group the field into a section() (#824-style), which keeps its label under sections.<name>.data rather t
+HIT	tests/entities.py#7855dcc1a4	781	C5-long	75 words	Round 1 shifted the four already- numbered screens down by one to match the diagram, but left the diagram's menu node un
+HIT	tests/entities.py#7855dcc1a4	781	C5-long	47 words	Round 2 numbers the diagram's menu node too (3 ·, matching the prose it was already carrying) and shifts the diagram's o
+HIT	tests/entities.py#d6aa5a9cd4	822	C5-long	49 words	The label-normalizing match above is silent if a screen's wording diverges enough between diagram and prose that the two
+HIT	tests/entities.py#569c7bc955	833	C5-long	49 words	Round 2's own regression: the number-agreement check above is silent on a label with no diagram-side counterpart to comp
+HIT	tests/entities.py#b72c90e648	850	C5-long	68 words	#937: the README sends the reader to the reference with "Every field and its range is documented in docs/configuration.m
+HIT	tests/entities.py#a1f0b50dff	894	C5-long	58 words	#941: automations.md's Power Headroom paragraph stated an availability precondition the sensor does not enforce -- "It s
+HIT	tests/entities.py#a1f0b50dff	894	C5-long	50 words	The paragraph must name every state the real sensor publishes over the fuse x tariff grid, so an automation author can t
+HIT	tests/entities.py#d7f77604b0	981	C5-long	44 words	`tests/README.md`'s per-script list annotates each script with the sizes it runs, and #938 measured the stress line sayi
+HIT	tests/entities.py#d7f77604b0	981	C5-long	60 words	The sweep count is derived by CALLING the symbol (exposed at module level for exactly this, per its docstring), never by
+HIT	tests/entities.py#9bb3864bd4	1082	C5-long	70 words	First, closures.json is the only per-script timing table in the tree, and the two differential guards' `recorded` second
+HIT	tests/entities.py#9bb3864bd4	1082	C5-long	44 words	Second, the one-script list above double-charged that same differential: golden.py's default drift mode does not run a s
+HIT	tests/entities.py#30dbbda849	1125	C5-long	71 words	The file a contributor reads before changing the code had rotted in ten places -- 45 modules where 56 stood, a module ma
+HIT	tests/entities.py#30dbbda849	1125	C5-long	76 words	The route #357 allows is taken here: a file this script opens is a dependency, so architecture.md leaves INERT and enter
+HIT	tests/entities.py#84edf6e61b	1346	C5-long	74 words	HACS renders this README inside Home Assistant -- hacs/integration's `async_get_info_file_contents` reads README.md for 
+HIT	tests/entities.py#139379083d	1386	C5-long	51 words	...and the rewrite that saves the markdown form has a narrower reach than it looks: `markdownWithRepositoryContext`'s li
+HIT	tests/entities.py#ea29921a13	1404	C5-long	48 words	Twice it was the prose that was narrow; the third time (PR #567 fix review, round 4) the prose was right and THIS CHECK 
+HIT	tests/entities.py#ea29921a13	1404	C5-long	48 words	Both remaining questions are then asked of that span and of nothing else -- which is also why the old "a `(` in the alt 
+HIT	tests/entities.py#ea29921a13	1404	C5-long	48 words	The two ways that happens keep their own diagnostics, because they are the actionable ones: a wrapped alt (the regex is 
+HIT	tests/entities.py#ea29921a13	1404	C5-long	48 words	The population is the image's OWN src, not the link target: the `[![License: MIT](https://img.shields.io/...)](LICENSE)`
+HIT	tests/entities.py#ea29921a13	1404	C5-long	54 words	And an image inside a fenced block or a `backtick span` is outside the population, because it renders as text and never 
+HIT	tests/entities.py#e83d521851	1535	C5-long	44 words	The sensor table is split into labelled `####` groups (#558 B10), so a count of rows under the heading no longer pins it
+HIT	tests/entities.py#31477e4410	1582	C5-long	56 words	Two of its claims are checked against the code rather than trusted: the store files it lists under `.storage/` are the c
+HIT	tests/entities.py#d4af5ef6e4	1669	C5-long	43 words	It is now chosen by the declared Python range instead: 2025.2.0 is the first Home Assistant whose own pyproject.toml say
+HIT	tests/entities.py#66dd3cfa98	1684	C5-long	42 words	Read off the whole file, as it was, the sentence would have kept passing while saying the suite ran on an interpreter no
+HIT	tests/entities.py#84eca1e96f	1750	C5-long	43 words	"Every tested version is named" would catch a new interpreter added to CI undocumented, but not the reverse -- dropping 
+HIT	tests/entities.py#0f47c13507	1771	C5-long	55 words	Round-4 D10-02 measured the section absent everywhere -- 0 headings matching the rule across README and the six user doc
+HIT	tests/entities.py#0f47c13507	1771	C5-long	49 words	The docs/ pages stay outside it on purpose here: reading one is sound only after it leaves `tests/closure.py`'s INERT li
+HIT	tests/entities.py#0f47c13507	1771	C5-long	51 words	And the body floor is five bullets, the count of integration-wide limitations the finding named as "nowhere at all, in a
+HIT	tests/entities.py#a532bf50ab	1821	C2-moved	tools/audit/w5-partition/coverage_tree.sh	not tracked; same name at tools/coverage/coverage_tree.sh
+HIT	tests/entities.py#a532bf50ab	1821	C5-long	45 words	These checks read it, so a quality_scale.yaml edit selects this script (the register leaves closure.py's INERT list in t
+HIT	tests/entities.py#ec366e4184	1929	C5-long	53 words	The owner's listing now exists and links every in-tree blueprint by its raw import URL; it was verified 2026-09-16 by fe
+HIT	tests/entities.py#ec366e4184	1929	C5-long	45 words	This suite runs offline -- it is why run.sh excludes nightly_status.py, whose verdict is about a remote server rather th
+HIT	tests/entities.py#be6a698f77	2011	C5-long	47 words	Measured rather than assumed, against the real hassfest (home-assistant/core 2026.9.2, `python3 -m script.hassfest --act
+HIT	tests/entities.py#be6a698f77	2011	C5-long	51 words	The scale is CUMULATIVE -- a tier is met only when it and every tier below it have every rule done or exempt -- which is
+HIT	tests/entities.py#be6a698f77	2011	C5-long	59 words	That agreement is exactly when the cumulative rule is easiest to drop and still needed: a row that regresses below Plati
+HIT	tests/entities.py#be6a698f77	2011	C5-long	61 words	The two readings last disagreed at merge base cb30d98, before the listing existed, and the pull request that added this 
+HIT	tests/entities.py#be6a698f77	2011	C5-long	48 words	The tier membership below is the published checklist's own partition -- 20 Bronze, 10 Silver, 21 Gold, 3 Platinum, the c
+HIT	tests/entities.py#660d2b2536	2386	C5-long	50 words	Round-5 D12-01 (#1237): the payload still carries the DHW DEFAULTS on a plant with no hot water -- `dhw_windows`'s windo
+HIT	tests/entities.py#05d5471ff7	2873	C5-long	54 words	S5 of #193: the self-learned house and buffer state is initialised OUTSIDE the dhw seam. structure.py buckets a coordina
+HIT	tests/entities.py#98fcd13c5d	2943	C5-long	47 words	`freq_control.py` is the heat pump's own compressor frequency -- not anything about the electrical grid -- but `_init_gr
+HIT	tests/entities.py#d7dd3e3762	3150	C5-long	50 words	The upper floor is the one entity that is not gated on an input of its own, because it has never had one: it follows the
+HIT	tests/entities.py#455e48debd	3273	C5-long	72 words	Mixed Hot Water is the SAME number in shower clothes -- V*(T_tank - T_inlet)/(40 - T_inlet) litres -- and it was ungated
+HIT	tests/entities.py#b81b7a3a85	3300	C5-long	74 words	The other four -- the climate entity's temperature attributes, the thermal battery's components and state of charge, and
+HIT	tests/entities.py#b81b7a3a85	3300	C5-long	56 words	Counted at CYCLE 1 and at STEADY STATE separately, because the panel's "add the probes and it goes to zero" perturbation
+HIT	tests/entities.py#5b606ae188	3539	C5-long	49 words	The rest of the payload moves with these defaults : too, because `_solve_hubs` deep-copies the state as the MPC's initia
+HIT	tests/entities.py#aca790e1f3	4061	C5-long	71 words	The flag is a SPACE-circuit fact -- it says whether a passed flow temperature is the supply the machine runs at -- and t
+HIT	tests/entities.py#c137a069bf	4189	C5-long	41 words	D7-s2-01 (R10-FREQ-DEFROST): a defrost interval is not the compressor's own evidence -- the meter reads the cycle the pu
+HIT	tests/entities.py#ad2da8af29	4531	C5-long	44 words	Readers took each key off the merged entry dict with a default and a coercion of their own: optimization_interval was re
+HIT	tests/entities.py#5703249d91	4796	C5-long	46 words	A set_thermal_parameters call carrying a spec applies live, as on main: the coordinator swaps in a new parse with the ke
+HIT	tests/entities.py#08c07d9207	4835	C5-long	48 words	Blind spot, stated: a key passed to a helper that reads it (reader.read(K), the input slots, which name a slot rather th
+HIT	tests/entities.py#32561824f0	4861	C5-long	43 words	Every read of a building key in presets.py is inside preset_from_config: it takes the questionnaire's answers and the se
+HIT	tests/entities.py#50a9067587	4936	C5-long	48 words	Each fix before this one guarded its own instance with a universe the fixer supplied: one sensor's payload reads (#1460,
+HIT	tests/entities.py#2418547eed	5276	C5-long	46 words	--- arm B: an entity id a blueprint, the card or the package names is built : The id shape this integration builds; a re
+HIT	tests/entities.py#6b4a487f27	5328	C5-long	76 words	The flow's own install with hot water answered on (the untouched flow leaves it off since F1.2, and a solve that models 
+HIT	tests/entities.py#08bd646a97	5762	C5-long	53 words	Class P11 -- the only oracle for Home Assistant is a test double -- shipped twice as a name the 2025.2.0 floor hacs.json
+HIT	tests/entities.py#08bd646a97	5762	C5-long	41 words	This arm reads production's reach off the P6 trees, unguarded imports, module attributes and class members alike, and an
+HIT	tests/entities.py#b6bd11cae8	5799	C5-long	50 words	NULL CONTROLS, planted trees answered from the same snapshot: each defect shape (#1869's, v6.3.1's, each spelling of an 
+HIT	tests/entities.py#4bf5cff70a	5864	C5-long	41 words	The five non-temperature hot-water entities are enabled by default exactly where there is hot water -- a fresh no-hot-wa
+HIT	tests/entities.py#1d9bf85501	5921	C5-long	52 words	#1237, #1302, #1398, #1461 and these two were each that answer missing from one more reader -- here a boost switch on th
+HIT	tests/entities.py#13382e4047	6059	C5-long	42 words	The plan sensors already declare their series unrecorded (forecast, slots, schedule, dhw_schedule); four other entities 
+HIT	tests/entities.py#99ebcc6c91	6096	C5-long	47 words	R10-SAV-VALUATION-RESIDUE Carry 10: on a combi store the pump's hot-water mode also buys the space heat drawn from the s
+HIT	tests/entities.py#b9ca1e1130	6372	C5-long	47 words	R10-COP-GATE part 5 (A): the observed-COP sensor is unavailable exactly when the install is not measurable, so Home Assi
+HIT	tests/entities.py#ac456f23b9	6452	C5-long	61 words	The two action buttons were once held out of it on the theory that "run an optimization now" is exactly what a user reac
+HIT	tests/entities.py#62423304aa	6734	C5-long	51 words	ENERGY_STORAGE, which Thermal Battery Energy earns by genuinely measuring stored energy, is documented in the floor's ow
+HIT	tests/entities.py#540ef0e30d	6771	C5-long	59 words	This integration is a cloud API (Tibber) plus the user's own entities -- there is no physical device -- and Home Assista
+HIT	tests/entities.py#2fb99a1087	7264	C5-long	50 words	The solve's floor is capped at the configured comfort target: a damp house held AT its 21.0 °C target under a -15 °C for
+HIT	tests/entities.py#4c7dbcd89f	7787	C5-long	48 words	The options-only three have no slot to agree with, so what they owe instead is that they are NOT assignable -- adding th
+HIT	tests/entities.py#4f1d797109	7804	C5-long	43 words	The two water slots owe the same "not a card slot", plus the one thing a temperature picker owes that a flag picker does
+HIT	tests/entities.py#0e61782c69	7937	C5-long	47 words	A clear posts the picker's key ABSENT, and voluptuous refills a ``default`` for an absent key -- so a stored entity offe
+HIT	tests/entities.py#41fe01e895	7995	C5-long	50 words	The card's picker ranks a matching device class to the top, which is what makes a temperature slot usable on an install 
+HIT	tests/entities.py#6671855c37	8416	C5-long	50 words	A blind peak ABOVE the true peak -- the hp-only series the missing house meter is priced against can catch a spike the h
+HIT	tests/entities.py#006fb65990	8582	C5-long	43 words	A design choice, stated: the probes are priced from the load the pump was SEEN to carry, so a payload with no power seri
+HIT	tests/entities.py#adad409f62	8592	C5-long	46 words	--- #1226 round 2: a series with holes ranks as its clean twin ------------ The published power series is a rolling wind
+HIT	tests/entities.py#fadf6d62ae	8670	C5-long	46 words	Dropped, not NaN-marked: a hole inserted into a series with a real peak must rank as the same series with that slot simp
+HIT	tests/entities.py#4838cb1f0f	8697	C5-long	61 words	--- R7 D8-01 (#1460): the series the advisors read are the payload's own --- `SensorGapAdvisorSensor._gaps` reads `house
+HIT	tests/entities.py#fa9d7d001f	8881	C5-long	45 words	--- #1269 sensor advisor: value of ADDING an unconfigured sensor ----------- The inverse of the #699 lane above: rank_se
+HIT	tests/entities.py#fa9d7d001f	8881	C5-long	49 words	The proxy is structural -- the clamp band of each learned scalar whose learner cannot run without the sensor, swept thro
+HIT	tests/entities.py#26e1ab98bf	9090	C5-long	45 words	The building page owns the valve and wood entities (v4.0.0 merged the mixing-valve page and the learning page's wood blo
+HIT	tests/entities.py#548d6cbd3a	9181	C5-long	62 words	The two-zone mode (v4.0.0): the page must be able to turn the model off — presence of the zone keys in entry.data can on
+HIT	tests/entities.py#47fe0c56f6	9235	C5-long	45 words	This is the net that catches the next page that grows a voluptuous default on a presence key — exactly how the old build
+HIT	tests/entities.py#474e3c1512	9295	C5-long	48 words	It suggests the entry's stored answers (never defaults, which voluptuous would refill into a bare post), and a submissio
+HIT	tests/entities.py#3524d842bc	9326	C5-long	42 words	The net's own net (the #100 prerequisite, delivered in v6.0.4): the sweep must EXERCISE every page and account for each 
+HIT	tests/entities.py#0bdf69ede1	9374	C5-long	52 words	That is the cheapest thing a user can do — open a page, press Submit — and it is the case that broke: a field whose defa
+HIT	tests/entities.py#fe9948dab0	9614	C5-long	43 words	``ThermalParameters.clamp`` raises every store below THERMAL_MASS_FLOOR, so a field minimum under it is a window in whic
+HIT	tests/entities.py#a19ca8c1f4	9962	C5-long	44 words	The two comfort mechanisms this release and the last one added meet on this page, and they answer different questions: w
+HIT	tests/entities.py#b114be97ee	10179	C5-long	43 words	The caption that sent the owner's own value 27 percent high: an absolute rule of thumb ("roughly 3 kWh/°C") printed on a
+HIT	tests/entities.py#ba49346321	10260	C5-long	41 words	The key check above read "exactly" while comparing keys only, and en.json's pump_duty_mode text went stale beside an edi
+HIT	tests/entities.py#dee2b341c4	10281	C5-long	47 words	D4-s2-03 (N-escape): a translation leaf written with two backslashes before a \u escape (\\u00b0 in the JSON source) sur
+HIT	tests/entities.py#afc85775b4	10312	C5-long	41 words	udf-strings-history (R10-UX-HEALTH part 3): text a user reads states what a setting does now, never how the integration 
+HIT	tests/entities.py#7944b8bbc4	10402	C5-long	42 words	#1534: the ECL110 MQTT QoS label was byte-identical English left in sv.json (the key-identity check above passes on an u
+HIT	tests/entities.py#8d15e7455f	10450	C5-long	49 words	#653 and #849 grouped pages with section() and left every label at step level, and the check that stood here looked labe
+HIT	tests/entities.py#8d15e7455f	10450	C5-long	42 words	Fields are enumerated from the schemas the real handlers return (both flows, the reconfigure variant and the wood-on bui
+HIT	tests/entities.py#4b9ebec426	10757	C5-long	44 words	r11-service-schema: simulate_plan's number fields bound what their selectors offer, and each field takes the range of th
+HIT	tests/entities.py#874b978182	10768	C5-long	41 words	silent_mode_power_fraction: the schema holds apply_schedule's 0..1, the selector the narrower usable 0.6..1; the wood pr
+HIT	tests/entities.py#83eacb2e31	11001	C5-long	56 words	This round judged the catalogue's message, so the fallback may state nothing that message does not: its literal fragment
+HIT	tests/entities.py#5b35cdbd48	11317	C5-long	53 words	The override is the only evidence the learner ever gets about `comfort_weight`, and it used to be recorded BEFORE the wr
+HIT	tests/entities.py#340041df5a	11467	C5-long	53 words	This is a different fact from the plan's on decision, which the same PR moved onto the plan's own running rule: that one
+HIT	tests/entities.py#6cb523ff02	11523	C5-long	58 words	D8-s2-02/D8-s2-03, class P2 (#1683): boost.overlay() sets heat_pump_on and power_normalized on the action independently 
+HIT	tests/entities.py#216f891efb	11628	C5-long	46 words	The MQTT publish that follows every mode change can fail (broker down, device offline); it must not crash the mode chang
+HIT	tests/entities.py#60dfb7c084	11738	C5-long	58 words	D8-s2-03, class P2 (#1683): ``is_on`` reads the live ``coordinator.mode``, which flips at once on a mode change; the swi
+HIT	tests/entities.py#22b1ab7def	11789	C5-long	41 words	The switches call boost.set_channel, which persists through the module's own Store; a recorder in place of persist reads
+HIT	tests/entities.py#b40cd648f2	11890	C5-long	44 words	--- #195 tranche 2: switch.py's remaining branches ------------------------------- Before the first refresh the switch r
+HIT	tests/entities.py#8b761a1c98	12072	C5-long	58 words	A sensor belongs here exactly when the ordinary install (indoor + outdoor thermometers, a DHW tank, the first solve's pr
+HIT	tests/entities.py#011dc8654b	12183	C5-long	47 words	Round-5 D3-07 (#1315): one real ndarray in the payload, because every other numpy leaf above is a SCALAR -- an array tha
+HIT	tests/entities.py#66413f41ca	12244	C5-long	65 words	The plan family is exempt, on the key property rather than by name: the DHW plan sensor's frozen unique-id key is still 
+HIT	tests/entities.py#9856590ca6	12396	C5-long	44 words	The population below is that install — the ``_honest_coordinator`` config plus the first solve's injected prices, foreca
+HIT	tests/entities.py#9077b2d18a	12526	C5-long	45 words	D8-s3-61, class P2 (#1644): Valve Target Recommendation kept a static disabled default while its payload key exists only
+HIT	tests/entities.py#e059ef54e3	12748	C5-long	60 words	The one entity the boundary protects on the waiting side rather than the disabled one: the score is a card headline stat
+HIT	tests/entities.py#16a1915a8e	12796	C5-long	42 words	The roster below pins 46 classes and 290 class/key pairs over 190 distinct names -- more than that census because it rea
+HIT	tests/entities.py#16a1915a8e	12796	C5-long	52 words	The cost of exactness is measured rather than assumed: across the 59 commit transitions in this history the published ke
+HIT	tests/entities.py#16a1915a8e	12796	C5-long	52 words	The roster is taken from two payloads, because several keys are published only on a branch: the base ``DATA`` above, and
+HIT	tests/entities.py#16a1915a8e	12796	C5-long	64 words	The plan branch was exactly such a hole in the first cut of this table and is closed here rather than noted: with ``DATA
+HIT	tests/entities.py#1ade3c4e05	13377	C5-long	50 words	The roster above already catches deleting the whole of this property's dict (PredictiveInsightSensor drops from its pinn
+HIT	tests/entities.py#1ade3c4e05	13377	C5-long	47 words	This closes that hole for the sensor #246 was filed against, whose entire content IS its attributes -- the state is one 
+HIT	tests/entities.py#93c2f80f27	13456	C5-long	42 words	Measured on the W1-G4 review of PR #384 that filed this: by "deleting one site of a key stays silent", 14 of 290 class/k
+HIT	tests/entities.py#93c2f80f27	13456	C5-long	48 words	The eighth, ``dhw_windows_spec``, is NOT caught by the roster either -- it is rescued only because a VALUE check above (
+HIT	tests/entities.py#535b6d7939	13646	C5-long	44 words	#1227 (round-5 D8-02) went the other half: the 16 translation keys behind Cost/Plan/Learning carry their family prefix t
+HIT	tests/entities.py#b80f921ceb	13718	C5-long	50 words	This one check replaces the per-finder name-sort contiguity pins: every declared family of two or more members forms ONE
+HIT	tests/entities.py#6e8eb2634a	13829	C5-long	49 words	The three entries this list held -- en/sv `away` (split 36 releases) and sv `compressor` (105) -- were #1760's owner gat
+HIT	tests/entities.py#752fbe8126	13879	C5-long	42 words	The climate entity is exempt: its id predates the scheme and is pinned literally above ("the climate entity pins the cor
+HIT	tests/entities.py#ff9612ec2f	13926	C5-long	54 words	#1227 moved five headline suffixes with their keys and #1333 moved the two plan ids; the card reads each family-prefixed
+HIT	tests/entities.py#09f70dc0eb	14034	C5-long	47 words	#1227 above moved the four card headline stats and the Cost/Learning keys to carry their family prefix, but left the two
+HIT	tests/entities.py#09f70dc0eb	14034	C5-long	74 words	The harness's own ``split_blocks_*`` counter still reads 1 after the move, and this check does not pin that down to 0 be
+HIT	tests/entities.py#09f70dc0eb	14034	C5-long	42 words	NEW installs only, exactly as #1227: the unique ids are untouched, so an existing install keeps its entity id and its hi
+HIT	tests/entities.py#bad8f58bd4	14119	C5-long	51 words	The round-5 D8 harness measures the Swedish side the way it measures the English one: for a family, the longest common p
+HIT	tests/entities.py#bad8f58bd4	14119	C5-long	47 words	Four names dropped a token English keeps -- the two plan sensors ("Värmeplan (nästa 24 h)" / "Varmvattenplan (nästa 24 h
+HIT	tests/entities.py#1581664c9f	14397	C5-long	41 words	The registered set is services.yaml's own keys, the same set "#558 D5 service translations" checks against the text cata
+HIT	tests/entities.py#f067b06883	14442	C5-long	77 words	The device-class defence — that an entity whose icon is its device class's own default need not declare one — was refute
+HIT	tests/entities.py#227541a7bc	14482	C5-long	44 words	Several entries are deliberate -- a second heat pump gets a second entry -- so what must abort is a TRUE duplicate: the 
+HIT	tests/entities.py#227541a7bc	14482	C5-long	44 words	The identity is the config flow's own function, imported; a different name, solar source or location is the same plant, 
+HIT	tests/entities.py#4219959525	14542	C5-long	46 words	The token check is swapped for a stub verdict so the step runs to its guard offline (the class-attribute swap idiom, try
+HIT	tests/entities.py#9394081e88	14663	C5-long	43 words	A one-level walk of schema.schema records the section markers and nothing underneath them, which is the shape the commen
+HIT	tests/entities.py#97d4443c12	15404	C5-long	43 words	D3-08: ``_dhw_min_too_close`` guards against a DHW minimum that leaves less than ``DHW_MIN_TEMP_SETPOINT_MARGIN`` (5.0°C
+HIT	tests/entities.py#97d4443c12	15404	C5-long	47 words	Only key-presence-style closure checks exist elsewhere; this drives both the initial setup flow's ``async_step_dhw`` and
+HIT	tests/entities.py#ef341a3dc9	15696	C5-long	42 words	D6-03 (#274): inter_zone_heat_transfer and window_area admitted 0 on three surfaces the set_thermal_parameters schema's 
+HIT	tests/entities.py#e3169be924	15957	C5-long	41 words	#1799 review B1: an id another entry already holds is left alone, as the reconfigure step aborts on it; two entries inde
+HIT	tests/entities.py#9ef8e795a6	16064	C5-long	45 words	`apply_schedule` writes `comfort_temp_day` into stored options behind a 5-30 range check and nothing else, so a daytime 
+HIT	tests/entities.py#6915307897	16094	C5-long	42 words	Judging the merged result outright made the service throw on a contradiction already sitting in the options and untouche
+HIT	tests/entities.py#7c862d0af3	16182	C5-long	43 words	The other bypass: the thermostat card's slider writes `target_temperature` through the coordinator, which persisted it w
+HIT	tests/entities.py#afeb87e12f	17237	C5-long	47 words	Measured rather than argued, like the card above: `env_drift.py --capture . <out> --all` and a direct `golden.capture()`
+HIT	tests/entities.py#46dd6432cc	17257	C5-long	61 words	Driven at the seam itself: a git that refuses the add (an unresolvable ref -- git's own exit 128, the class CI hit) must
+HIT	tests/entities.py#3af0d97fc0	17353	C2-path	dev/audit/rounds/round5/D3/resource_r5.py	no tracked file or directory
+HIT	tests/entities.py#785670ad2c	17398	C5-long	65 words	The lane is the only full-coverage closure but for two measured exceptions, admitted by name: the architecture score's h
+HIT	tests/entities.py#f86691eb7d	17444	C5-long	53 words	The predicate itself, on synthetic closures built from real production names: equal sets count, disjoint and below-bound
+HIT	tests/entities.py#bb90e480be	17503	C2-moved	docs/HANDOVER.md	not tracked; same name at dev/programme/HANDOVER.md
+HIT	tests/entities.py#bb90e480be	17503	C5-long	48 words	Reading it here is what keeps `docs/HANDOVER.md` out of INERT, and that is deliberate rather than incidental: the pull r
+HIT	tests/entities.py#ebd4a1c18e	17553	C5-long	42 words	It was SQUASH-merged, every branch commit was rewritten into one new SHA, and the named commit stopped existing -- so `m
+HIT	tests/entities.py#4619f978a1	17592	C2-moved	docs/HANDOVER.md	not tracked; same name at dev/programme/HANDOVER.md
+HIT	tests/entities.py#04fa801df2	17616	C2-moved	tools/audit/briefs/fixer.md	not tracked; same name at dev/governance/roles/fixer.md
+HIT	tests/entities.py#43046c08d9	17825	C5-long	44 words	That only works while the two agree on the population, and agreement is measured here rather than asserted structurally:
+HIT	tests/entities.py#76b2cc1f1f	17916	C5-long	47 words	Two structural proxies stood here first and each was defeated by a mutant that kept its shape: a source-text search for 
+HIT	tests/entities.py#c6eaab7e4f	18764	C5-long	53 words	Home Assistant owns `home-assistant.log` through a handler with its own file offset, so bytes appended by a second handl
+HIT	tests/entities.py#b24ce29c9f	19089	C5-long	43 words	The scenarios need real Home Assistant and run nightly only; what runs here is the instrument itself, on a real asyncio 
+HIT	tests/entities.py#99fc8ad8f8	19707	C5-long	43 words	These pins demand the check by name and prove the begin/end split: the probe report must not fail the pin, a leading-phr
+HIT	tests/entities.py#cc011acde3	19819	C5-long	44 words	The checker's half must be parametrised over the coordinator: under the real stubs ``ConfigEntry`` is generic with a PEP
+HIT	tests/entities.py#cc011acde3	19819	C5-long	41 words	Both halves are pinned from the artifact that reads them -- the source for mypy, the imported module for Home Assistant 
+HIT	tests/entities.py#12cbcc8e12	19971	C2-moved	tools/audit/preflight.sh	not tracked; same name at tools/pr/preflight.sh
+HIT	tests/entities.py#12cbcc8e12	19971	C5-long	43 words	tools/audit/preflight.sh refuses a closing keyword the orchestrator did not declare -- the defect that closed #224 from 
+HIT	tests/entities.py#adba859cf3	20036	C5-long	50 words	Its first version spelled three separators (whitespace, a comma, an "and"); the round-1 review ran the class's own rule 
+HIT	tests/entities.py#adba859cf3	20036	C5-long	47 words	Arm 1b is a property of the body text alone, and the corpus arm it skips there is a `check`, never a refusal: isolating 
+HIT	tests/entities.py#062cba7d69	20064	C5-long	47 words	Measured over the same 200 merged bodies: ownership at clause scope refuses none of them, and the same test over the who
+HIT	tests/entities.py#2981be8aec	20157	C5-long	51 words	It gave the branch an edit to a file main had NOT moved, so the two sets were disjoint, `stale = moved - mine` and `stal
+HIT	tests/entities.py#e26736397a	20329	C5-long	49 words	The proxy makes it visible, and WHICH clock it reads decides whether the line is signal or noise: the tip COMMIT's date 
+HIT	tests/entities.py#d033cdada1	20552	C5-long	45 words	`GATE_FILES` used to carry the directory prefix `.github/workflows/`, so a comment-only edit to `governance.yml` printed
+HIT	tests/entities.py#42dee0417f	20569	C5-long	47 words	The last three inert workflows made the same move for decision 0009 step 3b (#954), and the reason outlived it: the ledg
+HIT	tests/entities.py#335ae2794b	20804	C5-long	64 words	Each property below is one the `gate` verdict rests on and the file alone shows, read from the parsed document and, wher
+HIT	tests/entities.py#60e8d45ba9	21153	C5-long	47 words	It fires on every CI completion, holds `actions: write`, and runs the default branch's program at the default branch's c
+HIT	tests/entities.py#fa503f2fc2	21265	C5-long	44 words	Both claims are classifications, so both are pinned -- and the decision's own teeth, the planted-defect arm above all, a
+HIT	tests/entities.py#68d8f3a6ce	21323	C5-long	43 words	The `skip` arm lost its last inert instance with 0009 step 3b, which moved every non-gate workflow into this script's cl
+HIT	tests/entities.py#c4e009dd7b	21350	C5-long	68 words	a cron firing at least weekly (any day-of-month and month, so it fires every week) and `workflow_dispatch`, nothing else
+HIT	tests/entities.py#4424856786	21424	C5-long	47 words	Driven on a synthetic `strace -f -y` log: a Python child's successful open of a repo file counts; a failed probe, a dire
+HIT	tests/entities.py#42fb74f7c2	21498	C5-long	65 words	Three writers and one reader keep `inert_reads` honest, and each is driven on synthetic input so deleting its line fails
+HIT	tests/entities.py#1a0b532c02	21560	C5-long	86 words	It ran on a pull request only when the diff ADDED a file under custom_components/, so a change to what a test READS was 
+HIT	tests/entities.py#a19a3e901a	21617	C5-long	43 words	And the bound stops there -- the shallow shared ancestors of prose trees (dev/, dev/programme's parent chain beyond the 
+HIT	tests/entities.py#11f4cbea3a	21664	C5-long	57 words	The live example of "INERT and in no closure means skip" is the docs-only probe above; what this checks now is the point
+HIT	tests/entities.py#5e7d3139ec	21684	C5-long	45 words	The ORDER still has to be pinned even with no naturally occurring contradiction left on disk, so this manufactures one: 
+HIT	tests/entities.py#8ee780fe41	21837	C5-long	58 words	A failed recording and "the failure was not UNDER-SCOPED" used to share one status, and that status is quiet -- so ONE s
+HIT	tests/entities.py#ddd89130b4	21876	C5-long	51 words	A failed recording of an UNRELATED script blocked the repair of every stale one -- 6 of the 9 skip-failed-recording runs
+HIT	tests/entities.py#a4d3ff0b77	21990	C5-long	44 words	The recordings are made on the pull request's MERGE tree (main + branch) and `closures-autofix` checks out the branch HE
+HIT	tests/entities.py#a4d3ff0b77	21990	C5-long	44 words	`check` answered that NOT A FILE before it reached the under-approximation comparison, printed no UNDER-SCOPED, and the 
+HIT	tests/entities.py#6d508158fd	22046	C5-long	55 words	A PR that moves a file out of INERT and commits a closure reading it makes the base's `check` stop at the INERT-pair ref
+HIT	tests/entities.py#8d75a567cf	22092	C5-long	41 words	That was the false answer on #1864: the closures job is red and only a human repairs it, so the quiet is now earned by a
+HIT	tests/entities.py#98ff125a3c	22135	C5-long	42 words	Two fixtures held this slot and each route closed under it: an INERT cause (45b5768 moved that refusal into merge --sing
+HIT	tests/entities.py#98ff125a3c	22135	C5-long	45 words	No real route to a successful merge with a still-failing check remains, so the restore is driven by a check that fails o
+HIT	tests/entities.py#23813e96bf	22213	C5-long	45 words	Every autofix job pushes only on `changed`, and every other status fell through to job success -- so a job that repaired
+HIT	tests/entities.py#e50d3aa716	22270	C5-long	44 words	The list this check used to carry was written by hand and went stale the moment `apply_inherited_claims` gained a status
+HIT	tests/entities.py#52c1242281	22322	C5-long	55 words	(a1, the round-9 closures pre-study): the merge train's batch proof dispatches this workflow on a `batch/<tag>-<n>` bran
+HIT	tests/entities.py#2f2f5af52c	22369	C5-long	58 words	(a1 x R1 coupling -- the merge-path pre-study's explicit condition): the dispatch arm's SCOPED case is derived by `closu
+HIT	tests/entities.py#75b12309e5	22391	C5-long	46 words	A `rec tests/...` line in derive_closures.sh is the layout rot this replaced -- it named the recordings, so every new se
+HIT	tests/entities.py#75b12309e5	22391	C5-long	56 words	the old layout's lane 1 was `( rec tests/stress.py ) &` -- parenthesised -- and its driven child was `HASTUB_TZ=Europe/S
+HIT	tests/entities.py#e68a8cfdc2	22461	C2-moved	docs/HANDOVER.md	not tracked; same name at dev/programme/HANDOVER.md
+HIT	tests/entities.py#030688ba91	22522	C5-long	48 words	Its reader is a line scan, not YAML, so this compares the scan with a real YAML parse of the same file: an entry shape t
+HIT	tests/entities.py#de805f81bf	22551	C5-long	80 words	The cap is per leg, read from the matrix's `include` entries (r10-hotfix-codeql-headroom, design note sections 1 and 3):
+HIT	tests/entities.py#4ea7027b19	22599	C5-long	62 words	Pinned on the registered artifact: every ignore pattern must match at least one tracked file, and every file it matches 
+HIT	tests/entities.py#95bd25f6c6	22655	C5-long	42 words	The shape: the stand-in step runs on `skip` alone; an upload-sarif step under the leg's own category runs exactly when i
+HIT	tests/entities.py#4d7d31b347	22686	C5-long	41 words	r10-proof-codeql: a train proof (a dispatch on a batch/ ref) may skip a leg, so its prelude decides with main's programs
+HIT	tests/entities.py#b78c1d9e3f	22702	C5-long	43 words	The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the container, and its host half imports the pr
+HIT	tests/entities.py#b78c1d9e3f	22702	C5-long	41 words	This pins the WIRING, not the general class: it says that the one job whose driver imports production on the host instal
+HIT	tests/entities.py#b78c1d9e3f	22702	C5-long	53 words	`typing`, `closure-scope` and every autofix job run Python here and install nothing, legitimately, because the scripts t
+HIT	tests/entities.py#d90c622c67	22765	C5-long	57 words	A script another script drives in a subprocess reaches the table only through its driver's fold: a change to it re-deriv
+HIT	tests/entities.py#690987999c	22804	C5-long	50 words	The base a closures.json change is measured against is the merge base's committed table, and `select --diff` hands it to
+HIT	tests/entities.py#a2b1f4066c	22894	C5-long	56 words	`closure.py lane-plan` shards the list but holds each producer/consumer pair in one lane, in this order), so a producer 
+HIT	tests/entities.py#da0d32547a	23052	C5-long	83 words	The stamp is the only commit that moves VERSION, so it is the only commit that can stale that snapshot, and a stamp that
+HIT	tests/entities.py#07ec67d675	23079	C5-long	48 words	The stamp check is only worth having if it bites, so mutate a throwaway tree and require env_drift to reject exactly the
+HIT	tests/entities.py#bd34c11b8b	23085	C5-long	43 words	Only a probe that asserts WHICH answer came back catches that: the v4.1.0 probe (whose message must name v4.1.0, not a f
+HIT	tests/entities.py#67c56f3cb0	23152	C5-long	44 words	The stamp expires claims per VERSION *value*, and consecutive commits share one all over this history (7b512bc/401db6e/2
+HIT	tests/entities.py#13a15b667d	23186	C5-long	52 words	A branch that added a fresh claim beside the baseline's own line then parsed exactly equal to the baseline's single entr
+HIT	tests/entities.py#13a15b667d	23186	C5-long	45 words	The map carries every line's reason now, in file order, so equality is same names AND same lines, count included, throug
+HIT	tests/entities.py#b673dc08cf	23232	C5-long	61 words	PR #992 round 3 established the protocol -- the runner is the judge of record -- but the gate said so nowhere: a claim t
+HIT	tests/entities.py#b673dc08cf	23232	C5-long	46 words	The owner's 2026-09-14 ruling replaces the passive tripwire with an executable one: env_drift.py names the signature at 
+HIT	tests/entities.py#94ce5cc6d5	23565	C5-long	43 words	The #996 thread is the ledger -- the two historical instances the recorded decision priced (v5.1.7, #992) were seeded in
+HIT	tests/entities.py#b9ba09c5ea	23629	C5-long	54 words	`main` legitimately carries card claims between a card merge and the next stamp, so the first solver branch after one in
+HIT	tests/entities.py#2c6056ff36	23839	C5-long	47 words	Every branch writes its own note into both claim files at the same place, so every branch that merges main after another
+HIT	tests/entities.py#547fcce9d9	24092	C5-long	42 words	A may-drift line one side deletes (R8-P3: the suspension that claims the fixture this release) while the other leaves it
+HIT	tests/entities.py#80d76e1910	24372	C5-long	51 words	The tick reads roster_lib (`open_groups`, `groups_of`), and tools/ is INERT, so no scoped script ran its self-test on a 
+HIT	tests/entities.py#e52271da2c	24576	C5-long	41 words	It used to be "both lists must be empty", and emptying is a DELETION applied to the baseline at squash-merge: #608 carri
+HIT	tests/entities.py#e52271da2c	24576	C5-long	50 words	The rule is now "leave both files exactly as you found them", which is the same rule whenever the baseline claims nothin
+HIT	tests/entities.py#0b2801fcd8	24689	C5-long	43 words	The record rule compares the branch's own list against the baseline, and on a `pull_request` `ref` is main's tip, not th
+HIT	tests/entities.py#20ee1353ee	24886	C5-long	68 words	#608 erased #569's claims, #635 erased #633's, and on 2026-10-01 #1808 and #1809 each dropped F6.4's (#1806) to pass: a 
+HIT	tests/entities.py#b83aab194e	25137	C5-long	65 words	The baseline claims nothing here, so HEAD's empty list leaves it unchanged and the null control below is measuring the o
+HIT	tests/entities.py#44b8ea4fd4	25213	C5-long	46 words	a tree whose VERSION is strictly ahead of the baseline's is the release commit, a release moves no fixture, so its claim
+HIT	tests/entities.py#caac5e64b3	25259	C5-long	52 words	For the five fixtures the gate itself declares non-reproducible it is a statement about the runner instead: v5.1.7's rea
+HIT	tests/entities.py#1a739382d5	25394	C5-long	54 words	The stamp deleted R9-F2.3's wood_coil claim without restoring the may-drift entry the branch had suspended for it -- a s
+HIT	tests/entities.py#87850f0251	25477	C5-long	54 words	tools/release/stamp.py is, in its own words, "the only way a version number is assigned", and it carries a 15+-check --s
+HIT	tests/entities.py#87850f0251	25477	C5-long	48 words	Importing it here, rather than adding an exemption or a hidden call site, is what gives closure.py's recorder something 
+HIT	tests/entities.py#4c363624ef	25494	C5-long	98 words	Loading a module and calling a function it defines are both module-scope statements here, with no guard: a raising `stam
+HIT	tests/entities.py#a687fd9da7	25530	C5-long	50 words	Pinned here, a change to EITHER side goes red on its own pull request: the write set stamp.py stages must be the guard's
+HIT	tests/entities.py#eca3b93777	25571	C5-long	71 words	The same composition for the coverage rule, on THIS tree's own claim file (v7.0.1's refusal): the stamp deletes every cl
+HIT	tests/entities.py#b8420b4ee0	25613	C2-moved	tools/gen_device_fixtures.py	not tracked; same name at tools/devices/gen_device_fixtures.py
+HIT	tests/entities.py#ca0a4d4db9	25654	C5-long	46 words	The claim above ("now shows up in this script's own recorded closure") was stated but never asserted -- issue #372's own
+HIT	tests/entities.py#4292419e78	25679	C5-long	53 words	A fixture that no longer matches what the code produces was invisible by construction, and the claim mechanism guarantee
+HIT	tests/entities.py#84f6633580	26013	C5-long	44 words	--- R3-D10-04: production must pass config_entry into the HA base ---------- The reauth block above assigns ``config_ent
+HIT	tests/entities.py#b0b7912d72	26047	C5-long	45 words	Home Assistant 2024.4+ starts it from the entry's page: the manager sets context={"source": "reconfigure", "entry_id": .
+HIT	tests/entities.py#d64aa4394b	26272	C5-long	48 words	``_DIAG_DEEP`` sits two levels down and inside a list, because the property that stops the NEXT nested location from lea
+HIT	tests/entities.py#77cf79a604	26863	C5-long	42 words	D8-s1-02, class P2 (#1644): DHW Heating Schedule counted every 15-minute step above 0.1 kW as a "heating period", while 
+HIT	tests/entities.py#790b4dc214	26910	C5-long	50 words	So an option list is not documentation, it is a whitelist, and a reachable state missing from it takes the entity down o
+HIT	tests/entities.py#5f5a04d8cc	27125	C5-long	41 words	The two string-state sensors that deliberately do NOT get ENUM, pinned with their measurement in the same shape as the b
+HIT	tests/entities.py#229843cc59	27148	C5-long	50 words	D4 depends on this list and must not be able to drift from it. icons.json gains "state" variants next (#558 D4), and Hom
+HIT	tests/entities.py#c383e12a73	27181	C5-long	43 words	Home Assistant looks a state icon up by the STATE STRING, so only a sensor whose states are bounded can carry one -- whi
+HIT	tests/entities.py#8314eefd82	27214	C5-long	67 words	A state icon equal to its own default changes nothing -- the shape a mechanical fill produces. hassfest means to refuse 
+HIT	tests/entities.py#abd1b16ab7	27298	C5-long	64 words	--- P12 (#1529): no bound coordinator method crosses to a thread ---------- A bound coordinator method handed to an exec
+HIT	tests/entities.py#abd1b16ab7	27298	C5-long	52 words	Enumerated, not named: every call in the package whose callable argument lands on a thread -- an executor hand-off, or a
+HIT	tests/entities.py#f9196cac19	27439	C5-long	41 words	Every hand-off P12 enumerates, plus the solve's own transports (_await_optimize, _await_off_loop), is refused an argumen
+HIT	tests/entities.py#9c77f58361	27506	C5-long	46 words	AnnAssign covers the annotated first binding in the coordinator's state init, which an Assign-only scan misses entirely;
+HIT	tests/entities.py#4dcf507326	27594	C5-long	55 words	services.yaml carried every name and description as English text, so the service picker was untranslated for every non-E
+HIT	tests/entities.py#1a7c2dbb1c	27744	C5-long	42 words	ScheduleSensor's state is an English sentence -- "24 steps" / "no schedule" -- so it cannot be translated, cannot be rea
+HIT	tests/entities.py#8977db8129	27852	C5-long	49 words	The WIRING -- that the job exists, runs on pull requests, and invokes the reporter with no argument that could pin it gr
+HIT	tests/entities.py#08c51cb2c4	27871	C5-long	58 words	This is a PROPERTY over the workflow, not a pin on one job: `mutation-nightly` ran at the default depth 1, so its baseli
+HIT	tests/entities.py#5cf66adc9f	27989	C5-long	43 words	a nightly lane is a nightly.yml job whose own `if:`, EVALUATED, runs on a schedule at main and not on a push -- the reco
+HIT	tests/entities.py#5cf66adc9f	27989	C5-long	61 words	A future lane added to the nightly is therefore refused by this gate until it is registered, instead of being watched by
+HIT	tests/entities.py#5c732f1c01	28072	C5-long	51 words	It was `failure` until the review of this pull request, and that is not a detail -- under the classifier as first writte
+HIT	tests/entities.py#255d822a31	28203	C5-long	55 words	The same question is asked a third time one file over, as `tests/closure.py`'s `NOT_A_TEST`, and nothing compared the tw
+HIT	tests/entities.py#4aac49526f	28236	C5-long	42 words	`verdict` classified a concluded run from `failing_jobs(jobs)` alone and never read `concluded["conclusion"]`, so a run 
+HIT	tests/entities.py#4aac49526f	28236	C5-long	42 words	Every non-passing conclusion in GitHub's vocabulary is pinned, not only the ones CI has produced: backtests over 15 sche
+HIT	tests/entities.py#e15d8de6e3	28271	C5-long	41 words	The NULL CONTROL for the check above, and it is the half that stops it being a check that fails everything: the same job
+HIT	tests/entities.py#50052fc68d	28468	C5-long	42 words	No run of this workflow comes near a hundred jobs, so the refusal is unreachable today -- the rule for re-deriving that,
+HIT	tests/entities.py#b95230a41c	28560	C5-long	52 words	`MAX_AGE_NIGHTS`'s comment said "three is the first age that cannot be either of those" -- those being one night of time
+HIT	tests/entities.py#3a6b9e163d	28586	C5-long	53 words	Three fixtures, one property varied in each: the workflow nine hours old reads NEW and green; the SAME record 26 h on, s
+HIT	tests/entities.py#5ac6b7fbf4	28671	C5-long	56 words	The stamp's flush dispatches nightly.yml with lanes=beat, which skips every REQUIRED_LANES job; graded, it reads ABSENT 
+HIT	tests/entities.py#c4f6d056a5	28798	C5-long	44 words	Its own row is the record beat's `**open**` self-row, written before the merge sha existed; read as a stale open row it 
+HIT	tests/entities.py#a90bb777f2	28841	C5-long	53 words	`gather` was not driven by anything, and it was the half that broke: its subject rule took only the SQUASH shape `<title
+HIT	tests/entities.py#c324e2f258	28967	C5-long	41 words	THIS is what separates a run that could not look from a run that looked and found nothing -- the two were byte-identical
+HIT	tests/entities.py#37f2644def	29145	C5-long	41 words	The predicate that closes the escape is `record`'s own (every merged pull request has a disposition), so `--require-rows
+HIT	tests/entities.py#9fc5139099	29278	C5-long	42 words	It is UPDATED rather than dropped each time the publishing lane moves, because the set is the argument: the ledger's #20
+HIT	tests/entities.py#9fc5139099	29278	C5-long	44 words	#956's `pr-contract` adds no write at all: it reads the head's check runs through `/commits/<sha>/check-runs`, which the
+HIT	tests/entities.py#e24bf25c90	29381	C5-long	51 words	On `workflow_dispatch -f pr= -f base=` the event carries no base SHA, and a restore falling back to `github.sha` checks 
+HIT	tests/entities.py#247e22eb5a	29469	C5-long	56 words	Measured on #1059 at head `a93a43b`: the body was edited to name `a93a43b`, run 35093322057 was re-run twice (attempts 2
+HIT	tests/entities.py#247e22eb5a	29469	C5-long	56 words	The ledger lane one job down edited its own PR's body with GITHUB_TOKEN until decision 0009 step 3b moved that write to 
+HIT	tests/entities.py#247e22eb5a	29469	C5-long	53 words	Three strings are pinned: the API read of the pull request's own resource, `--jq` on its body field, and the ABSENCE of 
+HIT	tests/entities.py#60f1db6d5c	29504	C5-long	48 words	Before it, the body-contract step invoked policy_lint with no `--red` -- the same body exited 0 without it and 1 with it
+HIT	tests/entities.py#60f1db6d5c	29504	C5-long	54 words	The three load-bearing strings of the wiring are pinned so it cannot go inert again: the check-runs LISTING (never a sum
+HIT	tests/entities.py#3003c48040	29515	C5-long	47 words	N4 (DESIGN-P2 section 9): a unit's check run is `<caller> / <job>`, so the job's own name is `pr-contract / pr-contract`
+HIT	tests/entities.py#35424289cc	29562	C5-long	51 words	The code-scanning wait (DESIGN-P2 4.3; owner ruling R-10, option B): its step runs the base's copy of the program (the r
+HIT	tests/entities.py#b6030f0bd7	29569	C5-long	43 words	THE CARRY STEP NAMES THE PULL REQUEST'S BRANCH (R10-BODY-CONTRACT part 2, carry 9): the refusal prints the live groups a
+HIT	tests/entities.py#f767e7fc54	29601	C5-long	46 words	The step runs `set -euo pipefail` before the `gh api ... | jq ... > /tmp/pr-reds.txt` pipeline on purpose: a derivation 
+HIT	tests/entities.py#3525b1e390	29687	C5-long	42 words	The preflight step's closing-keyword arm was dead two ways: the step passed preflight.sh no intended-issue list (check #
+HIT	tests/entities.py#c6d94c8b77	29787	C5-long	77 words	It encodes a design choice: the guard `${a[@]+"${a[@]}"}` or a `# never-empty: <reason>` marker (on the line, or on a co
+HIT	tests/entities.py#8af5e9e93d	29857	C5-long	76 words	What is pinned here is the behaviour the issue's traps name -- rows the tree's own reader reads, a write set that can ne
+HIT	tests/entities.py#a1c385b718	29947	C5-long	60 words	The state docs the standing instruction of 2026-10-09 requires continuously regenerated are `state_docs.py`'s; what was 
+HIT	tests/entities.py#a1c385b718	29947	C5-long	60 words	The beat lands inside the instrument that already owns the write set and the orphan-ref push (fixer.md step 17: a second
+HIT	tests/entities.py#a1c385b718	29947	C5-long	45 words	Without the read the file sits under `tools/audit/`'s INERT prefix, a change to it selects NO script, and the arms the i
+HIT	tests/entities.py#e6d35b6a20	29984	C5-long	42 words	`delivery_status.read_texts` is one of the two readers a row must satisfy (`policy_lint --record` is the other, same anc
+HIT	tests/entities.py#e6d35b6a20	29984	C5-long	41 words	The null control is the table-row SHAPE: `speaksFor` reads a `|`-row in the plan's table, but a row FILE holding one row
+HIT	tests/entities.py#00d632db01	30021	C5-long	41 words	The generator's entire write surface is `docs/delivery/<N>.md` -- the guard refuses the plan, the handover, and any path
+HIT	tests/entities.py#d2a5894515	30083	C5-long	53 words	And the closing-keyword trap: GitHub closes issues from a pull request's BODY prose, so a generated `Closes #N` anywhere
+HIT	tests/entities.py#5fb31eb1d1	30166	C5-long	50 words	Pinned: main only, its own environment, the `ci:` commit subject the loop guard keys on, the guarded `git add docs/deliv
+HIT	tests/entities.py#5fb31eb1d1	30166	C5-long	42 words	The record push's one force is a LEASE anchored on the tip the same try fetched (a re-run's sibling commit made the fast
+HIT	tests/entities.py#2a5e44dd04	30192	C5-long	65 words	The one review the job posts is the approver App's, and only behind the automerge guard (tvofi, 2026-10-07): every revie
+HIT	tests/entities.py#44cae3d296	30208	C5-long	65 words	GitHub runs a `run:` block under errexit -- the default shell is `bash -e {0}`, `shell: bash` is `bash --noprofile --nor
+HIT	tests/entities.py#44cae3d296	30208	C5-long	42 words	A producer that is a condition (`if cmd; then rc=0; else rc=$?; fi`, `cmd || rc=$?`) or a read under `set +e` is exempt;
+HIT	tests/entities.py#3475645456	30355	C5-long	45 words	Countermeasure B's pin (R10-RCA-HOTFIX-BATCH-ERREXIT): a check that runs a step's text under a bare `bash -c` measures a
+HIT	tests/entities.py#3475645456	30355	C5-long	45 words	Every `-c` list literal whose shell is `bash` or `sh` by basename (`/bin/bash`, `env bash` alike) in a tracked `.py` und
+HIT	tests/entities.py#3475645456	30355	C5-long	43 words	INERT files are outside it by design: the gate never runs one in-process (closure.py refuses an INERT file read and reco
+HIT	tests/entities.py#ad015ac1f8	30437	C5-long	42 words	The merge is the beat's own, pinned to the head the guard judged (#2029 review, round 1): a `PUT .../merge` whose payloa
+HIT	tests/entities.py#01d72482cc	30450	C5-long	60 words	THE BATCH (tvofi, 2026-10-24/25): the gate sits between the plan and the apply, reads the workflow's own event (a push b
+HIT	tests/entities.py#26f3e7680e	30539	C5-long	63 words	The batch gate must survive the step's shell, the `--require-green` trap again: GitHub runs a `run:` block under `bash -
+HIT	tests/entities.py#26f3e7680e	30539	C5-long	53 words	This runs them: the gate's lines cut from the real job, inside a one-try loop, under the runner's `-eo pipefail` and the
+HIT	tests/entities.py#a51101fb1f	30628	C5-long	62 words	The merge train publishes refs/heads/train-hold while it is live and deletes it at its closing line, and this beat's aut
+HIT	tests/entities.py#a51101fb1f	30628	C5-long	73 words	THE STEP IS EXECUTED, over a stubbed API: the status it prints and the calls it makes are what prove the skip happens af
+HIT	tests/entities.py#7f025d15ab	30803	C5-long	54 words	THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6), executed over the same stub: record_row.py's `--pitch-check` answering
+HIT	tests/entities.py#7f025d15ab	30803	C5-long	41 words	record pull requests ride trains rather than race them). 0 proceeds to the green wait; a crashed check is no pitch; a re
+HIT	tests/entities.py#92e5234e34	30848	C5-long	59 words	A job that restores its check source from the base grades a pull request with the base's copy, so a changed grader first
+HIT	tests/entities.py#c3b0e6e38b	30912	C5-long	52 words	Three review rounds each found a new way to keep the arm wired yet unable to report #1721 -- `|| true`, a step's `contin
+HIT	tests/entities.py#d485f43da6	31173	C5-long	65 words	`isNone` read a section as `none` whenever the token stood at its START -- no end anchor, no `m` flag -- so `frictionEnt
+HIT	tests/entities.py#a7525f74c9	31247	C5-long	50 words	Nulls: the real job, including one whose STEPS use actions (a step `uses:` is not a call) and one followed by another jo
+HIT	tests/entities.py#199610db51	31318	C5-long	58 words	The lines a tool or an assistant appends to a body -- the Claude Code attribution, a `Co-Authored-By:` git trailer, a `C
+HIT	tests/entities.py#be089548c3	31435	C5-long	49 words	`FRICTION_ID` began `[A-Za-z]`, so a repo-relative path -- the most explicit spelling there is of the file it names -- p
+HIT	tests/entities.py#0e0107d221	31468	C5-long	60 words	`closures-autofix` and `claims-autofix` push a commit onto a pull request after its body was written, so the body names 
+HIT	tests/entities.py#0e0107d221	31468	C5-long	50 words	`checkPrBody` now accepts a chain of such commits directly on top of the commit `## Head` names, and only if EVERY commi
+HIT	tests/entities.py#a96f7638ab	31690	C5-long	41 words	The write itself is owner-approved (#201 comment 5670207248, item 4), and it is pinned to exactly what the step uses so 
+HIT	tests/entities.py#d069340d66	31719	C5-long	42 words	A `|| true` pasted onto the filing step would turn a mechanism that stopped filing into a green tick, which is the #959 
+HIT	tests/entities.py#41ea99f5f5	31746	C5-long	43 words	GitHub skips a step with no `if:` once an earlier step of the same job has failed, and the disposition refusal above fai
+HIT	tests/entities.py#5a2f67a320	31791	C5-long	58 words	It named `record-status` for a window after that job had been renamed -- a job that exists nowhere costs nothing and hid
+HIT	tests/entities.py#5a2f67a320	31791	C5-long	43 words	Both directions are pinned against the tree: every GOV member is a job id some workflow file defines, and every governan
+HIT	tests/entities.py#b7b756c1b6	31823	C5-long	48 words	D11-s1-72: this used to check only `_GOV_WF` (governance.yml) against GOV, so a governance job added to pr-contract.yml,
+HIT	tests/entities.py#b7b756c1b6	31823	C5-long	44 words	`briefs` stays out of this union: it is the one governance job the null control below requires to live OUTSIDE its own w
+HIT	tests/entities.py#1c4ac51087	31861	C5-long	43 words	#1484 kept `edited` on governance.yml and skipped the other jobs with an `if:`, so each body edit re-created `policy-doc
+HIT	tests/entities.py#8dfa161118	31890	C5-long	42 words	The umbrella (U0c): its one required check is `gate`, whose `if:` no event can make false (pinned above), and gate.py ta
+HIT	tests/entities.py#24f719676e	31920	C5-long	61 words	Each context in the recorded shape of the live required set is mapped to the job that produces it -- by the job's `name:
+HIT	tests/entities.py#de085e248a	32008	C5-long	45 words	--- round-9 process review item 3, shrunk: a superseded long-job pull-request run is an older SHA replaced by a newer on
+HIT	tests/entities.py#de085e248a	32008	C5-long	51 words	Two runs of any other event -- a push to main, a merge queue entry, the nightly, an autofix push or dispatch, a review -
+HIT	tests/entities.py#9a534850d3	32138	C5-long	42 words	Supersession is ci.yml's `cancel-superseded` job since the umbrella (the callees carry no concurrency group): a non-bot,
+HIT	tests/entities.py#ffe0fe61ef	32244	C5-long	48 words	A queue entry merges only when every required context reports on its merge commit, so each context's producing job must 
+HIT	tests/entities.py#d1ef5b9933	32365	C5-long	45 words	U5's two stand-down properties, driven from its harnesses rather than restated: no `tests / *` job that gate.py requires
+HIT	tests/entities.py#47cb1decd1	32479	C5-long	57 words	Each property is a way the gate goes green without grading: an `if:` (a skipped required context passes); a second job i
+HIT	tests/entities.py#6136eb04dd	32572	C5-long	70 words	The rule, per job reachable on `pull_request` with any `write` grant: every checkout sets `persist-credentials: false`; 
+HIT	tests/entities.py#6136eb04dd	32572	C5-long	61 words	RESIDUAL, NOT CLOSED HERE: a same-repo `pull_request` run executes the pull request's own copy of the workflow file, so 
+HIT	tests/entities.py#59050a1e89	32837	C5-long	46 words	--- R10-HOTFIX-NONREQUIRED-REDS (fix review round 1): A PROGRAM PR-CONTRACT RUNS IS THE BASE'S, SPAWNED ONES INCLUDED. p
+HIT	tests/entities.py#59050a1e89	32837	C5-long	44 words	The rule enumerates the class: every `spawnSync('python3', [path.join(<root>, ...)` in policy_lint, and each one's local
+HIT	tests/entities.py#33c369e4ce	32941	C5-long	70 words	After a token push it dispatches the umbrella once per branch, naming the PR and its base (the prelude verifies them), n
+HIT	tests/entities.py#96a25023a7	32992	C5-long	46 words	D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the wave script teaches -- the verdict words fr
+HIT	tests/entities.py#1d770c0117	33030	C5-long	45 words	The DEGRADED arm of the same verdict histogram: when VERDICT_CLASSES cannot be read, blocked verdicts collapse back to o
+HIT	tests/entities.py#a5e8267ce8	33066	C5-long	52 words	The blocked arm matched the class word optionally AND WITHOUT its colon, so `blocked <sha> <word> (<why>)` -- a class wo
+HIT	tests/entities.py#780269dcc5	33116	C5-long	44 words	Where a merge carries none -- automation-authored merges are the common case, and a window holding any is not rare -- th
+HIT	tests/entities.py#780269dcc5	33116	C5-long	45 words	The verdict lines carry a full 40-hex head because the histogram classifies with the wave's own `VERDICT_RE` since #1472
+HIT	tests/entities.py#1f45319efa	33173	C5-long	47 words	`cmdStats` prints its table under a header claiming the grammar was READ from `web-fix-wave.js`, and `statsHistogram` bu
+HIT	tests/entities.py#1f45319efa	33173	C5-long	47 words	The property is the AGREEMENT, not the instances, so this drives both production readers over a battery -- the histogram
+HIT	tests/entities.py#1f45319efa	33173	C5-long	41 words	The control is inside the battery: the in-grammar shapes must still be counted by BOTH readers, and the refused ones mus
+HIT	tests/entities.py#797417ba46	33237	C5-long	90 words	The wave extracts a verdict with `String(...).trim().split('\n')[0]` -- trim the body, then take its first line -- and t
+HIT	tests/entities.py#797417ba46	33237	C5-long	58 words	Both directions are closed by taking the wave's own extraction, and the property is driven over bodies through BOTH prod
+HIT	tests/entities.py#660d44a418	33344	C5-long	42 words	`fetchWindow` fetched the pull request and its issue comments and never its reviews, so a review-posted verdict was invi
+HIT	tests/entities.py#660d44a418	33344	C5-long	46 words	The request itself is counted by the D13 ledger harness, against a stub transport; what a check in this file can hold is
+HIT	tests/entities.py#e7543fe127	33402	C5-long	41 words	The transport is `ghGet`'s `curl` execFileSync, so a stub `curl` first on PATH is the ledger the finding's own harness r
+HIT	tests/entities.py#e7543fe127	33402	C5-long	48 words	BOTH ENDS, because the request and the join are two claims: a stub that answers with one review (the request must appear
+HIT	tests/entities.py#a8eac97c28	33494	C5-long	51 words	The window is empty by construction: the ref is `mainRef()`'s own -- `origin/main`, or `HEAD` where the remote is not co
+HIT	tests/entities.py#b3f22a20d5	33533	C5-long	50 words	`web-fix-wave.js` teaches the class `head-moved` for "the head moved under the review", but a reviewer that re-measures 
+HIT	tests/entities.py#8a13ae1b66	33633	C5-long	41 words	The rework arm keyed every later verdict naming a head other than the FIRST verdict's, so `head-moved` also counted a re
+HIT	tests/entities.py#922c6345ed	33746	C5-long	48 words	The coverage line named the merges carrying no parsable verdict as one capped list, so a reader could not tell the recor
+HIT	tests/entities.py#0f581625f9	33791	C5-long	55 words	`frictionKey` looked its id up in an index built from the corpus's canonical spellings without canonicalising the id, so
+HIT	tests/entities.py#a380802350	33831	C5-long	51 words	Round 5's first pass drafted that list and left it in the seat's scratch directory, so `cfr_excluded` was reachable only
+HIT	tests/entities.py#79efb7405c	33908	C5-long	56 words	"A check pins the artifact it READS", so the read `main()` performs is observed, not inferred from one spelling in the s
+HIT	tests/entities.py#79efb7405c	33908	C5-long	43 words	So `main()` is run with its exclusion read wrapped: `git` is patched to stop it at the first git call -- after the read,
+HIT	tests/entities.py#8617c07705	34010	C2-moved	.claude/workflows/cfr_exclusions.json	not tracked; same name at dev/governance/config/cfr_exclusions.json
+HIT	tests/entities.py#8617c07705	34010	C5-long	74 words	`.claude/workflows/cfr_exclusions.json` removes a by-design red from the change-failure rate, and round 6 (D13-03) estab
+HIT	tests/entities.py#3ec4cdad81	34079	C5-long	46 words	The lane's inventory is the TREE (`tests/mutation_table.py`'s `unpinned_sites`) and on a push to `main` its scoping base
+HIT	tests/entities.py#3ec4cdad81	34079	C5-long	80 words	`cfr_by_name` is driven on the round-7 window's OWN per-name counts, as the instrument prints them over the closed windo
+HIT	tests/entities.py#0742a320c7	34131	C5-long	46 words	The perturbation the finding turns on: ONE name added in memory to the exclusion list moves the merge-keyed rate (0.226 
+HIT	tests/entities.py#1af0df5650	34141	C5-long	63 words	Set equality is the absence control as well as the value one: the map's keys come only from the two maps' VALUES, so a n
+HIT	tests/entities.py#38c53325ee	34173	C5-long	43 words	The citation is pinned against `tests/mutation_table.py`'s own refusal text, so the entry cannot drift into a quote noth
+HIT	tests/entities.py#7cc683b766	34217	C5-long	49 words	When live text names a program under a historical prefix as an instrument to run, a file move on either side of that lin
+HIT	tests/entities.py#7cc683b766	34217	C5-long	69 words	Every executable a POLICY file cites (policy_lint.mjs's own `policyFiles()`, never a copy of its globs), and every progr
+HIT	tests/entities.py#7cc683b766	34217	C5-long	73 words	Both sources are read from the WORKTREE, which is what keeps an edit to one from skipping this arm: each is off closure.
+HIT	tests/entities.py#7cc683b766	34217	C5-long	68 words	A cited `.py` is loaded in a fresh interpreter the way a seat runs it (cwd the root, its directory first on sys.path, PY
+HIT	tests/entities.py#14d58b9793	34266	C5-long	52 words	The read half of an open: `Path(lit).read_text()` is caught through `Path`, but `(Path('.') / lit).read_text()` and `_P 
+HIT	tests/entities.py#c2702c5b57	34271	C5-long	49 words	`join` is the one name that is BOTH `os.path.join` (a path site) and `str.join` (not one): `"".join(rows)` over a list t
+HIT	tests/entities.py#ceb7d6fabe	34512	C5-long	42 words	The literal parts of an f-string, so a leading slash is stripped only for `f"{root}/<path>"` and never for a plain absol
+HIT	tests/entities.py#778c511c1b	34598	C5-long	56 words	Design choice: a carry is the brief of a stage with no roster group and is discharged at closure, so the live tree may h
+HIT	tests/entities.py#b1901f64b4	34653	C5-long	56 words	F1 (#2312): the open shapes the fix reviews planted, and the binding family beside them -- #2289's round-1 `plants.py` i
+HIT	tests/entities.py#b1901f64b4	34653	C5-long	46 words	Round 3 added the two declarations the reader re-routes (`global` and `nonlocal`) to the plant list; an attribute bound 
+HIT	tests/entities.py#e2f28da5c6	34737	C5-long	42 words	The one shape the name-only resolver cannot follow is an attribute bound to a path literal in one scope and opened in an
+HIT	tests/entities.py#e2f28da5c6	34737	C5-long	48 words	`_sp_reach` keys a read by the attribute NAME and walks up only enclosing scopes, so a binding in a sibling scope is inv
+HIT	tests/entities.py#b6d0291d4d	34762	C5-long	57 words	THE SOURCES MUST SELECT THIS SCRIPT, or the citation half above is a main-only check: policy files and carries are read 
+HIT	tests/entities.py#b6d0291d4d	34762	C5-long	50 words	The gate's own `select` decides, so this pins the mechanism rather than a copy of the closure table: a source that is st
+HIT	tests/entities.py#a4c65e850a	34815	C2-path	dev/audit/rounds/round5/D11/ruleset.py	no tracked file or directory
+HIT	tests/entities.py#a4c65e850a	34815	C5-long	45 words	`counts.mjs:liveRequiredContexts` skipped every rule that was not `required_status_checks` and never read `bypass_actors
+HIT	tests/entities.py#27edbe6319	34928	C2-path	dev/programme/carries/carry-201.json	no tracked file or directory
+HIT	tests/entities.py#27edbe6319	34928	C5-long	55 words	The `policy-docs` job checks out no `ref:`, so every step in it ran the pull request's own copy of the program under it:
+HIT	tests/entities.py#27edbe6319	34928	C5-long	67 words	The step that restores the graders from the base commit is the fix, and nothing in the tree refused its deletion until t
+HIT	tests/entities.py#27edbe6319	34928	C5-long	44 words	WHAT IT READS: the ref the restore comes from and the pathspec that names the graders, so a step that dropped either tok
+HIT	tests/entities.py#27edbe6319	34928	C5-long	48 words	WHAT IT CANNOT SEE, stated so nobody reads more into it: a grader added as a MODULE beside `policy_lint.mjs` is a file t
+HIT	tests/entities.py#dc4a5f945e	34965	C5-long	44 words	The same pin discipline as the governance grants above, for the same reason: `id-token: write` is the one identity grant
+HIT	tests/entities.py#aaa7595642	35024	C5-long	49 words	Design choice, said out loud (fixer.md step 11): the asset name is stated once in the workflow and once in hacs.json, an
+HIT	tests/entities.py#b63377985f	35157	C5-long	53 words	So there are two instruments, and what is pinned here is what each CLAIMS -- the operators, the kill rule, the scope rul
+HIT	tests/entities.py#27cd2e3a86	35176	C5-long	56 words	One wrong skip loses a real killer, so what is pinned is every way a row is REFUSED, driven through the real hook on a s
+HIT	tests/entities.py#94fec788cb	35267	C5-long	52 words	Popen starts its child through os.posix_spawn wherever it can close fds in the spawn (CPython 3.13+ on glibc 2.34+, CI's
+HIT	tests/entities.py#41742f61c2	35361	C5-long	48 words	The survivor FRACTION is a saturable one-sided cap on the sampled run: the pool is a seeded sample over whichever files 
+HIT	tests/entities.py#41742f61c2	35361	C5-long	48 words	What can still be pinned is that it is a saturable fraction at all -- at 1.0 `rate > cap` is unreachable, so a run in wh
+HIT	tests/entities.py#17e095062c	35395	C5-long	48 words	The mutation budget's `reason` is a claim about the tree like any other, and the one it carried was falsifiable: both ca
+HIT	tests/entities.py#17e095062c	35395	C5-long	51 words	A reason must not DEFER on a lane's EXISTENCE, because `REQUIRED_LANES` is exactly the set the workflow defines -- the c
+HIT	tests/entities.py#8569a50586	35429	C5-long	45 words	The null control, both arms, driven through the same predicate rather than asserted beside it: it fires on the deferral 
+HIT	tests/entities.py#06ce2bbe90	35463	C5-long	51 words	#1453 (D3-02): an exit status is not always a failed check. structure.py exits 2 for a metric that IMPROVED -- "Nothing 
+HIT	tests/entities.py#b200953e1d	35522	C5-long	41 words	Python's json reads NaN, Infinity, -Infinity and 1e999 as floats, and every comparison against NaN is false: `current > 
+HIT	tests/entities.py#21103bea58	35589	C5-long	51 words	ONE barrier, three verbatim copies. mutation_table.py, coverage_ratchet.py and typing_ruler.py are graders a job may res
+HIT	tests/entities.py#c5df1f8986	35713	C5-long	46 words	#1521: env_drift.py refuses an inherited claim list BEFORE capturing anything, and a mutant is a production edit, so whi
+HIT	tests/entities.py#36c98e8f59	35817	C5-long	60 words	The crash rule, over REAL tracebacks: a subprocess that raises, exits 1 and prints nothing on stdout, for the shapes #15
+HIT	tests/entities.py#56559bf421	35894	C5-long	51 words	#2997 (R10-UX-HEALTH): the null control took only a comment line under 60 characters, indentation included, a cap with n
+HIT	tests/entities.py#551f224537	36089	C5-long	47 words	CMP_BOUND moves one bound of a one-line comparison by one -- `<`/`<=`, `>`/`>=` -- one mutant per operator of a chain, a
+HIT	tests/entities.py#ae7d536e63	36240	C5-long	48 words	A site re-indented or renamed in place is the base's; one that left a file and reappears unchanged in another, under the
+HIT	tests/entities.py#3b1d775e86	36314	C5-long	41 words	The ledger pins an anchor only when every mutant under it is killed (`pin_results`), so the key a body disposes of must 
+HIT	tests/entities.py#2229a47610	36476	C5-long	47 words	The ordinal inside an anchor, driven: two identical guards in one def get distinct anchors (the second carries #2), the 
+HIT	tests/entities.py#ee51d2bf04	36514	C5-long	46 words	Each arm pins a different path: a changed file is re-enumerated at the base (the shift), an unchanged one is reused (b.p
+HIT	tests/entities.py#33f6a13a0c	36619	C5-long	41 words	--pin-killed (the mutation-ledger autofix): it drives only the sites the diff ADDED unpinned, keyed by anchor, so a site
+HIT	tests/entities.py#317593bdfe	36720	C5-long	45 words	`mutation-autofix` applies what `mutation` measured on the MERGE ref, so an entry lands only where THIS tree has the sam
+HIT	tests/entities.py#9100dfb26e	36776	C5-long	50 words	Each arm is a way the layout's own code can be wrong while the real ledger still reads right: the misplaced/non-canonica
+HIT	tests/entities.py#88f84a7ac0	36840	C5-long	50 words	The measure step's status is the BASE program's own summary line, never the ledger diff alone: a red baseline prints INC
+HIT	tests/entities.py#9b2f0ae512	36943	C5-long	46 words	R10-PIN-DRIVE-INCONCLUSIVE: a pin drive whose lazy baseline refused (rc 0 at --scope changed) returns before `pin_result
+HIT	tests/entities.py#39efdd383d	36967	C5-long	58 words	A correct `measurement` the workflow does not call is the green check the review found, so the wiring is asserted agains
+HIT	tests/entities.py#46de94a868	37012	C5-long	50 words	The slice is whole anchors -- a split anchor spends runs on sites `pin_results` can never pin -- reachable by a recorded
+HIT	tests/entities.py#a0d438fe03	37105	C5-long	47 words	On the measured head every pin applies once and a second apply writes nothing; on a main that moved, a pin lands while i
+HIT	tests/entities.py#f75bfb742f	37265	C5-long	41 words	Wired in the driver: the drain slice comes from `drain_pool` over the whole unpinned list, its kills go through the same
+HIT	tests/entities.py#606b5a8b29	37280	C5-long	50 words	Wired, against the YAML: the measuring job holds no write grant and runs the drain with the run's seed; the pushing job 
+HIT	tests/entities.py#897f1367c8	37358	C5-long	48 words	COVERAGE: what `_stage` reads from the repository outside custom_components/ -- everything it mounts into the container,
+HIT	tests/entities.py#74d0f716d6	37451	C5-long	46 words	The credential (#1848 B2): the ledger writer's secrets are read by one job, and that job runs in the `ledger` environmen
+HIT	tests/entities.py#362d9656b5	37646	C5-long	48 words	#1217 (D3-07): two of the D3 pre-screen's seven survivors are EQUIVALENT mutants -- pump_mode.py:242 GUARD_OFF and __ini
+HIT	tests/entities.py#900e64cabe	37729	C5-long	48 words	The recorded table itself: the D3-07 equivalent marked, with a reason; the validator holds over the whole real table; an
+HIT	tests/entities.py#900e64cabe	37729	C5-long	41 words	D3-07's second equivalent, setup's `task is not None and hasattr(task, "cancel")`, left the tree with the first solve's 
+HIT	tests/entities.py#a940dcb8c7	37778	C5-long	74 words	tvofi's round-9 request: ratchet CI cost and code health (architecture, complexity, script re-runs, scoping, critical pa
+HIT	tests/entities.py#fc49aa9b88	37796	C5-long	75 words	The runner's speed probe (R10-HOTFIX-CI-CRITPATH-4). critical_path_minutes prices each heavy job over its own runner's p
+HIT	tests/entities.py#75e6f4949d	37915	C5-long	61 words	HPO_CI_METRICS was exported to everything the fast lane's run.sh ran, so closure.py's selftest, driving derive_closures.
+HIT	tests/entities.py#a8f621e131	37958	C5-long	54 words	Main's ci-ratchet died on every push for twelve merges because the gather step fetched the artifacts list inline as `gh 
+HIT	tests/entities.py#ccf9aca7fd	38057	C5-long	68 words	The two exact command strings are unique to their run lines, and the two artifacts the removal arm keys on are the gone 
+HIT	tests/entities.py#a8e9143635	38081	C5-long	42 words	The class's seam rule: every tracked shell file naming the variable is an emitter, and each one unsets it from what it e
+HIT	tests/entities.py#e1b9e05557	38276	C5-long	43 words	One extra execution over that window must turn the ratchet red, and exactly the recorded count must not -- so a budget l
+HIT	tests/entities.py#cdfe166027	38392	C5-long	52 words	The CPU-bounded checker runs alone (R10-CI-LAYOUT PR 0, round 3). harness_headers.py bills each harness's CPU against bo
+HIT	tests/entities.py#bbfde7788c	38458	C5-long	42 words	W1 (R10-CI-LAYOUT PR 1, owner ruling D-4): the round-9 C1 composition -- one script's closure recorded inside `coverage`
+HIT	tests/entities.py#ac4d673b1a	38490	C5-long	49 words	Round 9's closure-proof job's first run died resolving `actions/checkout@<40-hex>` before any step: the pin in its job b
+HIT	tests/entities.py#ac4d673b1a	38490	C5-long	48 words	The class's seam is that this repository pins each `actions/*` action at ONE canonical commit across every workflow, so 
+HIT	tests/entities.py#2689a923d3	38520	C5-long	41 words	Every red `mutation` job in the RCA's retained window (2026-09-11..17) was this arm -- the baseline guard -- and none wa
+HIT	tests/entities.py#d7e36f4e97	38696	C5-long	50 words	A run with one survivor cost two full sweeps of the driver net back to back -- the baseline serial on one tree, then the
+HIT	tests/entities.py#b10d2edd58	38816	C5-long	47 words	harness_headers.py bounds each round harness by CPU seconds, and a CPU second billed beside the pool is not one billed a
+HIT	tests/entities.py#9bc0f2761f	38896	C5-long	46 words	That is not what the pin above measures, and the two are one word apart: `deferred_drivers` postpones a driver's baselin
+HIT	tests/entities.py#a418d50338	38918	C5-long	50 words	Scoped to the pair means the difference is a subset of EXCLUSIVE at each file, and the union over the whole tree loses e
+HIT	tests/entities.py#3f5c127da1	38953	C5-long	43 words	Driven against the REAL ledger as well as a fixture: the fixture separates the pair's rows from another driver's and fro
+HIT	tests/entities.py#c105d82f59	39142	C5-long	42 words	The verdicts are the serial sweep's: a mutant is killed iff SOME driver kills it, and LIVES only once every one of its d
+HIT	tests/entities.py#740166bd20	39245	C5-long	41 words	That is NOT the `0.3x-3.4x` in `closure.py`'s SECONDS_BAND comment, which states how much one script's RECORDINGS vary r
+HIT	tests/entities.py#740166bd20	39245	C5-long	103 words	What binds is the band: it keeps a committed value up to 2x below the cost CI last measured, so 3x the solo number left 
+HIT	tests/entities.py#9867e9dad0	39300	C5-long	41 words	Null control, re-taken at THIS merge base: a driver whose solo recording already covers its pool cost is untouched -- th
+HIT	tests/entities.py#9867e9dad0	39300	C5-long	52 words	Committed solo seconds via the tree's own recorded_seconds(); pool costs are the CI-measured values from job 11323389092
+HIT	tests/entities.py#95bc3c670c	39410	C5-long	52 words	The five checks above drive the functions; none of them would notice a `main()` that never called one -- "defined-but-ne
+HIT	tests/entities.py#c525754375	39437	C5-long	42 words	The save is pinned to `if: always()` IN THE MEASURING JOB and pinned ABSENT from `mutation-ledger-push`, which is the tr
+HIT	tests/entities.py#f67b58349d	39507	C5-long	41 words	Admission reserves each undecided mutant's EXCLUSIVE run and releases it on a kill: mutant 0 is killed by tests/a.py, so
+HIT	tests/entities.py#bf5fd97b69	39544	C5-long	66 words	R9-CI-1 round 2: the tail cut told the never-started lie. live-power-clamp's shard 3 (run 37925123437, base b2b6acd64) r
+HIT	tests/entities.py#e56d81b03d	39584	C5-long	86 words	The budget's ceilings, derived 2026-10-09 from the draw_range-class measurement (run 37925123437 shard 3): a 5-site all-
+HIT	tests/entities.py#2af0db15b9	39753	C5-long	109 words	`--pin-killed` is the autofix lane's measuring half: every site a diff adds unpinned is driven by every driver whose rec
+HIT	tests/entities.py#ee9e1043f7	39871	C5-long	55 words	Four mutants of one 40 s driver each under a deadline of 100: the serial schedule starts a mutant only if its whole swee
+HIT	tests/entities.py#cf7faddcef	39911	C5-long	45 words	A pair `reach_skip` frees costs no run, so admission must not charge it (R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT): the drain's
+HIT	tests/entities.py#cf7faddcef	39911	C5-long	41 words	The fixture of the check above plus a 1000 s driver every mutant's trace frees: charged, it closes the pool before the f
+HIT	tests/entities.py#d2925966be	39960	C5-long	49 words	The split charged every admitted mutant its EXCLUSIVE tail up front -- stress.py and harness_headers.py at three runs ea
+HIT	tests/entities.py#d2925966be	39960	C5-long	54 words	The tail runs only for a mutant that survives every shared driver, so the split now admits on the shared work alone and 
+HIT	tests/entities.py#cf337f1690	40057	C5-long	68 words	R9-CI-1 round 2: #2070's pin run (head 3ecb86adaf, run 37890872462) split 49 sites into 9 shards and 8 REFUSED in under 
+HIT	tests/entities.py#e1aa2a380c	40189	C5-long	44 words	R9-F10.13 arm A: a mutant on a line a survivor_triage mark names makes that mark stale in the mutated tree, so the stale
+HIT	tests/entities.py#46b8da37c7	40320	C5-long	41 words	Only the two things that cost disk and processes are stubbed -- the worktree builder and the driver runner -- so the che
+HIT	tests/entities.py#46b8da37c7	40320	C5-long	53 words	Two stub drivers stand in for the scripts: one that fails on a mutated file and one that never does. topology.py's `_tr`
+HIT	tests/entities.py#de9cf6bf0f	40339	C5-long	53 words	The stub killer tells that edit from a mutant by this text, never by its marker words: the mutation lane's null control 
+HIT	tests/entities.py#a5268fe0a8	40450	C5-long	50 words	The same re-drive from a file the mutation lane's null control already commented: every mutant of it carries the null co
+HIT	tests/entities.py#717422c78d	40463	C5-long	45 words	The rows a rewrite invalidates, on the real ledger: a pinned line rewritten equivalently (a trailing comment) loses exac
+HIT	tests/entities.py#c91fb8d188	40648	C5-long	43 words	The null control's runs are baseline-phase tasks: every driver in play runs under it (none stops at a kill -- drive_base
+HIT	tests/entities.py#8132c0465c	40677	C5-long	58 words	The class: a number read off a Home Assistant State with its unit never consulted, so an öre/kWh price reached the plan 
+HIT	tests/entities.py#8132c0465c	40677	C5-long	41 words	The rule: in every package module but inputs.py, a call to float() or _as_float() whose argument derives -- through loca
+HIT	tests/entities.py#d2520b76eb	40816	C5-long	45 words	#1536: a comment abbreviated a real identifier to a shorthand that occurs nowhere in code (const.py's bare ``MIN_POWER``
+HIT	tests/entities.py#6f4f9563f9	40846	C5-long	43 words	The barrier is keyed on the PROPERTY -- a dependency-install command in a `run:` step of ANY workflow -- not on the twel
+HIT	tests/entities.py#6f4f9563f9	40846	C5-long	50 words	NOT covered, deliberately: `apt-get install` (the distribution's signed archive, which OpenSSF Scorecard's Pinned-Depend
+HIT	tests/entities.py#6cec0ce969	41034	C5-long	51 words	Dependabot rewrites the version at every `name==` match in a lock, the comment included, and leaves the hash block of a 
+HIT	tests/entities.py#3354ca2c92	41068	C5-long	57 words	What it would take a night to notice -- an invariant that can no longer fire, a committed fixture carrying a token or an
+HIT	tests/entities.py#5fc98ed67a	41180	C2-moved	tools/audit/briefs/judge.md	not tracked; same name at dev/governance/roles/judge.md
+HIT	tests/entities.py#5fc98ed67a	41180	C2-moved	.claude/workflows/check-wave-script.mjs	not tracked; same name at tools/policy/check-wave-script.mjs
+HIT	tests/entities.py#9c977f9e4e	41432	C5-long	41 words	--- R9-EG-B2 (#1742, #1739 surface half): identity and coordinator reads --- The entity platforms read the coordinator t
+HIT	tests/entities.py#f22ef5eb2c	41572	C5-long	45 words	What a collaborator may not do is touch a coordinator private: its inputs arrive as explicit parameters (the pump arbite
+HIT	tests/entities.py#85628b3543	41644	C5-long	62 words	Rule: the keys of every dict a producer returns, assigns to what it publishes or passes to ``update``, plus ``data["k"] 
+HIT	tests/entities.py#fc1112e25e	41812	C5-long	42 words	--- the GitHub Pages deploy (R9-WEB-2) -------------------------------------- `.github/workflows/pages.yml` publishes th
+HIT	tests/entities.py#fc1112e25e	41812	C5-long	60 words	The staging is pinned by RUNNING it, not by reading it: the step named "Stage the site" runs in a scratch repository hol
+HIT	tests/entities.py#a052b056d9	42068	C5-long	56 words	The page is staged from the dispatched ref's tree BEFORE the release is checked out (a tag older than plan_public.py cou
+HIT	tests/entities.py#36586332d0	42204	C5-long	57 words	What mypy cannot see is pinned here: that the slice IS one Payload inherits (a view typed with a private TypedDict would
+HIT	tests/entities.py#b153db08f3	42496	C5-long	54 words	The cache is unit-pinned in `policy_lint.mjs`'s acceptance, but the saving only exists if every invocation of the three 
+HIT	tests/entities.py#7c0538ef73	42529	C5-long	68 words	Three properties, each read from the artifact that runs: Nightly's enumerate step prints its own spend (M0's pair, carry
+HIT	tests/entities.py#e3cebcb8d2	42652	C5-long	54 words	M1's record reads W + 3P a run (4 + 8 + 9), O-1's push arm W (1 + 2 + 3); the enumerate reads one call a merge on every 
+HIT	tests/entities.py#b8887a3220	42667	C5-long	55 words	R10-UX-HEALTH arm A, the backend end: every key an InputReader read takes -- the keys the Input Problem sensor's `input_
+HIT	tests/entities.py#84c3a8f9f6	42739	C5-long	44 words	This reads the TRACKED file through the program's own reader (fixer.md step 11: pin the artifact the check reads), then 
+HIT	tests/entities.py#0e25e8e509	42778	C5-long	54 words	R10-CLONE-2238 (#2238, class P2) P6: an evidence sensor's attributes -- its payload block, ``waiting_for`` and one insig
+HIT	tests/entities.py#90639eec98	42850	C2-moved	tools/audit/README.md	not tracked; same name at README.md, dev/README.md, dev/archive/README.md
+HIT	tests/env_drift.py#496c995876	1	C5-long	41 words	`valve_storage_smart_write`, `wood_two_tank`, `wood_two_tank_smart_write`, `wood_coil` and `valve_upper_direct_slab` do 
+HIT	tests/env_drift.py#496c995876	1	C5-long	72 words	The baseline half of that pair is the slowest step in the whole suite and is identical for every branch forked from the 
+HIT	tests/env_drift.py#496c995876	1	C5-long	55 words	A stale claim whose line the branch itself wrote additionally gets the named RUNNER-CONDITIONAL CANDIDATE message and it
+HIT	tests/env_drift.py#496c995876	1	C5-long	57 words	The file is committed, so without those rules it outlives the PR that wrote it: v4.0.7, v4.2.0 and v4.3.0 each moved no 
+HIT	tests/env_drift.py#496c995876	1	C5-long	57 words	Exit 1: this branch moved a fixture the reference does not move in this environment — either a regression, or a behaviou
+HIT	tests/env_drift.py#32b631a8a9	139	C5-long	43 words	: The owner-sanctioned #1208 movers (owner ruling #1208 comment 5748462577 : via 5749712766 option (a) for the first two
+HIT	tests/env_drift.py#32b631a8a9	139	C5-long	134 words	These are NOT : gate-declared BLAS-sensitive fixtures -- they are the fixtures : polish-every-candidate (#1208) moves by
+HIT	tests/env_drift.py#32b631a8a9	139	C5-long	44 words	The rulings scope this to exactly these : three names -- not the blanket 11-fixture exemption #996 (i) refused -- : and 
+HIT	tests/env_drift.py#b460a74148	170	C5-long	54 words	: The owner-sanctioned #1207 movers (OWNER DIRECTIVE, in-session 2026-09-20, : #1207 comment c1329fe / database id 57502
+HIT	tests/env_drift.py#b460a74148	170	C5-long	145 words	Same class as : the #1208 set, one diff earlier in the same polish path: these are the : fixtures the restart keep-gate 
+HIT	tests/env_drift.py#b460a74148	170	C5-long	74 words	WHICH runner sees any of : them move is a property of the runner's BLAS and not of the diff -- : the same runner-conditi
+HIT	tests/env_drift.py#b460a74148	170	C5-long	47 words	The directive and ruling scope this set : to exactly these twelve names -- not the blanket 11-fixture exemption : #996 (
+HIT	tests/env_drift.py#3112b88f24	251	C5-long	51 words	Those five fixtures are judged on whether they moved BETWEEN the two captures, and a cached baseline changes nothing abo
+HIT	tests/env_drift.py#3112b88f24	251	C5-long	80 words	Two pieces of evidence rather than the assertion alone: a cold run and a warm run of --all against the same ref both rep
+HIT	tests/env_drift.py#11de20846a	324	C5-long	76 words	A merge to main moves every : open PR's merge-base at once, so they all miss the cache and each pays : a full cold captu
+HIT	tests/env_drift.py#6287023c58	335	C5-long	43 words	: Environment variables that can change what a capture computes: the : timezone and locale, every BLAS/OpenMP threading 
+HIT	tests/env_drift.py#e5ed4f0c2f	350	C5-long	74 words	The namespaces used to be prefix-matched too, which : split the key on the harness contract's plan-data path and on the 
+HIT	tests/env_drift.py#509c3bc052	739	C5-long	64 words	Measured on #2819 round 4 (#996 comment 6404201979): the parked classifier arm turns a share the plan runs no pump at in
+HIT	tests/env_drift.py#509c3bc052	739	C5-long	56 words	Fail closed: a line that does not parse refuses the run (`shape_claim_error`), a from-set meeting the to-set (both direc
+HIT	tests/env_drift.py#509c3bc052	739	C5-long	44 words	Being a bare line, it is a claim in every other respect: it expires with `claims-for:`, is judged by the inherited and r
+HIT	tests/env_drift.py#7f57ac764e	893	C5-long	47 words	So list LENGTHS are machine-sensitive in this payload set and are reported at level 3 rather than gated, and list elemen
+HIT	tests/env_drift.py#e4b9b18284	2129	C5-long	72 words	: Test files whose contents decide what a capture PRODUCES, so a diff : touching one of them can move a fixture with no 
+HIT	tests/env_drift.py#e4b9b18284	2129	C5-long	46 words	Seeding options in ``capture_config_flow`` moved : the ``config_flow`` fixture against the merge base while the three-do
+HIT	tests/env_drift.py#7704a22312	2178	C5-long	95 words	: Every path ``tools/release/stamp.py`` writes, and nothing else: its : docstring's "What it writes" list, which ``git a
+HIT	tests/env_drift.py#f10d1cb2d7	2448	C5-long	41 words	The : fail-fast arm below tells a seat to post one per recorded instance, and : tests/issue996_count.py counts exactly t
+HIT	tests/env_drift.py#ffbc64bfb7	2544	C5-long	47 words	The branch's OWN claim list is read from the PR head when CI names one (CLAIM_HEAD), not from the checkout -- which is t
+HIT	tests/env_drift.py#ffbc64bfb7	2544	C5-long	44 words	On a pull_request `ref` is main's TIP, not the branch's merge base, so a branch that touched no claim file while main mo
+HIT	tests/env_drift.py#fd81fadadc	2908	C5-long	46 words	Every failure mode here -- no ref SHA, an unreadable cache directory, numpy missing, a cache path inside the repo -- tur
+HIT	tests/env_drift.py#067849ac0c	2943	C5-long	45 words	The worktree is built even on a hit: it costs a second or two against the twenty minutes the capture costs, and it keeps
+HIT	tests/env_drift.py#067849ac0c	2943	C5-long	42 words	These two are resolved a second or so apart -- long enough for a `git fetch` in another worktree sharing this .git to mo
+HIT	tests/env_drift.py#367ffe6494	3026	C5-long	41 words	The branch capture is a fresh computation of every scenario, so the committed files can be judged against it for free --
+HIT	tests/env_drift.py#ec72a26f0d	3042	C5-long	43 words	The five-fixture mode captures SENSITIVE and nothing else, so a claim for config_flow or a coord_* capture could never l
+HIT	tests/env_drift.py#8286d8f600	3089	C5-long	46 words	#996 fail-fast, BEFORE the generic paragraph: a stale claim whose line this branch wrote is the runner-conditional signa
+HIT	tests/env_drift.py#63d990f37c	3103	C5-long	44 words	A stale claim is not drift and must not be counted as one: the three historical CI failures on main printed "N UNCLAIMED
+HIT	tests/ha_contract.py#21718b7b18	2	C5-long	44 words	Four divergences were found the expensive way -- one per seat, after the fact -- and the pattern each time was that the 
+HIT	tests/ha_contract.py#4aa65e28b8	812	C5-long	53 words	Every expect="both" contract of a fed symbol is re-run with the hook in each state the suite puts it in: a hook upstream
+HIT	tests/ha_contract.py#0e846f7d58	2678	C5-long	59 words	-- the three public pass-throughs (#947) ------------------------------------ The stub's platform bases declared no devi
+HIT	tests/ha_contract.py#0ab73c48b8	2885	C5-long	43 words	The fidelity half of the stub-only Store decode contract, executed against upstream: the real provider reads each case t
+HIT	tests/ha_floor.py#af3d9017ff	2	C5-long	55 words	Guarded, and not checked: a node inside the body of a ``try`` whose handlers catch ImportError, ModuleNotFoundError or A
+HIT	tests/ha_floor.py#af3d9017ff	2	C5-long	41 words	A branch that adds a Home Assistant name re-records, in the same branch: ``python3.13 tests/ha_floor.py record`` (any Py
+HIT	tests/harness_headers.py#e55a0246b8	80	C5-long	80 words	The corpus holds two kinds of harness and executing both was measured wrong (#987's review found the drift; extending ex
+HIT	tests/harness_headers.py#e55a0246b8	80	C5-long	61 words	This read used to be `p.read_text()[:4000]`, and the marker is the LAST line of a header that grows: claims.py -- the ha
+HIT	tests/harness_headers.py#878832187c	122	C5-long	59 words	A generator whose output disagrees with what is committed is a stale register BY CONSTRUCTION, and this is the arm that 
+HIT	tests/harness_headers.py#878832187c	122	C5-long	49 words	This script is `run_always`, so it runs in a seat's worktree, where uncommitted work is the ordinary state; a check that
+HIT	tests/harness_headers.py#b36ba18f76	180	C5-long	42 words	The hang bound is CPU seconds, not wall seconds (F10.11): the mutation lane's parallel pool stretched the frontier harne
+HIT	tests/harness_headers.py#b36ba18f76	180	C5-long	45 words	A CPU second is not load-independent either: dev/audit/rounds/round4/D7/ sysid_estimator_frontier.py costs 96.8 CPU-s se
+HIT	tests/harness_headers.py#b36ba18f76	180	C5-long	63 words	So this script is EXCLUSIVE in that pool and is billed what run.sh's serial lane bills it, and each bound below is sized
+HIT	tests/harness_headers.py#b36ba18f76	180	C5-long	42 words	CPU_HEADROOM reds, with the figure, a harness whose ordinary work costs more than half its bound -- for the frontier 240
+HIT	tests/hastub/homeassistant/components/diagnostics.py#c26f2bdca3	1	C5-long	51 words	Faithful to upstream in the two places that are easy to get wrong, because real Home Assistant is not installed here and
+HIT	tests/hastub/homeassistant/components/recorder/history.py#4ee824f3d9	1	C5-long	61 words	Upstream reads the database; what is kept is its window rule, read at the 2025.2.0 floor (``history/modern.py``): every 
+HIT	tests/hastub/homeassistant/config_entries.py#6b99eaa597	1	C5-long	42 words	Since #514 raised the ``hacs.json`` floor to 2025.2.0 this mirror is OLDER than the floor, which is the safe direction: 
+HIT	tests/hastub/homeassistant/config_entries.py#6b99eaa597	1	C5-long	46 words	``async_set_unique_id`` and ``_abort_if_unique_id_configured`` look the unique id up through ``hass.config_entries.async
+HIT	tests/hastub/homeassistant/config_entries.py#6b99eaa597	1	C5-long	58 words	the handler registry the real ``ConfigFlow.__init_subclass__`` populates (``HANDLERS.register(domain)(cls)``) feeding ``
+HIT	tests/hastub/homeassistant/config_entries.py#a3effa9da9	195	C5-long	47 words	Imported here, not at module level: every test script imports this module, and only the ones that reach the guard should
+HIT	tests/hastub/homeassistant/exceptions.py#5f0e3317e0	1	C5-long	45 words	Kept faithful to the real classes the integration relies on: the service layer raises ``ServiceValidationError`` for bad
+HIT	tests/hastub/homeassistant/helpers/issue_registry.py#8a562029b5	1	C5-long	49 words	What the tests need to pin is the wiring — that a trip raises exactly one issue with the right translation key, and that
+HIT	tests/hastub/homeassistant/helpers/storage.py#7359ecc056	1	C5-long	42 words	A document that fails to decode is moved aside and loads as ``None``, as upstream's ``_async_load_data`` renames a corru
+HIT	tests/hastub/homeassistant/helpers/storage.py#22bab3f747	77	C5-long	41 words	Writes per storage key, counted in ``async_save`` itself so a test can prove not just what a store holds but how often i
+HIT	tests/hastub/homeassistant/helpers/update_coordinator.py#c3875f37d1	1	C5-long	47 words	They now run the chain as upstream 2025.2.0 does -- including ``always_update=True`` as the constructor default, so list
+HIT	tests/hastub/homeassistant/helpers/update_coordinator.py#c3875f37d1	1	C5-long	57 words	What is deliberately still absent (the inventory entry in ha_contract.py is the authority): the loop-driven interval sch
+HIT	tests/hastub/homeassistant/helpers/update_coordinator.py#c75b789a51	148	C5-long	47 words	Upstream's default (:75, :92) is True, and the integration's coordinator constructs with no override, so listeners are f
+HIT	tests/hastub/homeassistant/util/dt.py#b3dc8e8abb	47	C5-long	57 words	A frozen value is normalised on the way out: an aware one is converted into the configured zone (UTC when none is, upstr
+HIT	tests/host_probe.py#435a8d2711	2	C5-long	57 words	CI runs it as a step named PROBE_STEP in each heavy `tests / *` job, after actions/setup-python, so under the job's own 
+HIT	tests/host_probe.py#435a8d2711	2	C5-long	55 words	The work never changes: a change to ROUNDS or to work() changes the unit every recorded critical_path_minutes is in, so 
+HIT	tests/issue996_count.py#c035b19839	1	C5-long	52 words	The two instances the decision already priced (v5.1.7's search-path chaos, #992's valve_storage_small_tank) were seeded 
+HIT	tests/issue996_count.py#c035b19839	1	C5-long	58 words	`ci-autofix.md` capped that family at two jobs when this was written, a CI job with write permissions is a larger standi
+HIT	tests/lane_skip.py#59f6bbd929	2	C5-long	50 words	The merge train re-asks the whole CI gate every time it carries a pull request over a main that moved, and a re-dispatch
+HIT	tests/lane_skip.py#59f6bbd929	2	C5-long	46 words	This module is the lever the owner commissioned (2026-10-12) that lets a lane report ``skipped`` instead -- a conclusion
+HIT	tests/lane_skip.py#59f6bbd929	2	C5-long	57 words	If that commit is still this run's merge base, then base tree and diff are both unchanged, so the tree under test is the
+HIT	tests/lane_skip.py#59f6bbd929	2	C5-long	49 words	The lane's run set is still selected from THIS pull request's diff alone (``run.sh`` diffs against the merge base, and t
+HIT	tests/lane_skip.py#59f6bbd929	2	C5-long	127 words	a planted defect in main's delta that intersects the selected closure MUST land on RUN (the planted-defect arm below -- 
+HIT	tests/lane_skip.py#59f6bbd929	2	C5-long	58 words	A main-side break that lands inside a skipped lane's closure is no longer caught by this pull request's rerun: it is cau
+HIT	tests/lane_skip.py#befea15d5a	91	C5-long	43 words	A pull request whose every file is a roster under dev/programme/rosters/ or a canonical delivery row dev/programme/deliv
+HIT	tests/lane_skip.py#04917597a4	188	C5-long	51 words	A `full` plan carries every selectable script in the same field, so the conservative shape -- a plan that refuses to sco
+HIT	tests/layout.py#1b5e274302	2	C5-long	42 words	tests/layout.json is the TARGET tree of the reorganisation (lane RO): ordered categories of globs, the `retired` paths t
+HIT	tests/layout.py#f37477bf62	288	C5-long	69 words	Each exemption is keyed on the ENTRY, never on the line: a line is not a citation of `old` when it also names that entry
+HIT	tests/layout.py#1813de6321	318	C5-long	58 words	the policy-lint config, whose keys are spelt old ON PURPOSE (`canon`'s spelling until R9-RO-9 retires `canon`, so a key 
+HIT	tests/manual_plan.py#3f359249ff	389	C5-long	48 words	The step is picked from the plan, not hard-coded: a pin can only add a run where the tank has room for one, and since v5
+HIT	tests/manual_plan.py#13de0b7c9b	1271	C5-long	41 words	The property that matters is not that some power was scheduled, but that the house ends up as warm as it would have been
+HIT	tests/manual_plan.py#f939f2e2b2	1332	C5-long	42 words	Measuring it in price entries instead -- which are hourly, not per step -- covers only a quarter of the day, so a late s
+HIT	tests/manual_plan.py#0e0bf21284	1676	C5-long	47 words	: Overrides now expire a fixed number of hours from the moment they are : applied, so the old reason for freezing the cl
+HIT	tests/md_tables.mjs#3c02d0570b	1	C5-long	51 words	Metric (one line, unchanged from the finder): source lines in README.md + docs/{architecture,automations,configuration,d
+HIT	tests/md_tables.mjs#3c02d0570b	1	C5-long	46 words	Unlike the finder's copy under dev/audit/rounds/round9/ (evidence-only, not in main's tree, and needing a throwaway `npm
+HIT	tests/md_tables.mjs#8f7e968e8a	85	C5-long	42 words	Null control: the exact anti-legionella (orphaned) and fuel-price (swallowed) shapes D5-s1-04 measured at baseline 1936d
+HIT	tests/mutation_table.py#a6b27ae3f7	2	C5-long	44 words	It cannot say a check would fail if the line were wrong, and five W5-G7 tranches measured the gap: twenty-two checks exe
+HIT	tests/mutation_table.py#a6b27ae3f7	2	C5-long	56 words	Each mutant is driven only by the scripts whose recorded closure reaches its file.** Driving every script would cost a f
+HIT	tests/mutation_table.py#a6b27ae3f7	2	C5-long	46 words	A kill is a failing check, read out of the whole output.** #805 recorded the alternative to reading all of it: a pre-scr
+HIT	tests/mutation_table.py#a6b27ae3f7	2	C5-long	50 words	An exit status alone is not a failed check: #1453 scored structure.py's "improved, not yet recorded" exit as a kill, and
+HIT	tests/mutation_table.py#a6b27ae3f7	2	C5-long	66 words	The budget carries two caps, for two different things.** The survivor FRACTION (`max_survivor_fraction`) stays a one-sid
+HIT	tests/mutation_table.py#a6b27ae3f7	2	C5-long	51 words	A site is unpinned until it carries a disposition -- a `killed_by` driver or a `survivor_triage` verdict, keyed by the s
+HIT	tests/mutation_table.py#a6b27ae3f7	2	C5-long	50 words	When the audit measures a survivor indistinguishable from its original at every input, record it under `survivor_triage`
+HIT	tests/mutation_table.py#1c5623acf8	132	C5-long	51 words	The `seconds` it scales is the larger of the committed solo recording and the last measured POOL cost (`seed_pool_second
+HIT	tests/mutation_table.py#1c5623acf8	132	C5-long	41 words	A factor below 1 is no hazard, it is a recording stale high; the top end is what binds, because 3x a solo number the ban
+HIT	tests/mutation_table.py#d6b99c9ca3	204	C5-long	62 words	CMP_BOUND (R9 F10.6, the I1 RCA's residual (b)) moves one ordering bound by one: before it no operator touched a compari
+HIT	tests/mutation_table.py#fbbd73a148	472	C5-long	47 words	Drivers that compare this tree against a REF rather than a recorded fixture. tests/run.sh exports GOLDEN_REF (default or
+HIT	tests/mutation_table.py#5200a991e0	540	C5-long	47 words	A survivor is not automatically a defect (#1217, D3-07): a mutant measured EQUIVALENT to its original -- no input can te
+HIT	tests/mutation_table.py#5200a991e0	540	C5-long	55 words	The marks live in tests/mutation_budgets.json under "survivor_triage", keyed by the site's content anchor (see `anchor_s
+HIT	tests/mutation_table.py#8d612b7963	574	C5-long	55 words	A `FILE:LINE KIND` key moved whenever any edit above the site shifted the file, so every merge that shifted a production
+HIT	tests/mutation_table.py#677445791a	740	C5-long	47 words	The fraction cap above is a sample: the seeded draw over `--per-file` and `--max` reaches ~1% of the tree, so a guard th
+HIT	tests/mutation_table.py#677445791a	740	C5-long	47 words	The inventory below enumerates EVERY candidate the ratcheted operators generate, deterministically -- `candidates()` wal
+HIT	tests/mutation_table.py#a05d7bd29e	978	C5-long	53 words	Of identical lines in one file, every site first takes a base twin under its own def, and only then may a leftover take 
+HIT	tests/mutation_table.py#654811cd96	1432	C5-long	46 words	It drives a slice of the unpinned stock with the same kill rule, baseline and null control, and writes what it killed as
+HIT	tests/mutation_table.py#ce5bed5d0a	1916	C5-long	53 words	This grader is a single standard-library file on purpose -- a job may restore it from the base and run it under `python3
+HIT	tests/mutation_table.py#e7b7a1df36	2345	C5-long	59 words	The baseline drove every driver in play on one tree while the other workers idled -- one full sweep of the net, which #1
+HIT	tests/mutation_table.py#e7b7a1df36	2345	C5-long	43 words	No driver leaves the net and no mutant stops sooner than it did, so every verdict is the one the serial sweep gave; only
+HIT	tests/mutation_table.py#652d318f99	2367	C5-long	61 words	Drivers that measure the MACHINE while they run, so they never share it. stress.py times its solves against tests/stress
+HIT	tests/mutation_table.py#652d318f99	2367	C5-long	59 words	harness_headers.py bounds each round harness it executes by CPU seconds, and a CPU second billed beside the pool is not 
+HIT	tests/mutation_table.py#652d318f99	2367	C5-long	65 words	--scope full does NOT drive these at all (`scope_deferred` below, #1930 (a), R9-RC-NIGHTLY-DEFER): exclusivity keeps the
+HIT	tests/mutation_table.py#652d318f99	2367	C5-long	49 words	Deleting them is not landable either -- the ratchet is base-relative (`ratchet_refusal` against `base_unpinned`) and a c
+HIT	tests/mutation_table.py#5216fc258e	2450	C5-long	49 words	A driver whose run never executes a mutated line runs the mutated program exactly as it runs the original until the mome
+HIT	tests/mutation_table.py#f07a083263	2487	C5-long	54 words	Every record is one line appended with `os.write` before the traced instruction runs, so a process killed mid-run (the s
+HIT	tests/mutation_table.py#72ccedc35a	2916	C5-long	132 words	--pin-killed's pool is not the sampled lane's: every site the diff added must be driven to a verdict, there is no --max 
+HIT	tests/mutation_table.py#ca5a00264e	3487	C5-long	51 words	The pin drive's fixture: the driver seconds the two overrun incidents paid (tests.yml's baseline lines on #1779 and #188
+HIT	tests/mutation_table.py#0fe821bfad	3911	C5-long	53 words	The null control is the RUN's, one per refusal, so it is drawn from the pool as the run defined it -- before --shard sli
+HIT	tests/mutation_table.py#362b26f5c8	4209	C5-long	46 words	Persist the pool cost this lane measured, merged over the prior seed (fresh per script, prior kept for one not measured 
+HIT	tests/nightly_ha.py#7fbc9141aa	2	C5-long	152 words	=== ==================================================== ========== ======= A1 the entry reaches ``loaded``, both image 
+HIT	tests/nightly_ha.py#7fbc9141aa	2	C5-long	57 words	It breaks the Tibber counterparty (HTTP 500, not 401 -- 401 starts reauth) in two phases and does not poke ``last_update
+HIT	tests/nightly_ha.py#7fbc9141aa	2	C5-long	53 words	The counts are bullet-level, stable in ranking and about +/-15 in absolute terms; the two largest classes in the record 
+HIT	tests/nightly_ha.py#7fbc9141aa	2	C5-long	52 words	A15 is a diagnostic, not a barrier (#1758): the v6.6.0 options-flow freeze has no established cause, so its third boot, 
+HIT	tests/nightly_ha.py#7fbc9141aa	2	C5-long	62 words	A16 is the size check the debugger pre-study owed this lane (#1940, its section 8): a planted week goes through ``diagno
+HIT	tests/nightly_ha.py#7fbc9141aa	2	C5-long	45 words	Nightly, on dispatch, and on a pull request whose three-dot diff touches this file or another one the driver reads outsi
+HIT	tests/nightly_ha.py#d542535c6e	287	C5-long	66 words	the 1 ms call_later probe #1758 asks for how often the watching thread reads the last tick a stall this long is dumped w
+HIT	tests/nightly_ha.py#ede3ca2749	294	C5-long	66 words	On an interpreter that ships CPython's own remote unwinder (3.14+) it is that unwinder, run in a child; elsewhere (the 3
+HIT	tests/nightly_ha.py#3be6cb2544	311	C5-long	41 words	A healthy sample returned in at most 0.15 s on all 710 in-image py-spy samples the #2479 RCA took (dev/audit/rca/nightly
+HIT	tests/nightly_ha.py#1704aa57c0	415	C5-long	68 words	Named rather than "the integration raised nothing", because a defaults-only entry with no lower-floor sensor and no legi
+HIT	tests/nightly_ha.py#743f7c2b91	443	C5-long	47 words	#525's two entries stood here after #540 removed both, and the run went green either way -- one check with a subset test
+HIT	tests/nightly_ha.py#743f7c2b91	443	C5-long	41 words	So a handler `atexit` invokes, on that same thread after the loop is gone, is reported in the same words as a genuine on
+HIT	tests/nightly_ha.py#743f7c2b91	443	C5-long	47 words	The log carries the discriminator: the warning ends with `traceback.format_stack(f=integration_frame.frame)`, which prin
+HIT	tests/nightly_ha.py#743f7c2b91	443	C5-long	55 words	Establish the caller before adding an entry below, and add none for a line an on-loop route could also reach: the key is
+HIT	tests/nightly_ha.py#72f3c5516a	1185	C5-long	44 words	A changed key carries its two values: `peak_tariff_window_minutes` moved on the lane's first named run and the name alon
+HIT	tests/nightly_ha.py#0b4aed1db2	2848	C5-long	41 words	A disabled registry entry has no state object at all, which is the same shape as an entity that failed to add -- so they
+HIT	tests/nightly_ha.py#b107e22aad	3373	C5-long	44 words	#536: the contract module and the stub it speaks about, mounted beside the driver rather than under /config -- nothing h
+HIT	tests/nightly_status.py#bd479e3042	2	C5-long	46 words	The countermeasure the root-cause seat costed and REJECTED was a job that files an issue: it needs `issues: write` again
+HIT	tests/nightly_status.py#bd479e3042	2	C5-long	45 words	The property that made `nightly-ha` unrequired is real -- it can go red for a registry outage or a Home Assistant releas
+HIT	tests/nightly_status.py#bd479e3042	2	C5-long	44 words	Staleness is decided on the newest concluded run whatever its conclusion, and it wins over FAILED: a failure from nine n
+HIT	tests/nightly_status.py#bd479e3042	2	C5-long	44 words	A check that goes green when it could not look is worse than no check, because it converts an open defect into a closed 
+HIT	tests/nightly_status.py#3326abf75e	154	C5-long	45 words	`nightly.yml`'s cron is daily -- the same fact `MAX_AGE_NIGHTS` counts in -- so its first slot falls within one period o
+HIT	tests/nightly_status.py#7fa63f07d0	188	C5-long	64 words	`workflow_dispatch` is the VERIFICATION a red report now obliges: without it a seat who fixes the nightly has no way to 
+HIT	tests/nightly_status.py#7fa63f07d0	188	C5-long	43 words	Widening the event set does NOT widen what counts, because the guard that actually stops a green pull-request run being 
+HIT	tests/nightly_status.py#5d5cc5dd39	684	C5-long	56 words	On 2026-10-01 one run of this job (PR #1808, 14:07Z) read the newest scheduled run as 2026-09-21 while the listing it qu
+HIT	tests/nightly_status.py#5d5cc5dd39	684	C5-long	48 words	A red that a re-ask clears teaches everybody to re-run the check -- the blindness this file exists to remove -- so a res
+HIT	tests/open_meteo.py#7a2b980023	422	C5-long	42 words	It is not a check because no single-line production mutation can make it fail while leaving it reachable -- such a mutat
+HIT	tests/open_meteo.py#a61198c9a2	571	C5-long	67 words	Both fixture blocks carry six samples, so a check asserting only len(...) == 6 stays green when production parses _humid
+HIT	tests/optimality.py#7b3210d4b8	1	C5-long	42 words	What this asserts is a floor: the plan must satisfy comfort, and no trivial challenger may beat it by a margin that says
+HIT	tests/optimality.py#7b3210d4b8	1	C5-long	54 words	Measured on the pinned test stack (2026-08): single-zone — greedy ties the optimizer to the öre and 0/300 perturbations 
+HIT	tests/optimality.py#388b7fa588	167	C5-long	52 words	The production path solves through objective_batch/_batch_fd_gradient; a control solve with the batch stripped falls bac
+HIT	tests/optimality.py#f3315e5815	276	C5-long	74 words	R4-D0-02 (#921) measured the asymmetry this closes: the iteration budget challenger 3 polices is never binding (0 of 488
+HIT	tests/optimality.py#f3315e5815	276	C5-long	157 words	Until D2-s2-01 it was _dhw_setup's own cell (winter_typical prices, winter_cold weather); once the hot-water tank paid o
+HIT	tests/optimality.py#ea58e24121	363	C5-long	42 words	The bound is half the smallest healthy gap measured across kernels, the derivation this check has used since #1207 (0.99
+HIT	tests/optimality.py#e22b3a6a91	372	C5-long	49 words	One forced-off manual pin is one (0, 0) bound out of 96, and until this section neither this file nor stress.py had ever
+HIT	tests/optimality.py#e22b3a6a91	372	C5-long	49 words	What #317 changed is precisely the gradient the solver descends on these bounds, and the way that fails is silent: a jac
+HIT	tests/optimality.py#c954fe1ab1	430	C5-long	60 words	The tighter L-BFGS-B stop rule (#1293) is refuted on money (that is why it is not in the diff; tests/backtest.py's shoul
+HIT	tests/optimality.py#515c6585ea	508	C5-long	42 words	--- #1295: the caller's previous plan as a candidate --------------------- The coordinator rebuilds the optimizer every 
+HIT	tests/optimality.py#d4d6c0a894	579	C5-long	44 words	Null control: a previous plan of the wrong width is dropped, not clipped or padded into a plausible-looking guess, so th
+HIT	tests/optimality.py#b3a779d235	619	C5-long	46 words	===== solve certificate over the energy-diverse cell grid (#1409) ========= The "sub-optimal solve" class escaped every 
+HIT	tests/optimality.py#b3a779d235	619	C5-long	83 words	Both the cell and the two sub-0.35 fractions therefore join here: 0.20 is the anchor the fix installs (its removal must 
+HIT	tests/optimality.py#166039f4b0	662	C5-long	58 words	The two-zone winter cell is : the cell production's new 0.20x anchor is for, so its challenger carries : that fraction -
+HIT	tests/optimality.py#a1d36b46e6	681	C5-long	56 words	: `two|winter_typical|winter_cold` is 0.1%-portable in one direction only. : Its ladder gap is the distance between prod
+HIT	tests/optimality.py#a1d36b46e6	681	C5-long	43 words	The bar sits between the two post-fix : readings and below the unfixed one, so the cell still fails locally when : the a
+HIT	tests/optimality.py#a1d36b46e6	681	C5-long	55 words	: WHAT THIS BAR CANNOT DO, stated rather than implied: it cannot separate : "the anchor is present but the runner lands 
+HIT	tests/optimality.py#6006469d2c	711	C5-long	90 words	: #2255 closed one|winter_narrow|shoulder (0.0000 % re-polish and ladder on : CI's linux fast lane and on the arm64 seat
+HIT	tests/plan_view.py#b0f47cbf23	137	C5-long	55 words	The tab reads the monthly-savings sensor's attributes, so the payload carries what that sensor publishes over a ledger s
+HIT	tests/replay.py#4931f0f34b	2	C5-long	85 words	WHAT IS SUBSTITUTED, and nothing else: the worker's child interpreter (``_ensure_worker``) -- the job still goes through
+HIT	tests/replay.py#4931f0f34b	2	C5-long	41 words	The fixture replays are nightly, and never a gate script (``tests/closure.py`` NOT_A_TEST); a pull request runs them onl
+HIT	tests/replay.py#d7d15f2307	228	C5-long	83 words	Such a sensor equal to a ``ThermalState`` default is no leaked : default when its configured value says the same: the ow
+HIT	tests/replay.py#65f526a4e9	377	C5-long	50 words	Two distinct NON-ZERO matched values at least: a published 0.0 beside an input idling at 0.0 is a coincidence of zeros, 
+HIT	tests/replay.py#003234287b	407	C5-long	41 words	: The multiple a budget must be able to see, as ``tests/stress.py``'s : DETECTION_TARGET: a budget is recorded at sqrt(2
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	55 words	: Per fixture: ``cpu_ratio`` (cycle CPU / reference-solve CPU, mean over the : timed cycles) and ``peak_kib`` (largest p
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	89 words	The commit that records a figure : names the machine; the band check validates it on whichever runner reads : it, since 
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	54 words	Entry allowed by tvofi (card B1). : The ruler was changed from the BLAS solve to a pure-Python workload : (#2270, owner 
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	42 words	The : series splits by ref_ms: ~22-34 (fast) read 0.316-0.405, ~52-55 (slow) : read 0.244-0.274, 1.66x overall; the clas
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	52 words	Normalising by a workload of the loop's own kind, on its : own clock, cancels MOST of the interpreter factor, not all of
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	64 words	The : scheduled slow lanes after #2339 read a tight 0.0868-0.0877 while their : rulers sat 1.26x apart (loop_ref_ms 128-
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	44 words	The figure moves with the : box, by 1.50x over the 44 readings of the current loop code in four : environments -- CI at 
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	100 words	A raise (CLAUDE.md rule 2): a 2x band holds a : spread under 2x and no more, so a box beyond it needs a paired reference
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	113 words	Re-recorded down again : for 17bb738485 (one BLAS ``ThreadpoolController``, #3349), which cut the : synthetic cycle's CP
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	89 words	The CI ``replay`` job reads the loop : wider: 0.128 and 0.1339 (ref30: jobs 125240101580, 125160076828), 0.1418 : and 0.
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	79 words	Owner fixture ``cpu_ratio`` : 235.8, 240.7 (ref_ms 30: job 125240101580 of run 41434115932, #3174; job : 125160076828 of
+HIT	tests/replay.py#e67b3a4a88	411	C5-long	53 words	Synthetic : ``cpu_ratio`` is keyed by runner class, ``COST_CLASS_BUDGETS``. : Owner ``cpu_ratio`` re-derived by the same
+HIT	tests/replay.py#3be663e254	508	C5-long	48 words	: Runner classes, by the job's BLAS ruler: the median ``ref_ms`` over the : fixture's runs in one job, its clean run and
+HIT	tests/replay.py#c1468f06be	541	C5-long	63 words	: Every CI draw on record: one row per job, fixture and run (``clean`` or a : doubled arm) with its rulers and figures, 
+HIT	tests/replay.py#95c845a0ea	548	C5-long	83 words	: Declared level cuts: a commit that moved one fixture's figure by a factor : measured INTERLEAVED on one box (its paren
+HIT	tests/replay.py#e098846b1e	563	C5-long	44 words	The CI runners' own: post-cut over the geometric midpoint of the class's pre-cut clean draws, ref40 1.7266 / (2.7594, 2.
+HIT	tests/replay.py#1f4f71ebf4	596	C5-long	47 words	: Fixtures the lane replays once, clean, without the three doubled-cost : arms: each arm is a whole replay, and a fixtur
+HIT	tests/replay.py#1f4f71ebf4	596	C5-long	54 words	The clean run still holds : its budget's band, (budget / 2, budget], so the budget can see a doubling; : the arms' own p
+HIT	tests/replay.py#6c17f863a5	618	C5-long	77 words	Fixed iterations, no numpy, no : data dependence, so every call : costs the same and no integration change can move it -
+HIT	tests/replay.py#e0236596db	635	C5-long	41 words	: Lookup keys, read through a dict, so the mix carries CPython's dict load : beside the arithmetic -- the interpreter wo
+HIT	tests/replay.py#b34b5e9275	1318	C5-long	56 words	: The review of #1508's leak probe (the first eleven): shapes of private data a recorder : row or a config entry can car
+HIT	tests/replay.py#02e3048885	1415	C5-long	42 words	: A Tibber install's registry rows, as Home Assistant core's Tibber : integration writes them (``export.py``'s TIBBER_* 
+HIT	tests/replay.py#5d50320955	2066	C5-long	50 words	A list under a key that does not end ``_entities`` is kept whole by ``sanitise`` (``_entry_shape``), so a non-id item be
+HIT	tests/replay.py#2e8aa5b9bb	2104	C5-long	42 words	: An invented Tibber token: letters first, no run of four digits, short enough : to pass as a unit -- so a copy of it in
+HIT	tests/replay.py#50f2ad0854	2975	C5-long	43 words	The set_away override with a return 12 h out, and a house 2 K below what recovery must reach (the fixture's sits above i
+HIT	tests/rolling.py#f0e6aa80e5	307	C5-long	50 words	"Settles" is a statement about *convergence*, and max-minus-min is a poor proxy for it: the simulation starts the house 
+HIT	tests/rolling.py#24d0bee1e4	431	C5-long	41 words	A pessimistic model -- the house is *tighter* than configured -- must not make the plan overheat, which is the failure m
+HIT	tests/rolling.py#7490268de2	454	C5-long	112 words	That property used to hold by accident -- the old 0.15/m/s wind default inflated the loss until the 6 kW pump bound -- s
+HIT	tests/run.sh#7ad2be96d2	2	C5-long	70 words	Scoping is off unless it is asked for, and it turns itself off again -- running everything -- whenever it cannot be sure
+HIT	tests/run.sh#3ec1463db3	105	C5-long	43 words	Left unexported, the defaults resolved on the two lines above would stay inside this shell: a plain `./tests/run.sh` wou
+HIT	tests/run.sh#094c2db172	115	C1-const	TOTAL=1	code assigns [0.0]
+HIT	tests/run.sh#aaed801772	135	C5-long	54 words	(#1725) ----------- The solver's floats move with the BLAS's runtime kernel selection -- OpenBLAS DYNAMIC_ARCH picks a k
+HIT	tests/run.sh#aaed801772	135	C5-long	49 words	A red that coincides with a runner-pool change is attributable in minutes only if the run says which kernel class select
+HIT	tests/run.sh#a6d54901dd	302	C5-long	73 words	A script that exits non-zero without ever printing one of the summary lines the suite's scripts end on (`ALL n X PASSED`
+HIT	tests/run.sh#56279de354	330	C5-long	44 words	A seat's own HPO_GATE_LOCK_LABEL is renewed instead, re-queued when another label waits, and refused at once when the se
+HIT	tests/run.sh#4b779d2d2f	422	C5-long	62 words	It names the script it stands in for, because the accounting check below insists every test script either ran or was ski
+HIT	tests/run.sh#0ce5c13f3e	465	C5-long	43 words	The lane-skip decision instrument (R9-CI-SKIP): the workflow's decision steps run it to decide whether fast/coverage/bro
+HIT	tests/run.sh#7802267135	493	C5-long	43 words	The CI ratchet (round-9): the `ci-ratchet` job runs it on the push a merge makes, over the ci-metrics artifacts this sui
+HIT	tests/run.sh#28ceffbcd6	512	C2-moved	tools/audit/w5-partition/coverage_tree.sh	not tracked; same name at tools/coverage/coverage_tree.sh
+HIT	tests/run.sh#28ceffbcd6	512	C5-long	44 words	Each has its own CI job, which is never scoped and runs on every pull request. coverage_ratchet.py needs a coverage payl
+HIT	tests/run.sh#e5c3a3189f	582	C5-long	44 words	Every lane here runs against the stub, so a green test proves the code works against the STUB's behaviour; this is the f
+HIT	tests/run.sh#c883a57e95	596	C5-long	44 words	The finiteness sweep (#1408): every store is a QuarantiningStore whose load scrubs non-finite numeric leaves, and this d
+HIT	tests/run.sh#d246bae9f7	635	C5-long	47 words	A checkout sitting on the comparison ref itself: comparing a tree to itself proves nothing, so there is nothing to run. 
+HIT	tests/run.sh#dd0c25bc54	693	C5-long	43 words	The visual-QA renderer rides the same lane as the card test: it reads the payload plan_view.py just wrote (same ordering
+HIT	tests/run.sh#b12f5af081	723	C2-moved	docs/backlog.md	not tracked; same name at dev/archive/backlog.md
+HIT	tests/run.sh#b12f5af081	723	C2-moved	docs/audit-2026-09.md	not tracked; same name at dev/programme/register/audit-2026-09.md
+HIT	tests/run.sh#b12f5af081	723	C5-long	47 words	Still run_always after R9-F10.3's strace saw its children (R9-F10.9b re-measured, #1812): dev/audit/rounds/round4/D6/cla
+HIT	tests/setup_qa_render.mjs#3ed981b038	1	C5-long	43 words	Visual-QA renderer: builds the card with the same DOM stub as card.mjs, renders the setup page for three topologies, and
+HIT	tests/stress.py#035edac413	55	C5-long	69 words	Two reasons, and the second is the one that bites. time.process_time() sums CPU over every thread in the process, and Op
+HIT	tests/stress.py#2a3b635c2f	90	C5-long	53 words	On a shared box it answers the second one: the check has failed five times in one day for load it could not see, twice n
+HIT	tests/stress.py#2a3b635c2f	90	C5-long	46 words	So it is normalised: immediately before each scenario's solve this file times a REFERENCE SOLVE -- a fixed, seeded L-BFG
+HIT	tests/stress.py#2a3b635c2f	90	C5-long	43 words	For scale, from a real run of this file on unmodified code, on a four-CPU box carrying five other test suites: the deare
+HIT	tests/stress.py#4061f036bd	184	C5-long	54 words	Every budget in this file now sits at the GEOMETRIC : MIDPOINT between what the sweep costs today and the smallest regre
+HIT	tests/stress.py#4061f036bd	184	C5-long	61 words	: RE-DERIVED for #1208 (owner override, issue comment 5748462577, : 2026-09-20: "But I want you to implement it with bud
+HIT	tests/stress.py#4061f036bd	184	C5-long	41 words	Three consecutive clean sweeps at the #1208 : head (this box, load1 5-10, thread factor 1.000) measured the dearest : sc
+HIT	tests/stress.py#4061f036bd	184	C5-long	41 words	Three : sweeps at the F2.5 head (hpo-ci Linux container, CPython 3.14, one of : them under the closure recorder's audit 
+HIT	tests/stress.py#4061f036bd	184	C5-long	42 words	The budget table is re-recorded in the same change (its : dearest recorded ratio is now 185.44, and the wobble cap below
+HIT	tests/stress.py#f573e9c7ad	235	C5-long	63 words	: ``shoulder/tariff+pv+cycle`` at 775.5x (pass, ref 52.3 ms) vs 808.2x : and 817.7x (fail, ref 42.7-43.7 ms) against thi
+HIT	tests/stress.py#f573e9c7ad	235	C5-long	53 words	The 782.11 constant stays the M1 derivation. : (For #1208 the floor is 1482.00 and the live ceiling 1630x; the : budget 
+HIT	tests/stress.py#d6efa19041	260	C5-long	51 words	Totals average the per-scenario spread away -- and average : the ruler's own noise away with it, over fifty-odd samples 
+HIT	tests/stress.py#d6efa19041	260	C5-long	96 words	Sizing the budget on today's : cost is correct -- today's cost is what the gate has to watch for change : -- but it does
+HIT	tests/stress.py#f9ce16776b	291	C5-long	46 words	Each budget is checked against this run's own observed cost at the : end of the sweep (see the detection check): a budge
+HIT	tests/stress.py#f9ce16776b	291	C5-long	66 words	That is the half of the question every check here used : to leave out -- "is it slower than the budget" was asked, "coul
+HIT	tests/stress.py#9bdcf751f9	306	C5-long	66 words	The single SOLVE_BUDGET_RATIO above has to : clear the dearest scenario in the sweep (553.04x its reference on this : bo
+HIT	tests/stress.py#9bdcf751f9	306	C5-long	42 words	Each scenario therefore carries its OWN : budget, recorded in tests/stress_budgets.json as a clean run's ratio : against
+HIT	tests/stress.py#9bdcf751f9	306	C5-long	72 words	On one machine this number could be 1.4142 -- the same sqrt(2) : derivation as the two budgets above, and over five clea
+HIT	tests/stress.py#9bdcf751f9	306	C5-long	47 words	CI : ran shoulder/tariff+cycle at 352.7x its reference against a recorded : 154.4x -- 2.28x the work, on a runner whose 
+HIT	tests/stress.py#9bdcf751f9	306	C5-long	54 words	What carries the 2x detection instead is the : SWEEP budget, which averages the basin flips away -- 94.98x here, 77.96x 
+HIT	tests/stress.py#f4122ea03b	357	C5-long	44 words	: The SINGLE-SCENARIO detection statistic (#346), measured in SOLVER WORK : rather than in CPU time -- and the first per
+HIT	tests/stress.py#f4122ea03b	357	C5-long	43 words	: SCENARIO_BUDGET_FACTOR above cannot be tightened, and its own comment is : the record of why: CI ran shoulder/tariff+c
+HIT	tests/stress.py#f4122ea03b	357	C5-long	42 words	So a 2x : regression confined to ONE scenario passed the whole gate: an injected : 1.99x tripped 0 of 38 checks, because
+HIT	tests/stress.py#f4122ea03b	357	C5-long	88 words	A 1.5x factor has 4 % of margin over that; : * the same ratio normalised by the sweep's own median, which does : remove 
+HIT	tests/stress.py#f4122ea03b	357	C5-long	87 words	: 1.5, not 1.05: the count is exact on one machine but the iterate path is : not identical across platforms -- floating-
+HIT	tests/stress.py#f4122ea03b	357	C5-long	83 words	: The COUNT has two channels since #1229, judged against this one factor. : The second exists because the evaluation cou
+HIT	tests/stress.py#f4122ea03b	357	C5-long	52 words	: 1.80, not 1.5, since #1208 (owner override, issue comment 5748462577, : 2026-09-20: "But I want you to implement it wi
+HIT	tests/stress.py#f4122ea03b	357	C5-long	62 words	Measured at the : #1208 head on the dev box (three clean sweeps against the merge-base : baseline captured beside each r
+HIT	tests/stress.py#f4122ea03b	357	C5-long	129 words	The first CI run of PR #1282 (head 317d46e, job 106089813679) : then measured the same check on its own runner pair at :
+HIT	tests/stress.py#dd869213bc	439	C5-long	181 words	Both channels above are integers the machine : does not touch, which is what lets SCENARIO_WORK_FACTOR sit under : DETEC
+HIT	tests/stress.py#dd869213bc	439	C5-long	44 words	The whole-SOLVE CPU cannot carry this : check at any factor: the same 2x injection moved solve CPU only : 1.49-1.54x (th
+HIT	tests/stress.py#9066ac8593	465	C5-long	41 words	Every one landed in a different minimum, and the : objective moved by 4.41e-5 to 2.24e-3 relative -- the SMALLEST of the
+HIT	tests/stress.py#9066ac8593	465	C5-long	68 words	: 1e-6 sits 44x under that smallest measured flip and three or more orders : over same-basin float drift. 1e-4, the firs
+HIT	tests/stress.py#9066ac8593	465	C5-long	44 words	It is carrying : the last-decimal move an unrelated production change on the branch can : make to a solve whose plan is 
+HIT	tests/stress.py#e82a0a9baa	502	C5-long	55 words	The table held : two basins for each bimodal scenario -- this box and one CI runner -- : and a third runner model reache
+HIT	tests/stress.py#e82a0a9baa	502	C5-long	56 words	Main went red on two of the four full-scope : pushes after #378 (runs 33840988749 and 33841375106 red, 33840144200 and :
+HIT	tests/stress.py#e82a0a9baa	502	C5-long	97 words	Both halves solve on : the same machine with the same BLAS, so the runner's basin choice : cancels instead of being enum
+HIT	tests/stress.py#e82a0a9baa	502	C5-long	69 words	The floor's job -- telling a branch that has : re-planned more than eleven of the fifty-one that the check no longer : c
+HIT	tests/stress.py#4c35cbebcd	596	C5-long	46 words	At 10.0 with the factor at 1.4142 the : floor, not the factor, would be the budget for every scenario recorded : below 7
+HIT	tests/stress.py#4c35cbebcd	596	C5-long	42 words	And the jitter it : guards against is not there: the five-run cv of those ten scenarios is : 0.44-5.16 %, no worse than 
+HIT	tests/stress.py#4c35cbebcd	596	C5-long	62 words	Cheap does not mean : noisy on this box; summer/1z/space, the cheapest at 3.05x, has a cv of : 0.45 %. : The knob stays,
+HIT	tests/stress.py#e929937b60	619	C5-long	43 words	: Memory instrumentation (D9-04). tracemalloc slows allocation-heavy code, : so it must never run inside the timed sweep
+HIT	tests/stress.py#3242bae674	629	C5-long	44 words	Selected by RECORDED MEMORY, not by recorded CPU -- they are : nearly uncorrelated in this suite's own table, and the CP
+HIT	tests/stress.py#ccbc3c2394	637	C5-long	59 words	Recorded by `stress.py --record-budgets`, which : prints the table for shell capture (see print_budget_table), or : memo
+HIT	tests/stress.py#4a1a01ecbd	698	C5-long	54 words	At maxiter=3 the call took ~78 ms and had a coefficient of variation of 19-29 % on a loaded box, while the scenario solv
+HIT	tests/stress.py#4a1a01ecbd	698	C5-long	61 words	Measured against the same box: ~78 ms -> CV 19 %, ~610 ms -> CV 10 %, ~1.6 s -> CV 4.5 %. maxiter=12 lands in the middle
+HIT	tests/stress.py#708a68d4ea	815	C5-long	50 words	A recording : wants this run's file reads; its CPU and wall-clock verdicts measure the : recorder instead -- two other l
+HIT	tests/stress.py#7c9af568f6	1217	C5-long	48 words	A flat cap below the DHW run power (0.8 x p_max = 4.8 kW on the default 6 kW pump -- a 16 A single-phase supply is 3.68 
+HIT	tests/stress.py#52e4bccd30	1293	C5-long	56 words	This file asked a lot: the plain winter one-zone space case was built NINE times (the thermostat loop, the price-spread 
+HIT	tests/stress.py#626332170c	1384	C5-long	51 words	--- the zero-range-bound channels (#286/#287) ------------------------ Only meaningful when the scenario supplied them, 
+HIT	tests/stress.py#0b68b9a8fc	1842	C5-long	90 words	One solve's ratio against the : recorded table is one reading of the machine: the same nightly burst : that read the nul
+HIT	tests/stress.py#850db9cd71	1960	C5-long	51 words	A per-call : slowdown in code outside the kernels (the objective assembly, the cost : terms, L-BFGS-B's Python, the mult
+HIT	tests/stress.py#850db9cd71	1960	C5-long	55 words	The MEDIAN over the covered scenarios does not: the same : machine solves both halves minutes apart, a runner's basin ch
+HIT	tests/stress.py#850db9cd71	1960	C5-long	44 words	The factor is this file's derivation for : every budget it holds to DETECTION_TARGET: the geometric midpoint between : a
+HIT	tests/stress.py#3d70b996e9	2021	C5-long	45 words	One : plain solve against one doubled solve is a ratio of two single ~50 ms : kernel readings, and under contention one 
+HIT	tests/stress.py#9f3e5b50e2	2031	C5-long	49 words	: The sweep's own kernel rule reads one solve per scenario per tree, so : it rides the same razor: one reading of a real
+HIT	tests/stress.py#9f3e5b50e2	2031	C5-long	62 words	A scenario whose single reading lands : between this floor and SCENARIO_KERNEL_FACTOR is re-solved on both trees : and j
+HIT	tests/stress.py#9f3e5b50e2	2031	C5-long	85 words	It only decides what gets measured again; the : factor alone decides what fails. : Since #1947 a single reading OVER the
+HIT	tests/stress.py#9ad84056bf	2200	C5-long	54 words	Each of the seven : probed solves consumes three slots on the cloud seat's image (forked counts : around build_case; fil
+HIT	tests/stress.py#fcc5188e3f	2207	C5-long	42 words	: How far a fill-perturbed probe may read from the clean probe of the same : scenario, in MiB: under a third of the smal
+HIT	tests/stress.py#890ba04c40	2336	C5-long	54 words	: `python3 -c` rather than this file with a flag, and that is forced : rather than stylistic: the code being captured IS
+HIT	tests/stress.py#6a125666d3	2500	C5-long	60 words	Re-derived at F10.2's merge base over : the thirteen first-parent solver merges since, on this population: 253 : scenari
+HIT	tests/stress.py#6a125666d3	2500	C5-long	51 words	The : comparison is against that pull request's merge base, so once it merges : the next one is measured from the dearer
+HIT	tests/stress.py#6071ac0df9	2818	C5-long	47 words	Checked out at the resolved SHA rather than at the ref NAME, for the reason env_drift.py records: a `git fetch` in anoth
+HIT	tests/stress.py#49a59ccfe0	2904	C5-long	65 words	Labels whose kernel reading is named for a re-measure instead of judged on its own: between KERNEL_DOUBT_FLOOR and SCENA
+HIT	tests/stress.py#c31bfc0dca	2991	C5-long	45 words	A baseline row without a usable simulate count is not judged HERE -- the sweep checks separately that every baseline row
+HIT	tests/stress.py#b107889afa	3421	C5-long	55 words	How much that mattered, measured here across #317 (D9-01's fix, which treats a fixed variable as fixed instead of abando
+HIT	tests/stress.py#b107889afa	3421	C5-long	51 words	That is the size of the thing this file could not see, and these three are still the only samples of that path anywhere 
+HIT	tests/stress.py#b107889afa	3421	C5-long	51 words	They cost the sweep 17.2 reference units -- 0.3 s of CPU -- against the ~150 the winter two-zone members of the same cla
+HIT	tests/stress.py#5a5e80ce3e	3570	C5-long	41 words	The recorder's exemption, narrow in both directions: a timing miss fails a graded run, is printed and not counted under 
+HIT	tests/stress.py#7b87f630cc	3605	C5-long	56 words	Every case is a run that actually happened somewhere and is named with its number, because this file's two historical fa
+HIT	tests/stress.py#9e25b8ab82	3687	C5-long	54 words	An override may also name the production-call floor outright (D2-s2-01, the orchestrator's ruling on #201 comment 624098
+HIT	tests/stress.py#9e25b8ab82	3687	C5-long	48 words	An explicit floor is held as written; one that is malformed or not below the share of the override's own work floor fall
+HIT	tests/stress.py#3574bf73fa	3763	C5-long	50 words	Fifty-one scenarios, an evaluation count, the simulate-equivalent count of the same solve (#1229, a separate channel so 
+HIT	tests/stress.py#55f77d3e0c	3886	C5-long	51 words	Doubling what each kernel call costs leaves the evaluation count and the simulate count at 1.0000x with a bit-identical 
+HIT	tests/stress.py#bd3c0c6786	3943	C5-long	72 words	...and the doubt band under the factor, where one reading of a real 2x can land: named for a re-solve, never failed on o
+HIT	tests/stress.py#7bbe82a672	4049	C5-long	67 words	The sweep wiring passes calibration.sample and a live unit reader; this arm pins that wiring on the stub: the unit CHANG
+HIT	tests/stress.py#071f571ebc	4121	C5-long	41 words	batch 2 alone is out of band (100 = 2.0x) but the median over both batches (90 = 1.8x) is in: a third batch, and the rea
+HIT	tests/stress.py#f804edd514	4143	C5-long	48 words	On CI run 33841375106 all 22 bimodal scenarios solved into a basin no recording held -- 51 - 22 = 29 covered against a f
+HIT	tests/stress.py#f804edd514	4143	C5-long	43 words	The runner moves BOTH halves of a computed-vs-computed comparison, so the same event is now a no-op: 1.003 is above SCEN
+HIT	tests/stress.py#ad6d1c0222	4275	C5-long	54 words	(f2) the memory twin of (f), on both axes the memory pass judges (round-5 D9-08): the ratio channel has had a stale-chea
+HIT	tests/stress.py#f1e74b7982	4317	C5-long	56 words	...and the floor of the RSS axis's own input, which is the other end (round-1's review): the attributable is a differenc
+HIT	tests/stress.py#c3836f962b	4335	C5-long	52 words	These are `fast (3.14)` run 35664329700's own numbers for winter/pv+cycle -- attributable 0.50 MiB against a 12.90 MiB r
+HIT	tests/stress.py#6645c56be3	4410	C5-long	46 words	...and the second channel of the same instrument (#1229), on the regression that motivated it: running the batched finit
+HIT	tests/stress.py#4b21511a00	4598	C5-long	57 words	...and the sweep's doubt band end to end, through the function the sweep calls: a real per-call regression whose single 
+HIT	tests/stress.py#9af34dcbd5	4667	C5-long	47 words	It costs the sweep's solve time again, and that is the price of the shape: tests/env_drift.py pays exactly this for exac
+HIT	tests/stress.py#f5403b7f0a	4816	C5-long	45 words	The recorded evaluation count and objective this used to write were removed in #387: both are recorded SOLVER FLOAT OUTC
+HIT	tests/stress.py#80386fa8d0	4968	C5-long	41 words	Everything above judges a scenario's CPU against its own record times a constant, and that constant has to be 3.0: it mu
+HIT	tests/stress.py#80386fa8d0	4968	C5-long	70 words	It used to be a count recorded in tests/stress_budgets.json, with a list of the basins two machines had been seen to rea
+HIT	tests/stress.py#80386fa8d0	4968	C5-long	42 words	A runner's basin choice then moves both halves together and cancels, exactly as tests/env_drift.py's doctrine says it mu
+HIT	tests/stress.py#6eca0635d4	5229	C5-long	80 words	The floor itself stays the #387 literal 40; the owner's override for THIS branch is a committed entry in the budget tabl
+HIT	tests/stress.py#9075f2250b	5255	C5-long	43 words	The name is split across two adjacent literals so that THIS check's own text does not contain the very string the mutati
+HIT	tests/stress.py#9584c19ac9	5281	C5-long	55 words	-- D9-04: memory instrumentation ----------------------------------- tracemalloc slows allocation-heavy code by more tha
+HIT	tests/stress.py#9584c19ac9	5281	C5-long	60 words	Both are budgeted from the same recorded table, at MEMORY_BUDGET_FACTOR over the SCENARIO-ATTRIBUTABLE component: the em
+HIT	tests/stress.py#39ac3833e6	5294	C5-long	60 words	So the old selection probed six samples of ONE memory profile, missed both extremes, and paid tracemalloc's 3.5x more so
+HIT	tests/stress.py#39ac3833e6	5294	C5-long	55 words	It is also the tighter test: the traced budget is recorded x1.5, which catches a 2x traced regression with the whole fac
+HIT	tests/stress.py#39ac3833e6	5294	C5-long	51 words	Selecting from the COMMITTED table rather than from this run's measurements also makes the probe set machine-independent
+HIT	tests/stress.py#1445f7cf8a	5367	C5-long	43 words	The empty probe, launched FIRST and in the SAME run as the probes it judges (#949): the interpreter+numpy baseline is th
+HIT	tests/stress.py#823b6abf72	5435	C5-long	48 words	The stale-cheap side (round-5 D9-08), mirroring the rule the CPU ratio channel has carried since D9-03: a table left sta
+HIT	tests/stress.py#de2e68db33	5515	C5-long	44 words	A regression confined to an unprobed scenario is invisible here -- the recorded leaders on both axes are always probed (
+HIT	tests/stress.py#9a45aecd10	5534	C5-long	43 words	Said rather than implied, like the coverage line above: on a platform whose import floor sits at or above a scenario's r
+HIT	tests/stress.py#d62103e686	5615	C5-long	49 words	A budget nobody re-derives drifts away from the code it guards -- the two global ones were sized when the dearest scenar
+HIT	tests/stress.py#d62103e686	5615	C5-long	44 words	Both figures are printed below so a reader sees the machine's own headroom too -- and note what that compression costs: 
+HIT	tests/stress.py#65ebdeb80d	5661	C5-long	43 words	The per-scenario factor is NOT held to DETECTION_TARGET, and that is a measured concession rather than a comfortable one
+HIT	tests/stress.py#3a170ba517	5700	C5-long	54 words	The memory rules owe the same answer (#949, round 4 D9-06): a 2x memory regression -- the DETECTION_TARGET -- passed all
+HIT	tests/stress.py#538cf3b1fd	5797	C5-long	60 words	Its sweep term is a mean over fifty-one, so a single scenario's doubling reaches it divided by fifty-one, and its per-sc
+HIT	tests/stress.py#52fb6f5e91	5827	C5-long	45 words	It cancels in the ratio only if the reference and the scenarios are parallelised to the SAME degree, and they need not b
+HIT	tests/stress.py#52fb6f5e91	5827	C5-long	44 words	If they diverge the ratio is not a pure work ratio any more and the budget below is not portable -- which is a thing to 
+HIT	tests/stress.py#68c3e0f29a	5865	C5-long	47 words	A CPU-time budget measures work done, so it is blind to a regression that makes the solver WAIT rather than compute -- a
+HIT	tests/stress.py#c4840d2cd4	5992	C5-long	42 words	The objective is non-convex -- the comfort penalty is one-sided and the price signal creates several distinct "charge he
+HIT	tests/stress.py#fe6791a3dd	6198	C5-long	47 words	The suppression only zeroes planned DHW steps inside its 2 h coasting horizon, and only where coasting on nothing would 
+HIT	tests/stress.py#fe6791a3dd	6198	C5-long	61 words	START is midnight and the first window opens at 06:00, so the first two hours are the night trough (0.62 SEK against a 2
+HIT	tests/structure.py#eed52d68ef	2	C5-long	44 words	The worked example below is AS OF #374 (841fe0f^) and every number in it is that snapshot's, not today's: with methods_o
+HIT	tests/structure.py#eed52d68ef	2	C5-long	44 words	Cyclomatic complexity is 1 + decision points PER FUNCTION, so splitting a CC-87 function into a parent plus four CC-20 h
+HIT	tests/structure.py#eed52d68ef	2	C5-long	46 words	The maxima have the opposite sign and that is why they are worth having while #224 is in flight: splitting ``optimize`` 
+HIT	tests/structure.py#1920042351	213	C2-moved	tools/audit/README.md	not tracked; same name at README.md, dev/README.md, dev/archive/README.md
+HIT	tests/structure.py#e00abbb6b2	303	C5-long	45 words	Home Assistant imports the module, instantiates the class (an entity, the coordinator, a config-flow handler) and looks 
+HIT	tests/structure.py#66aab19f53	350	C5-long	47 words	``HA_CONVENTION_METHODS`` is keyed on the member name and silences every class's member of that name; an ``available`` t
+HIT	tests/structure.py#66aab19f53	350	C5-long	49 words	So this set is matched with the class: a member is a root here only when its class's family derives from an external bas
+HIT	tests/structure.py#42aa94b846	385	C5-long	46 words	#338 -- "Ten dead symbols go, four dynamic-lookup constants stay proven alive" -- proved them alive with a runtime senti
+HIT	tests/structure.py#6552873913	418	C5-long	53 words	Both retired on 2026-09-10 with that metric: a ratio of cross-seam call edges to all call edges falls when a class tangl
+HIT	tests/structure.py#27b42a93b2	1004	C5-long	71 words	A comparison, a negation or a formatted string is a fresh bool or str and holds no object; every other expression may ho
+HIT	tests/structure.py#a7b226d9a9	1014	C5-long	47 words	the coordinator itself, or its context prefix: a reference to the unit named after it Python calls these on an instance 
+HIT	tests/structure.py#004844b498	1546	C5-long	45 words	A class-body name bound to a descriptor -- ``x = _view("_a")``, ``x = property(lambda s: s._a)``, ``x = property(_get)``
+HIT	tests/structure.py#3ecf73a956	1617	C5-long	46 words	A call hands its caller whatever escapes the callee (O19), priced at the caller as the reads it is: one edge in place of
+HIT	tests/structure.py#3ecf73a956	1617	C5-long	57 words	The edge itself stays unless the callee is transparent -- it reads only what it hands on, stores nothing and calls only 
+HIT	tests/structure.py#9750abb059	1816	C5-long	59 words	Three rows below need to know which value IS the coordinator outside its own class: the seam cut (a module-level ``_help
+HIT	tests/structure.py#143642b040	3027	C5-long	51 words	The four threshold counts above stop pricing a function once it has crossed the line, so without these two the cheapest 
+HIT	tests/structure.py#f9dc61bd92	4098	C5-long	77 words	D7-s3-01's six, in miniature: a member whose every load is on a receiver the source types to ANOTHER class -- by constru
+HIT	tests/structure.py#e950136132	4188	C5-long	47 words	A key of the name alone reads both the same -- the entry would then silence a same-named member of a class HA never look
+HIT	tests/throwaway_git.py#64e4993d63	2	C5-long	43 words	WHAT IT SCANS, at <ref> through `git grep`: the `.sh .py .mjs .js .cjs` files under `tools/`, `tests/`, `.claude/` and `
+HIT	tests/throwaway_git.py#64e4993d63	2	C5-long	73 words	WHAT IT DOES NOT CATCH: a runner called with `"init"` and no option (`g("init")`); a git binary held in a variable whose
+HIT	tests/throwaway_git.sh#25e992cef1	18	C5-long	46 words	GIT_CONFIG_GLOBAL is a path under this regular file (ENOTDIR: git reads no global config, and no process can create one 
+HIT	tests/typing_ruler.py#37e3e9d6fa	2	C5-long	42 words	``--warn-unused-ignores`` is in the command and does NOT prevent ignore-stuffing: the judge measured annotating four ``b
+HIT	tests/typing_ruler.py#cd53b7a603	122	C5-long	46 words	Measured under the pinned mypy with the ruler's own flags, three unannotated defs go 3 errors -> 0 under each of `disabl
+HIT	tests/typing_ruler.py#4c4360de7c	155	C5-long	43 words	A virtual environment is pruned by its `pyvenv.cfg` rather than by name -- tests.yml builds `.venv-typing` at the reposi
+HIT	tests/typing_ruler.py#ce5bed5d0a	192	C5-long	53 words	This grader is a single standard-library file on purpose -- a job may restore it from the base and run it under `python3
+HIT	tests/validate.py#7edd341cf7	99	C5-long	57 words	Judging the whole schedule against a flat "share of slots" bar measured the tank rather than the planner, and v5.1.10 ma
+HIT	tests/validate.py#1c2b97b1da	194	C5-long	58 words	The owner's acceptance criterion: "heat should never be bought if coasting the house with no heat doesn't predict it coa
+HIT	tests/validate.py#1c2b97b1da	194	C5-long	46 words	Measured both ways: a floor-relative band flags "april shoulder" (coasts to 19.9 C) and "summer cool rainy" (20.5 C), an
+HIT	tests/wood_advisor.py#7ef6356cd3	160	C5-long	47 words	A ready config at 1275 SEK/m3 of mixed packed wood at 75 % burns at 1275 / (1700 * 0.75) = 1.0 SEK/kWh; with a flat COP 
+HIT	tests/worker_deadlines.py#af4c3f9f4b	1	C5-long	46 words	They live in their own file because CodeQL's Python extractor spends most of the analysis job's 45 minutes on ``features
+HIT	tests/worker_deadlines.py#0a2ef505ec	447	C5-long	49 words	A worker whose pipe lands at a descriptor >= FD_SETSIZE (1024) -- Home Assistant raises its soft fd limit past it -- mus
+RESULT thread_factor=1.000
+RESULT load1=134.96
+RESULT swapins=0
+rc=0
