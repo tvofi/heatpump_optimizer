@@ -2263,7 +2263,9 @@ async def options_advanced_pages():
 
     # R10-TWO-ZONE-HHL: on a two-zone house every reader of the whole-house
     # heat loss takes the zones' loss instead, so the thermal page does not
-    # offer it as a setting there. Null control: single zone still shows it.
+    # offer it as a setting there. D17-s1-03: the same holds for the
+    # whole-house mass, which two zones replace with the floors' masses.
+    # Null control: single zone still shows both.
     flow, entry, _ = fresh_options(
         pre_options={const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON}
     )
@@ -2275,11 +2277,13 @@ async def options_advanced_pages():
     check(
         "opt_thermal_model",
         "happy",
-        "a two-zone entry is not offered the whole-house heat loss; a "
-        "single-zone one is (R10-TWO-ZONE-HHL)",
+        "a two-zone entry is not offered the whole-house heat loss or mass; a "
+        "single-zone one is (R10-TWO-ZONE-HHL, D17-s1-03)",
         const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT not in two_zone_keys
         and const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT in one_zone_keys
-        and const.CONF_HOUSE_THERMAL_MASS in two_zone_keys,
+        and const.CONF_HOUSE_THERMAL_MASS not in two_zone_keys
+        and const.CONF_HOUSE_THERMAL_MASS in one_zone_keys
+        and const.CONF_SLAB_THERMAL_MASS in two_zone_keys,
         f"two={sorted(two_zone_keys)} one={sorted(one_zone_keys)}",
     )
     # Hidden, not cleared: a two-zone save keeps the stored figure, so an
@@ -2287,16 +2291,18 @@ async def options_advanced_pages():
     flow, entry, _ = fresh_options(pre_options={
         const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON,
         const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT: 0.31,
+        const.CONF_HOUSE_THERMAL_MASS: 9.5,
     })
     await flow.async_step_thermal_model(None)
-    await submit(flow, "thermal_model", {const.CONF_HOUSE_THERMAL_MASS: 12.0})
+    await submit(flow, "thermal_model", {const.CONF_SLAB_THERMAL_MASS: 12.0})
     check(
         "opt_thermal_model",
         "happy",
         "a two-zone thermal-page save keeps the hidden whole-house heat loss "
-        "(R10-TWO-ZONE-HHL)",
+        "and mass (R10-TWO-ZONE-HHL, D17-s1-03)",
         entry.options.get(const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT) == 0.31
-        and entry.options.get(const.CONF_HOUSE_THERMAL_MASS) == 12.0,
+        and entry.options.get(const.CONF_HOUSE_THERMAL_MASS) == 9.5
+        and entry.options.get(const.CONF_SLAB_THERMAL_MASS) == 12.0,
         f"options={dict(entry.options)}",
     )
 
@@ -6045,7 +6051,7 @@ async def untouched_option_pages_do_not_reload():
     # those pages post nothing behaviour-changing either.
     no_dhw = (
         const.CONF_DHW_ENABLED not in minimal
-        and not config_flow._dhw_enabled_from_config(minimal)
+        and not config_flow.dhw_enabled_from_config(minimal)
     )
     expected = [
         page.step for page in config_flow._OPTION_PAGES
