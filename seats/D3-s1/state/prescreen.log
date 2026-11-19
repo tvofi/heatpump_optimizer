@@ -619,3 +619,4 @@
 2026-11-19T08:09:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_due CMP_BOUND 9496f4ac L628 by=- ran=15 wall=1432.6s
 2026-11-19T08:22:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.compute_solar_gain CMP_BOUND eae534b7 L3517 by=- ran=17 wall=1753.9s
 2026-11-19T08:31:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings CLAMP_DROP cb09571d L783 by=- ran=14 wall=1425.6s
+2026-11-19T08:32:04Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor CMP_BOUND ddf2c5be L9022 by=- ran=13 wall=1524.5s
