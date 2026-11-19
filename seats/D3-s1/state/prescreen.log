@@ -571,3 +571,4 @@
 2026-11-19T05:14:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._thermal_view GUARD_OFF 809d621e L7861 by=- ran=13 wall=1293.6s
 2026-11-19T05:22:04Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture CMP_BOUND 97281aaf L9390 by=- ran=13 wall=1408.4s
 2026-11-19T05:29:26Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss GUARD_OFF 16fff8db L5800 by=- ran=14 wall=1599.2s
+2026-11-19T05:34:52Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost GUARD_OFF ad23eebb L1608 by=- ran=16 wall=1434.5s
