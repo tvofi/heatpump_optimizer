@@ -16,7 +16,7 @@ Departures from the design note, each pending owner confirmation:
 
 ## Head
 
-`0f3f9cc47afc3c8b110a090dd7e038b79fe8872e`, which merges `origin/main` at `99436a082c67ad5dbb4afc293506af010d6ee8df` into the authored code head `5dd27cfd07c5a5c655d1429be3fac51200d089b7`, measured at it against the merge base `8751943e17ef4d3ec699e7859ae829b4528d8ce7`; `origin/main` at `1723f9fdc9d8a6e6987190d2887686297a621dd4` (2026-11-19T00:57Z), which `git merge-tree --write-tree origin/main HEAD` merges with no conflict under the repository's merge drivers.
+`f3e758d464e257d6e22e9bc488e9239aeb92126d`, which merges `origin/main` at `1850e2e0da8c` into `0f3f9cc47afc`, itself a merge of `origin/main` at `99436a082c67ad5dbb4afc293506af010d6ee8df` into the authored code head `5dd27cfd07c5a5c655d1429be3fac51200d089b7`, measured at it against the merge base `8751943e17ef4d3ec699e7859ae829b4528d8ce7`; `origin/main` at `1723f9fdc9d8a6e6987190d2887686297a621dd4` (2026-11-19T00:57Z), which `git merge-tree --write-tree origin/main HEAD` merges with no conflict under the repository's merge drivers.
 
 The merge was needed because CI's merge (no `claimnotes`/ledger driver) conflicted on `tests/closures.json` and `tests/structure_budgets.json`; the repository's ledger merge driver resolved both, with every `structure_budgets.json` metric at or below main's. No other file needed a resolution.
 
@@ -96,7 +96,7 @@ Harness export: `git archive 0a7ea717c6d99fd179af08f31484390d0080cb01 dev/audit/
 - Lazy-load flags, `grep -nE '\.loaded = True|_loaded = True' custom_components/heatpump_optimizer/*.py`: four. `off_restore.py` closed in this diff; `pump_arbiter.py` already guarded by `held.lock`; `coordinator.py` `_snapshots_loaded` and `frontend.py` are other seams' records, unmeasured here.
 - Let-go sites, `grep -n '_plan_is_stale()\|_plan_let_go(' custom_components/heatpump_optimizer/coordinator.py`: the predicate `_plan_let_go` and its four readers (`_space_pump_to_drive`, `_apply_action`, `_command_frequency`, `_command_valve_target`), closed in this diff; three publications of the flag (`handover`, `arbiter_inputs`, the payload), no gate.
 
-<!-- figure-block: scope-line mb=99436a082c67ad5dbb4afc293506af010d6ee8df head=0f3f9cc47afc3c8b110a090dd7e038b79fe8872e -->
+<!-- figure-block: scope-line mb=1850e2e0da8c24886e4cc5f4d69601e834fb5023 head=f3e758d464e257d6e22e9bc488e9239aeb92126d -->
 ~~~text
 MODE: SCOPED -- 29 script(s) run, 4 scoped out.
 ~~~
@@ -119,11 +119,11 @@ MODE: SCOPED -- 29 script(s) run, 4 scoped out.
 - `custom_components/heatpump_optimizer/coordinator.py:3511 BOOLOP`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/coordinator.py:3511 RETURN_DEL`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/coordinator.py:4533 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/coordinator.py:7746 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/coordinator.py:7778 GUARD_OFF`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/coordinator.py:7744 GUARD_OFF`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/coordinator.py:7776 GUARD_OFF`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/coordinator.py:7808 GUARD_OFF`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/coordinator.py:7810 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/coordinator.py:7812 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/coordinator.py:10867 GUARD_OFF`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/coordinator.py:10865 GUARD_OFF`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/freq_control.py:319 BOOLOP`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/freq_control.py:319 CMP_BOUND`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/freq_control.py:319 GUARD_OFF`: pinned by `mutation-autofix`
