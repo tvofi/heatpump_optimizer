@@ -613,3 +613,4 @@
 2026-11-19T07:41:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND 6ac7c36c L5679 by=- ran=13 wall=1549.0s
 2026-11-19T07:42:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._settlement_caps CLAMP_DROP 2094fe44 L6029 by=- ran=13 wall=1439.8s
 2026-11-19T07:45:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch CLAMP_DROP 8322628c L821 by=- ran=12 wall=1425.7s
+2026-11-19T07:52:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CLAMP_DROP 7c0715b8 L1974 by=- ran=12 wall=1530.4s
