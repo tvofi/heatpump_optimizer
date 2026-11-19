@@ -154,6 +154,7 @@ individually, never as a range:
 | `D15.md` | debugging run from a live diagnostics bundle |
 | `D16.md` | actuator writes, holds and releases against the plan |
 | `D17.md` | feature behaviour against its documented effect |
+| `DX0.md` | security and privacy, owner-only |
 
 Finder criteria (`owner_criteria`): `D4-criteria.md`,
 `D5-criteria.md`, `D9-criteria.md`, `D10-criteria.md`.

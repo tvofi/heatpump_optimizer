@@ -504,6 +504,7 @@ class FakeEntry:
         self.options = dict(options or {})
         self.entry_id = entry_id
         self.version = 1
+        self.minor_version = 1
         self.domain = "heatpump_optimizer"
         self.title = "Heat Pump Optimizer"
         # What a pre-guard entry carries: nothing. The flow's duplicate guard
