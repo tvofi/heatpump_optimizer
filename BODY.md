@@ -3,7 +3,7 @@ R11-SEAM-ratchets (ADR-009; D7-s1-02, D7-s1-03, D14-s2-03): two `tests/structure
 - `in_function_copies` (D7-s1-02): a statement window written at two or more non-overlapping places of ONE function and in no other function. The row counts places past the first, the rule `duplication_copies` uses for members ("a third copy costs one more"). `duplicate_clones` joins functions, so such a copy moved no row. Both rows read one window enumerator, `function_windows`, which was cut out of `duplicate_clones`' body. `duplicate_clones`' window and output are unchanged (Null control). ADR-009 part 3's list of functions the score reads is therefore untouched in behaviour.
 - `unloaded_package_imports` (D7-s1-03; `unused_package_imports` until ebb5b253, see Red checks): a `from .<module> import N [as A]` binding that the importing module never loads, that no module re-imports from it, and that no string in it names. The re-export arm reads `import_bindings`' own symbol bindings. Under ADR-009 part 1 this PR deletes nothing; `R11-SEAM-dead-state`'s deletions re-record this row downward.
 - N-log-flood barrier (D14-s2-03): `_r10_unlatched_logs` counts every `_LOGGER` call at WARNING or above. Before, it counted only `.warning` and `.error`; it now also counts `.warn` (the WARNING alias), `.exception`, `.critical`, `.fatal` (the CRITICAL alias), and `.log` at an int level of at least 30 or at any level other than `logging.DEBUG`, `INFO` or `NOTSET`. The level is the first positional or the `level=` keyword; a level behind `*args` or `**kwargs` is unknown and counted. The level test is nested inside the function because `logflood_shape.py` execs that function alone.
-- The barrier reads the text `_LOGGER`, so a second check, `_r11_logger_aliases`, refuses the ways a package line can log through anything else. A use of the module `logging` or of the name `_LOGGER` is read by allow-list, so a use of either nobody listed is refused, not missed. The routes to a logger under another spelling are a named set, not an allow-list: the names `logging`, `logger`, `_LOGGER` and `warnings` as an attribute or as text, the module `warnings`, and `exec`/`eval`/`compile`. It refuses:
+- The barrier reads the text `_LOGGER`, so a second check, `_r11_logger_aliases`, refuses the ways a package line can log through anything else. A use of the module `logging` or of the name `_LOGGER` is read by allow-list, so a use of either nobody listed is refused, not missed. The routes to a logger under another spelling are a named set, not an allow-list: the names `logging`, `logger`, `_LOGGER` and `warnings` as an attribute or as text, the module `warnings`, and code run from text, read at each of its three doors (Re-cut). It refuses:
   - a name bound to `_LOGGER` or to a `getLogger`/`getChild` result, and `import logging as x`;
   - any other `getLogger` or `getChild` call, bound or inline, with an Attribute or a bare-Name callee;
   - an import of `_LOGGER` or of a module named `logging` from anywhere, and an import from `logging` of anything but its level numbers (`*` included);
@@ -11,10 +11,10 @@ R11-SEAM-ratchets (ADR-009; D7-s1-02, D7-s1-03, D14-s2-03): two `tests/structure
   - the text `'logging'` (`__import__`, `importlib.import_module`, `sys.modules`), and an attribute named `logging` or `logger` (Home Assistant's coordinator exposes the handed-over `_LOGGER` as `self.logger`);
   - an attribute named `_LOGGER` (another module's logger, `coordinator._LOGGER`, or this one's as `sys.modules[__name__]._LOGGER`), and the text `'_LOGGER'` or `'logger'` (`globals()['_LOGGER']`, `getattr(m, 'logger')`);
   - the module `warnings`, imported, imported from, named, as an attribute or as the text `'warnings'`: Home Assistant turns on `logging.captureWarnings(True)`, so `warnings.warn` lands as a WARNING record on `py.warnings`;
-  - `exec`, `eval` and `compile`, whose code is text this check cannot parse;
+  - code run from text, which this check cannot parse, at its three doors: `exec`, `eval`, `compile` and the namespace `builtins`/`__builtins__` holding them, as a name, an attribute, text, an import or an import alias (`re.compile` only where every binding of `re` in the module is an unaliased `import re`); any module outside a vetted set of roots, imported by statement, `from`, `__import__` or `import_module` of a constant, with `importlib` and `types` read member by member; and a bytes constant holding a letter;
   - `_LOGGER.<method>(...)` for any method but the level calls and `isEnabledFor` (`_log`, `handle`, `makeRecord`, `getChild`);
   - any other use of `_LOGGER`: passed as an argument, returned, put in a container, or a bound method taken. That is how the package's own logger reaches a parameter; the other sources of one named above are refused at their source.
-- Not read, stated in the docstring: a name computed at run time (`import_module('log' + 'ging')`, `globals()['_LOG' + 'GER']`), which no syntactic rule names, the string-constant arm being the bound; and a route to Home Assistant's log through one of its services (`system_log.write`), a service call this check does not read.
+- Not read, stated in the docstring: a name computed at run time (`import_module('log' + 'ging')`, `globals()['_LOG' + 'GER']`, `import_module('mar' + 'shal')`), which no syntactic rule names, the string-constant arm being the bound; an object reached by walking a namespace's values with no name or text for it (`vars(m).values()`), a value flow rather than a spelling; and a route to Home Assistant's log through one of its services (`system_log.write`), a service call this check does not read.
 - One live escape is listed with its reason and exact count in `_R11_LOGGER_HANDOVERS`: `coordinator.py` hands `_LOGGER` to Home Assistant's `DataUpdateCoordinator.__init__`. That class logs a failed refresh at ERROR only on the success-to-failure transition (its `last_update_success` latch), so it cannot flood. A stale or extra entry fails the check, as the R10 lists do. The one live site the barrier was blind to, `sysid.py` `_finish`, joins the once-per-event group: the raising fit sets the phase done and publishes a refusal in the same call.
 
 Design choices a later seat should not read as bugs:
@@ -29,6 +29,17 @@ Alternatives not taken:
 - Keeping the name `unused_package_imports` and landing its census first: no order of row and census is green under the base's pinned grader (Red checks).
 - Dropping the import row to a report-only count until the grader can bootstrap: the finder's harness (`ratchet_rows_off_budget` under `--perturb unused-import`) would then not move, and a new unloaded import would go unrefused.
 - Following a logger into a parameter by type inference: the check refuses the escape at its source instead, which needs no inference.
+
+## Re-cut
+
+Round 4 (verdict/3729 on review/3729 4b1439e4, at 8b68ba21) blocked a fourth time, so this is a re-cut (fix-review.md), not a fifth repair. Each earlier round closed the spellings its verdict named and left the next one open: round 2 the `logging` surface, round 3 `_LOGGER` by attribute and text, `warnings` and a bare `exec`, round 4 `exec` by `builtins.exec`, `getattr(builtins, 'exec')`, `from builtins import exec as run` and `__builtins__['exec']`.
+
+The class closed is **code run from text**: a package line that runs logger code the check cannot parse. Text becomes code in this process through three doors, and the check now reads each door, not a spelling of it:
+1. The builtins that compile text, `exec`, `eval` and `compile`. Each is refused as a name, an attribute (`builtins.exec`, `o.compile`), text (`getattr(b, 'exec')`, `__builtins__['eval']`, the mode string `'exec'`), an import and an import alias (`from builtins import exec as run`, `from os import compile as c`). The one admitted form is `re.compile`, and only where every binding of `re` in the module is an unaliased `import re`. That is resolved over every binding of the name: assignment, parameter, def or class, import, except and match captures, `global`/`nonlocal`. A parameter named `re` is refused (`rebound.py`).
+2. The namespace that holds them, `builtins` and `__builtins__`, in the same spellings. `getattr(builtins, x)` is therefore refused whatever `x` is, and so is `f.__builtins__`.
+3. Every other module, by default. An import of a root outside a vetted set is refused, whether by statement, `from`, `__import__` or `import_module` of a constant: `marshal`, `code`, `runpy` and `ctypes` are planted. The set is the 40 roots the package imports today, each read for an API that runs text or bytes it is handed as code in this process. `importlib` and `types` are read member by member: `importlib.util`/`machinery` load code from a file, and `types.CodeType`/`FunctionType` build a function from a code object. A bytes constant holding a letter is refused, because that is how a pickle or marshal payload names what it runs. The package's three bytes constants are `b''` and `b'\n'`.
+
+Why the spelling chase ends: a static reference is a name, an attribute, a string or bytes constant, or an import binding, and each door is read in all four. Any further spelling either computes its name at run time (`'ex' + 'ec'`), which no syntactic rule can name and the docstring states as the bound, or it reaches a module outside the vetted set, which is refused by default rather than by name. Stated out of scope beside it: an object reached by walking a namespace's values with no name or text for it (`vars(m).values()`), a value flow rather than a spelling; and Home Assistant's `system_log.write` service.
 
 ## Review block repaired
 
@@ -45,9 +56,18 @@ Round 3 at b950a390 (class-open, verdict/3729 on review/3729 fbaf77c4): d983acca
 - Repair: `_r11_logger_aliases` refuses `_LOGGER`, `logger`, `logging` and `warnings` as an attribute or as a string constant, any import of or from `warnings`, the name `warnings`, and the names `exec`, `eval`, `compile`. The live package carries none of them. `grep` over `custom_components/heatpump_optimizer/*.py` finds `warnings` only in two comments, `.compile(` only as `re.compile`, and no `._LOGGER`, `'_LOGGER'` or `'logger'`. The check's live verdict is still the one listed handover.
 - The reviewer's probe `ev/probe_delta.py`, run unchanged against this head's `tests/entities.py`: `sibling_module_logger alias=['coordinator._LOGGER']`, `sibling_as alias=['c._LOGGER']`, `sys_modules_self alias=['sys.modules[__name__]._LOGGER']`, `globals_lookup alias=["'_LOGGER'"]`, `exec_string alias=['exec']`, `warnings_warn alias=['warnings', 'warnings']`, control `ctl_warning barrier=1 alias=[]`. Against b950a390's file every one of those six reads `barrier=0 alias=[]`, with the same control. The round-2 probe `ev/probe_shapes.py` prints the same rows at this head as at b950a390.
 
+Round 4 at 8b68ba21 (class-open, verdict/3729 on review/3729 4b1439e4): `exec`, `eval` and `compile` were read only as a bare `ast.Name`, so `builtins.exec(...)`, `getattr(builtins, 'exec')(...)`, `from builtins import exec as run` and `__builtins__['exec'](...)` each ran `"_LOGGER.error('x')"` past both checks. Re-cut at 2d99ad5c (see Re-cut):
+- Failing test first: d641a120 plants the class in the existing reach check, not only the four reviewed shapes. The new planted files are `bltn.py`, `bgetattr.py`, `bfrom.py`, `bdunder.py`, `bbytes.py`, `door.py`, `bimp.py` and `rebound.py`, and `fromtext.py` gains `'exec'`. At d641a120, with 8b68ba21's `_r11_logger_aliases`, the reach check misses 23 planted refusals, and `PYTHONPATH=tests/hastub python3 tests/entities.py` prints `FAIL R11 N-log-flood barrier reach` and `1 of 2737 ENTITY CHECKS FAILED`. That full run was taken at the plant before `door.py`'s importlib/types lines and `bimp.py` were added. The amended plant's red is the verbatim reach-check driver below, which reports those additions missing too.
+- The reviewer's probes, run unchanged against 2d99ad5c's `tests/entities.py`:
+  - `ev/probe_r4.py`: `builtins_exec alias=['builtins', 'builtins.exec', 'builtins']`, `builtins_getattr_exec alias=['builtins', 'builtins', "'exec'"]`, `from_builtins_exec alias=['run']`, `dunder_builtins alias=['__builtins__', "'exec'"]`. The controls are unchanged: `ctl_warning barrier=1 alias=[]` and `ctl_re_compile barrier=0 alias=[]`. At 8b68ba21 each of the four shapes read `barrier=0 alias=[]` (`ev/probe_r4_8b68.txt`).
+  - `ev/probe_delta.py` and `ev/probe_shapes.py` print output byte-identical to `ev/probe_delta_8b68.txt` and `ev/probe_shapes_8b68.txt`.
+  - `ev/live_8b68.py` over the live package prints only `('coordinator.py', 3518, '_LOGGER -> super().__init__')`, the listed handover.
+
 ## Head
 
-`935610a4dd393e2718305d4691128fc36c728d1f`, two commits on b950a3904dea576c702020b905a68bb574a00f36 (the round-2 head): `4eb8a9bd4d32e156029140635b17a23a3cdd0537` (the failing planted shapes) and `935610a4dd393e2718305d4691128fc36c728d1f` (the repair). Both edit only `tests/entities.py`. Merge base with origin/main: 9aa29bd52382d0fcd25c43aaa31adb70ef49ff5a, unchanged.
+`2d99ad5c61edca03495f3fefefcea0dbc9e23087`, two commits on 8b68ba21b97bea4bf8d0f3acd442640a6e81fd94 (the round-4 head, a `ci: merge main`): `d641a12040ce34717496eb1ce674daa37d50647a` (the failing planted shapes) and `2d99ad5c61edca03495f3fefefcea0dbc9e23087` (the re-cut). Both edit only `tests/entities.py`. Merge base with origin/main: b36742b17b7ea229b859fb86a43e74a562bb847b. `git merge-tree --write-tree origin/main HEAD` exits 0, so main is not merged.
+
+Round 3's head was `935610a4dd393e2718305d4691128fc36c728d1f`, two commits on b950a390: 4eb8a9bd (the planted shapes) and 935610a4 (the repair).
 
 ff9cfca087a80c1a40c65a962781aba33690b8c0, a merge of `origin/main` 9aa29bd52382d0fcd25c43aaa31adb70ef49ff5a (now the merge base) into ebb5b253, at 2026-11-19T07:00:23Z. ebb5b253 renames one row on d983acca. Every figure it can reach was re-run at ebb5b253 or at this merge, as each line says; the rest carry from d983acca, measured on base ae0ed64af898.
 
@@ -94,6 +114,23 @@ The round-3 repair at 935610a4 adds eight mutants, run by a scratch driver that 
 
 T4 and T5 survived the first planted set, where one file both imported and named `warnings`. The import was then split into its own planted file, `warnimp.py`, and both mutants now fail the check.
 
+The round-4 re-cut at 2d99ad5c adds fifteen mutants, run by `tools/audit/seat/mutant_run.py --spec` (copy-tree mode). The command is a scratch driver that execs `tests/entities.py`'s reach-check code verbatim: both checks, `_R11_LOGGER_HANDOVERS`, `_r11_alias_verdict` and `_r11_aliases_planted`. It fails if the planted set differs from the set the reach check asserts, or if the live package's verdict is not empty. The result was `SURVIVED NULL`, then `KILLED` for each of:
+- N1 the name arm back to `warnings` only;
+- N2 the attribute arm on the door names off;
+- N3 `re.compile` admitted under any binding of `re`;
+- N4 a parameter named `re` not read as a binding;
+- N5 the bytes arm off;
+- N6 the module door admitting every root;
+- N7 the text arm back to `reached` only;
+- N8 a from-import of a door name admitted;
+- N9 `importlib`/`types` attributes admitted;
+- N10 `__import__`/`import_module` of a constant not read;
+- N11 `import builtins as b` admitted;
+- N12 `import importlib as il` admitted;
+- N13 any from-`importlib`/`types` member admitted;
+- N14 `marshal` added to the vetted set;
+- N15 `types.CodeType`/`FunctionType` admitted.
+
 `prepr.sh`'s `MUTANT_CMD` draws only added `.py` lines outside `tests/` and `dev/`, and this diff has none.
 
 ## Null control
@@ -106,7 +143,8 @@ T4 and T5 survived the first planted set, where one file both imported and named
   - `tests/entities.py`: `_LOGGER.log(logging.DEBUG, ...)` and `_LOGGER.info` are not sites.
   - `tests/entities.py`: the canonical module-level `_LOGGER = logging.getLogger(__name__)`, calls of its methods (`.warning`, `.isEnabledFor(logging.DEBUG)`) and an annotated class field are not refused.
 - Round 3: `ok.py` gains `from . import coordinator`, `import re` and `re.compile('_LOGGER warnings')`, none of them refused: a sibling import alone, an attribute named `compile`, and text that only mentions `_LOGGER` or `warnings`.
-- Package reading at head: `_r11_logger_aliases` finds exactly the one listed handover, `coordinator.py:3541` (check `R11 N-log-flood barrier reach` passes).
+- Round 4: `ok.py`'s `re.compile` under a module-level `import re` is still not refused. `door.py`'s `b''` and `b'\n'` (letterless bytes) are not refused, nor are its `import importlib`, `from types import ...` of a listed member or the planted files' vetted imports (`re`, `sys`, `importlib`, `homeassistant`, `pickle`). Over the live package, the 18 `re.compile` sites, the three bytes constants and every import pass.
+- Package reading at head: `_r11_logger_aliases` finds exactly the one listed handover, `coordinator.py:3518` (check `R11 N-log-flood barrier reach` passes).
 
 ## Figures
 
@@ -137,8 +175,9 @@ Harnesses are run from `git archive 819aa2e354b4e5baaf824b8568fd72bea8168a75 dev
   - `tests/closure.py select` against the new merge base: `MODE: SCOPED -- 8 script(s) run, 25 scoped out`.
 
 - Round 3 at 935610a4: the barrier block of `tests/entities.py`, exec'd verbatim against the live package, prints `ok` for both N-log-flood checks. The full `PYTHONPATH=tests/hastub python3 tests/entities.py` at 935610a4, under the gate lease, printed `1 of 2732 ENTITY CHECKS FAILED` with both N-log-flood checks `ok`. The one failure is `a measured script's late-writing descendant is waited for, not recorded as nodata`. That check, run alone, fails the same way at b950a390 and at origin/main cb8edb65 on this host. This diff touches neither the check nor the `coverage_tree.sh` stage it drives. CI's scoped gate is the record for this head.
+- Round 4 re-cut at 2d99ad5c: `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2737 ENTITY CHECKS PASSED`, with both N-log-flood checks `ok` (614 s). At d641a120's first plant it printed `1 of 2737 ENTITY CHECKS FAILED`, and the one failure was `R11 N-log-flood barrier reach`. `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `tests/closure.py select --diff b36742b1`: `MODE: SCOPED -- 8 script(s) run, 25 scoped out`. The diff from 8b68ba21 is `tests/entities.py` only.
 
-<!-- figure-block: scope-line mb=9aa29bd52382d0fcd25c43aaa31adb70ef49ff5a head=935610a4dd393e2718305d4691128fc36c728d1f -->
+<!-- figure-block: scope-line mb=b36742b17b7ea229b859fb86a43e74a562bb847b head=2d99ad5c61edca03495f3fefefcea0dbc9e23087 -->
 ~~~text
 MODE: SCOPED -- 8 script(s) run, 25 scoped out.
 ~~~
