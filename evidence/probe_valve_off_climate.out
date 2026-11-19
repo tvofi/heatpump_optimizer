@@ -1,0 +1,7 @@
+== base3812 e83a2c919f5378f41975b03c1315c226a6be6002
+RESULT valve_writes_while_climate_off_no_target=1 calls over 5 cycles
+RESULT valve_writes_after_target_readable=0 calls
+== rev3812 de9a409ecb00c7ed7b63ea9fa24399b1958de255
+No baseline readable from climate.valve: not written, nothing to restore it to
+RESULT valve_writes_while_climate_off_no_target=0 calls over 5 cycles
+RESULT valve_writes_after_target_readable=1 calls
