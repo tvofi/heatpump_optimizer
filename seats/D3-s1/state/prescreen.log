@@ -680,3 +680,4 @@
 2026-11-19T16:32:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters._windowed_draw_pattern CMP_BOUND 8abaa0d6 L940 by=- ran=16 wall=1541.0s
 2026-11-19T16:34:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast CMP_BOUND 12a0c427 L9819 by=- ran=14 wall=1445.3s
 2026-11-19T16:38:56Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_day_peaks GUARD_OFF ba30b8e0 L716 by=tests/harness_headers.py,tests/features.py ran=12 wall=667.1s
+2026-11-19T16:54:39Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison GUARD_OFF 5e7784ff L10441 by=tests/features.py ran=13 wall=1402.2s
