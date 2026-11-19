@@ -1,0 +1,31 @@
+== A_binding rc=1
+FAIL  a from-import re-spelled as a binding read moves no const row
+FAIL  a name read by both spellings counts once
+2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+== B_module rc=1
+FAIL  a module-level function past the module limit is priced by its lines
+FAIL  the same lines in a class past the module limit cost the same
+2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+== C_asname rc=1
+FAIL  a read through an aliased binding of const counts
+1 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+== D_namefilter rc=1
+  ok   80 counting rules hold
+FAIL const_modules_over_50 6 > 4 (+2)
+== E_bindingvalue rc=1
+  ok   80 counting rules hold
+FAIL const_modules_over_50 6 > 4 (+2)
+== F_limit rc=1
+FAIL  a module at the module limit costs nothing
+FAIL  a module-level function past the module limit is priced by its lines
+2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+== G_set rc=0
+  ok   80 counting rules hold
+== H_lastline rc=1
+FAIL  a module-level function past the module limit is priced by its lines
+FAIL  the same lines in a class past the module limit cost the same
+2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+== I_level rc=0
+  ok   80 counting rules hold
+== J_absmod rc=0
+  ok   80 counting rules hold
