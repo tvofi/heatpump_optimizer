@@ -631,3 +631,4 @@
 2026-11-19T09:27:32Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP 66b26296 L4571 by=- ran=17 wall=1778.1s
 2026-11-19T09:43:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability CMP_BOUND f4619cef L677 by=- ran=12 wall=1569.2s
 2026-11-19T09:50:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._pv_surplus_list CMP_BOUND 45535842 L5693 by=- ran=17 wall=1777.2s
+2026-11-19T09:54:51Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:classify_space_steps CMP_BOUND ac8bdc86 L2309 by=tests/features.py ran=17 wall=1778.5s
