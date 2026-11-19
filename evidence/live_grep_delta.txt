@@ -1,0 +1,1 @@
+custom_components/heatpump_optimizer/__init__.py:121:    globals()[name] = value
