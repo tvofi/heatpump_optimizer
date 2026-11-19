@@ -674,3 +674,4 @@
 2026-11-19T12:30:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.expected_daily_min GUARD_OFF 4711f894 L337 by=- ran=12 wall=1783.7s
 2026-11-19T12:32:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.wood_tank_heat_loss_coefficient GUARD_OFF 0486e863 L698 by=- ran=12 wall=1659.3s
 2026-11-19T12:56:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions CMP_BOUND 8a040c32 L10231 by=- ran=13 wall=1799.4s
+2026-11-19T12:58:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_lm_solve CMP_BOUND 32465940 L846 by=- ran=12 wall=1795.9s
