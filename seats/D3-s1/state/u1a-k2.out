@@ -147,3 +147,6 @@
 2026-11-19T15:41:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:<module> CONST 731fc6ea L445 by=- ran=19 wall=1619.8s
 2026-11-19T15:41:54Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_immersion CMP_BOUND 2f74d22d L9107 by=tests/features.py ran=13 wall=1524.0s
 2026-11-19T15:45:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CMP_BOUND 63e4e0a8 L2594 by=- ran=13 wall=1438.0s
+2026-11-19T16:02:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:<module> CONST bc3142ce L124 by=- ran=19 wall=1605.1s
+2026-11-19T16:05:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:extend_price_series GUARD_OFF b4032e2b L510 by=- ran=13 wall=1402.5s
+2026-11-19T16:07:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor CMP_BOUND aacbbc1b L1870 by=- ran=16 wall=1516.3s
