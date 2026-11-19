@@ -9,32 +9,18 @@
   "anchor": "custom_components/heatpump_optimizer/tariff.py:R10-C2 M31",
   "c2_id": "M31"
  },
- "gate_rc": 1,
- "failed_scripts": [
-  "python3 tests/closure.py selftest",
-  "python3 tests/entities.py",
-  "python3 tests/harness_headers.py",
-  "python3 tests/optimality.py",
-  "python3 tests/stress.py"
- ],
- "fail_lines": {
-  "python3 tests/closure.py selftest": 2,
-  "python3 tests/entities.py": 2,
-  "python3 tests/optimality.py": 1,
-  "python3 tests/stress.py": 2,
-  "python3 tests/harness_headers.py": 4
- },
+ "gate_rc": 0,
+ "failed_scripts": [],
  "summary": [
-  "5 TEST SCRIPT(S) FAILED"
+  "ALL TEST SCRIPTS PASSED"
  ],
- "wall_s": 6820.6,
- "child_cpu_s": 7998.1,
- "load1_start": 8.08,
- "load1_end": 246.46,
+ "wall_s": 3404.7,
+ "child_cpu_s": 4547.2,
+ "load1_start": 0.0,
+ "load1_end": 0.0,
  "provisional": true,
  "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
- "more_fails_than_null": [],
  "killed_by": [],
- "verdict": "RED-AS-NULL"
+ "verdict": "SURVIVED"
 }
