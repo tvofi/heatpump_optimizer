@@ -1,0 +1,6 @@
+head: 40361071e1141c6bb63118daf6a90cda1588dced
+box: f0e90c2f4632e89934e9835197239d180f4ace83
+Counter({'head-same': 558, 'sibling-same': 119, 'head-modified': 3, 'dropped': 2, 'sibling-path-diff': 1})
+DROPPED CHECK.txt
+DROPPED dev/audit/rounds/round11/D3/s1/__pycache__/prescreen.cpython-314.pyc
+SIBDIFF dev/audit/rounds/round11/D3/s1/finalize.py
