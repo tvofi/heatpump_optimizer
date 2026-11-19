@@ -1943,7 +1943,7 @@
     "last_step": null,
     "next_step": "designer (L, fable) when its last predecessor dispatches; design review; fixer only on Design review: approve",
     "note": "overlap admitted (R11-PRE-SHARED-FILES, R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3): the note's group B, hot-water charges as runs in dhw_planner.py; shares tests/features.py and optimizer.py with distinct seams, merged in train order | set-files files ['custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/thermal_model.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'docs/architecture.md'] -> ['custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/thermal_model.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'docs/architecture.md', 'custom_components/heatpump_optimizer/runs.py'] (cite fix/r11-outside-honest-starts-runs@38c254f3fb)",
-    "pr": 3709
+    "pr": 3805
    }
   },
   {
@@ -5313,9 +5313,9 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-seam-money",
-    "commit": null,
+    "commit": "8ab5dc566fac0cdc52e7ac3ebffcacf38d149f58",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-006, ADR-001)",
     "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
