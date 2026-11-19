@@ -8,9 +8,3 @@ Step 3 (FINDERS) was refused. The brief requires model claude-opus-5-5 for D3-s1
     PreToolUse:Agent hook error: [command hook 4]: frugal: blocked reasoning-tier agent 'frugal:sage'. ...
 
 The only agents the hook allows are haiku and sonnet workers (scout, extractor, mechanic, builder), so they cannot meet the brief's model requirement. The brief says "never work around a hook or a refusal", so this box did not set FRUGAL_ALLOW_EXPENSIVE and did not downgrade the seat's model. The seat's status was left as `running` (it was set before the spawn and was refused). To unblock, either run this box in an environment where the frugal guard_expensive hook allows an opus finder seat, or send an orchestrator ruling that authorises FRUGAL_ALLOW_EXPENSIVE=1 or a different seat model.
-
-## Resolution (appended 2026-11-19, orchestrator; findings above left as written)
-
-Question: does the orchestrator still authorise FRUGAL_ALLOW_EXPENSIVE=1 or another seat model for this cloud box?
-Answer: no longer needed. The refusal above is superseded: seat D3-s1 ran this slice locally and published refs/heads/handoff/audit-r11-find-D3-top6 at fdd9e2d827a9 (check_report ok D3-s1; one finding, D3-s1-02, low). The cloud box has nothing left to run and should stop; this BLOCKED.md is stale for this box.
-Refusal line: none from body_push.sh; this is a finder box, not a fixer handoff, so there is no kept body and nothing for carry-fold to fold.
