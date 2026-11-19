@@ -42,6 +42,7 @@ class _ShowFormParent(Protocol):
 from .const import (
     FACTORY_RESET_SCOPES,
     DOMAIN,
+    CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     CONF_TIBBER_TOKEN,
     CONF_PRICE_SOURCE,
@@ -481,7 +482,13 @@ from . import (
     topology,
 )
 from .wood_fuel import wood_furnace_on
-from .thermal_model import ThermalParameters, _dhw_enabled_from_config, partload_derate_limit
+from .entry_config import placed
+from .thermal_model import (
+    ThermalParameters,
+    dhw_enabled_from_config,
+    partload_derate_limit,
+    two_zone_from_config,
+)
 from .currency import figure_currency, money_scale
 from .price_model import price_feed
 from .dhw_schedule import (
@@ -582,6 +589,11 @@ def entry_identity(user_input: Mapping[str, Any]) -> str:
 _KEEP_ID: UndefinedType = UNDEFINED
 
 
+def _in_force(entry: Any) -> dict[str, Any]:
+    """An entry's configuration in force: setup data with saved options applied."""
+    return {**entry.data, **entry.options}
+
+
 def identity_update(
     hass: HomeAssistant,
     entry: Any,
@@ -604,7 +616,7 @@ def identity_update(
         **(entry.options if options is None else options),
     }
     unique_id = entry_identity(new)
-    if unique_id == entry_identity({**entry.data, **entry.options}):
+    if unique_id == entry_identity(_in_force(entry)):
         return _KEEP_ID
     held = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, unique_id)
     if held is not None and held is not entry:
@@ -1294,9 +1306,10 @@ def _quick_setup_schema(
     options flow would then have to un-write. The building questionnaire is the
     same field list the ``building_describe`` and ``building_preset`` pages use,
     so a house answered here derives the identical physics as one answered
-    there. The two wood-tank probe pickers ride the same page because they are
-    the two-tank model's own gate: the wood-buffer-tank toggle alone changes
-    nothing the model reads. Both callers share the field list: the initial
+    there. The two wood-tank probe pickers ride the same page because a probe
+    is part of the two-tank model's gate: the wood-buffer-tank toggle alone
+    changes nothing the model reads, and the plan uses that model only on a
+    throttling mixing valve, which the Options pages set (D17-s2-03). Both callers share the field list: the initial
     flow over its accumulating wizard data (which never holds the probes), and
     the Configure page over the entry's effective config, where a stored probe
     is suggested back rather than shown empty (#1258).
@@ -1666,15 +1679,16 @@ def _heat_curve_persistent(config: Mapping[str, Any]) -> bool:
 
 
 def _single_zone(config: Mapping[str, Any]) -> bool:
-    """Whether the model runs one zone, the only one reading the whole-house loss.
+    """Whether the model runs one zone, the only one reading the whole-house
+    loss and mass.
 
-    On two zones every reader takes the zones' loss instead
+    On two zones every reader takes the zones' loss and masses instead
     (``ThermalParameters.house_heat_loss_base``, ``sysid.HousePlant.of_params``),
-    so the thermal page does not offer the whole-house figure there
-    (R10-TWO-ZONE-HHL). The model's own resolution of the mode, so an "auto"
+    so the thermal page offers neither whole-house figure there
+    (R10-TWO-ZONE-HHL, D17-s1-03). The model's own resolution of the mode, so an "auto"
     entry follows the zone keys exactly as the solve does.
     """
-    return not ThermalParameters.from_config(config).two_zone_enabled
+    return not two_zone_from_config(config)
 
 
 def _water_space_setpoint(config: Mapping[str, Any]) -> bool:
@@ -1865,7 +1879,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_WOOD_LIGHTING_LEAD_MINUTES, DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, _number(0, 240, 15, 'min', slider=True), when=wood_furnace_on, group="wood"),
     _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="circulation"),
     # -- thermal_model
-    _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C')),
+    _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C'), when=_single_zone),
     _F("thermal_model", CONF_HOUSE_HEAT_LOSS_COEFFICIENT, _SUGGESTED, _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, 'kW/°C'), when=_single_zone),
     _F("thermal_model", CONF_SLAB_THERMAL_MASS, _SUGGESTED, _number(*RANGE_SLAB_THERMAL_MASS, 0.5, 'kWh/°C')),
     _F("thermal_model", CONF_SLAB_HEAT_TRANSFER, _SUGGESTED, _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, 'kW/°C')),
@@ -2215,21 +2229,69 @@ def _prefill_fits(key: str, value: Any) -> bool:
     return bool(widget.config["min"] <= value <= widget.config["max"])
 
 
-def _prefill_schema(keys: Iterable[str], values: Mapping[str, Any]) -> vol.Schema:
-    """The pre-fill preview: one flat, suggested field per key.
+#: A suggested key's companion field, shown beside it on a pre-fill page: a
+#: night-mode schedule caps the pump only through its power fraction, and a
+#: schedule kept at the fraction's 1.0 default plans exactly as none (D17-s2-04).
+_PREFILL_PAIRED: Final = {CONF_SILENT_MODE_WINDOWS: CONF_SILENT_MODE_FRACTION}
+
+
+def _prefill_fields(
+    keys: Iterable[str], values: Mapping[str, Any], current: Mapping[str, Any]
+) -> dict[Any, Any]:
+    """The pre-fill preview's fields: one flat, suggested field per key.
 
     Flat, because a suggested value does not reach a field inside a
     ``section()``; suggested rather than defaulted, so a field the user
-    clears is absent from the submit and nothing is written for it.
+    clears is absent from the submit and nothing is written for it. A
+    ``_PREFILL_PAIRED`` companion follows its key, suggested from ``values``
+    or else the value in force.
     """
-    return _options_schema({
+    keys = tuple(keys)
+    shown = dict.fromkeys(
+        name for key in keys for name in (key, _PREFILL_PAIRED.get(key)) if name is not None
+    )
+    in_force = {**_ABSENT_FALLBACKS, **current, **values}
+    return {
         (
-            vol.Optional(key, description={"suggested_value": values[key]})
-            if key in values
+            vol.Optional(key, description={"suggested_value": in_force[key]})
+            if key in values or (key not in keys and key in in_force)
             else vol.Optional(key)
         ): _prefill_row(key).widget
-        for key in keys
-    })
+        for key in shown
+    }
+
+
+def _prefill_schema(
+    keys: Iterable[str], values: Mapping[str, Any], current: Mapping[str, Any]
+) -> vol.Schema:
+    """The options flow's pre-fill preview, with its after-save choice; the
+    setup wizard's page posts none, its navigation being always ``finish_setup``."""
+    return _options_schema(_prefill_fields(keys, values, current))
+
+
+def _prefill_page(
+    flow: _StoredValuesAlwaysFit,
+    step_id: str,
+    schema: vol.Schema,
+    notes: dict[str, str],
+    errors: dict[str, str],
+) -> ConfigFlowResult:
+    """A pre-fill page -- the setup wizard's and the options flow's -- with every
+    placeholder its description and fields read.
+
+    ``device_prefill.disclaimer()`` with no resolution is the empty form, so
+    the pick and a refusal carry the keys the device route overrides; the
+    window placeholders are the night-mode and hot-water fields' own. A
+    refusal passes the preview's ``notes``, so it renders what the preview did.
+    """
+    return flow.async_show_form(
+        step_id=step_id,
+        errors=errors,
+        description_placeholders={
+            **_WINDOW_PLACEHOLDERS, **device_prefill.disclaimer(), **notes,
+        },
+        data_schema=schema,
+    )
 
 
 #: The pre-fill page's device pick. Transient: it names where to read the
@@ -2384,6 +2446,18 @@ def _written_entity_collision(merged: Mapping[str, Any]) -> dict[str, str]:
     return {}
 
 
+def _uncapped_schedule_errors(saved: Mapping[str, Any], current: Mapping[str, Any]) -> dict[str, str]:
+    """A kept night-mode schedule whose power fraction in force is 1.0 caps
+    nothing (D17-s2-04); the pre-fill page shows the fraction beside it
+    (``_PREFILL_PAIRED``), so the refusal lands on that field."""
+    if not saved.get(CONF_SILENT_MODE_WINDOWS):
+        return {}
+    fraction = {**current, **saved}.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
+    if float(fraction) >= 1.0:
+        return {CONF_SILENT_MODE_FRACTION: "silent_mode_fraction_uncapped"}
+    return {}
+
+
 def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
     """The refusals of the pages the suggested keys live on, for this save.
 
@@ -2407,6 +2481,8 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
             problem = "silent_mode_window_too_short"
         if problem is not None:
             errors[key] = problem
+    if CONF_SILENT_MODE_WINDOWS not in errors:
+        errors.update(_uncapped_schedule_errors(saved, current))
     if {CONF_DHW_SETPOINT, CONF_DHW_MIN_TEMP} & saved.keys() and _dhw_min_too_close(
         saved, current
     ):
@@ -2442,13 +2518,18 @@ def _omit_unstored_computed(
     JSON bytes without changing the setting.
     """
     cleaned = dict(user_input)
-    for row in _OPTION_FIELDS:
-        if not isinstance(row.default, _Computed):
-            continue
+    computed_rows = [row for row in _OPTION_FIELDS if isinstance(row.default, _Computed)]
+    # A computed default is the one the saved configuration would derive: the
+    # weekday this save sets, not the one it replaces (D17-s1-02). Over the
+    # stored one, a weekend value shown and kept equals the OLD weekday's
+    # default, is dropped as unstored, and follows the new weekday instead.
+    computed_keys = {row.key for row in computed_rows}
+    saving = {**current, **{k: v for k, v in cleaned.items() if k not in computed_keys}}
+    for row in computed_rows:
         if row.key in current or row.key not in cleaned:
             continue
         try:
-            computed = row.default.of(current, hass)
+            computed = row.default.of(saving, hass)
         except Exception:  # noqa: BLE001 - leave a value we cannot recompute
             continue
         if _same_setting(computed, cleaned[row.key]):
@@ -2531,7 +2612,7 @@ def _omit_unstored_defaults(
     edited page — behave exactly as before.
     """
     no_dhw_entry = (
-        CONF_DHW_ENABLED not in current and not _dhw_enabled_from_config(current)
+        CONF_DHW_ENABLED not in current and not dhw_enabled_from_config(current)
     )
     cleaned: dict[str, Any] = {}
     for key, value in user_input.items():
@@ -2624,13 +2705,15 @@ class HeatPumpOptimizerConfigFlow(
     """Handle a config flow for Heat Pump Optimizer."""
 
     VERSION = CONFIG_ENTRY_VERSION
+    MINOR_VERSION = CONFIG_ENTRY_MINOR_VERSION
 
-    #: The suggested keys the offer page is showing, between its two submits
-    #: (#1067 W1067-POST1). None means the page is being opened; a tuple means
-    #: the preview was computed and the next submit is the one that keeps or
-    #: drops what it offered -- the same two-submit shape as the options
-    #: flow's pre-fill page, with the wizard's own data as the target.
-    _device_prefill: tuple[str, ...] | None = None
+    #: The suggested keys the offer page is showing and the preview's notes,
+    #: between its two submits (#1067 W1067-POST1). None means the page is
+    #: being opened; a pair means the preview was computed and the next submit
+    #: is the one that keeps or drops what it offered -- the options flow's
+    #: ``_prefill`` shape, with the wizard's own data as the target, so a
+    #: refusal re-renders the notes the preview showed.
+    _device_prefill: tuple[tuple[str, ...], dict[str, str]] | None = None
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -2692,7 +2775,7 @@ class HeatPumpOptimizerConfigFlow(
         schema = vol.Schema(_user_credentials_fields())
         if self._reconfigure_entry is not None:
             schema = self.add_suggested_values_to_schema(
-                schema, self._reconfigure_entry.data
+                schema, _in_force(self._reconfigure_entry)
             )
         return self.async_show_form(
             step_id="user",
@@ -2735,7 +2818,7 @@ class HeatPumpOptimizerConfigFlow(
         if self._reconfigure_entry is not None:
             schema = self.add_suggested_values_to_schema(
                 vol.Schema(_user_sensors_fields(self.hass)),
-                self._reconfigure_entry.data,
+                _in_force(self._reconfigure_entry),
             )
         else:
             schema = vol.Schema(_user_sensors_sections(self.hass))
@@ -2745,24 +2828,10 @@ class HeatPumpOptimizerConfigFlow(
         )
 
     def _device_prefill_form(
-        self,
-        schema: vol.Schema,
-        notes: dict[str, str],
-        errors: dict[str, str],
+        self, schema: vol.Schema, notes: dict[str, str], errors: dict[str, str]
     ) -> ConfigFlowResult:
-        """The offer page, with the placeholders its description always reads.
-
-        ``device_prefill.disclaimer()`` with no resolution is the empty form,
-        so the pick and the refusal both carry the two keys the device route
-        overrides rather than leaving the description's braces unrendered --
-        the options flow's pre-fill page, and its reason, in one place.
-        """
-        return self.async_show_form(
-            step_id="device_prefill",
-            errors=errors,
-            description_placeholders={**device_prefill.disclaimer(), **notes},
-            data_schema=schema,
-        )
+        """The setup wizard's pre-fill page (``_prefill_page``)."""
+        return _prefill_page(self, "device_prefill", schema, notes, errors)
 
     async def async_step_device_prefill(
         self, user_input: dict[str, Any] | None = None
@@ -2835,11 +2904,11 @@ class HeatPumpOptimizerConfigFlow(
                     resolution, _display_names(self.hass, records)
                 ),
             }
-            self._device_prefill = tuple(suggested)
+            self._device_prefill = (tuple(suggested), notes)
             return self._device_prefill_form(
-                _prefill_schema(suggested, suggested), notes, {}
+                vol.Schema(_prefill_fields(suggested, suggested, self._data)), notes, {}
             )
-        keys = self._device_prefill
+        keys, notes = self._device_prefill
         saved = {
             key: value
             for key, value in _flatten_section_input(user_input).items()
@@ -2847,7 +2916,9 @@ class HeatPumpOptimizerConfigFlow(
         }
         errors = _prefill_errors(saved, {**_ABSENT_FALLBACKS, **self._data})
         if errors:
-            return self._device_prefill_form(_prefill_schema(keys, saved), {}, errors)
+            return _prefill_page(
+                self, "device_prefill", vol.Schema(_prefill_fields(keys, saved, self._data)), notes, errors
+            )
         self._device_prefill = None
         self._data.update(
             _omit_unstored_defaults(
@@ -2863,7 +2934,7 @@ class HeatPumpOptimizerConfigFlow(
         """Write the first screen's answers back onto the entry they came from."""
         entry = self._reconfigure_entry
         assert entry is not None
-        data = dict(entry.data)
+        effective = _in_force(entry)
         for key in (
             str(getattr(marker, "schema", marker))
             for marker in _first_screen_schema(self.hass).schema
@@ -2872,14 +2943,18 @@ class HeatPumpOptimizerConfigFlow(
             # using; the user step's own description promises exactly that,
             # so the cleared value must not survive the update.
             if key in user_input:
-                data[key] = user_input[key]
+                effective[key] = user_input[key]
             else:
-                data.pop(key, None)
+                effective.pop(key, None)
+        # Both sides in one write, each key in its one place: an answer
+        # written to data under an options value would be shadowed by it.
+        data, options = placed(effective)
         self.hass.config_entries.async_update_entry(
             entry,
             data=data,
+            options=options,
             unique_id=self.unique_id,
-            title=data.get(CONF_NAME, entry.title),
+            title=effective.get(CONF_NAME, entry.title),
         )
         await self.hass.config_entries.async_reload(entry.entry_id)
         return self.async_abort(reason="reconfigure_successful")
@@ -2932,10 +3007,12 @@ class HeatPumpOptimizerConfigFlow(
         return _setup_overview_form(self, self._data, last_step=True)
 
     def _create_setup_entry(self) -> ConfigFlowResult:
-        """Persist whatever the wizard has collected so far."""
+        """Persist whatever the wizard has collected so far, each key in its one place."""
+        data, options = placed(self._data)
         return self.async_create_entry(
             title=self._data.get(CONF_NAME, "Heat Pump Optimizer"),
-            data=self._data,
+            data=data,
+            options=options,
         )
 
     async def async_step_quick_setup(
@@ -3296,11 +3373,16 @@ class HeatPumpOptimizerConfigFlow(
             if verdict == "ok":
                 entry = self._reauth_entry
                 assert entry is not None
-                data = {**entry.data, CONF_TIBBER_TOKEN: user_input[CONF_TIBBER_TOKEN]}
+                data, options = placed(
+                    {**_in_force(entry), CONF_TIBBER_TOKEN: user_input[CONF_TIBBER_TOKEN]}
+                )
                 # The token is identity: a unique id left on the old one let
                 # a fresh setup with the new token add the plant twice.
                 self.hass.config_entries.async_update_entry(
-                    entry, data=data, unique_id=identity_update(self.hass, entry, data=data)
+                    entry,
+                    data=data,
+                    options=options,
+                    unique_id=identity_update(self.hass, entry, data=data, options=options),
                 )
                 await self.hass.config_entries.async_reload(entry.entry_id)
                 return self.async_abort(reason="reauth_successful")
@@ -3383,7 +3465,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     @property
     def _current(self) -> dict[str, Any]:
         """Effective configuration: setup data with saved options applied."""
-        return {**self._entry.data, **self._entry.options}
+        return _in_force(self._entry)
 
     def _save(self, user_input: dict[str, Any]) -> ConfigFlowResult:
         """Persist one page without discarding settings from the other pages."""
@@ -4022,21 +4104,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     def _prefill_form(
         self, schema: vol.Schema, notes: dict[str, str], errors: dict[str, str]
     ) -> ConfigFlowResult:
-        """The page, with the placeholders its description always reads.
-
-        ``device_prefill.disclaimer()`` with no resolution is the empty form,
-        so the prefix route and the refusal below carry the same two keys the
-        device route overrides rather than leaving the description's braces
-        unrendered.
-        """
-        return self.async_show_form(
-            step_id="modbus_prefill",
-            errors=errors,
-            description_placeholders={
-                **_WINDOW_PLACEHOLDERS, **device_prefill.disclaimer(), **notes,
-            },
-            data_schema=schema,
-        )
+        """The options flow's pre-fill page (``_prefill_page``)."""
+        return _prefill_page(self, "modbus_prefill", schema, notes, errors)
 
     async def async_step_modbus_prefill(
         self, user_input: dict[str, Any] | None = None
@@ -4109,7 +4178,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             }
             notes = {**modbus_prefill.notes(snap), **sourced}
             self._prefill = (prefix if snap else None, tuple(suggested), notes)
-            return self._prefill_form(_prefill_schema(suggested, suggested), notes, {})
+            return self._prefill_form(_prefill_schema(suggested, suggested, current), notes, {})
         matched_prefix, keys, notes = self._prefill
         saved = {
             key: value
@@ -4118,7 +4187,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         }
         errors = _prefill_errors(saved, current)
         if errors:
-            return self._prefill_form(_prefill_schema(keys, saved), notes, errors)
+            return self._prefill_form(_prefill_schema(keys, saved, current), notes, errors)
         if self._prefill_offer is not None:
             # Carried from the first submit, and written with the rest of what
             # the page keeps: an off switch left off is an unchanged default
