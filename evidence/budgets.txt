@@ -1,0 +1,6 @@
+CLAUDE.md                                        218  221     3616  3616   yes
+dev/governance/roles/COMMON.md                   115  115     1715  1715   key tools/audit/briefs/COMMON.md
+dev/governance/dimensions/DX0.md                  60   60      799   799 
+always-loaded: ~3616 tokens, cap 3349 +band 500 = 3849
+corpus:        ~72240 tokens, cap 72206 +band 500 = 72706
+base 99436a082c: corpus:        ~71405 tokens, cap 71212 +band 500 = 71712
