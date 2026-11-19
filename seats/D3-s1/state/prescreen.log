@@ -635,3 +635,7 @@
 2026-11-19T13:43:25Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 739f3fbc L4714 by=- ran=13 wall=1469.1s
 2026-11-19T14:02:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair RETURN_DEL 10a0eb35 L2788 by=- ran=12 wall=1585.5s
 2026-11-19T14:08:39Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.arm RETURN_DEL a9322b69 L1481 by=tests/features.py ran=12 wall=1575.2s
+2026-11-19T14:26:23Z RUN posctl-D3-u1d-refire3 queued=2 workers=2
+2026-11-19T14:26:35Z POSCTL-D3-U1D-REFIRE3 KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=8.8s
+2026-11-19T14:26:35Z POSCTL-D3-U1D-REFIRE3 KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=2 skip=5 wall=9.4s
+2026-11-19T14:29:18Z COMPLETE queued=1 from=pre

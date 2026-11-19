@@ -30,3 +30,4 @@
 2026-11-19T04:47:57Z K2 milestone: complete/ holds 178
 2026-11-19T08:14:59Z K2 milestone: complete/ holds 203
 2026-11-19T11:58:02Z K2 milestone: complete/ holds 228
+2026-11-19T14:26:22Z re-fire 3 on D3-u1d: worktree == checkpoint; K1 done (309), K2 241/242 complete (dc6c13ec leak key left), 1 TIMEOUT (f68e6ba7), 86 M4 answers pending; null + posctl relaunched (load1 0.30)
