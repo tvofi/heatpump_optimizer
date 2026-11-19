@@ -1,0 +1,7 @@
+head: 41d6cdb0d8d19e9d22ffc6171157f56220b159b5
+== N-solve-recompute --controls
+perturbation: one-line re-introduction seams=1
+controls OK
+== N-stale-step-actuation --controls
+perturbation: one-line re-introduction seams=1
+controls OK

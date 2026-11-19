@@ -1,0 +1,5 @@
+head: 41d6cdb0d8d19e9d22ffc6171157f56220b159b5
+41d6cdb0d8d19e9d22ffc6171157f56220b159b5 depth_root_seams: 0 []
+18f90e92d3 depth_root_seams: 0 []
+1fd7ed1c81 depth_root_seams: 3 ['dev/audit/rounds/round11/sweep/N-stale-step-actuation/harness/enumerate.py:96: repo = pathlib.Path(__file__).resolve().parents[6]', 'dev/audit/rounds/round11/sweep/N-solve-recompute/harness/enumerate.py:59: repo = here.parents[6]', 'dev/audit/rounds/round11/D3/s1/finalize.py:7: ROOT = HERE.parents[5]']
+mutant (N-solve-recompute repo = here.parents[6]) depth_root_seams: 1 ['dev/audit/rounds/round11/sweep/N-solve-recompute/harness/enumerate.py:72: repo = here.parents[6]']

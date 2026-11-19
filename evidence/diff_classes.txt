@@ -1,0 +1,8 @@
+head: 41d6cdb0d8d19e9d22ffc6171157f56220b159b5
+merge-base: 99436a082c67ad5dbb4afc293506af010d6ee8df
+ 318 A
+   2 M
+M	dev/governance/config/corpus_excluded.json
+A	dev/programme/delivery/3810.md
+M	tests/closures.json
+VERSION/manifest/RELEASE_NOTES/custom_components/goldens diff lines:        0
