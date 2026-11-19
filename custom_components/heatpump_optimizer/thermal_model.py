@@ -2266,16 +2266,27 @@ def _valve_flow_set(
 ) -> float:
     """The flow temperature the valve regulates to this step. A per-step
     ``valve_target`` (how a commanded valve holds its charge) beats the
-    configured target; an unconfigured one is the top of the comfort band."""
+    configured target; an unconfigured one is the top of the comfort band.
+
+    A single-zone valve feeds every emitter into the slab, which reaches the
+    room through ``slab_heat_transfer`` in series, and the room's
+    ``internal_gains`` cover part of its loss: the curve holds its target only
+    with both in it (R11-VALVE-REFERENCE). Two zones pass through unchanged."""
     if valve_target is not None:
         target = float(valve_target)
     else:
         target = p.mixing_valve_target or p.comfort_ceiling
+    free_heat_kw = 0.0
+    if not p.two_zone_enabled:
+        k_slab = p.slab_heat_transfer_floored
+        emitter_ua = emitter_ua * k_slab / (emitter_ua + k_slab)
+        free_heat_kw = p.internal_gains
     return mixing_valve.flow_setpoint(
         target_temp=target,
         outdoor_temp=outdoor_temp,
         heat_loss_coefficient=heat_loss_coefficient,
         emitter_ua=emitter_ua,
+        free_heat_kw=free_heat_kw,
     )
 
 
@@ -3487,11 +3498,12 @@ class ThermalModel:
         return u_wind
 
     def flow_target_for_indoor(self, indoor_target: float, outdoor_temp: float) -> float:
-        """Flow temperature `mixing_valve.flow_setpoint`'s curve implies for
-        `indoor_target` (#398) -- the same conversion `_simulate_step_two_zone`
-        uses to bound a dumb valve's delivery, reused rather than re-derived.
-        """
+        """The flow temperature the valve curve implies for `indoor_target` (#398): the plant's
+        own behind a single-zone valve, at zero wind; else `flow_setpoint` on both floors' loss."""
         p = self.params
+        if not p.two_zone_enabled and p.mixing_valve_mode in mixing_valve.THROTTLING_MODES:
+            u = self.effective_heat_loss_coefficient(p.heat_loss_coefficient)
+            return _valve_flow_set(p, indoor_target, outdoor_temp, u, _valve_ua(p))
         heat_loss = self.effective_heat_loss_coefficient(
             p.upper_floor_heat_loss
         ) + self.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
@@ -4297,9 +4309,7 @@ class ThermalModel:
             # are uniform across it); a direct caller gets them computed as
             # the scalar branch does.
             valve_row = 0.0
-            if (p.mixing_valve_mode or mixing_valve.MODE_NONE) in (
-                mixing_valve.THROTTLING_MODES
-            ):
+            if p.mixing_valve_mode in mixing_valve.THROTTLING_MODES:
                 if ua_valve is None:
                     ua_valve = (
                         p.max_electrical_power * p.cop_nominal_floored

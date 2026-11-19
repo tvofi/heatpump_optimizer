@@ -1,0 +1,53 @@
+{
+ "id": "D0-s2-01",
+ "scope": "D0-s2",
+ "step": "D0.M4",
+ "title": "Charged wood tank zeroes 4 of 5 space-only multi-start seeds; mild two-zone days ship the all-off plan",
+ "severity": "low",
+ "claim": "On a two-tank (wood) two-zone house without DHW, HeatPumpOptimizer's space-only solve hands _multi_start_minimize 4 all-zero starts of 5 in 32 of the 60 cells of this seat's axis, and on the 5 mild 24 h cells it ships a 0 kWh plan that a one-run challenger beats by 1.47-2.03 objective units with no feasibility loss.",
+ "mechanism": "optimizer.py (space-only path, ~line 5507): seed_power = baseline_power * (1 - _wood_covered_share(...)); a tank that covers the thermostat reference gives share 1.0, so seed_power, baseline_energy and the three _price_ranked_start vectors built from baseline_energy (full, low, deep-low) are all zero. Only the price-weighted initial guess is live, and the all-off point is a stationary basin for the relaxed descent (the start term is not in the relaxed objective, and a run below the 1 kW floor is clipped by the candidate stage), so the multi-start has no start inside the one-run basin the true objective prefers.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/wood_seeds.py --race winter_narrow/summer_cool/two-zone/no-dhw/wood/24h winter_typical/shoulder/two-zone/no-dhw/wood/24h winter_extreme/summer_cool/two-zone/no-dhw/wood/24h winter_typical/summer_cool/two-zone/no-dhw/wood/24h winter_moderate/summer_cool/two-zone/no-dhw/wood/24h flat/summer_cool/two-zone/no-dhw/wood/24h flat/shoulder/two-zone/no-dhw/wood/24h",
+  "harness_path": "dev/audit/rounds/round11/D0/s2/wood_seeds.py",
+  "value": 2.0292,
+  "unit": "objective units (J_prod - J_best, max over the 5 gap cells; census: 32 of 60 cells with 4/5 zero starts)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B2, 4 vCPU, shared",
+  "cpu_or_wall": "count",
+  "contention_note": "counts and objective values; contention-immune (D0-s2 M6 loops and D3/D9 seats running)",
+  "tolerance": "exact for counts, +-0.01 objective units",
+  "load1": 5.78,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:_wood_covered_share",
+ "perturbation": {
+  "change": "WOOD_SHARE_OFF=1: optimizer._wood_covered_share patched to return 0.0 (seed from the reference unscaled)",
+  "expected_direction": "down",
+  "observed_value": "gap_abs 2.029/1.678/1.631/1.468 -> 0.000 on the four summer_cool cells, 1.725 -> 0.577 on winter_typical/shoulder; census all-but-one-zero cells 32 -> 4, zero starts 128 -> 16 (the 4 left are summer_warm/6h, which needs no heat)"
+ },
+ "metric_definition": "gap_abs = J_prod - J_best feasible challenger (race.py arms seeds/warm, production objective); zero_starts = all-zero candidates in the space-only multi-start call",
+ "phenomenon_property": "The space-only multi-start's structured starts must not collapse to the all-zero vector because a free heat source covers the thermostat reference: at least one start besides the price-weighted guess carries energy whenever the shipped horizon can need heat.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/wood_seeds.py --census",
+ "null_control": {
+  "command": "same --race on flat/summer_cool/two-zone/no-dhw/wood/24h and flat/shoulder/two-zone/no-dhw/wood/24h",
+  "value": "1.678 (summer_cool) / 0.0001 (shoulder)",
+  "note": "Survives flat prices: the gap is not price optimality but solver structure (seed collapse); named so per D0.M5. Bills on these days are ~0 SEK of energy: the gap is the objective's comfort-pull term (challenger buys 3.0-5.1 kWh)."
+ },
+ "leave_one_out": {
+  "cells": 5,
+  "min": 1.4675,
+  "max": 2.0292,
+  "drop_most_favourable": 1.6255
+ },
+ "reproduction_steps": [
+  "run the --census command; read census_cells_all_but_one_start_zero[prod]=32",
+  "repeat with WOOD_SHARE_OFF=1; read 4",
+  "run the --race command with and without WOOD_SHARE_OFF=1"
+ ],
+ "proposed_fix_scope": "optimizer.py space-only seeding: keep the wood-scaled seed and add an unscaled (or floor-level single-run) start, so a covered reference cannot empty the seed set; the DHW path (_solve_space) does not scale and is untouched.",
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

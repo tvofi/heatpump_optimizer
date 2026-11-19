@@ -1,0 +1,18 @@
+# machine Linux-6.18.44-fc-v509-x86_64-with-glibc2.39 py3.14.7
+# fixture=synthetic arm=keep_entities reloads=10 cycles/load=3 cycle_errors=0 []
+# reload=1 unload_ok=True coordinators_built=1 alive_after_gc=1 prod_traced_bytes=363858
+# reload=2 unload_ok=True coordinators_built=2 alive_after_gc=2 prod_traced_bytes=812901
+# reload=3 unload_ok=True coordinators_built=3 alive_after_gc=3 prod_traced_bytes=1257994
+# reload=4 unload_ok=True coordinators_built=4 alive_after_gc=4 prod_traced_bytes=1703085
+# reload=5 unload_ok=True coordinators_built=5 alive_after_gc=5 prod_traced_bytes=2150865
+# reload=6 unload_ok=True coordinators_built=6 alive_after_gc=6 prod_traced_bytes=2603548
+# reload=7 unload_ok=True coordinators_built=7 alive_after_gc=7 prod_traced_bytes=3059370
+# reload=8 unload_ok=True coordinators_built=8 alive_after_gc=8 prod_traced_bytes=3515225
+# reload=9 unload_ok=True coordinators_built=9 alive_after_gc=9 prod_traced_bytes=3977917
+# reload=10 unload_ok=True coordinators_built=10 alive_after_gc=10 prod_traced_bytes=4441646
+RESULT coordinators_alive_after_unload=10 count (of 10 built)
+RESULT prod_bytes_slope_per_reload=453593 B/reload (reloads 2..10)
+RESULT wall_s=15 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=10.11
+RESULT swapins=0

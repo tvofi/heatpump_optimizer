@@ -1,0 +1,33 @@
+{
+  "id": "D15-s1-01",
+  "scope": "D15-s1",
+  "step": "D15.M1",
+  "title": "The finder wall strips the evidence bundles.json cites, so D15's universe enumerator refuses in every finder tree",
+  "severity": "medium",
+  "claim": "After tools/audit/prepare_baseline.sh --strip <tree> 11, `tools/audit/enumerate.py d15-installs` refuses (exit 2) on a tree where it printed 1 line before the strip, because strip_earlier_rounds keeps only round files cited by tests/closures.json or tests/*.py|mjs|sh and bundles.json's evidence path is neither.",
+  "mechanism": "strip_earlier_rounds' keep set (closures + literal paths in tests/*) and enumerate.py:d15's existence requirement on bundles.json[].evidence are two definitions of which earlier-round files a finder tree must hold; the D15 brief names `enumerate.py d15-installs` as the universe, so the seat whose dimension it is cannot enumerate it in its own tree (observed in this seat's export: REFUSE ... round10/D15/s1/intake.py is not in the tree). Of the 19 universes enumerate.py serves, only d15-installs refuses in the walled export.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/wall_enum.py",
+    "harness_path": "dev/audit/rounds/round11/D15/s1/wall_enum.py",
+    "value": "d15_installs_before_strip=1, d15_installs_after_strip=-1 (refused), evidence_survives=0",
+    "unit": "lines (-1 = refused)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, box B8 (shared), CI venv python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 21.97,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/audit/enumerate.py:d15",
+  "perturbation": {"change": "--cite-in-tests: plant one tests/*.py citing the evidence path (the strip's own keep rule)", "expected_direction": "up", "observed_value": "d15_installs_after_strip=1, evidence_survives=1"},
+  "null_control": {"command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/wall_enum.py --round 10", "value": "after=1 (no earlier round stripped)", "note": "the evidence's own round is not stripped, so the enumerator answers"},
+  "metric_definition": "Lines enumerate.py d15-installs prints in a planted tree after prepare_baseline.sh --strip; -1 when it refuses.",
+  "phenomenon_property": "Every path an enumerate.py universe requires to exist survives the finder wall that prepares the tree the universe's dimension runs in.",
+  "seam_rule": "for each universe U in enumerate.py's docstring: bash tools/audit/prepare_baseline.sh --strip <copy> <round> && python3 tools/audit/enumerate.py U --repo <copy> (exit 2 = a seam); at the baseline only d15-installs",
+  "stop_rule_class": "bug",
+  "class_guess": "I4",
+  "files": ["tools/audit/prepare_baseline.sh", "tools/audit/enumerate.py", "dev/audit/config/bundles.json"],
+  "proposed_fix_scope": "Keep dev/audit/config/*.json-cited evidence paths in strip_earlier_rounds' keep set (one more glob beside tests/*), or have enumerate.py d15 read the evidence from git when the tree is walled; either way a self-test arm in prepare_baseline.sh --strip-self-test planting a bundles.json citation.",
+  "reproduction_steps": ["python3 tools/audit/enumerate.py d15-installs (in the finder export): REFUSE", "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/wall_enum.py"]
+}

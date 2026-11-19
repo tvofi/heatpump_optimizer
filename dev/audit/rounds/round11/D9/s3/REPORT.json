@@ -1,0 +1,163 @@
+{
+ "dimension": "D9",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D9/s3/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D9.M2",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo . --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D9-s3",
+   "universe": 96,
+   "examined": 96,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    }
+   ],
+   "evidence": "reach.py executed per file over all 54 sweep scenarios: 16 files reached, 80 blind (out_reach.txt). Reached files are judged by cpu_share.py (whole-solve channel), mem_confined.py (memory channel, all 54 scenarios, injected, null and top-n arms) and percycle.py (work/traced readings under 4 per-cycle injections). The blind files are covered by D9-s3-02. The card .js is never loaded by a Python gate, so it is blind. C1: mem_confined.py injects a 2x retained ballast. The traced arm detects it on 6/6 probed scenarios and the RSS arm on 0/54. It goes unseen on 48 unprobed scenarios (D9-s3-01). A per-cycle retained regression is unseen everywhere (D9-s3-02)."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D9-s3-01",
+   "scope": "D9-s3",
+   "step": "D9.M2",
+   "title": "Stress memory channel probes 6 of 54 scenarios: a 2x retained-bytes regression in any of the other 48 passes",
+   "severity": "medium",
+   "claim": "With a ballast equal to each scenario's recorded traced peak retained inside HeatPumpOptimizer.optimize (a 2x traced regression), the gate's own thresholds flag 54/54 probe readings, but the memory pass only probes the 6 labels _memory_probe_labels selects, so a 2x confined to any of the other 48 scenarios passes green, while the pass's detection check ('budgets tight enough to see a 2x') reports green on multiples computed over all recorded rows.",
+   "mechanism": "tests/stress.py's memory pass (check mode) probes MEMORY_TOP_N=6 labels chosen from the committed table (3 by traced_peak_mb, 3 by rss_peak_mb); the other rows of stress_budgets.json are never measured in a gate run. The detection-sizing check computes rss/traced threshold multiples (1.5x) over every recorded row and prints them 'over the 6 scenario(s) this pass probes', so it holds the thresholds to DETECTION_TARGET but never the sampling. Corollary from the null arm: on this box's clean tree 9 of the 48 unprobed rows already read 1.6-2.3x their record (their records are never re-read), so the table's unprobed half is unverified.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --jobs 2",
+    "harness_path": "dev/audit/rounds/round11/D9/s3/mem_confined.py",
+    "value": 48,
+    "unit": "scenarios where an injected 2x traced regression is flagged by the gate's thresholds but never probed (blind_confined); detected_confined=6 of 54",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "cloud box B3, Linux x86_64 4 vCPU shared by up to 3 compute seats, Python 3.14.7, numpy 2.5.4",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute seats on the box, load1 11.3; the count is of bytes-based verdicts and does not depend on timing",
+    "tolerance": "exact (probe set is a pure function of the committed table)",
+    "load1": 11.33,
+    "thread_factor": 1.034
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (ballast retained there, read through stress._run_memory_probe / traced_fail_threshold / rss_attrib_fail_threshold and the gate's _memory_probe_labels exec'd from tests/stress.py)",
+   "perturbation": {
+    "change": "--top-n 108 (the gate's STRESS_MEMORY_TOP_N raised past the scenario count, so the pass probes every scenario)",
+    "expected_direction": "down",
+    "observed_value": "--top-n 108: probed_by_gate=54, detected_confined=54, blind_confined=0 (out_mem_topn108.txt)"
+   },
+   "metric_definition": "Per sweep scenario: detected = in the gate's memory probe set AND the gate's own traced/RSS thresholds fire on the probe reading with a retained ballast of 1x the recorded traced peak.",
+   "phenomenon_property": "Every scenario whose memory peak is recorded in tests/stress_budgets.json must be re-measured by a gate run (or the detection check must count only the rows it re-measures), so that a 2x memory regression confined to any recorded scenario fails the gate.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --ballast-factor 1.0  (BLIND line lists every recorded scenario the pass does not probe)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --jobs 2 --ballast-factor 0",
+    "value": "detected_confined=0, flagged_if_probed=9 (all 9 unprobed)",
+    "note": "No injection: the 6 probed scenarios read inside 1.5x (no false positive); the injection is what moves the probed set to flagged. 9 unprobed rows read 1.6-2.3x their record clean on this box, so 39 of the 48 blind scenarios are blind to the injection alone."
+   },
+   "leave_one_out": {
+    "cells": 54,
+    "min": 1.538,
+    "max": 3.29,
+    "drop_most_favourable": 1.538
+   },
+   "reproduction_steps": [
+    "Run the harness with default args: RESULT detected_confined=6, blind_confined=48.",
+    "Run with --ballast-factor 0: detected_confined=0 (null).",
+    "Run with --top-n 108: detected_confined rises to the scenarios flagged."
+   ],
+   "proposed_fix_scope": "tests/stress.py memory pass: probe every recorded scenario in check mode (or rotate a deterministic subset with a per-run budget and make the detection check judge only the probed rows); re-record the memory half on the CI platform after.",
+   "files": [
+    "tests/stress.py",
+    "tests/stress_budgets.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I1"
+  },
+  {
+   "id": "D9-s3-02",
+   "scope": "D9-s3",
+   "step": "D9.M2",
+   "title": "Stress gate runs no coordinator cycle: 2x solves/cycle, payload, retained growth or lost GIL yields read unchanged",
+   "severity": "medium",
+   "claim": "Four injected per-cycle regressions -- the coordinator's solve run twice (2 -> 4 _multi_start_minimize entries per cycle), the published dict doubled (89,220 -> 177,853 JSON bytes), each cycle's dict retained (+~205 kB/cycle), and every optimizer GIL yield removed (394 -> 0 sleeps per cycle) -- leave the stress gate's solver_evals, solver_simulate_steps and solver_calls bit-identical and its traced peak within 0.55% on five sweep scenarios, because build_case executes 0 of coordinator.py's 835 functions and 80 of the 96 D9 universe files at all.",
+   "mechanism": "tests/stress.py measures only HeatPumpOptimizer.optimize called directly by build_case; it never drives HeatPumpOptimizerCoordinator._async_update_data, the process-worker submission, _build_data_dict or the event loop. Of D9.md's six metrics only sse_per_gradient (and the per-solve CPU/memory) has a stress channel; solves_per_cycle, gil_hold, loop_thread_work, retained_bytes (per-cycle slope) and payload_bytes have none, and nothing else in the gate budgets them (the owner's 'whether the stress budget should become a real gate' for the cycle).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/percycle.py",
+    "harness_path": "dev/audit/rounds/round11/D9/s3/percycle.py",
+    "value": 0.0,
+    "unit": "max |ratio-1| of the gate's solver_evals/simulate/calls readings, injected arm over clean, across 5 scenarios and 4 arms (traced peak max 0.0055)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "cloud box B3, Linux x86_64 4 vCPU shared by up to 3 compute seats, Python 3.14.7, numpy 2.5.4",
+    "cpu_or_wall": "count",
+    "contention_note": "load1 14 from other seats; counts and bytes are contention-immune",
+    "tolerance": "exact for counts; traced +/-1%",
+    "load1": 14.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data (optimize_in_process, _build_data_dict) and heatpump_optimizer.optimizer:_multi_start_minimize; gate side stress.build_case/SolverWork",
+   "perturbation": {
+    "change": "each arm (solves2x, payload2x, retain, noyield) is the perturbation; the per-cycle metric it targets must move while the gate readings stay flat",
+    "expected_direction": "up",
+    "observed_value": "solves/cycle 2.00->4.00; payload 89220->177853 B; retained growth 9136->213862 B/cycle; yields/cycle 394->0 (direction to_zero); gate deviations 0.0000 counts, <=0.0055 traced"
+   },
+   "metric_definition": "Per arm: the targeted per-cycle metric on a real coordinator cycle vs the ratio of the gate's build_case readings (evals, simulate steps, calls, traced peak) to the clean arm.",
+   "phenomenon_property": "Each D9 per-cycle metric (solves per cycle, loop-thread work, GIL hold, retained bytes per cycle, payload bytes) has a gate channel that fails on a 2x regression of it; a metric no channel reads cannot regress green unseen.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s3/reach.py  (FILE ... blind=1 lists every universe file whose code no stress channel executes)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/percycle.py --arms clean,noyield",
+    "value": "clean arm: gate deviations 0.0000; same-tree re-solve is deterministic",
+    "note": "The clean arm against itself fixes the gate-reading noise floor at 0 for counts and the traced peak's ~0.5% jitter."
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 0.0,
+    "max": 0.0,
+    "drop_most_favourable": 0.0
+   },
+   "reproduction_steps": [
+    "Run percycle.py: each ARM line shows the per-cycle metric moved; each RESULT <arm>_gate_*_max_dev reads 0.0000 for counts.",
+    "Run reach.py: RESULT coordinator_executed=0, files_blind=80 of 96."
+   ],
+   "proposed_fix_scope": "A per-cycle stress lane (tests/): drive N coordinator cycles on the in-process worker, record solves/cycle, payload bytes, retained growth slope and loop-thread time per scenario in a budgets file, and fail at DETECTION_TARGET like the solve channels.",
+   "files": [
+    "tests/stress.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No single reached production file holds enough of the solve CPU outside the metered kernels for a file-confined 2x to be an over-DETECTION_TARGET solve regression. Kernels hold a median 0.73, judged per call by kernel_cost_over_verdict. The top non-kernel file is optimizer.py at a median 0.036 (max 0.106), against the 0.414 the sqrt 2 whole-solve median needs. 0 of 16 files trip it, so the gap is by design. Provisional CPU shares, load1 9.5. Perturbation --double optimizer:_fd_rows moved optimizer.py 0.0288 -> 0.0304.",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/cpu_share.py",
+   "value": "files_whose_2x_trips_whole_solve=0/16; top median share 0.0363; kernel median share 0.7316"
+  },
+  {
+   "claim": "On the scenarios it does probe, the memory channel catches an injected 2x traced regression with no false positive. Traced arm 1.95-2.11x against the 1.5x threshold, flagged 6/6. The null arm flags 0/6.",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --jobs 2 [--ballast-factor 0]",
+   "value": "detected_confined 6 (inject) vs 0 (null)"
+  },
+  {
+   "claim": "The gate's work-count readings are deterministic on an unchanged tree, so a flat reading under injection is not noise.",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/percycle.py --arms clean,noyield",
+   "value": "clean_gate_{evals,simulate,calls}_max_dev=0.0000"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D9/s3/mem_confined.py",
+  "dev/audit/rounds/round11/D9/s3/percycle.py",
+  "dev/audit/rounds/round11/D9/s3/reach.py",
+  "dev/audit/rounds/round11/D9/s3/cpu_share.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D9-s2",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_update_data",
+   "what": "The clean coordinator's tracemalloc current grows 5-9 kB per cycle over cycles 2-4 (FakeHass, in-process worker, dhw config; percycle.py clean and noyield arms), against B4's 199 B per cycle. Not taken after 200 warm-up cycles, so it needs the retained-bytes harness's slope."
+  }
+ ]
+}

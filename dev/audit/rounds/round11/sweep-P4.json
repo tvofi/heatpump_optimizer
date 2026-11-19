@@ -1,0 +1,26 @@
+{
+ "class": "P4",
+ "instances": 1,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P4/enumerate.py [--null | --perturb]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._optimize_space_only",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D0/s2/wood_seeds.py --race winter_narrow/summer_cool/two-zone/no-dhw/wood/24h ... -> race gap max 2.0292 (D0-s2-01); dev/audit/rounds/round11/D0/s3/offstart.py --workers 1 -> 16/60 gap cells (D0-s3-02)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._solve_space",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1 (D0-s3-02); sweep probe_offstart_sites.py --limit 6 -> _relaxed_plans:245 gap_calls=12/14 max_gap=3204.3613",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_relaxed_plans",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P4/probe_offstart_sites.py --limit 6 -> exit 1, free-room re-run (optimizer.py:251) gap_calls=12/14 max_gap=3204.3567 on its descent objective; --null 0",
+   "beyond_finding": true
+  }
+ ]
+}

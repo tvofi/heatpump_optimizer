@@ -85,8 +85,7 @@ divergence"). Re-read on change after every compaction
 
 - 2026-11-13: "Also verify that the other dimensions also covers the full
   codebase in their contracts, I want future rounds to always check everything
-  in their dimension, not only small samples". 2026-11-13: "I would like the
-  scope of d5 and d6 to always cover that full scope". Where `D3.md` and `D11.md`
+  in their dimension, not only small samples" (for D5 and D6, `D6.md` states it). Where `D3.md` and `D11.md`
   still sample, the change is owned by R11-PRE-BRIEFS-TEXT part 2.
 - 2026-11-15: "As soon as everything that is critical to land before the finder
   phase, the finding phase can start in parallel with the remaining groups";
@@ -102,6 +101,62 @@ divergence"). Re-read on change after every compaction
   carries from the previous round."
 - 2026-11-13: "outside and owner filed findings and requests should always fold
   into the ongoing round if not explicitly deferred by the owner or outsider".
+- 2026-11-18, on round-11 plan revision 4 (`plan/r11` at 50a932de3b, approved
+  by plan review at `plan-verdict/r11` 4494289c0e): "go with all three points".
+  The three points, as recorded: (1) revision 4 is applied to the round-11
+  roster, every row of `CHANGES-R3.md` and `CHANGES-R4.md`; (2) carry 182 of
+  R11-INTAKE-R10-RESIDUE (the heat-ask dither and closed-loop planner harness,
+  from R11-OUTSIDE-SELF-SETTING-PUMP) stays in round 11, re-homed to
+  R11-SEAM-learners, the live group owning `accuracy.py`; (3) R11-READS-RESIDUE
+  is an owner exception to the instrument freeze (card P11), and decision 0018,
+  `dev/audit/config/objective.json` and the round-10 baseline name it as the
+  builder in place of R11-INTAKE-R10-RESIDUE.
+
+## Round 11 plan, design and ratchet rulings, 2026-11-18
+
+Words not kept are marked "as recorded"; the bracketed readings are the
+orchestrator's.
+
+- 2026-11-18, the P3 plan (as recorded; mandate 6893738184, after one hour
+  without an answer): (1) floor metrics count as the third scored class, with
+  the 40% cap checked at stamp; (2) the instrument-comment deferral to round 12
+  is confirmed (tooling freeze); (3) the ADR-007 designer starts in the first
+  wave; (4) the circ term is banked only with a registered restore owner and a
+  no-circ case added; (5) the architect's small fixes apply without a fourth
+  review (designs owed for R11-SEAM-tests and R11-SEAM-card, the dead-state to
+  ratchets edge dropped, the hub brief's stale-holder check). Confirmed by him
+  the same day: "I confirm your plan".
+- 2026-11-18, money design questions (as recorded): (1) the five findings that
+  are zero at main get regression pins only, recorded as not reproduced at main
+  and not re-judged; (2) D5-s3-01 moves to the kernel-layering group with no new
+  edge; (3) ADR-006 part 2 was explained to him, then: ADR-006 part 2 dropped.
+- 2026-11-18, four rulings (as recorded): (1) the #3723 churn cap is raised under
+  the mandate, with a proposal filed; (2) ratchet raises `const_modules_over_50`
+  3 to 4 and the module-span limit to 2000, both yes; (3) DRAWMAP S1 to S4 are
+  confirmed as they stand.
+- 2026-11-18 (as recorded): carry 1 of the DX0 group is its own policy pull
+  request, and its review is the orchestrator's under mandate 6893738184.
+- 2026-11-18 (as recorded): a new round phase, "instrument prototype and
+  proposal triage", about 24 hours before closeout. A Fable seat consolidates the
+  instrument proposals and overlay prototypes and plans the next round's
+  instrument changes; that plan is reviewed and becomes the next round's
+  instrument groups. The policy change (playbook, `proposal-triage.md`,
+  `plan_phases` PHASES) is its own pull request; round 11's instance runs about
+  24 hours before its closure.
+- 2026-11-18, #3708 design decision D1/D2 (as recorded): option (b). The part-1
+  job goes in `governance.yml` with its read-only grant, its code under the
+  code-owned `tools/ci/`; the `record-autofix` write set stays delivery rows
+  only; mandate 6893738184 applies to the code-owned approval.
+- 2026-11-18 (as recorded), `R11-ARCH-OBJECTIVE` carry 390ea33c: the settlement
+  rows stay UNDECIDED in the 0018 record, with no policy change.
+- 2026-11-18 (as recorded), D3 in round 11: the late-intake D3-s1 finding or
+  findings go through verifier and judge into the register, and the remainder
+  runs on cloud boxes, with results to the plan as an addendum and deviation. The
+  late finding was judged by one seat acting as verifier and judge, a recorded
+  deviation; an independent re-judge is owed at plan review, then a plan
+  amendment.
+- 2026-11-18 (as recorded): issues for the round-11 groups are filed as planned,
+  after #3723 lands: "Let them land as planned".
 
 ## The instrument freeze, proposals and root cause
 
@@ -126,10 +181,6 @@ divergence"). Re-read on change after every compaction
   owed" (product and release defects and outages; tooling friction is counted by
   family and analysed at round end, L8). The trigger and the separate seat are
   `CLAUDE.md`'s and `defect-root-cause.md`'s.
-- 2026-10-24: "each operation or shape that is not clearly a one shot and could
-  be mechanical should be mechanical and wired into the machinery. This means
-  reusable instrument before policy, only policy if no robust script could be
-  built at a reasonable cost (tokens, time, complexity)".
 - 2026-11-13: "you may have a fixer have more carries based on their kind,
   locally for now and filed as a permanent proposal" (operational until the
   round-end proposal triage rules PC-1113-08).

@@ -1,0 +1,15 @@
+== --gate-waiting
+RESULT avail_none_cycles=0 count
+RESULT first_scale=2688.0 ratio
+RESULT swing=1728.39 currency
+RESULT cycles=17 count
+== --min-hours 24
+RESULT avail_none_cycles=0 count
+RESULT first_scale=0.0 ratio
+RESULT swing=0.00 currency
+RESULT cycles=17 count
+== --min-hours 0
+RESULT avail_none_cycles=0 count
+RESULT first_scale=2688.0 ratio
+RESULT swing=1728.39 currency
+RESULT cycles=17 count

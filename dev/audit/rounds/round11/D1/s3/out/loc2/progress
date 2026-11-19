@@ -1,0 +1,36 @@
+tests/config_flow_steps.py run 1: STATUS aborted: KeyError: 'tibber_token' fired=16
+tests/features.py run 1: STATUS finished fired=5
+tests/config_flow_steps.py run 2: STATUS aborted: UpdateFailed: D1S3-INJECTED fired=10
+tests/config_flow_steps.py run 3: STATUS aborted: UpdateFailed: D1S3-INJECTED fired=4
+tests/config_flow_steps.py run 4: STATUS aborted: KeyError: 'plan' fired=15
+tests/entities.py run 1: STATUS aborted: UpdateFailed: D1S3-INJECTED fired=43
+tests/config_flow_steps.py run 5: STATUS aborted: ConfigEntryNotReady: D1S3-INJECTED fired=19
+tests/entities.py run 2: STATUS aborted: GridFeeError: Bad rate in '= 0.07' fired=2
+tests/config_flow_steps.py run 6: STATUS finished fired=17
+tests/features.py run 2: STATUS aborted: TypeError: type NoneType doesn't define __round__ method fired=28
+tests/debug_collect.py run 1: STATUS aborted: AttributeError: 'NoneType' object has no attribute 'get' fired=17
+tests/debug_collect.py run 2: STATUS finished fired=7
+tests/finite_boundary.py run 1: STATUS aborted: KeyError: 'accuracy' fired=29
+tests/entities.py run 3: STATUS aborted: KeyError: 'house_heat_loss_coefficient' fired=8
+tests/features.py run 3: STATUS aborted: ConfigEntryNotReady: D1S3-INJECTED fired=36
+tests/entities.py run 4: STATUS aborted: KeyError: 'house_heat_loss_coefficient' fired=2
+tests/features.py run 4: STATUS aborted: ConfigEntryNotReady: D1S3-INJECTED fired=1
+tests/entities.py run 5: STATUS aborted: KeyError: 'house_heat_loss_coefficient' fired=0
+tests/open_meteo.py run 1: STATUS finished fired=4
+tests/manual_plan.py run 1: STATUS aborted: ManualPlanError: could not parse datetime '2026-01-15T06:00:00': D1S3-INJECTED fired=5
+tests/manual_plan.py run 2: STATUS aborted: ManualPlanError: bad stored expiry '2026-01-15T08:00:00' fired=1
+tests/finite_boundary.py run 2: STATUS finished fired=60
+tests/guard_pins.py run 1: STATUS finished fired=22
+tests/features.py run 10: STATUS aborted: DHWWindowError: Invalid window 'Sa' (expected HH:MM-HH:MM) fired=9
+tests/manual_plan.py run 3: STATUS aborted: ConfigEntryNotReady: D1S3-INJECTED fired=33
+dev/audit/rounds/round11/D1/s3/drivers_misc.py run 10: STATUS finished fired=26
+dev/audit/rounds/round11/D1/s3/drivers_misc.py run 11: STATUS finished fired=1
+dev/audit/rounds/round11/D1/s3/drivers_misc.py run 12: STATUS finished fired=0
+dev/audit/rounds/round11/D1/s3/drivers_misc.py LOOPDONE
+tests/manual_plan.py run 4: STATUS finished fired=13
+tests/features.py run 11: STATUS aborted: TypeError: 'NoneType' object is not subscriptable fired=24
+tests/features.py run 12: STATUS aborted: ConfigEntryNotReady: Error updating data: D1S3-INJECTED fired=5
+tests/features.py run 13: STATUS aborted: ConfigEntryNotReady: Error fetching Tibber prices: D1S3-INJECTED fired=1
+tests/features.py run 14: STATUS aborted: ConfigEntryNotReady: Unexpected error fetching prices: D1S3-INJECTED fired=1
+tests/features.py run 15: STATUS aborted: TypeError: 'NoneType' object is not subscriptable fired=10
+tests/features.py run 16: STATUS aborted: KeyError: 'reasons_reconcile' fired=2

@@ -1,0 +1,39 @@
+{
+  "id": "D7-s2-03",
+  "scope": "D7-s2",
+  "step": "D7.M4",
+  "title": "CoordinatorContext is not write-once: two in-place _opt_config writers reach every superseded context",
+  "severity": "low",
+  "claim": "After async_update_thermal_params supersedes a context, async_set_target_temperature and _apply_comfort_weight still change 2 fields (target_temp, comfort_weight) of the superseded context, because every published context shares one mutable OptimizationConfig; replacing the two writes by a published replace() leaves 0.",
+  "mechanism": "CoordinatorContext is a frozen dataclass whose docstring promises 'a change is published whole by rebinding _ctx ... a holder of the old one keeps a consistent view'. publish/_publish_params/async_update_thermal_params honour it for _current_state, _thermal_params and _config (the old holder keeps heat_loss_coefficient 0.15 while the live one reads 0.2), but coordinator.py:4258 (ctx._opt_config.target_temp = temperature) and :10941 (_opt_config.comfort_weight = ...) edit the member in place, and dataclasses.replace copies the member reference, so every context ever published since the entry was set up sees the edit. Today's holders across an await (enum_m4.py ctx_held: 8 sites) only read; no measured wrong value follows, hence low.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+    "value": 2,
+    "unit": "fields of a superseded context's members changed after supersession",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5, round-11 finder container, CPython 3.14, numpy 2.5.4, scipy 1.18.1",
+    "cpu_or_wall": "count",
+    "contention_note": "count, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.79,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_set_target_temperature / _apply_comfort_weight (against CoordinatorContext after async_update_thermal_params)",
+  "perturbation": {
+    "change": "--perturb-ctx: both writers publish self._ctx = replace(ctx, _opt_config=replace(ctx._opt_config, <field>=...)) instead of the in-place assignment",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Number of fields of _opt_config/_thermal_params/_current_state on a captured context whose value changes after a later publish superseded that context.",
+  "phenomenon_property": "No production statement assigns into a field of a CoordinatorContext member; every change to a hub is a new published context, so a superseded context never changes.",
+  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m4.py | grep ctx_inplace",
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py  # holder_torn_fields=2",
+    "... m4_order_context.py --perturb-ctx  # holder_torn_fields=0"
+  ],
+  "proposed_fix_scope": "coordinator.py: the two _opt_config writers publish a replaced config (or OptimizationConfig becomes frozen behind the _hub facade)",
+  "files": ["custom_components/heatpump_optimizer/coordinator.py"],
+  "stop_rule_class": "hygiene",
+  "class_guess": "N-shared-config"
+}

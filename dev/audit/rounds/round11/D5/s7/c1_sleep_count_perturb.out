@@ -1,0 +1,11 @@
+RESULT source_sites=3 count
+RESULT solves=50 count
+RESULT between_run_per_solve_min=4 count
+RESULT between_run_per_solve_max=41 count
+RESULT scenarios_with_eight=0 count
+RESULT total_per_solve_max=89 count
+RESULT thread_factor=0.999
+RESULT load1=1.22
+RESULT swapins=0
+
+[exited with code 0]

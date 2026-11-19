@@ -1,0 +1,13 @@
+CELL covariate-moved covariate=indoor key=indoor_temp_entity voided=['house_heat_loss_scale']
+CELL covariate-moved covariate=outdoor key=outdoor_temp_entity voided=[]
+CELL covariate-moved covariate=flow key=flow_meter_entity voided=[]
+CELL covariate-moved covariate=tank key=dhw_temp_entity voided=[]
+CELL covariate-moved covariate=outdoor consequence: scale_A=1.0000 scale_B_eq=1.1111 restored_err=0.1000 steps_carried=80 steps_voided=80
+RESULT voided_indoor=1 count
+RESULT voided_outdoor=0 count
+RESULT voided_flow=0 count
+RESULT voided_tank=0 count
+RESULT outdoor_restored_err=0.1000 ratio
+RESULT thread_factor=1.0000
+RESULT load1=2.93
+RESULT swapins=0

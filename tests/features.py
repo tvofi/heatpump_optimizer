@@ -11282,12 +11282,14 @@ _ua_sz = (
     _p_sz.max_electrical_power * _p_sz.cop_nominal_floored
     / _p_sz.emitter_design_delta_t_floored
 )
-_fs_sz = _mv.flow_setpoint(
-    target_temp=23.0, outdoor_temp=-5.0,
-    heat_loss_coefficient=_m_sz.effective_heat_loss_coefficient(
-        _p_sz.heat_loss_coefficient, 0.0, 0.0
-    ),
-    emitter_ua=_ua_sz,
+# The plant's own curve (R11-VALVE-REFERENCE: the slab in series, the gains
+# offset), read rather than re-derived: this check pins the energy balance.
+from heatpump_optimizer.thermal_model import _valve_flow_set as _vfs_sz  # noqa: E402
+
+_fs_sz = _vfs_sz(
+    _p_sz, None, -5.0,
+    _m_sz.effective_heat_loss_coefficient(_p_sz.heat_loss_coefficient, 0.0, 0.0),
+    _ua_sz,
 )
 _q_sz = _mv.emitter_delivery(mix_temp=min(50.0, _fs_sz), zone_temp=25.0, ua=_ua_sz)
 _stand_sz = _p_sz.buffer_tank_heat_loss_coefficient * (50.0 - 20.0)
@@ -11428,7 +11430,9 @@ def _zoned_store_capabilities(two_zone):
     _on, _off = ThermalModel(_zp), ThermalModel(_zq)
     _valved = _on.simulate_step(_zs(22.0, 60.0), 4.0, -5.0, dt_hours=0.25)
     _bare = _off.simulate_step(_zs(22.0, 60.0), 4.0, -5.0, dt_hours=0.25)
-    _on.simulate_step(_zs(25.0, 69.5), 5.0, -5.0, dt_hours=0.25)
+    # The cap arm's slab sits near the single-zone curve (31.2 C here since
+    # R11-VALVE-REFERENCE), so the draw stays below what the pump puts in.
+    _on.simulate_step(_zs(30.0, 69.5), 5.0, -5.0, dt_hours=0.25)
     _zopt = _StoreOpt(ThermalModel(_zp), _StoreCfg(
         horizon_hours=24, time_step_minutes=15,
         target_temp=21.0, min_temp=17.0, max_temp=23.0,
@@ -12148,12 +12152,20 @@ def _cg_rounds(moving):
     return runs
 
 
-_cg_still = _cg_rounds(False) if _ct_p is not None else []
+# The converging arm runs under a raised cap, so its rounds end because the
+# plan stopped moving, never because the cap ran out: on this fixture the
+# first exchange settles on its fourth build (R11-VALVE-REFERENCE's curve).
+_cg_round_cap = _optmod._COMBI_EXCHANGE_ROUNDS
+_optmod._COMBI_EXCHANGE_ROUNDS = 8
+try:
+    _cg_still = _cg_rounds(False) if _ct_p is not None else []
+finally:
+    _optmod._COMBI_EXCHANGE_ROUNDS = _cg_round_cap
 _cg_moving = _cg_rounds(True) if _ct_p is not None else []
 R.check(
-    "combi flux exchange: a plan that stops moving ends the rounds before the cap; one still "
+    "combi flux exchange: a plan that stops moving ends the rounds before a raised cap; one still "
     "moving is published after exactly four plan builds",
-    bool(_cg_still) and all(0 < n < 4 for n in _cg_still)
+    _cg_round_cap == 4 and bool(_cg_still) and all(0 < n < 8 for n in _cg_still)
     and bool(_cg_moving) and all(n == 4 for n in _cg_moving),
     f"builds per exchange: converging {_cg_still}, moving {_cg_moving}",
 )
@@ -35070,6 +35082,39 @@ for _fl_name, _fl_kwargs, _fl_mutate in (
         f"{_fl_blocked._flow_bias.as_dict()}",
     )
 
+# R11-VALVE-REFERENCE r1: behind a throttling valve on a single-zone house the
+# supply follows the valve's tank-charge temperature, not the space curve, so
+# the fold takes no sample. A two-zone valved install keeps folding (bitwise,
+# the architect note), as does a single-zone house with no valve (the control).
+_fl_valve = {}
+for _fl_zone in ("off", "on"):
+    for _fl_mode in ("none", "manual", "smart_read", "smart_write"):
+        _fl_v = _fl_coord(two_zone_mode=_fl_zone, mixing_valve_mode=_fl_mode)
+        _fold_flow_lift(_fl_v, _T6)
+        _fl_valve[(_fl_zone, _fl_mode)] = _fl_v._flow_bias.samples
+# The other end of the learner's range: a bias already on its clamp, learned
+# before the valve was configured, is held as it was, not moved.
+_fl_clamped = _fl_coord(two_zone_mode="off", mixing_valve_mode="manual")
+_fl_clamped._flow_bias.observe(_fl_expected_curve - 50.0, _fl_expected_curve)
+_fl_held = _fl_clamped._flow_bias.as_dict()
+_fold_flow_lift(_fl_clamped, _T6)
+_fl_valve["clamped held"] = (
+    _fl_clamped._flow_bias.as_dict() == _fl_held
+    and abs(_fl_held["bias_k"]) == flow_lift.FLOW_BIAS_CLAMP_K
+)
+R.check(
+    "R11-VALVE-REFERENCE r1: a single-zone house behind a throttling valve folds "
+    "nothing; with no valve, and every two-zone install, it folds (null control)",
+    _fl_valve == {
+        ("off", "none"): 1, ("off", "manual"): 0,
+        ("off", "smart_read"): 0, ("off", "smart_write"): 0,
+        ("on", "none"): 1, ("on", "manual"): 1,
+        ("on", "smart_read"): 1, ("on", "smart_write"): 1,
+        "clamped held": True,
+    },
+    f"{_fl_valve!r}",
+)
+
 # -- persistence is additive -------------------------------------------------
 _fl_store = _t2_coord()
 _fl_store._flow_bias.observe(40.0, 34.0)
@@ -47503,7 +47548,7 @@ _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
     # The literal is the persisted stamp this release writes: a bump is deliberate.
-    _sb_meta == {"sum": 3.0, "count": 1} and _SB_NOW == 3 and _sb_row["old_basis"] is False
+    _sb_meta == {"sum": 4.0, "count": 1} and _SB_NOW == 4 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
@@ -47524,9 +47569,11 @@ R.check(
 )
 # A stamp 2.0 is what v7.1.17 wrote, before pull request 3587 held a valve-limited
 # two-zone reference at the valve top: a month it opened mixes two references
-# once it books on under this code. A stamp 3.0, this release's, keeps its saving.
+# once it books on under this code. A stamp 3.0 held a single-zone valved house
+# short of its setpoint, before R11-VALVE-REFERENCE's curve reached it. A stamp
+# 4.0, this release's, keeps its saving.
 _sb_by_stamp = {}
-for _sb_stamp in (2.0, 3.0):
+for _sb_stamp in (2.0, 3.0, 4.0):
     _sb_s = _sb_copy.deepcopy(_sb_led.as_dict())
     _sb_s["months"]["2026-02"]["meta"][_SB_META] = {"sum": _sb_stamp, "count": 1}
     _sb_s_led = _SavLedger.from_dict(_sb_s)
@@ -47542,10 +47589,18 @@ R.check(
 )
 _sb_v3_row, _sb_v3_meta = _sb_by_stamp[3.0]
 R.check(
-    "a month stamped 3, the reference in force, keeps stating its saving as it books on",
-    _sb_v3_row["old_basis"] is False and _sb_v3_row["savings_sek"] is not None
-    and _sb_v3_row["savings_pct"] is not None and _sb_v3_meta == {"sum": 3.0, "count": 1},
+    "a month stamped 3, booked before the single-zone valve reached its setpoint, states no saving after the change",
+    _sb_v3_row["old_basis"] is True and _sb_v3_row["savings_sek"] is None
+    and _sb_v3_row["savings_pct"] is None and _sb_v3_row["baseline_sek"] is not None
+    and _sb_v3_row["actual_sek"] is not None and _sb_v3_meta == {"sum": 3.0, "count": 1},
     repr(_sb_by_stamp[3.0]),
+)
+_sb_v4_row, _sb_v4_meta = _sb_by_stamp[4.0]
+R.check(
+    "a month stamped 4, the reference in force, keeps stating its saving as it books on",
+    _sb_v4_row["old_basis"] is False and _sb_v4_row["savings_sek"] is not None
+    and _sb_v4_row["savings_pct"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
+    repr(_sb_by_stamp[4.0]),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
@@ -47611,6 +47666,189 @@ R.check(
     "a month with savings lines and no stamp reads as the old basis",
     _sb_bare.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]["old_basis"] is True,
     repr(_sb_bare.months),
+)
+# R11-VALVE-REFERENCE (carry 2): the booked reference, pinned. A digest of
+# `_compute_baseline_power`'s day (power to 1e-6 kW, its end room and tank) on
+# three installs at two outdoor levels with a sinusoid on them: the owner's
+# two-zone replay install with its manual valve, a single-zone house behind a
+# manual valve on one tank, and the same house with no valve. A diff that moves
+# the booked reference fails here until it re-records the digest and bumps
+# `REFERENCE_BASIS` and the stamp literal above with it.
+def _vr_one_tank():
+    from profiles import house as _vr_house
+
+    _vr_p = ThermalParameters.from_config(_vr_house(dhw=False))
+    _vr_p.dhw_enabled = False
+    _vr_p.mixing_valve_mode = "manual"
+    _vr_p.wood_tank_configured, _vr_p.wood_tank_volume = True, 500.0
+    return _vr_p
+
+
+def _vr_reference_digests():
+    import hashlib
+
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer as _VrOpt
+    from heatpump_optimizer.optimizer import OptimizationConfig as _VrCfg
+    from heatpump_optimizer.thermal_model import WeatherSeries as _VrWeather
+    from profiles import house as _vr_house, replay_install as _vr_replay
+
+    _vr_n = 96
+    _vr_installs = {
+        "install": ThermalParameters.from_config(_vr_replay()),
+        "one-tank": _vr_one_tank(),
+        "no valve": ThermalParameters.from_config(_vr_house(dhw=False)),
+    }
+    _vr_out = {}
+    for _vr_name, _vr_p in _vr_installs.items():
+        for _vr_outdoor in (5.0, -15.0):
+            _vr_model = ThermalModel(_vr_p)
+            _vr_opt = _VrOpt(_vr_model, _VrCfg(horizon_hours=24, time_step_minutes=15, target_temp=21.0))
+            _vr_w = _VrWeather(
+                outdoor_temps=_vr_outdoor + 3.0 * np.sin(2.0 * np.pi * np.arange(_vr_n) / _vr_n),
+                wind_speeds=np.full(_vr_n, 3.0), precipitation=np.zeros(_vr_n),
+                solar_radiation=np.zeros(_vr_n))
+            _vr_start = ThermalState(
+                room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_vr_outdoor,
+                upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+            _vr_power, _vr_end = _vr_opt._compute_baseline_power(
+                _vr_w, _vr_start, 0.25, np.full(_vr_n, 21.0))
+            _vr_text = ";".join(f"{float(v) + 0.0:.6f}" for v in _vr_power) + (
+                f"|{_vr_end.room_temperature + 0.0:.6f}|{_vr_end.buffer_tank_temperature + 0.0:.6f}")
+            _vr_out[f"{_vr_name} {_vr_outdoor:+.0f}"] = hashlib.sha256(_vr_text.encode()).hexdigest()[:16]
+    return _vr_out
+
+
+_vr_digests = _vr_reference_digests()
+R.check(
+    "the booked reference reproduces its recorded digest on every pinned install "
+    "(a change re-records it and bumps REFERENCE_BASIS)",
+    _vr_digests == {
+        "install +5": "2f088060f8fe63dd",
+        "install -15": "35cc1d0d71a4414b",
+        "one-tank +5": "ba516c4bb8328b78",
+        "one-tank -15": "cb3e0ea30949c952",
+        "no valve +5": "514d1532f1b30760",
+        "no valve -15": "0e396b7d1cc59e1a",
+    },
+    repr(_vr_digests),
+)
+# R11-VALVE-REFERENCE (carries 0, 1): a single-zone valve feeds the slab, which
+# reaches the room through `slab_heat_transfer` in series, and the house's own
+# gains offset part of its loss. The curve holds its target only with both in
+# it, and a thermostat behind that valve then reaches its setpoint.
+def _vr_single_zone_holds():
+    from heatpump_optimizer.optimizer import _thermostat_held_state as _vr_held
+    from heatpump_optimizer.thermal_model import WeatherSeries as _VrWeather
+
+    _vr_p = _vr_one_tank()
+    _vr_model = ThermalModel(_vr_p)
+    _vr_out = {}
+    for _vr_outdoor in (5.0, -5.0, -15.0):
+        _vr_start = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_vr_outdoor,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _vr_w = _VrWeather(
+            outdoor_temps=np.full(96, _vr_outdoor), wind_speeds=np.full(96, 3.0),
+            precipitation=np.zeros(96), solar_radiation=np.zeros(96))
+        _vr_h = _vr_held(_vr_model, _vr_start, _vr_w, 21.0)
+        _vr_s = _vr_h
+        for _ in range(960):
+            _vr_s = _vr_model.simulate_step(
+                _vr_s, _vr_p.max_electrical_power, _vr_outdoor, 3.0, 0.0, 0.0, 0.25)
+        _vr_out[_vr_outdoor] = (_vr_h.room_temperature, _vr_s.room_temperature)
+    return _vr_p.mixing_valve_target or _vr_p.comfort_ceiling, _vr_out
+
+
+_vr_target, _vr_holds = _vr_single_zone_holds()
+R.check(
+    "single-zone valve: the plant at its pump, settled, holds the curve's own target within 0.02 K",
+    all(abs(_vr_plant - _vr_target) < 0.02 for _, _vr_plant in _vr_holds.values()),
+    f"target {_vr_target}: " + ", ".join(
+        f"{o:+.0f} C {pl:.3f}" for o, (_, pl) in _vr_holds.items()),
+)
+R.check(
+    "single-zone valve: a thermostat set to 21 C holds 21 C behind it",
+    all(abs(_vr_room - 21.0) < 1e-3 for _vr_room, _ in _vr_holds.values()),
+    ", ".join(f"{o:+.0f} C {r:.4f}" for o, (r, _) in _vr_holds.items()),
+)
+
+
+def _vr_curve_agrees():
+    from heatpump_optimizer.thermal_model import _valve_flow_set, _valve_ua
+
+    _vr_cases = {
+        "one-tank": _vr_one_tank(),
+        "defaults": ThermalParameters(mixing_valve_mode="manual"),
+        "floors apart": ThermalParameters(
+            mixing_valve_mode="manual", upper_floor_heat_loss=0.12, lower_floor_heat_loss=0.09),
+    }
+    _vr_out = {}
+    for _vr_name, _vr_p in _vr_cases.items():
+        _vr_model = ThermalModel(_vr_p)
+        _vr_u = _vr_model.effective_heat_loss_coefficient(_vr_p.heat_loss_coefficient, 0.0, 0.0)
+        for _vr_outdoor in (5.0, -5.0, -15.0):
+            _vr_out[(_vr_name, _vr_outdoor)] = (
+                _vr_model.flow_target_for_indoor(21.0, _vr_outdoor),
+                _valve_flow_set(_vr_p, 21.0, _vr_outdoor, _vr_u, _valve_ua(_vr_p)))
+    return _vr_out
+
+
+_vr_agree = _vr_curve_agrees()
+R.check(
+    "single-zone valve: the curve the model reports is the plant's own, at zero wind and rain",
+    all(_vr_rep == _vr_plant for _vr_rep, _vr_plant in _vr_agree.values()),
+    repr(_vr_agree),
+)
+
+
+
+def _vr_mild_curve():
+    from heatpump_optimizer.thermal_model import _valve_flow_set, _valve_ua
+
+    _vr_p = _vr_one_tank()
+    _vr_u = ThermalModel(_vr_p).effective_heat_loss_coefficient(_vr_p.heat_loss_coefficient, 0.0, 0.0)
+    return _vr_p.internal_gains, _vr_u * 0.5, _valve_flow_set(_vr_p, 21.0, 20.5, _vr_u, _valve_ua(_vr_p))
+
+
+_vr_gains, _vr_loss, _vr_mild = _vr_mild_curve()
+R.check(
+    "single-zone valve: where the house's gains cover its loss the curve sits at its target, never below",
+    _vr_gains > _vr_loss and _vr_mild == 21.0,
+    f"gains {_vr_gains:.3f} kW, loss {_vr_loss:.4f} kW, curve {_vr_mild!r} C",
+)
+
+
+def _vr_direct_curve():
+    from heatpump_optimizer import mixing_valve as _vr_mv
+    from profiles import house as _vr_house
+
+    _vr_cfg = dict(flow_curve_cop_enabled=True, heat_pump_max_power=3.0,
+                   upper_floor_heat_loss=0.2, lower_floor_heat_loss=0.2)
+    _vr_p = ThermalParameters.from_config(_vr_house(**_vr_cfg))
+    _vr_p.flow_curve_bias = 5.0
+    _vr_model = ThermalModel(_vr_p)
+    # The new curve is reached only behind a throttling valve, and the price
+    # path reads a curve only with `flow_curve_cop`: `from_config` is what keeps
+    # the two apart, so a throttling mode must turn the priced curve off.
+    _vr_coupled = all(
+        ThermalParameters.from_config(_vr_house(mixing_valve_mode=_vr_mode, **_vr_cfg)).flow_curve_cop
+        is (not _vr_mv.is_throttling(_vr_mode))
+        for _vr_mode in (_vr_mv.MODE_NONE, *sorted(_vr_mv.THROTTLING_MODES)))
+    return _vr_p.flow_curve_cop, _vr_coupled, [
+        (_vr_model.flow_target_for_indoor(21.0, _vr_o), _vr_model.curve_flow_temp(_vr_o))
+        for _vr_o in (5.0, -5.0, -15.0)]
+
+
+_vr_priced, _vr_coupled, _vr_direct = _vr_direct_curve()
+R.check(
+    "no valve: the priced flow curve of a single-zone direct plant is unchanged, bit for bit",
+    _vr_priced is True and _vr_coupled is True and _vr_direct == [
+        (30.142857142857146, 35.142857142857146),
+        (35.85714285714286, 40.85714285714286),
+        (41.57142857142857, 46.57142857142857),
+    ],
+    repr((_vr_priced, _vr_coupled, _vr_direct)),
 )
 # R10-HOTFIX-SAV-ESTIMATE: the settlement books step 0 of a plan re-made every
 # interval, so behind a valve the first step must not be the stores' transient.
@@ -75380,10 +75618,12 @@ _cf_flat = _cf_feed(_cf_pairs((1.5,), (2.2,)))
 _cf_mt = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (1.9, 2.2, 2.55)))
 _cf_sh = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (0, 0, 0), 288), true=0.7)
 R.check(
-    "a draw that ignores the ask (varying or flat) is refused as off-ask; a "
-    "matched draw and a 0.7 shift on a draw that follows its ask still teach",
-    abs(_cf_sm._cop_scale - 1.0) < 0.1 and _cf_flat._cop_scale == 1.0
-    and _cf_last(_cf_flat, "refusal") == "awaiting_draw_evidence"
+    "a draw that ignores a varying ask is refused as off-ask, and under a "
+    "flat ask it folds nothing while the heat-ask probe is pending (the scale "
+    "at 1.000 or one of its two dither levels, 0.9325 and 1.0724); a matched "
+    "draw and a 0.7 shift on a draw that follows its ask still teach",
+    abs(_cf_sm._cop_scale - 1.0) < 0.1 and round(_cf_flat._cop_scale, 4) in (0.9325, 1.0, 1.0724)
+    and (_cf_flat._cop_samples, _cf_last(_cf_flat, "refusal")) == (0, "awaiting_draw_evidence")
     and _cf_last(_cf_sm, "refusal") in ("draw_off_ask", "tracking_gate")
     and _cf_mt._cop_samples == 96 and abs(_cf_mt._cop_scale - 1.0) < 1e-9
     and abs(_cf_sh._cop_scale - 0.7) < 0.02,
@@ -75831,13 +76071,16 @@ _df_pend1 = _cf_drm.DrawRange()
 R.check(
     "a departure is held, and reads as awaiting evidence, only while the "
     "evidence is pending: it folds on follows, is off-ask on does-not-follow, "
-    "and takes base's rule with nothing held where it is unobtainable",
+    "and takes base's rule with nothing held where there is no window; where "
+    "the window's evidence is unobtainable the heat-ask probe takes it, and "
+    "while that is pending the interval is held, as any other awaiting evidence",
     _df_judge(_df_pend1) == (_cf_NOEV, 1)
     and _df_judge(_cf_window(_cf_lit48)) == (None, 0)
     and _df_judge(_cf_window([(a, 2.2) for a, _ in _cf_lit48])) == ("draw_off_ask", 0)
-    and _df_judge(None) == (None, 0) and _df_judge(_cf_window([(2.0, 2.6)] * 48)) == (None, 0)
+    and _df_judge(None) == (None, 0) and _df_judge(_cf_window([(2.0, 2.6)] * 48)) == (_cf_NOEV, 1)
     and _df_judge(None, drawn=4.0, ewma=0.8) == (_cf_NOEV, 0),
     f"{_df_judge(_df_pend1)} / {_df_judge(_cf_window(_cf_lit48))} / {_df_judge(None)} / "
+    f"{_df_judge(_cf_window([(2.0, 2.6)] * 48))} / "
     f"{_df_judge(None, drawn=4.0, ewma=0.8)}",
 )
 # Evidence that the draw follows the ask folds a departure on any nameplate:
@@ -75914,11 +76157,13 @@ R.check(
     f"{_df_release(_cf_window([(a, 2.2) for a, _ in _cf_lit48]), _df_hour, *_df_two)}",
 )
 R.check(
-    "release: where the evidence is unobtainable the hold empties by base's "
-    "rule -- the row clearing the nameplate third folds, the other is dropped",
+    "release: with no window the hold empties by base's rule -- the row "
+    "clearing the nameplate third folds, the other is dropped; where the "
+    "window's evidence is unobtainable and the heat-ask probe is pending, "
+    "both rows wait and nothing folds",
     _df_release(None, _df_hour, *_df_two) == ([_DF_BIG], 0)
-    and _df_release(_cf_window([(2.0, 2.6)] * 48), _df_hour, *_df_two) == ([_DF_BIG], 0),
-    f"{_df_release(None, _df_hour, *_df_two)}",
+    and _df_release(_cf_window([(2.0, 2.6)] * 48), _df_hour, *_df_two) == ([], 2),
+    f"{_df_release(None, _df_hour, *_df_two)} / {_df_release(_cf_window([(2.0, 2.6)] * 48), _df_hour, *_df_two)}",
 )
 _df_week = _CF_T0 + _cf_td(days=7)
 R.check(
@@ -75928,6 +76173,16 @@ R.check(
     and _df_release(_cf_drm.DrawRange(), _df_week + _cf_td(seconds=1), *_df_two) == ([_DF_BIG], 0),
     f"{_df_release(_cf_drm.DrawRange(), _df_week, *_df_two)} / "
     f"{_df_release(_cf_drm.DrawRange(), _df_week + _cf_td(seconds=1), *_df_two)}",
+)
+_df_unob48 = _cf_window([(2.0, 2.6)] * 48)
+R.check(
+    "release: no fold lands on a pending heat-ask probe however long it "
+    "lasts -- under unobtainable evidence both rows wait at 7 days exactly, "
+    "and a second later both are dropped, the one base's rule folds included",
+    _df_release(_df_unob48, _df_week, *_df_two) == ([], 2)
+    and _df_release(_df_unob48, _df_week + _cf_td(seconds=1), *_df_two) == ([], 0)
+    and _df_release(_df_unob48, _CF_T0 - _cf_td(seconds=1), *_df_two) == ([], 0),
+    f"{_df_release(_df_unob48, _df_week, *_df_two)} / {_df_release(_df_unob48, _df_week + _cf_td(seconds=1), *_df_two)}",
 )
 R.check(
     "release: a row stamped ahead of the clock has no knowable age and does "
@@ -76155,15 +76410,41 @@ _df_never = [(2.6, 3.2)] * 96
 _df_h_full = _df_feed(_df_never, p_max=4.0, p_min=3.0, warm=_df_never[:1] * 336)
 _df_h_fill = _df_feed(_df_never, p_max=4.0, p_min=3.0, warm=_df_never[:1] * 288)
 _df_h_part = _df_feed(_df_never[:40], p_max=4.0, p_min=3.0, warm=_df_never[:1] * 288)
+# R11-OUTSIDE-SELF-SETTING-PUMP: a fixed 3.2 kW draw under a flat 2.6 kW ask
+# is a pump setting its own power, which the heat-ask probe now judges (base:
+# 96/96 at 0.582 and 0.650); the control is its heat-led twin of true 0.8.
+# The probe folds nothing while it is pending (owner decision 2 of the
+# round-3 design note): every admitted interval is held, and folds once the
+# verdict reads follows. The probe takes 50 rows (2 before its first pair, 24
+# pairs), so the window filling at the 48th leaves the 96th two rows short.
+_df_h_led_full = _df_feed(_df_never, p_max=4.0, p_min=3.0, true=0.8, warm=_df_never[:1] * 336)
+_df_h_led_fill = _df_feed(_df_never, p_max=4.0, p_min=3.0, true=0.8, warm=_df_never[:1] * 288)
+_df_h_led_long = _df_feed(_df_never * 2, p_max=4.0, p_min=3.0, true=0.8, warm=_df_never[:1] * 288)
+_df_h_fill_long = _df_feed(_df_never * 2, p_max=4.0, p_min=3.0, warm=_df_never[:1] * 288)
+
+
+def _df_h_end(coord):
+    return coord._cop_samples, round(coord._cop_scale, 4), coord._measured_cop.scale_response, len(coord._measured_cop.held)
+
+
 R.check(
-    "(h) with a window that never reaches evidence every interval base folds "
-    "is folded: 96 of 96 behind a full window and behind one that fills at "
-    "the 48th; 40 intervals into the filling one, all 40 are still held",
-    (_df_h_full._cop_samples, len(_df_h_full._measured_cop.held)) == (96, 0)
-    and (_df_h_fill._cop_samples, len(_df_h_fill._measured_cop.held)) == (96, 0)
-    and (_df_h_part._cop_samples, len(_df_h_part._measured_cop.held)) == (0, 40),
-    f"full {_df_h_full._cop_samples}/96; filling {_df_h_fill._cop_samples}/96; "
-    f"part {_df_h_part._cop_samples} folded, {len(_df_h_part._measured_cop.held)} held",
+    "(h) with a window that never reaches evidence the heat ask is probed, "
+    "nothing folds while that is pending, and no interval is lost once it "
+    "reads follows: a heat-led pump of true 0.8 folds 96 of 96 behind a full "
+    "window; behind one that fills at the 48th it is still pending at the "
+    "96th, all 96 held, inside the dither band, and over 192 it folds 192; 40 "
+    "intervals into the filling one, all 40 are still held; the fixed 3.2 kW "
+    "draw folds nothing and ends does_not_follow at the configured scale",
+    _df_h_end(_df_h_led_full)[::2] == (96, "follows") and abs(_df_h_led_full._cop_scale - 0.8) < 0.02
+    and _df_h_end(_df_h_led_long)[::2] == (192, "follows") and abs(_df_h_led_long._cop_scale - 0.8) < 0.005
+    and _df_h_end(_df_h_led_fill)[0::2] == (0, "pending") and _df_h_end(_df_h_led_fill)[1] in (0.9325, 1.0, 1.0724)
+    and len(_df_h_led_fill._measured_cop.held) == 96
+    and (_df_h_part._cop_samples, len(_df_h_part._measured_cop.held)) == (0, 40)
+    and [_df_h_end(c) for c in (_df_h_full, _df_h_fill_long)] == [(0, 1.0, "does_not_follow", 0)] * 2
+    and _df_h_end(_df_h_fill)[0::2] == (0, "pending"),
+    f"heat-led full {_df_h_end(_df_h_led_full)}; filling {_df_h_end(_df_h_led_fill)}; filling x192 "
+    f"{_df_h_end(_df_h_led_long)}; part {_df_h_part._cop_samples} folded, {len(_df_h_part._measured_cop.held)} held; "
+    f"fixed 3.2 kW {[_df_h_end(c) for c in (_df_h_full, _df_h_fill, _df_h_fill_long)]}",
 )
 
 
@@ -76199,6 +76480,1051 @@ R.check(
     "crosses none does not (10 + 3, 3 + 0)",
     (_df_saves(7, 5), _df_saves(9, 1), _df_saves(10, 3), _df_saves(3, 0)) == ([12], [10], [], []),
     f"{(_df_saves(7, 5), _df_saves(9, 1), _df_saves(10, 3), _df_saves(3, 0))}",
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("R11-OUTSIDE-SELF-SETTING-PUMP: the COP scale judged on the heat ask where the window's evidence is unobtainable")
+
+# Owner ruling D4 (tvofi, 2026-11-15): a pump that sets its own power, under
+# flat asks that never span draw_range.FOLLOW_ASK_SPAN, walked the scale to a
+# clamp at the base -- the window's evidence turns unobtainable and every
+# interval folded scale x ask / draw. Where that evidence is unobtainable, a
+# window exists and the install measures no heat, MeasuredCop judges whether
+# the draw follows the HEAT ask (ask x the scale it was read at), whose span
+# the scale's own moves supply. Each expected figure is the design note's
+# (design/R11-OUTSIDE-SELF-SETTING-PUMP), a literal, not the rule re-run.
+_ss_ASK = _df_acc.ASK_PENDING, _df_acc.ASK_FOLLOWS, _df_acc.ASK_IGNORED
+
+
+def _ss_flat(n, drawn=None, seed=7):
+    """``n`` flat asks of 1.5 kW +-2 %, each beside a draw of ``drawn`` kW
+    +-3 % (a pump setting its own power), or of the ask (None)."""
+    rng = _random.Random(seed)
+    out = []
+    for _ in range(n):
+        ask = 1.5 * rng.uniform(0.98, 1.02)
+        out.append((ask, ask if drawn is None else drawn * rng.uniform(0.97, 1.03)))
+    return out
+
+
+def _ss_coord(scale0=None, **extra):
+    cfg = dict(_L5_CFG, heat_pump_max_power=4.0, heat_pump_min_power=1.0, **extra)
+    coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+    if scale0 is not None:
+        coord._apply_cop_scale(scale0)
+    return coord
+
+
+def _ss_step(coord, asked, drawn, window=None):
+    """One cycle in the cycle's order: the running-draw fold, then the learner."""
+    coord._current_action = {"power": asked, "dhw_power": 0.0}
+    coord._measured_power = drawn
+    coord._current_state.outdoor_temperature = 8.0
+    if window is None:
+        window = coord._accuracy.draw
+        _cf_drm.fold(window, drawn, coord._commanded_split(), coord._thermal_params,
+                     frozen=False, distorted=False, defrost=False)
+    coord._learn_measured_cop(window)
+
+
+def _ss_feed(coord, pairs, true=None, until=None):
+    """Feed ``pairs``; ``true``: a heat-led pump's draw; ``until``: stop after
+    the cycle on which the verdict first reads that state. Returns the coordinator."""
+    for asked, drawn in pairs:
+        _ss_step(coord, asked, asked * coord._cop_scale / true if true else drawn)
+        if until is not None and coord._measured_cop.scale_response == until:
+            break
+    return coord
+
+
+def _ss_end(coord):
+    return round(coord._cop_scale, 3), coord._measured_cop.scale_response, _cf_last(coord, "refusal")
+
+
+_ss_beyond = _ss_feed(_ss_coord(), _ss_flat(672, 2.2))
+_ss_within = [_ss_feed(_ss_coord(), _ss_flat(672, kw)) for kw in (1.6, 1.4)]
+R.check(
+    "(n) a pump drawing 2.2 kW whatever is asked, under flat asks of 1.5 kW, "
+    "ends at the configured scale and then reads draw_off_ask (base: 0.500); "
+    "so do 1.6 and 1.4 kW, within the ask tolerance (base: 0.500 and 1.600)",
+    _ss_end(_ss_beyond) == (1.0, _df_acc.ASK_IGNORED, "draw_off_ask")
+    and [_ss_end(c) for c in _ss_within] == [(1.0, _df_acc.ASK_IGNORED, "draw_off_ask")] * 2,
+    f"2.2 {_ss_end(_ss_beyond)}; 1.6/1.4 {[_ss_end(c) for c in _ss_within]}",
+)
+_ss_cfg09 = _ss_feed(_ss_coord(cop_scale=0.9), _ss_flat(672, 2.2))
+R.check(
+    "(n) the restore target is the configured scale, not the default and not "
+    "the walked one: configured 0.9, the same pump ends at 0.9",
+    _ss_end(_ss_cfg09)[:2] == (0.9, _df_acc.ASK_IGNORED),
+    f"{_ss_end(_ss_cfg09)}",
+)
+_ss_led = _ss_feed(_ss_coord(), _ss_flat(672), true=0.8)
+R.check(
+    "(m) a heat-led pump of true scale 0.8 under the same flat asks latches "
+    "follows and loses no interval: 672 of 672 fold, scale 0.800",
+    _ss_end(_ss_led)[:2] == (0.8, _df_acc.ASK_FOLLOWS) and _ss_led._cop_samples == 672,
+    f"{_ss_led._cop_samples}/672 {_ss_end(_ss_led)}",
+)
+
+
+# (s) Fix review 1 of #3662: the heat ask moves only as the scale folds the
+# draw, so its levels split the probe's rows by time, and a draw swinging on
+# its own over the window (a weather front's 64-96 cycles) read as following
+# on levels: the scale walked to 0.500 (follows) exactly as at base.
+import math as _ss_math  # noqa: E402
+
+
+def _ss_swing(n, kw, parts, seed, phase=0.0):
+    """Flat asks as ``_ss_flat``; a draw of ``kw`` x (1 + sum a sin(2 pi t / p + phase)) +-3 %."""
+    rng = _random.Random(seed)
+    out = []
+    for t in range(n):
+        ask = 1.5 * rng.uniform(0.98, 1.02)
+        swing = 1 + sum(a * _ss_math.sin(2 * _ss_math.pi * t / p + phase) for a, p in parts)
+        out.append((ask, kw * swing * rng.uniform(0.97, 1.03)))
+    return out
+
+
+_ss_swings = {
+    f"{name}_s{seed}": _ss_end(_ss_feed(_ss_coord(), _ss_swing(200, 2.2, parts, seed, phase)))
+    for name, parts, phase in (
+        ("0.15_p64", [(0.15, 64)], 0.0), ("0.3_p96", [(0.3, 96)], 0.0),
+        ("mix_pi", [(0.1, 48), (0.2, 240)], _ss_math.pi),
+    )
+    for seed in (1, 2)
+}
+R.check(
+    "(s) a pump drawing 2.2 kW +-15 % over 64 cycles, +-30 % over 96, or a "
+    "daily plus five-day swing at phase pi, whatever is asked, ends at the "
+    "configured scale reading does_not_follow over 200 cycles, seeds 1-2 "
+    "(head 1134fe3655: 0.500, follows)",
+    set(_ss_swings.values()) == {(1.0, _df_acc.ASK_IGNORED, "draw_off_ask")},
+    f"{_ss_swings}",
+)
+
+
+def _ss_led_weather(true, n=400):
+    """A heat-led pump whose true scale swings +-15 % over 64 cycles (the
+    weather moving its COP), its meter +-3 %: the draw is the heat ask over it."""
+    coord = _ss_coord()
+    for t, (asked, noise) in enumerate(_ss_swing(n, 1.0, [], 3)):
+        cop = true * (1 + 0.15 * _ss_math.sin(2 * _ss_math.pi * t / 64))
+        _ss_step(coord, asked, asked * coord._cop_scale / cop * noise)
+    return _ss_end(coord)[:2]
+
+
+_ss_led_wx = {true: _ss_led_weather(true) for true in (0.68, 0.8)}
+R.check(
+    "(s) a heat-led pump whose true scale swings +-15 % over 64 cycles still "
+    "latches follows and ends within 15 % of its mean true scale (0.68 and 0.8)",
+    all(v[1] == _df_acc.ASK_FOLLOWS and abs(v[0] - t) <= 0.15 * t for t, v in _ss_led_wx.items()),
+    f"{_ss_led_wx}",
+)
+
+
+# (k) Any state but unobtainable is base's: the same rows judged with the
+# probe admissible (no measured heat) and not (measured heat) read alike,
+# and the probe stays empty -- pending (an empty window), follows and ignored.
+def _ss_twin(window, rows, ewma=1.0):
+    out = []
+    for heat in (False, True):
+        rec = _cf_MC()
+        got = [rec.judge_ratio(ewma, r, _cf_both, window, measured_heat=heat) for r in rows]
+        got.append([x.drawn_kw for x in rec.release(window, _cf_both, _df_hour, measured_heat=heat)])
+        out.append((got, rec.probe.dither.rows, rec.probe.base, rec.scale_response))
+    return out
+
+
+_ss_rows = [_cf_row(2.0, d) for d in (2.0, 2.1, 2.5, 2.6, 1.6)]
+_ss_states = {
+    "pending": _cf_drm.DrawRange(), "follows": _cf_window(_cf_lit48), "ignored": _df_self._accuracy.draw,
+}
+_ss_k = {k: _ss_twin(w, _ss_rows) for k, w in _ss_states.items()}
+R.check(
+    "(k) under pending, follows and ignored evidence the probe admits nothing "
+    "and every judgement and release matches the measured-heat twin's",
+    [_cf_drm.ask_evidence(w) for w in _ss_states.values()] == ["pending", "follows", "does_not_follow"]
+    and all(a == b and a[1:] == (0, None, "pending") for a, b in _ss_k.values()),
+    f"{_ss_k}",
+)
+# (l) No window, or measured heat, keeps base's rule and probes nothing,
+# under the unobtainable evidence the flat run left behind.
+_ss_unob = _ss_beyond._accuracy.draw
+_ss_flat_rows = [_cf_row(a, d) for a, d in _ss_flat(60, 2.2)]
+
+
+def _ss_base_rule(window, heat):
+    rec = _cf_MC()
+    got = [rec.judge_ratio(1.47, r, _cf_both, window, measured_heat=heat) for r in _ss_flat_rows]
+    return got, rec.probe.dither.rows, rec.probe.base, rec.scale_response
+
+
+R.check(
+    "(l) with measured heat, or with no window, 60 flat departures under the "
+    "4.67 kW third of 14 kW each read base's rule, awaiting_draw_evidence, and "
+    "the probe stays empty and pending",
+    _cf_drm.ask_evidence(_ss_unob) == "unobtainable"
+    and _ss_base_rule(_ss_unob, True) == _ss_base_rule(None, False)
+    == ([_cf_NOEV] * 60, 0, None, "pending"),
+    f"{_ss_base_rule(_ss_unob, True)[1:]} / {_ss_base_rule(None, False)[1:]}",
+)
+_ss_heat = _ss_feed(_ss_coord(heat_pump_thermal_power_entity="sensor.heat"), _ss_flat(672, 2.2))
+R.check(
+    "(l) an install with a thermal power entity reading no heat probes "
+    "nothing: 672 flat cycles read no_heat_reading and the verdict stays pending",
+    (_ss_heat._measured_cop.probe.dither.rows, _ss_heat._measured_cop.probe.base, _ss_heat._measured_cop.scale_response, _cf_last(_ss_heat, "refusal"))
+    == (0, None, "pending", "no_heat_reading") and _ss_heat._cop_scale == 1.0,
+    f"{(_ss_heat._measured_cop.probe.dither.rows, _ss_heat._measured_cop.probe.base, _ss_heat._measured_cop.scale_response, _cf_last(_ss_heat, 'refusal'))}",
+)
+# (o) The restore moves the scale only on an unfrozen cycle: stopped on the
+# cycle judge_ratio latched ignored, the scale is still a dither level and the
+# restore is due; a frozen cycle leaves both; the next live one restores.
+_ss_o = _ss_feed(_ss_coord(), _ss_flat(672, 2.2), until=_df_acc.ASK_IGNORED)
+_ss_o_latched = (round(_ss_o._cop_scale, 4) in (0.9325, 1.0724), _ss_o._measured_cop.probe.restore_due)
+_ss_o_live = _ss_o._learning_frozen
+_ss_o._learning_frozen = lambda *entities, **_kw: "stale_inputs"
+_ss_step(_ss_o, 1.5, 2.2)
+_ss_o_frozen = (round(_ss_o._cop_scale, 4) in (0.9325, 1.0724), _ss_o._measured_cop.probe.restore_due, _cf_last(_ss_o, "refusal"))
+_ss_o._learning_frozen = _ss_o_live
+_ss_step(_ss_o, 1.5, 2.2)
+R.check(
+    "(o) a latched ignored restores the configured scale on the next unfrozen "
+    "cycle only: a frozen cycle keeps the dither level and the restore due",
+    _ss_o_latched == (True, True) and _ss_o_frozen == (True, True, "learners_frozen")
+    and (_ss_o._cop_scale, _ss_o._measured_cop.probe.restore_due, _cf_last(_ss_o, "refusal")) == (1.0, False, "draw_off_ask"),
+    f"latched {_ss_o_latched}; frozen {_ss_o_frozen}; live {_ss_end(_ss_o)}",
+)
+# (p) A verdict leaves only by a reset, and a reload keeps it; a reload
+# between the latch and the restore it owes keeps the restore (design
+# verdict item a62de31a): a stored ignored loads with the restore due.
+_ss_p = _ss_feed(_ss_coord(), _ss_flat(672, 2.2), until=_df_acc.ASK_IGNORED)
+_ss_p_walked = round(_ss_p._cop_scale, 4)
+_ss_p._measured_cop = _cf_MC.from_dict(_ss_p._measured_cop.as_dict())
+_ss_p_loaded = (_ss_p._measured_cop.scale_response, _ss_p._measured_cop.probe.restore_due)
+_ss_step(_ss_p, 1.5, 2.2)
+R.check(
+    "(p) a reload between the latch and the next cycle keeps ignored and the "
+    "restore it owes: the next cycle restores the configured scale",
+    _ss_p_walked in (0.9325, 1.0724) and _ss_p_loaded == (_df_acc.ASK_IGNORED, True) and _ss_end(_ss_p)[:2] == (1.0, _df_acc.ASK_IGNORED),
+    f"level {_ss_p_walked}; loaded {_ss_p_loaded}; after {_ss_end(_ss_p)}",
+)
+_ss_follows = _cf_MC.from_dict(_ss_led._measured_cop.as_dict())
+_ss_feed(_ss_p, _ss_flat(200, 2.2, seed=8))
+_ss_p_kept = _ss_end(_ss_p)
+# A reset (the window's evidence governing again) on a cycle whose restore is
+# due still restores (verdict item 8d483cf3): the reset clears the verdict, not the debt.
+_ss_r = _ss_feed(_ss_coord(), _ss_flat(672, 2.2), until=_df_acc.ASK_IGNORED)
+_ss_step(_ss_r, 0.3, 0.3, window=_cf_window(_cf_lit48))
+R.check(
+    "(p) the verdict holds over 200 more flat cycles; a heat-led follows "
+    "reloads as follows with no restore; a reset by a window with evidence "
+    "clears the verdict and the probe, and a restore already due is still paid",
+    _ss_p_kept == (1.0, _df_acc.ASK_IGNORED, "draw_off_ask")
+    and (_ss_follows.scale_response, _ss_follows.probe.restore_due) == (_df_acc.ASK_FOLLOWS, False)
+    and (_ss_r._cop_scale, _ss_r._measured_cop.scale_response, _ss_r._measured_cop.probe.dither.rows) == (1.0, "pending", 0),
+    f"kept {_ss_p_kept}; follows {(_ss_follows.scale_response, _ss_follows.probe.restore_due)}; reset "
+    f"{(_ss_r._cop_scale, _ss_r._measured_cop.scale_response, _ss_r._measured_cop.probe.dither.rows)}",
+)
+# (q) An unreadable stored verdict keeps the measured COP; a stored verdict
+# on a record with no COP (every admitted install: it measures no heat) loads.
+_ss_q_rec = {"cop": 3.1, "curve_dhw": False, "dhw_temp": None, "at": None}
+_ss_q = [_cf_MC.from_dict(dict(_ss_q_rec, scale_response=v)) for v in ("garbage", 7, None, ["does_not_follow"], "pending")]
+_ss_q_none = _cf_MC.from_dict({"cop": None, "curve_dhw": False, "dhw_temp": None, "at": None, "scale_response": "does_not_follow"})
+R.check(
+    "(q) an unreadable or absent stored verdict loads pending beside the "
+    "measured COP; a verdict beside no COP loads, its restore due",
+    [(q.cop, q.scale_response, q.probe.restore_due) for q in _ss_q] == [(3.1, "pending", False)] * 5
+    and _cf_MC.from_dict(_ss_q_rec).scale_response == "pending"
+    and (_ss_q_none.cop, _ss_q_none.scale_response, _ss_q_none.probe.restore_due) == (None, "does_not_follow", True),
+    f"{[(q.cop, q.scale_response) for q in _ss_q]} / {(_ss_q_none.cop, _ss_q_none.scale_response)}",
+)
+# (r) A pending row aged out by base's rule seeds nothing: the reset reads the
+# state first, so a row leaving a pending hold is never admitted.
+_ss_r_rec = _cf_MC()
+_ss_r_rec.held.extend([_cf_row(2.0, 2.6)] * 3)
+_ss_r_out = _ss_r_rec.release(_cf_drm.DrawRange(), _cf_both, _CF_T0 + _cf_td(days=8))
+R.check(
+    "(r) rows aged out of a pending hold leave by base's rule and seed no probe row",
+    (len(_ss_r_out), _ss_r_rec.probe.dither.rows, _ss_r_rec.probe.base, _ss_r_rec.scale_response) == (0, 0, None, "pending"),
+    f"{(len(_ss_r_out), _ss_r_rec.probe.dither.rows, _ss_r_rec.probe.base, _ss_r_rec.scale_response)}",
+)
+# (s) Remedy A (tvofi, 2026-11-16): a probe whose first row was read at a
+# clamp re-seeds from the configured scale, once per reset. A heat-led pump of
+# true 0.68 stuck at 0.500 -- whose 1.1 kW draw base never folds -- reaches it.
+_ss_s = _ss_feed(_ss_coord(scale0=0.5), _ss_flat(672), true=0.68)
+_ss_s_rec = _cf_MC()
+_ss_s_unob = _ss_beyond._accuracy.draw
+_ss_s_seen = []
+for _ss_s_round in range(2):
+    for _ss_s_try in range(2):
+        _ss_s_rec.judge_ratio(1.0, _cf_row(1.5, 1.5, scale=0.5), _cf_both, _ss_s_unob)
+        _ss_s_owed = _ss_s_rec.owed_scale(lambda: 0.9, _df_hour)
+        _ss_s_seen.append((_ss_s_rec.probe.dither.rows, _ss_s_rec.probe.base, None if _ss_s_owed is None else round(_ss_s_owed, 4)))
+    _ss_s_rec.release(_cf_window(_cf_lit48), _cf_both, _df_hour)  # a reset
+R.check(
+    "(s) a probe whose first row is read at the clamp owes the configured "
+    "scale (0.9) and takes it as its base, once: the next row is read and the "
+    "dither starts from 0.9 (levels 0.8393 and 0.9651); a reset re-arms it; "
+    "true 0.68 from a persisted 0.500 reaches 0.680",
+    [x[:2] for x in _ss_s_seen] == [(0, 0.9), (1, 0.9)] * 2 and [x[2] for x in _ss_s_seen[::2]] == [0.9, 0.9]
+    and all(x[2] in (0.8393, 0.9651) for x in _ss_s_seen[1::2]) and _ss_end(_ss_s)[:2] == (0.68, _df_acc.ASK_FOLLOWS),
+    f"{_ss_s_seen}; {_ss_s._cop_samples}/672 {_ss_end(_ss_s)}",
+)
+# A release under unobtainable evidence is decided by the verdict: every row
+# folds under follows, none under ignored, and while it is pending each waits
+# (owner decision 2: nothing folds on a pending verdict).
+def _ss_release(response):
+    rec = _cf_MC(probe=_df_acc.ScaleProbe(response=response))
+    rec.held.extend([_cf_row(5.0, 6.0), _cf_row(2.0, 2.6)])
+    return [r.drawn_kw for r in rec.release(_ss_unob, _cf_both, _df_hour)], len(rec.held)
+
+
+R.check(
+    "a release under unobtainable evidence folds every held row once the draw "
+    "follows the heat ask and drops them where it ignores it; while the "
+    "verdict is pending both wait",
+    (_ss_release("does_not_follow"), _ss_release("follows"), _ss_release("pending")) == (([], 0), ([6.0, 2.6], 0), ([], 2)),
+    f"{(_ss_release('does_not_follow'), _ss_release('follows'), _ss_release('pending'))}",
+)
+
+
+# ---- The round-3 design (design/R11-OUTSIDE-SELF-SETTING-PUMP at 0acbbc8b91):
+# a randomized dither of the scale, no fold while the verdict is pending.
+# Figures are the note's and the owner's three decisions, as literals:
+# FOLLOW_ASK_SPAN 1.15, so the levels of base 1.0 are 0.9325 and 1.0724;
+# 24 pairs (MIN_SAMPLES 48 rows); the cap WINDOW 336; the horizon 7 days.
+_ss_SD = _df_acc.ScaleDither
+# 0.5361902647381804 and 1.492007693184502 are the bases whose centred level lands on a clamp to the bit.
+_ss_lv_at = (1.0, 0.54, 0.53, 0.5, 1.49, 1.5, 1.6, 0.5361902647381804, 1.492007693184502)
+R.check(
+    "the dither's two levels are one FOLLOW_ASK_SPAN apart, centred on the "
+    "base; where a centred level would pass a clamp (0.5, 1.6) they are the "
+    "base and one full step to the open side, the clamps themselves included; "
+    "a centred level exactly on a clamp is still centred",
+    [tuple(round(x, 4) for x in _ss_SD.levels(b)) for b in _ss_lv_at]
+    == [(0.9325, 1.0724), (0.5036, 0.5791), (0.53, 0.6095), (0.5, 0.575), (1.3894, 1.5978), (1.3043, 1.5), (1.3913, 1.6),
+        (0.5, 0.575), (1.3913, 1.6)],
+    f"{[tuple(round(x, 4) for x in _ss_SD.levels(b)) for b in _ss_lv_at]}",
+)
+
+
+# The coin is seeded (``DITHER_SEED``), so a probe re-measures alike: the
+# order of the first twelve pairs of a fresh dither, H for the high level
+# first, a row read under every level.
+def _ss_levels_read(sd, n, read=lambda tick: True):
+    """``n`` steps of ``sd`` at base 1.0, half an hour apart, each followed by
+    a follower's row where ``read(tick)``, read under the level the step
+    before handed out (the interval that just ended); a row taken first. The
+    levels handed out."""
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))
+    out, ran = [], 1.0
+    for tick in range(n):
+        out.append(sd.step(1.0, True, _CF_T0 + _cf_td(minutes=30 * tick)))
+        if read(tick):
+            sd.take(_cf_row(1.5, 1.5 * ran / 0.8, scale=ran, at=_CF_T0 + _cf_td(minutes=30 * tick)))
+        ran = out[-1]
+    return out
+
+
+_ss_coin = _ss_SD()
+_ss_coin_seq = "".join("H" if x > 1.0 else "L" for x in _ss_levels_read(_ss_coin, 24))
+R.check(
+    "a fresh dither hands out the same levels on every run: its first twelve "
+    "pairs lead high six times, then low, high, high, high, high, low",
+    _ss_coin_seq == "HLHLHLHLHLHLLHLHLHLHLHHL",
+    f"{_ss_coin_seq}",
+)
+
+
+def _ss_verdict(contrasts):
+    return _ss_SD(contrasts=list(contrasts)).verdict()
+
+
+_ss_v_cases = (
+    [1.0] * 23, [0.0] * 23, [1.0] * 24, [0.0] * 24, [0.5] * 24,
+    [0.4, 1.6] * 12, [0.0, 2.0] * 12, [-0.6, 0.6] * 12, [-1.0, 1.0] * 12,
+    [0.45, 1.05] * 12, [-0.05, 0.55] * 12, [0.5 - 1e-9] * 24,
+    # 36 pairs whose mean plus 3 standard errors is 0.5 to the bit (mean 13/32, deviation 3/16, 3 * 3/16 / 6 = 3/32).
+    [-0.6875] + [0.4375] * 35, [-0.6875] + [0.4375] * 34 + [0.4376],
+)
+R.check(
+    "the verdict waits for 24 pairs, then reads follows where the mean "
+    "contrast less 3 standard errors reaches 0.5 and ignored where the mean "
+    "plus 3 does not pass it, each bound inclusive, and pending between: "
+    "means 1.0 and 0.0 at 23 pairs and at 24; 0.5 flat; 1.0 +-0.6 against "
+    "+-1.0; 0.0 +-0.6 against +-1.0; 0.75 +-0.3, 0.25 +-0.3; a hair under "
+    "0.5; and a mean plus 3 standard errors of exactly 0.5 against a hair over",
+    [_ss_verdict(c) for c in _ss_v_cases]
+    == ["pending", "pending", "follows", "does_not_follow", "follows",
+        "follows", "pending", "does_not_follow", "pending", "follows", "does_not_follow", "does_not_follow",
+        "does_not_follow", "pending"],
+    f"{[_ss_verdict(c) for c in _ss_v_cases]}",
+)
+
+
+def _ss_cycle(rec, scale, asked, drawn, at, window=None, configured=1.0):
+    """One cycle on a bare MeasuredCop, in the order ``_fold_measured_cop``
+    runs it: the release, the scale owed, the judgement (its ratio inside the
+    tracking gate). Returns the scale in force after it."""
+    row = _cf_row(asked, drawn, scale=scale, at=at)
+    window = _ss_unob if window is None else window
+    rec.folded = getattr(rec, "folded", []) + [len(rec.release(window, _cf_both, at))]
+    owed = rec.owed_scale(lambda: configured, at)
+    rec.refusal = rec.judge_ratio(row.ratio, row, _cf_both, window)
+    return scale if owed is None else owed
+
+
+def _ss_bare(pump, n, skip=None, rec=None, scale=1.0, t0=0):
+    """``n`` cycles of ``pump(scale, tick) -> (asked, drawn)``: per cycle the
+    scale in force after it, the verdict and the refusal. ``skip(tick)`` names
+    a cycle that never reaches the learner's tail: its refusal, and no call."""
+    rec = _cf_MC() if rec is None else rec
+    out = []
+    for tick in range(t0, t0 + n):
+        if skip is not None and (code := skip(tick)):
+            rec.refusal = code
+        else:
+            scale = _ss_cycle(rec, scale, *pump(scale, tick), _CF_T0 + _cf_td(minutes=30 * tick))
+        out.append((round(scale, 4), rec.scale_response, rec.refusal))
+    return rec, out
+
+
+def _ss_led_pump(true):
+    return lambda scale, tick: (1.5, 1.5 * scale / true)
+
+
+def _ss_selfset(scale, tick):
+    return 1.5, 2.2 * (1.0 + 0.02 * ((tick * 7) % 5 - 2))
+
+
+def _ss_anti(scale, tick):
+    return 1.5, 2.2 / scale
+
+
+def _ss_repriced(scale, tick):
+    return 1.2 / scale, 1.2 / 0.8  # the plan asks 1.2 kW of heat; the pump's true scale is 0.8
+
+
+_ss_b_led, _ss_b_led_out = _ss_bare(_ss_led_pump(0.8), 54)
+_ss_b_runs = max(len(list(g)) for _k, g in _cf_it.groupby(x[0] for x in _ss_b_led_out[1:49]))
+R.check(
+    "a draw that follows the heat ask: the first row sets the base, the dither "
+    "runs from the second cycle at both levels in runs of at most two cycles, "
+    "the 24th pair's second row is the 50th and latches follows; the 51st "
+    "cycle returns to the base, and the 52nd releases the 51 rows held "
+    "meanwhile and is the first to fold its own",
+    [x[0] for x in _ss_b_led_out[:1]] == [1.0] and {x[0] for x in _ss_b_led_out[1:49]} == {0.9325, 1.0724}
+    and _ss_b_runs == 2 and [x[1] for x in _ss_b_led_out[47:51]] == ["pending", "pending", "follows", "follows"]
+    and [x[0] for x in _ss_b_led_out[50:]] == [1.0] * 4
+    and [x[2] for x in _ss_b_led_out] == [_cf_NOEV] * 51 + [None] * 3
+    and _ss_b_led.folded == [0] * 51 + [51, 0, 0] and len(_ss_b_led.held) == 0,
+    f"runs {_ss_b_runs}; released {_ss_b_led.folded[49:]}; {_ss_b_led_out[46:]}",
+)
+_ss_b_self, _ss_b_self_out = _ss_bare(_ss_selfset, 53)
+_ss_b_self07 = _ss_bare(_ss_selfset, 53, scale=0.7)[1]
+R.check(
+    "a draw that varies on its own and ignores the heat ask latches "
+    "does_not_follow on the 50th row and is owed the configured scale on the "
+    "51st cycle, from a base of 1.0 and from a walked 0.7 alike; no row "
+    "folds, and the 50 held are dropped",
+    [x[1] for x in _ss_b_self_out[48:51]] == ["pending", "does_not_follow", "does_not_follow"]
+    and _ss_b_self_out[50][0] == 1.0 and _ss_b_self07[49][0] in (0.6528, 0.7507) and _ss_b_self07[50][0] == 1.0
+    and {x[2] for x in _ss_b_self_out} == {_cf_NOEV, "draw_off_ask"} and {x[2] for x in _ss_b_self07[:49]} == {_cf_NOEV}
+    and set(_ss_b_self.folded) == {0} and len(_ss_b_self.held) == 0,
+    f"{_ss_b_self_out[47:]} / {_ss_b_self07[47:]}",
+)
+# The contrast is signed by the coin: a draw answering the scale backwards
+# (drawn over the scale) reads -1 a pair, never follows.
+_ss_b_signs = [[round(c, 9) for c in _ss_bare(pump, 49)[0].probe.dither.contrasts] for pump in (_ss_anti, _ss_led_pump(0.8))]
+R.check(
+    "a draw moving against the scale reads does_not_follow at the 50th row; "
+    "its 23 contrasts by the 49th were each -1, the follower's each +1",
+    _ss_bare(_ss_anti, 53)[1][49][1] == "does_not_follow" and _ss_b_signs == [[-1.0] * 23, [1.0] * 23],
+    f"{_ss_bare(_ss_anti, 53)[1][48:51]}; {[sorted(set(x)) for x in _ss_b_signs]}",
+)
+# A plan that re-prices its ask against the dithered scale keeps the heat ask
+# flat: no pair shows a step, every pair is void, and the probe stays pending
+# (design verdict item 1b98ae3f) until the cap parks it.
+_ss_b_rep, _ss_b_rep_out = _ss_bare(_ss_repriced, 335)
+_ss_b_rep_335 = (_ss_b_rep.probe.dither.rows, len(_ss_b_rep.probe.dither.contrasts), _ss_b_rep.probe.parked_at, _ss_b_rep.scale_response)
+_ss_b_rep_lvl = _ss_bare(_ss_repriced, 1, rec=_ss_b_rep, scale=_ss_b_rep_out[-1][0], t0=335)[1][0][0]
+_ss_b_park_at = _CF_T0 + _cf_td(minutes=30 * 335)
+_ss_b_rep_336 = (_ss_b_rep.probe.dither.rows, _ss_b_rep.probe.parked_at == _ss_b_park_at, _ss_b_rep.scale_response, _ss_b_rep.probe.base)
+_ss_b_parked = _ss_bare(_ss_repriced, 40, rec=_ss_b_rep, scale=_ss_b_rep_lvl, t0=336)[1]
+R.check(
+    "a re-priced plan (the heat ask flat under the dither) builds no contrast "
+    "and never reads does_not_follow; at 335 rows the probe still runs, the "
+    "336th parks it: the next cycle returns to the base and stays there, "
+    "pending, reading nothing and folding nothing",
+    _ss_b_rep_335 == (335, 0, None, "pending") and _ss_b_rep_336 == (0, True, "pending", 1.0)
+    and _ss_b_rep_lvl in (0.9325, 1.0724) and set(_ss_b_parked) == {(1.0, "pending", _cf_NOEV)} and _ss_b_rep.probe.dither.rows == 0,
+    f"335: {_ss_b_rep_335}; 336: {_ss_b_rep_336} at {_ss_b_rep_lvl}; parked {sorted(set(_ss_b_parked))}",
+)
+
+
+def _ss_rearm(after):
+    """A probe parked at ``_CF_T0`` under a follower, 6 cycles from ``after``
+    later: whether it is still parked, the rows read, the first cycle's scale,
+    and whether the dither ran from the third."""
+    rec, scale, seen = _cf_MC(probe=_df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0, level=1.0)), 1.0, []
+    for tick in range(6):
+        scale = _ss_cycle(rec, scale, 1.5, 1.5 * scale / 0.8, _CF_T0 + after + _cf_td(minutes=30 * tick))
+        seen.append(round(scale, 4))
+    return rec.probe.parked_at is not None, rec.probe.dither.rows, seen[0], set(seen[2:]) <= {0.9325, 1.0724}
+
+
+_ss_rearm_at = (_cf_td(days=7) - _cf_td(hours=3), _cf_td(days=7, seconds=1) - _cf_td(hours=2.5), _cf_td(days=7, seconds=1), -_cf_td(hours=1))
+R.check(
+    "a parked probe re-arms after COP_HOLD_HORIZON_S and no sooner: 6 cycles "
+    "whose last is at 7 days less 30 minutes stay at the base and read "
+    "nothing, and so do 5 when the 6th is one second past 7 days (that one "
+    "reads a row); from one second past it, or from a clock an hour behind "
+    "the park (an unknowable wait), the first cycle is at the base and the "
+    "dither runs from the third",
+    [_ss_rearm(a) for a in _ss_rearm_at] == [(True, 0, 1.0, False), (False, 1, 1.0, False), (False, 6, 1.0, True), (False, 6, 1.0, True)],
+    f"{[_ss_rearm(a) for a in _ss_rearm_at]}",
+)
+# The park's two bounds, at their own instants: a clock reading the park
+# itself (0 s waited) and one exactly COP_HOLD_HORIZON_S later both keep it.
+_ss_park_at = (_cf_td(0), _cf_td(seconds=_df_acc.COP_HOLD_HORIZON_S), _cf_td(seconds=_df_acc.COP_HOLD_HORIZON_S + 1))
+
+
+def _ss_park_edge(after):
+    probe = _df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0)
+    owed = probe.owed_scale(lambda: 1.0, _CF_T0 + after, read=False)
+    return owed, probe.parked_at is not None
+
+
+R.check(
+    "a parked probe still holds its base on the instant it parked and on the "
+    "instant COP_HOLD_HORIZON_S has passed, both bounds inclusive; one second "
+    "later it re-arms",
+    [_ss_park_edge(a) for a in _ss_park_at] == [(1.0, True), (1.0, True), (1.0, False)],
+    f"{[_ss_park_edge(a) for a in _ss_park_at]}",
+)
+_ss_edge_scales = (_df_acc.COP_SCALE_MIN, _df_acc.COP_SCALE_MAX, 0.5001, 1.5999)
+
+
+def _ss_first_at(scale):
+    """A fresh probe's first row read at ``scale``: the clamp test is strict at both ends."""
+    probe = _df_acc.ScaleProbe()
+    verdict = probe.admit(_cf_row(1.5, 1.5, scale=scale, at=_CF_T0))
+    return verdict, probe.base, probe.restore_due, probe.reseeded
+
+
+R.check(
+    "a probe's first row read exactly at COP_SCALE_MIN or COP_SCALE_MAX "
+    "keeps no base and makes the restore due; one a hair inside either "
+    "clamp becomes the base",
+    [_ss_first_at(s) for s in _ss_edge_scales]
+    == [("pending", None, True, True)] * 2 + [("pending", 0.5001, False, False), ("pending", 1.5999, False, False)],
+    f"{[_ss_first_at(s) for s in _ss_edge_scales]}",
+)
+
+
+def _ss_restore_to(configured):
+    probe = _df_acc.ScaleProbe(restore_due=True)
+    return probe.owed_scale(lambda: configured, _CF_T0), probe.base
+
+
+R.check(
+    "a due restore owes the configured scale clamped to [COP_SCALE_MIN, "
+    "COP_SCALE_MAX], and a pending probe takes the clamped value as its base: "
+    "2.0 is owed as 1.6, 0.3 as 0.5, 0.9 as itself",
+    [_ss_restore_to(c) for c in (2.0, 0.3, 0.9)] == [(1.6, 1.6), (0.5, 0.5), (0.9, 0.9)],
+    f"{[_ss_restore_to(c) for c in (2.0, 0.3, 0.9)]}",
+)
+
+
+def _ss_no_base():
+    """A probe with no base, no restore and nothing owed, a row read since the last step."""
+    probe = _df_acc.ScaleProbe(dither=_ss_SD(admitted=True))
+    try:
+        return probe.owed_scale(lambda: 1.0, _CF_T0), probe.dither.reading, probe.dither.ahead
+    except Exception as err:  # noqa: BLE001 -- a mutant's failure is its reading
+        return type(err).__name__
+
+
+R.check(
+    "where no probe runs (no base, no restore, nothing owed) the probe owes "
+    "no scale and starts no dither, even after a row was read",
+    _ss_no_base() == (None, None, None),
+    f"{_ss_no_base()}",
+)
+
+
+def _ss_take_under(reading):
+    """Rows taken under one ``reading`` of pair (0, 1): two (heat asks 2.0
+    then 1.5 kW) under a first-of-pair reading, one under a second-of-pair reading."""
+    sd = _ss_SD(reading=(0, 1, reading[1]), pair=(0, 1))
+    try:
+        for asked in ((2.0, 1.5) if not reading[1] else (1.5,)):
+            sd.take(_cf_row(asked, asked, scale=1.0, at=_CF_T0))
+    except Exception as err:  # noqa: BLE001 -- a mutant's failure is its reading
+        return type(err).__name__
+    return sd.contrasts, sd.rows
+
+
+R.check(
+    "two rows taken under one first-of-pair reading make no pair and add no "
+    "contrast, and a second-of-pair row whose first was never taken adds none",
+    [_ss_take_under(r) for r in ((1, False), (1, True))] == [([], 2), ([], 1)],
+    f"{[_ss_take_under(r) for r in ((1, False), (1, True))]}",
+)
+# A pair is two consecutive admitted rows: a frozen cycle, one with no power
+# reading, or one refused under the duty floor between them voids it. Two
+# admitted rows, then one such cycle, over and over: no pair ever completes.
+_ss_b_gap = [
+    _ss_bare(_ss_led_pump(0.8), 150, skip=lambda tick, code=code: code if tick % 3 == 2 else None)
+    for code in ("learners_frozen", "no_measured_power")
+]
+
+
+def _ss_floor_gap(n, every=3):
+    """As ``_ss_bare`` on a follower, every third (``every``) cycle refused ahead of the
+    judgement (the duty floor's place): the release and the owed scale run, no row is read."""
+    rec, scale, seen = _cf_MC(), 1.0, []
+    for tick in range(n):
+        at = _CF_T0 + _cf_td(minutes=30 * tick)
+        if tick % every == every - 1:
+            rec.release(_ss_unob, _cf_both, at)
+            owed = rec.owed_scale(lambda: 1.0, at)
+            scale, rec.refusal = scale if owed is None else owed, "duty_floor"
+        else:
+            scale = _ss_cycle(rec, scale, 1.5, 1.5 * scale / 0.8, at)
+        seen.append((round(scale, 4), rec.scale_response, rec.refusal))
+    return rec, seen
+
+
+_ss_b_gap_end = [(len(rec.probe.dither.contrasts), rec.scale_response, rec.probe.dither.rows) for rec, _o in _ss_b_gap]
+R.check(
+    "two admitted rows then a frozen cycle or an unread one, repeated over "
+    "150 cycles: no pair completes and the verdict stays pending on 100 rows, "
+    "where the same follower uninterrupted latches at the 50th; the scale is "
+    "at the base on the cycle after each",
+    _ss_b_gap_end == [(0, "pending", 100)] * 2
+    and all({o[t][0] for t in range(3, 150, 3)} == {1.0} for _r, o in _ss_b_gap)
+    and all({o[t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724} for _r, o in _ss_b_gap),
+    f"{_ss_b_gap_end}; {[o[:9] for _r, o in _ss_b_gap]}",
+)
+# A read cycle that admits no row (a floor refusal) keeps the pair in flight:
+# the slot it missed is handed out again and held until a row is read under
+# it (BLOCKED.md departure A, approved on inbox/r11-outside-self-setting-pump
+# line 2). Every pair completes in the coin's order, from rows that were read
+# under the level the slot names; the follower latches follows.
+_ss_b_fl, _ss_b_fl_out = _ss_floor_gap(300)
+_ss_b_fl4, _ss_b_fl4_out = _ss_floor_gap(300, every=4)
+_ss_b_fl_at = [next((t for t, x in enumerate(o) if x[1] == "follows"), None) for o in (_ss_b_fl_out, _ss_b_fl4_out)]
+R.check(
+    "two (or three) admitted rows then a floor refusal, over 300 cycles: the "
+    "pairs complete and the follower latches follows, where frozen or unread "
+    "gaps complete none",
+    None not in _ss_b_fl_at and _ss_b_fl.scale_response == _ss_b_fl4.scale_response == "follows",
+    f"latched at {_ss_b_fl_at}; {_ss_b_fl.scale_response}/{_ss_b_fl4.scale_response}",
+)
+
+
+# The hold itself, on a bare dither: rows read only where ``read(tick)``.
+def _ss_hold(read, n=12):
+    sd = _ss_SD()
+    levels = _ss_levels_read(sd, n, read)
+    return [round(x, 4) for x in levels], [round(c, 9) for c in sd.contrasts], sd.rows
+
+
+# One in three read: each missed slot is handed out again until a row is read
+# under it; the level handed out ahead of the miss runs once and is ignored.
+_ss_hold3 = _ss_hold(lambda tick: tick % 3 == 2, 24)
+R.check(
+    "a slot whose row was not read is handed out again and held until one "
+    "is: one row in three read, the pairs still complete in the coin's order, "
+    "each contrast +1 for a follower; with every row read the levels are the "
+    "uninterrupted sequence",
+    _ss_hold3[1] == [1.0] * 2 and _ss_hold3[2] == 9
+    and _ss_hold(lambda tick: True)[0] == [round(x, 4) for x in _ss_levels_read(_ss_SD(), 12)],
+    f"{_ss_hold3}",
+)
+# The pair voids past COP_HOLD_HORIZON_S from its first row, and the scale
+# waits at the base until a row is read: no row read after the first, steps
+# an hour apart.
+def _ss_hold_horizon(hours):
+    """The first slot's row read at ``_CF_T0`` + 30 min, then none: the two
+    levels handed out, and the scale at each of ``hours`` after that row."""
+    sd = _ss_SD()
+    first, second = _ss_levels_read(sd, 2)
+    sd.step(1.0, True, _CF_T0 + _cf_td(hours=1))  # the next pair's first, handed out ahead
+    at = sd.first.at
+    seen = [sd.step(1.0, True, at + _cf_td(hours=h)) for h in hours]
+    return round(first, 4), round(second, 4), [round(x, 4) for x in seen], sd.pair
+
+
+_ss_hh = [_ss_hold_horizon(h) for h in ((0, 24, 168), (168 + 1 / 3600, 169, 170), (-1, 2, 3))]
+R.check(
+    "a pair holding for its second row voids once COP_HOLD_HORIZON_S has "
+    "passed from its first (the bound inclusive) or its age is unknowable: "
+    "the scale returns to the base and stays there with no row read",
+    _ss_hh[0][2] == [_ss_hh[0][1]] * 3 and _ss_hh[0][3] is not None and _ss_hh[0][0] * _ss_hh[0][1] > 0
+    and [x[2] for x in _ss_hh[1:]] == [[1.0, 1.0, 1.0]] * 2 and [x[3] for x in _ss_hh[1:]] == [None] * 2
+    and _ss_hh[0][1] != _ss_hh[0][0] and 1.0 not in _ss_hh[0][:2],
+    f"{_ss_hh}",
+)
+
+
+# On the coordinator. A trace of (scale, folds, verdict) per cycle.
+def _ss_trace(coord, pairs, true=None, reprice=None):
+    out = []
+    for asked, drawn in pairs:
+        if reprice is not None:
+            asked, drawn = reprice / coord._cop_scale, reprice / true
+        elif true is not None:
+            drawn = asked * coord._cop_scale / true
+        _ss_step(coord, asked, drawn)
+        out.append((round(coord._cop_scale, 4), coord._cop_samples, coord._measured_cop.scale_response))
+    return out
+
+
+_ss_t_led = _ss_trace(_ss_coord(), _ss_flat(140), true=0.8)
+_ss_t_pend = [x for x in _ss_t_led if x[2] == "pending"]
+R.check(
+    "no fold lands while the verdict is pending: a heat-led pump of true 0.8 "
+    "folds nothing through its 96 pending cycles (47 while the window fills, "
+    "49 probed), its scale at 1.0 or a dither level throughout; the 97th "
+    "latches follows, the 98th returns to 1.0, and the 99th folds all 99, "
+    "from 1.0 to within 0.01 of 0.8",
+    len(_ss_t_pend) == 96 and {x[1] for x in _ss_t_pend} == {0} and {x[0] for x in _ss_t_pend} == {1.0, 0.9325, 1.0724}
+    and _ss_t_led[96][1:] == (0, "follows") and _ss_t_led[97][:2] == (1.0, 0)
+    and _ss_t_led[98][1] == 99 and abs(_ss_t_led[98][0] - 0.8) < 0.01,
+    f"{len(_ss_t_pend)} pending; {sorted({x[:2] for x in _ss_t_pend})}; then {_ss_t_led[95:100]}",
+)
+# Null control 1 of the design note: the dither's amplitude forced to zero.
+# The verdict comes from the instrument, so without it nothing reads follows.
+_ss_levels = _ss_SD.levels
+_ss_SD.levels = staticmethod(lambda base: (base, base))
+try:
+    _ss_null = [_ss_trace(_ss_coord(), _ss_flat(300, kw), true=true)[-1] for kw, true in ((None, 0.8), (2.2, None))]
+finally:
+    _ss_SD.levels = staticmethod(_ss_levels)
+R.check(
+    "with the dither's amplitude forced to zero neither a heat-led pump of "
+    "true 0.8 nor a 2.2 kW self-setting one latches anything over 300 cycles: "
+    "pending, nothing folded, the scale 1.0",
+    _ss_null == [(1.0, 0, "pending")] * 2 and _ss_SD.levels(1.0) != (1.0, 1.0),
+    f"{_ss_null}",
+)
+# A restart mid-probe: the stored COP scale is whatever level the cycle of the
+# save ran, so the record carries the probe's base and the first cycle after
+# the load returns to it. Without the key the level would become the base.
+def _ss_reload(lose):
+    coord = _ss_coord()
+    _ss_trace(coord, _ss_flat(70), true=0.8)
+    level, stored = round(coord._cop_scale, 4), coord._measured_cop.as_dict()
+    if lose:
+        stored.pop("scale_base")
+    coord._measured_cop = _cf_MC.from_dict(stored)
+    _ss_step(coord, 1.5, 1.5 * coord._cop_scale / 0.8)
+    after = round(coord._cop_scale, 4)
+    for _ in range(5):  # the reload dropped the walking ratio: the tracking gate admits a row again within five
+        _ss_step(coord, 1.5, 1.5 * coord._cop_scale / 0.8)
+    return level, stored.get("scale_base"), after, coord._measured_cop.probe.base, coord._measured_cop.scale_response
+
+
+R.check(
+    "a reload mid-probe returns to the base: 70 cycles in, the scale is a "
+    "dither level and the record stores base 1.0; reloaded, the next cycle "
+    "runs at 1.0, still pending. With the key lost the level stays and "
+    "becomes the base",
+    _ss_reload(False)[0] in (0.9325, 1.0724) and _ss_reload(False)[1:] == (1.0, 1.0, 1.0, "pending")
+    and _ss_reload(True)[1] is None and _ss_reload(True)[2] == _ss_reload(True)[0] == round(_ss_reload(True)[3], 4),
+    f"{_ss_reload(False)} / lost {_ss_reload(True)}",
+)
+_ss_q_base = [
+    _cf_MC.from_dict({"cop": None, "scale_response": r, "scale_base": b}).probe.base
+    for r, b in (("pending", 0.9), ("pending", 0.5), ("pending", 1.6), (None, 0.9), ("pending", 0.49), ("pending", 1.61),
+                 ("pending", "x"), ("pending", True), ("pending", float("nan")), ("pending", None),
+                 ("follows", 0.9), ("does_not_follow", 0.9))
+]
+R.check(
+    "a stored base loads beside a pending or absent verdict where the clamps "
+    "admit it (0.5 and 1.6 included); out of them, unreadable, or beside a "
+    "latched verdict, none loads; a record that is no mapping loads none",
+    _ss_q_base == [0.9, 0.5, 1.6, 0.9] + [None] * 8 and _cf_MC.from_dict(None).probe.base is None
+    and _cf_MC.from_dict({"cop": 3.1, "curve_dhw": False, "dhw_temp": None, "at": None, "scale_base": 0.9}).cop == 3.1
+    and _cf_MC(probe=_df_acc.ScaleProbe(base=0.9)).as_dict()["scale_base"] == 0.9 and _cf_MC().as_dict()["scale_base"] is None,
+    f"{_ss_q_base}",
+)
+# Mid-probe cycles that admit no row (design verdict items 76b936b7, 5bb6a355).
+def _ss_mid():
+    coord = _ss_coord()
+    _ss_trace(coord, _ss_flat(70), true=0.8)
+    return coord
+
+
+def _ss_seen(coord):
+    return round(coord._cop_scale, 4), coord._cop_samples, coord._measured_cop.scale_response, coord._measured_cop.probe.base, _cf_last(coord, "refusal")
+
+
+# Pump off: the ask and the draw under the duty floor, three cycles running.
+_ss_idle = _ss_mid()
+_ss_idle_seen = []
+for _ss_i in range(3):
+    _ss_step(_ss_idle, 0.3, 0.3, window=_ss_idle._accuracy.draw)
+    _ss_idle_seen.append(_ss_seen(_ss_idle))
+_ss_idle_back = _ss_trace(_ss_idle, _ss_flat(4), true=0.8)
+R.check(
+    "mid-probe, a pump that goes off (read cycles, no row): the scale holds "
+    "the slot whose row was missed, never the base, and the dither goes on "
+    "at its levels once rows return (departure A: was the base from the "
+    "second idle cycle)",
+    _ss_idle_seen[0][0] in (0.9325, 1.0724) and len({x[0] for x in _ss_idle_seen[1:]}) == 1
+    and {x[0] for x in _ss_idle_seen[1:]} <= {0.9325, 1.0724}
+    and {x[1:] for x in _ss_idle_seen} == {(0, "pending", 1.0, "duty_floor")}
+    and {x[0] for x in _ss_idle_back} <= {0.9325, 1.0724},
+    f"{_ss_idle_seen}; back {_ss_idle_back}",
+)
+# A frozen cycle moves no scale (the owed scale sits past the freeze gate),
+# so it keeps the level; the next unfrozen cycle returns to the base.
+_ss_frz = _ss_mid()
+_ss_frz_level = round(_ss_frz._cop_scale, 4)
+_ss_frz_live = _ss_frz._learning_frozen
+_ss_frz._learning_frozen = lambda *entities, **_kw: "stale_inputs"
+_ss_step(_ss_frz, 1.5, 1.5 * _ss_frz._cop_scale / 0.8)
+_ss_frz_during = _ss_seen(_ss_frz)
+_ss_frz._learning_frozen = _ss_frz_live
+_ss_step(_ss_frz, 1.5, 1.5 * _ss_frz._cop_scale / 0.8)
+R.check(
+    "mid-probe, a frozen cycle keeps the dither level and the next unfrozen "
+    "one returns to the base, still pending, nothing folded",
+    _ss_frz_level in (0.9325, 1.0724) and _ss_frz_during == (_ss_frz_level, 0, "pending", 1.0, "learners_frozen")
+    and _ss_seen(_ss_frz) == (1.0, 0, "pending", 1.0, _cf_NOEV),
+    f"level {_ss_frz_level}; frozen {_ss_frz_during}; after {_ss_seen(_ss_frz)}",
+)
+# A reset mid-probe: the window's evidence governs again (asks that span).
+# The scale returns to the base in that same cycle, and that cycle's interval,
+# read under the dither level, is held; the next cycle folds the hold (the 70
+# before, and that one, each against the scale it was read under) and its own.
+_ss_rst = _ss_mid()
+_ss_rst_level = round(_ss_rst._cop_scale, 4)
+_ss_step(_ss_rst, 1.5, 1.5 * _ss_rst._cop_scale / 0.8, window=_cf_window(_cf_lit48))
+_ss_rst_cycle = _ss_seen(_ss_rst)
+_ss_step(_ss_rst, 1.5, 1.5 * _ss_rst._cop_scale / 0.8, window=_cf_window(_cf_lit48))
+R.check(
+    "a reset mid-probe returns the scale to the base in the same cycle and "
+    "folds nothing in it; the next cycle folds the 71 held and its own, from "
+    "1.0 to within 0.03 of 0.8",
+    _ss_rst_level in (0.9325, 1.0724) and _ss_rst_cycle == (1.0, 0, "pending", None, _cf_NOEV)
+    and len(_ss_rst._measured_cop.held) == 0
+    and _ss_rst._cop_samples == 72 and abs(_ss_rst._cop_scale - 0.8) < 0.03 and _ss_rst._measured_cop.refusal is None,
+    f"level {_ss_rst_level}; reset cycle {_ss_rst_cycle}; next {_ss_seen(_ss_rst)}",
+)
+# At a clamp: a configured scale of 0.5 is probed between 0.5 and 0.575 and
+# never under it; a heat-led pump of true 0.6 there still reaches 0.6.
+_ss_clamp = _ss_trace(_ss_coord(cop_scale=0.5), _ss_flat(672), true=0.6)
+R.check(
+    "the dither never passes a clamp: configured at 0.5, the pending scales "
+    "are 0.5 and 0.575 alone, and a heat-led pump of true 0.6 latches follows "
+    "and ends at 0.600",
+    {x[0] for x in _ss_clamp if x[2] == "pending"} == {0.5, 0.575} and _ss_clamp[-1][::2] == (0.6, "follows"),
+    f"{sorted({x[0] for x in _ss_clamp if x[2] == 'pending'})}; {_ss_clamp[-1]}",
+)
+# Through the coordinator, a plan re-pricing its ask against the scale (1.2 kW
+# of heat; the pump's true scale 0.8): never does_not_follow, nothing folded.
+_ss_rep = _ss_trace(_ss_coord(), _ss_flat(672), true=0.8, reprice=1.2)
+R.check(
+    "a plan that re-prices its ask against the dithered scale never reads "
+    "does_not_follow over 672 cycles and folds nothing",
+    {x[2] for x in _ss_rep} == {"pending"} and _ss_rep[-1][1] == 0,
+    f"{sorted({x[2] for x in _ss_rep})}; {_ss_rep[-1]}; scales {sorted({x[0] for x in _ss_rep})}",
+)
+# A pair whose first slot never reads a row is bounded too: from when it was
+# handed out, not from each later step.
+def _ss_first_hold(hours):
+    sd = _ss_SD()
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))
+    first = sd.step(1.0, True, _CF_T0)
+    return round(first, 4), [round(sd.step(1.0, True, _CF_T0 + _cf_td(hours=h)), 4) for h in hours]
+
+
+_ss_fh = _ss_first_hold((1, 100, 168, 168 + 1 / 3600, 169))
+R.check(
+    "a first slot no row is read under: the step after it hands out the "
+    "second ahead (the miss is not known yet), then the first is held from "
+    "when it was handed out until COP_HOLD_HORIZON_S has passed (inclusive), "
+    "then the scale returns to the base and stays there",
+    _ss_fh[1][1:] == [_ss_fh[0]] * 2 + [1.0, 1.0]
+    and {_ss_fh[0], _ss_fh[1][0]} == {0.9325, 1.0724},
+    f"{_ss_fh}",
+)
+
+
+# So is the next pair's first slot, from the row that completed the pair before.
+def _ss_next_hold(hours):
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)  # the first pair completes on the row read at the third step
+    done = sd.since
+    return done == _CF_T0 + _cf_td(minutes=60) and sd.first is None, len(sd.contrasts), [round(sd.step(1.0, True, done + _cf_td(hours=h)), 4) for h in hours]
+
+
+_ss_nh = _ss_next_hold((1, 100, 168, 168 + 1 / 3600, 169))
+R.check(
+    "the next pair's first slot, no row read under it, is held from the row "
+    "that completed the pair before until COP_HOLD_HORIZON_S has passed, then "
+    "the scale is at the base",
+    _ss_nh[:2] == (True, 1) and _ss_nh[2][1:3] == [_ss_nh[2][2]] * 2 and _ss_nh[2][2] != 1.0 and _ss_nh[2][3:] == [1.0, 1.0],
+    f"{_ss_nh}",
+)
+
+
+# clear() ends the pair in flight, and a void forgets a row read before it:
+# after either, the scale waits at the base until a row is read again.
+def _ss_cleared():
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)
+    sd.clear()
+    return sd.pair, sd.first, sd.reading, sd.ahead, sd.step(1.0, True, _CF_T0 + _cf_td(hours=2))
+
+
+def _ss_after_void():
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))  # a row read, then a frozen cycle
+    return [sd.step(1.0, read, _CF_T0 + _cf_td(hours=h)) for h, read in ((2, False), (3, True), (4, True))]
+
+
+R.check(
+    "clear() leaves no pair, row or slot and the next step is at the base; "
+    "a frozen cycle voids the pair and drops the row read before it, so "
+    "with no row read since, the steps after it stay at the base",
+    _ss_cleared() == (None, None, None, None, 1.0) and _ss_after_void() == [1.0, 1.0, 1.0],
+    f"{_ss_cleared()} / {_ss_after_void()}",
+)
+
+
+# The probe consumes the row-read flag on every cycle, also where it hands
+# out no dither level (parked): a row read on a parked cycle does not start
+# a pair days later at the re-arm.
+def _ss_stale_admit():
+    probe = _df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0, level=1.0)
+    probe.dither.admitted = True
+    probe.owed_scale(lambda: 1.0, _CF_T0 + _cf_td(hours=1))
+    return probe.owed_scale(lambda: 1.0, _CF_T0 + _cf_td(days=8)), probe.parked_at, probe.dither.pair
+
+
+R.check(
+    "a row read on a parked cycle is forgotten by the next cycle: at the "
+    "re-arm with no row read since, the scale stays at the base and no pair starts",
+    _ss_stale_admit() == (None, None, None),
+    f"{_ss_stale_admit()}",
+)
+# Carry 6 (BLOCKED.md departure B1, approved on inbox/r11-outside-self-setting-pump
+# line 2): under that plan the dither spans the window by its own step, the
+# evidence turns obtainable and resets the probe, and a new one starts, without
+# end. PROBE_VOID_CAP probes in a row that a reset ends with no pair read park
+# the next on its first row, for COP_HOLD_HORIZON_S.
+def _ss_probes(coord, pairs, true, reprice):
+    """Probes started (a base appearing) and cycles at a dither level, over a re-priced run."""
+    started, dithered, had = 0, 0, False
+    for asked, drawn in pairs:
+        _ss_step(coord, reprice / coord._cop_scale, reprice / true)
+        probe = coord._measured_cop.probe
+        started += probe.base is not None and not had
+        had = probe.base is not None
+        dithered += had and abs(coord._cop_scale - probe.base) > 1e-9
+    return started, dithered, coord._measured_cop.scale_response, getattr(coord._measured_cop.probe, "voided", "-")
+
+
+_ss_rep_cap = _ss_probes(_ss_coord(), _ss_flat(336), 0.8, 1.2)
+R.check(
+    "a re-priced plan resets its probe with no pair read; after "
+    "PROBE_VOID_CAP (3) such probes the next parks on its first row: over "
+    "336 cycles (the horizon) 4 probes start, pending, and the scale leaves "
+    "the base on at most 20 cycles",
+    getattr(_df_acc, "PROBE_VOID_CAP", None) == 3 and _ss_rep_cap[0] == 4 and _ss_rep_cap[1] <= 20 and _ss_rep_cap[2:] == ("pending", 3),
+    f"{_ss_rep_cap}",
+)
+
+
+def _ss_void_count(voided, base, contrasts, parked):
+    """``ScaleProbe.voided`` after one reset of a probe in that state."""
+    probe = _df_acc.ScaleProbe(base=base, voided=voided, parked_at=_CF_T0 if parked else None,
+                               dither=_ss_SD(contrasts=list(contrasts)))
+    probe.reset(False)
+    return probe.voided
+
+
+R.check(
+    "a reset counts a running probe that read no pair, clears the count for "
+    "one that read a pair, and leaves it for a parked probe or none running",
+    [_ss_void_count(*c) for c in ((0, 1.0, [], False), (2, 1.0, [], False), (2, 1.0, [1.0], False), (3, 1.0, [], True), (2, None, [], False))]
+    == [1, 3, 0, 3, 2],
+    f"{[_ss_void_count(*c) for c in ((0, 1.0, [], False), (2, 1.0, [], False), (2, 1.0, [1.0], False), (3, 1.0, [], True), (2, None, [], False))]}",
+)
+
+
+def _ss_capped(voided, after):
+    """A fresh probe at ``voided``: parked by its first row, and the scale owed ``after`` later."""
+    probe = _df_acc.ScaleProbe(voided=voided)
+    probe.admit(_cf_row(1.5, 1.5, scale=1.0, at=_CF_T0))
+    parked = probe.parked_at
+    probe.owed_scale(lambda: 1.0, _CF_T0 + after)
+    return parked == _CF_T0, probe.parked_at is not None, probe.voided
+
+
+R.check(
+    "a probe that starts at PROBE_VOID_CAP voided ones parks on its first "
+    "row; one under the cap does not; past COP_HOLD_HORIZON_S it re-arms and "
+    "the count clears",
+    [_ss_capped(v, a) for v, a in ((3, _cf_td(hours=1)), (2, _cf_td(hours=1)), (3, _cf_td(days=7, seconds=1)))]
+    == [(True, True, 3), (False, False, 2), (True, False, 0)],
+    f"{[_ss_capped(v, a) for v, a in ((3, _cf_td(hours=1)), (2, _cf_td(hours=1)), (3, _cf_td(days=7, seconds=1)))]}",
+)
+# The ratio refusal is logged where it is decided (moved from the
+# coordinator): a refusal logs its code, a fold logs nothing.
+import logging as _ss_logging  # noqa: E402
+
+
+class _SsLog(_ss_logging.Handler):
+    def __init__(self):
+        super().__init__(_ss_logging.DEBUG)
+        self.lines = []
+
+    def emit(self, record):
+        self.lines.append(record.getMessage())
+
+
+_ss_log, _ss_lg = _SsLog(), _ss_logging.getLogger(_df_acc.__name__)
+_ss_lg.addHandler(_ss_log)
+_ss_lv = _ss_lg.level
+_ss_lg.setLevel(_ss_logging.DEBUG)
+_cf_MC().judge_ratio(1.0, _cf_row(2.0, 2.0), _cf_both, None)
+_ss_log_fold = list(_ss_log.lines)
+_cf_MC().judge_ratio(0.0, _cf_row(5.0, 2.5), _cf_both, None)
+_ss_lg.removeHandler(_ss_log)
+_ss_lg.setLevel(_ss_lv)
+R.check(
+    "judge_ratio logs a refusal with its code and the interval, and a fold not at all",
+    _ss_log_fold == [] and len(_ss_log.lines) == 1 and _ss_log.lines[0].startswith("Skipping COP sample (tracking_gate)"),
+    f"{_ss_log.lines}",
+)
+# Measured heat drops a due restore (departure 2 of the body): an install
+# that gained a thermal power entity after a stored does_not_follow keeps the
+# scale its heat-measured folds left, here 0.7, through a cycle with no reading.
+_ss_gain = _ss_coord(scale0=0.7, heat_pump_thermal_power_entity="sensor.heat")
+_ss_gain._measured_cop = _cf_MC.from_dict({"cop": None, "scale_response": "does_not_follow"})
+_ss_gain_loaded = _ss_gain._measured_cop.probe.restore_due
+_ss_step(_ss_gain, 1.5, 2.2, window=_ss_unob)
+R.check(
+    "measured heat drops a restore a stored does_not_follow made due: the "
+    "scale stays 0.7, and the verdict resets",
+    _ss_gain_loaded is True
+    and (round(_ss_gain._cop_scale, 3), _ss_gain._measured_cop.probe.restore_due, _ss_gain._measured_cop.scale_response)
+    == (0.7, False, "pending"),
+    f"{(_ss_gain._cop_scale, _ss_gain._measured_cop.probe.restore_due, _ss_gain._measured_cop.scale_response)}",
+)
+R.check(
+    "the diagnostics publish the verdict beside the window's evidence",
+    _cf_diag._coordinator_snapshot(_ss_beyond)["cop_learner"]["scale_response"] == "does_not_follow"
+    and _cf_diag._coordinator_snapshot(_cf_coord())["cop_learner"]["scale_response"] == "pending",
+    f"{_cf_diag._coordinator_snapshot(_ss_beyond)['cop_learner']}",
 )
 
 
@@ -88034,12 +89360,17 @@ R.check(
     list(_cpd_warm) == [3.0, 3.0, 2.0, 0.0] and list(_cpd_warm_null) == [3.0, 2.5, 1.0, 0.0],
     f"{list(_cpd_warm)} {list(_cpd_warm_null)}",
 )
-# Carry 6: every source and reason code has its user string in strings.json,
-# en and sv, under the entity's state_attributes, so no raw code is shown.
+# Carry 6: every source and reason code has its user string in strings.json
+# and every shipped catalogue, under the entity's state_attributes, so no raw
+# code is shown.
 _cpd_codes = {
     "pump_max_power_source": {"configured", "ceiling_probe"},
     "pump_max_power_reason": {"plan_writes_power", "awaiting_probe", "lapsed",
                               "not_below_configured", "measured_below_configured"},
+    # R11-OUTSIDE-HONEST-METERED-FLOOR: the bottom end's codes, each reached
+    # by its fixture in that group's block (the reached-set check there).
+    "pump_min_power_source": {"configured", "metered"},
+    "pump_min_power_reason": {"plan_writes_power", "awaiting", "unexceeded", "cycled", "measured"},
 }
 _cpd_tr_missing = []
 for _cpd_name in ("strings.json", *SHIPPED_CATALOGUES):
@@ -89455,18 +90786,22 @@ def _svh_case(two_zone, outdoor, **over):
     return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), nxt
 
 
-# -10 and -15 C sag far; at 14 C the two-zone house falls just short of the
-# target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
+# -10 and -15 C sag far on two zones; at 14 C the two-zone house falls just short
+# of the target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
+# A single-zone curve holds its target through the slab (R11-VALVE-REFERENCE), so
+# its held room is the setpoint at every row.
 _svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0, 14.0, 16.0)}
 R.check(
     "R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the "
     "setpoint, the thermostat reference starts where that curve holds the "
     "house -- its first booked step draws no stored heat (the held 21 C "
     "drew it every step, booked as unpaid reference heat); both zonings, "
-    "from a deep shortfall to a mild day the curve holds",
+    "from a deep shortfall to a mild day the curve holds; a single-zone curve "
+    "holds the setpoint itself",
     all(abs(ds) < 0.02 for h, ds, _ in _svh_rows.values())
-    and all(_svh_rows[(tz, t)][0].room_temperature < 21.0 - 0.1
-            for tz in (True, False) for t in (-10.0, -15.0)),
+    and all(_svh_rows[(True, t)][0].room_temperature < 21.0 - 0.1 for t in (-10.0, -15.0))
+    and all(abs(_svh_rows[(False, t)][0].room_temperature - 21.0) < 1e-3
+            for t in (-10.0, -15.0, 14.0, 16.0)),
     {k: (round(h.room_temperature, 3), round(ds, 4)) for k, (h, ds, _) in _svh_rows.items()},
 )
 # Null control: a curve that holds the setpoint keeps the held state at target.
@@ -92241,7 +93576,12 @@ R.check(
     [_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)] == ["dhw", "space", "space"],
     f"{[_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)]}",
 )
-_dsp_mc = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, cyc=0.0)
+# A clamped install prices no start only with the clamped default patched to
+# zero (R11-OUTSIDE-HONEST-STARTS-RUNS-P3), as the two references below.
+from unittest import mock as _dsp_mock  # noqa: E402
+
+with _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _dsp_mc = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, cyc=0.0)
 _dsp_mc_avail = _dsp_mc.opt._space_avail
 _dsp_mc_fed = np.asarray(_dsp_mc.sims[-1]["space_power_schedule"], float)
 _dsp_mc_live = (
@@ -92309,7 +93649,11 @@ R.check(
 )
 # The switch term reads the shipped level: on the fixed-speed plan the
 # delivered draw of a charged step is under the floor and would be no leg.
-_dsp_fx_free = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, p_min=5.5, cyc=0.0)
+# The unpriced reference is clamped at a start price of zero, which since
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 only a clamped default patched to zero
+# reaches (a clamped install configured at zero plans at the default).
+with _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _dsp_fx_free = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, p_min=5.5, cyc=0.0)
 _dsp_fx_obj, _dsp_fx_batch = _dsp_fx.objectives[-1][1], _dsp_fx.objectives[-1][2]
 _dsp_fx_score = float(_dsp_fx_obj(_dsp_fx.space, _dsp_fx.dhw, None, _dsp_fx_avail))
 _dsp_fx_level_terms = _dsp_fx.opt.config.price_weight * (
@@ -92765,10 +94109,14 @@ R.check(
 # zero price, no mask buys anything, so every band's mask is the relaxed
 # plan's own runs and each candidate of the stage is that plan. Corpus: 60
 # realizable plans of 24 steps, one charge each, from a stopped and a running
-# compressor. At a flat price the same plans get another candidate.
+# compressor. At a flat price the same plans get another candidate. A
+# clamped install prices no start only with the clamped default patched to
+# zero (R11-OUTSIDE-HONEST-STARTS-RUNS-P3).
 _dsp_tie_rng = np.random.default_rng(3602)
 _dsp_tie_opt = _dsp_opt(clamp=True, cyc=0.0)
 _dsp_tie_moved = {"zero price": 0, "flat price": 0}
+_dsp_tie_zero = _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0)
+_dsp_tie_zero.start()
 for _dsp_tie_i in range(60):
     _dsp_tie_space = np.where(_dsp_tie_rng.random(24) < 0.5, 0.0, _dsp_tie_rng.uniform(1.5, 3.0, 24))
     _dsp_tie_dhw = np.zeros(24)
@@ -92780,6 +94128,7 @@ for _dsp_tie_i in range(60):
                 _dsp_tie_opt,
                 _DspNS(prices=np.full(24, _dsp_tie_price), dt=0.25, compressor_running=bool(_dsp_tie_i % 2)),
                 _dsp_tie_space, _dsp_tie_dhw, np.zeros(24), 5.5 - _dsp_tie_dhw, np.zeros(24, dtype=bool)))
+_dsp_tie_zero.stop()
 R.check(
     "beside a hot-water charge, at a zero price on an install that prices no "
     "start, every candidate of the stage is the realizable relaxed plan itself; "
@@ -93266,13 +94615,19 @@ R.check(
 # A realizable relaxed plan is a candidate, never a result the stage is held
 # to (design note round 3, test 4): the relaxed descent prices no start, so
 # such a plan carries starts nobody priced. The fixture is the plan the same
-# house ships clamped at no price, which already runs, handed as the relaxed
-# plan to the stage of the priced solve, in that solve's own scope: the stage
+# house ships clamped at a start price of zero, which already runs; since
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 a clamped install plans at the clamped
+# default, so only a default patched to zero reaches that plan. It is handed as
+# the relaxed plan to the stage of the priced solve, in that solve's own scope: the stage
 # ships another plan, with fewer starts, that the scope it ships in scores
 # strictly below the plan handed in. One non-convex stage per arm
 # (``fixer.md`` step 15): the margin measured on x86_64 is 0.70, the check
 # asks for 0.01.
-_hsr_ran = _hsr_cells[(0.0, True, 1.1)].space
+from unittest import mock as _hsr_mock  # noqa: E402
+
+with _hsr_mock.patch.object(_hsr_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _hsr_zero_clamped = _hsr_solve(0.0, True, 1.1)
+_hsr_ran = _hsr_zero_clamped.space
 _hsr_ran_stage = _hsr_cells[(0.25, False, 1.1)].stages[-1]
 _hsr_ran_shipped, _hsr_ran_scope = _hsr_om._commit_runs(
     *_hsr_ran_stage[:3], [_hsr_ran], *_hsr_ran_stage[4:])
@@ -93357,8 +94712,9 @@ R.check(
     _hsr_run_on.result.objective_value != _hsr_run_off.result.objective_value,
     f"{_hsr_run_on.result.objective_value} vs {_hsr_run_off.result.objective_value}",
 )
-# A realizable relaxed plan on a clamped install that prices no start ships
-# as it stands: the stage is the identity, the objective never called.
+# An unengaged solve ships its relaxed plan as it stands: the stage is the
+# identity, the objective never called. An engaged solve always prices a
+# start (R11-OUTSIDE-HONEST-STARTS-RUNS-P3), so it has no such identity.
 
 
 def _hsr_never(*_args, **_kw):
@@ -93375,10 +94731,10 @@ def _hsr_commit(opt, objective, batch, space, maxiter=5):
 
 
 R.check(
-    "null control, a realizable relaxed plan: a clamped install that prices no "
-    "start ships it unchanged, the very array, and an unengaged solve any plan",
-    _hsr_commit(_hsr_opt(0.0, True, 1.1), _hsr_never, _hsr_never, _hsr_real) is _hsr_real
-    and _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_trickle) is _hsr_trickle,
+    "null control: an unengaged solve ships any relaxed plan unchanged, the very array, "
+    "the objective never consulted",
+    _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_trickle) is _hsr_trickle
+    and _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_real) is _hsr_real,
 )
 R.check(
     "and with a plan that is not realizable the same call ships the projection "
@@ -93688,6 +95044,51 @@ R.check(
     == [0.25 * _hsr_count(_hsr_trickle, 1.1), 0.25 * _hsr_count(_hsr_real, 1.1)]
     and _hsr_om._start_cost_fn(_hsr_opt(0.25, False, 1.1), True)(_hsr_real, None)
     == 0.25 * _hsr_count(_hsr_real, 1.1, True),
+)
+
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (owner ruling Q2): a clamped install that
+# prices no start plans at the clamped default start price, 0.1. Without it
+# the grid cell clamped at no price ships 5 starts where the tree before pull
+# request 3602 shipped 2 (dev/audit/harnesses/r11_honest_starts_runs.py,
+# ``grid`` and ``defaults``). The rule: the default replaces a configured
+# price of zero on a clamped install and nothing else. Nulls: a priced install
+# keeps its price below and above the default, an unclamped one keeps zero.
+import inspect as _hsr_inspect  # noqa: E402
+import re as _hsr_re  # noqa: E402
+
+_hsr_sp = {
+    (cost, clamp): getattr(
+        _hsr_om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=cost), "start_price", None)
+    for cost in (0.0, 0.05, 0.25) for clamp in (False, True)
+}
+R.check(
+    "the start price a solve plans with: the configured price, except that a clamped install "
+    "configured at zero plans at the clamped default 0.1; a priced install keeps its own price "
+    "below and above the default, and an unclamped install keeps zero",
+    getattr(_hsr_om, "CLAMPED_DEFAULT_START_PRICE", None) == 0.1
+    and _hsr_sp == {(0.0, False): 0.0, (0.0, True): 0.1, (0.05, False): 0.05,
+                    (0.05, True): 0.05, (0.25, False): 0.25, (0.25, True): 0.25},
+    f"{_hsr_sp}",
+)
+_hsr_at_default = _hsr_solve(0.1, True, 1.1)
+R.check(
+    "failing case: the grid cell clamped at no configured price ships the plan it ships "
+    "configured at the clamped default, with no more than the 2 starts the tree before "
+    "pull request 3602 shipped (5 without the default) and fewer than the same install "
+    "ships with the default patched to zero",
+    np.array_equal(_hsr_cells[(0.0, True, 1.1)].space, _hsr_at_default.space)
+    and _hsr_edges(_hsr_cells[(0.0, True, 1.1)].space) <= 2
+    and _hsr_edges(_hsr_cells[(0.0, True, 1.1)].space) < _hsr_edges(_hsr_zero_clamped.space),
+    f"edges {_hsr_edges(_hsr_cells[(0.0, True, 1.1)].space)}, "
+    f"at the default {_hsr_edges(_hsr_at_default.space)}, "
+    f"default patched to zero {_hsr_edges(_hsr_zero_clamped.space)}",
+)
+_hsr_cost_readers = _hsr_re.findall(r"\.config\.cycling_cost\b", _hsr_inspect.getsource(_hsr_om))
+R.check(
+    "every optimizer reader of the start price reads start_price, never the raw "
+    "configured cycling_cost, which only the property reads",
+    not _hsr_cost_readers,
+    f"{len(_hsr_cost_readers)} raw readers",
 )
 # The humidity guard the two SolveInputs sites share.
 from heatpump_optimizer.coordinator import _humidity_with_data as _hsr_humidity  # noqa: E402
@@ -94618,6 +96019,418 @@ R.check(
 _sce_dt.freeze(None)
 
 
+# -- R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor moves the plan -------
+# Group C of design/R11-OUTSIDE-HONEST-STARTS-RUNS for pull request 3529 by
+# Bankaifan: configured 0.53 kW against a metered running draw from 1.1 kW.
+# ``draw_range.update_floor`` learns the floor from runs asked at the floor in
+# force since it last moved; ``solve_band(applies_floor=...)`` books it.
+from heatpump_optimizer import draw_range as _mf_dr  # noqa: E402
+from heatpump_optimizer import coordinator as _mf_cmod  # noqa: E402
+from heatpump_optimizer import sensor as _mf_sensor  # noqa: E402
+from types import SimpleNamespace as _MfNS  # noqa: E402
+
+_MF_CAP = _MfNS(plan_writes_power=lambda: False)
+_MF_ECHO = _MfNS(plan_writes_power=lambda: True)
+_MF_TOL = _mf_dr.AGREE_TOLERANCE
+_MF_W = _mf_dr.WINDOW
+
+
+def _mf_params(lo=0.53, hi=5.0):
+    return _MfNS(min_electrical_power=lo, max_electrical_power=hi)
+
+
+def _mf_band(d, lo=0.53, hi=5.0, applies=True, cap=_MF_CAP):
+    return _mf_dr.solve_band(d, _mf_params(lo, hi), cap, 0.0, applies_floor=applies)
+
+
+def _mf_run(pump, n, lo=0.53, hi=5.0, d=None, high=2.5, cold=None):
+    """Fold ``n`` plan steps through ``DrawRange.observe``: even steps ask the
+    band's minimum (the plan wanting its least), odd ones ``high``; steps in
+    ``cold`` (a range) ask 3.0 throughout. ``pump(ask, floor, i)`` is the
+    metered draw. Returns the window and the band minimum at every step."""
+    d = d or _mf_dr.DrawRange()
+    mins = []
+    for i in range(n):
+        f = _mf_band(d, lo, hi).min_kw
+        ask = 3.0 if cold is not None and i in cold else (f if i % 2 == 0 else high)
+        d.observe(pump(ask, f, i), ask, lo, hi)
+        mins.append(_mf_band(d, lo, hi).min_kw)
+    return d, mins
+
+
+def _mf_moves(mins):
+    return [(i, b) for i, (a, b) in enumerate(zip(mins, mins[1:]), 1) if a != b]
+
+
+# The build as pull request 3529 shaped it (7eeb7cd676), for its failing arm:
+# a store admitting only asks at or under the CONFIGURED floor, each sample
+# lapsing CEILING_LAPSE_DAYS after it was taken. Half-hour steps.
+def _mf_build_run(pump, n, lo=0.53):
+    store, mins = [], []
+    for i in range(n):
+        now = i * 1800.0
+        store = [(dr, t) for dr, t in store if now - t <= _mf_dr.CEILING_LAPSE_DAYS * 86400.0]
+        low = (float(np.percentile([dr for dr, _ in store], _mf_dr.LOW_PERCENTILE))
+               if len(store) >= _mf_dr.MIN_SAMPLES else None)
+        f = low if low is not None and low > (1.0 + _MF_TOL) * lo else lo
+        ask = f if i % 2 == 0 else 2.5
+        if ask <= (1.0 + _MF_TOL) * lo:
+            store.append((pump(ask, f, i), now))
+        mins.append(f)
+    return mins
+
+
+_mf_g = lambda a, f, i: max(a, 1.1)  # noqa: E731  g(a): the pump's least is 1.1 kW
+_mf_gf = lambda a, f, i: 1.1 if a <= (1.0 + _MF_TOL) * f else a  # noqa: E731  g_f(f) = m
+_mf_step = lambda a, f, i: max(a, 1.1 if i < 2 * _MF_W else 1.6)  # noqa: E731  m steps up
+_MF_N = 3 * _MF_W + _MF_W
+_MF_COLD = range(2 * _MF_W, 3 * _MF_W)
+_mf_arm_g, _mf_mins_g = _mf_run(_mf_g, _MF_N, cold=_MF_COLD)
+_mf_arm_gf, _mf_mins_gf = _mf_run(_mf_gf, _MF_N, cold=_MF_COLD)
+_mf_arm_step, _mf_mins_step = _mf_run(_mf_step, _MF_N)
+_mf_build = _mf_build_run(_mf_g, 4 * 2 * 24 * int(_mf_dr.CEILING_LAPSE_DAYS))
+_mf_build_back = sum(1 for a, b in zip(_mf_build, _mf_build[1:]) if a > 0.53 and b == 0.53)
+R.check(
+    "metered floor, the loop (Bankaifan, #3529): configured 0.53 kW on a pump whose least draw is "
+    "1.1 kW, folded over four windows with a window-long cold spell of high asks, moves the floor "
+    "once, to 1.1, and holds it through the spell (g = max(a, 1.1), and g_f(f) = 1.1); a step in "
+    "the least draw to 1.6 moves it once more, to within 15 % under 1.6, never back; the build's "
+    "configured-floor store "
+    "with its lapse returns the band to 0.53 at least twice over the same pump",
+    [round(b, 3) for _, b in _mf_moves(_mf_mins_g)] == [1.1]
+    and [round(b, 3) for _, b in _mf_moves(_mf_mins_gf)] == [1.1]
+    and len(_mf_moves(_mf_mins_step)) == 2 and round(_mf_moves(_mf_mins_step)[0][1], 3) == 1.1
+    and _mf_moves(_mf_mins_step)[1][0] > 2 * _MF_W
+    and 1.6 / (1.0 + _MF_TOL) <= _mf_moves(_mf_mins_step)[1][1] <= 1.6
+    and round(_mf_mins_g[-1], 3) == round(_mf_mins_gf[-1], 3) == 1.1
+    and _mf_build_back >= 2,
+    f"g {_mf_moves(_mf_mins_g)} gf {_mf_moves(_mf_mins_gf)} step {_mf_moves(_mf_mins_step)} "
+    f"build returns {_mf_build_back}",
+)
+# The convergence premise as a fixture property: g nondecreasing in the ask.
+R.check(
+    "metered floor, the loop's premise: each fixture pump's draw is nondecreasing in its ask",
+    all(p(a, 0.53, 0) <= p(b, 0.53, 0) for p in (_mf_g, _mf_step)
+        for a, b in zip(np.linspace(0.5, 5, 40), np.linspace(0.5, 5, 40)[1:])),
+)
+
+# Down and out: a pump drawing 0.8 at a learned 1.1 lowers it; one drawing
+# under the configured floor clears it; a reconfiguration clears it.
+_mf_down, _ = _mf_run(lambda a, f, i: 0.8 if a <= 1.3 and a > 0.6 else a, 2 * _mf_dr.MIN_SAMPLES + 2,
+                      d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_out, _ = _mf_run(lambda a, f, i: 0.4, 2 * _mf_dr.MIN_SAMPLES + 2,
+                     d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_hold, _ = _mf_run(lambda a, f, i: 1.0 if a <= 1.3 and a > 0.6 else a, 2 * _mf_dr.MIN_SAMPLES + 2,
+                      d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_recfg = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=10)
+_mf_recfg.observe(1.2, 2.0, 0.6, 5.0)
+# A move reads only post-move pairs: sixty runs asked at 1.0 drawing 0.8 (within
+# tolerance of the 1.1 the floor is about to take, and under its lower edge),
+# then forty-eight asked at 0.53 drawing 1.1 raise it to 1.1 and restart E.
+_mf_post = _mf_dr.DrawRange()
+for _ in range(60):
+    _mf_post.observe(0.8, 1.0, 0.53, 5.0)
+for _ in range(_mf_dr.MIN_SAMPLES):
+    _mf_post.observe(1.1, 0.53, 0.53, 5.0)
+R.check(
+    "metered floor, down and out: 0.8 kW at a learned 1.1 lowers it to 0.8, and 1.0 kW (within "
+    "15 % under it) holds it; 0.4 kW (under the "
+    "configured 0.53) clears it, never under configured; a reconfiguration clears it; a raise "
+    "restarts its evidence, so runs asked near the new floor before the move do not lower it",
+    _mf_down.floor_kw is not None and round(_mf_down.floor_kw, 3) == 0.8
+    and _mf_hold.floor_kw == 1.1 and _mf_hold.floor_since > _mf_dr.MIN_SAMPLES
+    and _mf_out.floor_kw is None
+    and _mf_recfg.floor_kw is None and _mf_recfg.floor_since == 1
+    and _mf_post.floor_kw is not None and round(_mf_post.floor_kw, 3) == 1.1
+    and _mf_dr.floor_evidence(_mf_post) == (None, 0),
+    f"down {_mf_down.floor_kw} out {_mf_out.floor_kw} recfg {_mf_recfg.floor_kw} "
+    f"post {_mf_post.floor_kw} {_mf_dr.floor_evidence(_mf_post)}",
+)
+
+# Persistence: round trip, absent leaves, another range's record.
+_mf_rt = _mf_dr.DrawRange.from_dict(_mf_arm_g.as_dict())
+_mf_absent = {k: v for k, v in _mf_arm_g.as_dict().items() if k not in ("floor_kw", "floor_since")}
+_mf_noread = _mf_dr.DrawRange.from_dict(_mf_absent)
+_mf_bad = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.5, "floor_since": "x"})
+R.check(
+    "metered floor, persistence: the floor and its count survive a round trip; absent leaves "
+    "read unset; a floor not above the configured minimum and a non-count read unset; a record "
+    "keyed to another range books and publishes no learned floor",
+    (_mf_rt.floor_kw, _mf_rt.floor_since) == (_mf_arm_g.floor_kw, _mf_arm_g.floor_since)
+    and _mf_rt.floor_kw is not None
+    and (_mf_noread.floor_kw, _mf_noread.floor_since) == (None, 0)
+    and (_mf_bad.floor_kw, _mf_bad.floor_since) == (None, 0)
+    and _mf_band(_mf_rt, lo=0.6).learned_min_kw is None
+    and _mf_band(_mf_rt, lo=0.6).min_kw == 0.6,
+    f"rt {_mf_rt.floor_kw} {_mf_rt.floor_since} absent {_mf_noread.floor_kw} bad {_mf_bad.floor_kw}",
+)
+
+# The declared cost of a bad floor cell is its measured cost (fix review of
+# #3670): store._ACCURACY's ``whole`` licenses a loader to drop the draw
+# record for one bad cell, so a leaf declares it exactly when a bad value
+# measures the record lost, and declares "cell" when only the cell reads unset.
+from heatpump_optimizer import store as _mf_store  # noqa: E402
+_mf_good = _mf_arm_g.as_dict()
+_MF_BAD_CELLS = {"floor_kw": ("x", -1.0, True, [1]), "floor_since": ("x", -3, 1.5)}
+
+
+def _mf_cost(leaf, value):
+    """``cell`` when only ``leaf`` reads unset, ``record`` when the samples or
+    configuration go with it, else what came back."""
+    after = _mf_dr.DrawRange.from_dict({**_mf_good, leaf: value}).as_dict()
+    unset = {k: v for k, v in _mf_good.items() if k != "floor_kw"} if leaf == "floor_kw" \
+        else {**_mf_good, "floor_since": 0}
+    if after == unset:
+        return "cell"
+    lost = any(after.get(k) != _mf_good.get(k) for k in ("samples", "config", "engaged"))
+    return "record" if lost else repr(after)
+
+
+_mf_declared = {leaf: "record" if _mf_store._ACCURACY[f"draw/{leaf}"].whole else "cell"
+                for leaf in _MF_BAD_CELLS}
+_mf_measured = {(leaf, repr(v)): _mf_cost(leaf, v) for leaf, vs in _MF_BAD_CELLS.items() for v in vs}
+R.check(
+    "metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since "
+    "('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load "
+    "measures; null control, the good record (floor, count, samples) reads back unchanged",
+    _mf_good.get("floor_kw") is not None and _mf_good["floor_since"] > 0 and _mf_good["samples"]
+    and _mf_dr.DrawRange.from_dict(_mf_good).as_dict() == _mf_good
+    and all(m == _mf_declared[leaf] for (leaf, _v), m in _mf_measured.items()),
+    f"declared {_mf_declared} measured {_mf_measured}",
+)
+
+# Application: only under the predicate, min(F, top), plan_writes_power.
+_mf_set = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0))
+_mf_low_top = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0))
+for _k in range(12):
+    _mf_low_top.observe_ceiling(1.0, -_k * 1800.0)
+_mf_row = lambda b: (b.min_source, b.min_reason, b.min_kw, b.learned_min_kw)  # noqa: E731
+R.check(
+    "metered floor, application: a learned 1.1 under clamped levels books 1.1 (metered, "
+    "measured); unclamped it books the configured 0.53 and publishes 1.1 as cycled; under a "
+    "learned 1.0 top it books 1.0; a plan that writes the power keeps 0.53",
+    _mf_row(_mf_band(_mf_set)) == ("metered", "measured", 1.1, 1.1)
+    and _mf_row(_mf_band(_mf_set, applies=False)) == ("configured", "cycled", 0.53, 1.1)
+    and _mf_band(_mf_low_top).min_kw == 1.0 and _mf_band(_mf_low_top).max_kw == 1.0
+    and _mf_row(_mf_band(_mf_set, cap=_MF_ECHO)) == ("configured", "plan_writes_power", 0.53, 1.1)
+    and _mf_dr.solve_band(_mf_set, _mf_params(), _MF_CAP, 0.0).min_kw == 0.53,
+    f"{_mf_row(_mf_band(_mf_set))} {_mf_row(_mf_band(_mf_set, applies=False))} "
+    f"{_mf_band(_mf_low_top).min_kw}",
+)
+# The coordinator: the predicate is levels_clamped, and a band whose bottom
+# alone moved still reaches the solve copy.
+_mf_on_off = {"tibber_token": "x", "weather_entity": "weather.home", "compressor_modulation": "on_off"}
+_mf_c = _mf_cmod.HeatPumpOptimizerCoordinator(FakeHass(), _r9f13_entry(data=_mf_on_off))
+_mf_hub = _mf_cmod._ctx_of(_mf_c)._thermal_params
+_mf_lo, _mf_hi = float(_mf_hub.min_electrical_power), float(_mf_hub.max_electrical_power)
+_mf_c._accuracy.draw = _mf_dr.DrawRange(floor_kw=_mf_lo * 2.0, config=(_mf_lo, _mf_hi))
+_mf_cband = _mf_cmod._solve_band(_mf_c._accuracy.draw, _mf_hub, _mf_cmod._ctx_of(_mf_c)._config)
+_mf_copy = _mf_c._solve_hubs(8, banded=False, band=_mf_cband)[1]
+_mf_c2 = _mf_cmod.HeatPumpOptimizerCoordinator(
+    FakeHass(), _r9f13_entry(data={k: v for k, v in _mf_on_off.items() if k != "compressor_modulation"}))
+_mf_c2._accuracy.draw = _mf_dr.DrawRange(floor_kw=_mf_lo * 2.0, config=(_mf_lo, _mf_hi))
+_mf_cband2 = _mf_cmod._solve_band(_mf_c2._accuracy.draw, _mf_hub, _mf_cmod._ctx_of(_mf_c2)._config)
+R.check(
+    "metered floor, coordinator: an on/off compressor (levels clamped) books a learned floor of "
+    "twice the hub's minimum in the solve copy, its top and the hub untouched; a duty-cycling "
+    "install publishes it as cycled and the copy keeps the hub's minimum",
+    _mf_cband.min_reason == "measured" and _mf_copy.min_electrical_power == 2.0 * _mf_lo
+    and _mf_copy.max_electrical_power == _mf_hi and _mf_hub.min_electrical_power == _mf_lo
+    and _mf_cband2.min_reason == "cycled"
+    and _mf_cmod._band_fields(_mf_cband2) == {},
+    f"{_mf_cband} copy {_mf_copy.min_electrical_power} {_mf_cband2.min_reason}",
+)
+
+# Carry 0: the COP floor's reader is bit for bit at its defaults.
+_mf_cop = _mf_dr.DrawRange()
+for _k in range(80):
+    _mf_cop.observe(0.4 + 0.01 * _k, 0.3 + 0.05 * (_k % 30), 0.5, 5.0)
+_mf_cop_pairs = [(d, a) for d, a, _ in _mf_cop._evidence() if a >= 0.5 and a > 0.0]
+R.check(
+    "metered floor, carry 0: the run-asked reader at its default bounds is every run-asked "
+    "evidence pair, and power_floor_kw reads the one low-end statistic of them",
+    _mf_cop._run_asked() == _mf_cop_pairs
+    and _mf_dr.power_floor_kw(_mf_cop, _MfNS(
+        flow_lift_power_floor_kw=5.0, min_electrical_power=0.5, max_electrical_power=5.0))
+    == max(_mf_dr.on_threshold_kw(_mf_params(0.5)),
+           min(5.0, float(np.percentile([d for d, _ in _mf_cop_pairs], _mf_dr.LOW_PERCENTILE)))),
+    f"{len(_mf_cop_pairs)}",
+)
+
+# Alignment: the count is capped at the window, clamped on load, reset by a clear.
+_mf_al = _mf_dr.DrawRange()
+for _k in range(_MF_W + 7):
+    _mf_al.observe(2.0, 2.0, 0.53, 5.0)
+_mf_al_rec = _mf_al.as_dict()
+_mf_al_rec["samples"][0] = ["bad", 2.0, None, None]
+_mf_al_load = _mf_dr.DrawRange.from_dict(_mf_al_rec)
+_mf_leg = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=40, commands_known=False)
+_mf_leg.samples.extend([(1.2, 1.1)] * 40)
+_mf_leg.observe(1.2, 1.1, 0.53, 5.0, (40.0, 55.0))
+R.check(
+    "metered floor, alignment: WINDOW + 7 appends leave the count at WINDOW; a load dropping "
+    "one unreadable row clamps it to the rows kept; the legacy-commands clear restarts it at the "
+    "new sample with the floor held",
+    _mf_al.floor_since == _MF_W
+    and _mf_al_load.floor_since == len(_mf_al_load.samples) == _MF_W - 1
+    and _mf_leg.floor_since == 1 and _mf_leg.floor_kw == 1.1 and len(_mf_leg.samples) == 1,
+    f"{_mf_al.floor_since} {_mf_al_load.floor_since}/{len(_mf_al_load.samples)} "
+    f"{_mf_leg.floor_since} {_mf_leg.floor_kw}",
+)
+
+# Surface: every reason reached; unexceeded from within tolerance and from below.
+_mf_fill = lambda drawn: _mf_run(lambda a, f, i: drawn if a < 1.0 else a, 2 * _mf_dr.MIN_SAMPLES)[0]  # noqa: E731
+_mf_await = _mf_band(_mf_dr.DrawRange(), applies=True)
+_mf_within = _mf_band(_mf_fill(0.58))
+_mf_below = _mf_band(_mf_fill(0.40))
+_mf_reached = {
+    "pump_min_power_reason": {b.min_reason for b in (
+        _mf_await, _mf_within, _mf_below, _mf_band(_mf_set), _mf_band(_mf_set, applies=False),
+        _mf_band(_mf_set, cap=_MF_ECHO))},
+    "pump_min_power_source": {b.min_source for b in (_mf_await, _mf_band(_mf_set))},
+}
+R.check(
+    "metered floor, surface: each minimum reason and source is reached by its fixture, "
+    "unexceeded both from a low end within 15 % (0.58 of 0.53) and from one under the "
+    "configured floor (0.40), and the set reached is the carry-6 table's",
+    _mf_await.min_reason == "awaiting" and _mf_within.min_reason == "unexceeded"
+    and _mf_below.min_reason == "unexceeded" and _mf_within.min_samples >= _mf_dr.MIN_SAMPLES
+    and all(_mf_reached[k] == _cpd_codes[k] for k in _mf_reached),
+    f"{_mf_reached}",
+)
+_mf_cfg_d = _mf_band(_mf_dr.DrawRange()).as_dict()
+_mf_set_attrs = _mf_sensor._pump_max_power(_mf_band(_mf_set).as_dict())
+_mf_cfg_attrs = _mf_sensor._pump_max_power(_mf_cfg_d)
+_mf_min_attrs = _mf_sensor._pump_min_power(_mf_band(_mf_set).as_dict())
+R.check(
+    "metered floor, surface: the top's row and codes are byte for byte on a configured band "
+    "and on one with a learned floor (no floor key enters the max row); the minimum's row "
+    "carries the configured, planned and learned floor and E's size; no plan publishes None",
+    {k: _mf_cfg_d[k] for k in ("configured_max_kw", "planned_max_kw", "planned_min_kw", "source",
+                               "reason", "learned_max_kw", "samples", "since_s")}
+    == {"configured_max_kw": 5.0, "planned_max_kw": 5.0, "planned_min_kw": 0.53,
+        "source": "configured", "reason": "awaiting_probe", "learned_max_kw": None,
+        "samples": 0, "since_s": None}
+    and _mf_set_attrs == _mf_cfg_attrs
+    and _mf_min_attrs == {
+        "pump_min_power": {"configured_min_kw": 0.53, "planned_min_kw": 1.1,
+                           "learned_min_kw": 1.1, "samples": 0},
+        "pump_min_power_source": "metered", "pump_min_power_reason": "measured"}
+    and _mf_sensor._pump_min_power(_mf_within.as_dict())["pump_min_power"]["samples"]
+    == _mf_within.min_samples != _mf_within.samples
+    and _mf_sensor._pump_min_power(None) == {
+        "pump_min_power": None, "pump_min_power_source": None, "pump_min_power_reason": None},
+    f"{_mf_set_attrs} {_mf_min_attrs}",
+)
+
+# The edges, each a value check: the hold band's bounds are inclusive and the
+# clear-to-configured bound exclusive; a move restarts the count at 0; a fresh
+# window counts 0; a stored floor at the configured minimum, and a stored count
+# of 1, read as written; the COP floor still stands under too few pairs; an
+# unkeyed window reports no pairs; the stamp rounds to the watt.
+_mf_edge = lambda drawn: _mf_run(lambda a, f, i: drawn if 0.6 < a <= 1.3 else a, 2 * _mf_dr.MIN_SAMPLES + 2,  # noqa: E731
+                                 d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0)))[0]
+_mf_at_lower = _mf_edge((1.0 - _MF_TOL) * 1.1)
+_mf_at_clear = _mf_edge((1.0 + _MF_TOL) * 0.53)
+_mf_at_upper = _mf_edge((1.0 + _MF_TOL) * 1.1)
+_mf_bounds = _mf_dr.DrawRange(config=(0.53, 5.0), floor_kw=1.1, floor_since=10)
+_mf_bounds.samples.extend([(1.0, (1.0 - _MF_TOL) * 1.1)] * 5 + [(1.0, (1.0 + _MF_TOL) * 1.1)] * 5)
+# The default reader over a window longer than half of WINDOW reads it whole,
+# and never an ask of 0 where no minimum is configured.
+_mf_long = _mf_dr.DrawRange()
+for _k in range(200):
+    _mf_long.observe(1.0 + 0.001 * _k, 0.0 if _k % 10 == 0 else 1.0, 0.0, 5.0)
+_mf_rec1 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.53, "floor_since": 1})
+_mf_rec2 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.5301})
+_mf_rec3 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_since": -3})
+_mf_few = _mf_dr.DrawRange()
+for _k in range(_mf_dr.MIN_SAMPLES - 1):
+    _mf_few.observe(0.6, 1.0, 0.5, 5.0)
+_mf_bare = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe")
+_mf_round = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe",
+                             configured_min_kw=0.12345, learned_min_kw=0.67891).as_dict()
+R.check(
+    "metered floor, edges: a low end exactly (1 - 15 %) or (1 + 15 %) of the floor holds it, "
+    "and asks exactly at those bounds are its evidence; the default reader reads a 200-sample "
+    "window whole and no ask of 0; a low end exactly "
+    "15 % over the configured minimum clears it; a move sets the count to 0; a fresh window "
+    "counts 0; a stored floor at the configured minimum reads unset, one just above and a "
+    "count of 1 read as written, a negative count reads 0; the COP floor under 47 pairs is the configured figure; an "
+    "unkeyed window reports 0 pairs; a band built without the bottom reads configured with "
+    "no evidence; the stamp rounds the bottom to 3 decimals",
+    _mf_at_lower.floor_kw == 1.1 and _mf_at_upper.floor_kw == 1.1
+    and _mf_at_clear.floor_kw is None
+    and _mf_dr.floor_evidence(_mf_bounds)[1] == 10
+    and len(_mf_long._run_asked()) == 180
+    and _mf_post.floor_since == 0
+    and _mf_dr.DrawRange().as_dict()["floor_since"] == 0
+    and _mf_rec1.floor_kw is None and _mf_rec1.floor_since == 1 and _mf_rec2.floor_kw == 0.5301 and _mf_rec3.floor_since == 0
+    and _mf_dr.power_floor_kw(_mf_few, _MfNS(
+        flow_lift_power_floor_kw=0.9, min_electrical_power=0.5, max_electrical_power=5.0)) == 0.9
+    and _mf_band(_mf_rt, lo=0.6).min_samples == 0
+    and (_mf_bare.configured_min_kw, _mf_bare.min_source, _mf_bare.min_reason,
+         _mf_bare.learned_min_kw, _mf_bare.min_samples) == (0.0, "configured", "awaiting", None, 0)
+    and (_mf_round["configured_min_kw"], _mf_round["learned_min_kw"]) == (0.123, 0.679),
+    f"lower {_mf_at_lower.floor_kw} clear {_mf_at_clear.floor_kw} post {_mf_post.floor_since} "
+    f"rec {_mf_rec1.floor_kw} {_mf_rec1.floor_since} {_mf_rec2.floor_kw}",
+)
+
+# Null controls. (b) a pump drawing its ask plus under 15 % of the configured
+# floor, and (c) a cold week of high asks only: nothing moves.
+_mf_nb, _mf_nb_mins = _mf_run(lambda a, f, i: a + 0.1 * 0.53, _MF_N)
+_mf_nc, _mf_nc_mins = _mf_run(lambda a, f, i: max(a, 1.1), _MF_N, cold=range(_MF_N))
+R.check(
+    "metered floor, null controls (b) and (c): a draw of ask + 0.053 kW, and a window of "
+    "3.0 kW asks only on a pump whose least is 1.1, learn no floor and leave the band at 0.53",
+    _mf_nb.floor_kw is None and set(_mf_nb_mins) == {0.53}
+    and _mf_nc.floor_kw is None and set(_mf_nc_mins) == {0.53},
+    f"b {_mf_nb.floor_kw} c {_mf_nc.floor_kw}",
+)
+
+
+# Null control (a), a full optimize twice: an on/off install whose least draw
+# equals its configured minimum learns no floor, and its solve books the hub's
+# band and the same plan as with no window at all; the perturbation, a pump
+# whose least draw is twice the configured minimum, moves the solve's minimum.
+def _mf_optimize(tag, pump):
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _, _, c = _r9f13_make(f"mf_null_{tag}", {"compressor_modulation": "on_off"})
+    hub = _mf_cmod._ctx_of(c)._thermal_params
+    lo, hi = float(hub.min_electrical_power), float(hub.max_electrical_power)
+    c._accuracy.draw = (_mf_dr.DrawRange() if pump is None
+                        else _mf_run(lambda a, f, i: pump(a, lo), 2 * _MF_W, lo=lo, hi=hi)[0])
+    seen = []
+
+    async def _rec(hass, optimizer, inputs):
+        res = await _r9f13_inline(hass, optimizer, inputs)
+        seen.append((float(optimizer.model.params.min_electrical_power), list(res.power_schedule)))
+        return res
+
+    with _r9f13_mock.patch.object(_r9f13_cmod, "_await_optimize", _rec):
+        _r9f13_aio.run(c.async_run_optimization())
+    _r9f13_dt.freeze(None)
+    band = getattr(c._optimization_result, "solve_band", None) or {}
+    return lo, c._accuracy.draw.floor_kw, seen[-1] if seen else None, band
+
+
+_mf_na_base = _mf_optimize("base", None)
+_mf_na_same = _mf_optimize("same", lambda a, lo: max(a, lo))
+_mf_na_pert = _mf_optimize("pert", lambda a, lo: max(a, 2.0 * lo))
+_MF_MAX_KEYS = ("configured_max_kw", "planned_max_kw", "source", "reason")
+R.check(
+    "metered floor, null control (a): a pump whose least draw is its configured minimum learns "
+    "no floor and its solve books the same minimum, the same plan and the same top as with no "
+    "window; perturbed to twice the configured minimum, the solve's minimum moves to it",
+    _mf_na_base[2] is not None and _mf_na_same[2] is not None and _mf_na_pert[2] is not None
+    and _mf_na_same[1] is None and _mf_na_same[2] == _mf_na_base[2]
+    and {k: _mf_na_same[3].get(k) for k in _MF_MAX_KEYS} == {k: _mf_na_base[3].get(k) for k in _MF_MAX_KEYS}
+    and _mf_na_pert[1] is not None and round(_mf_na_pert[2][0], 3) == round(2.0 * _mf_na_pert[0], 3)
+    and _mf_na_pert[3].get("min_reason") == "measured",
+    f"base {_mf_na_base[:2]} {_mf_na_base[2] and _mf_na_base[2][0]} same {_mf_na_same[:2]} "
+    f"pert {_mf_na_pert[:2]} {_mf_na_pert[2] and _mf_na_pert[2][0]}",
+)
+
+
 R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
 
 # Phase 1 of room-level support (design/R11-OUTSIDE-ROOMS-P2): a list of room
@@ -94686,6 +96499,18 @@ R.check(
     round(_rm_f.temperature_c, 6) == 20.0 and round(_rm_f.target_c, 6) == 21.0
     and _rm_f_null.problem == "implausible" and _rm_f_null.target_c == 69.8,
     f"{_rm_f} {_rm_f_null}",
+)
+# A sensor room converts by its own unit_of_measurement, not the instance's: a
+# degF sensor on a Celsius instance (the default reader) reads degC.
+_rm_sf = {u: inputs_mod.read_room(_rm_reader({"sensor.u": FakeState(
+    v, unit=u, last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.u")
+    for u, v in (("°F", "68.0"), ("°C", "20.0"))}
+R.check(
+    "a degF sensor room converts by its own unit to degC (68 degF reads 20.0, no problem); null "
+    "control, a degC sensor at 20.0 reads 20.0",
+    round(_rm_sf["°F"].temperature_c or 0.0, 6) == 20.0 and _rm_sf["°F"].problem is None
+    and _rm_sf["°C"].temperature_c == 20.0 and _rm_sf["°C"].problem is None,
+    f"{_rm_sf}",
 )
 _rm_bad = {e: inputs_mod.read_room(_rm_r, e).problem
            for e in ("sensor.down", "sensor.none", "sensor.old", "sensor.fault")}

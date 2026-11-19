@@ -1,0 +1,359 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D5/s3/REPORT.md",
+ "exposure": "Read only production .py sources in the cells plus the policy/brief files named by the task; comments in the cells cite earlier finding ids (e.g. D1-s5-51, D6-03, D2-s2-02, D12-s3-01, R9 D9-s1-01) as context. No earlier round report, register or docs/ page was read.",
+ "coverage": [
+  {
+   "step": "D5.M1",
+   "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"'",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "outline prints nothing for .py files (text_ledger.outline returns [] for any suffix but .md/.mdc/.html/.htm): 0 document rows over D5-s3's 45 cells, so reader paths x documents = 0. C4 (reader paths over code cells) examined: the universe is measured and empty. C2 (feature reader paths in docs/) lies in README.md/docs/** cells, D5-s1's M1, not D5-s3's: left to that seat."
+  },
+  {
+   "step": "D5.M2",
+   "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"heading\"||$3==\"link\"'",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "0 heading and 0 link rows over the 45 .py cells (outline is document-only). C5 (structure over code cells) examined: universe measured, empty."
+  },
+  {
+   "step": "D5.M3",
+   "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"{print $1}' | xargs -r python3 tools/audit/text_ledger.py units --dim D6",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "M3's units are those of outline's documents; D5-s3's cells hold none, so the step's denominator here is 0 (recorded, closing C1 for this seat). C3 (how-it-works.md / configuration.md mechanism paragraphs) is D5-s2's M3 cell, not ours. C6 (mechanism paragraphs in docstrings) are D5 units, ranged by M4: 70 of 2855 judged against the code this round, the rest not reached (see M4)."
+  },
+  {
+   "step": "D5.M4",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 2855,
+   "examined": 70,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/__init__.py (36 units)",
+    "custom_components/heatpump_optimizer/accuracy.py (85 units)",
+    "custom_components/heatpump_optimizer/away.py (38 units)",
+    "custom_components/heatpump_optimizer/battery.py (25 units)",
+    "custom_components/heatpump_optimizer/binary_sensor.py (14 units)",
+    "custom_components/heatpump_optimizer/boost.py (59 units)",
+    "custom_components/heatpump_optimizer/button.py (14 units)",
+    "custom_components/heatpump_optimizer/climate.py (24 units)",
+    "custom_components/heatpump_optimizer/comfort_learning.py (24 units)",
+    "custom_components/heatpump_optimizer/config_flow.py (246 units)",
+    "custom_components/heatpump_optimizer/const.py (265 units)",
+    "custom_components/heatpump_optimizer/coordinator.py (920 units)",
+    "custom_components/heatpump_optimizer/curve_learning.py (12 units)",
+    "custom_components/heatpump_optimizer/debugger.py (49 units)",
+    "custom_components/heatpump_optimizer/defrost.py (61 units)",
+    "custom_components/heatpump_optimizer/device_prefill.py (15 units)",
+    "custom_components/heatpump_optimizer/dhw_draws.py (15 units)",
+    "custom_components/heatpump_optimizer/dhw_learning.py (46 units)",
+    "custom_components/heatpump_optimizer/dhw_planner.py (129 units)",
+    "custom_components/heatpump_optimizer/dhw_schedule.py (48 units)",
+    "custom_components/heatpump_optimizer/diagnosis.py (8 units)",
+    "custom_components/heatpump_optimizer/diagnostics.py (25 units)",
+    "custom_components/heatpump_optimizer/disinfection.py (27 units)",
+    "custom_components/heatpump_optimizer/draw_range.py (65 units)",
+    "custom_components/heatpump_optimizer/drift.py (30 units)",
+    "custom_components/heatpump_optimizer/driving_grade.py (12 units)",
+    "custom_components/heatpump_optimizer/duty_legs.py (18 units)",
+    "custom_components/heatpump_optimizer/duty_switch.py (49 units)",
+    "custom_components/heatpump_optimizer/early_cutoff.py (29 units)",
+    "custom_components/heatpump_optimizer/entity.py (27 units)",
+    "custom_components/heatpump_optimizer/entry_config.py (30 units)",
+    "custom_components/heatpump_optimizer/external_heat.py (44 units)",
+    "custom_components/heatpump_optimizer/flow_lift.py (19 units)",
+    "custom_components/heatpump_optimizer/freq_control.py (25 units)",
+    "custom_components/heatpump_optimizer/frontend.py (14 units)",
+    "custom_components/heatpump_optimizer/grid_fee.py (26 units)",
+    "custom_components/heatpump_optimizer/heat_curve.py (49 units)",
+    "custom_components/heatpump_optimizer/heat_energy.py (66 units)",
+    "custom_components/heatpump_optimizer/inputs.py (97 units)"
+   ],
+   "redispatched": [
+    {
+     "item": "C7",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Ledger dev/audit/rounds/round11/D5/s3/LEDGER.tsv rows all 2855 units; `python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s3/LEDGER.tsv --plant --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692`: units=2855 rows=2855 true=67 false=2 stale=1 unverifiable=2785 unrowed=0 orphan=0 malformed=0 plant_refused=1. Mechanical criteria ran on all 2855 (dev/audit/rounds/round11/D5/s3/scan.py: C2 unresolved identifiers 3 units, all resolving outside the tree; C5 >40-word sentence 363 units; C7 cited-number-vs-adjacent-constant 49 candidates, all reviewed, 0 conflicts). C1 truth was executed on 70 units (six whole files: batchmath, currency, datetime, flow_meter, issues, comfort_band; plus every HA-free claim, the numeric-relation units and named docstrings); the 2785 others are rowed unverifiable, not_reached by file. C7 examined for its in-cell part (automated in scan.py); its www/*.js and README parts are D5-s4's and D5-s2's cells."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D5.M4",
+   "what": "C1 truth (executed check against the code) on 2785 of 2855 units, grouped by file in coverage.not_reached; mechanical C2/C5/C7 ran on all. C3/C4 (restatement, history share) were judged only on the 70 examined units."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D5-s3-01",
+   "scope": "D5-s3",
+   "step": "D5.M4",
+   "title": "grid_fee docstrings say the module is free of Home Assistant imports; it cannot import without homeassistant",
+   "severity": "low",
+   "claim": "grid_fee.py's module docstring (line 27, 'Kept free of Home Assistant imports so it can be unit-tested directly') and max_abs_component's docstring ('Pure and HA-free') are false: importing grid_fee with homeassistant absent raises ImportError, through currency.py's module-level `from homeassistant.core import HomeAssistant`.",
+   "mechanism": "grid_fee imports currency.money_scale; currency imports homeassistant.core at module level for an annotation only (from __future__ import annotations makes it a string), so the HA-free property the docstring promises, and the reason it gives, fail transitively. The ten other HA-free claims in the cells hold.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s3/ha_free.py",
+    "value": 1,
+    "unit": "modules claiming HA-free that need homeassistant to import",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B3, x86_64 4 vCPU container",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running on the shared box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 0.62,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee (module import, homeassistant refused by a meta-path finder; package __init__ bypassed)",
+   "perturbation": {
+    "change": "currency.py: move `from homeassistant.core import HomeAssistant` under `if TYPE_CHECKING:` (applied in memory by --perturb)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of cell modules whose comment claims freedom from Home Assistant imports yet whose import fails with every homeassistant module refused.",
+   "phenomenon_property": "A comment that states a module is free of Home Assistant imports is true of the module's transitive import closure: the module imports with homeassistant absent.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+    "value": "10 of 11 claimed modules import OK with homeassistant refused (flow_meter, flow_lift, diagnosis, freq_control, heat_energy, comfort_band, device_prefill, disinfection, inputs)",
+    "note": "same refusal, same run: the instrument passes honest claims"
+   },
+   "reproduction_steps": [
+    "run the command; read RESULT claimed_but_needs_ha=1 modules grid_fee",
+    "re-run with --perturb; read 0"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/currency.py"
+   ],
+   "proposed_fix_scope": "Either move currency.py's HomeAssistant import under TYPE_CHECKING (it is annotation-only) so the claim becomes true, or narrow the two grid_fee docstrings to 'no direct Home Assistant import'. The text_ledger row grid_fee.py#(module docstring) flips to true."
+  },
+  {
+   "id": "D5-s3-02",
+   "scope": "D5-s3",
+   "step": "D5.M4",
+   "title": "comfort_band docstring says the climate slider's maximum sits one degree above the ceiling; it equals the ceiling",
+   "severity": "low",
+   "claim": "comfort_band.py's module docstring states, in the present tense, that the climate entity's slider has 'its own maximum sitting one degree *above* the configured ceiling'; the real HeatPumpOptimizerClimate publishes max_temp equal to the configured max_temperature (overshoot 0.0 °C).",
+   "mechanism": "climate.py:124 sets _attr_max_temp = config.max_temperature since v5.1.7 removed the + 1 (its own comment at climate.py:110 says so); the comfort_band bullet still describes the old slider as current, so a reader of comfort_band alone believes the slider can still store a target above the ceiling.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+    "value": 1,
+    "unit": "stale rows (docstring claims +1.0 °C, measured overshoot 0.0 °C)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B3, x86_64 4 vCPU container",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running on the shared box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 5.2,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.climate:HeatPumpOptimizerClimate.__init__ (_attr_max_temp) via climate.EntryConfig.from_mapping",
+   "perturbation": {
+    "change": "climate.EntryConfig.from_mapping wrapped (mock.patch.object, --perturb) to hand the entity max_temperature + 1, the pre-v5.1.7 slider",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "stale_rows = 1 when HeatPumpOptimizerClimate max_temp minus the configured max_temperature differs from the docstring's +1.0 °C, else 0.",
+   "phenomenon_property": "A docstring that describes another component's current behaviour in the present tense matches what that component does at the same ref.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py --perturb",
+    "value": "overshoot_c=1.0, stale_rows=0",
+    "note": "the instrument reads the docstring as true when the slider does overshoot"
+   },
+   "reproduction_steps": [
+    "run the command: overshoot_c=0.0, stale_rows=1",
+    "--perturb: overshoot_c=1.0, stale_rows=0"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/comfort_band.py"
+   ],
+   "proposed_fix_scope": "Rewrite the bullet in the past tense or drop the history (C4): the slider now offers exactly the band (climate.py:110-124)."
+  },
+  {
+   "id": "D5-s3-03",
+   "scope": "D5-s3",
+   "step": "D5.M4",
+   "title": "363 of 2855 comment units in the D5-s3 cells carry a sentence over 40 words (criterion C5)",
+   "severity": "low",
+   "claim": "363 of the 2855 D5 units (comments and docstrings) of custom_components/heatpump_optimizer/{_,a..i}*.py contain at least one sentence over 40 words, failing D5-criteria C5; 43 of 45 files carry one, coordinator.py the most (91).",
+   "mechanism": "Comments accrete clauses (history, cross-references, issue ids) into single sentences; the longest measured run past 100 words (const.py VENT_CUSUM_REFERENCE_HOURS block).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/c5_long.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s3/c5_long.py",
+    "value": 363,
+    "unit": "units with a sentence over 40 words",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B3, x86_64 4 vCPU container",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running on the shared box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 6.87,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "inspect.getsource(custom_components.heatpump_optimizer.<module>) for each cell module, split by tools/audit/text_ledger.py:units_of/sentences",
+   "perturbation": {
+    "change": "--perturb: in dhw_planner's source, a full stop after word 30 of every over-long sentence (in memory)",
+    "expected_direction": "down",
+    "observed_value": 343
+   },
+   "metric_definition": "Count of D5 units in the seat's cells with any sentence (text_ledger.sentences, comment markers stripped) longer than 40 whitespace-separated words.",
+   "phenomenon_property": "No comment or docstring sentence in production exceeds 40 words (D5-criteria C5).",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/c5_long.py",
+   "leave_one_out": {
+    "cells": 45,
+    "min": 0,
+    "max": 91,
+    "drop_most_favourable": 272
+   },
+   "reproduction_steps": [
+    "run the command: RESULT long_units=363",
+    "--perturb: long_units=343 (dhw_planner 29 -> 9)"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/dhw_planner.py"
+   ],
+   "proposed_fix_scope": "Split sentences file by file as files are touched; the per-file list the harness prints is the work order. The splitter is textual: an abbreviation splitting early only lowers the count."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Ten of eleven HA-free claims in the cells hold (comfort_band, device_prefill (x2), diagnosis, disinfection, flow_lift, flow_meter, freq_control, heat_energy, inputs)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+   "value": "claimed=11, claimed_but_needs_ha=1 (grid_fee only)"
+  },
+  {
+   "claim": "climate.py:110 'The slider offers exactly the band' holds",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+   "value": "overshoot_c=0.0"
+  },
+  {
+   "claim": "No comment sitting on a numeric constant cites a number contradicting it (C7, automated)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/scan.py",
+   "value": "num=49 candidates; all 49 reviewed: issue numbers or consistent derivations (e.g. HISTORY_LENGTH 672x30 min=14 d, STEP_K 3x0.5/7=0.21, FREQ_MAX_KW_PER_HZ 20 kW/20 Hz, _DHW_MIN_RUN_CHUNK 2 h/15 min=8, SPAN_CLOSE_ALLOWANCE_H 0.05 h=3 min, SCORE_FREE_SPAN_RESET=1/SCORE_ALPHA=20, QUIET_STORE 360 min=six hours); 0 conflicts"
+  },
+  {
+   "claim": "Backticked identifiers and paths in the cells resolve (C2)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/scan.py",
+   "value": "ident=3 units unresolved in tree: const.py BODY.md (resolves: git cat-file -e 52f5a442:BODY.md), device_prefill.py's two references into the external tvofi/tuya_heat_pump repository at fda9bed (out of tree by design)"
+  },
+  {
+   "claim": "module.symbol references in comments resolve (137 references)",
+   "command": "ad-hoc import walk over ``module.symbol`` refs in D5 units (see REPORT.md)",
+   "value": "33 unresolved by attribute walk, all false positives: file names (x.py), datetime.weekday(), or coordinator methods (_fold_measured_cop, _cop_reference_curve exist on the class)"
+  },
+  {
+   "claim": "binary_sensor and button module docstrings' 'Six' counts hold",
+   "command": "grep -c '^class .*(_OptimizerBinarySensorBase)' binary_sensor.py; grep -c '^class .*(_OptimizerButtonBase)' button.py",
+   "value": "6 and 6"
+  },
+  {
+   "claim": "comfort_band comment 'minimum reaches 25 on its own slider while night stops at 24' holds",
+   "command": "grep -n COMFORT_TEMP_NIGHT_SELECTOR_MAX const.py; grep -n 'CONF_MIN_TEMP, DEFAULT_MIN_TEMP, _number' config_flow.py",
+   "value": "24; _number(14, 25, ...)"
+  },
+  {
+   "claim": "coordinator PLAN_STALE comment: the 90-min floor covers the shortest interval the options allow",
+   "command": "grep -n CONF_OPTIMIZATION_INTERVAL config_flow.py",
+   "value": "_number(10, 120): 3x10=30 < 90"
+  },
+  {
+   "claim": "M1/M2/M3 universes over the code cells are empty",
+   "command": "python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | wc -l",
+   "value": "0"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D5/s3/scan.py",
+  "dev/audit/rounds/round11/D5/s3/ledger.py",
+  "dev/audit/rounds/round11/D5/s3/ha_free.py",
+  "dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+  "dev/audit/rounds/round11/D5/s3/c5_long.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D5-s1",
+   "file": "docs/how-it-works.md, docs/configuration.md, docs/ecl110.md",
+   "symbol": "C2 (round-10 carry)",
+   "what": "Feature reader paths (two-tank storage, ECL110, capacity tariff) still owe a paragraph-by-paragraph dead-end/forward-reference walk; handed over to D5-s3 but outside its .py cells."
+  },
+  {
+   "owner_seat": "D5-s2",
+   "file": "docs/how-it-works.md, docs/configuration.md",
+   "symbol": "C3 (round-10 carry)",
+   "what": "Mechanism paragraphs not traced one by one against code paths; D5-s2 owns M3 over README/docs."
+  },
+  {
+   "owner_seat": "D5-s4",
+   "file": "custom_components/heatpump_optimizer/www/*.js",
+   "symbol": "C7 (round-10 carry)",
+   "what": "www/*.js comments not scanned for symbols/cited numbers; D5-s3's scan.py is the reusable pattern (it reads .py only)."
+  },
+  {
+   "owner_seat": "D5-s2",
+   "file": "README.md, docs/*.md",
+   "symbol": "C7 (round-10 carry)",
+   "what": "README/docs M4 cell (comment units in docs) not run in round 10."
+  },
+  {
+   "owner_seat": "D5-s6",
+   "file": "tools/audit/text_ledger.py",
+   "symbol": "py_units",
+   "what": "A trailing comment on a code line ('# kW') is merged with the comment block that starts on the next line (const.py unit at line 1353 begins '# kW # kW #: COP share lost...'), so two trailing unit comments and a doc comment share one unit id; instrument defect."
+  },
+  {
+   "owner_seat": "D6-s3",
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "symbol": "IMPLAUSIBLE_FEE_SEK_PER_KWH comment",
+   "what": "for D6: 'real ToU transfer fees run 0.05-1.5 per kWh in every currency Tibber prices in' - in EUR fees are an order of magnitude below SEK/NOK figures; claim unverified."
+  }
+ ]
+}

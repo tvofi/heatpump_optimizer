@@ -1,0 +1,50 @@
+{
+ "id": "D7-s3-09",
+ "scope": "D7-s3",
+ "step": "D7.M6",
+ "title": "The presence rule for two zones is dead code: `auto`, the default mode, is resolved as `on`",
+ "severity": "high",
+ "claim": "ThermalParameters.from_config tests the two-zone mode with `in (TWO_ZONE_MODE_ON, DEFAULT_TWO_ZONE_MODE)`, and DEFAULT_TWO_ZONE_MODE is `auto`, so every entry with no mode key or with `auto` is modelled two-zone whatever keys it holds; the `else` arm that infers the mode from the zone keys is reached only by an unknown mode string. On 4 of 6 configs the default mode and an unknown mode -- which the function's own comment declares the same rule -- give different answers.",
+ "mechanism": "thermal_model.py:1122-1134: `if two_zone_mode in (ON, DEFAULT): True / elif == OFF: False / else: any(zone key in config)`. The three arms take all three values of const.TWO_ZONE_MODES between them, so the presence rule above them in the comment (`auto ... is the presence rule unchanged; an unknown value is treated as auto`) cannot run for a valid entry. An install that never chose a mode and stores no zone keys -- every single-zone house set up before the mode key, and tests/profiles.py's `house(two_zone=False)` -- is simulated, planned and identified as two zones with the default zone parameters. config_flow._single_zone takes its answer from the same call, so the options flow hides the whole-house loss field on those entries too.",
+ "evidence": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_two_zone_auto.py",
+  "harness_path": "dev/audit/rounds/round11/D7/s3/m6_two_zone_auto.py",
+  "value": 4,
+  "unit": "configs of 6 on which `no mode key` or `auto` answers two_zone_enabled differently from an unknown mode on the same config (no zone keys, and a stored single-zone house: True against False; with zone keys both say True)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+  "tolerance": "exact",
+  "load1": 170.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:ThermalParameters.from_config",
+ "perturbation": {
+  "change": "the classmethod re-executed in memory with `(const.TWO_ZONE_MODE_ON, const.DEFAULT_TWO_ZONE_MODE)` replaced by `(const.TWO_ZONE_MODE_ON,)` (m6_two_zone_auto.py --perturb); the static twin: m6_stmt.py's exhausted_else row for thermal_model.py leaves the census",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "configs (zone keys absent, present, or a stored single-zone house) x (no mode key, auto) whose two_zone_enabled differs from the same config under an unknown mode string",
+ "phenomenon_property": "An if/elif chain over one subject whose arms take every value of the enumeration it tests has no further arm carrying logic: an `else` that holds a rule is reachable by a valid value, or the rule is not in force.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m6_stmt.py | grep '^ROW exhausted_else'",
+ "null_control": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_two_zone_auto.py",
+  "value": 0,
+  "note": "the explicit modes are untouched on all three configs (on -> True, off -> False), and with zone keys present the default mode and the unknown mode agree (2 of 2)"
+ },
+ "reproduction_steps": [
+  "from custom_components.heatpump_optimizer.thermal_model import ThermalParameters",
+  "ThermalParameters.from_config({}).two_zone_enabled -> True (the presence rule: False)",
+  "ThermalParameters.from_config({'two_zone_mode': 'x'}).two_zone_enabled -> False"
+ ],
+ "proposed_fix_scope": "thermal_model.py: `auto` falls through to the presence rule (the membership test names ON alone). Every golden and scenario built on a config with no zone keys moves back to one zone.",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "expected_golden_drift": [
+  "every fixture whose config has no zone keys and no explicit mode: it is two-zone in this tree and single-zone after the fix"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

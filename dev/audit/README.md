@@ -29,7 +29,7 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | 1 mandate and rulings | the prior round's final state comment on #201 | the owner's mandate comment, scope and expiry, and rulings on #201 | `tools/policy/budget_raise_gate.py` reads a mandate's state | `dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md`, `CLAUDE.md` | the mandate comment id |
 | 2 dimensions and finders | a baseline SHA pinned after `evaluator.md`'s evaluation | every scope reported | `.claude/workflows/audit-find.js`, `tools/audit/check_scopes.py` over `dev/audit/config/scopes.json` | `dev/governance/roles/COMMON.md`, `dev/governance/dimensions/` | reports under `dev/audit/rounds/` |
 | 3 verify and judge | the finders' reports | every finding judged, classes swept | `.claude/workflows/audit-verify.js` | `verifier.md`, `judge.md`, `dev/governance/rules/defect-root-cause.md` | the round's judge record, `dev/audit/config/bugclasses.json` |
-| 4 P3 plan and owner approval | the judged register | `Plan review: approve`, then the owner's approval | `.claude/workflows/audit-plan.js`, `tools/audit/archscore/`, `tools/audit/seat/plan_audit.py` | `architect-planner.md`, `plan-review.md`, decision 0015 | the plan branch, ADRs |
+| 4 P3 plan and owner approval | the judged register | `Plan review: approve`, then the owner's approval | `.claude/workflows/audit-plan.js`, `tools/audit/archscore/`, `tools/audit/seat/plan_audit.py` | `architect-planner.md`, `plan-review.md`, decisions 0015 and 0018 | the plan branch, ADRs, the projection record |
 | 5 roster and waves | the approved plan | the roster lints clean | `tools/audit/seat/roster_edit.py`, `tools/policy/brief_lint.mjs` | `standing-roster.md`, `dev/governance/rules/brief-citations.md` | `dev/programme/rosters/`, `critical-path.json` |
 | 6 dispatch under the lane caps | after-edges merged; the roster stage compared with the merged pull requests naming the group, so only arms not on main are briefed | a seat running | `tools/audit/seat/pr_cap.py dispatch-gate`, `tools/audit/seat/cloud_dispatch.py` | `standing-dispatch.md`, `orchestrator.md` sections 5 and 5b | the trigger payload |
 | 7 fixer and review, cloud seats and relay | a dispatched brief | a verdict at a frozen head | `tools/audit/seat/cloud-setup.sh`, `tools/pr/prepr.sh`, `tools/audit/seat/body_push.sh`, `tools/audit/seat/handoff_push.sh`, `tools/audit/seat/cloud_relay.sh` | `fixer.md`, `fix-review.md`, `designer.md`, `design-review.md`, `root-cause.md` | the handoff refs, the pull request, its verdict |
@@ -96,7 +96,7 @@ against a measured baseline and a null control
 
 - The organization transfer is ruled out (tvofi, 2026-11-14; `dev/programme/HANDOVER.md`).
 - Intake's baseline: R10-PROTECTION-CENSUS's result,
-  `dev/audit/rounds/round10/protection-census/`. On it, B1 (triage batch 245,
+  `dev/audit/rounds/round10/protection-census/CENSUS.md`. On it, B1 (triage batch 245,
   P740) opens the round unless ordered into round 10: on an all-product diff
   `briefs`, `policy-docs` and `wave-script` turn advisory, and `blueprints/`
   joins the product predicate.
@@ -236,7 +236,7 @@ moves.
 | The card in Node | `tests/card_rig.mjs:buildCard`, `planStates`, `makeCardContext`, `qaTopologies` | the DOM stub returns a constant 900×400 rectangle: no geometry |
 | The card's drift states | `tests/card_drift.mjs:STATES` — run it with `--list` rather than carrying a count | drive both a working-tree card and a `git show` card |
 | Real geometry | `tests/card_browser.mjs` | Playwright resolved from `NODE_PATH`; Chromium under `PLAYWRIGHT_BROWSERS_PATH` |
-| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third is the only `unittest.mock` use in the suite; the first two are cited by search text, not line number |
+| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third uses `unittest.mock`; the first two are cited by search text, not line number |
 
 **Traps**
 
@@ -303,7 +303,7 @@ evidence is archived, instruments are kept.
 
 | file | metric | added by | who re-runs it |
 |---|---|---|---|
-| `j5_gil.py` | starvation share = sum(heartbeat gaps > 5 ms) / solve wall, on a real asyncio loop with a 1 ms heartbeat and `HeatPumpOptimizer.optimize` submitted the way production submits it | `8542e51` (W3-G3, #290 #199) | the #290 judge built it; `briefs/fix-review.md` §9 sends a fix reviewer to it |
+| `j5_gil.py` | starvation share = sum(heartbeat gaps > 5 ms) / solve wall, on a real asyncio loop with a 1 ms heartbeat and `HeatPumpOptimizer.optimize` submitted the way production submits it | `8542e51` (W3-G3, #290 #199) | the #290 judge built it |
 | `h8_single_scenario.py` | whether the stress gate detects a 2x regression confined to one scenario, and stays quiet on a multi-start basin flip (#346) | `291ae76` (#378) | anyone changing `tests/stress.py`'s per-scenario or solver-work rules |
 | `h9_basin_coverage.py` | how many of the 51 sweep scenarios the solver-work rule judges rather than exempts, against the tree's own floor (#387) | `32f309f` (#388) | the same |
 | `k1725_blas_kernel_gap.py` | the ftol check's arms and the R9-F2.1 P3 margins, per OpenBLAS kernel via `OPENBLAS_CORETYPE` | `613bff1b` (#1726, #1725) | anyone adding a knife-edge optimizer comparison (`tests/README.md`'s kernel rule) |

@@ -1,0 +1,44 @@
+{
+ "id": "D17-s2-02",
+ "scope": "D17-s2",
+ "step": "D17.M3",
+ "title": "The outdoor temperature sensor never reaches the plan while a weather forecast exists",
+ "severity": "medium",
+ "claim": "With a forecast available, the plan's current-hour outdoor temperature and its energy are identical whether the configured outdoor sensor reads -25, -3 or +10 C, although the field is documented as beating the forecast for the current hour.",
+ "mechanism": "HeatPumpOptimizerCoordinator._weather_series builds the plan's outdoor series from forecast rows only; the measured value (_current_state.outdoor_temperature) is used for that series only in the no-forecast fallback. The sensor feeds COP/learning and the published outdoor_temperature, not the plan.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/outdoor_sensor.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s2/outdoor_sensor.py",
+  "value": 0.0,
+  "unit": "K spread of plan step-0 outdoor over sensor readings {-25,-3,+10} C",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+  "tolerance": "1e-6",
+  "load1": 3.3,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_series",
+ "perturbation": {
+  "change": "_weather_series wrapped so the current hour's four quarter steps take the measured outdoor temperature (`outdoor_sensor.py --perturb`)",
+  "expected_direction": "up",
+  "observed_value": "step0_outdoor_spread_K 0.0->35.0, plan_kwh_spread 0.0->5.124 kWh"
+ },
+ "metric_definition": "Max-min over sensor readings {-25,-3,+10} C of the plan's step-0 outdoor temperature (and of planned space kWh), forecast fixed at -5 C.",
+ "phenomenon_property": "When an outdoor sensor is configured and fresh, the plan's current hour is planned at the measured outdoor temperature rather than the forecast's.",
+ "seam_rule": "grep -n \"_weather_series\\|outdoor_temps\" custom_components/heatpump_optimizer/coordinator.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/outdoor_sensor.py",
+  "value": "null_no_forecast_step0_spread_K=35.0",
+  "note": "with no forecast the same harness sees the sensor reach the plan, so the zero is the forecast path, not the rig"
+ },
+ "proposed_fix_scope": "coordinator._weather_series (or _forecast_arrays): override or bias the current hour with a fresh outdoor reading; or, if the plan deliberately ignores it, D6 rewords strings.json and docs/configuration.md:87.",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/strings.json",
+  "docs/configuration.md"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

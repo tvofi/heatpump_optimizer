@@ -1,0 +1,46 @@
+{
+ "id": "D16-s1-02",
+ "scope": "D16-s1",
+ "step": "D16.M2",
+ "title": "A space-only step on a pump with no heating-only mode charges a cold tank: the DHW gate is floored at 30 C",
+ "severity": "medium",
+ "claim": "With a mode select offering only Heating + DHW (GCHV), a step booking f kW of space heat and no hot water writes the tank set-point 30 C over a 20 C tank whose start hysteresis is 5 K, so the pump is asked to charge the tank on a step the plan booked none: 2 of 2 such rigs.",
+ "mechanism": "pump_arbiter.desired, space row with no Heating option: dhw_setpoint = _bounded(DHW_GATE_C=30, rounding down) \u2014 the entity's minimum but never below 30 C, independent of the tank reading; the hot-water entity in the rig accepts down to 10 C. A tank under 30 C less the pump's own hysteresis starts charging under Heating + DHW.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+  "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+  "value": 2,
+  "unit": "rigs (gchv-flow, gchv-indoor) where min-cold-tank asks the tank to charge",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (two other seats on the box)",
+  "tolerance": "exact",
+  "load1": 1.1,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/pump_arbiter.py:desired (DHW_GATE_C)",
+ "perturbation": {
+  "change": "--perturb dhw_gate: pump_arbiter.DHW_GATE_C = 10.0",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Rigs whose min-cold-tank row reads mode in {DHW, Heating+DHW} and tank set-point minus the pump's hysteresis above the tank reading after the step's writes.",
+ "phenomenon_property": "On a step the plan books no hot water, the pump is never left with a tank set-point its own thermostat would start a charge on, where the entity's range allows a lower one.",
+ "seam_rule": "grep -n 'DHW_GATE_C\\|FLOW_GATE_C' custom_components/heatpump_optimizer/pump_arbiter.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+  "value": 0,
+  "note": "the same gchv rigs at partial/full with the tank at 48 C: the 30 C gate asks no charge (rows ok); and the fork rigs at min-cold-tank, where the Heating mode gates the tank: rows ok"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep 'min-cold-tank'",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb dhw_gate | grep cold_tank_charge  # 0"
+ ],
+ "proposed_fix_scope": "pump_arbiter.desired's single-mode-less space row: gate the tank at the entity's minimum (or below the tank reading less the read hysteresis), not a fixed 30 C floor; doc table and strings.json follow.",
+ "files": [
+  "custom_components/heatpump_optimizer/pump_arbiter.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

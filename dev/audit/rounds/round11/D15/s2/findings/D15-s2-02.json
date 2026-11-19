@@ -1,0 +1,45 @@
+{
+  "id": "D15-s2-02",
+  "scope": "D15-s2",
+  "step": "D15.M5",
+  "title": "debug_replay starts the window from download-time stores: 142 of 192 accuracy samples postdate the replay clock",
+  "severity": "low",
+  "claim": "On the owner's 2026-11-16 download, debug_replay.run_seeded starts the replay window with a coordinator whose accuracy tracker holds 142 of its 192 samples stamped after the replay's own first-cycle clock (up to 41.4 h ahead), and 10 further stored instants are bounded as 'ahead of the clock', because the stores are the download's (19.5 h after the collection ended) seeded as the state at the window's start.",
+  "mechanism": "custom_components/heatpump_optimizer/debugger.py reads the stores at download time; the replay half covers the collection's last day. tools/replay/debug_replay.py:seed_stores writes those documents as they are and run_fixture constructs the coordinator (running the seeded loads) before it freezes the clock at the window start, so the accuracy store's later samples load unbounded against the wall clock; stores loaded later, under the frozen clock, are clamped by the store boundary instead. Either way the replayed coordinator starts holding evidence from after the window, and the window's own new samples append behind it.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_age.py --bundle <owner download>",
+    "harness_path": "dev/audit/rounds/round11/D15/s2/m5_seed_age.py",
+    "value": "future_samples_held=142 of 192; bounded_instants=10; window_start_to_store_newest_h=41.4",
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "owner's macOS box (B8), venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 24.64,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._accuracy (read at the first _async_update_data of tools/replay/debug_replay.py:run_seeded); heatpump_optimizer.store:_bound_instants (its warnings)",
+  "perturbation": {
+    "change": "--start-after-stores: start the replay one minute after the newest seeded accuracy sample (the window the seeded state is actually as of)",
+    "expected_direction": "to_zero",
+    "observed_value": "future_samples_held=0 of 192; bounded_instants=0"
+  },
+  "metric_definition": "Accuracy samples the replayed coordinator holds at the replay's first cycle whose own timestamp is later than that cycle's clock.",
+  "phenomenon_property": "The coordinator a D15 timeline replay starts holds no learned evidence stamped after the replay's own clock: the seeded state is the install's as of the window start, or the evidence after it is withheld.",
+  "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_age.py --bundle B --list",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_age.py --bundle <owner download> --start-after-stores",
+    "value": "future_samples_held=0, bounded_instants=0",
+    "note": "the same seeding with a start at which no stored evidence is in the future"
+  },
+  "reproduction_steps": [
+    "... m5_seed_age.py --bundle B --list   # stores holding instants after the window start (accuracy 387 leaves, ledger 4, pump_duty 4, duty_switch 2, dhw_legionella 1, dhw_profile 1, energy 1)",
+    "... m5_seed_age.py --bundle B          # future_samples_held=142",
+    "... m5_seed_age.py --bundle B --start-after-stores   # 0"
+  ],
+  "proposed_fix_scope": "tools/replay/debug_replay.py: before seeding, withhold store evidence stamped after the replay window's start (accuracy samples, ledger and duty entries), or refuse/flag a replay whose stores postdate it by more than the window; and freeze the clock at the window start before the seeded loads run. Alternatively custom_components/heatpump_optimizer/debugger.py keeps the stores as of the replay window's start in the bundle.",
+  "files": ["tools/replay/debug_replay.py", "tests/replay.py", "custom_components/heatpump_optimizer/debugger.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

@@ -1,0 +1,37 @@
+{
+ "id": "D5-s8-03",
+ "step": "D5.M4",
+ "title": "closure.py comments name moved coverage_tree.sh, governance_cost.py and docs/delivery paths",
+ "severity": "low",
+ "claim": "5 comment units of tests/closure.py name a path absent at 92d38ecb: tools/audit/w5-partition/coverage_tree.sh twice (tests.yml runs tools/coverage/coverage_tree.sh), dev/audit/rounds/round4/D11/governance_cost.py (tests/entities.py:_load_governance_cost loads tools/audit/round4/D11/governance_cost.py), a `docs/delivery` row (rows live in dev/programme/delivery/), and carry-1922.json (no such file tracked).",
+ "mechanism": "Paths moved by the reorganisation and the coverage move; the comments describing the INERT/NOT_A_TEST classifications kept the old spellings (C2; the governance_cost sentence is also false of entities.py's loader, C1).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <git repo holding 92d38ecb640b> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --file tests/closure.py --show",
+  "harness_path": "dev/audit/rounds/round11/D5/s8/m4_ledger.py",
+  "value": 5,
+  "unit": "stale units in the file",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (light seat), Linux x86_64, 4 vCPU, venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (other seats on the box)",
+  "tolerance": "exact",
+  "load1": 1.92,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/entities.py:_load_governance_cost (the path closure.py's comment describes), tests/closure.py comment units via tools/audit/text_ledger.py:units_of",
+ "perturbation": {
+  "change": "--perturb 'tests/closure.py:tools/audit/w5-partition/coverage_tree.sh=>tools/coverage/coverage_tree.sh' (or the governance_cost path to tools/audit/round4/D11/governance_cost.py)",
+  "expected_direction": "down",
+  "observed_value": 4
+ },
+ "metric_definition": "Count of D5 units in the file holding a present-tense path that git ls-tree at the ref does not hold.",
+ "phenomenon_property": "D5 comment units (text_ledger.py units --dim D5) of a file whose named path does not exist in the tree at the ref, in a present-tense sentence, after the seat's adjudication list (ADJ) of fixtures, history and pinned citations",
+ "seam_rule": "dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <repo> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --show  (every C2 row of the seat's cells; ledger verdict stale)",
+ "stop_rule_class": "hygiene",
+ "class_guess": "N-move-stale-path",
+ "files": [
+  "tests/closure.py"
+ ],
+ "proposed_fix_scope": "Respell the paths in the five units (lines 160, 801, 1296, 1989, 3265).",
+ "scope": "D5-s8"
+}

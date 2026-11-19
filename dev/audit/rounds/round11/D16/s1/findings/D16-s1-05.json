@@ -1,0 +1,47 @@
+{
+ "id": "D16-s1-05",
+ "scope": "D16-s1",
+ "step": "D16.M2",
+ "title": "A mode write to an unavailable select is recorded as made",
+ "severity": "low",
+ "claim": "With the mode select, hot-water and space entities unavailable at a partial step's switch-on, the arbiter records the mode write in held.written (and reports it to duty_switch) although Home Assistant's entity service call skips an unavailable entity, on 5 of 5 rigs.",
+ "mechanism": "pump_arbiter._write gates on 'state is None', never on state 'unavailable'; _lead_mode writes the step's mode ahead of the switch-on, services.async_call returns without error because Home Assistant leaves an unavailable entity out of the call, and held.written, _report_write (duty_switch.note_mode_write) and _persist record a write that never landed. The stub FakeServices records every call, so the suite cannot see it. The pump then starts in its previous mode; the next pass after the entity returns rewrites it (hold), so the cost is one tick and a phantom mode switch in the learner.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+  "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+  "value": 5,
+  "unit": "rigs whose unavailable row records a skipped write as made",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (two other seats on the box)",
+  "tolerance": "exact",
+  "load1": 1.1,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/pump_arbiter.py:_write (via _lead_mode)",
+ "perturbation": {
+  "change": "--perturb write_skips_unavailable: _write returns before the call when the slot's entity reads 'unavailable'",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Rigs where a slot whose service call the Home Assistant emulation skipped (entity state 'unavailable') is in pump_arbiter.state_for(coord).written after the pass.",
+ "phenomenon_property": "A write is recorded as made only when Home Assistant delivered it to an available entity.",
+ "seam_rule": "grep -n 'held.written\\[slot\\]\\|_pump_commanded\\[\\|_freq_last_write = \\|_valve_commanded_target = ' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb ha_skip_off",
+  "value": 0,
+  "note": "the emulation without Home Assistant's skip (the stub's behaviour): no write is skipped and the count reads 0, so the count keys on the skip"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep unavailable",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb write_skips_unavailable | grep unavailable_recorded  # 0"
+ ],
+ "proposed_fix_scope": "pump_arbiter._write: treat an entity reading unavailable/unknown as no write (as state None); tests/hastub's FakeServices to skip unavailable entities as Home Assistant does (ha_contract row).",
+ "files": [
+  "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "tests/harness.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P11"
+}

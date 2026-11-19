@@ -1,0 +1,11 @@
+{
+ "class": "N-entity-metadata",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/entity_metadata_seams.py",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/sensor.py", "symbol": "ECL110DisplaceSensor", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/entity_metadata_seams.py | grep 'DELTA_BARE sensor:ECL110DisplaceSensor '", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/sensor.py", "symbol": "ECL110EffectiveDisplaceSensor", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/entity_metadata_seams.py | grep 'DELTA_BARE sensor:ECL110EffectiveDisplaceSensor '", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/sensor.py", "symbol": "PredictionAccuracySensor", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/entity_metadata_seams.py | grep 'DELTA_BARE sensor:PredictionAccuracySensor '", "beyond_finding": false}
+ ]
+}

@@ -1,0 +1,66 @@
+RESULT zero_starts[winter_extreme/shoulder/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=3.585
+RESULT zero_starts[winter_extreme/shoulder/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=6.514
+RESULT zero_starts[winter_extreme/shoulder/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=2.822
+RESULT zero_starts[winter_extreme/summer_cool/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=3.000
+RESULT zero_starts[winter_extreme/summer_cool/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=1.500
+RESULT zero_starts[winter_extreme/summer_cool/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=2.476
+RESULT zero_starts[winter_extreme/summer_warm/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_extreme/summer_warm/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_extreme/summer_warm/two-zone/no-dhw/wood/6h|off]=4 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_extreme/winter_cold/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=31.662
+RESULT zero_starts[winter_extreme/winter_cold/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=106.300
+RESULT zero_starts[winter_extreme/winter_cold/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=4.711
+RESULT zero_starts[winter_extreme/winter_mild/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=8.363
+RESULT zero_starts[winter_extreme/winter_mild/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=36.469
+RESULT zero_starts[winter_extreme/winter_mild/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=3.000
+RESULT zero_starts[winter_moderate/shoulder/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=0.002
+RESULT zero_starts[winter_moderate/shoulder/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=1.887
+RESULT zero_starts[winter_moderate/shoulder/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=2.816
+RESULT zero_starts[winter_moderate/summer_cool/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=3.000
+RESULT zero_starts[winter_moderate/summer_cool/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=1.500
+RESULT zero_starts[winter_moderate/summer_cool/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=2.478
+RESULT zero_starts[winter_moderate/summer_warm/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_moderate/summer_warm/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_moderate/summer_warm/two-zone/no-dhw/wood/6h|off]=4 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_moderate/winter_cold/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=30.839
+RESULT zero_starts[winter_moderate/winter_cold/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=104.019
+RESULT zero_starts[winter_moderate/winter_cold/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=4.711
+RESULT zero_starts[winter_moderate/winter_mild/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=8.230
+RESULT zero_starts[winter_moderate/winter_mild/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=35.965
+RESULT zero_starts[winter_moderate/winter_mild/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=3.000
+RESULT zero_starts[winter_narrow/shoulder/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=0.002
+RESULT zero_starts[winter_narrow/shoulder/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=5.229
+RESULT zero_starts[winter_narrow/shoulder/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=2.853
+RESULT zero_starts[winter_narrow/summer_cool/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=3.000
+RESULT zero_starts[winter_narrow/summer_cool/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=1.500
+RESULT zero_starts[winter_narrow/summer_cool/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=2.455
+RESULT zero_starts[winter_narrow/summer_warm/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_narrow/summer_warm/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_narrow/summer_warm/two-zone/no-dhw/wood/6h|off]=4 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_narrow/winter_cold/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=34.115
+RESULT zero_starts[winter_narrow/winter_cold/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=105.353
+RESULT zero_starts[winter_narrow/winter_cold/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=4.712
+RESULT zero_starts[winter_narrow/winter_mild/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=8.602
+RESULT zero_starts[winter_narrow/winter_mild/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=38.067
+RESULT zero_starts[winter_narrow/winter_mild/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=3.458
+RESULT zero_starts[winter_typical/shoulder/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=0.002
+RESULT zero_starts[winter_typical/shoulder/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=4.975
+RESULT zero_starts[winter_typical/shoulder/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=2.804
+RESULT zero_starts[winter_typical/summer_cool/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=3.836
+RESULT zero_starts[winter_typical/summer_cool/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=2.396
+RESULT zero_starts[winter_typical/summer_cool/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=2.478
+RESULT zero_starts[winter_typical/summer_warm/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_typical/summer_warm/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_typical/summer_warm/two-zone/no-dhw/wood/6h|off]=4 of 5 kWh_shipped=0.000
+RESULT zero_starts[winter_typical/winter_cold/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=26.197
+RESULT zero_starts[winter_typical/winter_cold/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=101.385
+RESULT zero_starts[winter_typical/winter_cold/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=4.711
+RESULT zero_starts[winter_typical/winter_mild/two-zone/no-dhw/wood/24h|off]=0 of 5 kWh_shipped=6.906
+RESULT zero_starts[winter_typical/winter_mild/two-zone/no-dhw/wood/48h|off]=0 of 5 kWh_shipped=34.823
+RESULT zero_starts[winter_typical/winter_mild/two-zone/no-dhw/wood/6h|off]=0 of 5 kWh_shipped=3.000
+RESULT census_cells=60 cells
+RESULT census_cells_all_but_one_start_zero[off]=4 cells
+RESULT census_zero_starts_total[off]=16 starts
+RESULT thread_factor=1.000
+RESULT load1=5.10
+RESULT swapins=0

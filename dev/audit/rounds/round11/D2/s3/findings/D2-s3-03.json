@@ -1,0 +1,42 @@
+{
+ "id": "D2-s3-03",
+ "step": "D2.M4",
+ "title": "Tibber's tomorrow prices are dropped: the payload parser reads only 'today'",
+ "severity": "high",
+ "claim": "price_model.prices_from_tibber_payload iterates period in ('today',) only, so a Tibber payload carrying today and tomorrow (96+96 quarter rows) returns 96 rows, and a plan solved at 14:00 knows 40 of its 96 steps instead of 96: the rest is filled from the learned prior.",
+ "mechanism": "price_model.py:719 `for period in (\"today\",)`; the query (TIBBER_PRICE_QUERY[_QUARTER]) requests tomorrow and the entity path (prices_from_entity_attributes) reads raw_tomorrow/tomorrow. After the day-ahead auction the published prices past midnight never reach coordinator._known_prices_for, so price_known is False there and extend_price_series substitutes the prior's guess (with its sigma, risk-priced when price_risk_lambda > 0).",
+ "evidence": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": 96,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 5.76,
+  "thread_factor": 1.0001
+ },
+ "instrumented_symbol": "heatpump_optimizer.price_model:prices_from_tibber_payload, heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._price_series",
+ "perturbation": {
+  "change": "--perturb tomorrow: the parser also folds priceInfo.tomorrow",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "tibber_rows_dropped = rows of a 192-row today+tomorrow Tibber payload not returned; tibber_known_steps_at_14h = steps of a 96-step plan at 14:00 the coordinator marks price_known",
+ "phenomenon_property": "Every published price row a source delivers inside the horizon reaches the plan as known; the two ingress paths (Tibber, entity) read the same days.",
+ "seam_rule": "grep -n 'for period in\\|raw_tomorrow' custom_components/heatpump_optimizer/price_model.py",
+ "null_control": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": "known_steps 96/96 with --perturb tomorrow; at 00:07 the same payload already covers the whole horizon from today",
+  "note": "the loss is the 56 steps past midnight"
+ },
+ "proposed_fix_scope": "price_model.prices_from_tibber_payload: iterate ('today', 'tomorrow')",
+ "files": [
+  "custom_components/heatpump_optimizer/price_model.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P2",
+ "scope": "D2-s3"
+}

@@ -1,0 +1,66 @@
+{
+  "id": "D7-s1-05",
+  "scope": "D7-s1",
+  "step": "D7.M7",
+  "title": "Eight of the 14 clone classes have a one-owner prototype the score admits: duplication_copies 18 -> 9",
+  "severity": "low",
+  "claim": "Eight rules written two or three times in the package each take one owner in a behaviour-preserving edit that the architecture score reads IMPROVES and admissible with every counter on: 9 of the 18 clone copies go (dS +8.2671 on duplication_copies); the other six classes (9 copies) have no one-owner form without a design.",
+  "mechanism": "m7_sites.py lists 14 clone classes (18 copies) under the score's gapped window. Eight are a small rule with no owner, and m7_prototypes.py builds each: (note) drift.Cusum._note and power_guard.GuardState._note, the cap 6 written three times -> one inherited EvidenceNotes._note and EVIDENCE_KEEP; (avail) three `available` properties reading one flag of one payload block -> entity.PayloadFlagMixin and a declared `_available_flag`; (step) pump_arbiter._step_index and _planned_room both bisect the plan's stamps -> `_covering`; (day) price_model.observe_day and observe_day_quarters both test complete / finite / positive mean -> `_usable_day`; (reader) coordinator.py builds InputReader(hass, config, enabled=watchdog, scale=age scale) verbatim twice -> inputs.entry_reader; (fdjac) sysid._lm_solve and _slab_ua_profile_halfwidth build the same forward-difference Jacobian -> `_fd_jacobian`; (entry) ledger.add and observe_meta_mean look up the month's running entry the same way -> `_entry`; (notice) legionella's two day-count notices format the same placeholders -> `_interval_notice`. NEEDING A DESIGN, not built: inputs.read / read_state (the shared statements are the guard around `_begin`; one owner means inverting control); optimizer._optimize_space_only / _optimize_with_dhw / _solve_space (the two solve paths, golden-sensitive) and objective / objective_batch; tariff._smooth_topk_sum / _smooth_topk_sum_batch / peak_cost_batch; thermal_model's _simulate_step_single / _simulate_step_two_zone / simulate_trajectory_batch and simulate_trajectory / simulate_trajectory_with_dhw -- scalar and batch twins whose merge changes float order and so the fixtures. The same dedupe spelled as a module function mutating the list it is handed (note_helper) is refused by the score (shared_inplace_writes 3 -> 9): the form matters and the counters read it.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only note,avail,step,day,reader,layer,fdjac,entry,notice,curr --combined",
+    "harness_path": "dev/audit/rounds/round11/D7/s1/m7_prototypes.py",
+    "value": 9,
+    "unit": "duplication_copies of the ten-prototype tree (18 on the tree; term +8.2671 of the combination's dS +9.2671, admissible). Alone: avail +1.4326; note, step, day, reader, fdjac, entry, notice +0.6964 each. The first six prototypes alone: dS +5.6952 (18 -> 12)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "darwin arm64, 8 cores (box B5)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out in progress, load1 16 to 290 across the runs; the score is a deterministic function of static counts. The suite's wall figures are provisional",
+    "tolerance": "exact",
+    "load1": 86.98,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/audit/archscore/score.py:delta",
+  "perturbation": {
+    "change": "Each prototype's files restored: m7_prototypes.py prints dS_reverted_<arm> for every arm and for the combination. The dS must return to +0.0000.",
+    "expected_direction": "to_zero",
+    "observed_value": "+0.0000"
+  },
+  "metric_definition": "duplication_copies and dS from score.py:delta between vector.py:measure of the tree and of the tree with the prototype edits, all counters on. Key: the measured vector, not the edit list.",
+  "phenomenon_property": "Each clone class the score lists is either one rule with one owner, or a recorded reason it is not one rule; a third writer of the rule calls the owner.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_sites.py | grep '^SITE duplication_copies'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only fold; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only note_helper",
+    "value": "+0.0000 reverted; note_helper -6.4988 WORSENS",
+    "note": "The reverted arms read 0.0000. The score also pays +0.6964 for a non-dedupe (fold: D7-s1-02), so a copy count falling is not by itself evidence of a dedupe: each prototype here removes the second writing of the rule, which the diff shows and the game does not. `entry` is the honest form on the very class `fold` games."
+  },
+  "leave_one_out": {
+    "cells": 8,
+    "min": 0.6964,
+    "max": 1.4326,
+    "drop_most_favourable": 5.9188
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_sites.py | grep '^SITE duplication_copies' -> the 14 classes.",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score -> each arm's ARM line, verdict and dS_reverted; --only note,step,day,reader,fdjac,entry,notice --combined -> +5.9188 (the leave-one-out arm, avail dropped).",
+    "D7S1_JOBS=8 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --suite <scripts> [--only <arms>] -> per script, the check lines of the prototype tree against the tree's own. Measured on the six-prototype tree: 16 scripts ran to the end on both trees with identical lines and exit codes (the 14 of the first run, 2,232 ok and 71 FAIL on each side, plus optimality.py 79 ok / 5 FAIL and backtest.py 25 ok / 0 FAIL); features.py was cut at D7S1_TIMEOUT=3000 on both sides with 2,423 check lines each and no mismatch; golden.py under GOLDEN_MODE=strict exits 1 on both trees with byte-identical 430-line outputs (56 of 56 scenarios read CHANGED against the committed fixtures on the tree itself, and identically on the prototype tree). Measured on the ten-prototype tree: 13 scripts identical (2,191 ok and 66 FAIL on each side), boost_drift_replay.py identical (41 / 5), and features.py run to its end on both trees (2,945 ok and 131 FAIL on each, same exit code) with 3,075 of 3,076 check lines identical -- the one other is the same FAIL check on both sides whose message prints an elapsed-hours float differing in its eighth significant digit (216.00000012 against 216.00000020, 0.3 ms). The tree's own suite is red, so the claim is 'unchanged', not 'passing'."
+  ],
+  "proposed_fix_scope": "The eight edits as m7_prototypes.py spells them (PROTOS note, avail, step, day, reader, fdjac, entry, notice), each in the module that owns the rule, with the failing test first where the rule has none; tests/seam_map.json and the budget re-record a coordinator edit owes. The six classes named as needing a design go to their owning seams through a designer; the scalar/batch twins need an agreement test before any merge of the two.",
+  "files": [
+    "custom_components/heatpump_optimizer/drift.py",
+    "custom_components/heatpump_optimizer/power_guard.py",
+    "custom_components/heatpump_optimizer/entity.py",
+    "custom_components/heatpump_optimizer/binary_sensor.py",
+    "custom_components/heatpump_optimizer/climate.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/price_model.py",
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/ledger.py",
+    "custom_components/heatpump_optimizer/legionella.py"
+  ],
+  "expected_golden_drift": [],
+  "stop_rule_class": "hygiene",
+  "class_guess": "P2"
+}

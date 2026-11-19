@@ -1,0 +1,46 @@
+{
+ "id": "D4-s2-01",
+ "scope": "D4-s2",
+ "step": "D4.M2",
+ "title": "Config-flow device pre-fill page renders window errors with an unfilled {min_window_minutes} placeholder",
+ "severity": "low",
+ "claim": "When the setup wizard's device_prefill page refuses a DHW or silent-mode window shorter than 15 min, the form result carries no min_window_minutes placeholder, so the error string in all 4 language files is rendered with an unfilled {min_window_minutes} (8 field-language pairs), while the options flow's modbus_prefill page, the config dhw page and the options hot_water page supply it (0).",
+ "mechanism": "HeatPumpOptimizerConfigFlow._device_prefill_form passes description_placeholders={**device_prefill.disclaimer(), **notes}; the options twin _prefill_form adds **_WINDOW_PLACEHOLDERS. _prefill_errors (shared) can return dhw_window_too_short / silent_mode_window_too_short, whose strings read {min_window_minutes}.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py",
+  "harness_path": "dev/audit/rounds/round11/D4/s2/flow_errors.py",
+  "value": 8,
+  "unit": "unfilled placeholder x language pairs",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "orchestrator Mac (darwin arm64), local seat",
+  "cpu_or_wall": "count",
+  "contention_note": "box shared with other seats, load1 ~75; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 74.48,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_device_prefill (via _device_prefill_form)",
+ "perturbation": {
+  "change": "--perturb: mock.patch.object HeatPumpOptimizerConfigFlow._device_prefill_form to merge config_flow._WINDOW_PLACEHOLDERS into the placeholders (the options page's own rule)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Sum over triggered error cells and language files of {name} placeholders in the returned error's string that result['description_placeholders'] lacks.",
+ "phenomenon_property": "Every flow form result supplies every placeholder named by its step strings and by the strings of every error key it returns, in every language.",
+ "seam_rule": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py (error cells) and PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py (DESC_UNFILLED, untouched renders)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py",
+  "value": 0,
+  "note": "control cells options.modbus_prefill x2, config.dhw, options.hot_water, options.grid_fees x3 fire the same or sibling errors and leave 0 unfilled"
+ },
+ "reproduction_steps": [
+  "Run the command; read CELL config.device_prefill lines: unfilled=4 each",
+  "Re-run with --perturb: unfilled_placeholders_total=0"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/config_flow.py"
+ ],
+ "proposed_fix_scope": "Add _WINDOW_PLACEHOLDERS to HeatPumpOptimizerConfigFlow._device_prefill_form's description_placeholders, or share one placeholder builder between the config and options pre-fill forms; add the placeholder-supplied check to tests over every error key a step can return."
+}

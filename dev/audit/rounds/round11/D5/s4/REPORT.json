@@ -1,0 +1,305 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D5/s4/REPORT.md",
+ "exposure": "Read COMMON.md, D5.md, D5-criteria.md, D6.md (step 3), dev/audit/README.md, finding.schema.json, scopes.json, objective.json. Comment units in the cells cite earlier finding ids (D2-01, D2-07, D7-01, D4-01, D4-s1-03, R9-*, R10-*, P9-rca*) and dev/programme/register/audit-2026-09.md surfaced in one grep output (two rows, D2-01 and D5-01/D5-03 titles); none was used as a to-do. git tag archive/handoff/audit-r9-alt was listed only to resolve a path a card comment cites. No docs/ prose was read beyond grep hits.",
+ "coverage": [
+  {
+   "step": "D5.M1",
+   "enumerator": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py outline --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$2==\"document\"'",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "outline prints no document row for any of the 51 cell files (.py/.js), so 3 reader paths x 0 documents = 0. C4 examined: the code/JS cells hold no reader path by the enumerator. C2 (two-tank, ECL110, capacity-tariff paths through docs/) is outside D5-s4's cells (README.md/docs/** M1 is D5-s1's); handed on as a lead, not measured here."
+  },
+  {
+   "step": "D5.M2",
+   "enumerator": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py outline --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$2==\"heading\"||$2==\"link\"'",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "0 heading and 0 link rows over the cells. C5 examined: structure over code/JS cells is empty by the enumerator; the comment units cite 0 URLs (grep of the cells' comments) and every path they cite resolves (comments.py C2, triaged)."
+  },
+  {
+   "step": "D5.M3",
+   "enumerator": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py units --dim D6 --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | grep -E '^[^#\\t]*\\.(md|mdc|html?)#'",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "The step ranges over D6 units of the documents outline prints; the cells hold none, so the denominator is 0 (C1: the step now has a stated denominator). C3 (how-it-works.md, configuration.md mechanism paragraphs) is outside the cells (D5-s2's docs M3); lead. C6: every docstring is rowed under M4 with the mechanical checks, but a mechanism paragraph was traced to its code path by an executed check only in 13 docstrings (semantic.py); the rest stays not_reached."
+  },
+  {
+   "step": "D5.M4",
+   "enumerator": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 3367,
+   "examined": 3367,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C7",
+     "state": "examined"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s4/ledger.tsv --plant --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692: units=3367 rows=3367 claims=3200 true=33 false=2 stale=0 unverifiable=3165 unrowed=0 orphan=0 malformed=0 plant_refused=1. Every unit ran comments.py (C2 names vs code tokens, C5 length, C7 cited number vs adjacent constant, C4/C3 heuristics): 18 raw C2 flags -> 2 false after triage; 42 raw C7 flags, 21 driven by py_numbers.py (11 checks) and card_numbers.mjs (10 checks), 0 failed; 558 C5 units (D5-s4-01). C7 answered: the number check is automated and www/*.js comments are scanned for symbols. The README/docs half of C7 is D5-s2's cell."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D5.M4",
+   "what": "Behavioural truth (C1) was driven by an executed check for 35 of 3200 claim units (semantic.py 16 checks, py_numbers.py 11, card_numbers.mjs 10); 3165 rows are 'unverifiable: mechanical checks only'. Remaining by file: the card (892 units), optimizer.py (424), thermal_model.py (366), sensor.py (223), pump_arbiter.py (159), sysid.py (143) and every other cell file's docstrings and comments."
+  },
+  {
+   "step": "D5.M4",
+   "what": "C4 (history over half) and C3 (restatement) ran as pattern heuristics only: 43 C4 flags and 8 C3 flags were read and judged to carry a reason or to be section banners; no executed criterion check exists for either."
+  },
+  {
+   "step": "D5.M3",
+   "what": "C6: docstring mechanism paragraphs traced to code paths only in log_latch, plan_step, silent_mode, pump_schedule and plan_slots."
+  },
+  {
+   "step": "D5.M1",
+   "what": "C2 (feature reader paths in docs/) and C3 (docs mechanism paragraphs) are outside D5-s4's cells; routed as leads to D5-s1 and D5-s2."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D5-s4-01",
+   "scope": "D5-s4",
+   "step": "D5.M4",
+   "title": "558 comment units in the s4 cells carry a sentence over 40 words (C5)",
+   "severity": "low",
+   "claim": "Of the 3367 D5 comment units in custom_components/heatpump_optimizer/{j..z}*.py and www/*.js, 558 (16.6 %, in 45 of 51 files) hold at least one sentence over 40 words, 716 such sentences in all, the longest 156 words.",
+   "mechanism": "Comments and docstrings grow by appended clauses (dashes, semicolons, parentheticals) rather than new sentences; nothing in the gate measures sentence length, so criterion C5 has no detector.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s4/comments.py",
+    "value": 558,
+    "unit": "units with a >40-word sentence",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (4 vCPU container)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.57,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of over the production comment text of custom_components/heatpump_optimizer (e.g. pump_mode.py module docstring)",
+   "perturbation": {
+    "change": "one-line production edit: pump_mode.py line 6 'the mode — reads its answer from here, so there is' -> 'the mode. All read their answer from here, so there is' (comments.py --file custom_components/heatpump_optimizer/pump_mode.py --edit 'custom_components/heatpump_optimizer/pump_mode.py|the mode — reads its answer from here, so there is|the mode. All read their answer from here, so there is')",
+    "expected_direction": "down",
+    "observed_value": "pump_mode.py long_units 3 -> 2"
+   },
+   "metric_definition": "Count of D5 units (text_ledger units --dim D5, seat D5-s4) with a text_ledger.sentences() sentence of more than 40 whitespace words, comment markers stripped.",
+   "phenomenon_property": "Every comment and docstring sentence in the seat's cells is at most 40 words (D5-criteria C5).",
+   "seam_rule": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --tsv OUT  (column 'long' non-empty)",
+   "leave_one_out": {
+    "cells": 51,
+    "min": 0.0,
+    "max": 0.417,
+    "drop_most_favourable": 403
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py | grep long_units"
+   ],
+   "proposed_fix_scope": "Split the 716 sentences (253 docstring units, 305 comment units; the card holds 155 units); optionally add the 40-word check to a lint lane so C5 stays measured.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D5-s4-02",
+   "scope": "D5-s4",
+   "step": "D5.M4",
+   "title": "sysid.py comments name code variables that exist nowhere (prior_w, data_w, T_prev)",
+   "severity": "low",
+   "claim": "Two comment units in sysid.py cite names no tracked code defines: '``T_prev`` sits on BOTH sides of the regression' (line 1983) and 'prior_rel = prior_w / data_w' (line 2071), while the code beneath computes prior_rel = s_noise / prior_sd and reads the previous sample as usable[i - 1].room_temp.",
+   "mechanism": "The comments describe the estimator in notation from an earlier formulation; the variables were renamed or never existed, and the formula line reads as code next to a real assignment to prior_rel.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s4/comments.py",
+    "value": 2,
+    "unit": "units with an unresolvable cited name",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (4 vCPU container)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.57,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify (comment units at lines 1983 and 2071, against every tracked file's code tokens)",
+   "perturbation": {
+    "change": "one-line production edit: sysid.py line 2073 'through prior_rel = prior_w / data_w.' -> 'through prior_rel = s_noise / prior_sd.' (comments.py --file custom_components/heatpump_optimizer/sysid.py --edit 'custom_components/heatpump_optimizer/sysid.py|through prior_rel = prior_w / data_w.|through prior_rel = s_noise / prior_sd.')",
+    "expected_direction": "down",
+    "observed_value": "unresolved_units 2 -> 1, unresolved_tokens 3 -> 1"
+   },
+   "metric_definition": "Comment units in sysid.py citing a name (backticked, snake_case, name(), dotted) found in no code token of any tracked file, after hand triage of notation.",
+   "phenomenon_property": "Every identifier a comment in sysid.py names exists in the code at the ref (D5-criteria C2).",
+   "seam_rule": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py --tsv OUT  (column 'unresolved')",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py --tsv /dev/stdout | awk -F'\\t' '$4!=\"\"'"
+   ],
+   "proposed_fix_scope": "Rewrite the two comments in sysid.py against the names the code uses (s_noise, prior_sd, usable[i - 1].room_temp).",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D5-s4-03",
+   "scope": "D5-s4",
+   "step": "D5.M4",
+   "title": "text_ledger.py reports wrong line numbers for 737 of 892 card comment units",
+   "severity": "low",
+   "claim": "tools/audit/text_ledger.py:scan_c_like drops one line from its counter each time a JavaScript quote is cut off at a newline, so 737 of the card's 892 D5 units carry a line up to 11 lines away from where the unit sits.",
+   "mechanism": "In the string branch, an unterminated ' or \" (an apostrophe inside a regex literal or a comment-adjacent token) breaks at the newline and sets i = j + 1, consuming the newline without line += 1; the drift accumulates down the file. Unit ids hash the text and are unaffected, but every ledger 'line' column and any harness locating code beside a unit by that line reads the wrong place (this seat's own adjacent-constant check did until it relocated units).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+    "value": 737,
+    "unit": "units whose reported line is not their file line",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (4 vCPU container)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.57,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:scan_c_like",
+   "perturbation": {
+    "change": "one-line instrument edit, applied in memory by ledger_lines.py --patched: in scan_c_like's string loop, 'break' -> 'line += 1; break' for an unterminated non-template quote",
+    "expected_direction": "down",
+    "observed_value": "misplaced_units 737 -> 1, max_offset 11 -> 1 (the residual 1 is a locator tie)"
+   },
+   "metric_definition": "Card D5 units whose text_ledger line differs from the file line where the unit's first text line is found, searching forward from the previous unit.",
+   "phenomenon_property": "text_ledger.py's line column is the file line of the unit it names, for every C-like file it scans.",
+   "seam_rule": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py --patched",
+    "value": 1,
+    "note": "the same locator with the one-line fix; Python units (tokenize) are not affected"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+    "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py --patched"
+   ],
+   "proposed_fix_scope": "tools/audit/text_ledger.py:scan_c_like count the newline an unterminated quote stops at (and an escaped newline); add a self-test arm with an apostrophe in a regex literal. The file sits in D5-s6's cells; the defect was met measuring D5-s4's card.",
+   "files": [
+    "tools/audit/text_ledger.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Numbers Python comments in the cells cite agree with the constants they sit on (_DAY_BITS, _MAX_PLAUSIBLE_GHI, _COMFORT_PULL_*, FEEDBACK_STOP_MARGIN_K, ECHO_GRACE_S, QUICK_SETUP_BUFFER_VOLUME, SLAB_SEED_MAX_ABOVE_ROOM_K, ABSURD, _PROFILE_CHI2_95, _Z_975, window_minutes)",
+   "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/py_numbers.py",
+   "value": "checks=11 failed=0; --perturb failed=1"
+  },
+  {
+   "claim": "Numbers card comments cite agree with the card's constants and its setupTextW (CARD_CHROME_PX, the 164-in-152 chip label, badge, compact font cap, 900x380, 48 h/12 h, plan staleness 3/90, SV_MAG_ALPHA window, radius-m)",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D5/s4/card_numbers.mjs",
+   "value": "checks=10 failed=0; --perturb failed=1"
+  },
+  {
+   "claim": "Behaviour claimed by docstrings of log_latch, plan_step, silent_mode, pump_schedule and plan_slots holds when driven",
+   "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/semantic.py",
+   "value": "checks=16 failed=0; --perturb failed=1"
+  },
+  {
+   "claim": "The card's mirror of the plan-staleness rule matches coordinator.py (PLAN_STALE_INTERVALS=3, floor 90 min)",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D5/s4/card_numbers.mjs",
+   "value": "3/90 both sides"
+  },
+  {
+   "claim": "Paths and names the card's comments cite resolve (dev/archive/plans/plan-card-decomposition.md in tree; DESIGN.md and ux/DESIGN-UX.md on tag archive/handoff/audit-r9-alt as the comment says; getComputedTextLength is a DOM API)",
+   "command": "git -C /home/user/heatpump_optimizer ls-tree -r --name-only archive/handoff/audit-r9-alt | grep DESIGN",
+   "value": "2 paths found"
+  },
+  {
+   "claim": "Comment units in the cells cite no external URL, so no external link check is owed",
+   "command": "grep -ohE \"(#|//|\\*).*https?://\" custom_components/heatpump_optimizer/[j-z]*.py custom_components/heatpump_optimizer/www/*.js | wc -l",
+   "value": "0"
+  },
+  {
+   "claim": "Sensor rename comments (hot_water_energy/hot_water_cost/mixed_hot_water moved in #174) are consistent with entity._pin_identity: unique id keys on the key argument, translation key sets the suggested object id",
+   "command": "grep -n '_attr_unique_id' custom_components/heatpump_optimizer/entity.py",
+   "value": "unique_id = f\"{entry_id}_{key}\""
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D5/s4/comments.py",
+  "dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+  "dev/audit/rounds/round11/D5/s4/py_numbers.py",
+  "dev/audit/rounds/round11/D5/s4/card_numbers.mjs",
+  "dev/audit/rounds/round11/D5/s4/semantic.py",
+  "dev/audit/rounds/round11/D5/s4/build_ledger.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/plan_slots.py",
+   "symbol": "plan_slots.plan_slots (slot['reason'] = max(set(codes), key=codes.count))",
+   "what": "On a tie between reason codes the published slot 'reason' follows set iteration order, which depends on PYTHONHASHSEED: the same 4-step plan ['cheap','cheap','preheat','preheat'] published 'cheap' under seeds 1,2,6 and 'preheat' under 3,4,5, so the attribute can change across Home Assistant restarts for an identical plan (executed with PYTHONHASHSEED=1..6)."
+  },
+  {
+   "owner_seat": "D5-s1",
+   "file": "docs/*.md",
+   "symbol": "reader paths: two-tank storage, ECL110, capacity tariff",
+   "what": "Round-10 carry C2 (paragraph-by-paragraph walk of the feature reader paths for dead ends and forward references) was handed to D5-s4 but lies in README.md/docs/** M1, D5-s1's cell; not measured here."
+  },
+  {
+   "owner_seat": "D5-s2",
+   "file": "docs/how-it-works.md, docs/configuration.md, README.md",
+   "symbol": "mechanism paragraphs (M3); README/docs M4 cell",
+   "what": "Round-10 carries C3 (trace each mechanism paragraph to its code path) and the README/docs half of C7 were handed to D5-s4 but lie in D5-s2's cells; not measured here."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/*",
+   "symbol": "3165 comment claim units",
+   "what": "For D6 (code comments, owner's item 3): the M4 ledger rows these units 'unverifiable: behaviour not driven'; the ledger at dev/audit/rounds/round11/D5/s4/ledger.tsv lists them by id."
+  }
+ ]
+}

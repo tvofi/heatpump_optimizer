@@ -1,0 +1,79 @@
+# machine Linux-6.18.44-fc-v509-x86_64-with-glibc2.39 x86_64 py3.14.7
+# fixture=synthetic cycles=1100 warmup=200 step_minutes=360 perturb=None cycle_errors=0 []
+RESULT traced_slope=120.0 B/cycle
+RESULT traced_year_mib=6.01 MiB (B4 budget 10 MiB = 199 B/cycle)
+RESULT root_slope[coord._price_learner]=19.5 B/cycle
+RESULT root_slope[coord.data]=-9.3 B/cycle
+RESULT root_slope[coord._accuracy]=7.4 B/cycle
+RESULT root_slope[coord._dhw_accuracy]=0.1 B/cycle
+RESULT root_slope[coord._optimization_result]=-0.0 B/cycle
+RESULT root_slope[coord._dhw_learner]=-0.0 B/cycle
+RESULT root_slope[coord._immersion_clear_count]=0.0 B/cycle
+RESULT root_slope[module.heatpump_optimizer.grid_fee._MONTHS]=-0.0 B/cycle
+RESULT root_slope[module.heatpump_optimizer.debugger.DOMAINS]=0.0 B/cycle
+RESULT file_slope[other]=72.8 B/cycle
+RESULT file_slope[price_model.py]=24.1 B/cycle
+RESULT file_slope[ledger.py]=5.0 B/cycle
+RESULT file_slope[dhw_draws.py]=4.8 B/cycle
+RESULT file_slope[thermal_model.py]=1.2 B/cycle
+RESULT file_slope[coordinator.py]=-1.1 B/cycle
+RESULT file_slope[store.py]=0.9 B/cycle
+RESULT file_slope[plan_slots.py]=-0.5 B/cycle
+RESULT file_slope[optimizer.py]=-0.4 B/cycle
+RESULT file_slope[switch.py]=-0.3 B/cycle
+RESULT file_slope[entity.py]=-0.3 B/cycle
+RESULT file_slope[narrative.py]=-0.3 B/cycle
+RESULT file_slope[accuracy.py]=0.3 B/cycle
+RESULT file_slope[drift.py]=-0.2 B/cycle
+RESULT file_slope[boost.py]=-0.2 B/cycle
+RESULT file_slope[early_cutoff.py]=-0.2 B/cycle
+RESULT file_slope[heat_energy.py]=-0.1 B/cycle
+RESULT file_slope[dhw_learning.py]=0.1 B/cycle
+RESULT file_slope[external_heat.py]=-0.1 B/cycle
+RESULT file_slope[heat_curve.py]=0.1 B/cycle
+RESULT file_slope[legionella.py]=-0.1 B/cycle
+RESULT file_slope[supply_hold.py]=-0.1 B/cycle
+RESULT file_slope[pump_arbiter.py]=0.1 B/cycle
+RESULT late_traced_slope=13.3 B/cycle (from cycle 700)
+RESULT late_root_slope[coord._price_learner]=12.8 B/cycle
+RESULT late_root_slope[coord._dhw_learner]=-0.1 B/cycle
+#   growth 66.4 B/cycle (+2 blocks) at other via ['tracemalloc.py:469', 'retained.py:136', 'retained.py:192', 'retained.py:271']
+#   growth 12.7 B/cycle (+224 blocks) at price_model.py:588 via ['price_model.py:588', 'price_model.py:608', 'price_model.py:445', 'coordinator.py:8619']
+#   growth 9.1 B/cycle (+1 blocks) at price_model.py:448 via ['price_model.py:448', 'coordinator.py:8619', 'coordinator.py:6079', 'events.py:94']
+#   growth 2.8 B/cycle (+2 blocks) at other via ['_compiler.py:778', '__init__.py:350', '__init__.py:289', 'fnmatch.py:50']
+#   growth 2.4 B/cycle (+25 blocks) at other via ['fnmatch.py:181', 'fnmatch.py:101', 'fnmatch.py:49', 'fnmatch.py:91']
+#   growth 1.9 B/cycle (+73 blocks) at dhw_draws.py:104 via ['dhw_draws.py:104', 'dhw_draws.py:76', 'dhw_learning.py:509', 'dhw_learning.py:466']
+#   growth 1.6 B/cycle (+32 blocks) at ledger.py:127 via ['ledger.py:127', 'ledger.py:416', 'coordinator.py:8064', 'coordinator.py:8229']
+#   growth 1.2 B/cycle (+25 blocks) at ledger.py:127 via ['ledger.py:127', 'coordinator.py:10417', 'coordinator.py:8078', 'coordinator.py:8229']
+#   growth 0.9 B/cycle (+27 blocks) at price_model.py:233 via ['price_model.py:233', 'price_model.py:447', 'coordinator.py:8619', 'coordinator.py:6079']
+#   growth 0.9 B/cycle (+27 blocks) at price_model.py:223 via ['price_model.py:223', 'price_model.py:447', 'coordinator.py:8619', 'coordinator.py:6079']
+#   growth 0.9 B/cycle (+17 blocks) at coordinator.py:2047 via ['coordinator.py:2047', 'coordinator.py:2081', 'harness.py:194', 'coordinator.py:2129']
+#   growth 0.9 B/cycle (+10 blocks) at thermal_model.py:1017 via ['thermal_model.py:1017', 'thermal_model.py:1042', 'topology.py:597', 'coordinator.py:8156']
+#   growth 0.9 B/cycle (+18 blocks) at ledger.py:127 via ['ledger.py:127', 'coordinator.py:10727', 'coordinator.py:8248', 'coordinator.py:6140']
+#   growth 0.8 B/cycle (+16 blocks) at ledger.py:127 via ['ledger.py:127', 'ledger.py:494', 'coordinator.py:8099', 'coordinator.py:8229']
+#   growth 0.7 B/cycle (+12 blocks) at coordinator.py:3158 via ['coordinator.py:3158', 'coordinator.py:8269', 'coordinator.py:6140', 'events.py:94']
+# checkpoint cycle=200 traced=409096 cpu_s=11.2
+# checkpoint cycle=250 traced=477113 cpu_s=31.7
+# checkpoint cycle=300 traced=493515 cpu_s=50.2
+# checkpoint cycle=350 traced=493527 cpu_s=67.7
+# checkpoint cycle=400 traced=506228 cpu_s=86.9
+# checkpoint cycle=450 traced=496676 cpu_s=104.9
+# checkpoint cycle=500 traced=510397 cpu_s=122.4
+# checkpoint cycle=550 traced=500158 cpu_s=139.7
+# checkpoint cycle=600 traced=512056 cpu_s=156.3
+# checkpoint cycle=650 traced=503044 cpu_s=173.8
+# checkpoint cycle=700 traced=511745 cpu_s=191.5
+# checkpoint cycle=750 traced=504358 cpu_s=207.4
+# checkpoint cycle=800 traced=513607 cpu_s=223.8
+# checkpoint cycle=850 traced=505886 cpu_s=241.7
+# checkpoint cycle=900 traced=516578 cpu_s=260.0
+# checkpoint cycle=950 traced=506271 cpu_s=279.8
+# checkpoint cycle=1000 traced=516338 cpu_s=298.4
+# checkpoint cycle=1050 traced=507703 cpu_s=315.9
+# checkpoint cycle=1100 traced=517068 cpu_s=334.4
+RESULT ru_maxrss=115720 KiB (coordinator process, incl. tracemalloc overhead; provisional)
+RESULT worker_ru_maxrss=104788 KiB (solving child; provisional; B5 128 MB)
+RESULT wall_s=575.8 s (provisional)
+RESULT thread_factor=1.0
+RESULT load1=10.01
+RESULT swapins=0

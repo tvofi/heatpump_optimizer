@@ -1,0 +1,208 @@
+{
+ "dimension": "D9",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D9/s2/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D9.M1",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo . --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D9-s2",
+   "universe": 96,
+   "examined": 91,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/device_prefill.py",
+    "custom_components/heatpump_optimizer/name_match.py",
+    "custom_components/heatpump_optimizer/prefill_offer.py",
+    "custom_components/heatpump_optimizer/quick_setup.py",
+    "custom_components/heatpump_optimizer/repairs.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "not_reached"
+    },
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Axes retained_bytes and payload_bytes over the 96 cells. 84 modules run in the cycle rig (_drive.py, 1,100 real _async_update_data cycles at 10 min and at 6 h steps): per-file tracemalloc slope plus deep size of every coordinator attribute (covers all 19 lines of enumerate.py d9-collections), every entity and every container module global (retained.py). Payload: all 82 entities built by their platforms' async_setup_entry (covers all 54 lines of enumerate.py d9-attributes), split by _unrecorded_attributes (payload.py). notifier.py and frontend.py: reload.py (setup/unload x10 and x20). diagnostics.py, services.py, config_flow.py: ondemand.py. process_worker.py: solving-child VmRSS series and ru_maxrss (retained.py). www/heatpump-optimizer-card.js: card_history_retained.mjs (HistorySource). debugger.py additionally by debug_ring.py. Not reached dynamically: 5 setup/repair-flow modules, which module_registries.py reads as holding no mutated module-level container. C1-C3 are D9-s1's axes (gil_hold, solves_per_cycle, sse_per_gradient), outside this seat's cells: handed over as leads. C4 examined: the solving child's ru_maxrss in a subprocess and a 1,100-cycle run past HISTORY_LENGTH=672."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D9.M1",
+   "what": "Owner fixture (tests/replay/owner-2026-10-30-away.json) not finished on either axis: its solves ran ~3-5 s of solver CPU each at load1 8-11, and neither the 500-cycle retained run nor the 160-cycle payload run finished in ~70 min, so they were stopped. Every number here is from the synthetic fixture (synthetic-dhw-only.json). Next: retained.py --fixture owner --cycles 1100 and payload.py --fixture owner --cycles 160 in a quiet window (about 3 h)."
+  },
+  {
+   "step": "D9.M1",
+   "what": "Redispatched C1 (gil_hold quiet re-take), C2 (shadow/what-if and diagnose solves per cycle) and C3 (DHW planning loops' SSE per gradient) are D9-s1's axes, not this seat's; not measured, handed to D9-s1 as leads."
+  },
+  {
+   "step": "D9.M1",
+   "what": "Dynamic retained-bytes check not run for device_prefill.py, name_match.py, prefill_offer.py, quick_setup.py and repairs.py (setup and repair flows); static scan only."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D9-s2-01",
+   "scope": "D9-s2",
+   "step": "D9.M1",
+   "title": "Card HistorySource never trims rows past its 48 h span: retained rows grow linearly with the card's life",
+   "severity": "low",
+   "claim": "On a long-lived card element whose plan dialog is panned into the past once a day, HistorySource retains 1,448 more rows per day (log 476, actionLog 152, seen keys 628, memoized overlay points 192; 60 covered chunks after 30 days against a 48 h reach of 4-5), with no plateau, while its own HISTORY_SPAN_MS caps what it can ever show at 48 h.",
+   "mechanism": "HistorySource is built once per card element (constructor) and survives every dialog session (ViewWindow.onDialogClosed resets only the range). absorb() appends every fetched row to this.log[field], this.actionLog and this.seen, and fetchChunk adds each chunk to this.covered; ensure() deletes only the stale live-edge chunk's 'loaded' mark. Nothing drops a row older than Date.now() - HISTORY_SPAN_MS, and overlays() re-materialises one point per plan step of every covered chunk into this.memo, so the memo also grows per day.",
+   "evidence": {
+    "command": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+    "harness_path": "dev/audit/rounds/round11/D9/s2/card_history_retained.mjs",
+    "value": 1448.0,
+    "unit": "retained rows per day (log + actionLog + seen + memo points), days 3-30",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "Linux x86_64 container B2, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "count is contention-immune; heap_slope 140,157 B/day printed beside it is provisional (load1 8.5, two Python harnesses of this seat running)",
+    "tolerance": "exact for this fixture (tests/card_rig.mjs realisticHistory); +-1 % across fixture edits",
+    "load1": 8.53,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:HistorySource (ensure, fetchChunk, absorb, overlays), driven through tests/card_rig.mjs historyApi",
+   "perturbation": {
+    "change": "--arm trim: in-memory one-line edit of the card source, absorb()'s add() splices samples older than Date.now() - HISTORY_SPAN_MS after its sort",
+    "expected_direction": "down",
+    "observed_value": "log_rows_slope 476 -> 0.0 rows/day, memo_points_slope 192 -> 0.0; total 1448 -> 780 (actionLog and seen, untrimmed by this one line, still grow 152 + 628/day)"
+   },
+   "metric_definition": "Rows held by one HistorySource (log, actionLog, seen, memo points) after each simulated day; slope per day between day 3 and day 30.",
+   "phenomenon_property": "Every per-session collection of HistorySource (log, actionLog, seen, covered, memo) is bounded by HISTORY_SPAN_MS: after any number of days its size is at most what a fresh 48 h window holds.",
+   "seam_rule": "grep -n 'this\\.\\(log\\|actionLog\\|seen\\|covered\\|memo\\|chunks\\)\\b' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "null_control": {
+    "command": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm nopan",
+    "value": 0,
+    "note": "the same 30 days with the dialog never panned: no fetch, 0 rows retained, heap slope 1,320 B/day (noise); growth is caused by the history fetch path, not by the clock or the rig"
+   },
+   "reproduction_steps": [
+    "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+    "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm trim",
+    "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm nopan"
+   ],
+   "proposed_fix_scope": "HistorySource: drop log/actionLog rows, seen keys and covered chunks older than Date.now() - HISTORY_SPAN_MS when a chunk is absorbed (or clear the collaborator when the dialog session ends), and build overlays only over covered chunks inside the span.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "N-no-expiry"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "AccuracyTracker is bounded: _accuracy grows during the fill to HISTORY_LENGTH=672 samples, then plateaus (C4)",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --subprocess",
+   "value": "coord._accuracy 136,107 B @200 -> 334,327 B @700 -> 332,047 B @1100; late_root_slope[coord._accuracy] = -5.7 B/cycle (cycles 700-1100); root_slope 200-1100 = 217.7 B/cycle (the fill)"
+  },
+  {
+   "claim": "ru_maxrss in a subprocess (C4): the coordinator process and the solving child stay under B5's 128 MB process peak; the child's RSS is flat over 900 cycles",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --subprocess",
+   "value": "child_ru_maxrss 123,480 KiB (harness process including tracemalloc); worker_ru_maxrss 108,156 KiB; worker VmRSS 106,956-108,332 KiB across cycles 200-1100 (worker_rss_slope 614 B/cycle = noise inside a 1.4 MB band); provisional, load1 8.2, thread_factor 1.0"
+  },
+  {
+   "claim": "SnapshotRing is bounded by RING_SIZE (take() trims); at 6 h clock steps it plateaus",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --step-minutes 360",
+   "value": "coord._snapshot_ring 364,412 B @200 -> 382,313 B @400 -> 382,677 B @1100; late_root_slope 0.1 B/cycle; late_traced_slope 20.7 B/cycle (cycles 700-1100, harness frames included) over ~275 simulated days"
+  },
+  {
+   "claim": "No other coordinator collection grows: all 19 enumerate.py d9-collections roots and every module global are flat or oscillating after their fills",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --subprocess",
+   "value": "late root slopes (700-1100): _thermal_model 35.2 (sawtooth 23-41 KB, no trend), _dhw_accuracy 1.8, coord.data 0.5, _dhw_learner 0.4, _price_learner 0.4 B/cycle; all others |slope| <= 0.1"
+  },
+  {
+   "claim": "B4's literal reading (slope after 200 warm-up cycles x 52,560) reads bounded fills as growth: 874.9 B/cycle = 43.85 MiB/yr at the 10 min interval, all from _accuracy (cap 672) and _snapshot_ring (cap RING_SIZE); the bounded total of both is ~0.72 MB",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --subprocess",
+   "value": "traced_slope 874.9 B/cycle; root_slope _snapshot_ring 268.9 + _accuracy 217.7 B/cycle; both plateau (accuracy late -5.7 B/cycle; ring 382,677 B at 6 h steps, late 0.1 B/cycle)"
+  },
+  {
+   "claim": "PriceLearner.days_seen/quarter_days_seen grow by one key per day in memory (trimmed to 90 only in store_payload) but stay far inside B4",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --step-minutes 360",
+   "value": "late_root_slope[coord._price_learner] 12.8 B per 6 h cycle = 51 B/day = ~19 KB/yr (B4 10 MiB)"
+  },
+  {
+   "claim": "Monthly receipts follow the ledger's KEEP_MONTHS (24); month-keyed collections show no trend over ~275 simulated days",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --step-minutes 360",
+   "value": "_month_reports, _score_day, _energy_totals, _cop_baseline, _pv_summary, _fuse_advisor: no root among the top late slopes (all |slope| <= 0.1 B/cycle)"
+  },
+  {
+   "claim": "A config-entry unload frees the coordinator: none survives 10 or 20 reloads; the instrument sees a leak when the entities are kept",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/reload.py --reloads 10 --cycles 3",
+   "value": "coordinators_alive_after_unload 0 of 10 (0 of 20 at --reloads 20); production traced bytes +1.6-2.8 KB/reload (hass-keyed registries such as inputs._POLLING_SOURCES); positive control --arm keep_entities: 10 of 10 alive, 453,593 B/reload"
+  },
+  {
+   "claim": "On-demand entry points retain nothing per call",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/ondemand.py --calls 80",
+   "value": "retained per call: diagnostics 108 B (217 B at 20 calls, so a one-time warm-up, not a slope), simulate_plan -4, diagnose_interval 0, debug_collect status 0, options flow init 0; positive control --arm leak: diagnostics 15,490 B/call"
+  },
+  {
+   "claim": "The debug collector's ring is bounded by COLLECT_SPAN and frozen after finalize",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/debug_ring.py",
+   "value": "peak 1,681,781 B at 1,008 rows and 7 snapshots; tail slope 0 B/cycle (cycles 1100-1299); perturbation --span-days 8: 1,921,264 B"
+  },
+  {
+   "claim": "B6 payload holds: recorded attribute bytes and every entity's recorded attributes stay under budget, and the exclusion set is load-bearing",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/payload.py --fixture synthetic --cycles 160",
+   "value": "recorded 794,158 B/day changed (743,418 B/day new rows after content dedup) vs 5,000,000; largest entity 856 B (climate) vs 16,384; 0 entities over; coordinator.data 84,269 B max per cycle; unrecorded 81,629 B/cycle. Perturbation record_plan_forecast: 5,804,232 B/day and 2 entities over 16,384"
+  },
+  {
+   "claim": "No module-level container in the five setup/repair-flow modules is mutated; every per-owner registry elsewhere is a WeakKeyDictionary or keyed by a bounded set",
+   "command": "python3 dev/audit/rounds/round11/D9/s2/module_registries.py",
+   "value": "23 mutation sites in 16 files of 95; 0 in device_prefill, name_match, prefill_offer, quick_setup, repairs; strong ones: coordinator._FENCED_CAUSES, coordinator._WORKER_FALLBACK_CAUSES (entry_id), store._NEWER_ON_DISK (store keys), off_restore._CONSUMERS/_WRITERS (registration keys)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D9/s2/_drive.py",
+  "dev/audit/rounds/round11/D9/s2/retained.py",
+  "dev/audit/rounds/round11/D9/s2/payload.py",
+  "dev/audit/rounds/round11/D9/s2/reload.py",
+  "dev/audit/rounds/round11/D9/s2/ondemand.py",
+  "dev/audit/rounds/round11/D9/s2/debug_ring.py",
+  "dev/audit/rounds/round11/D9/s2/module_registries.py",
+  "dev/audit/rounds/round11/D9/s2/card_history_retained.mjs"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D9-s1",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer.optimize (GIL yields)",
+   "what": "Redispatched C1: gil_hold numbers were taken at load1 16-28 and need a quiet-window re-take; the contyield arm was inconclusive."
+  },
+  {
+   "owner_seat": "D9-s1",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "shadow/what-if solve (~line 11148), async_diagnose_interval",
+   "what": "Redispatched C2: solves_per_cycle for the shadow/what-if and diagnose paths was not triggered by the rig."
+  },
+  {
+   "owner_seat": "D9-s1",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "symbol": "DHW planning loops",
+   "what": "Redispatched C3: the DHW planning loops' simulate-step-equivalents per gradient are not yet split out separately."
+  },
+  {
+   "owner_seat": "D9-s1",
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "HistorySource.overlays",
+   "what": "overlays() rebuilds one point per plan step over every covered chunk whenever version/fetchedThrough changes; with covered never trimmed (D9-s2-01: 60 chunks after 30 days), the per-render CPU of the history overlay grows with the card element's life. Not measured here (CPU axis)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "dev/governance/dimensions/criteria/D9-criteria.md",
+   "symbol": "B4 retained growth",
+   "what": "B4 takes the slope after 200 warm-up cycles, shorter than the fill of the bounded AccuracyTracker (672 samples) and SnapshotRing (RING_SIZE, weekly). Read literally, it gives 874.9 B/cycle (43.85 MiB/yr, a fail) for structures that plateau at ~0.72 MB together; a plateau or late-window rule would stop a false B4 failure (retained.py --late-from)."
+  }
+ ]
+}

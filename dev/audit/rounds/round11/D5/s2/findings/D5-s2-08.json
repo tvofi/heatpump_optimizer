@@ -1,0 +1,44 @@
+{
+ "id": "D5-s2-08",
+ "scope": "D5-s2",
+ "step": "D5.M3",
+ "title": "Mechanism numbers drifted: legionella 7 vs 10 days, input age 60 vs 360 min, pump-duty echo grace 60 vs 20 s",
+ "severity": "medium",
+ "claim": "Of 57 numbers stated in the mechanism paragraphs of README.md, how-it-works.md and configuration.md, 7 differ from the value the shipped code uses: the anti-legionella interval is '7 days' in README.md:506, how-it-works.md:622 and configuration.md:287 and :478 against const.DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS = ThermalParameters().dhw_legionella_interval_days = 10.0; how-it-works.md:1004 gives '60 minutes for indoor and tank temperatures' against const.INPUT_MAX_AGE_MINUTES = 360 for both; and configuration.md:900-901 says pump-duty readings 'in the first 60 seconds after a write are not counted' against pump_arbiter.ECHO_GRACE_S = 20.0, the grace pump_arbiter._edited applies.",
+ "mechanism": "Each number moved in code (the input age to six hours for report-on-change probes, D1-s5-51 per its comment; the legionella interval to 10 days; the arbiter's echo grace to 20 s, 'past the fork's 8 s sent-value window') while the prose kept the old value; no gate pins these numbers against the documents. configuration.md's other 107 comparable table defaults and all 79 ranges agree (defaults_table.py), as do 50 other prose numbers, including 21 Pump duty control numbers. A user relying on the documented weekly disinfection gets a 10-day cycle; one reading the staleness section expects a dead probe to freeze the learners after an hour, not six; one reading the hold rule expects an edit within a minute of a write to be ignored, while the arbiter adopts it after 20 s.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/defaults.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s2/defaults.py",
+  "value": "mismatches=7 of pairs=57",
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+  "cpu_or_wall": "count",
+  "contention_note": "box heavily loaded (load1 200-280); counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 201.51,
+  "thread_factor": 0.998
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters (dhw_legionella_interval_days default) and custom_components/heatpump_optimizer/const.py:INPUT_MAX_AGE_MINUTES and custom_components/heatpump_optimizer/pump_arbiter.py:ECHO_GRACE_S",
+ "perturbation": {
+  "change": "--perturb-code (legionella default 7.0), --perturb-age (indoor and tank ages 60), --perturb-echo (ECHO_GRACE_S 60.0), --perturb-doc (four units to 10 days), each in memory",
+  "expected_direction": "down",
+  "observed_value": "mismatches 7 -> 3, 7 -> 5, 7 -> 6, 7 -> 3"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/defaults.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/defaults_table.py",
+  "value": "50 other stated numbers agree (legionella temperature, wind, rain, DHW minimum, cooling rate, inlet, two-zone set, outdoor and power-meter ages, cop_scale bounds, outage gap and delay, away DHW minimum, mixed-use reference, disinfection hold, elastic minimum, interval, comfort weight, and the Pump duty control flow ceiling/hold/gates, return spread, lift, feedback start/rate/window/deadband/floor, duty-switch stop window/count/half-life, rails, boost hours, retry, ledger tank rise); defaults_table.py: 1 mismatch (legionella) of 108 table defaults, 0 of 79 ranges",
+  "note": "the comparison separates the moved defaults from the many that agree"
+ },
+ "metric_definition": "Doc (unit, number) pairs whose stated value differs from the production value (ThermalParameters field, const, or module constant), over 57 pairs.",
+ "phenomenon_property": "Every default or mechanism number a reader document states equals the value the shipped code uses.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/defaults.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/defaults_table.py  (BAD lines)",
+ "stop_rule_class": "bug",
+ "class_guess": "I5",
+ "files": [
+  "README.md",
+  "docs/how-it-works.md",
+  "docs/configuration.md"
+ ],
+ "proposed_fix_scope": "Make the four legionella units and const.DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS agree (the owner's call which value is intended), and rewrite how-it-works.md:1004 to six hours for indoor, floor and tank probes with the reason (report-on-change probes). A doc_claims.py arm pinning documented defaults to const closes the class. For D6: the same sentences. Rewrite configuration.md:900-902 to the 20 s grace (past the Tuya fork's 8 s echo)."
+}

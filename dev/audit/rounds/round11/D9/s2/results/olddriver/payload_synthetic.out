@@ -1,0 +1,46 @@
+# machine Linux-6.18.44-fc-v470-x86_64-with-glibc2.39 py3.14.7
+# fixture=synthetic cycles=160 warmup=16 measured=144 entities=82 perturb=None errors=0 []
+RESULT data_dict_bytes_max=84244 B
+RESULT data_dict_bytes_mean=80240 B
+#   data[schedule] max 22496 B
+#   data[dhw_plan] max 19884 B
+#   data[space_plan] max 17327 B
+#   data[dhw_schedule] max 6635 B
+#   data[plan_replay] max 3795 B
+#   data[insight] max 1414 B
+#   data[predictive_info] max 984 B
+#   data[current_action] max 846 B
+#   data[battery] max 749 B
+#   data[heat_pump_power_series] max 655 B
+#   data[price_prior] max 651 B
+#   data[dhw_advisor] max 586 B
+RESULT attrs_recorded_per_cycle=9977 B
+RESULT attrs_unrecorded_per_cycle=81629 B
+RESULT recorded_changed_per_day=793792 B (B6 budget 5000000)
+RESULT recorded_newrows_per_day=743101 B (recorder dedup by content)
+RESULT entities_over_16384=0 count []
+RESULT entity_recorded_max[HeatPumpOptimizerClimate:test_entry_climate]=856 B unrec_max=2 file=climate.py top=[('ecl110_effective_displace', 19), ('pre_heat_urgency', 19), ('predicted_savings', 18), ('savings_percentage', 18)]
+RESULT entity_recorded_max[PlanNarrativeSensor:test_entry_plan_narrative]=828 B unrec_max=2 file=sensor.py top=[('items', 403), ('lines', 361), ('stat_kind', 16), ('language', 4)]
+RESULT entity_recorded_max[PredictiveInsightSensor:test_entry_predictive_insight]=772 B unrec_max=433 file=sensor.py top=[('dhw_planned_heating_hours', 111), ('dhw_peak_usage_hours', 69), ('dhw_windows', 26), ('pre_heat_urgency', 19)]
+RESULT entity_recorded_max[ModelStatusSensor:test_entry_model_status]=709 B unrec_max=830 file=sensor.py top=[('cop', 149), ('pump_max_power', 95), ('system_identification_outcome', 73), ('tank_cooling', 48)]
+RESULT entity_recorded_max[DHWHeatingPlanSensor:test_entry_dhw_heating_plan]=522 B unrec_max=25798 file=sensor.py top=[('projection', 112), ('next_slot_start', 27), ('plan_kind', 5), ('active_now', 5)]
+RESULT entity_recorded_max[SpaceHeatingPlanSensor:test_entry_space_heating_plan]=498 B unrec_max=23571 file=sensor.py top=[('projection', 112), ('plan_kind', 7), ('active_now', 5), ('currency', 5)]
+RESULT entity_recorded_max[OptimizationScoreSensor:test_entry_optimization_score]=424 B unrec_max=2 file=sensor.py top=[('reasons', 119), ('operation_drivers', 110), ('machine_evidence', 45), ('stat_kind', 20)]
+RESULT entity_recorded_max[DHWTemperatureSensor:test_entry_dhw_temperature]=397 B unrec_max=2 file=sensor.py top=[('dhw_windows', 26), ('dhw_heating_active', 5), ('dhw_in_demand_window', 5), ('dhw_cooling_rate_learned', 5)]
+RESULT entity_recorded_max[DHWScheduleSensor:test_entry_dhw_schedule]=390 B unrec_max=6652 file=sensor.py top=[('dhw_planned_heating_hours', 111), ('dhw_windows', 26), ('dhw_in_demand_window', 5), ('dhw_legionella_due', 5)]
+RESULT entity_recorded_max[ObservedCOPSensor:test_entry_observed_cop]=355 B unrec_max=2 file=sensor.py top=[('defrost_buckets', 120), ('defrost_derate', 18), ('observability', 16), ('last_refusal', 15)]
+RESULT entity_recorded_max[TotalCostSensor:test_entry_total_cost]=344 B unrec_max=2 file=sensor.py top=[('period', 162), ('split_method', 109), ('counting_since', 12), ('measured', 4)]
+RESULT entity_recorded_max[MonthlySavingsSensor:test_entry_monthly_savings]=328 B unrec_max=3825 file=sensor.py top=[('savings_months', 280), ('saving_includes_wood', 5)]
+RESULT entity_recorded_max[ThermalBatterySensor:test_entry_thermal_battery]=300 B unrec_max=451 file=sensor.py top=[('measured_components', 20), ('modelled_components', 8), ('stored_energy_kwh', 5), ('usable_capacity_kwh', 5)]
+RESULT entity_recorded_max[InputHealthBinarySensor:test_entry_input_health]=296 B unrec_max=2 file=binary_sensor.py top=[('input_ages_minutes', 131), ('learners_frozen', 5), ('summary', 4), ('learner_freeze_reason', 4)]
+RESULT entity_recorded_max[PredictionAccuracySensor:test_entry_prediction_accuracy]=257 B unrec_max=2 file=sensor.py top=[('lead_sigma', 58), ('temperature_bias', 6), ('cost_error_percent', 6), ('temperature_mae', 5)]
+RESULT file_recorded_max_sum[sensor.py]=8615 B
+RESULT file_recorded_max_sum[climate.py]=856 B
+RESULT file_recorded_max_sum[binary_sensor.py]=788 B
+RESULT file_recorded_max_sum[switch.py]=124 B
+RESULT file_recorded_max_sum[button.py]=41 B
+RESULT file_recorded_max_sum[datetime.py]=2 B
+RESULT wall_s=80 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=15.8
+RESULT swapins=0

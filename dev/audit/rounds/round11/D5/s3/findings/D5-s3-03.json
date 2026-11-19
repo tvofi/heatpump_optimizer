@@ -1,0 +1,50 @@
+{
+ "id": "D5-s3-03",
+ "scope": "D5-s3",
+ "step": "D5.M4",
+ "title": "363 of 2855 comment units in the D5-s3 cells carry a sentence over 40 words (criterion C5)",
+ "severity": "low",
+ "claim": "363 of the 2855 D5 units (comments and docstrings) of custom_components/heatpump_optimizer/{_,a..i}*.py contain at least one sentence over 40 words, failing D5-criteria C5; 43 of 45 files carry one, coordinator.py the most (91).",
+ "mechanism": "Comments accrete clauses (history, cross-references, issue ids) into single sentences; the longest measured run past 100 words (const.py VENT_CUSUM_REFERENCE_HOURS block).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/c5_long.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s3/c5_long.py",
+  "value": 363,
+  "unit": "units with a sentence over 40 words",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B3, x86_64 4 vCPU container",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats running on the shared box; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 6.87,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "inspect.getsource(custom_components.heatpump_optimizer.<module>) for each cell module, split by tools/audit/text_ledger.py:units_of/sentences",
+ "perturbation": {
+  "change": "--perturb: in dhw_planner's source, a full stop after word 30 of every over-long sentence (in memory)",
+  "expected_direction": "down",
+  "observed_value": 343
+ },
+ "metric_definition": "Count of D5 units in the seat's cells with any sentence (text_ledger.sentences, comment markers stripped) longer than 40 whitespace-separated words.",
+ "phenomenon_property": "No comment or docstring sentence in production exceeds 40 words (D5-criteria C5).",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/c5_long.py",
+ "leave_one_out": {
+  "cells": 45,
+  "min": 0,
+  "max": 91,
+  "drop_most_favourable": 272
+ },
+ "reproduction_steps": [
+  "run the command: RESULT long_units=363",
+  "--perturb: long_units=343 (dhw_planner 29 -> 9)"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/const.py",
+  "custom_components/heatpump_optimizer/config_flow.py",
+  "custom_components/heatpump_optimizer/dhw_planner.py"
+ ],
+ "proposed_fix_scope": "Split sentences file by file as files are touched; the per-file list the harness prints is the work order. The splitter is textual: an abbreviation splitting early only lowers the count."
+}

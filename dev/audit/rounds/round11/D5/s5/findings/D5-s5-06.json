@@ -1,0 +1,42 @@
+{
+ "id": "D5-s5-06",
+ "scope": "D5-s5",
+ "step": "D5.M4",
+ "title": "orchestrator_tick: HEARTBEAT_SECONDS called the train's heartbeat is 480 s; the train beats every 240 s",
+ "severity": "low",
+ "claim": "The comment on orchestrator_tick.HEARTBEAT_SECONDS calls 480 the watcher heartbeat the tick assumes and flags a train beat older than 2x it; merge_train.HEARTBEAT_SECONDS, the train's actual beat interval, is 240, so the stale threshold (960 s) is 4 train beats, not 2.",
+ "mechanism": "Fails D5-criteria.md C1 (precise: true). Two definitions of one interval disagree; the comment states the 2x rule on the wrong base, so either the comment or the constant is stale.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/orchestrator_tick.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+  "value": 1,
+  "unit": "units",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+  "tolerance": "exact",
+  "load1": 2.55,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "orchestrator_tick.HEARTBEAT_SECONDS vs merge_train.HEARTBEAT_SECONDS (imported modules)",
+ "perturbation": {
+  "change": "--set orchestrator_tick.HEARTBEAT_SECONDS=240",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+ "phenomenon_property": "A comment describing a constant as another component's interval matches that component's constant at the ref.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+ "stop_rule_class": "bug",
+ "class_guess": "I5",
+ "files": [
+  "tools/audit/seat/orchestrator_tick.py"
+ ],
+ "proposed_fix_scope": "Either derive the tick's assumed heartbeat from merge_train.HEARTBEAT_SECONDS (threshold 2x240) or reword the comment to state 960 s as four beats; owner of the monitoring threshold decides.",
+ "reproduction_steps": [
+  "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/orchestrator_tick.py",
+  "read the `false` line(s) it prints",
+  "perturb: --set orchestrator_tick.HEARTBEAT_SECONDS=240"
+ ]
+}

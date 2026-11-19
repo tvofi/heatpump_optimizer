@@ -1,0 +1,48 @@
+{
+ "id": "D2-s3-06",
+ "step": "D2.M4",
+ "title": "peak_cost (the published projected capacity charge) sums the k SMALLEST window excesses",
+ "severity": "medium",
+ "claim": "tariff._exact_topk_sum returns sum(np.sort(excess)[:k]), the k smallest, so with peak_distinct_days off the published OptimizationResult.peak_cost on the capacity_tariff plan is 0.0-3.34 against 23.2-41.5 for the k largest on all 8 price shapes; the solver's scalar surrogate takes the same arm when at most k windows tie, while its batch twin takes the largest.",
+ "mechanism": "tariff.py:918. _peak_charge feeds it for peak_cost; _plateau_aware_topk_sum uses it for k>1 off plateaus, while _plateau_aware_topk_sum_batch uses np.sort(...)[:, -k:] (largest): the objective and its batched twin disagree. Inert under distinct_days (default) for horizons of at most k days, where every day's excess is summed.",
+ "evidence": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": 41.4976,
+  "unit": "currency",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "n/a",
+  "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+  "tolerance": "±1e-3",
+  "load1": 5.76,
+  "thread_factor": 1.0001
+ },
+ "instrumented_symbol": "heatpump_optimizer.tariff:peak_cost (_exact_topk_sum), via HeatPumpOptimizer.optimize -> OptimizationResult.peak_cost",
+ "perturbation": {
+  "change": "--perturb topk: _exact_topk_sum takes np.sort(excess)[-k:]",
+  "expected_direction": "to_zero",
+  "observed_value": 0.0004
+ },
+ "metric_definition": "peak_cost_err = |result.peak_cost - peak_price_per_kw * sum of the k largest window excesses over the threshold|, capacity_tariff golden at peak_distinct_days False, threshold 3 kW",
+ "phenomenon_property": "Every top-k capacity charge, exact or surrogate, scalar or batch, sums the k largest window excesses.",
+ "seam_rule": "grep -n 'np.sort' custom_components/heatpump_optimizer/tariff.py",
+ "null_control": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": "0.0004 with the k largest (rounding of the published figure)",
+  "note": "same plans, only the top-k arm changed"
+ },
+ "leave_one_out": {
+  "cells": 8,
+  "min": 20.9232,
+  "max": 41.4976,
+  "drop_most_favourable": 22.7434
+ },
+ "proposed_fix_scope": "tariff._exact_topk_sum: np.sort(excess)[-k:]",
+ "files": [
+  "custom_components/heatpump_optimizer/tariff.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P2",
+ "scope": "D2-s3"
+}

@@ -1,0 +1,35 @@
+FAIL level layout=no_valve	[minimal+prereq] published two_zone_enabled=True but the cell declares zone=off; [minimal+prereq] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published pv_enabled=False but the cell declares pv=on
+FAIL level layout=two_tank_4way	[reference] published pv_enabled=False but the cell declares pv=on
+FAIL level two_zone_mode=on	[reference] published pv_enabled=False but the cell declares pv=on
+FAIL level two_zone_mode=off	[minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published pv_enabled=False but the cell declares pv=on; [reference] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)
+FAIL level wood_type=birch	[minimal] published two_zone_enabled=True but the cell declares zone=off; [minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published pv_enabled=False but the cell declares pv=on
+FAIL level CONF_DHW_TEMP_ENTITY=present	[minimal+entity] published two_zone_enabled=True but the cell declares zone=off; [minimal+entity] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published pv_enabled=False but the cell declares pv=on
+FAIL level CONF_PV_PRODUCTION_ENTITY=present	[minimal+entity] published two_zone_enabled=True but the cell declares zone=off; [minimal+entity] published pv_enabled=False but the cell declares pv=on; [minimal+entity] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published pv_enabled=False but the cell declares pv=on
+FAIL level CONF_LOWER_FLOOR_TEMP_ENTITY=present	[reference] published pv_enabled=False but the cell declares pv=on
+FAIL level operation_mode=auto	[minimal] published two_zone_enabled=True but the cell declares zone=off; [minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published pv_enabled=False but the cell declares pv=on
+FAIL level grid_fee_mode=rules	[minimal] published two_zone_enabled=True but the cell declares zone=off; [minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published pv_enabled=False but the cell declares pv=on
+
+failure reasons (pattern -> cells):
+    11  published pv_enabled=False but the cell declares pv=on
+          e.g. level layout=no_valve [reference]
+          e.g. level layout=two_tank_4way [reference]
+          e.g. level two_zone_mode=on [reference]
+     8  plan carries a lower#zone trajectory the cell does not have (#/# published rows carry upper/lower)
+          e.g. level layout=no_valve [minimal+prereq]
+          e.g. level two_zone_mode=off [minimal]
+          e.g. level two_zone_mode=off [reference]
+     6  published two_zone_enabled=True but the cell declares zone=off
+          e.g. level layout=no_valve [minimal+prereq]
+          e.g. level wood_type=birch [minimal]
+          e.g. level CONF_DHW_TEMP_ENTITY=present [minimal+entity]
+RESULT cells_run=10 count
+RESULT cells_skipped=0 count
+RESULT runs=20 count
+RESULT runs_reused=0 count
+RESULT fail_cells=10 count
+RESULT fail_runs=17 count
+RESULT shrink=pv invent_zone=0 fix_zone_auto=0 fix_plan_zone=0
+RESULT cpu_s=95.0 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=4.61
+RESULT swapins=0
