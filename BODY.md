@@ -7,6 +7,7 @@ R11-SEAM-solver: the start set brackets the all-off and wood-covered optima, the
 - `_space_only_starts` keeps one copy of each byte-identical start. A tank covering the reference whole collapses the scaled seeds and the all-off start onto one zero schedule, and each copy paid a full descent and polish to reach the same plan.
 - `tests/stress.py`: one recorded, self-expiring simulate allowance for `summer/2z/space/wood-two-tank` in `tests/stress_budgets.json` (`simulate_allowance`), a budget raise under mandate 6893738184; see `## Raise justification`. `STRESS_WORK_FACTOR` is unchanged.
 - `_space_only_starts` draws the reference-energy seeds unconditionally. With no wood cover they are byte-identical to the scaled seeds, so the filter drops them; the `covered > 0.0` guard was dead and is removed.
+- `tests/golden/claimed_drift.txt` claims `confidence_margins`: the all-off start moves the x86_64 refinement by about 1e-6 relative (CI `tests / fast` job 134916816497 at bdf09624). arm64 reads it byte-identical.
 - Since the first handoff, after merging origin/main: `docs/how-it-works.md` names the five starts each space solve runs, and `tests/features.py`'s R11-OUTSIDE-HONEST-STARTS-RUNS block reads candidate 1 of the space-only commit stage as the descent's plan.
 
 Alternatives considered:
@@ -16,13 +17,24 @@ Alternatives considered:
 
 ## Head
 
-0b7b2296149f43b06939d5790d62dad02b9969a4, measured against merge base 7ae05284d5bceb254230b471a4eb936c2b072174. `origin/main` was 7ae05284d5bceb254230b471a4eb936c2b072174 at 2026-11-19. The last merge (`Merge origin/main 7ae05284d5`) was taken without a conflict: prepr's machinery ratchet reads its cap from the head's copy of the policy budgets, which predated main's re-record. Main's side of that merge changes no file under `custom_components/`, `tests/golden/`, `tests/stress.py`, `tests/stress_budgets.json` or `tests/features.py` (`git diff --stat fd847a550c..7ae05284d5 -- <those paths>` prints nothing), so the figures below, taken before it, describe the same product code.
+`8d816fcb34f3cce0aae3156d2199a016e0f08ada` merges the authored code head `de8181b0a0e35070d73118d0ca32e0a4463fcf4f`.
+
+`4b6b56207974a06bc3aa101b2af89b77bdcf0e19` merges the authored code head `de8181b0a08301af123daf4ac6c7d803991d2315`.
+
+`ee9bfa8ac5c2c5cc5454f3c636cb627bcb29d565` merges the authored code head `db6f2a664b22c42a58c2a8776f57b317074d0d31` and then merges origin/main `cb8edb65a5` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+db6f2a664b22c42a58c2a8776f57b317074d0d31, measured against merge base cb8edb65a5a9c0940dbe263acee49e02ba5f0b25 (origin/main, the v10.1.1 stamp, committed 2026-11-19T10:02Z). It is 0b7b2296149f43b06939d5790d62dad02b9969a4 plus two commits:
+
+- a7f9c27aee merges origin/main cb8edb65a5. The one conflict is `tests/features.py`, where this branch and main each append a block at the file's end (`# --- R11-SEAM-solver: the start set brackets ...` here, main's `# -- The plan peak under the lift` block). Both are kept, this branch's first, and no line of either is changed. The merge driver restamped `tests/golden/claimed_drift.txt` to `claims-for: 10.1.1`.
+- db6f2a664b claims `confidence_margins` (the line above).
+
+The figures below up to `0b7b2296` are the previous fixer's. Main's side of the merge changes neither `tests/stress.py` nor `tests/stress_budgets.json`. In `optimizer.py` it touches only `OptimizationResult`'s floor-trajectory read (`zone_trajectories`, R11-SEAM-plant-model 38e231f9 and 8c77c551), not the solve or its start set. The figures taken at db6f2a664b are under `## Figures`, `Re-measured at db6f2a664b`.
 
 ## Mutation proof
 
 Each mutant deletes one fix line in a worktree at the head, then runs `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude "exec(open('<prelude>').read())" "# --- R11-SEAM-solver: the start set brackets"`. The prelude comes from `features_block.py --emit-prelude <prelude> "<same marker>"`. Each mutant exited 1; the failing check per mutant:
 
-- M1, `plan_slots.close` back to `max(set(codes), key=codes.count)`: FAIL `a plan slot's reason tie reads the slot's first code, whatever the hash seed (D1-s1-51)`.
+- M1, `plan_slots.close` back to `max(set(codes), key=codes.count)`: FAIL `a plan slot's reason tie reads the slot's first code, whatever the hash seed (D1-s1-51)`, under PYTHONHASHSEED 0, 23, 24, 76, 84 and an unset seed, each rc=1. The unmutated tree reads ALL 9 PASSED under 0, 23, 76 and an unset seed. Run at de8181b0a0. The check used a fixed cheap_price/pre_heat pair until de8181b0a0, and the revert passed it under seeds 23, 24, 76 and 84. When both codes land in one hash slot, a two-code set iterates in insertion order and returns each spelling's first code. The check now takes the first pair of action codes whose set order is the same whichever code is inserted first. A standalone sweep of that selection over seeds 0 to 1000 has the `set` pick fail every seed and the `dict.fromkeys` pick pass every seed. The old pair let the `set` pick pass at 44 of those seeds.
 - M2, `_Horizon.money_prices` returns `self.prices`: FAIL `lambda=1 books no premium as money: ... (D2-s3-01)`.
 - M3, `_solve_space` drops `starts.append(_lower_bound_start(bounds))`: FAIL `the first multi-start of each solve path starts one run at the lower bound, the all-off plan (D0-s3-02)`.
 - M4, `_space_only_starts` drops the lower-bound start: FAIL, same check as M3.
@@ -82,11 +94,12 @@ Reproduction trap: the export ships `D0/s3/offstart_out/cells.jsonl`, and `offst
 - Architecture, `python3 tools/audit/archscore/score.py --diff 7ae05284d5bceb254230b471a4eb936c2b072174`: dS +0.0000 NULL.
 - Stress, `PYTHONPATH=tests/hastub python3 tests/stress.py` at 6a09ed087ac57b9e516d5e56c45cb0b95c4ff08b: ALL 120 STRESS CHECKS PASSED. summer/2z/space/wood-two-tank reads 38 solver evaluations against main's 26 (1.46x, under the 1.80x factor) and 122592 simulate step-equivalents against 37824 (3.24x, under its 3.25x allowance). The objective is 21423.23656 at both ends.
 - Stress counts per tree, `PYTHONPATH=tests/hastub:tests python3 -c` calling `stress.capture_work_rows(<tree>, <out>, labels=["summer/2z/space/wood-two-tank"])`: evals 54 and simulate 122592 at 320c063489, evals 38 and simulate 122592 with the identical-start filter.
-- D0-s2-01 at the head, `python3 $EXPORT/dev/audit/rounds/round11/D0/s2/wood_seeds.py --race` over the finding's 7 cells, run from the head worktree: summer_cool gap_abs 0.0000, 0.0000, 0.0004, 0.0077 and 0.0000 (winter_narrow, winter_extreme, winter_typical, winter_moderate, flat). winter_typical/shoulder reads 1.7852 and flat/shoulder 0.0001, the same as at the first handoff.
+- D0-s2-01 at the head, `python3 $EXPORT/dev/audit/rounds/round11/D0/s2/wood_seeds.py --race` over the finding's 7 cells, run from the head worktree on the previous fixer's host: summer_cool gap_abs 0.0000, 0.0000, 0.0004, 0.0077 and 0.0000 (winter_narrow, winter_extreme, winter_typical, winter_moderate, flat). These figures did not reproduce on an arm64 host (numpy on Accelerate). There, with one cell per process at a5300ee8cd, winter_moderate, winter_typical, winter_extreme and flat over summer_cool read 0.0000, 0.0093, 0.1210 and 0.1292. The reviewer's seven-cell run at ee9bfa8ac5 read the same four values. Whether the first host's figures reproduce on CI's x86_64 has not been measured. winter_typical/shoulder reads 1.7852 and flat/shoulder 0.0001, the same as at the first handoff.
 - The identical-start filter is not bit-identical on every cell. winter_moderate/summer_cool reads 0.0065 at 320c063489 and 0.0077 at the head, deterministically, on the same harness. A stderr probe in `_space_only_starts` on that cell shows the filter drops only the four duplicate zero starts (9 starts -> 5), so the start set is the same. The 0.0012 J (0.009 %) moves with the float path: the dropped descents no longer leave their entries in the shared evaluation memo. The probe ran in a throwaway worktree, and its edit is not in this diff.
 - Gate scope, `python3 tests/closure.py select --diff bc658f9d`: MODE: SCOPED, run by CI per the brief's scoped-prepr rule.
+- Re-measured at db6f2a664b, each `PYTHONPATH=tests/hastub` under venv-ci's python3 on this seat's arm64 host: `tests/doc_claims.py` ALL 439 checks PASSED; `tests/structure.py` STRUCTURE RATCHET PASSED; `tests/env_drift.py --claims-only` ok; the R11-SEAM-solver block through `features_block.py` ALL 9 FEATURES BLOCK PASSED.
 
-<!-- figure-block: scope-line mb=7ae05284d5bceb254230b471a4eb936c2b072174 head=0b7b2296149f43b06939d5790d62dad02b9969a4 -->
+<!-- figure-block: scope-line mb=b36742b17b7ea229b859fb86a43e74a562bb847b head=de8181b0a0e35070d73118d0ca32e0a4463fcf4f -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
@@ -101,15 +114,22 @@ Payments tried: five, each measured on the scenario against main's 26 evaluation
 - Keep one copy of each identical start (taken, commit d1e3701d13). Evaluations 54 -> 38 (2.08x -> 1.46x), simulate unchanged at 122592 (3.24x), because the duplicates were served from the shared evaluation memo. It clears the evaluation channel but not the simulate channel.
   Architecture score: dS 0 NULL
 - Draw the extra seeds only when the wood tank covers the reference (variant F, gate on covered >= 1.0). The counts are identical to the head, 54 evaluations and 3.24x simulate, because the scenario is itself fully covered. Not taken: it changes nothing here.
-- Narrow the reference-energy seeds to f = 1.0 (variant A). It passes stress (116/116) but reopens the race, with gap_abs 1.3571, 0.1287 and 0.1292 on winter_moderate, winter_extreme and flat over summer_cool. Not taken: the orchestrator ruled it out.
+- Narrow the reference-energy seeds to f = 1.0 (variant A). It passes stress (116/116). On the previous fixer's host it read gap_abs 1.3571, 0.1287 and 0.1292 on winter_moderate, winter_extreme and flat over summer_cool. Those figures have not been re-derived on another host. Not taken: the orchestrator ruled it out in the dispatch.
 - Narrow them to the low-energy fractions only (variant B). Simulate 94368/37824 = 2.49x, still over 1.80x. Not taken.
+- One reference-energy seed at f = 1.0, beside the all-off start, with identical starts dropped. This was a second fixer's build of variant A on 0b7b2296 (d4d1b7ef7d, not on this branch; kept as evidence only). It fits both unraised budgets on this scenario:
+  - Solver work: 22 evaluations and 66144 simulate step-equivalents against main 99436a08's 26 and 37824 beside it (1.749x, under 1.80x), from `stress.capture_work_rows`.
+  - Solve CPU: a median of 3.36x its reference (3.36, 3.50, 2.91) against the unraised 6.6x. Main reads 2.22x beside it. Measured with stress.py's own `Calibration` and `build_case`.
+  - The solver block read ALL 9 PASSED, and its four mutants were killed.
+  - Price optimality, measured with `wood_seeds.py --race` (export 819aa2e3, sha1 1b03dd54), one cell per process, on an arm64 host (numpy on Accelerate). Over summer_cool, d4d1b7ef7d reads 0.0000, 0.1383, 0.0000 and 0.0000 for winter_moderate, winter_typical, winter_extreme and flat. This head (a5300ee8cd) reads 0.0000, 0.0093, 0.1210 and 0.1292. On that host the one-seed set leaves more than the head on one cell and less on two, and both close the base's 1.36-2.03 collapse.
+  - The 0.1383 on winter_typical reproduces the second fixer's own run at 16cf42e504. The previous fixer's head figures (all at most 0.0077) do not reproduce on arm64, so on that host the race does not show that the three reference-energy descents buy price optimality over this payment. Nobody has measured it on CI's x86_64.
+  - Not taken at this head: the dispatch directed the raise. The choice between this payment and the raise is open, pending an x86_64 race of both trees.
 - Drop the space-only all-off start (variant L). 50/26 evaluations = 1.92x and simulate 3.24x. Not taken: it is D0-s3-02's fix, and it moves no simulate step.
 
 The second raise, the same scenario's recorded CPU `ratio` 2.2 -> 7.46 (commit d63daa072e). The solve CPU follows the simulate steps. `tests/mutation_table.py`'s stress baseline read the scenario at 6.7x its reference against its 6.6x budget (2.2 x 3), confirmed at a median of 6.9x over 3 re-solves. 7.46 is that row from a clean `PYTHONPATH=tests/hastub python3 tests/stress.py --record-budgets` at this head. The row's memory fields pass at their records and are not re-recorded. The payments above are the ones open to this ratio too, because the cost is the same three descents.
 
-No payment brings the scenario under its current budget. The simulate cost is the three reference-energy descents themselves.
+One payment, the one-seed start set above, brings the scenario under its current budgets. The raise keeps the three reference-energy descents, and their simulate cost is the raise. The raise rests on the previous fixer's race figures, which do not reproduce on arm64 (above).
 
-Architecture score: dS +0.0000 NULL
+Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --diff cb8edb65a5` at db6f2a664b; the previous fixer's reading at 0b7b2296 against 7ae05284 was the same)
 
 ## Unpinned sites
 
@@ -117,12 +137,20 @@ none: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --ba
 
 ## Red checks
 
+- `tests / mutation` at 10892486 (job 135388234960, the orchestrator's merge of main into bdf09624): red on the 5 added unpinned sites listed under `mutation at the first handoff` below. At this head the three sites the diff still adds are pinned (a2236e189f), and the two 2166 sites are gone. Cheaper detector: `tests/mutation_table.py --pin-killed` before the handoff.
+- `gate` at 10892486 (job 135408599182): the required aggregate. Its log reads `FAIL run(s) [44472171026] at this head are still being judged`, which is the mutation line above. No failing script of its own.
+- `tests / fast (3.14)` at bdf09624 (job 134916816497): `tests/env_drift.py`, `confidence_margins` drifted 18 leaves (predicted_cost higher by 1e-6) with no claim. Claimed at db6f2a664b. `PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only` reads ok at the head. Cheaper detector: `env_drift.py --all` on an x86_64 box; this seat's arm64 host reads the scenario byte-identical, so the local run could not have seen it.
 - `budget-raise-gate`: red by construction, because the diff raises a `tests/stress_budgets.json` leaf (`summer/2z/space/wood-two-tank`'s `simulate_allowance`, its two numbers). Under decision 0013 it turns green on an approving review at the head. Here that is the orchestrator's under mandate 6893738184 (scope all), which reads `## Raise justification`. Cheaper detector: `prepr.sh`'s body check, which ran here and named the raise before the push. Its standing cost is that step's run.
 - `tests / fast (3.14)` at the first handoff (261a3998, PR #3736's run 44332199301): `tests/stress.py`, summer/2z/space/wood-two-tank over the work factor on an unchanged plan. This head passes: `PYTHONPATH=tests/hastub python3 tests/stress.py` reads ALL 120 STRESS CHECKS PASSED at 6a09ed087a, and the CPU ratio is re-recorded at d63daa072e (`## Raise justification`). Cheaper detector: `tests/stress.py` run locally before the handoff, which prepr leaves to CI (`closures: left to CI: tests/stress.py`). The three commits after 6a09ed087a re-record the scenario's CPU ratio, remove a dead branch with an unchanged start set, and pin mutation sites. Its standing cost is about 25 minutes of CPU per solver handoff. This fire ran it.
 - `tests / mutation-autofix` at the first handoff: `skip-measure-failed`, so the bot pinned nothing. This head pins the killed sites with `tests/mutation_table.py --pin-killed --base origin/main` (commit a2236e189f; see `## Unpinned sites`). Cheaper detector: that same command before the handoff, which the first handoff did not run.
 - `tests / replay` at the first handoff: `owner-2026-10-30-away.json: cycle_cost`, cpu_ratio 443.7 over its budget 332.8. The PR's run was on base 9fe63d00, before main's #3725 (the replay-cost fix for #3602), which this head's merge base fd847a55 carries. Not re-measured at this head, because the lane takes about 30 minutes on the runner. It is not in `merge_train.py owed-reds`.
 - `tests / nightly-status`: main's own nightly `slow` lane failed in dispatch run 44270682877 (head f567988), which this diff does not touch. It is not in `merge_train.py owed-reds`, and the owner of the nightly lane is main's.
 - `mutation` at the first handoff: red on its 5 unpinned sites. At this head the three sites the diff adds are pinned (`## Unpinned sites`), and the two 2166 sites no longer exist. Cheaper detector: `tests/mutation_table.py --pin-killed` before the handoff. Its standing cost is about an hour of CPU here.
+- `governance / instrument-self-tests`, `governance / env-matrix` and `tests / replay` at ee9bfa8ac5 (run 44511076654, jobs 135515772058, 135515772101, 135517067362): CANCELLED, with no failing script of their own. `governance / env-matrix` has a 10-minute limit that the shared runner queue overran (proposal P-R11-84). The failed jobs were rerun in the same run. Cheaper detector: none that this diff can run, since the cancel is the runner's. Its standing cost is the rerun.
+- `budget-raise-gate / budget-raise-gate` at ee9bfa8ac5 (runs 44511076654 and 44511093904): red by construction, the `tests/stress_budgets.json` raise under `## Raise justification`. The orchestrator approved it under mandate 6893738184 (scope all) at this head after the run read the review, so the gate is rerun to read it. Cheaper detector: `prepr.sh`'s body check, as in the `budget-raise-gate` entry above.
+- `gate` at ee9bfa8ac5 (jobs 135548117520 and 135554566787): the required aggregate. It reads `FAIL governance / env-matrix: cancelled (this run)` and `FAIL governance: no run at this head judged base 'main'`, which are the cancelled jobs above. No failing script of its own. It follows the reruns.
+- `tests / features` (`tests/features.py`, lift-peak): a BLAS-dependent float on main and this diff's merge base, not touched by this diff. Hotfix #3815 carries the fix. Cheaper detector: none for this PR.
+- Code-scanning alerts 57 to 67: inherited from main, none opened by a file this diff changes. Cheaper detector: none for this PR.
 
 ## Forward-carry
 
@@ -132,3 +160,5 @@ none: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --ba
 
 - fixer-brief-inline: contradiction: the brief line "Do your work inline, with no subagents" and the frugal routing guard, which refuses inline reads past 5 per prompt, stopped the first fire. inbox/r11-seam-solver line 1 (mandate 6893738184) corrected it. Carry: dismissed: corrected by the orchestrator's ruling before this fire
 - harness-export-cache: stale: the plan/r11 export at 819aa2e3 ships `D0/s3/offstart_out/cells.jsonl`, and `offstart.py` resumes from it, so a re-run from `$EXPORT` reads the finder's cells at any tree. Carry: dismissed: the reproduction recipe is in this body's Figures, the reviewer's own surface
+
+
