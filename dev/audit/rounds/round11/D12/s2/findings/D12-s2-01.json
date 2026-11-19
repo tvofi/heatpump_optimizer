@@ -1,0 +1,60 @@
+{
+  "id": "D12-s2-01",
+  "scope": "D12-s2",
+  "step": "D12.M2",
+  "title": "two_zone_mode 'auto' (the default) forces the two-zone model on every one-zone install, ignoring its heat-loss figure",
+  "severity": "high",
+  "claim": "On every install that configures no lower-floor sensor, no zone key and no explicit two_zone_mode, ThermalParameters.from_config enables the two-zone model, so the coordinator plans a lower zone the config never gave it and plans the same energy whatever single-zone heat-loss figure the user entered (20.511 kWh at 0.10 and at 0.30 kW/K).",
+  "mechanism": "thermal_model.ThermalParameters.from_config: `if two_zone_mode in (const.TWO_ZONE_MODE_ON, const.DEFAULT_TWO_ZONE_MODE): two_zone_enabled = True`. DEFAULT_TWO_ZONE_MODE is 'auto', and a missing key also defaults to 'auto', so 'auto' is treated as 'on'. The presence rule the comment above it says 'auto' means sits in the else-branch, which only an unknown value can now reach. With two zones on, the options flow hides house_heat_loss_coefficient (it is gated `_single_zone`), and the model uses the upper/lower defaults 0.08 + 0.07 = 0.15 kW/K. The setup diagram (describe_setup) and the card's setup page then draw a 'Lower floor' box (2 on the minimal plant).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py",
+    "harness_path": "dev/audit/rounds/round11/D12/s2/two_zone_auto.py",
+    "value": 47,
+    "unit": "cells of 47 one-zone M2 cells publishing two_zone_enabled=True",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5 (shared), Linux x86_64, $HOME/venv-ci CPython",
+    "cpu_or_wall": "count",
+    "contention_note": "two other D12-s2 processes on the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 2.16,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalParameters.from_config (read through HeatPumpOptimizerCoordinator._async_update_data's published two_zone_enabled and schedule)",
+  "perturbation": {
+    "change": "--perturb: from_config is handed an absent/'auto' two_zone_mode as a value outside (on, auto, off), so its own presence-rule else-branch decides. This is equivalent to the one-line edit `if two_zone_mode == const.TWO_ZONE_MODE_ON:`",
+    "expected_direction": "to_zero",
+    "observed_value": "invented_zone_cells 47 -> 0; heat_loss_response_kwh 0.000 -> 32.794 (12.008 vs 44.802 kWh); published heat loss 0.15/0.15 -> 0.10/0.30; card setup page Lower-floor boxes on the minimal plant 2 -> 0 (surfaces.py); full M2+M4 grid (cells.py --m4): fail_cells 61 -> 0 (out/grid_baseline.txt vs out/grid_perturbed.txt). All 61 failures are this invention: the 47 one-zone entity 'present' cells plus the 14 building-questionnaire cells (structure/foundation/era/emitter), whose preset_from_config reads the same predicate and then writes zone keys."
+  },
+  "metric_definition": "Count of M2 cells with no lower-floor sensor, zone key or mode=on whose cycle publishes two_zone_enabled=True (plus |space kWh at heat loss 0.30 - 0.10| on MIN)",
+  "phenomenon_property": "Two-zone modelling turns on only when the config asks for it (mode on, or mode auto/absent with a zone key or lower-floor sensor present). A one-zone install's single-zone heat-loss and mass reach the model.",
+  "seam_rule": "python3 tools/audit/enumerate.py d12-cells | grep -E '^level (CONF_|two_zone_mode=)'  # every cell; plus: grep -n 'DEFAULT_TWO_ZONE_MODE' custom_components/heatpump_optimizer/*.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py [--perturb]",
+    "value": "null_ref_two_zone=1 under both arms",
+    "note": "The fully mapped reference plant (lower-floor sensor, zone keys, mode on) is two-zone under both arms, so the perturbation removes only invented zones. The surfaces.py reference card draws 5 Lower-floor boxes under both arms. On the grid, the other 133 of 194 cells pass the bar under both arms (6 of them as named refusals)."
+  },
+  "leave_one_out": {
+    "cells": 47,
+    "min": 1,
+    "max": 1,
+    "drop_most_favourable": 46
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py  -> invented_zone_cells=47, heat_loss_response_kwh=0.000",
+    "... two_zone_auto.py --perturb -> invented_zone_cells=0, heat_loss_response_kwh=32.794",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/surfaces.py [--perturb two_zone] -> card_lower_zone_min 2 -> 0",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 [--perturb two_zone] -> RESULT fail_cells=61 / 0 of 194"
+  ],
+  "proposed_fix_scope": "thermal_model.ThermalParameters.from_config: let 'auto' and an absent key reach the presence rule (compare with TWO_ZONE_MODE_ON only). Then re-check the options-flow `_single_zone` gate and the golden coord_minimal/coord_dhw fixtures, which were recorded as two-zone.",
+  "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+  ],
+  "expected_golden_drift": [
+    "coord_minimal",
+    "coord_dhw",
+    "coord_grid_fee",
+    "coord_all_features"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

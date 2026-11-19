@@ -1,0 +1,8 @@
+{"class": "N-entry-data-placement", "instances": 2, "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep/entry_data_placement.py  (package seams=5; --fixture seams=0; --perturb seams=1)",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/config_flow.py", "symbol": "HeatPumpOptimizerConfigFlow._create_setup_entry", "probe": "dev/audit/rounds/round11/D10/s1/cfg_data_options.py (settings_in_data=41)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/config_flow.py", "symbol": "HeatPumpOptimizerConfigFlow.async_step_device_prefill", "probe": "dev/audit/rounds/round11/D17/s2/after_save_stray.py (entries_with_after_save=2)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/config_flow.py", "symbol": "HeatPumpOptimizerConfigFlow._async_save_reconfigure", "probe": "entry_data_placement.py --probe-reconfigure (data_written=sensor.b merged_after=sensor.a)", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/config_flow.py", "symbol": "HeatPumpOptimizerConfigFlow.async_step_reauth_confirm", "probe": "entry_data_placement.py --probe-reauth (data_written=new merged_after=old)", "beyond_finding": true}
+ ]}

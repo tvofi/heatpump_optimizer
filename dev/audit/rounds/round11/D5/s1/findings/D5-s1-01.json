@@ -1,0 +1,48 @@
+{
+ "id": "D5-s1-01",
+ "scope": "D5-s1",
+ "step": "D5.M1",
+ "title": "Two-tank reader path: setup.md and configuration.md state the activation rule differently, and neither matches the code",
+ "severity": "medium",
+ "claim": "A user configuring two-tank storage reads in docs/setup.md (Quick setup, 'Wood buffer tank' row) that a throttling mixing valve plus the wood-tank probes switch the two-tank physics on, with no mention of the two-zone condition; docs/configuration.md (layout catalog) says valve + two zones + the wood-tank TOP sensor ('the switch for the two-tank model'). The code (ThermalParameters.topology_layout) needs valve + two zones + a top OR bottom probe (and the wood furnace on). On a 16-cell grid, setup.md's rule disagrees with the model on 3 cells (every single-zone house with a valve and a probe: the doc promises two-tank physics, the model runs single_tank_valve), configuration.md's on 1 (bottom probe only: the model runs two_tank_4way, the doc says it does not). Quick setup's 'Two-zone house: no' answer writes two_zone_mode=off (quick_setup.py), so a Quick-setup reader reaches the 3-cell case directly.",
+ "evidence": [
+  {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/two_tank_gate.py",
+   "harness_path": "dev/audit/rounds/round11/D5/s1/two_tank_gate.py",
+   "value": 3,
+   "unit": "cells (setup_md_mismatch)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "orchestrator Mac (local seat B1), darwin",
+   "cpu_or_wall": "count",
+   "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+   "tolerance": "exact",
+   "load1": 215.89,
+   "thread_factor": 1.0
+  },
+  {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/two_tank_gate.py",
+   "harness_path": "dev/audit/rounds/round11/D5/s1/two_tank_gate.py",
+   "value": 1,
+   "unit": "cells (configuration_md_mismatch)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "orchestrator Mac (local seat B1), darwin",
+   "cpu_or_wall": "count",
+   "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+   "tolerance": "exact",
+   "load1": 215.89,
+   "thread_factor": 1.0
+  }
+ ],
+ "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.topology_layout (via ThermalParameters.from_config(...).two_tank_modelled)",
+ "perturbation": "--perturb patches ThermalParameters.topology_layout in memory to drop the two-zone condition (valve + probe -> two_tank_4way): setup_md_mismatch 3 -> 0, configuration_md_mismatch 1 -> 4 (executed).",
+ "metric_definition": "Cells of the 16-cell grid (two_zone_mode on/off x valve manual/none x wood probes none/top/bottom/both, wood furnace on) where a doc's stated activation rule disagrees with two_tank_modelled.",
+ "phenomenon_property": "Every reader doc that states when the two-tank model runs states the same rule as ThermalParameters.topology_layout / const.topology_layout_valid (valve, two zones, any wood-tank probe, wood furnace on).",
+ "seam_rule": "grep -n -i 'two-tank\\|two tanks\\|wood tank top sensor' README.md docs/*.md",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "docs/setup.md",
+  "docs/configuration.md"
+ ],
+ "proposed_fix_scope": "Docs only: state the one rule (valve + two zones + a wood-tank probe, top or bottom) in setup.md's Wood buffer tank row and configuration.md's layout catalog bullet and table; link setup.md to the catalog section."
+}

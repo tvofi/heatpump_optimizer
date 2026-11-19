@@ -1,0 +1,159 @@
+CELL predicted-cost-sum golden=winter_single_dhw err=0.000e+00 predicted=41.517546 raw_sum=41.517546 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=winter_single_dhw scaling_err=9.080e-16
+CELL gradient-fd golden=winter_single_dhw relerr_max=1.078e+00 relerr_median=1.266e-07 worst_step=87 |dg|=3.429e-01 g_central=-0.3274 g_solver=0.01552
+CELL predicted-cost-sum golden=winter_two_zone_dhw err=0.000e+00 predicted=65.688852 raw_sum=65.688852 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=winter_two_zone_dhw scaling_err=1.340e-15
+CELL gradient-fd golden=winter_two_zone_dhw relerr_max=1.772e+00 relerr_median=2.100e-07 worst_step=79 |dg|=3.640e-01 g_central=0.05912 g_solver=0.4231
+CELL predicted-cost-sum golden=winter_single_no_dhw err=0.000e+00 predicted=34.954590 raw_sum=34.954590 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=winter_single_no_dhw scaling_err=6.649e-16
+CELL gradient-fd golden=winter_single_no_dhw relerr_max=7.711e-01 relerr_median=1.003e-07 worst_step=87 |dg|=3.151e-01 g_central=-0.3552 g_solver=-0.04012
+CELL predicted-cost-sum golden=winter_two_zone_no_dhw err=0.000e+00 predicted=59.103999 raw_sum=59.103999 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=winter_two_zone_no_dhw scaling_err=5.059e-16
+CELL gradient-fd golden=winter_two_zone_no_dhw relerr_max=1.280e+00 relerr_median=2.076e-07 worst_step=63 |dg|=1.827e-01 g_central=-0.1512 g_solver=0.03142
+CELL predicted-cost-sum golden=summer_dhw_only err=0.000e+00 predicted=0.482816 raw_sum=0.482816 published_price_dev=0 baseline_err=1.332e-15
+CELL penalty-scaling golden=summer_dhw_only scaling_err=3.330e-16
+CELL gradient-fd golden=summer_dhw_only relerr_max=2.837e-07 relerr_median=2.768e-07 worst_step=3 |dg|=1.087e-03 g_central=2891 g_solver=2891
+CELL predicted-cost-sum golden=shoulder err=0.000e+00 predicted=2.198385 raw_sum=2.198385 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=shoulder scaling_err=5.086e-16
+CELL gradient-fd golden=shoulder relerr_max=8.793e-01 relerr_median=4.591e-07 worst_step=68 |dg|=3.226e-02 g_central=-0.04174 g_solver=-0.009484
+CELL predicted-cost-sum golden=shoulder_two_zone err=0.000e+00 predicted=7.620304 raw_sum=7.620304 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=shoulder_two_zone scaling_err=7.705e-16
+CELL gradient-fd golden=shoulder_two_zone relerr_max=1.027e-03 relerr_median=4.844e-07 worst_step=9 |dg|=6.823e-04 g_central=1096 g_solver=1096
+CELL predicted-cost-sum golden=extreme_prices err=0.000e+00 predicted=68.752016 raw_sum=68.752016 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=extreme_prices scaling_err=6.823e-16
+CELL gradient-fd golden=extreme_prices relerr_max=1.828e+00 relerr_median=4.719e-08 worst_step=63 |dg|=1.703e-01 g_central=-0.08639 g_solver=0.08394
+CELL predicted-cost-sum golden=negative_prices err=0.000e+00 predicted=0.441492 raw_sum=0.441492 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=negative_prices scaling_err=1.412e-16
+CELL gradient-fd golden=negative_prices relerr_max=2.965e-07 relerr_median=2.850e-07 worst_step=4 |dg|=1.065e-03 g_central=2761 g_solver=2761
+CELL predicted-cost-sum golden=flat_prices err=0.000e+00 predicted=68.632924 raw_sum=68.632924 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=flat_prices scaling_err=6.742e-16
+CELL gradient-fd golden=flat_prices relerr_max=6.594e-02 relerr_median=1.570e-07 worst_step=59 |dg|=1.370e-01 g_central=-0.514 g_solver=-0.3771
+CELL predicted-cost-sum golden=mild_windy_rain err=0.000e+00 predicted=17.374139 raw_sum=17.374139 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=mild_windy_rain scaling_err=5.427e-16
+CELL gradient-fd golden=mild_windy_rain relerr_max=2.907e-03 relerr_median=9.984e-07 worst_step=11 |dg|=3.457e-04 g_central=269 g_solver=269
+CELL predicted-cost-sum golden=cool_rainy_summer err=0.000e+00 predicted=1.208166 raw_sum=1.208166 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=cool_rainy_summer scaling_err=3.826e-16
+CELL gradient-fd golden=cool_rainy_summer relerr_max=2.220e-01 relerr_median=4.225e-07 worst_step=59 |dg|=9.207e-04 g_central=-0.001769 g_solver=-0.0008487
+CELL predicted-cost-sum golden=legionella_due err=0.000e+00 predicted=41.517546 raw_sum=41.517546 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=legionella_due scaling_err=9.080e-16
+CELL gradient-fd golden=legionella_due relerr_max=1.078e+00 relerr_median=1.265e-07 worst_step=87 |dg|=3.429e-01 g_central=-0.3274 g_solver=0.01552
+CELL predicted-cost-sum golden=legionella_off err=0.000e+00 predicted=41.476552 raw_sum=41.476552 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=legionella_off scaling_err=9.136e-16
+CELL gradient-fd golden=legionella_off relerr_max=1.176e+00 relerr_median=1.006e-07 worst_step=85 |dg|=3.591e-01 g_central=-0.3208 g_solver=0.03835
+CELL predicted-cost-sum golden=legionella_due_low_setpoint err=0.000e+00 predicted=42.368453 raw_sum=42.368453 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=legionella_due_low_setpoint scaling_err=1.804e-15
+CELL gradient-fd golden=legionella_due_low_setpoint relerr_max=8.055e-01 relerr_median=1.005e-07 worst_step=87 |dg|=3.241e-01 g_central=-0.3455 g_solver=-0.02144
+CELL predicted-cost-sum golden=dhw_schedule_off err=0.000e+00 predicted=40.493026 raw_sum=40.493026 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=dhw_schedule_off scaling_err=6.402e-16
+CELL gradient-fd golden=dhw_schedule_off relerr_max=1.191e+00 relerr_median=1.270e-07 worst_step=82 |dg|=3.565e-01 g_central=-0.3336 g_solver=0.0229
+CELL predicted-cost-sum golden=dhw_learned_windows err=0.000e+00 predicted=41.366278 raw_sum=41.366278 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=dhw_learned_windows scaling_err=6.255e-16
+CELL gradient-fd golden=dhw_learned_windows relerr_max=1.308e+00 relerr_median=1.007e-07 worst_step=63 |dg|=1.812e-01 g_central=-0.1674 g_solver=0.01379
+CELL predicted-cost-sum golden=dhw_cold_tank err=0.000e+00 predicted=44.663883 raw_sum=44.663883 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=dhw_cold_tank scaling_err=8.708e-16
+CELL gradient-fd golden=dhw_cold_tank relerr_max=1.417e-07 relerr_median=1.275e-07 worst_step=0 |dg|=8.420e-08 g_central=0.02114 g_solver=0.02114
+CELL predicted-cost-sum golden=dhw_large_tank err=0.000e+00 predicted=42.259860 raw_sum=42.259860 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=dhw_large_tank scaling_err=9.045e-16
+CELL gradient-fd golden=dhw_large_tank relerr_max=1.114e+00 relerr_median=1.011e-07 worst_step=79 |dg|=3.369e-01 g_central=0.03141 g_solver=0.3684
+CELL predicted-cost-sum golden=start_below_band err=0.000e+00 predicted=114.644857 raw_sum=114.644857 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=start_below_band scaling_err=3.234e-16
+CELL gradient-fd golden=start_below_band relerr_max=7.307e-07 relerr_median=6.806e-07 worst_step=0 |dg|=3.914e-04 g_central=-512.6 g_solver=-512.6
+CELL predicted-cost-sum golden=start_above_band err=0.000e+00 predicted=25.895985 raw_sum=25.895985 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=start_above_band scaling_err=7.718e-16
+CELL gradient-fd golden=start_above_band relerr_max=1.029e+00 relerr_median=2.714e-06 worst_step=87 |dg|=2.278e-01 g_central=-0.181 g_solver=0.04682
+CELL predicted-cost-sum golden=narrow_band err=0.000e+00 predicted=101.460500 raw_sum=101.460500 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=narrow_band scaling_err=9.416e-16
+CELL gradient-fd golden=narrow_band relerr_max=1.914e-01 relerr_median=1.342e-06 worst_step=42 |dg|=2.178e-01 g_central=-0.2746 g_solver=-0.05675
+CELL predicted-cost-sum golden=wide_band err=0.000e+00 predicted=28.645385 raw_sum=28.645385 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=wide_band scaling_err=1.021e-15
+CELL gradient-fd golden=wide_band relerr_max=2.123e-08 relerr_median=1.717e-08 worst_step=0 |dg|=1.371e-08 g_central=0.1216 g_solver=0.1216
+CELL predicted-cost-sum golden=horizon_48h err=0.000e+00 predicted=96.412306 raw_sum=96.412306 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=horizon_48h scaling_err=9.488e-16
+CELL gradient-fd golden=horizon_48h relerr_max=6.948e-01 relerr_median=1.595e-07 worst_step=183 |dg|=3.578e-01 g_central=-0.3127 g_solver=0.04509
+CELL predicted-cost-sum golden=horizon_6h err=0.000e+00 predicted=3.361216 raw_sum=3.361216 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=horizon_6h scaling_err=1.062e-15
+CELL gradient-fd golden=horizon_6h relerr_max=1.067e-04 relerr_median=5.429e-07 worst_step=0 |dg|=4.102e-08 g_central=0.007596 g_solver=0.007596
+CELL predicted-cost-sum golden=capacity_tariff err=0.000e+00 predicted=44.934321 raw_sum=44.934321 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=capacity_tariff scaling_err=5.828e-16
+CELL gradient-fd golden=capacity_tariff relerr_max=3.818e-01 relerr_median=9.988e-08 worst_step=16 |dg|=4.453e-01 g_central=0.3958 g_solver=0.8412
+CELL predicted-cost-sum golden=capacity_tariff_15min err=0.000e+00 predicted=46.017085 raw_sum=46.017085 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=capacity_tariff_15min scaling_err=8.715e-16
+CELL gradient-fd golden=capacity_tariff_15min relerr_max=1.006e+00 relerr_median=1.809e-08 worst_step=13 |dg|=3.106e+00 g_central=3.059 g_solver=6.164
+CELL predicted-cost-sum golden=cycling_cost err=0.000e+00 predicted=41.250457 raw_sum=41.250457 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=cycling_cost scaling_err=1.013e-15
+CELL gradient-fd golden=cycling_cost relerr_max=3.348e-06 relerr_median=2.464e-06 worst_step=63 |dg|=1.260e-04 g_central=-46.71 g_solver=-46.71
+CELL predicted-cost-sum golden=external_heat_active err=0.000e+00 predicted=40.043602 raw_sum=40.043602 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=external_heat_active scaling_err=9.331e-16
+CELL gradient-fd golden=external_heat_active relerr_max=1.094e+00 relerr_median=1.012e-07 worst_step=87 |dg|=3.462e-01 g_central=-0.3242 g_solver=0.02203
+CELL predicted-cost-sum golden=cop_scale_learned err=0.000e+00 predicted=33.227400 raw_sum=33.227400 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=cop_scale_learned scaling_err=1.456e-15
+CELL gradient-fd golden=cop_scale_learned relerr_max=1.047e+00 relerr_median=5.047e-06 worst_step=87 |dg|=4.580e-01 g_central=-0.432 g_solver=0.02601
+CELL predicted-cost-sum golden=away_setback err=0.000e+00 predicted=37.966363 raw_sum=37.966363 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=away_setback scaling_err=5.583e-16
+CELL gradient-fd golden=away_setback relerr_max=1.953e-01 relerr_median=2.883e-07 worst_step=95 |dg|=1.621e-01 g_central=-0.4248 g_solver=-0.2628
+CELL predicted-cost-sum golden=building_preset err=0.000e+00 predicted=37.957974 raw_sum=37.957974 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=building_preset scaling_err=6.185e-16
+CELL gradient-fd golden=building_preset relerr_max=1.457e+00 relerr_median=6.995e-08 worst_step=63 |dg|=1.319e-01 g_central=-0.1077 g_solver=0.02419
+CELL predicted-cost-sum golden=valve_storage err=0.000e+00 predicted=41.387654 raw_sum=41.387654 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=valve_storage scaling_err=1.009e-15
+CELL gradient-fd golden=valve_storage relerr_max=1.396e+00 relerr_median=1.561e-07 worst_step=73 |dg|=4.543e-01 g_central=-0.05079 g_solver=0.4035
+CELL predicted-cost-sum golden=valve_storage_low_target err=0.000e+00 predicted=41.855084 raw_sum=41.855084 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=valve_storage_low_target scaling_err=9.646e-16
+CELL gradient-fd golden=valve_storage_low_target relerr_max=9.791e-01 relerr_median=9.223e-08 worst_step=80 |dg|=4.106e-01 g_central=-0.4136 g_solver=-0.00298
+CELL predicted-cost-sum golden=valve_storage_flat_prices err=0.000e+00 predicted=75.302075 raw_sum=75.302075 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=valve_storage_flat_prices scaling_err=1.000e-15
+CELL gradient-fd golden=valve_storage_flat_prices relerr_max=1.266e+00 relerr_median=6.912e-07 worst_step=52 |dg|=2.094e-01 g_central=-0.1825 g_solver=0.02688
+CELL predicted-cost-sum golden=valve_storage_small_tank err=0.000e+00 predicted=54.471538 raw_sum=54.471538 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=valve_storage_small_tank scaling_err=1.459e-15
+CELL gradient-fd golden=valve_storage_small_tank relerr_max=2.642e-01 relerr_median=2.451e-07 worst_step=38 |dg|=4.229e-01 g_central=-0.6302 g_solver=-0.2073
+CELL predicted-cost-sum golden=valve_storage_smart_write err=0.000e+00 predicted=45.421033 raw_sum=45.421033 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=valve_storage_smart_write scaling_err=9.849e-16
+CELL gradient-fd golden=valve_storage_smart_write relerr_max=1.192e+00 relerr_median=8.683e-08 worst_step=84 |dg|=4.643e-01 g_central=-0.4241 g_solver=0.04017
+CELL predicted-cost-sum golden=wood_two_tank err=0.000e+00 predicted=32.336977 raw_sum=32.336977 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=wood_two_tank scaling_err=5.848e-16
+CELL gradient-fd golden=wood_two_tank relerr_max=7.219e-01 relerr_median=1.209e-07 worst_step=80 |dg|=2.923e-01 g_central=-0.3592 g_solver=-0.06695
+CELL predicted-cost-sum golden=wood_two_tank_smart_write err=0.000e+00 predicted=25.130073 raw_sum=25.130073 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=wood_two_tank_smart_write scaling_err=6.206e-16
+CELL gradient-fd golden=wood_two_tank_smart_write relerr_max=6.232e-01 relerr_median=5.543e-08 worst_step=92 |dg|=2.589e-01 g_central=-0.3807 g_solver=-0.1218
+CELL predicted-cost-sum golden=wood_coil err=0.000e+00 predicted=38.375283 raw_sum=38.375283 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=wood_coil scaling_err=1.540e-15
+CELL gradient-fd golden=wood_coil relerr_max=6.081e-01 relerr_median=1.462e-07 worst_step=80 |dg|=3.274e-01 g_central=-0.4041 g_solver=-0.07675
+CELL predicted-cost-sum golden=valve_upper_direct_slab err=0.000e+00 predicted=38.952140 raw_sum=38.952140 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=valve_upper_direct_slab scaling_err=9.909e-16
+CELL gradient-fd golden=valve_upper_direct_slab relerr_max=1.170e+00 relerr_median=1.525e-07 worst_step=80 |dg|=3.440e-01 g_central=-0.3039 g_solver=0.04015
+CELL predicted-cost-sum golden=tariff_plus_two_zone err=0.000e+00 predicted=80.449606 raw_sum=80.449606 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=tariff_plus_two_zone scaling_err=8.276e-16
+CELL gradient-fd golden=tariff_plus_two_zone relerr_max=3.329e-06 relerr_median=2.053e-07 worst_step=48 |dg|=8.565e-05 g_central=-24 g_solver=-24
+CELL predicted-cost-sum golden=everything_on err=0.000e+00 predicted=57.851215 raw_sum=57.851215 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=everything_on scaling_err=1.493e-15
+CELL gradient-fd golden=everything_on relerr_max=1.009e+00 relerr_median=3.431e-06 worst_step=4 |dg|=1.854e+00 g_central=1.831 g_solver=3.685
+CELL predicted-cost-sum golden=peak_masked err=0.000e+00 predicted=42.499598 raw_sum=42.499598 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=peak_masked scaling_err=6.077e-16
+CELL gradient-fd golden=peak_masked relerr_max=1.149e+00 relerr_median=1.010e-07 worst_step=85 |dg|=3.538e-01 g_central=-0.3252 g_solver=0.02859
+CELL predicted-cost-sum golden=price_risk err=9.204e-01 predicted=42.398249 raw_sum=41.477818 published_price_dev=0.5 baseline_err=1.338e+01
+CELL penalty-scaling golden=price_risk scaling_err=1.038e-15
+CELL gradient-fd golden=price_risk relerr_max=1.020e+00 relerr_median=8.735e-08 worst_step=87 |dg|=3.219e-01 g_central=-0.2376 g_solver=0.08432
+CELL predicted-cost-sum golden=fuse_guard err=0.000e+00 predicted=45.099396 raw_sum=45.099396 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=fuse_guard scaling_err=5.866e-16
+CELL gradient-fd golden=fuse_guard relerr_max=1.276e+00 relerr_median=1.683e-07 worst_step=79 |dg|=3.364e-01 g_central=0.03065 g_solver=0.3671
+CELL predicted-cost-sum golden=capacity_curve err=0.000e+00 predicted=39.795787 raw_sum=39.795787 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=capacity_curve scaling_err=2.245e-16
+CELL gradient-fd golden=capacity_curve relerr_max=4.226e-01 relerr_median=1.610e-07 worst_step=61 |dg|=1.142e-01 g_central=-0.2061 g_solver=-0.0919
+CELL predicted-cost-sum golden=precip_snow err=0.000e+00 predicted=16.930687 raw_sum=16.930687 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=precip_snow scaling_err=5.551e-16
+CELL gradient-fd golden=precip_snow relerr_max=2.968e-03 relerr_median=8.005e-07 worst_step=15 |dg|=3.359e-04 g_central=251.7 g_solver=251.7
+CELL predicted-cost-sum golden=confidence_margins err=0.000e+00 predicted=64.042305 raw_sum=64.042305 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=confidence_margins scaling_err=1.200e-15
+CELL gradient-fd golden=confidence_margins relerr_max=7.674e-06 relerr_median=6.543e-07 worst_step=54 |dg|=3.111e-05 g_central=-2.657 g_solver=-2.657
+CELL predicted-cost-sum golden=direct_flow_carnot err=0.000e+00 predicted=105.090000 raw_sum=105.090000 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=direct_flow_carnot scaling_err=2.941e-16
+CELL gradient-fd golden=direct_flow_carnot relerr_max=2.233e-07 relerr_median=2.218e-07 worst_step=11 |dg|=2.616e-04 g_central=-991.6 g_solver=-991.6
+RESULT cost_sum_mismatches=1 count
+RESULT cells=50 count
+RESULT scaling_err_max=1.804e-15 ratio
+RESULT grad_relerr_max=1.828e+00 ratio (golden=extreme_prices)
+RESULT grad_relerr_median_of_medians=1.595e-07 ratio
+RESULT thread_factor=1.0000
+RESULT load1=5.70
+RESULT swapins=0
+EXIT 0

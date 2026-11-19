@@ -1,0 +1,30 @@
+  1280/coarse: pipes 96, band 0..5.75 px
+  1280/fine: pipes 96, band 0..5.75 px
+  375/coarse: pipes 96, band 0..2.75 px
+  375/fine: pipes 96, band 0..2.75 px
+  768/coarse: pipes 96, band 0..3.25 px
+  768/fine: pipes 96, band 0..3.25 px
+RESULT renders=144 renders
+RESULT pipes=576 pipe targets
+RESULT pipe_hit_under_floor=576 pipes under 24 px (44 coarse)
+RESULT pipe_hit_min_px=0 px
+RESULT pipe_hit_max_px=5.75 px
+RESULT port_hit_median_px=30.5 px (null control: the layout-port-hit targets the card sized, same scan)
+RESULT thread_factor=1 (no BLAS; node + chromium)
+RESULT load1=3.45
+RESULT swapins=0
+  1280/coarse: pipes 96, band 23.25..80.25 px
+  1280/fine: pipes 96, band 23.25..80.25 px
+  375/coarse: pipes 96, band 0..46.75 px
+  375/fine: pipes 96, band 0..46.75 px
+  768/coarse: pipes 96, band 14.25..56.75 px
+  768/fine: pipes 96, band 14.25..56.75 px
+RESULT renders=144 renders
+RESULT pipes=576 pipe targets
+RESULT pipe_hit_under_floor=296 pipes under 24 px (44 coarse)
+RESULT pipe_hit_min_px=0 px
+RESULT pipe_hit_max_px=80.25 px
+RESULT port_hit_median_px=30.5 px (null control: the layout-port-hit targets the card sized, same scan)
+RESULT thread_factor=1 (no BLAS; node + chromium)
+RESULT load1=3.90
+RESULT swapins=0
