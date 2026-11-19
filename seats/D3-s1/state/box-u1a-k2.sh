@@ -5,6 +5,8 @@ set -u
 cd "$HOME/audit-r11-D3-s1"
 export PYTHONPATH=tests/hastub
 PY=$HOME/venv-ci/bin/python3; D=dev/audit/rounds/round11/D3/s1; S=$D/state
+# A container restart can kill a drive mid-mutation and leave a worker tree mutated: start from fresh trees.
+for d in /tmp/d3s1-workers/w*; do [ -d "$d" ] && git worktree remove --force "$d"; done; rm -rf /tmp/d3s1-workers; git worktree prune
 until grep -q 'FINAL CKPT' $S/u1a-k1-launcher.log; do sleep 30; done
 $PY - <<'P' > $S/keys-D3-u1a-surv.txt
 import json,os

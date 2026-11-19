@@ -269,3 +269,4 @@
 1795048044 HB alive
 1795048070 HB container restart killed K2 at 78/236; mutated worker trees discarded; K2 resumed (158 queued)
 1795048141 HB container restart killed K2 at 78/236; mutated worker trees discarded; K2 resumed (158 queued); stale comms lock cleared
+1795048162 CKPT D3-s1 538 file(s)

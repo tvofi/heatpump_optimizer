@@ -522,3 +522,4 @@
 2026-11-19T00:13:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch CLAMP_DROP c3f49ed0 L832 by=- ran=12 wall=1421.4s
 2026-11-19T00:16:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._close_score_day CMP_BOUND 45c379dc L10561 by=- ran=14 wall=1732.2s
 2026-11-19T00:17:22Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor GUARD_OFF 645811dc L8974 by=tests/features.py ran=13 wall=1540.9s
+2026-11-19T00:27:36Z COMPLETE queued=158 from=pre
