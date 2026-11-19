@@ -1,0 +1,62 @@
+CELL switch:switch	ok	sub_min=None	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL switch:input_boolean	ok	sub_min=None	
+   calls: [('input_boolean', 'turn_on', 'input_boolean.hp', None)]
+CELL switch:climate	ok	sub_min=None	
+   calls: [('climate', 'turn_on', 'climate.hp', None)]
+CELL space_setpoint:number	ok	sub_min=None	
+   calls: [('number', 'set_value', 'number.sp', 22)]
+CELL space_setpoint:input_number	ok	sub_min=None	
+   calls: [('input_number', 'set_value', 'input_number.sp', 22)]
+CELL space_setpoint:climate	ok	sub_min=None	
+   calls: [('climate', 'set_temperature', 'climate.sp', 22)]
+CELL space_setpoint:flow_number	ok	sub_min=None	
+   calls: [('number', 'set_value', 'number.flow_sp', 55)]
+CELL dhw_setpoint:number	ok	sub_min=None	
+   calls: [('number', 'set_value', 'number.dhw_sp', 40)]
+CELL dhw_setpoint:input_number	ok	sub_min=None	
+   calls: [('input_number', 'set_value', 'input_number.dhw_sp', 40)]
+CELL dhw_setpoint:climate	ok	sub_min=None	
+   calls: [('climate', 'set_temperature', 'climate.dhw_sp', 40)]
+CELL dhw_setpoint:water_heater	ok	sub_min=None	
+   calls: [('water_heater', 'set_temperature', 'water_heater.dhw_sp', 40)]
+CELL mode_select:tuya	ok	sub_min=None	
+   calls: [('select', 'select_option', 'select.hp_mode', 'Heating'), ('number', 'set_value', 'number.sp', 22)]
+CELL mode_select:modbus	ok	sub_min=None	
+   calls: [('select', 'select_option', 'select.hp_mode', 'Heat + DHW'), ('number', 'set_value', 'number.sp', 22)]
+CELL heat_curve:ecl110_set_topic	ok	sub_min=None	
+   calls: [('mqtt', 'publish', 'ecl110/displace/set', '1')]
+CELL heat_curve:ecl110_legacy_topic	ok	sub_min=None	
+   calls: [('mqtt', 'publish', 'ecl110/cmd', '{"source": "heatpump_optimizer", "reason": "scheduled_update", "timestamp": "2026-11-16T19:40:43.195838+00:00", "command": {"type": "ecl110_control", "heat_pump_on": true, "displace": 1}, "context": {"price": 0.675, "mode": "boost", "pre_heat_urgency": 0.27}}')]
+CELL heat_curve:number_offset	ok	sub_min=None	
+   calls: [('number', 'set_value', 'number.curve_off', 3)]
+CELL heat_curve:input_number_offset	ok	sub_min=None	
+   calls: [('input_number', 'set_value', 'input_number.curve_off', 3)]
+CELL heat_curve:number_persistent	ok	sub_min=None	
+   calls: [('number', 'set_value', 'number.curve_par', 42)]
+CELL modulation:on_off	ok	sub_min=0	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL modulation:modulating	ok	sub_min=0	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL modulation:auto	ok	sub_min=0	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL frequency:none	ok	sub_min=None	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL frequency:observe	ok	sub_min=None	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL frequency:control	ok	sub_min=None	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL metering:counter_dhw_spans	ok	sub_min=None	
+   calls: [('switch', 'turn_on', 'switch.hp', None), ('switch', 'turn_on', 'switch.hp', None)]
+CELL boost:short_space	ok	sub_min=None	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+RESULT arm=reference
+RESULT cells=26 count
+RESULT fail_count=0 count
+RESULT sub_min_steps[modulation:on_off]=0 count
+RESULT sub_min_steps[modulation:modulating]=0 count
+RESULT sub_min_steps[modulation:auto]=0 count
+RESULT wall_s=105.7 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=6.13
+RESULT swapins=0

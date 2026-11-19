@@ -1,0 +1,149 @@
+ROW options-step advanced PASS shown=['entities', 'entities_metering', 'entities_pump', 'building', 'building_preset', 'thermal_model', 'thermal_model_zones', 'hot_water_tank', 'hot_water_pumps', 'solar_pv', 'learning', 'learning_features', 'grid_connection', 'grid_fees', 'heat_curve', 'factory_reset'] documented=['entities', 'entities_metering', 'entities_pump', 'building', 'building_preset', 'thermal_model', 'thermal_model_zones', 'hot_water_tank', 'hot_water_pumps', 'solar_pv', 'learning', 'learning_features', 'grid_connection', 'grid_fees', 'heat_curve', 'factory_reset'] opened=16/16
+ROW options-step away FAIL type=create_entry step=None parent=init stored=14.0 written=False errors=None
+ROW options-step building FAIL type=create_entry step=None parent=advanced stored=80.0 written=False errors=None
+ROW options-step building_preset FAIL type=create_entry step=None parent=advanced stored=20.0 written=False errors=None
+ROW options-step comfort FAIL type=create_entry step=None parent=init stored=22.0 written=False errors=None
+ROW options-step entities FAIL type=create_entry step=None parent=advanced stored=1.25 written=True errors=None
+ROW options-step entities_metering FAIL type=create_entry step=None parent=advanced stored=True written=False errors=None
+ROW options-step entities_pump FAIL type=create_entry step=None parent=advanced stored='observe' written=False errors=None
+ROW options-step factory_reset PASS opens=form (effect rowed under its fields)
+ROW options-step grid FAIL type=create_entry step=None parent=init stored=80.0 written=False errors=None
+ROW options-step grid_connection FAIL type=create_entry step=None parent=advanced stored=1 written=False errors=None
+ROW options-step grid_fees FAIL type=create_entry step=None parent=advanced stored=0.9 written=False errors=None
+ROW options-step heat_curve FAIL type=create_entry step=None parent=advanced stored=1.0 written=False errors=None
+Hot water: the anti-legionella cycle at 60 °C is above the 58 °C charge limit, so the tank is taken above that limit every 10 days
+ROW options-step hot_water FAIL type=create_entry step=None parent=init stored=58.0 written=False errors=None
+ROW options-step hot_water_pumps FAIL type=create_entry step=None parent=advanced stored=30 written=False errors=None
+ROW options-step hot_water_tank FAIL type=create_entry step=None parent=advanced stored=12.0 written=False errors=None
+ROW options-step init PASS shown=['setup_overview', 'comfort', 'hot_water', 'tuning', 'grid', 'away', 'modbus_prefill', 'quick_setup', 'advanced'] documented=['setup_overview', 'comfort', 'hot_water', 'tuning', 'grid', 'away', 'modbus_prefill', 'quick_setup', 'advanced'] opened=9/9
+ROW options-step learning FAIL type=create_entry step=None parent=advanced stored=2.0 written=False errors=None
+ROW options-step learning_features FAIL type=create_entry step=None parent=advanced stored=True written=False errors=None
+ROW options-step modbus_prefill FAIL opens=form save->create_entry/None
+ROW options-step quick_setup FAIL type=create_entry step=None parent=init stored=300.0 written=False errors=None
+ROW options-step setup_overview PASS types=['form', 'form'] summary_moves=True
+ROW options-step solar_pv FAIL type=create_entry step=None parent=advanced stored=0.7 written=False errors=None
+ROW options-step thermal_model FAIL type=create_entry step=None parent=advanced stored=4.5 written=False errors=None
+ROW options-step thermal_model_zones FAIL type=create_entry step=None parent=advanced stored=0.5 written=False errors=None
+ROW options-step tuning FAIL type=create_entry step=None parent=init stored=2.0 written=False errors=None
+ROW option away.after_save FAIL menu->create_entry/None close->menu kept=14.0
+ROW option building.after_save FAIL menu->create_entry/None close->menu kept=80.0
+ROW option building_preset.after_save FAIL menu->create_entry/None close->menu kept=20.0
+ROW option comfort.after_save FAIL menu->create_entry/None close->menu kept=22.0
+ROW option entities.after_save FAIL menu->create_entry/None close->menu kept=1.25
+ROW option entities_metering.after_save FAIL menu->create_entry/None close->menu kept=True
+ROW option entities_pump.after_save FAIL menu->create_entry/None close->menu kept='observe'
+ROW option grid.after_save FAIL menu->create_entry/None close->menu kept=80.0
+ROW option grid_connection.after_save FAIL menu->create_entry/None close->menu kept=1
+ROW option grid_fees.after_save FAIL menu->create_entry/None close->menu kept=0.9
+ROW option heat_curve.after_save FAIL menu->create_entry/None close->menu kept=1.0
+Hot water: the anti-legionella cycle at 60 °C is above the 58 °C charge limit, so the tank is taken above that limit every 10 days
+Hot water: the anti-legionella cycle at 60 °C is above the 58 °C charge limit, so the tank is taken above that limit every 10 days
+ROW option hot_water.after_save FAIL menu->create_entry/None close->menu kept=58.0
+ROW option hot_water_pumps.after_save FAIL menu->create_entry/None close->menu kept=30
+ROW option hot_water_tank.after_save FAIL menu->create_entry/None close->menu kept=12.0
+ROW option learning.after_save FAIL menu->create_entry/None close->menu kept=2.0
+ROW option learning_features.after_save FAIL menu->create_entry/None close->menu kept=True
+ROW option modbus_prefill.after_save FAIL close->menu
+ROW option quick_setup.after_save FAIL menu->create_entry/None close->menu kept=300.0
+ROW option solar_pv.after_save FAIL menu->create_entry/None close->menu kept=0.7
+ROW option thermal_model.after_save FAIL menu->create_entry/None close->menu kept=4.5
+ROW option thermal_model_zones.after_save FAIL menu->create_entry/None close->menu kept=0.5
+ROW option tuning.after_save FAIL menu->create_entry/None close->menu kept=2.0
+ROW option modbus_prefill.compressor_freq_sensor FAIL doc='sensor.hp_actual_compressor_frequency' suggested='sensor.hp_actual_compressor_frequency' stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.dhw_legionella_interval_days FAIL doc=3.0 suggested=3.0 stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.dhw_legionella_temperature FAIL doc=65.0 suggested=65.0 stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.dhw_min_temperature FAIL doc=42.0 suggested=42.0 stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.dhw_setpoint FAIL doc=52.0 suggested=52.0 stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.dhw_temp_entity FAIL doc='sensor.hp_dhw_tank_temperature' suggested='sensor.hp_dhw_tank_temperature' stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.dhw_windows FAIL doc='05:30-07:00' suggested='05:30-07:00' stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.heat_pump_capacity_limited_entity FAIL doc='binary_sensor.hp_night_mode_frequency_reduction_active' suggested='binary_sensor.hp_night_mode_frequency_reduction_active' stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.heat_pump_max_power FAIL doc=2.6 suggested=2.6 stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.heat_pump_return_temp_entity FAIL doc='sensor.hp_entering_water_temperature_tw_in' suggested='sensor.hp_entering_water_temperature_tw_in' stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.heat_pump_supply_temp_entity FAIL doc='sensor.hp_leaving_water_temperature_t1' suggested='sensor.hp_leaving_water_temperature_t1' stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.mixing_valve_write_target_kind FAIL doc='flow' suggested='flow' stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.modbus_prefill_prefix FAIL found-under-wp stored=None; nothing-under-zz stored=None
+ROW option modbus_prefill.outdoor_temp_entity FAIL doc='sensor.hp_outdoor_air_temperature' suggested='sensor.hp_outdoor_air_temperature' stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.prefill_device PASS device preview offers ['after_save', 'dhw_setpoint', 'outdoor_temp_entity']
+ROW option modbus_prefill.prefill_offer FAIL stored=None (survives restart: in entry)
+ROW option modbus_prefill.silent_mode_windows FAIL doc='22:00-06:00' suggested='22:00-06:00' stored=None coordinator=None saved=create_entry/None
+ROW option modbus_prefill.space_setpoint_unit FAIL doc='flow' suggested='flow' stored=None coordinator=None saved=create_entry/None
+Factory reset (settings) applied; restore_learned_snapshot undoes it
+Learned house_heat_loss_scale reset to the configuration: reset on request
+Learned lower_floor_loss_ratio reset to the configuration: reset on request
+Factory reset (learners) applied; restore_learned_snapshot undoes it
+Learned house_heat_loss_scale reset to the configuration: reset on request
+Learned lower_floor_loss_ratio reset to the configuration: reset on request
+Factory reset (both) applied; restore_learned_snapshot undoes it
+factory: {('both', False): ('menu', 'advanced', 23.0), ('settings', True): ('abort', 'factory_reset_done', None), ('learners', True): ('abort', 'factory_reset_done', 23.0), ('both', True): ('abort', 'factory_reset_done', None)} {('both', False): 0, ('settings', True): 0, ('learners', True): 1, ('both', True): 1}
+ROW option factory_reset.confirm PASS unticked -> ('menu', 'advanced', 23.0)
+ROW option factory_reset.scope PASS settings->('abort', 'factory_reset_done', None) learners->('abort', 'factory_reset_done', 23.0) both->('abort', 'factory_reset_done', None) learned_resets={('both', False): 0, ('settings', True): 0, ('learners', True): 1, ('both', True): 1}
+RESULT steps_examined=26 of 26
+RESULT after_save_examined=22
+RESULT modbus_examined=18
+RESULT factory_examined=2
+RESULT after_save_fail=22
+RESULT flow_fail=61
+FAIL options-step away type=create_entry step=None parent=init stored=14.0 written=False errors=None
+FAIL options-step building type=create_entry step=None parent=advanced stored=80.0 written=False errors=None
+FAIL options-step building_preset type=create_entry step=None parent=advanced stored=20.0 written=False errors=None
+FAIL options-step comfort type=create_entry step=None parent=init stored=22.0 written=False errors=None
+FAIL options-step entities type=create_entry step=None parent=advanced stored=1.25 written=True errors=None
+FAIL options-step entities_metering type=create_entry step=None parent=advanced stored=True written=False errors=None
+FAIL options-step entities_pump type=create_entry step=None parent=advanced stored='observe' written=False errors=None
+FAIL options-step grid type=create_entry step=None parent=init stored=80.0 written=False errors=None
+FAIL options-step grid_connection type=create_entry step=None parent=advanced stored=1 written=False errors=None
+FAIL options-step grid_fees type=create_entry step=None parent=advanced stored=0.9 written=False errors=None
+FAIL options-step heat_curve type=create_entry step=None parent=advanced stored=1.0 written=False errors=None
+FAIL options-step hot_water type=create_entry step=None parent=init stored=58.0 written=False errors=None
+FAIL options-step hot_water_pumps type=create_entry step=None parent=advanced stored=30 written=False errors=None
+FAIL options-step hot_water_tank type=create_entry step=None parent=advanced stored=12.0 written=False errors=None
+FAIL options-step learning type=create_entry step=None parent=advanced stored=2.0 written=False errors=None
+FAIL options-step learning_features type=create_entry step=None parent=advanced stored=True written=False errors=None
+FAIL options-step modbus_prefill opens=form save->create_entry/None
+FAIL options-step quick_setup type=create_entry step=None parent=init stored=300.0 written=False errors=None
+FAIL options-step solar_pv type=create_entry step=None parent=advanced stored=0.7 written=False errors=None
+FAIL options-step thermal_model type=create_entry step=None parent=advanced stored=4.5 written=False errors=None
+FAIL options-step thermal_model_zones type=create_entry step=None parent=advanced stored=0.5 written=False errors=None
+FAIL options-step tuning type=create_entry step=None parent=init stored=2.0 written=False errors=None
+FAIL option away.after_save menu->create_entry/None close->menu kept=14.0
+FAIL option building.after_save menu->create_entry/None close->menu kept=80.0
+FAIL option building_preset.after_save menu->create_entry/None close->menu kept=20.0
+FAIL option comfort.after_save menu->create_entry/None close->menu kept=22.0
+FAIL option entities.after_save menu->create_entry/None close->menu kept=1.25
+FAIL option entities_metering.after_save menu->create_entry/None close->menu kept=True
+FAIL option entities_pump.after_save menu->create_entry/None close->menu kept='observe'
+FAIL option grid.after_save menu->create_entry/None close->menu kept=80.0
+FAIL option grid_connection.after_save menu->create_entry/None close->menu kept=1
+FAIL option grid_fees.after_save menu->create_entry/None close->menu kept=0.9
+FAIL option heat_curve.after_save menu->create_entry/None close->menu kept=1.0
+FAIL option hot_water.after_save menu->create_entry/None close->menu kept=58.0
+FAIL option hot_water_pumps.after_save menu->create_entry/None close->menu kept=30
+FAIL option hot_water_tank.after_save menu->create_entry/None close->menu kept=12.0
+FAIL option learning.after_save menu->create_entry/None close->menu kept=2.0
+FAIL option learning_features.after_save menu->create_entry/None close->menu kept=True
+FAIL option modbus_prefill.after_save close->menu
+FAIL option quick_setup.after_save menu->create_entry/None close->menu kept=300.0
+FAIL option solar_pv.after_save menu->create_entry/None close->menu kept=0.7
+FAIL option thermal_model.after_save menu->create_entry/None close->menu kept=4.5
+FAIL option thermal_model_zones.after_save menu->create_entry/None close->menu kept=0.5
+FAIL option tuning.after_save menu->create_entry/None close->menu kept=2.0
+FAIL option modbus_prefill.compressor_freq_sensor doc='sensor.hp_actual_compressor_frequency' suggested='sensor.hp_actual_compressor_frequency' stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.dhw_legionella_interval_days doc=3.0 suggested=3.0 stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.dhw_legionella_temperature doc=65.0 suggested=65.0 stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.dhw_min_temperature doc=42.0 suggested=42.0 stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.dhw_setpoint doc=52.0 suggested=52.0 stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.dhw_temp_entity doc='sensor.hp_dhw_tank_temperature' suggested='sensor.hp_dhw_tank_temperature' stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.dhw_windows doc='05:30-07:00' suggested='05:30-07:00' stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.heat_pump_capacity_limited_entity doc='binary_sensor.hp_night_mode_frequency_reduction_active' suggested='binary_sensor.hp_night_mode_frequency_reduction_active' stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.heat_pump_max_power doc=2.6 suggested=2.6 stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.heat_pump_return_temp_entity doc='sensor.hp_entering_water_temperature_tw_in' suggested='sensor.hp_entering_water_temperature_tw_in' stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.heat_pump_supply_temp_entity doc='sensor.hp_leaving_water_temperature_t1' suggested='sensor.hp_leaving_water_temperature_t1' stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.mixing_valve_write_target_kind doc='flow' suggested='flow' stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.modbus_prefill_prefix found-under-wp stored=None; nothing-under-zz stored=None
+FAIL option modbus_prefill.outdoor_temp_entity doc='sensor.hp_outdoor_air_temperature' suggested='sensor.hp_outdoor_air_temperature' stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.prefill_offer stored=None (survives restart: in entry)
+FAIL option modbus_prefill.silent_mode_windows doc='22:00-06:00' suggested='22:00-06:00' stored=None coordinator=None saved=create_entry/None
+FAIL option modbus_prefill.space_setpoint_unit doc='flow' suggested='flow' stored=None coordinator=None saved=create_entry/None
+RESULT thread_factor=1.001
+RESULT load1=5.11279296875
+RESULT swapins=0

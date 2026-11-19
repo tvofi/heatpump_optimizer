@@ -1,0 +1,48 @@
+{
+ "id": "D7-s3-02",
+ "scope": "D7-s3",
+ "step": "D7.M6",
+ "title": "project_window_mean never reads `remaining`: the peak guard weights the live draw by elapsed time",
+ "severity": "high",
+ "claim": "power_guard.project_window_mean stores `remaining = window_minutes - elapsed` and returns (mean * elapsed + current_kw * elapsed) / window_minutes, so a constant 4 kW draw projects 0.0 kW at the window's start, 0.67 kW at minute 5 and 8.0 kW at minute 60 instead of 4.0 kW throughout.",
+ "mechanism": "The dead local is the term the formula needs: the remainder of the window is assumed to continue at current_kw, i.e. current_kw * remaining. With `elapsed` in its place the projection under-reads for the first half of every metering window (the guard cannot suppress electric DHW before the peak is booked) and over-reads in the second half (it suppresses on a draw that is under the threshold). The docstring's own two limits fail: 'at the window's start this is the current draw' reads 0, 'at its end it converges on the realised average' reads mean + current. Caller: coordinator.py:8794, whose result is GuardState.update's projection_kw against the capacity-tariff threshold.",
+ "evidence": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only window_mean",
+  "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+  "value": 7,
+  "unit": "probes of 8 on which a constant 4 kW draw does not project 4 kW (minutes 0, 5, 15, 45, 55, 60 and the no-samples case; minute 30 agrees because elapsed and remaining are equal there)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+  "tolerance": "exact",
+  "load1": 172.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.power_guard:project_window_mean",
+ "perturbation": {
+  "change": "attribute swap of power_guard.project_window_mean for the same body with `current_kw * (window_minutes - elapsed)` (m8_agree.py --only window_mean --perturb); the static twin: m6_inner.py's unread_local row power_guard.py:64 leaves the census",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "probes (elapsed minute of a 60 min window) at which project_window_mean(4.0, elapsed, 4.0, 60) != 4.0, plus the mean_so_far=None case",
+ "phenomenon_property": "Every local a production function stores is loaded on a path to its return value or a side effect; a stored-and-never-read local in arithmetic code is a term dropped from the formula until shown otherwise.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m6_inner.py | grep '^ROW unread_local'",
+ "null_control": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only window_mean",
+  "value": 0,
+  "note": "the probe at minute 30 (elapsed and remaining are both 30) agrees in the same run: the one point of the window where the dropped term cannot show; the other seven unread locals of the census (coordinator.py:3121 i, coordinator.py:6619 done, optimizer.py:1212 solar, sysid.py:1977 rank1, sysid.py:2109 residuals, sysid.py:2322 outdoors and powers) are unpacking targets with no dropped term"
+ },
+ "reproduction_steps": [
+  "from custom_components.heatpump_optimizer.power_guard import project_window_mean",
+  "project_window_mean(4.0, 5.0, 4.0, 60.0) -> 0.667 (expected 4.0)",
+  "project_window_mean(None, 0.0, 4.0, 60.0) -> 0.0 (expected 4.0)"
+ ],
+ "proposed_fix_scope": "power_guard.py:project_window_mean reads `remaining`; the structure ratchet could carry an unread-local count (tests/structure.py has none).",
+ "files": [
+  "custom_components/heatpump_optimizer/power_guard.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

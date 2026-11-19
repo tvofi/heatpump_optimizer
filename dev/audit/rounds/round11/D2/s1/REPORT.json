@@ -1,0 +1,227 @@
+{
+ "dimension": "D2",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D2/s1/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D2.M1",
+   "enumerator": "python3 tools/audit/enumerate.py d2-identities --cells | grep '^M1 '",
+   "universe": 227,
+   "examined": 227,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    }
+   ],
+   "evidence": "All 227 M1 cells executed. batch-parity x7 input levels: dev/audit/rounds/round11/D2/s1/batch_parity.py (26 arms, 1z/2z). buffer-cap-rate x5 layouts: dev/audit/rounds/round11/D2/s1/buffer_cap_rate.py (44 cases, scalar+batch, 0.25/1 h; slab_shunt resolves to single_tank_valve). energy-conservation, dt-invariance, power-monotone, store-bounds x50 golden SCENARIOS each: dev/audit/rounds/round11/D2/s1/golden_identities.py on the PUBLISHED simulate_trajectory(_with_dhw) call of every golden.capture (50/50 found), log runs/golden_identities.baseline.log. switch-back-slab x15 layout x combi_tank: dev/audit/rounds/round11/D2/s1/switch_back_slab.py through the coordinator. File bound: check_scopes.py --seat D2-s1 prints 95 files x M1; the identities exercise thermal_model.py, mixing_valve.py, coordinator.py (_propagated_slab), draw_range.py, heat_energy.py, optimizer.py (published path) and golden capture. C1: store bounds checked on every golden SCENARIOS trajectory (fixture, fresh capture and replay: 0 samples out of bound); measured_heat_kw has no batch input, so parity is undefined there -- instead conservation (max 4.8e-14 kWh) and +1 kW monotonicity (0 violations) of simulate_step with measured_heat_kw were executed on every golden step."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D2-s1-01",
+   "scope": "D2-s1",
+   "step": "D2.M1",
+   "title": "Scalar Carnot flow-lift factor is inverted: a hotter flow raises COP, and the batch twin disagrees",
+   "severity": "critical",
+   "claim": "ThermalModel.flow_lift_factor returns carnot_ref/carnot_flow (>1 above the 35 C reference, 1.586 at a 60 C flow and 0 C outdoor) while _batch_cop multiplies by carnot_flow/carnot_ref (<1), so every scalar COP priced at a flow above the reference (valved buffer, every DHW charge, a direct plant's curve) is boosted instead of derated and simulate_trajectory_batch disagrees with simulate_trajectory on 14 897 trajectory elements over the valved/combi/wood/coil arms. On the 50 published golden plans flow_lift_factor returned >1 on 1268 calls.",
+   "mechanism": "thermal_model.py:3391 `return max(0.25, carnot_ref / carnot_flow)` against thermal_model.py:4483 `np.maximum(0.25, carnot_flow / carnot_ref)`. compute_cop (valve: flow_temp = tank), compute_cop_dhw (flow = tank water) and the curve-flow lift all route through flow_lift_factor; the batch twin, used for the solver's finite-difference gradient, carries the physical ratio. Consequences: the scalar objective prices hot storage cheaper the hotter it is (DHW COP 2.89 at 35 C, 4.26 at 55 C, 4.58 at 60 C at 0 C outdoor), and the gradient the solver follows is of a different physics than the objective it scores.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s1/batch_parity.py",
+    "value": 14897,
+    "unit": "mismatched trajectory elements (all arms)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B4, 4 vCPU container, py3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "two other seats on the box; counts are contention-immune",
+    "tolerance": "exact (bitwise)",
+    "load1": 0.26,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.flow_lift_factor (via ThermalModel.simulate_trajectory vs ThermalModel.simulate_trajectory_batch)",
+   "perturbation": {
+    "change": "--fix-lift: ThermalModel.flow_lift_factor swapped in memory for the same expression returning max(0.25, carnot_flow / carnot_ref)",
+    "expected_direction": "down",
+    "observed_value": "14897 -> 3674 total; single-zone valve arms 3139 -> 0; dhw[combi], wood, coil, external_heat[valve] all -> 0 (the 3674 left are D2-s1-02's two-zone arms; both perturbations together: 0)"
+   },
+   "metric_definition": "Count of room/slab/upper/lower/buffer/wood/refused elements over 6 random rows x 96 steps where simulate_trajectory_batch differs by any bit from simulate_trajectory.",
+   "phenomenon_property": "The scalar COP law and the batch COP law price the same flow temperature identically, and a flow above the reference never raises COP (the lift factor is <= 1).",
+   "seam_rule": "grep -n 'flow_lift_factor\\|carnot_ref\\|carnot_flow' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py",
+    "value": "space_only arms (no flow passed): 0 mismatches at baseline",
+    "note": "unvalved space-only plants never pass a flow temperature, and stay bitwise in parity"
+   },
+   "leave_one_out": {
+    "cells": 7,
+    "min": 0,
+    "max": 6599,
+    "drop_most_favourable": 8298
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s1/batch_parity.py",
+    "... --fix-lift (single-zone valve arms and dhw/wood/coil go to 0)",
+    "... --fix-lift --fix-emitter (total 0)",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s1/golden_identities.py  -> RESULT flow_lift_factor_gt1_calls=1268 on the 50 published golden plans (direct_flow_carnot 192/192 steps); with --fix-lift --fix-emitter: 0"
+   ],
+   "proposed_fix_scope": "thermal_model.py ThermalModel.flow_lift_factor: return carnot_flow / carnot_ref (one line); re-claim the golden fixtures that price a flow above 35 C (every DHW scenario, valve_*, wood_*, direct_flow_carnot).",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [
+    "every scenario with dhw on",
+    "valve_storage*",
+    "wood_*",
+    "valve_upper_direct_slab",
+    "direct_flow_carnot",
+    "tariff_plus_two_zone",
+    "everything_on"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D2-s1-02",
+   "scope": "D2-s1",
+   "step": "D2.M1",
+   "title": "mixing_valve.emitter_delivery returns negative heat: a cold tank behind the valve cools the zones",
+   "severity": "high",
+   "claim": "mixing_valve.emitter_delivery returns ua*(mix-zone) without its documented max(0, .) floor, so in the scalar two-zone throttled step a tank colder than a zone draws heat back out of the slab/upper floor into the tank, while the batch twin floors it at 0: 3674 two-zone valve trajectory elements differ even with D2-s1-01 corrected. On the 9 valved golden plans the scalar step booked 496 negative deliveries moving 87.52 kWh from the zones back into the tank (valve_storage_small_tank alone 57.3 kWh).",
+   "mechanism": "mixing_valve.py:138 `return ua * (mix_temp - zone_temp)` under a docstring 'Never negative: a valve can shut, but it cannot cool a house'. _valve_two_zone_delivery uses it for q_rad and q_floor; simulate_trajectory_batch writes np.maximum(0.0, ...) for the same terms. Below the zone temperature the scalar model runs the emitters as a heat pump in reverse, booking zone heat into the tank (balance still closes, so conservation does not see it).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py --fix-lift",
+    "harness_path": "dev/audit/rounds/round11/D2/s1/batch_parity.py",
+    "value": 3674,
+    "unit": "mismatched trajectory elements (two-zone valve arms, lift corrected)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B4, 4 vCPU container, py3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "two other seats on the box; counts are contention-immune",
+    "tolerance": "exact (bitwise)",
+    "load1": 0.26,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.mixing_valve:emitter_delivery (via ThermalModel._simulate_step_two_zone / simulate_trajectory vs simulate_trajectory_batch)",
+   "perturbation": {
+    "change": "--fix-emitter: mixing_valve.emitter_delivery swapped in memory for max(0.0, ua*(mix_temp-zone_temp))",
+    "expected_direction": "to_zero",
+    "observed_value": "batch_parity --fix-lift: 3674 -> 0 with --fix-emitter; golden_identities valve_reverse_kwh 87.52 -> 0 under --fix-lift --fix-emitter"
+   },
+   "metric_definition": "Count of trajectory elements where the two-zone valved batch twin differs by any bit from the scalar path, with the lift factor corrected in both runs.",
+   "phenomenon_property": "No emitter circuit delivers negative heat: behind a valve the zones are never cooled by the tank, in the scalar step and the batch twin alike.",
+   "seam_rule": "grep -n 'emitter_delivery' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py --fix-lift",
+    "value": "single-zone valve arms (which floor drawn with np.maximum in _single_valve_rates): 0",
+    "note": "the single-zone valve law floors its own draw, so its arms stay in parity"
+   },
+   "reproduction_steps": [
+    "... batch_parity.py --fix-lift  (two-zone valve arms 3674)",
+    "... batch_parity.py --fix-lift --fix-emitter  (0)",
+    "... golden_identities.py --only valve_storage  (valve_reverse deliveries on the published golden plan)"
+   ],
+   "proposed_fix_scope": "mixing_valve.py emitter_delivery: return max(0.0, ua * (mix_temp - zone_temp)).",
+   "files": [
+    "custom_components/heatpump_optimizer/mixing_valve.py"
+   ],
+   "expected_golden_drift": [
+    "valve_storage",
+    "valve_storage_low_target",
+    "valve_storage_flat_prices",
+    "valve_storage_small_tank",
+    "valve_storage_smart_write",
+    "wood_two_tank",
+    "wood_two_tank_smart_write",
+    "wood_coil",
+    "valve_upper_direct_slab"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "leave_one_out": {
+    "cells": 9,
+    "min": 0.604,
+    "max": 57.3,
+    "drop_most_favourable": 30.22
+   }
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Energy conservation per (sub)step holds to 1e-9 kWh on every golden scenario: space stores (incl. buffer, wood, refused ledgers), the DHW store_step balance and the refill coil's wood debit",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/golden_identities.py",
+   "value": "max residual 4.22e-14 kWh space, 1.33e-15 DHW, 1.03e-15 coil; 0/50 scenarios failing"
+  },
+  {
+   "claim": "No store crosses its physical bound on any golden SCENARIOS trajectory (round-10 carry C1): recorded fixture, fresh capture and replay",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/golden_identities.py",
+   "value": "0 samples out of bound in each of the three sources, 50/50 scenarios"
+  },
+  {
+   "claim": "dt-invariance: 4 x 15 min against 1 x 1 h stays within first order; the refinement sequence 2/4/8/16 steps per hour converges in every block bar 5 valve/wood blocks where one refinement pair improves less than expected (normalised ratio <= 1.94, a valve-saturation / wood-share kink inside the hour); no block diverges",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/golden_identities.py",
+   "value": "max |4x15-1h| 1.33 K (valve_storage_low_target); 5 of ~1200 judged pairs above 1.5, worst 1.94; 2 with D2-s1-01/02 corrected. Harness gap named: a single 1 h vs 15 min comparison reads cancellation (e(1h) 1.6e-5 K against e(30 min) 9.3e-4 K) as lost order, so order is judged on the C-weighted sequence"
+  },
+  {
+   "claim": "More space power never cools a store, except the wood tank in the three two-tank golden scenarios, where it is the documented 4-way valve law: region 2 of thermal_model.wood_share mixes a larger mass fraction of the cooler wood water as the HP tank gets hotter (f_w=(T_hp-flow)/(T_hp-T_wood)), so the wood tank discharges faster; its energy debit equals f_w*(T_wood-floor)*ua, i.e. physical, and the balance closes. Recorded so the identity's register entry exempts coupled stores behind a mixing valve",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/golden_identities.py --only wood_two_tank,wood_two_tank_smart_write,wood_coil",
+   "value": "13785 (step,later-step) wood cells, worst 0.0049 K at baseline; 6061 / 0.021 K with D2-s1-01/02 corrected; 0 on every other store and scenario; DHW power: 0"
+  },
+  {
+   "claim": "The buffer cap (and the wood 95 C cap and the DHW rating) clamp a rate, never a state, on every layout, scalar and batch",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/buffer_cap_rate.py",
+   "value": "0 of 44 cases; a tank 5 K above the cap is never snapped down, a crossing step lands on the cap with the excess booked"
+  },
+  {
+   "claim": "Batch parity holds bit for bit on unvalved inputs: space_only (incl. flow-curve COP, part-load derate, stiff n_sub>1 configs), separate-tank dhw, external_heat and pv arms without a valve",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py",
+   "value": "0 mismatched elements on those arms; with --fix-lift --fix-emitter 0 on all 26 arms"
+  },
+  {
+   "claim": "Switch-back interval: the unsensed slab advances by the space share of the draw only, on all 15 layout x combi_tank cells",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/switch_back_slab.py",
+   "value": "0 failing cells; perturbation --whole-draw moves 6 cells (no_valve, valve_upper_direct_slab) up to 0.399 K. Harness gap named: on the 9 tank-buffered cells (single_tank_valve, slab_shunt->single_tank_valve, two_tank_4way) the one-step replay delivers to the slab from the tank's opening temperature, so the slab is independent of the interval's draw (0/2/4 kW give the same slab) and the published state keeps the tank unreplayed; those cells cannot separate"
+  },
+  {
+   "claim": "measured_heat_kw (C1): simulate_step with a meter reading conserves energy and is monotone in the reading",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/golden_identities.py",
+   "value": "max residual 4.83e-14 kWh; 0 monotonicity violations over every golden step; batch twin has no such input"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D2/s1/batch_parity.py",
+  "dev/audit/rounds/round11/D2/s1/golden_identities.py",
+  "dev/audit/rounds/round11/D2/s1/buffer_cap_rate.py",
+  "dev/audit/rounds/round11/D2/s1/switch_back_slab.py",
+  "dev/audit/rounds/round11/D2/s1/_common.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D2-s2",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalModel.flow_lift_factor / compute_cop_dhw",
+   "what": "COP is increasing in flow temperature (DHW COP 2.89 at 35 C, 4.26 at 55 C, 4.58 at 60 C, 0 C outdoor): M2's 'COP monotone in flow temperature' fails by the same inverted ratio as D2-s1-01; the coordinator's lift normalisation (coordinator.py:1225) divides by it too"
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalParameters.from_config (two_zone_mode)",
+   "what": "`if two_zone_mode in (TWO_ZONE_MODE_ON, DEFAULT_TWO_ZONE_MODE)` with DEFAULT_TWO_ZONE_MODE == 'auto' forces two_zone_enabled=True for every entry without the key, contradicting the comment ('auto is the presence rule unchanged'): tests/profiles.py house(two_zone=False) builds a two-zone model; winter_single_* goldens are solved two-zone (winter_single_dhw predicted_cost 41.52 fresh vs 30.64 fixture). My harnesses pin two_zone_mode='off' for single-zone arms"
+  },
+  {
+   "owner_seat": "D2-s3",
+   "file": "tests/golden/",
+   "symbol": "tests/golden.py:capture vs committed fixtures",
+   "what": "fresh captures differ from the committed fixtures far beyond BLAS drift (winter_single_dhw predicted_cost 41.52 vs 30.64, valve_storage 41.39 vs 49.18, wood_coil 38.38 vs 37.29); M3's predicted_cost identity should be run on the fresh plans, not the fixtures"
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_propagated_slab / _replay_step",
+   "what": "behind a valve the one-step replay of the elapsed interval cannot move the slab (it is fed from the tank's opening temperature) and the replayed tank is discarded, so the #2499 metered-heat slab correction is inert on single_tank_valve and two_tank_4way installs (0, 2 and 4 kW give the same slab)"
+  }
+ ]
+}

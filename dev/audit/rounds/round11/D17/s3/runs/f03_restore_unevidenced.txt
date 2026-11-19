@@ -1,0 +1,8 @@
+RESULT snapshots_in_ring=1 count
+RESULT snapshot_bias_is_none=1 count
+RESULT restored=1 count
+RESULT scale_after=1.0 ratio
+RESULT perturbed=0 bool
+RESULT thread_factor=1.000
+RESULT load1=4.18
+RESULT swapins=0

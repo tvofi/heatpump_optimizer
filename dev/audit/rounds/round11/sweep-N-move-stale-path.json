@@ -1,0 +1,13 @@
+{
+  "class": "N-move-stale-path",
+  "instances": 0,
+  "barriered": true,
+  "enumerator": "python3 dev/audit/rounds/round11/D14/move_stale_path_enum.py (controls: --controls)",
+  "instance_list": [
+    {"file": "tools/policy/policy_lint.mjs", "symbol": "usage header lines 41-52 (node .claude/workflows/policy_lint.mjs)", "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1", "beyond_finding": false},
+    {"file": "tools/policy/friction_issues.mjs", "symbol": "usage header lines 53-55 (node .claude/workflows/friction_issues.mjs)", "probe": "test -e .claude/workflows/friction_issues.mjs  # exits 1", "beyond_finding": false},
+    {"file": "dev/governance/roles/fixer.md", "symbol": "line 104 docs/decisions/0011-app-authored-identity.md", "probe": "test -e docs/decisions/0011-app-authored-identity.md  # exits 1", "beyond_finding": false},
+    {"file": "dev/governance/roles/orchestrator.md", "symbol": "line 73 docs/decisions/0010-merge-commits-on-main.md", "probe": "test -e docs/decisions/0010-merge-commits-on-main.md  # exits 1", "beyond_finding": false},
+    {"file": "tools/audit/seat/row_position.py", "symbol": "docstring usage line 4 (python3 dev/audit/harnesses/row_position.py)", "probe": "python3 dev/audit/harnesses/row_position.py --limit 1  # exits 2", "beyond_finding": false}
+  ]
+}

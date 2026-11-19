@@ -1,0 +1,42 @@
+{
+ "scope": "D5-s7",
+ "step": "D5.M4",
+ "severity": "low",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "seam_rule": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M4  (then PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv; rows with verdict false are the seams)",
+ "metric_definition": "Per file: D5 units (text_ledger units_of) failing C1 (executed contradiction), C2 (named code absent from the tree's code tokens) or C5 (a sentence over 40 words).",
+ "id": "D5-s7-03",
+ "title": "tests/frontend.py: 3 comment units carry a sentence over 40 words (C5)",
+ "claim": "Of tests/frontend.py's 24 D5 units, 3 hold a sentence over 40 words (lines 1, 43, 226; longest 52), failing D5-criteria C5.",
+ "mechanism": "The module docstring and two docstrings each run one sentence past 40 words.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv",
+  "harness_path": "dev/audit/rounds/round11/D5/s7/m4_comments.py",
+  "value": 3,
+  "unit": "count (false ledger rows)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (cloud container, Linux x86_64)",
+  "cpu_or_wall": "count",
+  "contention_note": "count over text; contention-immune",
+  "tolerance": "exact",
+  "load1": 0.87,
+  "thread_factor": 0.997
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of and :sentences over tests/frontend.py",
+ "perturbation": {
+  "change": "--perturb c5-split (in memory)",
+  "expected_direction": "to_zero",
+  "observed_value": "frontend c5_fail 3->0"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s7/ledger.tsv --plant --seat D5-s7 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "value": "unrowed=0 plant_refused=1",
+  "note": "every unit rowed; a plant is refused"
+ },
+ "phenomenon_property": "No D5 unit of tests/frontend.py has a sentence over 40 words.",
+ "proposed_fix_scope": "Split the 3 sentences; comment-only.",
+ "files": [
+  "tests/frontend.py"
+ ]
+}

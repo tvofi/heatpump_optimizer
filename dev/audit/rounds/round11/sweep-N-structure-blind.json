@@ -1,0 +1,13 @@
+{
+  "class": "N-structure-blind",
+  "instances": 0,
+  "barriered": true,
+  "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/n_structure_blind.py [--control positive|null|perturb]",
+  "instance_list": [
+    {"file": "tests/structure.py", "symbol": "const_modules_over_50", "probe": "n_structure_blind.py prints SEAM const_modules_over_50 proxy any_spelling=4 ratchet=3 (m1 CONST entry_config.py UNSEEN)", "beyond_finding": false},
+    {"file": "tests/structure.py", "symbol": "duplication_copies", "probe": "SEAM duplication_copies proxy in_function_copies=6 (m1 COPY lines; --fold-owner arm takes holes_clone1 95 -> 0)", "beyond_finding": false},
+    {"file": "tests/structure.py", "symbol": "<no row>: unused_package_imports", "probe": "m1 --perturb unused-import: unused_package_imports 14 -> 15, ratchet_rows_off_budget 0", "beyond_finding": false},
+    {"file": "tests/structure.py", "symbol": "class_excess_loc", "probe": "SEAM class_excess_loc proxy coordinator_py_unpriced_loc=2981; m1 --perturb module-growth -> 4403 with the row flat", "beyond_finding": false},
+    {"file": "tests/structure.py", "symbol": "dead_methods / dead_top_level_symbols / name_kept_members", "probe": "m6_inner.py: unread_params=16 unread_locals=7 unread_fields=1 test_read_only_fields=8 test_read_only_attributes=8 with dead_methods=0; --perturb planted_delta=1", "beyond_finding": false}
+  ]
+}

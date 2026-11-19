@@ -1,0 +1,46 @@
+{
+ "id": "D5-s4-03",
+ "scope": "D5-s4",
+ "step": "D5.M4",
+ "title": "text_ledger.py reports wrong line numbers for 737 of 892 card comment units",
+ "severity": "low",
+ "claim": "tools/audit/text_ledger.py:scan_c_like drops one line from its counter each time a JavaScript quote is cut off at a newline, so 737 of the card's 892 D5 units carry a line up to 11 lines away from where the unit sits.",
+ "mechanism": "In the string branch, an unterminated ' or \" (an apostrophe inside a regex literal or a comment-adjacent token) breaks at the newline and sets i = j + 1, consuming the newline without line += 1; the drift accumulates down the file. Unit ids hash the text and are unaffected, but every ledger 'line' column and any harness locating code beside a unit by that line reads the wrong place (this seat's own adjacent-constant check did until it relocated units).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+  "value": 737,
+  "unit": "units whose reported line is not their file line",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 (4 vCPU container)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 2.57,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:scan_c_like",
+ "perturbation": {
+  "change": "one-line instrument edit, applied in memory by ledger_lines.py --patched: in scan_c_like's string loop, 'break' -> 'line += 1; break' for an unterminated non-template quote",
+  "expected_direction": "down",
+  "observed_value": "misplaced_units 737 -> 1, max_offset 11 -> 1 (the residual 1 is a locator tie)"
+ },
+ "metric_definition": "Card D5 units whose text_ledger line differs from the file line where the unit's first text line is found, searching forward from the previous unit.",
+ "phenomenon_property": "text_ledger.py's line column is the file line of the unit it names, for every C-like file it scans.",
+ "seam_rule": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py --patched",
+  "value": 1,
+  "note": "the same locator with the one-line fix; Python units (tokenize) are not affected"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+  "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py --patched"
+ ],
+ "proposed_fix_scope": "tools/audit/text_ledger.py:scan_c_like count the newline an unterminated quote stops at (and an escaped newline); add a self-test arm with an apostrophe in a regex literal. The file sits in D5-s6's cells; the defect was met measuring D5-s4's card.",
+ "files": [
+  "tools/audit/text_ledger.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

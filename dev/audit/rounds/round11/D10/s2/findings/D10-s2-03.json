@@ -1,0 +1,35 @@
+{
+  "id": "D10-s2-03",
+  "scope": "D10-s2",
+  "step": "D10.M1",
+  "title": "German run_optimization_no_prices message names {entry_id}; both raise sites pass entry_ids",
+  "severity": "low",
+  "claim": "Of 37 translated exception sites, 2 (button.py ForceOptimizationButton.async_press and services.py's run_optimization handler) raise run_optimization_no_prices with placeholder entry_ids while translations/de.json's message reads {entry_id}, so the German message's placeholders do not match the English one and HA's translation-placeholder validation drops it, showing German users the English text.",
+  "mechanism": "de.json exceptions.run_optimization_no_prices.message uses {entry_id}; strings.json, en.json and sv.json use {entry_ids}. HA validates a localized string's placeholders against the English ones on load (helpers/translation.py) and discards a mismatch. D10-criteria Q2: the exception-translations row's done fails at these two raise sites in one shipped language.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/exc_translations.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s2/exc_translations.py",
+    "value": 2,
+    "unit": "(raise site, catalogue) pairs with a missing key or mismatched placeholders",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "local macOS box B2 (orchestrator machine), Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 42.99,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.button:ForceOptimizationButton.async_press",
+  "perturbation": {
+    "change": "--perturb: delete the en catalogue's entry for the first literal key met (in memory)",
+    "expected_direction": "up",
+    "observed_value": 4
+  },
+  "metric_definition": "bad = (HomeAssistantError-family construction site, shipped catalogue) pairs whose key is missing or whose message fields differ from the placeholders the site passes",
+  "phenomenon_property": "Every translated exception's message in every shipped catalogue has exactly the placeholders its raise sites pass.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/exc_translations.py | grep BAD",
+  "proposed_fix_scope": "translations/de.json: run_optimization_no_prices message reads {entry_ids}",
+  "files": ["custom_components/heatpump_optimizer/translations/de.json"],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

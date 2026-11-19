@@ -1,0 +1,257 @@
+custom_components/heatpump_optimizer/__init__.py:195	narrow	_take_fresh_handover	local:drivers_misc.py	contained-silent	return None
+custom_components/heatpump_optimizer/__init__.py:315	broad	async_setup_entry	lifecycle	contained-logged	_LOGGER.debug('Could not resolve integration version', exc_info=True)
+custom_components/heatpump_optimizer/accuracy.py:1050	narrow	MeasuredCop.from_dict	lifecycle	silent	return cls()
+custom_components/heatpump_optimizer/accuracy.py:489	narrow	AccuracyTracker.from_dict	local:features.py	contained-silent	continue
+custom_components/heatpump_optimizer/accuracy.py:497	narrow	AccuracyTracker.from_dict	local:features.py	contained-silent	continue
+custom_components/heatpump_optimizer/accuracy.py:505	narrow	AccuracyTracker.from_dict	local:features.py	contained-silent	continue
+custom_components/heatpump_optimizer/accuracy.py:514	narrow	AccuracyTracker.from_dict	lifecycle	silent	continue
+custom_components/heatpump_optimizer/accuracy.py:563	narrow	plan_promise	lifecycle	silent	return None
+custom_components/heatpump_optimizer/accuracy.py:617	narrow	_stored_promise	lifecycle	silent	return None
+custom_components/heatpump_optimizer/away.py:439	broad	persist_override	lifecycle	contained-logged	_LOGGER.debug('Could not persist away override: %s', err)
+custom_components/heatpump_optimizer/boost.py:574	broad	persist	local:features.py	contained-logged	_LOGGER.debug('Could not persist boost state: %s', err)
+custom_components/heatpump_optimizer/boost.py:734	narrow	_due_inside_horizon	local:drivers_misc.py	contained-silent	return False
+custom_components/heatpump_optimizer/boost.py:745	narrow	_window_open	local:drivers_misc.py	contained-silent	windows = None
+custom_components/heatpump_optimizer/climate.py:300	broad	HeatPumpOptimizerClimate._async_publish_displace_from_current_action	none	not-reached	_LOGGER.warning('Failed to publish ECL110 displace command: %s', err)
+custom_components/heatpump_optimizer/comfort_learning.py:243	narrow	ComfortLearner.from_dict	lifecycle	silent	stored_configured = None
+custom_components/heatpump_optimizer/comfort_learning.py:254	narrow	ComfortLearner.from_dict	lifecycle	silent	return cls(configured_weight=configured_weight, learned_weight=configured_weight)
+custom_components/heatpump_optimizer/config_flow.py:1106	narrow	_valid_months_spec	local:config_flow_steps.py	contained-silent	return False
+custom_components/heatpump_optimizer/config_flow.py:1342	broad	_translated_menu	local:config_flow_steps.py	contained-logged	_LOGGER.debug('Could not load %s menu translations', flow_type, exc_info=True) / return labels
+custom_components/heatpump_optimizer/config_flow.py:2062	narrow	_peak_window_as_int	local:config_flow_steps.py	contained-silent	cleaned[CONF_PEAK_TARIFF_WINDOW] = DEFAULT_PEAK_TARIFF_WINDOW
+custom_components/heatpump_optimizer/config_flow.py:2418	broad	_omit_unstored_computed	local:config_flow_steps.py	contained-silent	continue
+custom_components/heatpump_optimizer/config_flow.py:2527	narrow	_same_setting	local:config_flow_steps.py	contained-silent	return False
+custom_components/heatpump_optimizer/config_flow.py:2532	narrow	_same_setting	local:config_flow_steps.py	contained-silent	return False
+custom_components/heatpump_optimizer/config_flow.py:529	broad	validate_tibber_token	local:config_flow_steps.py	contained-silent	return 'cannot_connect'
+custom_components/heatpump_optimizer/config_flow.py:777	broad	_prefilled_values	local:config_flow_steps.py	contained-silent	pass
+custom_components/heatpump_optimizer/config_flow.py:798	narrow	_widen_to_fit	local:config_flow_steps.py	contained-silent	continue
+custom_components/heatpump_optimizer/const.py:1491	narrow	finite_float	lifecycle	phase-raised,flood	return default
+custom_components/heatpump_optimizer/coordinator.py:10082	broad	HeatPumpOptimizerCoordinator._record_accuracy	lifecycle	silent	sample.cop_residual = None
+custom_components/heatpump_optimizer/coordinator.py:10642	broad	HeatPumpOptimizerCoordinator._capture_diagnosis_inputs	lifecycle	silent	return None
+custom_components/heatpump_optimizer/coordinator.py:10647	broad	HeatPumpOptimizerCoordinator._capture_diagnosis_inputs	lifecycle	silent	planned_wind = 0.0
+custom_components/heatpump_optimizer/coordinator.py:10709	broad	HeatPumpOptimizerCoordinator._maybe_refresh_price_tile	local:config_flow_steps.py	contained-logged	_LOGGER.debug('Price tile %s failed: %s', name, err) / return
+custom_components/heatpump_optimizer/coordinator.py:1085	broad	_replay_interval	lifecycle	contained-logged	_LOGGER.debug('%s learning simulation failed: %s', label, err) / return None
+custom_components/heatpump_optimizer/coordinator.py:10876	broad	HeatPumpOptimizerCoordinator._command_frequency	none	not-reached	_LOGGER.error('Error commanding compressor frequency: %s', err) / return
+custom_components/heatpump_optimizer/coordinator.py:11230	narrow	HeatPumpOptimizerCoordinator.async_simulate	none	not-reached	return {'error': str(err), 'rate_limited': False}
+custom_components/heatpump_optimizer/coordinator.py:11237	broad	HeatPumpOptimizerCoordinator.async_simulate	none	not-reached	_LOGGER.warning('What-if simulation failed: %s', err) / return {'error': str(err), 'rate_limited': False}
+custom_components/heatpump_optimizer/coordinator.py:1912	broad	_shutdown_process_pool	local:drivers_misc.py	contained-silent	pass
+custom_components/heatpump_optimizer/coordinator.py:1919	broad	_shutdown_process_pool	none	not-reached	pass
+custom_components/heatpump_optimizer/coordinator.py:1925	broad	_shutdown_process_pool	local:drivers_misc.py	contained-silent	worker.kill()
+custom_components/heatpump_optimizer/coordinator.py:2040	narrow	_read_reply	lifecycle	silent	return pickle.load(stdout)
+custom_components/heatpump_optimizer/coordinator.py:2069	broad	_run_in_process	lifecycle	flood	raise ProcessWorkerUnavailable(f'job cannot be pickled: {err}') from err
+custom_components/heatpump_optimizer/coordinator.py:2082	narrow	_run_in_process	lifecycle	contained-logged	_PROCESS_WORKER = None / try: /     worker.kill() /     worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S) / except Exception
+custom_components/heatpump_optimizer/coordinator.py:2090	broad	_run_in_process	local:config_flow_steps.py	contained-silent	pass
+custom_components/heatpump_optimizer/coordinator.py:2093	narrow	_run_in_process	lifecycle	flood	raise
+custom_components/heatpump_optimizer/coordinator.py:2097	broad	_run_in_process	lifecycle	flood	_PROCESS_WORKER = None / if worker is None: /     raise ProcessWorkerUnavailable(f'process worker cannot start: {err}') 
+custom_components/heatpump_optimizer/coordinator.py:2107	broad	_run_in_process	none	not-reached	pass
+custom_components/heatpump_optimizer/coordinator.py:2147	narrow	_await_off_loop	lifecycle	contained-logged	log_held(hass, key, True, '%s; %s skipped this cycle', err, name) / raise
+custom_components/heatpump_optimizer/coordinator.py:2150	narrow	_await_off_loop	lifecycle	contained-logged	_LOGGER.debug('Process worker unusable (%s); using the executor', err) / return await hass.async_add_executor_job(fn, *a
+custom_components/heatpump_optimizer/coordinator.py:2209	broad	_with_sensor_advisor	lifecycle	contained-logged	_LOGGER.debug('Sensor advisor ranking skipped: %s', err) / ranking = None
+custom_components/heatpump_optimizer/coordinator.py:2275	narrow	_worker_fallback_streak	local:entities.py	contained-silent	return 0
+custom_components/heatpump_optimizer/coordinator.py:2319	narrow	_await_optimize	lifecycle	contained-logged	log_held(hass, f'process_worker_timeout:{entry_id}', True, '%s; keeping the last plan, a fresh worker starts next cycle'
+custom_components/heatpump_optimizer/coordinator.py:2328	narrow	_await_optimize	lifecycle	flood	_note_worker_fallback(hass, err, entry_id) / n = _bump_worker_fallback(hass, entry_id) / if n > WORKER_FALLBACK_CAP: /  
+custom_components/heatpump_optimizer/coordinator.py:2692	broad	CoordinatorDiagnostics.of	lifecycle	silent	summaries[name.lstrip('_')] = 'summary unavailable'
+custom_components/heatpump_optimizer/coordinator.py:2768	narrow	_thermal_param_changes	local:features.py	contained-logged	_LOGGER.warning('Ignoring invalid DHW demand windows: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:3011	narrow	_plausible_forecast_rows	lifecycle	silent	continue
+custom_components/heatpump_optimizer/coordinator.py:3054	broad	_stored_fuse_advisor	local:features.py	contained-silent	return None
+custom_components/heatpump_optimizer/coordinator.py:4173	broad	HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription	none	not-reached	_LOGGER.debug('ECL110 MQTT state subscription not available: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:4183	narrow	HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message	local:features.py	contained-logged	_LOGGER.debug('Ignoring malformed ECL110 state payload: %s', err) / return
+custom_components/heatpump_optimizer/coordinator.py:439	narrow	_stored_isoformat	local:features.py	contained-silent	return None
+custom_components/heatpump_optimizer/coordinator.py:451	narrow	_stored_learner	lifecycle	contained-logged	_LOGGER.debug('Could not load %s: %s', key, err) / return None
+custom_components/heatpump_optimizer/coordinator.py:4564	broad	HeatPumpOptimizerCoordinator._async_set_pump	local:config_flow_steps.py	contained-logged	_LOGGER.warning('Could not command pump %s: %s', entity_id, err) / return
+custom_components/heatpump_optimizer/coordinator.py:4580	broad	HeatPumpOptimizerCoordinator._async_load_thermal_learning	lifecycle	contained-logged	_LOGGER.debug('Could not load learned thermal parameters: %s', err) / return
+custom_components/heatpump_optimizer/coordinator.py:4604	narrow	HeatPumpOptimizerCoordinator._async_load_thermal_learning	local:features.py	contained-silent	continue
+custom_components/heatpump_optimizer/coordinator.py:4660	narrow	HeatPumpOptimizerCoordinator._load_t4b_learners	local:features.py	contained-silent	continue
+custom_components/heatpump_optimizer/coordinator.py:4677	narrow	HeatPumpOptimizerCoordinator._load_t4b_learners	local:features.py	contained-silent	self._internal_gains_profile = None
+custom_components/heatpump_optimizer/coordinator.py:4779	broad	HeatPumpOptimizerCoordinator._async_save_thermal_learning	lifecycle	contained-logged	_LOGGER.debug('Could not persist learned thermal parameters: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:511	narrow	_refuses_non_finite.guarded	lifecycle	silent	finite = False
+custom_components/heatpump_optimizer/coordinator.py:582	narrow	_comparable_ts	lifecycle	contained-logged	return None
+custom_components/heatpump_optimizer/coordinator.py:5992	broad	HeatPumpOptimizerCoordinator._check_pump_mode_expired	none	not-reached	_LOGGER.debug('Could not clear the mode notice: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:6034	narrow	HeatPumpOptimizerCoordinator._dhw_effective_windows	lifecycle	silent	pass
+custom_components/heatpump_optimizer/coordinator.py:6141	narrow	HeatPumpOptimizerCoordinator._async_update_data	lifecycle	update-failed	raise
+custom_components/heatpump_optimizer/coordinator.py:6148	broad	HeatPumpOptimizerCoordinator._async_update_data	lifecycle	flood,update-failed	_LOGGER.error('Error updating Heat Pump Optimizer: %s', err, exc_info=True) / _raise_update_failed('update_failed', f'Er
+custom_components/heatpump_optimizer/coordinator.py:6189	narrow	HeatPumpOptimizerCoordinator._async_first_refresh_light	lifecycle	escaped,phase-raised	raise
+custom_components/heatpump_optimizer/coordinator.py:6195	broad	HeatPumpOptimizerCoordinator._async_first_refresh_light	lifecycle	escaped,phase-raised,flood	_LOGGER.error('Error updating Heat Pump Optimizer: %s', err, exc_info=True) / _raise_update_failed('update_failed', f'Er
+custom_components/heatpump_optimizer/coordinator.py:628	narrow	_peak_tariff_months	local:config_flow_steps.py	contained-logged	_LOGGER.warning('Invalid peak tariff months %r (%s); applying the tariff in every month', spec.strip(), err) / return fr
+custom_components/heatpump_optimizer/coordinator.py:642	narrow	_peak_tariff_hours	local:config_flow_steps.py	contained-logged	_LOGGER.warning('Invalid peak tariff hours %r (%s); treating every hour as peak', spec.strip(), err) / return ()
+custom_components/heatpump_optimizer/coordinator.py:6507	broad	HeatPumpOptimizerCoordinator.async_run_optimization	lifecycle	contained-logged	_note_solve_failure(self, err) / return 'solve_failed'
+custom_components/heatpump_optimizer/coordinator.py:685	broad	_best_effort_cycle_step	lifecycle	contained-logged	cause = f'{type(err).__name__}: {err}' / if (message, cause) not in _FENCED_CAUSES: /     _FENCED_CAUSES.add((message, c
+custom_components/heatpump_optimizer/coordinator.py:6976	narrow	HeatPumpOptimizerCoordinator._fetch_tibber_prices	lifecycle	escaped,phase-raised	raise
+custom_components/heatpump_optimizer/coordinator.py:6978	narrow	HeatPumpOptimizerCoordinator._fetch_tibber_prices	lifecycle	escaped,phase-raised,flood	self._tibber_fetch_failed(f'Error fetching Tibber prices: {err}')
+custom_components/heatpump_optimizer/coordinator.py:6980	broad	HeatPumpOptimizerCoordinator._fetch_tibber_prices	lifecycle	escaped,phase-raised,flood	self._tibber_fetch_failed(f'Unexpected error fetching prices: {err}', exc_info=True)
+custom_components/heatpump_optimizer/coordinator.py:7103	broad	HeatPumpOptimizerCoordinator._fetch_weather_forecast	lifecycle	contained-logged	self._weather_fetch_failed(f'Error fetching weather forecast: {err}') / state = self.hass.states.get(weather_entity) / i
+custom_components/heatpump_optimizer/coordinator.py:7113	narrow	HeatPumpOptimizerCoordinator._fetch_weather_forecast	none	not-reached	pass
+custom_components/heatpump_optimizer/coordinator.py:7168	narrow	HeatPumpOptimizerCoordinator._solar_location	local:drivers_misc.py	contained-logged	log_held(self, 'solar_location', True, 'Ignoring malformed solar location %s', location)
+custom_components/heatpump_optimizer/coordinator.py:745	broad	_valve_write_problem	local:config_flow_steps.py	contained-silent	return f'could not be commanded: {err}'
+custom_components/heatpump_optimizer/coordinator.py:8293	broad	HeatPumpOptimizerCoordinator._async_save_price_model	lifecycle	contained-logged	_LOGGER.debug('Could not persist price model: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:8328	narrow	HeatPumpOptimizerCoordinator._async_load_ledger	lifecycle	silent	pass
+custom_components/heatpump_optimizer/coordinator.py:8365	broad	HeatPumpOptimizerCoordinator._async_save_ledger	lifecycle	contained-logged	_LOGGER.debug('Could not persist ledger: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:8403	broad	HeatPumpOptimizerCoordinator._async_save_accuracy	lifecycle	contained-logged	_LOGGER.debug('Could not persist accuracy history: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:8445	broad	HeatPumpOptimizerCoordinator._async_save_energy_totals	lifecycle	contained-logged	_LOGGER.debug('Could not persist energy totals: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:8474	broad	HeatPumpOptimizerCoordinator._async_load_manual_plan	lifecycle	contained-logged	_LOGGER.debug('Could not load manual plan: %s', err) / return
+custom_components/heatpump_optimizer/coordinator.py:8481	narrow	HeatPumpOptimizerCoordinator._async_load_manual_plan	local:finite_boundary.py	contained-logged	_LOGGER.warning('Discarding unreadable stored manual plan: %s', err) / await self._manual_plan_store.async_save({}) / re
+custom_components/heatpump_optimizer/coordinator.py:8502	broad	HeatPumpOptimizerCoordinator._async_save_manual_plan	local:features.py	contained-logged	_LOGGER.debug('Could not persist manual plan: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:893	narrow	_outage_reading	local:features.py	contained-silent	return None
+custom_components/heatpump_optimizer/coordinator.py:9252	broad	HeatPumpOptimizerCoordinator._track_curve_comfort	local:config_flow_steps.py	contained-silent	return
+custom_components/heatpump_optimizer/coordinator.py:9290	narrow	HeatPumpOptimizerCoordinator._immersion_dhw_margin	local:features.py	contained-silent	continue
+custom_components/heatpump_optimizer/coordinator.py:9524	broad	HeatPumpOptimizerCoordinator._raise_cop_issue	local:features.py	contained-silent	monthly_kwh = 0.0
+custom_components/heatpump_optimizer/coordinator.py:9773	broad	HeatPumpOptimizerCoordinator._async_save_snapshots	lifecycle	contained-logged	_LOGGER.debug('Could not persist learner snapshots: %s', err)
+custom_components/heatpump_optimizer/coordinator.py:9854	narrow	HeatPumpOptimizerCoordinator._entity_state	local:config_flow_steps.py	contained-silent	attributes = {}
+custom_components/heatpump_optimizer/curve_learning.py:162	narrow	CurveLearner.from_dict	lifecycle	silent	learner.bias = 0.0
+custom_components/heatpump_optimizer/curve_learning.py:171	narrow	CurveLearner.from_dict	lifecycle	silent	learner.comfortable_days = 0
+custom_components/heatpump_optimizer/curve_learning.py:175	narrow	CurveLearner.from_dict	lifecycle	silent	learner.resets = 0
+custom_components/heatpump_optimizer/debugger.py:199	narrow	_read_stores	local:debug_collect.py	contained-silent	continue
+custom_components/heatpump_optimizer/debugger.py:209	narrow	_parsed	local:debug_collect.py	contained-silent	return None
+custom_components/heatpump_optimizer/debugger.py:355	narrow	run_self_tests	local:debug_collect.py	contained-silent	outcome = {'error': 'timeout'}
+custom_components/heatpump_optimizer/debugger.py:357	broad	run_self_tests	local:debug_collect.py	contained-silent	outcome = {'error': repr(err)}
+custom_components/heatpump_optimizer/debugger.py:523	broad	DebugCollector.async_save	local:debug_collect.py	contained-logged	_LOGGER.debug('Could not persist the debug collection: %s', err)
+custom_components/heatpump_optimizer/debugger.py:674	narrow	DebugCollector._async_replay	local:debug_collect.py	contained-silent	return (None, str(err))
+custom_components/heatpump_optimizer/debugger.py:676	broad	DebugCollector._async_replay	local:debug_collect.py	contained-silent	return (None, f'the recorder could not be read: {err!r}')
+custom_components/heatpump_optimizer/defrost.py:530	narrow	DefrostDerate.from_dict._grid_of	lifecycle	contained-logged	value = None
+custom_components/heatpump_optimizer/defrost.py:737	narrow	DefrostWindow._elapsed	lifecycle	silent	return None
+custom_components/heatpump_optimizer/dhw_draws.py:160	narrow	DrawStats.from_dict	local:drivers_misc.py	contained-silent	stats._open_kwh = 0.0
+custom_components/heatpump_optimizer/dhw_learning.py:234	narrow	DhwProfileLearner.normalize_profile	lifecycle	silent	usable = False
+custom_components/heatpump_optimizer/dhw_learning.py:254	broad	DhwProfileLearner.async_load_profile	lifecycle	contained-logged	_LOGGER.debug('Could not load learned DHW profile: %s', err) / return
+custom_components/heatpump_optimizer/dhw_learning.py:272	narrow	DhwProfileLearner.async_load_profile	local:features.py	contained-logged	_LOGGER.debug('Could not load learned DHW cooling rate: %s', err) / return
+custom_components/heatpump_optimizer/dhw_learning.py:335	narrow	DhwProfileLearner.apply_payload	local:features.py	contained-silent	pass
+custom_components/heatpump_optimizer/dhw_learning.py:355	narrow	DhwProfileLearner._restore_daytypes	lifecycle	silent	self.daytype_samples[idx] = 0
+custom_components/heatpump_optimizer/dhw_learning.py:371	broad	DhwProfileLearner.async_save_profile	local:features.py	contained-logged	_LOGGER.debug('Could not persist DHW profile: %s', err)
+custom_components/heatpump_optimizer/dhw_learning.py:384	broad	DhwProfileLearner.async_save_draws	local:features.py	contained-logged	_LOGGER.debug('Could not persist DHW draw statistics: %s', err)
+custom_components/heatpump_optimizer/dhw_planner.py:1032	narrow	DhwPlanner._dhw_window_floors	local:features.py	contained-silent	p90, count = (None, 0)
+custom_components/heatpump_optimizer/dhw_planner.py:1604	broad	DhwPlanner._plan_dhw_min_cost	lifecycle	contained-logged	_LOGGER.debug('DHW cost LP raised %s; using greedy planner', err) / return best
+custom_components/heatpump_optimizer/dhw_schedule.py:123	narrow	_parse_day_selector	local:features.py	contained-silent	return []
+custom_components/heatpump_optimizer/dhw_schedule.py:129	narrow	_parse_day_selector	local:features.py	contained-silent	return []
+custom_components/heatpump_optimizer/dhw_schedule.py:537	narrow	is_valid_spec	local:config_flow_steps.py	contained-silent	return False
+custom_components/heatpump_optimizer/dhw_schedule.py:577	narrow	spec_problem	local:config_flow_steps.py	contained-silent	return ERROR_INVALID
+custom_components/heatpump_optimizer/dhw_schedule.py:674	narrow	parse_day_overrides	local:config_flow_steps.py	contained-logged	_LOGGER.warning('Invalid per-day DHW window %r for %s (%s); that day keeps the default schedule', spec, key, err) / days
+custom_components/heatpump_optimizer/diagnosis.py:103	narrow	attribute	none	not-reached	continue
+custom_components/heatpump_optimizer/diagnosis.py:114	broad	attribute	none	not-reached	continue
+custom_components/heatpump_optimizer/diagnosis.py:151	broad	diagnose_record	none	not-reached	_LOGGER.debug('Interval diagnosis failed: %s', err) / return None
+custom_components/heatpump_optimizer/diagnosis.py:93	broad	attribute	none	not-reached	return None
+custom_components/heatpump_optimizer/diagnostics.py:339	broad	_coordinator_snapshot	lifecycle	silent	state = None
+custom_components/heatpump_optimizer/diagnostics.py:367	broad	_never_breaks	lifecycle	silent	return 'unavailable'
+custom_components/heatpump_optimizer/disinfection.py:225	broad	DisinfectionSwitch._write	none	not-reached	self.failed = True / self.failed_entity = entity_id / _LOGGER.warning('Could not %s the disinfection switch %s: %s', ser
+custom_components/heatpump_optimizer/draw_range.py:373	narrow	DrawRange.from_dict	lifecycle	silent	return out
+custom_components/heatpump_optimizer/draw_range.py:388	narrow	DrawRange.from_dict	none	not-reached	continue
+custom_components/heatpump_optimizer/draw_range.py:456	narrow	_stored_ceiling	none	not-reached	continue
+custom_components/heatpump_optimizer/draw_range.py:473	narrow	_command_cells	local:drivers_misc.py	contained-silent	return None
+custom_components/heatpump_optimizer/drift.py:109	narrow	stored_instant	lifecycle	silent	return None
+custom_components/heatpump_optimizer/drift.py:318	narrow	Cusum.load	lifecycle	silent	self.stat = 0.0
+custom_components/heatpump_optimizer/drift.py:360	narrow	_positive_definite	local:drivers_misc.py	contained-silent	return False
+custom_components/heatpump_optimizer/duty_legs.py:144	narrow	priced_pair	lifecycle	silent	return (0.0, 0.0)
+custom_components/heatpump_optimizer/duty_switch.py:427	narrow	DutySwitchLearner.from_record	local:drivers_misc.py	contained-silent	return cls()
+custom_components/heatpump_optimizer/duty_switch.py:504	broad	_load	local:features.py	contained-logged	_LOGGER.debug('Could not load the duty-switch record: %s', err) / return False
+custom_components/heatpump_optimizer/duty_switch.py:514	broad	_persist	local:finite_boundary.py	contained-logged	_LOGGER.debug('Could not persist the duty-switch record: %s', err) / return
+custom_components/heatpump_optimizer/entry_config.py:42	narrow	_whole	local:config_flow_steps.py	contained-silent	return default
+custom_components/heatpump_optimizer/flow_lift.py:230	narrow	FlowCurveBias.from_dict	lifecycle	silent	return learner
+custom_components/heatpump_optimizer/freq_control.py:274	narrow	FrequencyMap.from_dict	local:drivers_misc.py	contained-silent	continue
+custom_components/heatpump_optimizer/freq_control.py:280	narrow	FrequencyMap.from_dict	local:finite_boundary.py	contained-silent	continue
+custom_components/heatpump_optimizer/frontend.py:170	broad	_register_lovelace_resource	lifecycle	contained-logged	_LOGGER.warning('Could not auto-register the Heat Pump Optimizer Lovelace resource; add %s manually (type: module)', url
+custom_components/heatpump_optimizer/frontend.py:54	narrow	_register_static_path	lifecycle	silent	try: /     getattr(hass.http, 'register_static_path')(URL_BASE, www_dir, False) / except Exception: /     _LOGGER.warnin
+custom_components/heatpump_optimizer/frontend.py:62	broad	_register_static_path	lifecycle	contained-logged	_LOGGER.warning('Could not register static path %s for the Heat Pump Optimizer card', URL_BASE, exc_info=True)
+custom_components/heatpump_optimizer/frontend.py:69	broad	_register_static_path	lifecycle	contained-logged	_LOGGER.warning('Unexpected error registering static path %s', URL_BASE, exc_info=True)
+custom_components/heatpump_optimizer/grid_fee.py:177	narrow	_parse_rule	lifecycle	contained-logged	raise GridFeeError(f"Bad rate in '{line}'") from err
+custom_components/heatpump_optimizer/grid_fee.py:195	narrow	_parse_rule	lifecycle	contained-logged	raise GridFeeError(str(err)) from err
+custom_components/heatpump_optimizer/grid_fee.py:243	narrow	spec_problem	local:config_flow_steps.py	contained-silent	return ERROR_INVALID
+custom_components/heatpump_optimizer/grid_fee.py:281	narrow	GridFeeSchedule.from_config	lifecycle	silent	fixed = 0.0
+custom_components/heatpump_optimizer/grid_fee.py:288	narrow	GridFeeSchedule.from_config	lifecycle	contained-logged	_LOGGER.warning('Invalid grid fee rules (%s); pricing with no ToU fees', err) / rules = []
+custom_components/heatpump_optimizer/grid_fee.py:492	narrow	apply_catalog	local:config_flow_steps.py	contained-logged	_LOGGER.warning('Stale DSO catalog row %s failed parse; not writing', product_id) / return None
+custom_components/heatpump_optimizer/heat_curve.py:245	broad	publish_ecl110_topics	local:config_flow_steps.py	contained-logged	sent = False / _LOGGER.error('Error publishing ECL110 direct displace MQTT command: %s', err)
+custom_components/heatpump_optimizer/heat_curve.py:263	broad	publish_ecl110_topics	local:config_flow_steps.py	contained-logged	sent = False / _LOGGER.error('Error publishing ECL110 legacy MQTT command: %s', err)
+custom_components/heatpump_optimizer/heat_curve.py:397	broad	_send	none	not-reached	log_held(entry, 'heat_curve_write', True, 'Heat-curve entity %s write failed: %s', entity_id, err) / return False
+custom_components/heatpump_optimizer/inputs.py:1115	narrow	InputReader.read	lifecycle	contained-logged	reading.problem = 'not_numeric' / return self.health.record(reading)
+custom_components/heatpump_optimizer/inputs.py:958	narrow	parse_bool	local:config_flow_steps.py	contained-silent	return None
+custom_components/heatpump_optimizer/issues.py:65	broad	clear_issue	lifecycle	contained-logged	_LOGGER.debug('Could not clear %s: %s', issue_id, err)
+custom_components/heatpump_optimizer/ledger.py:255	narrow	_clean_month	lifecycle	contained-logged	return None
+custom_components/heatpump_optimizer/ledger.py:729	broad	roll_receipts	local:features.py	contained-logged	_LOGGER.warning('Skipping malformed ledger month %s while freezing monthly receipts; recording an empty receipt instead'
+custom_components/heatpump_optimizer/legionella.py:227	broad	LegionellaGuard.async_load	lifecycle	contained-logged	_LOGGER.debug('Could not load DHW legionella timestamp: %s', err)
+custom_components/heatpump_optimizer/legionella.py:262	broad	LegionellaGuard.async_save	lifecycle	contained-logged	_LOGGER.debug('Could not persist DHW legionella timestamp: %s', err)
+custom_components/heatpump_optimizer/manual_plan.py:257	narrow	ManualOverride.from_dict	local:finite_boundary.py	reraised-by-design	raise ManualPlanError(f'bad stored expiry {raw_expiry!r}') from err
+custom_components/heatpump_optimizer/manual_plan.py:267	narrow	ManualOverride.from_dict	local:drivers_misc.py	contained-silent	created_at = None
+custom_components/heatpump_optimizer/manual_plan.py:99	narrow	_parse_dt	local:finite_boundary.py	reraised-by-design	raise ManualPlanError(f'could not parse datetime {value!r}: {err}') from err
+custom_components/heatpump_optimizer/notifier.py:289	broad	Notifier._async_save	lifecycle	contained-logged	_LOGGER.debug('Could not persist notifier state: %s', err)
+custom_components/heatpump_optimizer/off_restore.py:152	broad	_save	lifecycle	contained-logged	_LOGGER.debug('Could not save the off-restore store: %s', err)
+custom_components/heatpump_optimizer/off_restore.py:218	broad	_restore_baseline	none	not-reached	sent, err = (False, exc)
+custom_components/heatpump_optimizer/off_restore.py:252	broad	async_restore	none	not-reached	log_held(entry, f'off_restore_{key}', True, 'Restore of %s to %s on %s failed: %s', restorer.entity_id, value, reason, e
+custom_components/heatpump_optimizer/off_restore.py:343	broad	async_forget	local:manual_plan.py	contained-logged	_LOGGER.debug('Could not remove the off-restore store: %s', err)
+custom_components/heatpump_optimizer/open_meteo.py:213	narrow	_parse_block	local:open_meteo.py	contained-silent	continue
+custom_components/heatpump_optimizer/open_meteo.py:223	narrow	_parse_block	local:open_meteo.py	contained-silent	continue
+custom_components/heatpump_optimizer/open_meteo.py:400	broad	OpenMeteoSolar._fenced	local:open_meteo.py	contained-logged	_LOGGER.debug('Open-Meteo response could not be parsed: %r', err) / return _EMPTY
+custom_components/heatpump_optimizer/open_meteo.py:421	broad	OpenMeteoSolar._get_json	local:open_meteo.py	contained-logged	_LOGGER.debug('Open-Meteo request to %s failed: %s', url, err) / return None
+custom_components/heatpump_optimizer/optimizer.py:1468	narrow	<module>	local:config_flow_steps.py	contained-silent	_blas_threads = None
+custom_components/heatpump_optimizer/optimizer.py:1866	broad	_lbfgsb_restart	lifecycle	silent	return best
+custom_components/heatpump_optimizer/optimizer.py:1944	broad	_multi_start_minimize	lifecycle	contained-logged	continue
+custom_components/heatpump_optimizer/optimizer.py:1970	broad	_multi_start_minimize	lifecycle	contained-logged	last_error = err / continue
+custom_components/heatpump_optimizer/optimizer.py:2849	broad	_solver_status	local:features.py	contained-silent	pass
+custom_components/heatpump_optimizer/optimizer.py:4000	broad	HeatPumpOptimizer._co_optimize	lifecycle	contained-logged	_LOGGER.debug('DHW/space co-optimization pass skipped: %s', err)
+custom_components/heatpump_optimizer/optimizer.py:496	broad	_avoid_priced_switches	none	not-reached	_LOGGER.debug('Duty-switch candidate pass skipped: %s', err)
+custom_components/heatpump_optimizer/optimizer.py:4988	broad	HeatPumpOptimizer._solve_space	lifecycle	contained-logged	_LOGGER.debug('Space heating optimization (with DHW) failed: %s', e) / self._space_avail = scope[3] / return (guess, f'f
+custom_components/heatpump_optimizer/optimizer.py:5575	broad	HeatPumpOptimizer._optimize_space_only	local:config_flow_steps.py	contained-logged	_LOGGER.debug('Optimization failed: %s', e) / optimal_power = initial_power / status = f'failed ({e})'
+custom_components/heatpump_optimizer/optimizer.py:705	broad	_commit_runs	lifecycle	contained-logged	_LOGGER.debug('Committing runs failed, the projection ships: %s', err) / return (first, scope)
+custom_components/heatpump_optimizer/price_model.py:113	narrow	_stored_rows	lifecycle	contained-logged	parsed = None
+custom_components/heatpump_optimizer/price_model.py:127	narrow	_stored_counts	lifecycle	silent	return None
+custom_components/heatpump_optimizer/price_model.py:484	narrow	_noon	lifecycle	contained-logged	return None
+custom_components/heatpump_optimizer/price_model.py:584	narrow	_entries_by_day	lifecycle	contained-logged	continue
+custom_components/heatpump_optimizer/price_model.py:749	narrow	_raw_start	lifecycle	phase-raised,flood	return None
+custom_components/heatpump_optimizer/price_model.py:772	narrow	apply_price_adjustments	local:config_flow_steps.py	contained-silent	continue
+custom_components/heatpump_optimizer/price_model.py:862	narrow	pull_prices	local:config_flow_steps.py	contained-silent	vat, extra = (1.0, 0.0)
+custom_components/heatpump_optimizer/price_tiles.py:307	narrow	_aware	local:drivers_misc.py	contained-silent	return False
+custom_components/heatpump_optimizer/process_worker.py:25	narrow	_bootstrap	local:drivers_misc.py	contained-silent	kept.append(entry) / continue
+custom_components/heatpump_optimizer/process_worker.py:40	broad	_describe	local:drivers_misc.py	contained-silent	return type(obj).__name__
+custom_components/heatpump_optimizer/process_worker.py:52	broad	_dump	local:drivers_misc.py	contained-silent	status = 'err' if payload[0] == 'ok' else payload[0] / blob = pickle.dumps((status, RuntimeError(f'{_describe(payload[1]
+custom_components/heatpump_optimizer/process_worker.py:74	narrow	run_worker	local:drivers_misc.py	contained-silent	return
+custom_components/heatpump_optimizer/process_worker.py:76	broad	run_worker	local:drivers_misc.py	contained-silent	_dump(stdout, ('load-err', err)) / return
+custom_components/heatpump_optimizer/process_worker.py:85	broad	run_worker	local:drivers_misc.py	contained-silent	payload = ('err', err)
+custom_components/heatpump_optimizer/pump_arbiter.py:1483	narrow	_observed	local:guard_pins.py	contained-silent	return None
+custom_components/heatpump_optimizer/pump_arbiter.py:1613	broad	_write	local:guard_pins.py	contained-logged	_LOGGER.warning('Pump duty: writing %s to %s failed: %s', value, entity, err) / return
+custom_components/heatpump_optimizer/pump_arbiter.py:1970	broad	switch_supply	local:config_flow_steps.py	contained-logged	_LOGGER.error('Error toggling heat pump switch %s: %s', entity_id, err)
+custom_components/heatpump_optimizer/pump_arbiter.py:2195	broad	_persist	local:finite_boundary.py	contained-logged	_LOGGER.debug('Could not persist the pump duty record: %s', err)
+custom_components/heatpump_optimizer/pump_arbiter.py:2214	narrow	_load	local:finite_boundary.py	contained-silent	continue
+custom_components/heatpump_optimizer/quiet_windows.py:422	narrow	silent_cap_kw	local:drivers_misc.py	contained-silent	return None
+custom_components/heatpump_optimizer/quiet_windows.py:601	narrow	_parse_spec_pair	local:drivers_misc.py	contained-silent	return None
+custom_components/heatpump_optimizer/quiet_windows.py:634	narrow	overlap_problem	local:drivers_misc.py	contained-silent	dhw_win, dhw_weekly = ([], None)
+custom_components/heatpump_optimizer/repairs.py:54	broad	DhwSetpointRepairFlow.async_step_confirm	none	not-reached	_LOGGER.debug('Could not clear %s after repair: %s', ISSUE_DHW, err)
+custom_components/heatpump_optimizer/replay_doc.py:185	narrow	numeric	local:debug_collect.py	contained-silent	return False
+custom_components/heatpump_optimizer/replay_doc.py:197	narrow	json_decimal_places	local:debug_collect.py	contained-silent	return None
+custom_components/heatpump_optimizer/replay_doc.py:218	narrow	text_ok	local:debug_collect.py	contained-silent	pass
+custom_components/heatpump_optimizer/replay_doc.py:240	narrow	clean_value	local:debug_collect.py	contained-silent	dropped.append(str(value)) / out[key] = None
+custom_components/heatpump_optimizer/services.py:1144	narrow	handle_apply_manual_plan	none	not-reached	raise ServiceValidationError(str(err), translation_domain=DOMAIN, translation_key='manual_plan_invalid_slots', translati
+custom_components/heatpump_optimizer/services.py:1265	narrow	handle_diagnose_interval	none	not-reached	failed[entry_id] = str(err)
+custom_components/heatpump_optimizer/services.py:426	narrow	_refuse_quiet	local:manual_plan.py	reraised-by-design	raise ServiceValidationError(f'Invalid quiet windows: {err}', translation_domain=DOMAIN, translation_key=translation_key
+custom_components/heatpump_optimizer/services.py:657	narrow	handle_set_thermal_params	none	not-reached	raise ServiceValidationError(f'Invalid hot water windows {raw_windows!r}: {err}', translation_domain=DOMAIN, translation
+custom_components/heatpump_optimizer/services.py:991	narrow	handle_apply_schedule	none	not-reached	raise ServiceValidationError(f'Invalid hot water windows {raw!r}: {err}', translation_domain=DOMAIN, translation_key='ap
+custom_components/heatpump_optimizer/setpoint_check.py:88	broad	evaluate	lifecycle	contained-logged	_LOGGER.debug('Set-point consistency check skipped: %s', err)
+custom_components/heatpump_optimizer/silent_mode.py:109	narrow	compose	lifecycle	silent	return caps_extra
+custom_components/heatpump_optimizer/snapshots.py:230	narrow	SnapshotRing.best_restore	local:features.py	contained-silent	continue
+custom_components/heatpump_optimizer/snapshots.py:286	narrow	SnapshotRing.from_dict	lifecycle	silent	ring._bias_days = 0
+custom_components/heatpump_optimizer/store.py:102	narrow	_poisoned	lifecycle	silent	return False
+custom_components/heatpump_optimizer/store.py:160	narrow	_bound_instants	lifecycle	silent	return value
+custom_components/heatpump_optimizer/store.py:217	narrow	_parses	lifecycle	contained-logged	return False
+custom_components/heatpump_optimizer/store.py:247	narrow	in_domain	local:drivers_misc.py	contained-silent	return False
+custom_components/heatpump_optimizer/store.py:690	broad	load_mapping	lifecycle	contained-logged	_LOGGER.debug('Could not load %s: %s', what, err) / return None
+custom_components/heatpump_optimizer/store.py:72	narrow	<module>	local:config_flow_steps.py	contained-silent	pass
+custom_components/heatpump_optimizer/store.py:750	narrow	QuarantiningStore.async_load	lifecycle	contained-logged	_NEWER_ON_DISK.add(self._store_key) / self._surface_version('it was saved by a newer release than this one') / raise
+custom_components/heatpump_optimizer/sysid.py:1843	broad	SystemIdentification._finish	local:features.py	contained-logged	_LOGGER.exception('System identification fit raised: %s', err) / self._slab_fit_used = False / self.result = SysIdResult
+custom_components/heatpump_optimizer/sysid.py:1981	narrow	SystemIdentification.identify	local:features.py	contained-silent	return SysIdResult(completed=False, reason='fit failed')
+custom_components/heatpump_optimizer/sysid.py:2098	narrow	SystemIdentification.identify	local:features.py	contained-silent	solution = None
+custom_components/heatpump_optimizer/sysid.py:2112	narrow	SystemIdentification.identify	local:features.py	contained-silent	return SysIdResult(completed=False, reason='fit failed')
+custom_components/heatpump_optimizer/sysid.py:826	narrow	_lm_solve	local:features.py	contained-silent	damping *= 10.0 / continue
+custom_components/heatpump_optimizer/tariff.py:425	narrow	PeakTracker.from_dict	lifecycle	silent	tracker._window_sum = 0.0 / tracker._window_samples = 0
+custom_components/heatpump_optimizer/tariff.py:435	narrow	PeakTracker.from_dict	lifecycle	silent	tracker._window_factor = 1.0
+custom_components/heatpump_optimizer/tariff.py:445	narrow	PeakTracker.from_dict	lifecycle	silent	tracker._window_wsum = 0.0 / tracker._window_weight = 0.0
+custom_components/heatpump_optimizer/tariff.py:524	narrow	_stored_peaks	local:features.py	contained-silent	continue
+custom_components/heatpump_optimizer/thermal_model.py:1148	narrow	ThermalParameters.from_config	lifecycle	contained-logged	_LOGGER.warning('Invalid DHW window configuration %r (%s); falling back to always-available hot water', windows_spec, er
+custom_components/heatpump_optimizer/thermal_model.py:173	narrow	_holiday_dhw_windows	local:config_flow_steps.py	contained-silent	return None
+custom_components/heatpump_optimizer/thermal_model.py:268	narrow	ThermalParameters.clamp	lifecycle	phase-raised	value = THERMAL_MASS_FLOOR
+custom_components/heatpump_optimizer/thermal_model.py:285	narrow	ThermalParameters.clamp	lifecycle	silent	value = POSITIVE_PARAM_FLOOR
+custom_components/heatpump_optimizer/thermal_model.py:3540	narrow	ThermalModel.internal_gains_at	local:features.py	contained-silent	return self.params.internal_gains
+custom_components/heatpump_optimizer/wear.py:225	narrow	StartCounter.from_dict	lifecycle	silent	counter.lifetime = 0
+custom_components/heatpump_optimizer/wear.py:233	narrow	StartCounter.from_dict	local:features.py	contained-silent	continue
+custom_components/heatpump_optimizer/whatif.py:127	narrow	scratch_copies	none	not-reached	raise Refused(f'invalid_windows: {err}') from err
+custom_components/heatpump_optimizer/whatif.py:213	broad	steady_pair	none	not-reached	_LOGGER.debug('What-if steady pair failed: %s', err) / return None
+custom_components/heatpump_optimizer/wood_fuel.py:129	narrow	wood_fuel_ready	none	not-reached	return False
+custom_components/heatpump_optimizer/wood_fuel.py:291	narrow	_as_dt	local:drivers_misc.py	contained-silent	return None
+custom_components/heatpump_optimizer/wood_fuel.py:318	narrow	wood_slots_to_kw	local:guard_pins.py	contained-silent	continue
+custom_components/heatpump_optimizer/wood_fuel.py:343	narrow	_wood_slots_error	local:drivers_misc.py	contained-silent	return 'invalid_wood_slots'
+custom_components/heatpump_optimizer/wood_fuel.py:369	narrow	_wood_override_fuel	none	not-reached	return None
+custom_components/heatpump_optimizer/wood_fuel.py:420	narrow	detected_wood_slots	lifecycle	silent	dt = None
+custom_components/heatpump_optimizer/wood_fuel.py:459	narrow	_cops	lifecycle	silent	out.append(0.0)
+custom_components/heatpump_optimizer/wood_fuel.py:501	narrow	build_wood_fuel_view	none	not-reached	sek = None

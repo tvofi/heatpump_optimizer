@@ -1,0 +1,12 @@
+RESULT units=3483
+RESULT atom_claim_units=1353
+RESULT stale_units=3
+RESULT stale_atoms=3
+RESULT unverifiable_units=57
+RESULT atoms_flag_ok=146 atoms_flag_unresolved=2
+RESULT atoms_path_ok=2051 atoms_path_unresolved=113
+RESULT atoms_symbol_ok=11 atoms_symbol_unresolved=0
+RESULT thread_factor=1.00
+RESULT load1=3.72
+RESULT swapins=0
+RESULT cpu_s=3.37 provisional

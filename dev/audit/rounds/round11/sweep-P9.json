@@ -1,0 +1,9 @@
+{"class":"P9","instances":0,"barriered":false,"enumerator":"node dev/audit/rounds/round11/D14/p9_enumerate.mjs custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js  (static CSS-rule enumerator; seams in dev/audit/rounds/round11/D14/p9_seams.json: 70 at handoff/audit-r11-register 28b864af6d; null: p9_clean_fixture.js -> 0; perturb --perturb -> 74)",
+"instance_list":[
+{"file":"custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","symbol":".setup-pipe / .setup-pipe.coil-pipe / .setup-svg.editing .setup-pipe (L5728,5732,5857)","probe":"D4-s1-01 plan_view harness: pipe_hit_under_floor=576/576; enumerator kind=target","beyond_finding":false},
+{"file":"custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","symbol":".hl-fold-head (L5329, min-height 32px, no coarse-pointer 44px rule)","probe":"D4-s1-03 score_open harness: strict_small=72; enumerator kind=target-coarse","beyond_finding":false},
+{"file":"custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","symbol":".hl-stats / .tiles headline grid (L5289,5208)","probe":"D4-s3-02 harness: tile_row_misaligned=12/216 at phone width; enumerator kind=row-align","beyond_finding":false},
+{"file":"custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","symbol":".tooltip and dialog.expanded .tooltip font-size 0.78em (L5512,6275)","probe":"D4-s3-03 harness: below_floor_cells=78; enumerator kind=type","beyond_finding":false},
+{"file":"custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","symbol":"cardStyleBlock errorColor sites .wi-remove:hover / .wi-result.dearer (L6217,6266)","probe":"D4-s3-04 harness: role_colour_split=5; enumerator kind=role-colour","beyond_finding":false},
+{"file":"custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","symbol":"off-scale font-size literals, 29 rules (kind=type)","probe":"D4-s3-05 harness: offscale_font_sizes=14; enumerator kind=type","beyond_finding":false}
+]}

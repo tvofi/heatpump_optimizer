@@ -1,0 +1,59 @@
+RESULT source_sites=3 count
+SCEN winter_single_dhw between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN winter_two_zone_dhw between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN winter_single_no_dhw between_run=4 total=9 by_caller={'_lbfgsb_restart': 5, '_multi_start_minimize': 4}
+SCEN winter_two_zone_no_dhw between_run=4 total=9 by_caller={'_lbfgsb_restart': 5, '_multi_start_minimize': 4}
+SCEN summer_dhw_only between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN shoulder between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN shoulder_two_zone between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN extreme_prices between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN negative_prices between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN flat_prices between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN mild_windy_rain between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN cool_rainy_summer between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN legionella_due between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN legionella_off between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN legionella_due_low_setpoint between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN dhw_schedule_off between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN dhw_learned_windows between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN dhw_cold_tank between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN dhw_large_tank between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN start_below_band between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN start_above_band between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN narrow_band between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN wide_band between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN horizon_48h between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN horizon_6h between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN capacity_tariff between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN capacity_tariff_15min between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN cycling_cost between_run=3 total=11 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 7, '_multi_start_minimize': 3}
+SCEN external_heat_active between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN cop_scale_learned between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN away_setback between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN building_preset between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN valve_storage between_run=4 total=9 by_caller={'_lbfgsb_restart': 5, '_multi_start_minimize': 4}
+SCEN valve_storage_low_target between_run=34 total=75 by_caller={'_lbfgsb_restart': 41, '_multi_start_minimize': 34}
+SCEN valve_storage_flat_prices between_run=4 total=9 by_caller={'_lbfgsb_restart': 5, '_multi_start_minimize': 4}
+SCEN valve_storage_small_tank between_run=34 total=75 by_caller={'_lbfgsb_restart': 41, '_multi_start_minimize': 34}
+SCEN valve_storage_smart_write between_run=8 total=18 by_caller={'_lbfgsb_restart': 10, '_multi_start_minimize': 8}
+SCEN wood_two_tank between_run=34 total=75 by_caller={'_lbfgsb_restart': 41, '_multi_start_minimize': 34}
+SCEN wood_two_tank_smart_write between_run=8 total=18 by_caller={'_lbfgsb_restart': 10, '_multi_start_minimize': 8}
+SCEN wood_coil between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN valve_upper_direct_slab between_run=4 total=9 by_caller={'_lbfgsb_restart': 5, '_multi_start_minimize': 4}
+SCEN tariff_plus_two_zone between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN everything_on between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN peak_masked between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN price_risk between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+SCEN fuse_guard between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN capacity_curve between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN precip_snow between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN confidence_margins between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN direct_flow_carnot between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
+RESULT solves=50 count
+RESULT between_run_per_solve_min=3 count
+RESULT between_run_per_solve_max=34 count
+RESULT scenarios_with_eight=2 count
+RESULT total_per_solve_max=75 count
+RESULT thread_factor=0.999
+RESULT load1=1.06
+RESULT swapins=0

@@ -1,0 +1,26 @@
+{
+ "class": "N-vocabulary-drift",
+ "instances": 1,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/vocab_seams.py (+ D13/s2/block_classes.mjs, D13/s2/friction_keys.mjs for the body-vocabulary seams)",
+ "instance_list": [
+  {
+   "file": ".claude/workflows/web-fix-wave.js",
+   "symbol": "KNOWN_STAGES",
+   "probe": "a roster group with resume.stage 'fixing' (accepted by roster_edit.py set-resume --field stage, registered in roster_lib.STAGE_KIND) makes web-fix-wave.js:329 throw; 14 of 18 registered stages are absent from KNOWN_STAGES (vocab_seams.py reverse direction)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/bus.sh",
+   "symbol": "MECHANICAL_CLASSES",
+   "probe": "vocab_seams.py: 9 of 12 words absent from web-fix-wave.js VERDICT_CLASSES (re-finds D13-s2-01); block_classes.mjs 214/448",
+   "beyond_finding": false
+  },
+  {
+   "file": "tools/policy/policy_lint.mjs",
+   "symbol": "frictionEntries/checkPrBody",
+   "probe": "friction_keys.mjs: 105 of 174 accepted entries name no --budgets rule file (D13-s2-02)",
+   "beyond_finding": false
+  }
+ ]
+}

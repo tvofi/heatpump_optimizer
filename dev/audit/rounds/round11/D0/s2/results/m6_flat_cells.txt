@@ -1,0 +1,4 @@
+flat/winter_cold/two-zone/dhw/plain/48h
+flat/winter_cold/two-zone/no-dhw/plain/48h
+flat/winter_cold/two-zone/dhw/wood/48h
+flat/winter_cold/two-zone/dhw/wood/48h

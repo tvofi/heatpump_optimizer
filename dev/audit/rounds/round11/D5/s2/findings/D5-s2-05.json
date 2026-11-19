@@ -1,0 +1,37 @@
+{
+ "id": "D5-s2-05",
+ "scope": "D5-s2",
+ "step": "D5.M4",
+ "title": "make_card_figures.mjs: font-stack comment names a README hero that has no such font; 5 sentences over 40 words",
+ "severity": "low",
+ "claim": "In docs/img/card/make_card_figures.mjs the comment 'The one font stack, matching the hero in README.md.' is false (README.md's hero is banner.png, whose 0 <text> elements are glyphs outlined from Outfit / Instrument Sans by make_readme_figures.banner, carrying no CSS font stack), and 5 prose sentences of its comments exceed C5's 40-word limit (41, 55, 44, 46, 43 words).",
+ "mechanism": "The README hero was redrawn by make_readme_figures.py with outlined brand fonts; the card-figure generator's FONT constant and its comment kept pointing at it. The long sentences are the header and renderChart/onlySeries docstrings chaining clauses with '--' and ':'.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/comments.py --plandata $TMPDIR/plandata.json",
+  "harness_path": "dev/audit/rounds/round11/D5/s2/comments.py",
+  "value": "false_units[make_card_figures.mjs]=1; long_sentences[make_card_figures.mjs]=5",
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+  "cpu_or_wall": "count",
+  "contention_note": "box heavily loaded (load1 150-185); counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 172.87,
+  "thread_factor": 0.999
+ },
+ "instrumented_symbol": "README.md line 1 hero and docs/img/readme/make_readme_figures.py:banner (fonts outlined), against docs/img/card/make_card_figures.mjs:FONT; tools/audit/text_ledger.py:units_of for the sentence count",
+ "perturbation": {
+  "change": "--perturb-text: the false unit rewritten in memory to the truth and each >40-word sentence split",
+  "expected_direction": "to_zero",
+  "observed_value": "false_units 2 -> 0 (both files), long_sentences 8 -> 0"
+ },
+ "metric_definition": "Comment units in the file whose executed check contradicts them (C1), plus prose sentences over 40 words (C5).",
+ "phenomenon_property": "Every comment in the file is true of the code and artefacts it names, and no comment sentence exceeds 40 words.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/comments.py  (false and long lines for this file)",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "docs/img/card/make_card_figures.mjs"
+ ],
+ "proposed_fix_scope": "Reword the FONT comment (the system stack the figure SVGs share with make_model_figures.py, not the README hero) and split the five long sentences."
+}

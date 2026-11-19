@@ -1,0 +1,179 @@
+{
+ "dimension": "D13",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D13/s2/REPORT.md",
+ "exposure": "D13 brief sources read via gh api: /repos/tvofi/heatpump_optimizer/commits/<sha>/pulls for the 612 first-parent commits of v7.1.0..92d38ecb, and /pulls/<n>, /issues/<n>/comments, /pulls/<n>/reviews (all pages) for the 569 merged pull requests; main's first-parent git history. Snapshot committed as dev/audit/rounds/round11/D13/s2/window.json. Verdict and friction text used only as population.",
+ "coverage": [
+  {
+   "step": "D13.M3",
+   "enumerator": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --list",
+   "universe": 448,
+   "examined": 448,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "block_classes.out: blocked_verdicts=448 (statsHistogram over window.json, v7.1.0..92d38ecb, 569 merges, api_failures 0); buckets engineering 259 / orchestration 95 / record-and-body 94; outside_grammar 0; fetchWindow arm lost 0"
+  },
+  {
+   "step": "D13.M6",
+   "enumerator": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs --list",
+   "universe": 174,
+   "examined": 174,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "friction_keys.out: accepted_entries=174, one_file=69 (0.397), ambiguous=0, no_file=105 (84 ids); SELFCHECK equal to statsHistogram's friction cells"
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D13-s2-01",
+   "scope": "D13-s2",
+   "step": "D13.M3",
+   "title": "47.8% of blocked verdicts carry a class word VERDICT_CLASSES lacks; bus.sh and fixer.md teach a second vocabulary",
+   "severity": "medium",
+   "claim": "Over the 569 merged pull requests first-parent in v7.1.0..92d38ecb, 214 of the 448 parseable blocked verdicts (0.478; 93 distinct words, on 155 PRs) carry a class word that web-fix-wave.js's VERDICT_CLASSES does not hold, so parseVerdict routes every one to `other` and no bucket can be read off the grammar for them; 71 of them (ci-red 63, ci-cancelled 4, ci-pending 2, red-unanswered 1, body 1) are words that bus.sh's MECHANICAL_CLASSES and fixer.md's 'Never for a mechanical-only gap' paragraph teach, 9 of bus.sh's 12 mechanical words being absent from VERDICT_CLASSES.",
+   "mechanism": "Two writers of the block vocabulary and one reader: VERDICT_CLASSES (web-fix-wave.js, read by policy_lint.mjs:blockClasses and the wave's parseVerdict) and MECHANICAL_CLASSES (tools/audit/seat/bus.sh:672, taught by dev/governance/roles/fixer.md:311), while fix-review.md teaches the class as free `[a-z-]+`. check-wave-script.mjs's taught-word check reads only `blocked <sha> <word>:` examples in briefs, so fixer.md's prose list and bus.sh's shell variable never meet it. The same verdict is therefore `mechanical` to bus.sh dispatch and `other` to the wave and the --stats class table; 143 further verdicts are untaught by both (bus.sh's 'an unknown one refuses').",
+   "evidence": {
+    "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read",
+    "harness_path": "dev/audit/rounds/round11/D13/s2/block_classes.mjs",
+    "value": 214,
+    "unit": "blocked verdicts outside VERDICT_CLASSES (of 448; share 0.478)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B8",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out; a count over the committed snapshot window.json, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.45,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/policy/policy_lint.mjs:statsHistogram (class key), :blockClasses / :waveVerdictRe (the wave's VERDICT_CLASSES and VERDICT_RE)",
+   "perturbation": {
+    "change": "--perturb teach-ci-red: the VERDICT_CLASSES literal of .claude/workflows/web-fix-wave.js edited in memory to carry 'ci-red', read through policy_lint.mjs:blockClasses",
+    "expected_direction": "down",
+    "observed_value": "214 -> 151 (share 0.478 -> 0.337); bus_mechanical_not_in_wave 9 -> 8"
+   },
+   "metric_definition": "blocked verdicts (trimmed first line of an issue comment or review parsing under VERDICT_RE's blocked arm) whose statsHistogram class word is not in blockClasses(), over the window",
+   "phenomenon_property": "Every class word a seat is taught to write in a blocked verdict (fix-review.md, fixer.md, bus.sh's MECHANICAL_CLASSES) is one word list, the one VERDICT_CLASSES holds, so the wave, bus.sh dispatch and the --stats class table route each verdict alike",
+   "seam_rule": "grep -nE '^MECHANICAL_CLASSES=|^const VERDICT_CLASSES' tools/audit/seat/bus.sh .claude/workflows/web-fix-wave.js; HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read | grep UNTAUGHT",
+   "null_control": {
+    "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read --perturb reshape-one",
+    "value": "blocked 448 -> 447, outside_grammar 0 -> 1, untaught 214 -> 213",
+    "note": "the brief's fixture perturbation: one verdict re-shaped out of the grammar moves the population by exactly one, so the harness counts verdicts and not rows"
+   },
+   "reproduction_steps": [
+    "(optional, network) PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s2/fetch_window.py --since v7.1.0 --head 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --out /tmp/w.json",
+    "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read [--window /tmp/w.json]",
+    "read RESULT untaught_blocked, untaught_in_bus_vocabulary, bus_mechanical_not_in_wave"
+   ],
+   "proposed_fix_scope": "One block vocabulary: VERDICT_CLASSES carries bus.sh's mechanical words (or bus.sh derives MECHANICAL_CLASSES from it), fix-review.md's class teaches that list rather than any [a-z-]+, and check-wave-script.mjs's taught-word check reads fixer.md's mechanical list and bus.sh's variable",
+   "files": [
+    ".claude/workflows/web-fix-wave.js",
+    "tools/audit/seat/bus.sh",
+    "dev/governance/roles/fixer.md",
+    "dev/governance/roles/fix-review.md",
+    "tools/policy/check-wave-script.mjs",
+    "tools/policy/policy_lint.mjs"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-vocabulary-drift"
+  },
+  {
+   "id": "D13-s2-02",
+   "scope": "D13-s2",
+   "step": "D13.M6",
+   "title": "60.3% of accepted ## Friction entries name no policy file; the body contract never resolves the rule id",
+   "severity": "medium",
+   "claim": "Of the 174 `## Friction` entries policy_lint.mjs:frictionEntries accepts in the bodies of the 569 merged pull requests first-parent in v7.1.0..92d38ecb, 105 (0.603; 84 distinct ids) name no `--budgets` path under D13.M6's rule and 0 are ambiguous, so only 69 (0.397) attribute friction to a policy file, because checkPrBody refuses only an entry's shape and never that its `<rule_id>` names a rule.",
+   "mechanism": "The template asks for `<rule_id>: <event>: <evidence>`; frictionEntries accepts any FRICTION_ID ([A-Za-z.][A-Za-z0-9_.#/-]*) and checkPrBody (policy_lint.mjs:7317) refuses only an entry whose id is null. Ids such as `brief` (4), `handoff-wip`, `frugal-routing`, `PROMPT.md`, `fixer-step-push` (3 each), `r10-process-slim-1..5`, tool and group names pass the contract and key their own verbatim histogram rows, so friction a seat aimed at a contract section (fixer-step-push, fixer-brief, fixer-step-6: 6 entries) reaches no policy file under either keying, and checkSunset's honour-rule test reads only the file keys.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+    "harness_path": "dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+    "value": 0.397,
+    "unit": "share of accepted friction entries naming exactly one --budgets path (69/174; no file 105, ambiguous 0)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B8",
+    "cpu_or_wall": "ratio",
+    "contention_note": "shared box during the fan-out; counts over the committed snapshot window.json, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.28,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/policy/policy_lint.mjs:frictionEntries (what an accepted entry is; checked equal to statsHistogram's friction cells), :frictionKey via --normalize-friction-keys, :sizes/:policyFiles (the --budgets paths)",
+   "perturbation": {
+    "change": "--perturb readme: the first accepted entry naming ratchet-budgets.md (#3185) re-spelled `README.md` in its body (D13.md's fixture perturbation); --perturb bare / unticked re-spell it ratchet-budgets / unbackticked",
+    "expected_direction": "down",
+    "observed_value": "readme: one_file 69 -> 68, ambiguous 0 -> 1 (tests/README.md, tools/audit/README.md); bare and unticked: one_file 69 unchanged, only the spelling row moves"
+   },
+   "metric_definition": "accepted friction entries whose id (backticks stripped, # dropped) names exactly one --budgets path p (p is k, k.md, k/SKILL.md or ends in /k, /k.md, /k/SKILL.md), over all accepted entries",
+   "phenomenon_property": "An accepted `## Friction` entry names the policy file it is friction with (or is refused), so every entry the contract accepts is countable against one rule by the histogram and by the sunset check",
+   "seam_rule": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/friction_keys.mjs | sed -n '/no-file rows/,/RESULT rule_file/p'",
+   "null_control": {
+    "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs --perturb unticked",
+    "value": "one_file 69, no_file 105 (unchanged)",
+    "note": "a spelling change that still names the same file moves no count: the share measures naming, not formatting"
+   },
+   "reproduction_steps": [
+    "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+    "read RESULT one_file_share, no_file and the no-file rows"
+   ],
+   "proposed_fix_scope": "checkPrBody refuses a ## Friction id that names no policy file by the histogram's own resolution (frictionKey resolves to a policyFiles() path), with the template's <rule_id> naming the file; existing verbatim keys stay readable in --stats",
+   "files": [
+    "tools/policy/policy_lint.mjs",
+    ".github/PULL_REQUEST_TEMPLATE.md"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-vocabulary-drift"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every `Fix review:` first line in the window parses under web-fix-wave.js's VERDICT_RE",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read",
+   "value": "outside_grammar=0 over 448 blocked + 647 merge verdicts"
+  },
+  {
+   "claim": "Every blocked verdict in the window arrived as an issue comment; none as a pull-request review",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --list | awk '{print $2}' | sort | uniq -c",
+   "value": "448 issue-comment, 0 review"
+  },
+  {
+   "claim": "policy_lint.mjs:fetchWindow's single page of 100 per endpoint loses no verdict in this window (latent only)",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs",
+   "value": "prs_over_one_page=0, fetchwindow_lost_verdicts=0 (1707 stub-curl calls)"
+  },
+  {
+   "claim": "D13.md's high bar (more rounds on body figures than on any engineering class) is not met",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read",
+   "value": "body-figure words 17 vs class-open 84; record-and-body bucket 94 vs engineering bucket 259"
+  },
+  {
+   "claim": "The PR-body contract and the friction histogram read the same entries: none unparsed, per-entry keys equal statsHistogram's cells",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+   "value": "unparsed_entries=0, SELFCHECK yes"
+  },
+  {
+   "claim": "The one threshold split between D13.M6's rule and frictionKey (orchestrator.md: 3 PRs by the rule, 2 under its best production key) follows frictionKey's documented briefs carve-out, and the bare-id entry (#3625) is a seat's own cost, not the contract",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+   "value": "files_at_threshold_split_below=1; rule_file_prod_other=6 (fixer 5, orchestrator 1)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D13/s2/fetch_window.py",
+  "dev/audit/rounds/round11/D13/s2/block_classes.mjs",
+  "dev/audit/rounds/round11/D13/s2/friction_keys.mjs"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "tools/policy/check-wave-script.mjs",
+   "symbol": "taughtWords (the 'teaches block class' check)",
+   "what": "reads only `blocked <sha> <word>:` examples in briefs, so the mechanical words fixer.md:311 lists in prose and bus.sh's MECHANICAL_CLASSES variable (ci-red, ci-wait, ci-pending, ci-cancelled, red-unanswered, body, contract, carry, ungated) never meet the VERDICT_CLASSES check (mechanism half of D13-s2-01)"
+  },
+  {
+   "owner_seat": "D13-s1",
+   "file": "tools/policy/policy_lint.mjs",
+   "symbol": "fetchWindow",
+   "what": "reads /issues/<n>/comments?per_page=100 and /pulls/<n>/reviews?per_page=100 with no paging, so a PR with more than 100 comments loses its later verdicts from --stats yield/coverage; 0 such PRs in v7.1.0..92d38ecb, so latent (block_classes.mjs arm (c) drives it with a paging stub)"
+  }
+ ]
+}

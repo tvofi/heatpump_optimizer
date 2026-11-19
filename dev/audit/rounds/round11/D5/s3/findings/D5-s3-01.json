@@ -1,0 +1,47 @@
+{
+ "id": "D5-s3-01",
+ "scope": "D5-s3",
+ "step": "D5.M4",
+ "title": "grid_fee docstrings say the module is free of Home Assistant imports; it cannot import without homeassistant",
+ "severity": "low",
+ "claim": "grid_fee.py's module docstring (line 27, 'Kept free of Home Assistant imports so it can be unit-tested directly') and max_abs_component's docstring ('Pure and HA-free') are false: importing grid_fee with homeassistant absent raises ImportError, through currency.py's module-level `from homeassistant.core import HomeAssistant`.",
+ "mechanism": "grid_fee imports currency.money_scale; currency imports homeassistant.core at module level for an annotation only (from __future__ import annotations makes it a string), so the HA-free property the docstring promises, and the reason it gives, fail transitively. The ten other HA-free claims in the cells hold.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s3/ha_free.py",
+  "value": 1,
+  "unit": "modules claiming HA-free that need homeassistant to import",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B3, x86_64 4 vCPU container",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats running on the shared box; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 0.62,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee (module import, homeassistant refused by a meta-path finder; package __init__ bypassed)",
+ "perturbation": {
+  "change": "currency.py: move `from homeassistant.core import HomeAssistant` under `if TYPE_CHECKING:` (applied in memory by --perturb)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Count of cell modules whose comment claims freedom from Home Assistant imports yet whose import fails with every homeassistant module refused.",
+ "phenomenon_property": "A comment that states a module is free of Home Assistant imports is true of the module's transitive import closure: the module imports with homeassistant absent.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+  "value": "10 of 11 claimed modules import OK with homeassistant refused (flow_meter, flow_lift, diagnosis, freq_control, heat_energy, comfort_band, device_prefill, disinfection, inputs)",
+  "note": "same refusal, same run: the instrument passes honest claims"
+ },
+ "reproduction_steps": [
+  "run the command; read RESULT claimed_but_needs_ha=1 modules grid_fee",
+  "re-run with --perturb; read 0"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/grid_fee.py",
+  "custom_components/heatpump_optimizer/currency.py"
+ ],
+ "proposed_fix_scope": "Either move currency.py's HomeAssistant import under TYPE_CHECKING (it is annotation-only) so the claim becomes true, or narrow the two grid_fee docstrings to 'no direct Home Assistant import'. The text_ledger row grid_fee.py#(module docstring) flips to true."
+}

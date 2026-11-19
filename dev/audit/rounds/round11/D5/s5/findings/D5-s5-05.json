@@ -1,0 +1,42 @@
+{
+ "id": "D5-s5-05",
+ "scope": "D5-s5",
+ "step": "D5.M4",
+ "title": "merge_train self-test comment names _outside_self_test, which no code defines",
+ "severity": "low",
+ "claim": "The _self_test comment above `real_fork_head, Train.fork_head = ...` in tools/audit/seat/merge_train.py says `_outside_self_test` puts the real reader back; merge_train has no attribute _outside_self_test, and the real fork_head is restored inline at the two `real_fork_head` assignments (lines 5275 and 6305).",
+ "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The comment names a helper that was never added or was folded inline.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/merge_train.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+  "value": 1,
+  "unit": "units",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+  "tolerance": "exact",
+  "load1": 2.55,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/seat/merge_train.py:_outside_self_test (hasattr on the imported module)",
+ "perturbation": {
+  "change": "--edit 'tools/audit/seat/merge_train.py|# `_outside_self_test` puts the real reader back|# the `real_fork_head` restores put the real reader back'",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+ "phenomenon_property": "Every function a comment of merge_train.py names is defined at the ref.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "tools/audit/seat/merge_train.py"
+ ],
+ "proposed_fix_scope": "One comment line of tools/audit/seat/merge_train.py (line 5063).",
+ "reproduction_steps": [
+  "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/merge_train.py",
+  "read the `false` line(s) it prints",
+  "perturb: --edit 'tools/audit/seat/merge_train.py|# `_outside_self_test` puts the real reader back|# the `real_fork_head` restores put the real reader back'"
+ ]
+}

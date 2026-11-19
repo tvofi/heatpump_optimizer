@@ -1,0 +1,44 @@
+{
+ "id": "D17-s2-04",
+ "scope": "D17-s2",
+ "step": "D17.M3",
+ "title": "The night-mode schedule kept on the setup pre-fill page caps nothing",
+ "severity": "medium",
+ "claim": "A pump night-mode schedule kept on the config flow's device pre-fill page leaves the plan at full nameplate power inside it, because the companion power fraction defaults to 1.0 and the setup page never offers it.",
+ "mechanism": "silent_mode.compose/caps return no cap when silent_mode_power_fraction >= 1.0 (DEFAULT_SILENT_MODE_FRACTION=1.0); the setup pre-fill page writes silent_mode_windows only, so the stored schedule is inert until the user finds the fraction on the options grid page.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/silent_prefill.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s2/silent_prefill.py",
+  "value": 0.0,
+  "unit": "kW change of the max planned power inside the kept 06-10 UTC window",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+  "tolerance": "1e-6",
+  "load1": 3.1,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/silent_mode.py:compose",
+ "perturbation": {
+  "change": "config: silent_mode_power_fraction=0.6 stored beside the kept schedule; code: `silent_prefill.py --perturb` reads the fraction as 0.6 when a schedule is stored at the 1.0 default",
+  "expected_direction": "down",
+  "observed_value": "with_fraction_cap_delta_kW=-2.0; under --perturb kept_schedule_cap_delta_kW=-2.0"
+ },
+ "metric_definition": "Max planned kW inside the kept night window with the schedule minus without it, the window being the horizon's only cheap stretch.",
+ "phenomenon_property": "A night-mode schedule the setup flow stores reduces the power the plan counts on inside it.",
+ "seam_rule": "grep -n \"silent_mode_windows\\|silent_mode_power_fraction\" custom_components/heatpump_optimizer/config_flow.py custom_components/heatpump_optimizer/modbus_prefill.py custom_components/heatpump_optimizer/silent_mode.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/silent_prefill.py",
+  "value": "with_fraction_cap_delta_kW=-2.0",
+  "note": "the same plan does cap once a fraction is stored, so the zero is the missing fraction"
+ },
+ "proposed_fix_scope": "config_flow device_prefill (offer or default the fraction with the schedule) or silent_mode (a stored schedule with no fraction caps at a documented default).",
+ "files": [
+  "custom_components/heatpump_optimizer/config_flow.py",
+  "custom_components/heatpump_optimizer/silent_mode.py",
+  "custom_components/heatpump_optimizer/const.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

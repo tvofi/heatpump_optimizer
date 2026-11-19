@@ -1,0 +1,68 @@
+#3451	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R10-PROCESS-SLIM (part 2): r10 process slim p2
+#3521	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R10-OUTSIDE-CONTRIBUTOR-CYCLE (part 2): r10 outside contribu
+#3551	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R10-SELFTEST-SCOPE-UNION-GUARD: r10 selftest scope union gua
+#3566	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R10-NUDGE-RETIRE: r10 nudge retire
+#3593	O1=1 (at head)	O2=0 (failure)	O3=1	O4=1 []	R10-COP-LEARNER-DRAW-FLOOR: r10 cop learner draw floor
+#3598	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R10-START-COUNTER-EDGES: r10 start counter edges
+#3602	O1=1 (carried)	O2=1 (success)	O3=1	O4=1 []	R11-OUTSIDE-HONEST-STARTS-RUNS: r11 outside honest starts ru
+#3606	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R10-HOTFIX-SELFTEST-SCOPE-RERECORD (part 3): r10 hotfix self
+#3607	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	closure: retarget four roster citations, land the roster and
+#3609	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	triage: the round-10 round-end batch (P742-P795) with the ow
+#3610	O1=0 (no verdict comment)	O2=1 (success)	O3=0	O4=1 []	build(deps): bump the pip group in /tests with 4 updates
+#3611	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	record: round 10 objective record under decision 0018
+#3612	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-ROUND-METRICS (part 1): r11 pre round metrics p1
+#3613	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-HOTFIX-SELFTEST-FLAKE-ARMS: r11 hotfix selftest flake ar
+#3614	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-HOTFIX-FIGURE-BLOCK-BASE: r11 hotfix figure block base
+#3615	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-HOTFIX-POLICY-DOCS-TIMEOUT: r11 hotfix policy docs timeo
+#3617	O1=0 (no verdict comment)	O2=1 (success)	O3=0	O4=1 []	record: delivery rows for #3451, #3521, #3593, #3606, #3607,
+#3618	O1=0 (no verdict comment)	O2=0 (failure)	O3=1	O4=1 []	R11-PRE-BRIEFS-TEXT: r11 pre briefs text
+#3619	O1=1 (carried)	O2=1 (success)	O3=1	O4=1 []	R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3: r11 outside contributor cy
+#3620	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-ROUND-CHECK-GATE: r11 pre round check gate
+#3621	O1=1 (carried)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-FINDER-CONTRACT: r11 pre finder contract
+#3622	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-PLAN-RENDER: r11 pre plan render
+#3624	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-HOTFIX-CI-PREDICT-TIMEOUT: r11 hotfix ci predict timeout
+#3625	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-BRIEFS-CENSUS: r11 pre briefs census
+#3626	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-RULINGS-FILE: r11 pre rulings file
+#3627	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-MACHINERY-LIMITER: r11 pre machinery limiter
+#3629	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-HOTFIX-MAIN-SELFTEST-RED: r11 hotfix main selftest red
+#3630	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-OWNER-ROADMAP: r11 owner roadmap
+#3631	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-OWNER-CRITERIA (part 1): r11 pre owner criteria p1
+#3634	O1=0 (no verdict comment)	O2=1 (success)	O3=0	O4=1 []	record: delivery rows for #3551, #3598, #3612, #3614, #3615,
+#3635	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-ACK-COMPLETION: r11 pre ack completion
+#3638	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-RCA-LATCH-CLAUSES: r11 pre rca latch clauses
+#3640	O1=1 (at head)	O2=0 (failure)	O3=1	O4=1 []	R11-OUTSIDE-SLAB-SEED-GUARD: r11 outside slab seed guard
+#3641	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-OWNER-CRITERIA: r11 pre owner criteria
+#3642	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-BRIEFS-TEXT: r11 pre briefs text
+#3644	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-ROUND-METRICS: r11 pre round metrics
+#3645	O1=1 (carried)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-TOOLCHAIN-PIN: r11 pre toolchain pin
+#3646	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-NEW-DIMENSIONS: r11 pre new dimensions
+#3647	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-FINDER-CONTRACT: r11 pre finder contract
+#3648	O1=1 (carried)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-RELAY-REBUILD: r11 pre relay rebuild
+#3649	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-OUTSIDE-APPLY-PLAN-CEILING: apply plan only up to the ma
+#3650	O1=0 (no verdict comment)	O2=1 (success)	O3=0	O4=1 []	record: delivery rows for #3566, #3626, #3629 (autofix)
+#3651	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-STANDING-SCRIPTS: r11 pre standing scripts
+#3652	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-HOTFIX-MAIN-SELFTEST-SCOPE-4: re-record the self-test sc
+#3653	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3: r11 outside contributor cy
+#3657	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-ROUND-METRICS p2: r11 pre round metrics part 2
+#3659	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R10-DRAW-MAP-EVIDENCE: r10 draw map evidence
+#3660	O1=0 (no verdict comment)	O2=1 (success)	O3=1	O4=1 []	record: delivery rows for #3620, #3625, #3627, #3635, #3644,
+#3661	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-HOTFIX-TICK-SEAT-WINDOW: tick reads SEAT_WINDOW_MIN from
+#3664	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-PRE-HANDOFF-BOOKKEEPING: r11 pre handoff bookkeeping
+#3669	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-START-EVALUATION-LAND: r11 start evaluation land
+#3671	O1=1 (at head)	O2=1 (success)	O3=1	O4=1 []	R11-HOTFIX-MAIN-SELFTEST-DRIFT: re-record the self-test read
+RESULT window_prs=52 count
+RESULT O1_met=46 count
+RESULT O1_fraction=0.8846 ratio
+RESULT O2_met=49 count
+RESULT O2_fraction=0.9423 ratio
+RESULT O3_met=48 count
+RESULT O3_fraction=0.9231 ratio
+RESULT O4_met=52 count
+RESULT O4_fraction=1.0000 ratio
+RESULT O4_prs_with_required_red=0 count
+RESULT O2_unmet_prs=3593,3618,3640
+RESULT O1_unmet_prs=3610,3617,3618,3634,3650,3660
+RESULT O4_unmet_prs=
+RESULT thread_factor=1.000
+RESULT load1=10.94
+RESULT swapins=0

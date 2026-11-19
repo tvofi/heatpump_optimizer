@@ -1,0 +1,58 @@
+{
+ "id": "D0-s3-03",
+ "scope": "D0-s3",
+ "step": "D0.M7",
+ "title": "_terminal_cost docstring: no credit breaches the tail floor; at any learnable weight it never does",
+ "severity": "low",
+ "claim": "With HeatPumpOptimizer._terminal_cost zeroed, the shipped plan's last-2-h degree-steps below the per-step comfort floor are no worse than with it on 0 of 40 committed cells at the default comfort_weight (5.0) and 0 of 40 at the comfort learner's minimum (1.0), while tail energy falls on 40/40 and 39/40; the floor-breach half of the docstring holds only at comfort_weight 0.05 (13 of 40), outside what comfort_learning can reach. On every d0-grid line (2400, decomp_oracle.py) zeroing the credit moves 1811 plans and lowers tail energy on 1659, and worsens the tail floor breach on 0.",
+ "mechanism": "The comfort floor is held by the objective's own floor terms (_comfort_terms: squared undershoot x10 plus the L1 term _COMFORT_FLOOR_L1 x comfort_weight), which at any learnable weight (comfort_learning.COMFORT_WEIGHT_MIN..MAX = 1..40) already price a tail undershoot above the energy the credit would save. Removing the credit does dump the last hours (tail kWh 3.6-10.7 -> 0), but the room coasts down without crossing the floor inside the horizon. The docstring states the floor breach as the reason the term exists; a reader (or a fixer weighing a change to the credit) is told the credit guards comfort when it guards only the end-state value.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py",
+  "harness_path": "dev/audit/rounds/round11/D0/s3/terminal_claim.py",
+  "value": "tail_breach_worse_cells=0/40; tail_dump_cells=40/40; at --perturb learned_min 0/40 and 39/40",
+  "unit": "cells",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B3 (4 cores shared by three seats)",
+  "cpu_or_wall": "count",
+  "contention_note": "race, decomp_oracle and loop runs of this seat plus D3-s3/D9-s3 mutation and drift runs; counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 13.06,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._terminal_cost (replaced by a zero closure pair in memory; plans read from HeatPumpOptimizer.optimize's OptimizationResult.room_temp_trajectory)",
+ "perturbation": {
+  "change": "--perturb weak_floor: optimizer config.comfort_weight x0.01 (both arms), so the floor penalty no longer holds the tail",
+  "expected_direction": "up",
+  "observed_value": "tail_breach_worse_cells=13/40, max tail breach without credit 6.08 K-steps (0.24 with it)"
+ },
+ "metric_definition": "Cells where zeroing _terminal_cost raises degree-steps below the per-step floor over the plan's last 8 steps (model room trajectory) by > 1e-3; beside it, cells where tail kWh falls.",
+ "phenomenon_property": "What _terminal_cost's docstring says the term prevents is what removing it causes at the weights production runs; a stated comfort consequence holds on the shipped weight range or is not stated.",
+ "seam_rule": "grep -n 'comfort floor at the tail\\|dumps the last' custom_components/heatpump_optimizer/optimizer.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py --perturb weak_floor",
+  "value": "13/40",
+  "note": "the harness can see a tail breach when one exists: with the floor penalty weakened below the learnable range, dropping the credit breaches on 13 cells and keeping it holds the floor to 0.24 K-steps"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py --perturb learned_min",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py --perturb weak_floor",
+  "full grid: PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py --summary (RESULT terminal_tail_breach_cells over every d0-grid line)"
+ ],
+ "proposed_fix_scope": "optimizer.py _terminal_cost docstring: state what the term does at the learnable weights (prices the end-state deficit so the plan does not dump the tail and the reported saving is not borrowed heat) and drop or condition the floor-breach claim; no plan change",
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "full_grid": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py --summary",
+  "value": "terminal_plan_moved_cells=1811 terminal_tail_dump_cells=1659 terminal_tail_reversed_cells=19 terminal_tail_breach_cells=0 (of 2400)"
+ },
+ "leave_one_out": {
+  "cells": 2400,
+  "min": 0,
+  "max": 0,
+  "drop_most_favourable": 0
+ }
+}

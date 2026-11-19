@@ -1,0 +1,47 @@
+{
+ "id": "D6-s4-02",
+ "scope": "D6-s4",
+ "step": "D6.M2",
+ "title": "sv persistent heat-curve write budget text: '0 or 1 writes nothing', 'one always kept for the restore' are false",
+ "severity": "medium",
+ "claim": "translations/sv.json options.step.heat_curve.data_description.heat_curve_persistent_writes_per_day says one write is always kept back for the off-restore and that a budget of 0 or 1 writes nothing, but production heat_curve._write_persistent_target sends 1 plan write a day at budget 1 and 12 at budget 12, so with the unbudgeted restore a day reaches budget+1 writes.",
+ "mechanism": "The refusal is `writes_today(state, now) + 1 > budget`, which admits the write that reaches the budget itself; nothing holds one back for off_restore's restore, which _persistent_restored then counts to the day. The text (and the module docstring's I2) state the stricter rule.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s4/persistent_budget.py",
+  "harness_path": "dev/audit/rounds/round11/D6/s4/persistent_budget.py",
+  "value": 1,
+  "unit": "count (plan_writes_B1; text claims 0)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B13 finder box, linux x86_64",
+  "cpu_or_wall": "count",
+  "contention_note": "shared finder box during fan-out; count is load-immune",
+  "tolerance": "exact",
+  "load1": 1.42,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/heat_curve.py:_write_persistent_target",
+ "perturbation": {
+  "change": "one-line production edit (applied in memory by --perturb): `writes_today(state, now) + 1 > budget` -> `writes_today(state, now) + 2 > budget`",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "heat_curve._send calls made by _write_persistent_target in one local day with the plan asking a new target every 61 min (dwell 60), at budget B=1; key: the seam's send calls.",
+ "phenomenon_property": "For every budget B the persistent arm's plan writes in a local day are at most max(B-1, 0), so plan writes plus the off-restore never exceed B, and B in {0,1} sends nothing.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s4/persistent_budget.py   (RESULT over_text_B<n> for B in 0,1,2,12; every nonzero is a seam)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s4/persistent_budget.py",
+  "value": "plan_writes_B0=0, over_text_B0=0",
+  "note": "at budget 0 the arm sends nothing, as the text says; the excess is exactly one write at every B>=1 (B1:1, B2:2, B12:12)"
+ },
+ "reproduction_steps": [
+  "harness -> plan_writes_B1=1, B2=2, B12=12; total_with_restore = B+1",
+  "--perturb -> 0, 1, 11"
+ ],
+ "proposed_fix_scope": "Either make heat_curve._write_persistent_target keep one write back (as the text and the module's I2 say), or correct the sentence in every language file and strings.json; the fixer decides which side is wrong, the property above holds the code to whichever text survives.",
+ "files": [
+  "custom_components/heatpump_optimizer/translations/sv.json",
+  "custom_components/heatpump_optimizer/heat_curve.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I5"
+}

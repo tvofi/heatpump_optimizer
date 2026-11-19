@@ -1,0 +1,48 @@
+{
+ "id": "D12-s3-02",
+ "scope": "D12-s3",
+ "step": "D12.M3",
+ "title": "DHW set-point Fix writes the disinfection floor above the entity's own max on a pump capped below it",
+ "severity": "medium",
+ "claim": "On a plant whose DHW set-point entity's declared maximum (55 degC) is below the notice's floor (60 degC while a legionella cycle is active), the confirmed dhw_setpoint_below_disinfection Fix sends 60 to the entity on every one of the four DHW set-point domains, with or without an immersion disinfection switch: 8 of 12 Fix writes fall outside the entity's own range, 0 under an entity-capped quantisation.",
+ "mechanism": "setpoint_check._dhw quantises the floor with quantise_setpoint_c(..., rounding='up', hi_c=params.dhw_hard_max_temp) and never with the entity's own max (inputs.setpoint_range_c); repairs.DhwSetpointRepairFlow writes that value through inputs.write_setpoint. The arbiter's own writes are bounded by the entity range (pump_arbiter._bounded, duties.py 0 bad of 120), so only the Fix path skips it; the notice can then never clear on that plant, and Home Assistant refuses an out-of-range number/climate/water_heater value.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/repairs_surfaces.py",
+  "harness_path": "dev/audit/rounds/round11/D12/s3/repairs_surfaces.py",
+  "value": 8,
+  "unit": "Fix writes (of 12) outside the target entity's own declared range (RESULT bad_fix_writes)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6, Linux x86_64, python 3.14.7, numpy 2.5.4, scipy 1.18.1",
+  "cpu_or_wall": "count",
+  "contention_note": "two other compute seats on B6 and this seat's two entry-mode runs (load1 9-10); a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 10.25,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.repairs:DhwSetpointRepairFlow.async_step_confirm (with heatpump_optimizer.setpoint_check:_dhw raising the issue inside heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data)",
+ "perturbation": {
+  "change": "--perturb entity-cap: setpoint_check.quantise_setpoint_c called with hi_c = min(hi_c, inputs.setpoint_range_c(entity)[1]) (one-line production edit in setpoint_check._dhw)",
+  "expected_direction": "to_zero",
+  "observed_value": "bad_fix_writes 8 -> 0 (the capped cells write 55)"
+ },
+ "metric_definition": "Per (DHW set-point domain x entity range) cell, confirmed-Fix service calls whose value is outside the entity's own declared range (min_temp/max_temp or min/max).",
+ "phenomenon_property": "Every set-point write the integration sends -- arbiter, Fix flow, or any other writer -- lands inside the target entity's own declared range, on every set-point domain the tree accepts.",
+ "seam_rule": "grep -n 'write_setpoint(\\|quantise_setpoint_c(\\|write_setpoint_c(' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/repairs_surfaces.py  (the 'holds' cells)",
+  "value": "0 of 4 bad on the entity range [40,65] that holds the floor; duties.py (arbiter writes) 0 of 120 bad on both arms",
+  "note": "Not a cost claim; the in-range arm is the null."
+ },
+ "reproduction_steps": [
+  "run repairs_surfaces.py: CELL *:capped and *:capped_immersion print BAD value 60 outside [30,55]; RESULT bad_fix_writes=8",
+  "run with --perturb entity-cap: RESULT bad_fix_writes=0"
+ ],
+ "proposed_fix_scope": "setpoint_check._dhw: cap the Fix value at the entity's own max (and say in the notice that the entity cannot hold the floor, or do not raise it where a disinfection switch runs the cycle)",
+ "files": [
+  "custom_components/heatpump_optimizer/setpoint_check.py",
+  "custom_components/heatpump_optimizer/repairs.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

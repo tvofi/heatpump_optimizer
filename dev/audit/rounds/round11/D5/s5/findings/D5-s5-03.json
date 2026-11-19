@@ -1,0 +1,42 @@
+{
+ "id": "D5-s5-03",
+ "scope": "D5-s5",
+ "step": "D5.M4",
+ "title": "preflight.sh step 5 names the moved tools/audit/briefs/fix-review.md as the precondition's second home",
+ "severity": "low",
+ "claim": "The step-5 comment block of tools/pr/preflight.sh (from line 141) says the review seat's precondition is carried in `tools/audit/briefs/fix-review.md`, the paragraph under the detached-worktree preamble; that path is absent at the baseline (the brief is dev/governance/roles/fix-review.md).",
+ "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The history mention at line 145 is true and is dispositioned; the present-tense pointer at line 191 is the false occurrence.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/preflight.sh",
+  "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+  "value": 1,
+  "unit": "units",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+  "tolerance": "exact",
+  "load1": 2.55,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/pr/preflight.sh: the `# 5. A STALE POLICY CORPUS` comment block",
+ "perturbation": {
+  "change": "--edit 'tools/pr/preflight.sh|#    tools/audit/briefs/fix-review.md, the paragraph|#    dev/governance/roles/fix-review.md, the paragraph'",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+ "phenomenon_property": "A comment pointing a reader to where a rule now lives names a path that exists at the ref.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "tools/pr/preflight.sh"
+ ],
+ "proposed_fix_scope": "One comment line of tools/pr/preflight.sh (line 191).",
+ "reproduction_steps": [
+  "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/preflight.sh",
+  "read the `false` line(s) it prints",
+  "perturb: --edit 'tools/pr/preflight.sh|#    tools/audit/briefs/fix-review.md, the paragraph|#    dev/governance/roles/fix-review.md, the paragraph'"
+ ]
+}

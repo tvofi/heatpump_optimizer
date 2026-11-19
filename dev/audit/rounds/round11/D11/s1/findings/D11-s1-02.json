@@ -1,0 +1,48 @@
+{
+ "id": "D11-s1-02",
+ "scope": "D11-s1",
+ "step": "D11.M1",
+ "title": "Ruleset drift detector reads 1 of 3 live rulesets; main-protect and release-tags-protect change unseen",
+ "severity": "medium",
+ "claim": "Adding an `always` bypass actor to ruleset 22628467 (main-protect: deletion, non_fast_forward on main) or 23937752 (release-tags-protect: v* tags) produces 0 findings from the tree's only ruleset drift detector, while the same change to 23698884 produces 6.",
+ "mechanism": "counts.mjs liveRequiredContexts collects ruleset ids only from branch rules of type required_status_checks, so the ruleset objects it fetches and policy_lint's required-contexts class compares against the recorded fixture are 23698884's alone. main-protect's force-push/deletion rules and the tag ruleset that guards releases are never read; decision 0011 records a past undocumented bypass on 22628467 that this reach could not have seen, and the plan of record noted 'fixture covers 23698884 only'.",
+ "evidence": {
+  "command": "node dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs",
+  "harness_path": "dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs",
+  "value": 2,
+  "unit": "rulesets whose change the detector reports with 0 findings",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (linux 6.18, 4 cpu, node 22.23.4)",
+  "cpu_or_wall": "count",
+  "contention_note": "gh is a shim over the committed API snapshot (api/); no live call; a count",
+  "tolerance": "exact",
+  "load1": 5.02,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/policy/counts.mjs:liveRequiredContexts (and requiredContextsDrift on its output, against tools/policy/fixtures/required-contexts.json)",
+ "perturbation": {
+  "change": "liveRequiredContexts adds r.ruleset_id for every branch rule before the required_status_checks filter, with the temp fixture recording 22628467's ids and object (harness --perturb, temp copies of counts.mjs and the fixture)",
+  "expected_direction": "down",
+  "observed_value": 1
+ },
+ "metric_definition": "Of the 3 active rulesets, the number whose bypass_actors can gain an `always` actor while requiredContextsDrift(fixture, liveRequiredContexts()) adds no finding over the unperturbed snapshot.",
+ "phenomenon_property": "Every active ruleset that guards main or release tags is read and compared field by field against a recorded copy, so any change to its rules or bypass actors reddens policy-docs within one push.",
+ "seam_rule": "gh api repos/tvofi/heatpump_optimizer/rulesets --jq '.[] | select(.enforcement==\"active\") | .id' | grep -vxFf <(python3 -c \"import json;print('\\n'.join(map(str,json.load(open('tools/policy/fixtures/required-contexts.json'))['rulesets'])))\")",
+ "null_control": {
+  "command": "node dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs",
+  "value": "snapshot as read: 0 findings; 23698884 + bypass: delta 6",
+  "note": "the detector is alive on the ruleset it reads, so the blindness is its reach. Under --perturb 22628467's change adds 4 findings (0 on the null arm) and 23937752, on no branch's rules, stays unread: 2 -> 1."
+ },
+ "reproduction_steps": [
+  "node dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs -> RESULT unmonitored=2",
+  "node dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs --perturb -> RESULT unmonitored=1"
+ ],
+ "proposed_fix_scope": "Read every active ruleset (GET repos/{o}/{r}/rulesets, then each object), record all three in required-contexts.json's ruleset_objects, and compare each the way 23698884 is compared; the acceptance gains one drift arm per ruleset.",
+ "files": [
+  "tools/policy/counts.mjs",
+  "tools/policy/fixtures/required-contexts.json",
+  "tools/policy/policy_lint.mjs"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I3"
+}

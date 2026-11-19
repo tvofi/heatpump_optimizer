@@ -1,0 +1,7 @@
+RESULT comment_units=3099 count
+RESULT mislocated=0 count
+RESULT py_comment_units=1200 count
+RESULT py_mislocated=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.60
+RESULT swapins=0

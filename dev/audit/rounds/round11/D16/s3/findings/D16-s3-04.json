@@ -1,0 +1,48 @@
+{
+  "id": "D16-s3-04",
+  "scope": "D16-s3",
+  "step": "D16.M5",
+  "title": "A space set-point restore that fails on entering Off is never retried while Off",
+  "severity": "medium",
+  "claim": "If an off_restore write fails at the change into Off (a device briefly unreachable), it is not sent again over six hours of arbiter ticks and cycles after the device answers: the space set-point keeps the optimizer's gate (25, not the captured 45) and the heat-curve offset keeps +3 K (not the neutral 0), until a person toggles the optimizer or the entry unloads.",
+  "mechanism": "off_restore.async_restore runs only from async_mode_change (the transition into MODE_OFF) and async_unload_entry; a failure is latched (off_restore_<key>) and left armed 'so the next off or unload tries again'. pump_arbiter._arbitrate returns at MODE_OFF without consulting the armed record, so no state reachable without a person leads to the write.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+    "harness_path": "dev/audit/rounds/round11/D16/s3/m5_holds.py",
+    "value": 0,
+    "unit": "writes (RESULT writes_again_off_restore_failed_while_off; space_setpoint_final_while_off=25; writes_again_off_restore_neutral_failed_while_off=0, heat_curve_offset_final_while_off=3)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (shared, up to three compute seats)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute seats may share B11; the number is a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.96,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "off_restore:_restore_baseline and off_restore:async_restore (latch off_restore_<key>, lines 220/253/256) via coordinator:HeatPumpOptimizerCoordinator.async_set_mode, then pump_arbiter:apply/_arbitrate ticks",
+  "perturbation": {
+    "change": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py --perturb retry_off_restore: an Off pass of pump_arbiter._arbitrate calls off_restore.async_restore first",
+    "expected_direction": "up",
+    "observed_value": "writes_again_off_restore_failed_while_off=1 (final 45), writes_again_off_restore_neutral_failed_while_off=1 (final 0)"
+  },
+  "metric_definition": "Restore writes to the space set-point between the device recovering and six hours later, Off held, no person acting; key = entity_id of delivered service calls.",
+  "phenomenon_property": "An armed off_restore entry whose restore failed is retried automatically while the optimizer stays Off (and while unloaded nothing can, so the unload path is the remainder), until it lands once.",
+  "seam_rule": "grep -n 'async_restore\\|async_mode_change' custom_components/heatpump_optimizer/*.py (every caller; none runs per pass while Off)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+    "value": "null_space_final=45, null_restore_without_failure_later_writes=0",
+    "note": "without the failure the restore lands at Off and nothing more is written: the harness sees a restore when one happens"
+  },
+  "reproduction_steps": [
+    "run the command; read writes_again_off_restore_failed_while_off and space_setpoint_final_while_off",
+    "person_toggle_restores=1 shows the only release is a person's Auto->Off toggle",
+    "re-run with --perturb retry_off_restore"
+  ],
+  "proposed_fix_scope": "Retry an armed, failed off_restore entry from the arbiter's one-minute tick (or a timer off_restore owns) while MODE_OFF, bounded, until it lands.",
+  "files": [
+    "custom_components/heatpump_optimizer/off_restore.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

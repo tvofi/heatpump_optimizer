@@ -1,0 +1,37 @@
+{
+ "scope": "D5-s9",
+ "step": "D5.M4",
+ "severity": "low",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of over the tracked tree at the ref (git ls-tree); the code literals tests/entities.py:_handovers check and tests/entities.py:_preflight",
+ "metric_definition": "(unit, cited path) pairs where a D5 comment unit names a docs/ tools/ dev/ .claude/ .github/ path not tracked at the ref",
+ "phenomenon_property": "Every repository path a D5 comment unit in tests/ names under docs/, tools/, dev/, .claude/ or .github/ is a tracked file or directory at the ref; a move updates the comments that cite the moved path.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo <repo-with-baseline> | grep ^STALE",
+ "id": "D5-s9-03",
+ "title": "tests/structure.py thread-pin comment cites tools/audit/README.md, moved to dev/audit/README.md",
+ "claim": "At 92d38ecb, tests/structure.py:213 cites tools/audit/README.md as the home of the toolkit's thread pin; the path is untracked and the toolkit README is dev/audit/README.md.",
+ "mechanism": "The audit toolkit README moved under dev/audit/; the comment's pointer was not updated. Criterion C2.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo /home/user/heatpump_optimizer --perturb",
+  "harness_path": "dev/audit/rounds/round11/D5/s9/stale_paths.py",
+  "value": 1,
+  "unit": "stale path refs (FILE tests/structure.py stale_refs=1)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 container, 4 vCPU",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats on the box; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 2.03,
+  "thread_factor": 1.0
+ },
+ "perturbation": {
+  "change": "--perturb restore, or the comment edited to dev/audit/README.md",
+  "expected_direction": "to_zero",
+  "observed_value": "17->0 (all files)"
+ },
+ "proposed_fix_scope": "One-word comment edit in tests/structure.py:213.",
+ "files": [
+  "tests/structure.py"
+ ]
+}

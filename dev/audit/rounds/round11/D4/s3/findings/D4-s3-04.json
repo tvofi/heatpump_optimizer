@@ -1,0 +1,43 @@
+{
+ "id": "D4-s3-04",
+ "scope": "D4-s3",
+ "step": "D4.M3",
+ "title": "One status role, two colours: error, success and warning each render in two shades across states",
+ "severity": "low",
+ "claim": "Within one theme, the error role renders as #b3261e (status pill tone-crit, status_fallback) and #ca4c46 (pin/save failure lines and dearer deltas), success as #1c7350 (pill) and #24845d (cheaper/saved lines, light), and warning as #8a5a00 (pill tone-warn) and #ffa600 (the wood alert's stripe, the same in dark): 5 (theme, role) pairs with two colours across the 50 states.",
+ "mechanism": "The token layer (CARD_TOKENS --hpo-crit/--hpo-ok/--hpo-warn) drives the status pill, while the what-if result lines take the older ERROR_READABLE/SUCCESS_READABLE constants interpolated into cardStyleBlock, and the wood/space-blocked alerts carry inline styles reading Home Assistant's --warning-color directly (border-left:3px solid var(--warning-color,#d98e00)), so one meaning is painted from three palettes.",
+ "evidence": {
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+  "cpu_or_wall": "count",
+  "contention_note": "ran beside the seat's own grid runs; a count, contention-immune",
+  "tolerance": "exact",
+  "thread_factor": 1.0,
+  "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=status_stale,status_fallback,live_default,draft_menu_open,pin_ok,pin_fail,save_ok,save_fail,wood_alert,health_page",
+  "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+  "value": 5,
+  "unit": "count of (theme, status role) pairs whose rendered colour set has more than one member",
+  "load1": 2.77
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (ERROR_READABLE/SUCCESS_READABLE interpolation, .status-pill.tone-*) and the wood-alert inline style, as Chromium computes them",
+ "perturbation": {
+  "change": "--perturb=one_error_colour: ERROR_READABLE/_DARK take the --hpo-crit literals (#b3261e/#f28b82)",
+  "expected_direction": "down",
+  "observed_value": 3
+ },
+ "metric_definition": "(theme, role) pairs, role from class (dearer|tone-crit|… = error; cheaper|tone-ok = ok; tone-warn|wood-alert = warn), whose text colour or 2px+ left stripe takes >1 computed colour across states",
+ "phenomenon_property": "Every element that signals one status (error, success, warning) renders that status in one colour per theme, from the token layer.",
+ "seam_rule": "grep -nE \"ERROR_READABLE|SUCCESS_READABLE|WARNING_READABLE|var\\(--(warning|error|success)-color\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+ "null_control": {
+  "command": "same command",
+  "value": "dark:ok = 1 colour",
+  "note": "where the readable constant equals the token literal (SUCCESS_READABLE_DARK #1fad6b = --hpo-ok dark) the role shows one colour: the split is the second palette, not the role classifier"
+ },
+ "proposed_fix_scope": "Point the result lines and the alert stripes at --hpo-crit/--hpo-ok/--hpo-warn (and their -bg pairs) and retire the *_READABLE literals, re-measuring contrast in the P9 grid.",
+ "files": [
+  "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "P9",
+ "criteria_statement": "D4-criteria 'look professional' / P3 one look (D4.M3 colour tokens across states)"
+}
