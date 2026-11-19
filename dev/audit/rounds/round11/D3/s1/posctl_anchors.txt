@@ -1,0 +1,2 @@
+custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2
+custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240

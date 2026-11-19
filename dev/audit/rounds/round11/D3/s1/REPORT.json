@@ -1,0 +1,660 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D3/s1/REPORT.md",
+ "exposure": "Carried REPORT.json/LOCAL-REPORT.json of seat D3-s1 (runs B1 and D3R) read in full, as the brief requires; no GitHub reads. Box D3-rem read box D3-top6's carried REPORT.md and REPORT.json (fdd9e2d8) and two gate results from its wip tree (917689bd); no GitHub reads.",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "assigned to boxes D3-u1a..d / D3-m5 (carried unchanged from box D3-top6's return). carried unchanged from box D3R's return (REPORT-D3R.json); this box's slice is D3.M3 only, the step's remainder is assigned to boxes D3-u1a..d / D3-m5. [{\"command\": \"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l\", \"value\": \"1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline)\"}, {\"command\": \"cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json\", \"value\": \"C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)\"}]"
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 34,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/coordinator.py: 359 unpinned sites not pre-screened (lines 467-11291)",
+    "custom_components/heatpump_optimizer/defrost.py: 42 unpinned sites not pre-screened (lines 106-808)",
+    "custom_components/heatpump_optimizer/dhw_planner.py: 121 unpinned sites not pre-screened (lines 91-2307)",
+    "custom_components/heatpump_optimizer/flow_lift.py: 5 unpinned sites not pre-screened (lines 51-244)",
+    "custom_components/heatpump_optimizer/grid_fee.py: 26 unpinned sites not pre-screened (lines 162-496)",
+    "custom_components/heatpump_optimizer/optimizer.py: 265 unpinned sites not pre-screened (lines 1320-6661)",
+    "custom_components/heatpump_optimizer/price_model.py: 58 unpinned sites not pre-screened (lines 57-896)",
+    "custom_components/heatpump_optimizer/sysid.py: 147 unpinned sites not pre-screened (lines 129-2411)",
+    "custom_components/heatpump_optimizer/tariff.py: 57 unpinned sites not pre-screened (lines 77-1227)",
+    "custom_components/heatpump_optimizer/thermal_model.py: 146 unpinned sites not pre-screened (lines 270-5045)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "assigned to boxes D3-u1a..d / D3-m5 (carried unchanged from box D3-top6's return). carried unchanged from box D3R's return (REPORT-D3R.json); this box's slice is D3.M3 only, the step's remainder is assigned to boxes D3-u1a..d / D3-m5. [{\"command\": \"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py\", \"value\": \"fast-net pre-screen (fast closure scripts + env_drift --all): pre 20 driven (4 killed, 16 survived); C2 12 of 12 driven (1 killed, 11 survived; M34-M36 driven 17:52-18:29Z after the reboot); C3C6 8 driven (2 killed, 5 survived, 1 TIMEOUT M22 at 17:20Z, inside the 16:50-17:45Z disk-full window and so suspect). First kills: env_drift 4, finite_boundary 2, deployment_shape 1. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.\"}, {\"command\": \"cat dev/audit/rounds/round11/D3/s1/state/null.out dev/audit/rounds/round11/D3/s1/state/posctl.out\", \"value\": \"null control LIVES over 16 fast drivers; positive control 2/2 ledger-pinned sites KILLED by tests/manual_plan.py\"}, {\"command\": \"cat dev/audit/rounds/round11/D3/s1/state/box-null.out dev/audit/rounds/round11/D3/s1/state/box-posctl.out dev/audit/rounds/round11/D3/s1/state/box-chain1.log\", \"value\": \"box D3R re-run of both controls after re-taking every driver's traced baseline on this machine (prescreen.py baseline, 21 drivers, all rc=0 failed=0; trace-capture rc=0, procs 2/2): null control LIVES over 16 fast drivers; positive control 2/2 ledger-pinned sites KILLED by tests/manual_plan.py. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2\"}, {\"command\": \"grep -E ' (PRE|C3C6) ' dev/audit/rounds/round11/D3/s1/state/prescreen.log | tail -5\", \"value\": \"box D3R: C3C6 M22 (tariff.py:595) re-driven: SURVIVED, 12 fast drivers, 442.5 s (provisional), replacing the local 17:20Z TIMEOUT (kept as state/superseded/). U1 started 19:42Z over the 1240 not-yet-driven inventory mutants (u1_keys.txt), 4 workers, fresh tree per mutant; halted by orchestrator STOP (inbox command 1) after 4: dhw_planner.py:543 and tariff.py:146 KILLED by env_drift.py, defrost.py:559 and thermal_model.py:270 SURVIVED. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2\"}]"
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 35,
+   "examined": 35,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "examined"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "box D3-top6 gated 30 of 35 (carried, state/gates/ and state/gates/cloud/); box D3-rem gated the remaining 5 (2 carried from cloud box D3-top6 wip 917689bd, 3 gated here: state/gates/c38d53ab787ddbfa.json, 5cc84148fa68bda1.json, a4b00ac3ca662eec.json) and probed every full-gate survivor without a finding (t2_results.json, probe_*.py). T1 table: [{\"mutant\": \"c2:95779f9d6d71c50d\", \"site\": \"grid_fee.py:355\", \"verdict\": \"SURVIVED\", \"survived\": true, \"killed_by\": [], \"wall_s\": 3486.5, \"load1\": \"0.23..0.0\", \"carried_or_gated\": \"carried from cloud box D3-top6 (wip 917689bd)\"}, {\"mutant\": \"c2:a0b3b28854fa500c\", \"site\": \"flow_lift.py:188\", \"verdict\": \"SURVIVED\", \"survived\": true, \"killed_by\": [], \"wall_s\": 3451.2, \"load1\": \"0.07..0.01\", \"carried_or_gated\": \"carried from cloud box D3-top6 (wip 917689bd)\"}, {\"mutant\": \"c2:c38d53ab787ddbfa\", \"site\": \"price_model.py:252\", \"verdict\": \"RED-AS-NULL\", \"survived\": true, \"killed_by\": [], \"wall_s\": 3123.6, \"load1\": \"0.43..0.93\", \"carried_or_gated\": \"gated on box D3-rem\"}, {\"mutant\": \"c3c6:5cc84148fa68bda1\", \"site\": \"grid_fee.py:383\", \"verdict\": \"RED-AS-NULL\", \"survived\": true, \"killed_by\": [], \"wall_s\": 3122.9, \"load1\": \"0.86..0.92\", \"carried_or_gated\": \"gated on box D3-rem\"}, {\"mutant\": \"c3c6:a4b00ac3ca662eec\", \"site\": \"thermal_model.py:835\", \"verdict\": \"RED-AS-NULL\", \"survived\": true, \"killed_by\": [], \"wall_s\": 3133.2, \"load1\": \"0.72..0.86\", \"carried_or_gated\": \"gated on box D3-rem\"}]"
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 35,
+   "examined": 35,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "carried unchanged from box D3R's return (REPORT-D3R.json); this box's slice is D3.M3 only, the step's remainder is assigned to boxes D3-u1a..d / D3-m5. [{\"command\": \"cat dev/audit/rounds/round11/D3/s1/m4_answers.json\", \"value\": \"32 of 32 survivors answered: production line, file and the check that should have failed; 3 read as equivalent or near-equivalent (optimizer.py:773, thermal_model.py:835 M03, grid_fee.py:173 message-only)\"}, {\"command\": \"cat dev/audit/rounds/round11/D3/s1/m4_answers.json\", \"value\": \"box D3R: the 3 new survivors (thermal_model.py:270, defrost.py:559, tariff.py:595 M22) answered; 35 of 35\"}] | box D3-rem: each survivor's answer re-derived by a moving probe (t2_results.json: production line, file, the check that should have failed)."
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "tests/card.mjs",
+    "tests/card_drift.mjs",
+    "tests/golden.py",
+    "tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "assigned to boxes D3-u1a..d / D3-m5 (carried unchanged from box D3-top6's return). carried unchanged from box D3R's return (REPORT-D3R.json); this box's slice is D3.M3 only, the step's remainder is assigned to boxes D3-u1a..d / D3-m5. [{\"command\": \"cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl\", \"value\": \"16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.\"}, {\"command\": \"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py\", \"value\": \"681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01)\"}, {\"command\": \"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED\", \"value\": \"traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1\"}, {\"command\": \"cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out\", \"value\": \"box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2\"}]"
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D3-s1-62",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check feeds a grid-fee rule without '=' to _parse_rule; dropping the guard is unseen",
+   "severity": "low",
+   "claim": "Mutant 121362d48b408236 at grid_fee.py:173 survives the full gate (SURVIVED), yet the probe's rules_mutant moves: baseline rules=-1 (GridFeeError), verdict invalid_grid_fee_rules, mutant rules=1 parsed, verdict None.",
+   "mechanism": "Reach: reach_calls_without_eq=2: config_flow.spec_problem (config_flow.py:3927) and GridFeeSchedule.from_config (grid_fee.py:287). Check that should have failed (D3.M4): tests/features.py bad-rule cases (~17831-17847) never feed a rule with no '='.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_121362d4.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_121362d4.py",
+    "value": 1,
+    "unit": "accepted rule count for rules text '0.5' (baseline -1 = GridFeeError)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee:_parse_rule",
+   "perturbation": {
+    "change": "the mutant edit at grid_fee.py:173 applied in memory by the probe (rules text '0.5'); full gate: fullgate.py run --key 121362d48b408236",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "accepted rule count for rules text '0.5' (baseline -1 = GridFeeError)",
+   "phenomenon_property": "A grid-fee rule line with no '= rate' part is refused with GridFeeError (spec_problem reports invalid_grid_fee_rules)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_121362d4.py",
+    "value": "0 count",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_121362d4.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src pre --key 121362d48b408236"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (rules=-1 (GridFeeError), verdict invalid_grid_fee_rules)",
+   "files": [
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D3-s1-63",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check pins max_abs_component's source label on a fixed/rule |rate| tie",
+   "severity": "low",
+   "claim": "Mutant 95779f9d6d71c50d at grid_fee.py:355 survives the full gate (SURVIVED), yet the probe's label_changed moves: baseline max_abs_component source label=fixed, mutant label=rules.",
+   "mechanism": "Reach: reach_from_config_tie=1: from_config builds the fixed/rule tie; the label feeds the repair-issue placeholder at coordinator.py:7623. Check that should have failed (D3.M4): tests/features.py has no fixed/rule tie case for max_abs_component.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+    "value": 1,
+    "unit": "1 when the (value, source) label of max_abs_component differs from baseline on the fixed=0.25 / rule=0.25 tie",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee:GridFeeSchedule.max_abs_component",
+   "perturbation": {
+    "change": "the mutant edit at grid_fee.py:355 applied in memory by the probe (fixed=0.25 and a rule '= 0.25'); full gate: fullgate.py run --key 95779f9d6d71c50d",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "1 when the (value, source) label of max_abs_component differs from baseline on the fixed=0.25 / rule=0.25 tie",
+   "phenomenon_property": "On a tie between the fixed fee and a rule, max_abs_component keeps the first-seen (fixed) source",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+    "value": "0 count (rule-rule tie and untied)",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key 95779f9d6d71c50d"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (max_abs_component source label=fixed)",
+   "files": [
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D3-s1-64",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check pins min_component's source label on a fixed/rule rate tie",
+   "severity": "low",
+   "claim": "Mutant 5cc84148fa68bda1 at grid_fee.py:383 survives the full gate (RED-AS-NULL), yet the probe's label_changed moves: baseline min_component label=fixed, mutant label=rules.",
+   "mechanism": "Reach: reach_from_config_tie=1; label matters only when value<0 (coordinator.py:7628). Check that should have failed (D3.M4): tests/features.py ~17746-17766 has no tie case.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+    "value": 1,
+    "unit": "1 when the (value, source) label of min_component differs from baseline on the fixed=-0.25 / rule=-0.25 tie",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee:GridFeeSchedule.min_component",
+   "perturbation": {
+    "change": "the mutant edit at grid_fee.py:383 applied in memory by the probe (fixed=-0.25 and a rule '= -0.25'); full gate: fullgate.py run --key 5cc84148fa68bda1",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "1 when the (value, source) label of min_component differs from baseline on the fixed=-0.25 / rule=-0.25 tie",
+   "phenomenon_property": "On a tie between the fixed fee and a rule, min_component keeps the first-seen (fixed) source",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+    "value": "0 count",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c3c6 --key 5cc84148fa68bda1"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (min_component label=fixed)",
+   "files": [
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D3-s1-65",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check pins FLOW_BIAS_ALPHA's value; doubling the flow-bias EWMA weight is unseen",
+   "severity": "low",
+   "claim": "Mutant 0c3e91a6a349409a at flow_lift.py:47 survives the full gate (SURVIVED), yet the probe's delta moves: baseline bias=3.638040 K, mutant bias=4.689280 K.",
+   "mechanism": "Reach: every fold after the 5th sample via coordinator.py:986. Check that should have failed (D3.M4): tests/doc_claims.py:1949-1956 reads the constant instead of pinning 0.1; tests/features.py exercises the symbol.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+    "value": 1.05124,
+    "unit": "learned flow bias in K after 5 residuals of +2 K then 5 of +6 K",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.flow_lift:FLOW_BIAS_ALPHA (read in FlowCurveBias.observe)",
+   "perturbation": {
+    "change": "the mutant edit at flow_lift.py:47 applied in memory by the probe (5 residuals +2 K then 5 of +6 K); full gate: fullgate.py run --key 0c3e91a6a349409a",
+    "expected_direction": "up",
+    "observed_value": 1.05124
+   },
+   "metric_definition": "learned flow bias in K after 5 residuals of +2 K then 5 of +6 K",
+   "phenomenon_property": "The flow-bias EWMA after warm-up weights each new residual by exactly the documented 0.1",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+    "value": "0.0 K",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src pre --key 0c3e91a6a349409a"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (bias=3.638040 K)",
+   "files": [
+    "custom_components/heatpump_optimizer/flow_lift.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D3-s1-66",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check folds the sample one past FLOW_BIAS_MIN_SAMPLES; the warm-up boundary is unpinned",
+   "severity": "low",
+   "claim": "Mutant a0b3b28854fa500c at flow_lift.py:188 survives the full gate (SURVIVED), yet the probe's delta moves: baseline bias=3.000000 K, mutant bias=3.666667 K.",
+   "mechanism": "Reach: reach_samples_eq_min=1: every plant passes samples==FLOW_BIAS_MIN_SAMPLES once. Check that should have failed (D3.M4): tests/doc_claims.py:1949-1956 loops FLOW_BIAS_MIN_SAMPLES samples but never folds one past the boundary.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_a0b3b288.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_a0b3b288.py",
+    "value": 0.666667,
+    "unit": "learned flow bias in K after five +2 K residuals then a +12 K sixth",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.flow_lift:FlowCurveBias.observe",
+   "perturbation": {
+    "change": "the mutant edit at flow_lift.py:188 applied in memory by the probe (five +2 K residuals then +12 K (6th sample)); full gate: fullgate.py run --key a0b3b28854fa500c",
+    "expected_direction": "up",
+    "observed_value": 0.666667
+   },
+   "metric_definition": "learned flow bias in K after five +2 K residuals then a +12 K sixth",
+   "phenomenon_property": "The sample at samples == FLOW_BIAS_MIN_SAMPLES is folded as an EWMA, not as part of the warm-up mean",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_a0b3b288.py",
+    "value": "0.0 K",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_a0b3b288.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key a0b3b28854fa500c"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (bias=3.000000 K)",
+   "files": [
+    "custom_components/heatpump_optimizer/flow_lift.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D3-s1-67",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check pins that an unset holiday-DHW-windows option parses to None, not []",
+   "severity": "low",
+   "claim": "Mutant 050fdc4a20eba212 at thermal_model.py:169 survives the full gate (SURVIVED), yet the probe's unset_forms_moved moves: baseline holiday windows (option absent/''/None)=None, mutant [] for all 3 unset forms.",
+   "mechanism": "Reach: reach_unset_calls=3 (default install leaves the option unset). Check that should have failed (D3.M4): tests/features.py (dhw_holiday_windows) / tests/config_flow_steps.py do not pin None for the unset option.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+    "value": 3,
+    "unit": "count of unset option forms (absent, '', None) whose parsed holiday windows differ from baseline None",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:_holiday_dhw_windows",
+   "perturbation": {
+    "change": "the mutant edit at thermal_model.py:169 applied in memory by the probe (holiday DHW windows option absent, empty string, None); full gate: fullgate.py run --key 050fdc4a20eba212",
+    "expected_direction": "up",
+    "observed_value": 3
+   },
+   "metric_definition": "count of unset option forms (absent, '', None) whose parsed holiday windows differ from baseline None",
+   "phenomenon_property": "An unset holiday DHW windows option leaves the ordinary windows in force on holidays (parses to None)",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+    "value": "0 count",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src pre --key 050fdc4a20eba212"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (holiday windows (option absent/''/None)=None)",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D3-s1-68",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check bounds single-tank valve delivery by the tank energy over dt; max->min is unseen",
+   "severity": "low",
+   "claim": "Mutant 22b5ec8775d5bd50 at thermal_model.py:2593 survives the full gate (SURVIVED), yet the probe's delta moves: baseline delivered=0.278400 kW, mutant delivered=2.800000 kW.",
+   "mechanism": "Reach: reach_valve_calls_single_tank=64 on the public simulate_step path. Check that should have failed (D3.M4): no tank-energy bound check in tests/edge.py or tests/block_duty.py (both drive mixing_valve_mode) pins the delivered-heat cap.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+    "value": 2.5216,
+    "unit": "valve-delivered heat in kW from a 20 L tank at 24 C, manual valve target 35 C, dt 0.25 h",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:_valve_two_zone_delivery",
+   "perturbation": {
+    "change": "the mutant edit at thermal_model.py:2593 applied in memory by the probe (20 L tank at 24 C, pump 0 kW, manual valve target 35 C, dt 0.25 h, single tank); full gate: fullgate.py run --key 22b5ec8775d5bd50",
+    "expected_direction": "up",
+    "observed_value": 2.5216
+   },
+   "metric_definition": "valve-delivered heat in kW from a 20 L tank at 24 C, manual valve target 35 C, dt 0.25 h",
+   "phenomenon_property": "Heat a valve draws from a single tank in one step never exceeds the tank's usable energy divided by dt",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+    "value": "0.0 kW",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c3c6 --key 22b5ec8775d5bd50"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (delivered=0.278400 kW)",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D3-s1-69",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check makes the DHW shortfall penalty bind; its max->min price base is unseen",
+   "severity": "low",
+   "claim": "Mutant 0911281eca895664 at dhw_planner.py:1559 survives the full gate (SURVIVED), yet the probe's delta_kwh moves: baseline dhw_kwh=2.5056 kWh, mutant dhw_kwh=1.9948 kWh.",
+   "mechanism": "Reach: production admits the price vector (no clamp); separation needs a price spread of >=8000 per kWh with a near-free step. Check that should have failed (D3.M4): tests/features.py _plan_dhw_min_cost cases (~63150, 63611, 63732) never use a spread large enough to make the shortfall penalty bind.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0911281e.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_0911281e.py",
+    "value": -0.5108,
+    "unit": "planned DHW kWh over 12 steps (60 C floor), steps 0-10 at 100000, step 11 at 0",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_min_cost",
+   "perturbation": {
+    "change": "the mutant edit at dhw_planner.py:1559 applied in memory by the probe (12 steps, 60 C floor, steps 0-10 at 100000, step 11 at 0); full gate: fullgate.py run --key 0911281eca895664",
+    "expected_direction": "down",
+    "observed_value": -0.5108
+   },
+   "metric_definition": "planned DHW kWh over 12 steps (60 C floor), steps 0-10 at 100000, step 11 at 0",
+   "phenomenon_property": "The DHW shortfall price exceeds every step's price so meeting the floor always wins",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0911281e.py",
+    "value": "0.000000 kWh",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0911281e.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c3c6 --key 0911281eca895664"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (dhw_kwh=2.5056 kWh)",
+   "files": [
+    "custom_components/heatpump_optimizer/dhw_planner.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D3-s1-70",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check covers _on_power_event with the tariff disabled or its factor 0; and->or is unseen",
+   "severity": "low",
+   "claim": "Mutant 5e8d48eff7e4fa8d at coordinator.py:8806 survives the full gate (SURVIVED), yet the probe's caseA_threshold_mutant moves: baseline (5.0,10.0) suppressing=False in both cases, mutant enabled,factor0: (0.0,3.0); disabled,factor1: (5.0,3.0) suppressing=True.",
+   "mechanism": "Reach: tariff enabled with factor 0 (months mask excluding the current month, tariff.py:138); tariff disabled while the tracker holds peaks restored by from_dict (coordinator.py:8378). Check that should have failed (D3.M4): tests/features.py, tests/dst_checks.py, tests/entities.py reference _on_power_event but cover neither case.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+    "value": 3.0,
+    "unit": "guard threshold kW (baseline 10.0 = fuse) with tariff disabled and a 3 kW restored tracker peak",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._on_power_event",
+   "perturbation": {
+    "change": "the mutant edit at coordinator.py:8806 applied in memory by the probe (10 kW fuse, 5 kW meter, 3 kW tracker peak); full gate: fullgate.py run --key 5e8d48eff7e4fa8d",
+    "expected_direction": "down",
+    "observed_value": 3.0
+   },
+   "metric_definition": "guard threshold kW (baseline 10.0 = fuse) with tariff disabled and a 3 kW restored tracker peak",
+   "phenomenon_property": "The peak-tariff threshold caps the power guard only when the tariff is enabled and its factor is positive",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+    "value": "0 count",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c3c6 --key 5e8d48eff7e4fa8d"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value ((5.0,10.0) suppressing=False in both cases)",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D3-s1-71",
+   "scope": "D3-s1",
+   "step": "D3.M3",
+   "title": "No check feeds observe_day_quarters a day whose mean is exactly 1e-6",
+   "severity": "low",
+   "claim": "Mutant c38d53ab787ddbfa at price_model.py:252 survives the full gate (RED-AS-NULL), yet the probe's accepted_mutant moves: baseline accepted=0, mutant accepted=1.",
+   "mechanism": "Reach: reach_real_price_days_at_boundary=0 is asserted not measured; separable only via a hand-built vector whose np.mean is exactly 1e-6 (48x0.0 + 48x2e-6). Check that should have failed (D3.M4): tests/features.py ~18732-18792 has no zero-mean boundary case.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+    "value": 1,
+    "unit": "quarter-days accepted for a day of 48x0.0 and 48x2e-6 (mean exactly 1e-6; baseline 0)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+    "cpu_or_wall": "n/a",
+    "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+    "tolerance": "exact",
+    "load1": 1.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.price_model:PriceShapeModel.observe_day_quarters",
+   "perturbation": {
+    "change": "the mutant edit at price_model.py:252 applied in memory by the probe (48 quarters 0.0 + 48 of 2e-6); full gate: fullgate.py run --key c38d53ab787ddbfa",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "quarter-days accepted for a day of 48x0.0 and 48x2e-6 (mean exactly 1e-6; baseline 0)",
+   "phenomenon_property": "A price day with mean <= 1e-6 is rejected by the quarter-shape learner",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+    "value": "0 count",
+    "note": "null arm where the edit cannot matter; identical floats under both arms"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key c38d53ab787ddbfa"
+   ],
+   "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (accepted=0)",
+   "files": [
+    "custom_components/heatpump_optimizer/price_model.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "T1 full gate c2:95779f9d6d71c50d grid_fee.py:355: SURVIVED (carried from cloud box D3-top6 (wip 917689bd))",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key 95779f9d6d71c50d",
+   "value": "killed_by=none; wall 3486.5 s, load1 0.23..0.0 (provisional)"
+  },
+  {
+   "claim": "T1 full gate c2:a0b3b28854fa500c flow_lift.py:188: SURVIVED (carried from cloud box D3-top6 (wip 917689bd))",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key a0b3b28854fa500c",
+   "value": "killed_by=none; wall 3451.2 s, load1 0.07..0.01 (provisional)"
+  },
+  {
+   "claim": "T1 full gate c2:c38d53ab787ddbfa price_model.py:252: RED-AS-NULL (gated on box D3-rem)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key c38d53ab787ddbfa",
+   "value": "killed_by=none; wall 3123.6 s, load1 0.43..0.93 (provisional)"
+  },
+  {
+   "claim": "T1 full gate c3c6:5cc84148fa68bda1 grid_fee.py:383: RED-AS-NULL (gated on box D3-rem)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c3c6 --key 5cc84148fa68bda1",
+   "value": "killed_by=none; wall 3122.9 s, load1 0.86..0.92 (provisional)"
+  },
+  {
+   "claim": "T1 full gate c3c6:a4b00ac3ca662eec thermal_model.py:835: RED-AS-NULL (gated on box D3-rem)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c3c6 --key a4b00ac3ca662eec",
+   "value": "killed_by=none; wall 3133.2 s, load1 0.72..0.86 (provisional)"
+  },
+  {
+   "claim": "box D3-rem full-gate null control: red only on artefact checks no production mutant can need (state/gates/null-D3-rem-note.txt)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null",
+   "value": "gate_rc=1; closure.py selftest 2, entities.py 1 of 2723, harness_headers.py 4 failing lines; wall 3215.1 s, load1 1.55..1.0 (provisional)"
+  },
+  {
+   "claim": "T2 3885e472b8297a90 flow_lift.py:183: non-finding (unreachable through production); reach: 0: observe_temps (flow_lift.py:169-173) maps non-finite supply to None and coordinator.py:965-966 returns; curve_supply_temp (flow_lift.py:114-117) returns None for non-finite curve (read, not run); reach_nonfinite_supply_after_observe_temps=0",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_3885e472.py",
+   "value": "baseline bias=2.0 K samples=3; mutant bias=nan K samples=4; null delta 0.0 K"
+  },
+  {
+   "claim": "T2 a4b00ac3ca662eec thermal_model.py:835: non-finding (equivalent mutant); reach: n/a",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_a4b00ac3.py",
+   "value": "baseline seasonal inlet at swing=0 equals dhw_inlet_temp; mutant identical; null delta 0.0 C (swing 3 and negative)"
+  },
+  {
+   "claim": "T2 2719aef4cbb8b464 price_model.py:337: non-finding (unreachable through production); reach: 0: the only caller (coordinator.py ~4370) is guarded by level > 1e-6 (reach_caller_guard_level_gt_1e6=1 of reach_callers_total=1)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_2719aef4.py",
+   "value": "baseline expected_daily_min(level=0)=None; mutant 0.0; null delta 0.0"
+  },
+  {
+   "claim": "T2 460217277822d5bd sysid.py:610: non-finding (unreachable through production); reach: reach_callers_with_degenerate=0: callers sit behind the same predicate (sysid.py:643, :678) and sysid.py:2441 receives only pairs arm() admitted (sysid.py:1473-1484)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_46021727.py",
+   "value": "baseline slab_mode_tau_fast=0.0 h on degenerate inputs; mutant 1.33e10 h (k_s tiny), ZeroDivisionError (k_s=0), -2.0 h (c_r<0); null delta 0.0 h"
+  },
+  {
+   "claim": "T2 65f121eb047174ad optimizer.py:773: non-finding (equivalent at the observable output); reach: reach_empty_calls=1 of 1 through optimize(); the only consumer dhw_planner.py:75 maps None and False alike to holiday=False; reach_plan_maxabs_diff_kw=0.0 (default config, DHW disabled; DHW-enabled equivalence from reading dhw_planner.py:75)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_65f121eb.py",
+   "value": "baseline _holiday_flags_for(empty)=None; mutant [False]*n; null delta 0 count"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/build_report_rem.py",
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+  "dev/audit/rounds/round11/D3/s1/probe_0911281e.py",
+  "dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+  "dev/audit/rounds/round11/D3/s1/probe_121362d4.py",
+  "dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+  "dev/audit/rounds/round11/D3/s1/probe_2719aef4.py",
+  "dev/audit/rounds/round11/D3/s1/probe_3885e472.py",
+  "dev/audit/rounds/round11/D3/s1/probe_46021727.py",
+  "dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+  "dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+  "dev/audit/rounds/round11/D3/s1/probe_65f121eb.py",
+  "dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+  "dev/audit/rounds/round11/D3/s1/probe_a0b3b288.py",
+  "dev/audit/rounds/round11/D3/s1/probe_a4b00ac3.py",
+  "dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py"
+ ],
+ "leads": [],
+ "report_md": "# D3-s1, box D3-rem: D3.M3 remainder and its D3.M4 answers\n\nBaseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box. Walls provisional; counts exact.\n\n## T1 full gate\n\n| mutant | site | survived | killed_by | wall s | load1 | carried-or-gated |\n|---|---|---|---|---|---|---|\n| c2:95779f9d6d71c50d | grid_fee.py:355 | True (SURVIVED) | - | 3486.5 | 0.23..0.0 | carried from cloud box D3-top6 (wip 917689bd) |\n| c2:a0b3b28854fa500c | flow_lift.py:188 | True (SURVIVED) | - | 3451.2 | 0.07..0.01 | carried from cloud box D3-top6 (wip 917689bd) |\n| c2:c38d53ab787ddbfa | price_model.py:252 | True (RED-AS-NULL) | - | 3123.6 | 0.43..0.93 | gated on box D3-rem |\n| c3c6:5cc84148fa68bda1 | grid_fee.py:383 | True (RED-AS-NULL) | - | 3122.9 | 0.86..0.92 | gated on box D3-rem |\n| c3c6:a4b00ac3ca662eec | thermal_model.py:835 | True (RED-AS-NULL) | - | 3133.2 | 0.72..0.86 | gated on box D3-rem |\n\nNull control on this box: gate_rc=1 on artefact checks only (state/gates/null-D3-rem-note.txt); RED-AS-NULL = no script fails more checks than the null.\n\n## T2 probes\n\n| mutant | site | probe command | baseline value | mutant value | null delta | finding-or-non-finding |\n|---|---|---|---|---|---|---|\n| 0c3e91a6a349409a | flow_lift.py:47 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py` | bias=3.638040 K | bias=4.689280 K | 0.0 K | D3-s1-65 |\n| 3885e472b8297a90 | flow_lift.py:183 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_3885e472.py` | bias=2.0 K samples=3 | bias=nan K samples=4 | 0.0 K | non-finding (unreachable through production) |\n| a0b3b28854fa500c | flow_lift.py:188 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_a0b3b288.py` | bias=3.000000 K | bias=3.666667 K | 0.0 K | D3-s1-66 |\n| 050fdc4a20eba212 | thermal_model.py:169 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py` | holiday windows (option absent/''/None)=None | [] for all 3 unset forms | 0 count | D3-s1-67 |\n| 22b5ec8775d5bd50 | thermal_model.py:2593 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py` | delivered=0.278400 kW | delivered=2.800000 kW | 0.0 kW | D3-s1-68 |\n| a4b00ac3ca662eec | thermal_model.py:835 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_a4b00ac3.py` | seasonal inlet at swing=0 equals dhw_inlet_temp | identical | 0.0 C (swing 3 and negative) | non-finding (equivalent mutant) |\n| 121362d48b408236 | grid_fee.py:173 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_121362d4.py` | rules=-1 (GridFeeError), verdict invalid_grid_fee_rules | rules=1 parsed, verdict None | 0 count | D3-s1-62 |\n| 95779f9d6d71c50d | grid_fee.py:355 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_95779f9d.py` | max_abs_component source label=fixed | label=rules | 0 count (rule-rule tie and untied) | D3-s1-63 |\n| 2719aef4cbb8b464 | price_model.py:337 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_2719aef4.py` | expected_daily_min(level=0)=None | 0.0 | 0.0 | non-finding (unreachable through production) |\n| 460217277822d5bd | sysid.py:610 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_46021727.py` | slab_mode_tau_fast=0.0 h on degenerate inputs | 1.33e10 h (k_s tiny), ZeroDivisionError (k_s=0), -2.0 h (c_r<0) | 0.0 h | non-finding (unreachable through production) |\n| 65f121eb047174ad | optimizer.py:773 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_65f121eb.py` | _holiday_flags_for(empty)=None | [False]*n | 0 count | non-finding (equivalent at the observable output) |\n| 0911281eca895664 | dhw_planner.py:1559 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0911281e.py` | dhw_kwh=2.5056 kWh | dhw_kwh=1.9948 kWh | 0.000000 kWh | D3-s1-69 |\n| 5e8d48eff7e4fa8d | coordinator.py:8806 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py` | (5.0,10.0) suppressing=False in both cases | enabled,factor0: (0.0,3.0); disabled,factor1: (5.0,3.0) suppressing=True | 0 count | D3-s1-70 |\n| 5cc84148fa68bda1 | grid_fee.py:383 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5cc84148.py` | min_component label=fixed | label=rules | 0 count | D3-s1-64 |\n| c38d53ab787ddbfa | price_model.py:252 | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py` | accepted=0 | accepted=1 | 0 count | D3-s1-71 |\n\n## D3.M4 answers (production line, file, the check that should have failed)\n\n- 0c3e91a6a349409a flow_lift.py:47: flow_lift:FLOW_BIAS_ALPHA read in FlowCurveBias.observe (lines 194-195). Should have failed: tests/doc_claims.py:1949-1956 reads the constant instead of pinning 0.1; tests/features.py exercises the symbol\n- 3885e472b8297a90 flow_lift.py:183: flow_lift:FlowCurveBias.observe line 183 non-finite guard. Should have failed: none through production; only a direct unit call separates\n- a0b3b28854fa500c flow_lift.py:188: flow_lift:FlowCurveBias.observe line 188 warm-up boundary. Should have failed: tests/doc_claims.py:1949-1956 loops FLOW_BIAS_MIN_SAMPLES samples but never folds one past the boundary\n- 050fdc4a20eba212 thermal_model.py:169: thermal_model:_holiday_dhw_windows line 169, reached via ThermalParameters.from_config (thermal_model.py:1157); dhw_planner.py:964 reads it. Should have failed: tests/features.py (dhw_holiday_windows) / tests/config_flow_steps.py do not pin None for the unset option\n- 22b5ec8775d5bd50 thermal_model.py:2593: thermal_model:_valve_two_zone_delivery single-tank branch line 2593, via simulate_step -> _simulate_step_two_zone (thermal_model.py:3963). Should have failed: no tank-energy bound check in tests/edge.py or tests/block_duty.py (both drive mixing_valve_mode) pins the delivered-heat cap\n- a4b00ac3ca662eec thermal_model.py:835: thermal_model:ThermalParameters.seasonal_inlet_temp line 835. Should have failed: none: at swing==0 the fall-through returns dhw_inlet_temp - 0.0*cos(phase) == dhw_inlet_temp; max_abs_delta_swing0=0.0 over days 1..366, means 4/10/15 C\n- 121362d48b408236 grid_fee.py:173: grid_fee:_parse_rule line 173 (missing '=' guard). Should have failed: tests/features.py bad-rule cases (~17831-17847) never feed a rule with no '='\n- 95779f9d6d71c50d grid_fee.py:355: grid_fee:GridFeeSchedule.max_abs_component line 355. Should have failed: tests/features.py has no fixed/rule tie case for max_abs_component\n- 2719aef4cbb8b464 price_model.py:337: price_model:expected_daily_min line 337. Should have failed: none through production; a direct unit call at level==0 separates\n- 460217277822d5bd sysid.py:610: sysid:slab_mode_tau_fast line 610. Should have failed: none through production; tests/features.py:53975 pins (0,1,1)->0.0 which the mutant also returns\n- 65f121eb047174ad optimizer.py:773: optimizer:_holiday_flags_for line 773. Should have failed: none: no observable output moves\n- 0911281eca895664 dhw_planner.py:1559: dhw_planner:DhwPlanner._plan_dhw_min_cost line 1559 (call site dhw_planner.py:1235). Should have failed: tests/features.py _plan_dhw_min_cost cases (~63150, 63611, 63732) never use a spread large enough to make the shortfall penalty bind\n- 5e8d48eff7e4fa8d coordinator.py:8806: coordinator:HeatPumpOptimizerCoordinator._on_power_event line 8806. Should have failed: tests/features.py, tests/dst_checks.py, tests/entities.py reference _on_power_event but cover neither case\n- 5cc84148fa68bda1 grid_fee.py:383: grid_fee:GridFeeSchedule.min_component line 383. Should have failed: tests/features.py ~17746-17766 has no tie case\n- c38d53ab787ddbfa price_model.py:252: price_model:PriceShapeModel.observe_day_quarters line 252 (via fold, price_model.py:452). Should have failed: tests/features.py ~18732-18792 has no zero-mean boundary case\n\n## Findings\n\n- D3-s1-62: No check feeds a grid-fee rule without '=' to _parse_rule; dropping the guard is unseen\n- D3-s1-63: No check pins max_abs_component's source label on a fixed/rule |rate| tie\n- D3-s1-64: No check pins min_component's source label on a fixed/rule rate tie\n- D3-s1-65: No check pins FLOW_BIAS_ALPHA's value; doubling the flow-bias EWMA weight is unseen\n- D3-s1-66: No check folds the sample one past FLOW_BIAS_MIN_SAMPLES; the warm-up boundary is unpinned\n- D3-s1-67: No check pins that an unset holiday-DHW-windows option parses to None, not []\n- D3-s1-68: No check bounds single-tank valve delivery by the tank energy over dt; max->min is unseen\n- D3-s1-69: No check makes the DHW shortfall penalty bind; its max->min price base is unseen\n- D3-s1-70: No check covers _on_power_event with the tariff disabled or its factor 0; and->or is unseen\n- D3-s1-71: No check feeds observe_day_quarters a day whose mean is exactly 1e-6\n"
+}
