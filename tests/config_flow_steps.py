@@ -8181,6 +8181,24 @@ async def seam_config_one_place():
           "a too-short window refusal on the setup pre-fill page renders its placeholders",
           shows(short, "device_prefill") and short_needed and short_needed <= short_ph.keys(),
           f"errors={short.get('errors')} needed={sorted(short_needed)} placeholders={sorted(short_ph)}")
+    # A previewed field the user cleared stays cleared on the refused page's
+    # re-render, though the stored configuration holds a value for it: the
+    # value in force is suggested only for a companion the preview did not list.
+    cleared_flow = fresh_flow(data={**answers, const.CONF_SILENT_MODE_FRACTION: 0.6})
+    cleared_flow._device_prefill = (
+        (const.CONF_SILENT_MODE_WINDOWS, const.CONF_SILENT_MODE_FRACTION), notes)
+    cleared = await submit(cleared_flow, "device_prefill",
+                           {const.CONF_SILENT_MODE_WINDOWS: "06:00-06:05"})
+    check("device_prefill", "error",
+          "a listed field cleared on the setup pre-fill page re-renders empty, not "
+          "with the stored value",
+          shows(cleared, "device_prefill") and cleared.get("errors")
+          and const.CONF_SILENT_MODE_FRACTION in schema_keys(cleared)
+          and suggested_value(cleared, const.CONF_SILENT_MODE_FRACTION) is None
+          and suggested_value(cleared, const.CONF_SILENT_MODE_WINDOWS) == "06:00-06:05",
+          f"errors={cleared.get('errors')} "
+          f"fraction={suggested_value(cleared, const.CONF_SILENT_MODE_FRACTION)!r} "
+          f"windows={suggested_value(cleared, const.CONF_SILENT_MODE_WINDOWS)!r}")
     check("device_prefill", "happy",
           "the setup pre-fill page posts no after_save: its navigation is always finish_setup",
           const.CONF_AFTER_SAVE not in schema_keys(refused),
