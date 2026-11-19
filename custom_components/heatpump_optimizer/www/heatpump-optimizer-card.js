@@ -6331,11 +6331,8 @@ ${DIALOG_SCALED_TOKENS.map((name) =>
            the old 12 px floor; on the 14 px floor (H1) it outgrew the short
            phone-width chart it must stay inside (R9-UX-1). Here it keeps
            the tile's own size and padding. */
-        dialog.expanded .tooltip {
-          font-size: var(--hpo-text-xs, 12px);
-          padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px);
-          line-height: 1.1;
-        }
+        dialog.expanded .tooltip { font-size: var(--hpo-text-xs, 12px); line-height: 1.1;
+          padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px); }
         dialog.expanded .tooltip .tt-shared { max-width: 300px; }
         /* Phone-width dialogs (#40 feedback, item 1): the header must be
            allowed to wrap, or the Plan/Setup tabs are pushed out of reach

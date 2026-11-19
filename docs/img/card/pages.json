@@ -3,7 +3,7 @@
   "figures": {
     "tile-light.png": {
       "width": 900,
-      "height": 717,
+      "height": 729,
       "structure": "0fd21e821e11cb73"
     },
     "plan-light.png": {
@@ -18,27 +18,27 @@
     },
     "setup-light.png": {
       "width": 1056,
-      "height": 714,
+      "height": 706,
       "structure": "5d1eaaf120c1d002"
     },
     "savings-light.png": {
       "width": 1056,
-      "height": 164,
+      "height": 146,
       "structure": "07e4bcc9dd8c2456"
     },
     "advisor-light.png": {
       "width": 1056,
-      "height": 708,
+      "height": 716,
       "structure": "9b30f4ad501e8236"
     },
     "health-light.png": {
       "width": 1056,
-      "height": 1014,
+      "height": 992,
       "structure": "10447dc0f4b62f8b"
     },
     "tile-dark.png": {
       "width": 900,
-      "height": 717,
+      "height": 729,
       "structure": "0fd21e821e11cb73"
     },
     "plan-dark.png": {
@@ -53,22 +53,22 @@
     },
     "setup-dark.png": {
       "width": 1056,
-      "height": 714,
+      "height": 706,
       "structure": "5d1eaaf120c1d002"
     },
     "savings-dark.png": {
       "width": 1056,
-      "height": 164,
+      "height": 146,
       "structure": "07e4bcc9dd8c2456"
     },
     "advisor-dark.png": {
       "width": 1056,
-      "height": 708,
+      "height": 716,
       "structure": "9b30f4ad501e8236"
     },
     "health-dark.png": {
       "width": 1056,
-      "height": 1014,
+      "height": 992,
       "structure": "10447dc0f4b62f8b"
     }
   }
