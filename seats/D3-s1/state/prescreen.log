@@ -679,3 +679,4 @@
 2026-11-19T17:17:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.buffer_tank_heat_loss_coefficient CLAMP_DROP 581f45bc L677 by=- ran=14 wall=1712.8s
 2026-11-19T17:20:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CLAMP_DROP 11808d14 L2573 by=- ran=12 wall=1606.3s
 2026-11-19T17:20:50Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CLAMP_DROP 4cc7cd0a L2581 by=- ran=12 wall=1584.6s
+2026-11-19T17:39:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_wood_share_vec CLAMP_DROP 351c0e21 L2946 by=- ran=12 wall=1614.3s
