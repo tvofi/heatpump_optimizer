@@ -1,38 +1,38 @@
 {
  "heavy_old/shoulder": {
-  "loop_calls": 2442,
-  "payload_b": 86711,
-  "retained_b_per_cycle": 1714,
-  "solves": 2,
-  "yields": 402
+  "loop_calls": 2447,
+  "payload_b": 89274,
+  "retained_b_per_cycle": 2203,
+  "solves": 1,
+  "yields": 360
  },
- "recorded_at": "8751943e17",
+ "recorded_at": "4504dd9856",
  "winter/1z/dhw": {
-  "loop_calls": 2444,
-  "payload_b": 89230,
-  "retained_b_per_cycle": 2346,
+  "loop_calls": 2448,
+  "payload_b": 88678,
+  "retained_b_per_cycle": 2122,
   "solves": 2,
-  "yields": 428
+  "yields": 495
  },
  "winter/1z/space": {
   "loop_calls": 2436,
-  "payload_b": 87173,
-  "retained_b_per_cycle": 3393,
+  "payload_b": 86417,
+  "retained_b_per_cycle": 2636,
   "solves": 1,
-  "yields": 263
+  "yields": 429
  },
  "winter/2z/dhw": {
-  "loop_calls": 2444,
-  "payload_b": 89621,
-  "retained_b_per_cycle": 2019,
+  "loop_calls": 2448,
+  "payload_b": 90360,
+  "retained_b_per_cycle": 2985,
   "solves": 1,
-  "yields": 517
+  "yields": 380
  },
  "winter/cycle": {
-  "loop_calls": 2444,
-  "payload_b": 89621,
-  "retained_b_per_cycle": 1901,
+  "loop_calls": 2448,
+  "payload_b": 90360,
+  "retained_b_per_cycle": 2043,
   "solves": 1,
-  "yields": 517
+  "yields": 380
  }
 }

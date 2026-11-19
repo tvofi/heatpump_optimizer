@@ -22,7 +22,9 @@ solve is countable) on five sweep scenarios and compares five readings with
               FAIL above 1.5 x record
 
 Every channel is a count or bytes, never a time, so the lane is
-contention-immune and runs with the parallel lanes.
+contention-immune and runs with the parallel lanes. The clock is frozen at
+FROZEN_NOW for every cycle: the solve count reads the wall clock otherwise
+(see FROZEN_NOW).
 
     PYTHONPATH=tests/hastub python3 tests/cycle_lane.py [--record|--self-check|--arm X]
 
@@ -47,7 +49,7 @@ import subprocess  # noqa: E402
 import sys  # noqa: E402
 import time  # noqa: E402
 import tracemalloc  # noqa: E402
-from datetime import timedelta  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
 
 _argv = sys.argv
 sys.argv = [_argv[0]]
@@ -69,6 +71,13 @@ ARMS = ("clean", "solves2x", "payload2x", "retain", "noyield")
 OWN_CHANNEL = {"solves2x": "solves", "payload2x": "payload_b",
                "retain": "retained_b_per_cycle", "noyield": "yields"}
 WARMUP, MEASURED = 1, 4
+#: Every cycle runs at this instant. Unfrozen, the readings follow the wall
+#: clock, which places the price and forecast series and the DHW draw hours:
+#: on one M1, ``winter/2z/dhw`` read 2 solves (the DHW/space co-optimization
+#: re-solves, ``HeatPumpOptimizer._co_optimize``) frozen at 2026-11-19 00:57
+#: and 00:59 UTC, and 1 at 00:07, 01:07, 18:55 and 19:30. CI's run at 00:57
+#: read 2 against a record of 1 made at another time of day.
+FROZEN_NOW = datetime(2026, 1, 15, 12, 7, tzinfo=timezone.utc)
 RATIO = 1.5
 # Set from the maximum of five clean runs plus the record run (1184-3393
 # B/cycle here; percycle's own clean arms read up to 8406) with 2x the larger
@@ -162,6 +171,15 @@ def instrument(arm_name):
 
 
 def measure(label: str, trace: bool) -> dict:
+    """One label's readings, with the clock frozen at FROZEN_NOW."""
+    dt_util.freeze(FROZEN_NOW)
+    try:
+        return _measure(label, trace)
+    finally:
+        dt_util.freeze(None)
+
+
+def _measure(label: str, trace: bool) -> dict:
     combo = next(c for c in stress.sweep_combinations() if c["label"] == label)
     cold = combo.get("season", "winter") == "winter"
     t_out = -3.0 if cold else 6.0
