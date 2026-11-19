@@ -545,3 +545,12 @@
 2026-11-19T02:56:45Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off CMP_BOUND 796b2800 L5213 by=- ran=13 wall=1573.9s
 2026-11-19T02:58:16Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:<module> CONST e8abb73a L127 by=tests/features.py ran=19 wall=1780.6s
 2026-11-19T02:58:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 5f84740b L4740 by=- ran=12 wall=1574.2s
+2026-11-19T03:06:12Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor GUARD_OFF a3bd9297 L1838 by=tests/features.py ran=16 wall=1697.4s
+2026-11-19T03:23:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum CLAMP_DROP 39986157 L750 by=- ran=12 wall=1541.8s
+2026-11-19T03:24:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays CLAMP_DROP 12b3aee4 L7492 by=- ran=13 wall=1548.7s
+2026-11-19T03:26:05Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._commanded_split GUARD_OFF 606479fb L4986 by=tests/features.py ran=15 wall=1760.2s
+2026-11-19T03:35:31Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair GUARD_OFF 9f1b1acf L2792 by=tests/features.py ran=13 wall=1759.3s
+2026-11-19T03:38:14Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_cop_health GUARD_OFF 70038ecd L9486 by=tests/features.py ran=13 wall=856.2s
+2026-11-19T03:50:20Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_series GUARD_OFF a1268b1c L7366 by=tests/features.py ran=14 wall=1555.9s
+2026-11-19T03:52:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._immersion_dhw_margin CMP_BOUND 0c70935f L9294 by=- ran=13 wall=1567.4s
+2026-11-19T04:03:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CLAMP_DROP e0d7cd6a L2307 by=- ran=16 wall=1670.0s
