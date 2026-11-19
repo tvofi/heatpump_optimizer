@@ -1,0 +1,4 @@
+peak block verbatim in HEAD: True
+room-history block verbatim in HEAD: True
+HEAD prefix before peak == main prefix: False
+ends with close: True
