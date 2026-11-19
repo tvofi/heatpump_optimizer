@@ -1,17 +1,17 @@
 # Flow board
 
-Window ends 2026-11-19T14:46:30+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-19T17:40:35+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 0 / 1.0 | 8 / 24.0 |
-| fly-ins closed | 4 | 12 |
-| main moves: group-carrying / record / roster-edit / fly-in | 2 / 0 / 0 / 4 | 10 / 2 / 1 / 12 |
-| first-pass fix-review yield | 1/1 (1.00) | 23/31 (0.74) |
-| blocked-class mix | mutation-vacuous:1 | class-open:5, merge-resolution:1, metric-gamed:1, mutation-vacuous:4, record-contradiction:1, tests-red:1 |
-| lead time per size (h, n/p50/max) | L n=1 p50=18.64 max=18.64; S n=1 p50=2.67 max=2.67 | L n=5 p50=17.48 max=21.38; M n=2 p50=6.51 max=12.68; S n=3 p50=6.45 max=8.47 |
+| roster groups closed vs takt | 0 / 1.0 | 4 / 24.0 |
+| fly-ins closed | 0 | 11 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 10 / 2 / 1 / 11 |
+| first-pass fix-review yield | 3/4 (0.75) | 22/26 (0.85) |
+| blocked-class mix | actuator-release:1, class-open:1 | actuator-release:1, class-open:4, mutation-vacuous:2, tests-red:1 |
+| lead time per size (h, n/p50/max) | L n=1 p50=25.61 max=25.61 | L n=5 p50=18.64 max=25.61; M n=2 p50=6.51 max=12.68; S n=3 p50=6.45 max=8.47 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
