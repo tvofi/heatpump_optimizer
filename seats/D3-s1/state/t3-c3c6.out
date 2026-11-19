@@ -1,9 +1,0 @@
-2026-11-18T20:21:56Z COMPLETE queued=6 from=c3c6
-2026-11-18T20:43:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:R10-C3C6 M07 L2593 by=- ran=13 wall=1291.6s
-2026-11-18T20:43:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:R10-C3C6 M21 L383 by=- ran=12 wall=1293.8s
-2026-11-18T20:44:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:R10-C3C6 M04 L8806 by=- ran=13 wall=1378.9s
-2026-11-18T20:44:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:R10-C3C6 M19 L1559 by=- ran=16 wall=1379.0s
-2026-11-18T21:08:21Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:R10-C3C6 M22 L595 by=tests/harness_headers.py,tests/features.py ran=17 wall=1492.9s
-2026-11-18T21:08:25Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:R10-C3C6 M03 L835 by=- ran=15 wall=1495.1s
-RESULT load1=1.81
-RESULT thread_factor=1.00
