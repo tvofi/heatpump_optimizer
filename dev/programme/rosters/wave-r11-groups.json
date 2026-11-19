@@ -5584,7 +5584,9 @@
     "custom_components/heatpump_optimizer/repairs.py"
    ],
    "brief": "What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3. Plan: reads the covering step from plan_step (ADR-001) and the held record as ADR-004 leaves it. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "- `tests/features.py`: design invariant 2, for the group that reads the held record after a release. After a restore lands the owner's record of the entity is empty (`ValveTarget.commanded_c`, `FrequencyWatchdog.commanded`, `circulation.commanded(entry)`, the arbiter's non-space slots), so the first write after On is sent, not deduplicated. Control: the section's \"design invariant 2\" checks, whose nulls (no Off between two cycles) send no second write; M12, M20, M24 and M25 are the perturbations. Re-measure with the section at your own merge base. Carry: dismissed: owed to R11-SEAM-actuation-writes (the group that reads the held record after a release; the orchestrator writes it onto that group's brief)"
+   ],
    "source": "audit",
    "resume": {
     "stage": "not-started",
