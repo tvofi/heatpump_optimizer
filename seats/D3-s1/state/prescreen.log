@@ -559,3 +559,6 @@
 2026-11-19T01:59:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_slab_refusal CMP_BOUND ae78329c L897 by=- ran=12 wall=1457.5s
 2026-11-19T02:00:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:_entries_by_day GUARD_OFF 2967de67 L586 by=- ran=13 wall=1455.5s
 2026-11-19T02:22:37Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:wood_share CLAMP_DROP 3ecb904e L2920 by=tests/features.py ran=12 wall=1359.7s
+2026-11-19T02:24:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:_interp_position CMP_BOUND 21c73b80 L184 by=- ran=15 wall=1537.2s
+2026-11-19T02:24:11Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:<module> CONST 22030666 L829 by=- ran=19 wall=1546.5s
+2026-11-19T02:24:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:mold_safe_room_floor GUARD_OFF e547f6b8 L2854 by=- ran=12 wall=1457.3s
