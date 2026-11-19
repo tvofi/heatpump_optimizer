@@ -125,6 +125,9 @@ NOT_A_TEST = {
     # runs, kept out of features.py so CodeQL's extraction of that module
     # fits its job limit. Measured through features.py's closure.
     "worker_deadlines.py",
+    # The comment ratchet (R11-SEAM-comments-tests): an arm of doc_claims.py,
+    # which imports and runs it. Measured through doc_claims.py's closure.
+    "comment_ratchet.py",
     # The lane-skip decision instrument (R9-CI-SKIP): it reads this table to
     # decide whether `fast`/`coverage`/`browser` may report `skipped`, so it
     # is driven by the workflow's decision steps, never by the suite. NOT
