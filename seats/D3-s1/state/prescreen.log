@@ -600,3 +600,4 @@
 2026-11-19T06:11:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:learner_newton_step GUARD_OFF b2765a37 L3080 by=- ran=13 wall=1670.0s
 2026-11-19T06:26:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CLAMP_DROP 540189d3 L2057 by=- ran=13 wall=1376.1s
 2026-11-19T06:28:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND ee25a6ee L6644 by=- ran=12 wall=1463.5s
+2026-11-19T06:30:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planning_prices CLAMP_DROP 1c3ac54a L474 by=- ran=12 wall=1466.9s
