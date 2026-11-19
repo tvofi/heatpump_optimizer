@@ -1,5 +1,5 @@
 import subprocess, sys, pathlib, os, shutil
-W = pathlib.Path(os.environ["HOME"]) / "wt"
+W = pathlib.Path("/Users/timmalmstrom/hpo-seats/r11/rev-3711-aa98/wt")
 P = "custom_components/heatpump_optimizer/"
 M = [
  ("first->last reading", P+"room_history.py", "        if tally[0] is None:  # the period's first reading: its calling acts from there on\n", "        if True:\n"),
@@ -18,15 +18,17 @@ M = [
  ("unload flush deleted", P+"__init__.py", "        await (await _async_lazy(hass, \"room_record\")).async_flush(coordinator)\n", ""),
  ("diag key always", P+"diagnostics.py", "    if room_record.record_of(coord) is not None:  # only", "    if True:  # only"),
  ("coord swaps space/dhw kw", P+"coordinator.py", "float(self._current_action.get(\"power\", 0.0)), float(self._current_action.get(\"dhw_power\", 0.0))", "float(self._current_action.get(\"dhw_power\", 0.0)), float(self._current_action.get(\"power\", 0.0))"),
- ("coord outdoor->return", P+"coordinator.py", "ctx._current_state.outdoor_temperature, self._floor_return_temp, self._measured_power", "self._floor_return_temp, self._floor_return_temp, self._measured_power"),
+ ("coord outdoor->return", P+"coordinator.py", "_ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp, self._measured_power", "self._floor_return_temp, self._floor_return_temp, self._measured_power"),
+ ("coord outdoor from cycle-start ctx", P+"coordinator.py", "_ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp", "ctx._current_state.outdoor_temperature, self._floor_return_temp"),
  ("coord step deleted", P+"coordinator.py", "            await _best_effort_cycle_step(lambda: room_record.async_note_cycle(", "            0 and (lambda: room_record.async_note_cycle("),
  ("power mean -> last", P+"room_history.py", "round(sum(period.power) / len(period.power))", "period.power[-1]"),
  ("target first not last", P+"room_history.py", "        if (target := _centi(reading.target_c, \"target\")) is not None:\n", "        if (target := _centi(reading.target_c, \"target\")) is not None and tally[1] is None:\n"),
  ("call share counts problem rows", P+"room_history.py", "if reading.problem is None and reading.calling is not None:", "if reading.calling is not None:"),
  ("house line drops space filter", P+"room_history.py", "and s >= CALLING_SHARE and reported[i]]", "and reported[i]]"),
 ]
-CMD = ["env","PYTHONPATH=tests/hastub","PYTHONDONTWRITEBYTECODE=1","python3","tools/audit/seat/features_block.py","--prelude","from heatpump_optimizer import coordinator as _r9f13_cmod","--prelude","import json as _fi_json","R11-OUTSIDE-ROOMS-P3 (#3616, phase 3a)"]
+CMD = ["env","PYTHONPATH=tests/hastub","PYTHONDONTWRITEBYTECODE=1","python3","tools/audit/seat/features_block.py","--prelude","exec(open(\"/Users/timmalmstrom/hpo-seats/r11/rev-3711-aa98/ev/prelude.py\").read())","R11-OUTSIDE-ROOMS-P3 (#3616, phase 3a)"]
 extra = sys.argv[1:]
+if extra and extra[0] in ("--null",): M = [("NULL no-op", M[0][1], M[0][2], M[0][2])]
 for name, f, old, new in M:
     p = W / f; src = p.read_text()
     if src.count(old) != 1:

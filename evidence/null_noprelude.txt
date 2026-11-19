@@ -1,0 +1,2 @@
+KILLED rc=1 NULL no-op :: ["NameError: name '_SrcHass' is not defined"]
+DONE

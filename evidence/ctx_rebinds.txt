@@ -1,0 +1,3 @@
+2658:        coord._ctx = replace(self, _current_state=new)
+3551:        self._ctx = CoordinatorContext(
+6582:        self._ctx = replace(ctx, _config=_with_quiet_keys(ctx._config, params))  # #1910
