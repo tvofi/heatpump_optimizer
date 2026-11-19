@@ -5,6 +5,20 @@
  "exposure": "No docs/ or GitHub read. Redispatch items C2/C3/C6 name round-10 mutant ids from dev/audit/rounds/round10/D3/s1/mutants.py, which the export strips: the seat read that one file from the worktree's object store (git show HEAD:...) only to re-draw its seed-10 sample at this baseline (c2_mutants.json, c3c6_mutants.json); no round-10 report, verdict or finding text was read. `git diff --stat HEAD^1 HEAD -- custom_components` was run once to confirm the env_drift comparison ref HEAD^1 (2c84a85c) carries production byte-identical to the baseline. Box D3R run (inline in the box session, the Agent spawn being refused by the frugal guard): read COMMON.md, D3.md, dev/audit/README.md, finding.schema.json (through a haiku extractor), the seat's own carried harnesses and state, and the three new survivor lines in custom_components; no docs/ or GitHub read beyond the box's own dispatch/inbox/wip refs. Box D3-u1c run: read the carried evidence directory (c0adbc19, box D3R's return), COMMON.md, D3.md, dev/audit/README.md, finding.schema.json; no docs/, no GitHub, no earlier-round findings.",
  "coverage": [
   {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Carried unchanged from box D3R's row (REPORT-D3R.json); not re-driven on box D3-u1c. {'command': 'PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l', 'value': '1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline)'} {'command': 'cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json', 'value': 'C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)'}"
+  },
+  {
    "step": "D3.M2",
    "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
    "universe": 1260,
@@ -31,203 +45,30 @@
      "state": "examined"
     }
    ],
-   "evidence": "D3-u1c slice: 309 keys, 0 unparseable, 309 driven by the fast net (fast closure scripts + env_drift --all HEAD^1): 64 killed, 245 survived, 0 timeout, 0 with every driver skipped by reach; first kills typing_ruler.py 26, env_drift.py 11, plan_view.py 7, solar_alignment.py 6, manual_plan.py 6, structure.py 4, finite_boundary.py 2, doc_claims.py 1, block_duty.py 1; driver skips by the gate's reach rule 1600, by the relaxed rule 152. Carried runs (B1, D3R) examined 31. Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/u1c_slice.py. Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1354 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.30GHz, 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5."
+   "evidence": "D3-u1c slice: 309 keys, 0 unparseable, 309 driven by the fast net (fast closure scripts + env_drift --all HEAD^1): 64 killed, 245 survived, 0 timeout, 0 with every driver skipped by reach; first kills typing_ruler.py 26, env_drift.py 11, plan_view.py 7, solar_alignment.py 6, manual_plan.py 6, structure.py 4, finite_boundary.py 2, doc_claims.py 1, block_duty.py 1; driver skips by the gate's reach rule 1600, by the relaxed rule 152. Carried runs (B1, D3R) examined 31. Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/u1c_slice.py. Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1525 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.30GHz, 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5."
   },
   {
    "step": "D3.M3",
    "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
    "universe": 280,
-   "examined": 74,
+   "examined": 247,
    "not_reached": [
-    "custom_components/heatpump_optimizer/optimizer.py:4033 CMP_BOUND 6e5e1a9f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:5969 GUARD_OFF e3c61124: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:10561 CMP_BOUND 45c379dc: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/price_model.py:198 GUARD_OFF ed095cbf: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/thermal_model.py:3387 CLAMP_DROP 9e45afd9: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:4497 GUARD_OFF ee9a2c4c: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:4140 GUARD_OFF bf9c0638: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1545 GUARD_OFF 442ad6d1: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:846 CMP_BOUND 32465940: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:4610 CMP_BOUND d9b2b8a5: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/price_model.py:201 GUARD_OFF 3dbd4039: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/coordinator.py:2360 GUARD_OFF 6fee1acd: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:784 CMP_BOUND fe16bdce: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:3177 GUARD_OFF ddd90b1f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:404 GUARD_OFF 0486e863: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:4751 CLAMP_DROP 5f84740b#2: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:2587 GUARD_OFF 4f3bbbac: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:2581 CLAMP_DROP 4cc7cd0a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:4851 BOOLOP 4d085ae8: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/dhw_planner.py:473 GUARD_OFF 54e620e3: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/sysid.py:643 CMP_BOUND 72abb7dd: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:6093 CMP_BOUND cf0ef9fc: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1798 RETURN_DEL 3367669c: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:1606 RETURN_DEL 90660fdb: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:2494 GUARD_OFF 69bbbda7: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:9022 GUARD_OFF ddf2c5be: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/coordinator.py:687 GUARD_OFF d02b7542: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/optimizer.py:6097 CMP_BOUND c05d6fd2: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:5120 GUARD_OFF b467baf0: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/defrost.py:181 CMP_BOUND 7b9d8278: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/defrost.py:540 CMP_BOUND ef60f0b9: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1715 CMP_BOUND 628390f0: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/price_model.py:342 CMP_BOUND cb6981eb: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:5157 GUARD_OFF d011a381: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:5654 CMP_BOUND dcf818be: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/sysid.py:677 GUARD_OFF f4619cef: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/optimizer.py:4828 CMP_BOUND 934404a3: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:6379 CMP_BOUND a306f8ef: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:5674 CMP_BOUND 8256b8db: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:1018 CLAMP_DROP 152250ba: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:6892 GUARD_OFF c717696c: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/price_model.py:825 BOOLOP 44f0178f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/tariff.py:801 CMP_BOUND ba43bf7e: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:1538 CLAMP_DROP f0477740: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:6454 GUARD_OFF e2921a12: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:6604 GUARD_OFF f6fcebcb: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/price_model.py:207 CMP_BOUND c00e502c: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:11271 BOOLOP 67eac7b8: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/price_model.py:90 CONST f47f8e99: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/grid_fee.py:310 RETURN_DEL 7e53edad: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1759 GUARD_OFF b5e82f97: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:5083 CLAMP_DROP 61545c3f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:1342 CMP_BOUND d209e002: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:7549 CLAMP_DROP 7b17a55a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:4234 CLAMP_DROP 85664bbe: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/tariff.py:1109 CMP_BOUND c58ef9ab: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:643 CMP_BOUND 72abb7dd: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:2598 CMP_BOUND 549bb130: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/grid_fee.py:173 GUARD_OFF f8c4994a: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/sysid.py:1083 CMP_BOUND 7e1c5191: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:2375 CLAMP_DROP 6ca2df8a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:6648 CMP_BOUND 83c9652a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:3073 CMP_BOUND e46c5e3e: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:5701 CLAMP_DROP cb686f74: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:4168 GUARD_OFF 0284e2d5: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:2573 CLAMP_DROP 11808d14: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND 01f70545: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:2539 CMP_BOUND 78b040fc: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:3073 CMP_BOUND e46c5e3e: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1549 CMP_BOUND 9f414fb5: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:6091 RETURN_DEL 35c20d2b: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/defrost.py:683 BOOLOP 1299c7b8: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:4828 GUARD_OFF 934404a3: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:5016 CLAMP_DROP c634563f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:852 CMP_BOUND 5bc864cc: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:677 CMP_BOUND f4619cef: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/tariff.py:768 GUARD_OFF 061a975f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:1184 GUARD_OFF f02474b2: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/tariff.py:64 GUARD_OFF 39ff0db0: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/defrost.py:802 BOOLOP ea64107d: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:10331 GUARD_OFF 8a2d264d: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:677 CLAMP_DROP 581f45bc: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:8265 GUARD_OFF 9e714704: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:6602 CMP_BOUND b8bcfb6f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:5222 CMP_BOUND 1a159a14: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:3560 GUARD_OFF 6335be05: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:2946 CLAMP_DROP 351c0e21: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:8978 GUARD_OFF cd7a074a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:882 GUARD_OFF e5c24a19: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/grid_fee.py:360 CMP_BOUND 23a3a01d: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/defrost.py:795 GUARD_OFF 2e316dc7: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:5250 CMP_BOUND 2f71906b: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:5945 CLAMP_DROP 8d062eb9: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/defrost.py:744 GUARD_OFF ea64107d: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/coordinator.py:539 GUARD_OFF 23752846: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/optimizer.py:4272 CLAMP_DROP 86078a63: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:3651 CMP_BOUND a01b8479: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/defrost.py:808 BOOLOP d8122347: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:2962 GUARD_OFF 7c5d6837: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1942 CMP_BOUND 3e0642e4: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1708 CMP_BOUND 9330e956: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:2037 CLAMP_DROP 79ab3a2f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:10445 CMP_BOUND 8635e542: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/thermal_model.py:169 GUARD_OFF 4893b0a8: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/coordinator.py:8842 GUARD_OFF 688eecbd: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:5049 GUARD_OFF 1dc80a7a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:1948 GUARD_OFF 510621f6: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:6790 GUARD_OFF a07a2d53: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:6360 RETURN_DEL 440ee7e3: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/dhw_planner.py:75 GUARD_OFF b551ee16: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/coordinator.py:5674 CMP_BOUND 8256b8db: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:2086 CLAMP_DROP f3416292: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/flow_lift.py:183 GUARD_OFF 336a6ca0: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/coordinator.py:9365 CMP_BOUND a84c93c2: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/optimizer.py:773 GUARD_OFF dacd4cc6: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/coordinator.py:9153 CMP_BOUND 789d92ca: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:6648 GUARD_OFF 83c9652a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:4211 GUARD_OFF 2641a2a6: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1593 CMP_BOUND 3896349a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:2075 CMP_BOUND 0d9190a8: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:2140 CMP_BOUND 655157d4: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:6070 GUARD_OFF 384d6fb8: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1782 CLAMP_DROP 81525776: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/price_model.py:72 CONST 90ecade5: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/price_model.py:510 CMP_BOUND b4032e2b: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:8785 CMP_BOUND ff55e496: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:5225 CMP_BOUND 60d71c27: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:3402 CMP_BOUND 055feb1c: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:6573 CMP_BOUND 6d711f71: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:10231 CMP_BOUND 8a040c32: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:3328 CLAMP_DROP 2723239c: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:835 GUARD_OFF 855229b8: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:9153 GUARD_OFF 789d92ca: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:10445 CMP_BOUND 8635e542: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:6606 GUARD_OFF c9af7d41: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:5145 CMP_BOUND d629fd84: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/tariff.py:824 CMP_BOUND b17b660c: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:9107 BOOLOP 2f74d22d: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:892 GUARD_OFF ebe7af8b: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:5382 GUARD_OFF 6deb0603: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:9051 CMP_BOUND 936e7a6e: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/flow_lift.py:47 CONST 17af2c12: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
     "custom_components/heatpump_optimizer/sysid.py:610 GUARD_OFF 72abb7dd: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/dhw_planner.py:1527 CLAMP_DROP 0a81eaf0: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:10564 CMP_BOUND 842b328c: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:4668 CLAMP_DROP b186b210: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/dhw_planner.py:556 GUARD_OFF d2584b72: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1073 CMP_BOUND 501fd0e7: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:4604 GUARD_OFF a6a225bf: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:2038 BOOLOP f030484a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:1994 CMP_BOUND f33dcd5d: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:2782 GUARD_OFF 68bf32a9: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:875 CMP_BOUND 9cd2a896: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:1915 GUARD_OFF 7b2fde58: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/thermal_model.py:270 GUARD_OFF 55e7d0fb: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/optimizer.py:6602 GUARD_OFF b8bcfb6f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1545 CMP_BOUND 442ad6d1: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:643 CMP_BOUND 72abb7dd: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:3328 CLAMP_DROP 1a5e5be6: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/grid_fee.py:355 CMP_BOUND 4a974762: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:7118 GUARD_OFF 643e387c: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1778 CLAMP_DROP 07b8a4e6: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:4720 CMP_BOUND 164830ff: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:10984 GUARD_OFF 769f5c2e: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:9038 CMP_BOUND 8274eedf: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:4679 CLAMP_DROP 2d9d455e: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/tariff.py:806 CLAMP_DROP e202a9d1: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:9390 GUARD_OFF 97281aaf: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/price_model.py:141 CMP_BOUND de1a0615: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:5054 GUARD_OFF d4fe0ab5: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:2038 CMP_BOUND f030484a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:9023 CLAMP_DROP bc68892f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/price_model.py:337 GUARD_OFF 4711f894: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:2208 CMP_BOUND 9174794d: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:2038 GUARD_OFF f030484a: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/price_model.py:303 GUARD_OFF 2c4b19d6: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:698 GUARD_OFF 0486e863: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/tariff.py:904 GUARD_OFF eb0a46c5: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/defrost.py:559 GUARD_OFF 7b8dda16: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
-    "custom_components/heatpump_optimizer/sysid.py:1922 GUARD_OFF d2773033: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/grid_fee.py:306 GUARD_OFF 5534a781: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND fc7a9935: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:3969 CMP_BOUND 674746fd: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:4538 GUARD_OFF 8817ad76: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/optimizer.py:2780 GUARD_OFF f2b30bb0: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:2237 CMP_BOUND 9b28838f: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/thermal_model.py:3479 CMP_BOUND 5eed5b5e: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/coordinator.py:1643 CONST 7e415eaa: assigned to box D3-u1c, not driven",
-    "custom_components/heatpump_optimizer/sysid.py:1942 GUARD_OFF 3e0642e4: assigned to box D3-u1c, not driven",
     "custom_components/heatpump_optimizer/price_model.py:337 R10C2 M25: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
     "custom_components/heatpump_optimizer/tariff.py:744 R10C2 M31: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
     "custom_components/heatpump_optimizer/sysid.py:1549 R10C2 M26: carried survivor (box B1/D3R), full net assigned to box D3-top6 or another resume box, not D3-u1c",
@@ -250,9 +91,13 @@
     {
      "item": "C3",
      "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
     }
    ],
-   "evidence": "D3-u1c full net (prescreen.py complete, every deferred/relaxed-skipped closure driver, no relaxation, no early stop) on 72 of 245 slice survivors: 14 killed, 58 survived, 0 timeout; kills per driver (every kill) features.py 12, entities.py 3, harness_headers.py 1; sole killer features.py 11, entities.py 2. C3 (the GATE_SCOPE=full GOLDEN_MODE=drift gate on the top six) is box D3-top6's, not driven here; this box's full-net survivors are listed for it under prescreened. Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1354 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.30GHz, 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5."
+   "evidence": "D3-u1c full net (prescreen.py complete, every deferred/relaxed-skipped closure driver, no relaxation, no early stop) on 245 of 245 slice survivors: 54 killed, 190 survived, 1 timeout; kills per driver (every kill) features.py 49, entities.py 6, harness_headers.py 3; sole killer features.py 46, entities.py 5. C3 (the GATE_SCOPE=full GOLDEN_MODE=drift gate on the top six) is box D3-top6's, not driven here; this box's full-net survivors are listed for it under prescreened. Provisional (judge re-takes): fast-net wall per mutant median 201 s, full-net wall per survivor median 1525 s, 4 workers, box D3-u1c: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.30GHz, 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 1-5."
   },
   {
    "step": "D3.M4",
@@ -262,6 +107,37 @@
    "not_reached": [],
    "redispatched": [],
    "evidence": "m4_answers.json (carried, 35) + m4_answers-D3-u1c.json (245): per survivor the production line, its file, and the closure drivers whose traced unmutated baseline executes the line yet passed (the checks that should have failed), from PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/u1c_slice.py --json."
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "tests/card.mjs (assigned to box D3-m5)",
+    "tests/card_drift.mjs (assigned to box D3-m5)",
+    "tests/golden.py (assigned to box D3-m5)",
+    "tests/stress.py (assigned to box D3-m5)"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "Carried unchanged from box D3R's row (REPORT-D3R.json); the M5 remainder (C4, C7, C9) is assigned to box D3-m5, not driven on box D3-u1c. {'command': 'cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl', 'value': \"16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.\"} {'command': 'PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py', 'value': \"681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01)\"} {'command': 'PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED', 'value': 'traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1'} {'command': 'cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out', 'value': 'box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2'}"
   }
  ],
  "unfinished": [],
@@ -2357,6 +2233,4776 @@
    "should_have_failed": [
     "tests/features.py"
    ]
+  },
+  {
+   "key": "9644a454ac8f288b",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4272 CLAMP_DROP 86078a63",
+   "patch": "rain_intensity = min(avg_future_precip / 2.0, 1.0)  ->  rain_intensity = (avg_future_precip / 2.0)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "966c9be1a17c8bea",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4751 CLAMP_DROP 5f84740b#2",
+   "patch": ") / max(dt, 1e-6)  ->  ) / (dt)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "968644425a4f97f8",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2946 CLAMP_DROP 351c0e21",
+   "patch": "span = np.maximum(flow_set - floor_temp, 1e-6)  ->  span = (flow_set - floor_temp)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "968c552b8acd9df9",
+   "site": "custom_components/heatpump_optimizer/tariff.py:801 CMP_BOUND ba43bf7e",
+   "patch": "positive = np.flatnonzero(np.any(values > 0, axis=1))  ->  positive = np.flatnonzero(np.any(values >= 0, axis=1))",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "96fe4cecaa16f997",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9390 GUARD_OFF 97281aaf",
+   "patch": "if x <= 1e-6 or not np.isfinite(y):  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "970ed4d74c36caa1",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6648 CMP_BOUND 83c9652a",
+   "patch": "if result.dhw_power_schedule and i < len(result.dhw_power_schedule):  ->  if result.dhw_power_schedule and i <= len(result.dhw_power_schedule):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "97628f4b14aec1b9",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:4497 GUARD_OFF ee9a2c4c",
+   "patch": "if not vvc_entity and not space_entity:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "977021e3b3964277",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:2782 GUARD_OFF 68bf32a9",
+   "patch": "if self.holiday_comfort_night is not None:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9789e0e7faa1b53a",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:10445 CMP_BOUND 8635e542",
+   "patch": "if kwh > 0 and len(costs) > 1:  ->  if kwh >= 0 and len(costs) > 1:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py"
+   ]
+  },
+  {
+   "key": "97bd985754f1099b",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4140 GUARD_OFF bf9c0638",
+   "patch": "if n_sub == 1:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "97da0984453a53bb",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5222 CMP_BOUND 1a159a14",
+   "patch": "temp = room[i + 1] if i + 1 < len(room) else room[-1]  ->  temp = room[i + 1] if i + 1 <= len(room) else room[-1]",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py"
+   ]
+  },
+  {
+   "key": "98853a541b6b5d6a",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2581 CLAMP_DROP 4cc7cd0a",
+   "patch": "hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0))  ->  hp_draw = min(drawn - wood_draw, (avail_hp))",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "990cdd83373504ad",
+   "site": "custom_components/heatpump_optimizer/sysid.py:677 CMP_BOUND f4619cef",
+   "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9:  ->  if not (c_r > 1e-9 and c_s > 1e-9 and k_s >= 1e-9) or not settle_band > 1e-9:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "996dce5148e02763",
+   "site": "custom_components/heatpump_optimizer/tariff.py:806 CLAMP_DROP e202a9d1",
+   "patch": "scale = np.maximum(tau * peak, 1e-9)  ->  scale = (tau * peak)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "99866c2ffc704413",
+   "site": "custom_components/heatpump_optimizer/sysid.py:852 CMP_BOUND 5bc864cc",
+   "patch": "if not accepted or float(np.max(np.abs(delta))) < 1e-10:  ->  if not accepted or float(np.max(np.abs(delta))) <= 1e-10:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9a06a1a7e515fa67",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4610 CMP_BOUND d9b2b8a5",
+   "patch": "and candidate.objective_value < fixed_objective - 1e-9  ->  and candidate.objective_value <= fixed_objective - 1e-9",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9aa50bd32847b4dd",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:1948 GUARD_OFF 510621f6",
+   "patch": "if not scored:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "9b72b944ac12fa25",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8842 GUARD_OFF 688eecbd",
+   "patch": "if params.two_zone_enabled:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9b890e4f1fdfcd41",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:556 GUARD_OFF d2584b72",
+   "patch": "if hour == prev + 1:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9bfc2c6d1bfe66bd",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5120 GUARD_OFF b467baf0",
+   "patch": "if refused is None:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "9c82d861621b8087",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9365 CMP_BOUND a84c93c2",
+   "patch": "if cap_i < p_max - 1e-9:  ->  if cap_i <= p_max - 1e-9:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9cdf54d2309cfcc8",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9038 CMP_BOUND 8274eedf",
+   "patch": "and utc_elapsed_seconds(self._outage_recovery_until, now) > 0  ->  and utc_elapsed_seconds(self._outage_recovery_until, now) >= 0",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9d16dbc0d3aba164",
+   "site": "custom_components/heatpump_optimizer/tariff.py:904 GUARD_OFF eb0a46c5",
+   "patch": "if house.size == 0:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9d324a1dc7a6aa82",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5674 CMP_BOUND 8256b8db",
+   "patch": "if observed < low or observed > high:  ->  if observed < low or observed >= high:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9d455ff4aaf3f3e0",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:3328 CLAMP_DROP 1a5e5be6",
+   "patch": "deficit / max(cop_end, 1e-6)  ->  deficit / (cop_end)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9dcd374ac007dfc9",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:11271 BOOLOP 67eac7b8",
+   "patch": "if \"power_cap_kw\" in overrides and simulated.predictive_info  ->  if \"power_cap_kw\" in overrides or simulated.predictive_info",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9dd0547496b091b0",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1782 CLAMP_DROP 81525776",
+   "patch": "self.samples[-1].power_kw = max(plan_power_kw, 0.0) * thermal_cop  ->  self.samples[-1].power_kw = (plan_power_kw) * thermal_cop",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9df41596c4fa89c6",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3479 CMP_BOUND 5eed5b5e",
+   "patch": "if precipitation > 0.1:  # threshold for \"raining\"  ->  if precipitation >= 0.1:  # threshold for \"raining\"",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "9e71bd23e996ec6a",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4828 CMP_BOUND 934404a3",
+   "patch": "if extra.size < n_steps:  ->  if extra.size <= n_steps:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9e9ab1d6567ff65b",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:2086 CLAMP_DROP f3416292",
+   "patch": "return 1.0 - 0.8 * ranks / float(max(len(prices) - 1, 1))  ->  return 1.0 - 0.8 * ranks / float((len(prices) - 1))",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "9fe0782a9839475e",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5701 CLAMP_DROP cb686f74",
+   "patch": "n = min(len(power), len(self._pv_surplus))  ->  n = (len(power))",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a0722b8c635d2d93",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:3402 CMP_BOUND 055feb1c",
+   "patch": "if end <= i:  ->  if end < i:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "a074fb25836c2bc6",
+   "site": "custom_components/heatpump_optimizer/tariff.py:824 CMP_BOUND b17b660c",
+   "patch": "close = np.abs(count - k) < 1e-6  ->  close = np.abs(count - k) <= 1e-6",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a087d5efb15533ce",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2598 CMP_BOUND 549bb130",
+   "patch": "elif available <= 0.0:  ->  elif available < 0.0:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "a1576c7241b67401",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:1342 CMP_BOUND d209e002",
+   "patch": "covered = free_temps[1:] >= requirement - 0.5  ->  covered = free_temps[1:] > requirement - 0.5",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a1ba3ad7c4c53dd5",
+   "site": "custom_components/heatpump_optimizer/sysid.py:875 CMP_BOUND 9cd2a896",
+   "patch": "if len(dts) < 5:  ->  if len(dts) <= 5:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a1ebeff0870dfa76",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:784 CMP_BOUND fe16bdce",
+   "patch": "if need > boost_top:  ->  if need >= boost_top:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py"
+   ]
+  },
+  {
+   "key": "a21e5757eab163a7",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:2140 CMP_BOUND 655157d4",
+   "patch": "if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)):  ->  if not bool(np.all(candidate[pos + 1: end + 1] < limit + 1e-9)):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "a23ed12204379870",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1715 CMP_BOUND 628390f0",
+   "patch": "if hw <= UA_ADOPTION_HALFWIDTH_BAR:  ->  if hw < UA_ADOPTION_HALFWIDTH_BAR:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a28fd1af46c39331",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:4851 BOOLOP 4d085ae8",
+   "patch": "result.upper_temp_trajectory and result.lower_temp_trajectory  ->  result.upper_temp_trajectory or result.lower_temp_trajectory",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/plan_view.py"
+   ]
+  },
+  {
+   "key": "a2a1d3802ceff60d",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:404 GUARD_OFF 0486e863",
+   "patch": "if cached is not None and cached[0] == key:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "a33188790c5affad",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:6454 GUARD_OFF e2921a12",
+   "patch": "if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a38612ad3ad9cd34",
+   "site": "custom_components/heatpump_optimizer/price_model.py:141 CMP_BOUND de1a0615",
+   "patch": "if low > 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9):  ->  if low >= 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/boost_drift_replay.py",
+    "tests/features.py",
+    "tests/finite_boundary.py"
+   ]
+  },
+  {
+   "key": "a3f2b00cc4aa527e",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4668 CLAMP_DROP b186b210",
+   "patch": "np.maximum(T_wood, T_buf)  ->  (T_wood)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a43968aafffb26f3",
+   "site": "custom_components/heatpump_optimizer/grid_fee.py:355 CMP_BOUND 4a974762",
+   "patch": "if abs(rule.rate) > worst:  ->  if abs(rule.rate) >= worst:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a486806b8f4ff4d7",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4679 CLAMP_DROP 2d9d455e",
+   "patch": "floor_temp = np.minimum(T_upper, T_slab)  ->  floor_temp = (T_upper)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "a4f4c88e7480a514",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4033 CMP_BOUND 6e5e1a9f",
+   "patch": "if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):  ->  if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "a581feadd69c6c42",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6606 GUARD_OFF c9af7d41",
+   "patch": "elif p_norm < 0.9:  ->  elif False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a5b06d898bf0ba03",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2237 CMP_BOUND 9b28838f",
+   "patch": "and abs(drift_c_per_h) < self.config.sensor_drift_prior_c_per_h  ->  and abs(drift_c_per_h) <= self.config.sensor_drift_prior_c_per_h",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a5c9796d35117839",
+   "site": "custom_components/heatpump_optimizer/price_model.py:342 CMP_BOUND cb6981eb",
+   "patch": "if self.days[idx] < SHAPE_CONFIDENCE_DAYS:  ->  if self.days[idx] <= SHAPE_CONFIDENCE_DAYS:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a66e107749d0ae11",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5945 CLAMP_DROP 8d062eb9",
+   "patch": "float(max(dhw_floor_temps[0], dhw_ready_temps[0]))  ->  float((dhw_floor_temps[0]))",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "a6c42cff101ffc65",
+   "site": "custom_components/heatpump_optimizer/sysid.py:643 CMP_BOUND 72abb7dd",
+   "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):  ->  if not (c_r > 1e-9 and c_s > 1e-9 and k_s >= 1e-9):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a6cebb125b72f083",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3328 CLAMP_DROP 2723239c",
+   "patch": "cop = self.params.cop_nominal * min(factor, 1.5) * self.params.cop_scale  ->  cop = self.params.cop_nominal * (factor) * self.params.cop_scale",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "a7488872387d5ca7",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:6379 CMP_BOUND a306f8ef",
+   "patch": "if len(prices) < 4:  ->  if len(prices) <= 4:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a7dd3153718e531b",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9153 GUARD_OFF 789d92ca",
+   "patch": "if damp <= 1e-9:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "a99da4c347a19ca5",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND fc7a9935",
+   "patch": "if energy_kwh <= 0 or p_max <= 0 or dt <= 0:  ->  if energy_kwh <= 0 or p_max < 0 or dt <= 0:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "a9bc37e9ba781833",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2037 CLAMP_DROP 79ab3a2f",
+   "patch": "x1_spread2 = float(np.var(a[:, 0])) * n_rows / max(n_rows - 1.0, 1.0)  ->  x1_spread2 = float(np.var(a[:, 0])) * n_rows / (n_rows - 1.0)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "aa338654e7801916",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6070 GUARD_OFF 384d6fb8",
+   "patch": "if hi <= lo:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "aa6b718c979bf831",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:7118 GUARD_OFF 643e387c",
+   "patch": "if not self._weather_outage_cycles:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/manual_plan.py"
+   ]
+  },
+  {
+   "key": "aa6d264aa0411bcd",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1942 CMP_BOUND 3e0642e4",
+   "patch": "if len(rows) < 5:  ->  if len(rows) <= 5:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "aaa2a3d6bb2ba515",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9051 CMP_BOUND 936e7a6e",
+   "patch": "if self._outage_dhw_until is None or utc_elapsed_seconds(self._outage_dhw_until, now) <= 0:  ->  if self._outage_dhw_until is None or utc_elapsed_seconds(self._outage_dhw_until, now) < 0:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "aab0b73e229ad900",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4720 CMP_BOUND 164830ff",
+   "patch": "if np.any(risk > 0.0):  ->  if np.any(risk >= 0.0):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "ab65584805229d1c",
+   "site": "custom_components/heatpump_optimizer/sysid.py:892 GUARD_OFF ebe7af8b",
+   "patch": "if not (-0.5 <= gains_kw <= 2.0):  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "ab918806fc8b4af6",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:10331 GUARD_OFF 8a2d264d",
+   "patch": "if energy <= 0:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/boost_drift_replay.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "ac6bedc70bb82ff7",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8265 GUARD_OFF 9e714704",
+   "patch": "if manual_state is not None:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py"
+   ]
+  },
+  {
+   "key": "ad01ae06d7ea84ec",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5054 GUARD_OFF d4fe0ab5",
+   "patch": "if p85 <= p25 * 1.05:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "ad7a177d7ca99cad",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1545 CMP_BOUND 442ad6d1",
+   "patch": "if cfg.start_hour <= cfg.end_hour:  ->  if cfg.start_hour < cfg.end_hour:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "ad8a02e5c07428ab",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:4538 GUARD_OFF 8817ad76",
+   "patch": "if params.two_zone_enabled:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "adc459d2db521041",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1708 CMP_BOUND 9330e956",
+   "patch": "or self._baseline_temp is None or not 1e-3 < dt <= 2.0  ->  or self._baseline_temp is None or not 1e-3 < dt < 2.0",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "ae8f84354933d191",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2375 CLAMP_DROP 6ca2df8a",
+   "patch": "np.log(max(ua0, 1e-3)),  ->  np.log((ua0)),",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "aebea2e6b76b2dc3",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4234 CLAMP_DROP 85664bbe",
+   "patch": "n_6h = min(int(6 / dt_hours), n)  ->  n_6h = (int(6 / dt_hours))",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "af8d4fddad8f298f",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:2075 CMP_BOUND 0d9190a8",
+   "patch": "if bool(np.all(joint_temps <= joint_limit + 1e-9)):  ->  if bool(np.all(joint_temps < joint_limit + 1e-9)):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "af94ce8be7140e87",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5225 CMP_BOUND 60d71c27",
+   "patch": "if i < len(temp_min_bounds)  ->  if i <= len(temp_min_bounds)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py"
+   ]
+  },
+  {
+   "key": "afbdfa240c441812",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1593 CMP_BOUND 3896349a",
+   "patch": "return peak <= bound and final <= bound  ->  return peak < bound and final <= bound",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b020c93535a7f9e6",
+   "site": "custom_components/heatpump_optimizer/defrost.py:795 GUARD_OFF 2e316dc7",
+   "patch": "if self._opened is None:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b028ad9d6c702965",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:2360 GUARD_OFF 6fee1acd",
+   "patch": "if result is not None:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b098598faf0d87dc",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:835 GUARD_OFF 855229b8",
+   "patch": "if swing <= 0.0:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py"
+   ]
+  },
+  {
+   "key": "b0d27be4975eb62b",
+   "site": "custom_components/heatpump_optimizer/sysid.py:643 CMP_BOUND 72abb7dd",
+   "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):  ->  if not (c_r > 1e-9 and c_s >= 1e-9 and k_s > 1e-9):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b1074e70396100d8",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:1538 CLAMP_DROP f0477740",
+   "patch": "lo = max(0, j - window)  ->  lo = (0)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "b10967dd4ea185fd",
+   "site": "custom_components/heatpump_optimizer/price_model.py:72 CONST 90ecade5",
+   "patch": "SHAPE_MIN = 0.2  ->  SHAPE_MIN = 0.4",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ],
+   "skipped_by_reach": [],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "key": "b143b01c4ea02159",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6604 GUARD_OFF f6fcebcb",
+   "patch": "elif p_norm < 0.7:  ->  elif False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b16740061447ef70",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:1018 CLAMP_DROP 152250ba",
+   "patch": "window_hours = max((end_idx - start_idx) * dt, dt)  ->  window_hours = ((end_idx - start_idx) * dt)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "b1926550efd8eac4",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:3969 CMP_BOUND 674746fd",
+   "patch": "pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3)  ->  pinned = (dhw_power >= 1e-6) & (space_power >= headroom - 1e-3)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "b1a8d3056bf42597",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:1527 CLAMP_DROP 0a81eaf0",
+   "patch": "demand = np.clip(np.asarray(space_demand, dtype=float), 0.0, None)  ->  demand = (np.asarray(space_demand, dtype=float))",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "b247841f5466162d",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:2539 CMP_BOUND 78b040fc",
+   "patch": "if now_s < starts[0]:  ->  if now_s <= starts[0]:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b25e80c59b31c20d",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:1184 GUARD_OFF f02474b2",
+   "patch": "if dhw_pins is not None:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "b27ac4781778a34a",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3073 CMP_BOUND e46c5e3e",
+   "patch": "if base_u <= 1e-6 or capacity <= 1e-6:  ->  if base_u <= 1e-6 or capacity < 1e-6:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/boost_drift_replay.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b283779946540c3d",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8785 CMP_BOUND ff55e496",
+   "patch": "if 0.0 < spacing <= 0.25:  ->  if 0.0 < spacing < 0.25:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b2e075c0da35240d",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6602 CMP_BOUND b8bcfb6f",
+   "patch": "elif p_norm < 0.4:  ->  elif p_norm <= 0.4:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b2faf84904db389e",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:677 CLAMP_DROP 581f45bc",
+   "patch": "rate = min(max(float(rate), low), high)  ->  rate = min((float(rate)), high)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/optimality.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/optimality.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "b341873adae0cf3c",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2587 GUARD_OFF 4f3bbbac",
+   "patch": "elif delivered <= 0.0:  ->  elif False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b3a8cff2e5c0a8cc",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5654 CMP_BOUND dcf818be",
+   "patch": "if dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS:  ->  if dt_h <= BUFFER_COOLING_MIN_SAMPLE_HOURS:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b3c0e51c511b2618",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1778 CLAMP_DROP 07b8a4e6",
+   "patch": "thermal_cop = max(cop, 0.1)  ->  thermal_cop = (cop)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b413c17079bb8176",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1922 GUARD_OFF d2773033",
+   "patch": "if dt_h <= 1e-3 or dt_h > 2.0:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b434193b049a41c3",
+   "site": "custom_components/heatpump_optimizer/price_model.py:510 CMP_BOUND b4032e2b",
+   "patch": "if known_count >= n_steps:  ->  if known_count > n_steps:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/solar_alignment.py"
+   ]
+  },
+  {
+   "key": "b4f7503c6959449d",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1073 CMP_BOUND 501fd0e7",
+   "patch": "if solution.shape[0] >= 4:  ->  if solution.shape[0] > 4:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b539d4504385a139",
+   "site": "custom_components/heatpump_optimizer/price_model.py:825 BOOLOP 44f0178f",
+   "patch": "isinstance(attrs, dict) and attrs  ->  isinstance(attrs, dict) or attrs",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b53efc6448b724e4",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:1994 CMP_BOUND f33dcd5d",
+   "patch": "if np.isfinite(score) and score < best_score:  ->  if np.isfinite(score) and score <= best_score:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "b546d5e705722bb5",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5382 GUARD_OFF 6deb0603",
+   "patch": "if modelled_cop <= 0.1:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/boost_drift_replay.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b5a482468c783209",
+   "site": "custom_components/heatpump_optimizer/price_model.py:207 CMP_BOUND c00e502c",
+   "patch": "if mean <= 1e-6:  ->  if mean < 1e-6:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py"
+   ]
+  },
+  {
+   "key": "b5aef00760fd5ea8",
+   "site": "custom_components/heatpump_optimizer/price_model.py:90 CONST f47f8e99",
+   "patch": "VAR_ALPHA = 0.15  ->  VAR_ALPHA = 0.3",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ],
+   "skipped_by_reach": [],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "key": "b5d57e4a1fc22d96",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:3177 GUARD_OFF ddd90b1f",
+   "patch": "if span <= 0.0:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "b5f0a73275608684",
+   "site": "custom_components/heatpump_optimizer/grid_fee.py:360 CMP_BOUND 23a3a01d",
+   "patch": "and abs(float(entity_value)) > worst  ->  and abs(float(entity_value)) >= worst",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b61d1402aad5a055",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1545 GUARD_OFF 442ad6d1",
+   "patch": "if cfg.start_hour <= cfg.end_hour:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b6ac2d53028d45a3",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5049 GUARD_OFF 1dc80a7a",
+   "patch": "if self._pump_signals.mode_observed and not self._pump_signals.space_heat:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/boost_drift_replay.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b6b6e82fb4a33703",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9153 CMP_BOUND 789d92ca",
+   "patch": "if damp <= 1e-9:  ->  if damp < 1e-9:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b7623a645f34e628",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:10564 CMP_BOUND 842b328c",
+   "patch": "if mean_spot <= 0.01:  ->  if mean_spot < 0.01:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b7a6f145165338bf",
+   "site": "custom_components/heatpump_optimizer/dhw_planner.py:1606 RETURN_DEL 90660fdb",
+   "patch": "return best  ->  pass",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "none of the closure executes the line: a direct check on DhwPlanner._plan_dhw_min_cost"
+   ]
+  },
+  {
+   "key": "b871ff0486182e3e",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:7549 CLAMP_DROP 7b17a55a",
+   "patch": "self._snow_accum_cm += rate_now * min(dt_true, 6.0)  ->  self._snow_accum_cm += rate_now * (dt_true)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b8d5ec03e8eba5c7",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1942 GUARD_OFF 3e0642e4",
+   "patch": "if len(rows) < 5:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b94f040a7b0aed92",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:2494 GUARD_OFF 69bbbda7",
+   "patch": "if _pin_is_free(pin) or pin < 0.5:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py"
+   ]
+  },
+  {
+   "key": "b97b45a6162a2f00",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2038 CMP_BOUND f030484a",
+   "patch": "if sigma2 > 0.0 and sigma2 > x1_spread2 / 9.0:  ->  if sigma2 >= 0.0 and sigma2 > x1_spread2 / 9.0:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b9b6cf1d15a84248",
+   "site": "custom_components/heatpump_optimizer/price_model.py:337 GUARD_OFF 4711f894",
+   "patch": "if not day_types or not np.isfinite(level) or level <= 0.0:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "b9bbb3ac364893f7",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:698 GUARD_OFF 0486e863",
+   "patch": "if cached is not None and cached[0] == key:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "ba1c58ad6dabbebd",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:10231 CMP_BOUND 8a040c32",
+   "patch": "if 0 < idx < len(trajectory):  ->  if 0 <= idx < len(trajectory):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "ba25d4dc58c7fecc",
+   "site": "custom_components/heatpump_optimizer/sysid.py:846 CMP_BOUND 32465940",
+   "patch": "if np.isfinite(next_cost) and next_cost < cost:  ->  if np.isfinite(next_cost) and next_cost <= cost:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "ba9f6b92f678ab10",
+   "site": "custom_components/heatpump_optimizer/price_model.py:303 GUARD_OFF 2c4b19d6",
+   "patch": "if trust <= 0.0:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "babeb7b3990a574b",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3387 CLAMP_DROP 9e45afd9",
+   "patch": "carnot_flow = (flow_temp + 273.15) / max(flow_temp + 273.15 - t_out, 1.0)  ->  carnot_flow = (flow_temp + 273.15) / (flow_temp + 273.15 - t_out)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "bb1abbfc58114a17",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5674 CMP_BOUND 8256b8db",
+   "patch": "if observed < low or observed > high:  ->  if observed <= low or observed > high:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "bbcded8a73c6a2f1",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5145 CMP_BOUND d629fd84",
+   "patch": "int(np.count_nonzero(refused > 1e-9)),  ->  int(np.count_nonzero(refused >= 1e-9)),",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "bc3a42f14c903439",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5250 CMP_BOUND 2f71906b",
+   "patch": "if temp >= float(req[i]) - 0.5:  ->  if temp > float(req[i]) - 0.5:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/features.py",
+    "tests/manual_plan.py"
+   ]
+  },
+  {
+   "key": "bcf290164a0edeeb",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5157 GUARD_OFF d011a381",
+   "patch": "if probe.stale:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py"
+   ]
+  },
+  {
+   "key": "bdb9a95deedcc8fe",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6093 CMP_BOUND cf0ef9fc",
+   "patch": "if net(lo) <= 0.0:  ->  if net(lo) < 0.0:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "be3a3a75280c7b7e",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5016 CLAMP_DROP c634563f",
+   "patch": "take = min(n_steps, src.size)  ->  take = (n_steps)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py"
+   ]
+  },
+  {
+   "key": "be95c184bf4746ff",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4211 GUARD_OFF 2641a2a6",
+   "patch": "if n == 0:  ->  if False:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ]
+  },
+  {
+   "key": "bed063118e10d683",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3073 CMP_BOUND e46c5e3e",
+   "patch": "if base_u <= 1e-6 or capacity <= 1e-6:  ->  if base_u < 1e-6 or capacity <= 1e-6:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/boost_drift_replay.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "beeb068352333132",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2573 CLAMP_DROP 11808d14",
+   "patch": ") / max(dt_hours, 1e-6)  ->  ) / (dt_hours)",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "bf2229e3f179f4b6",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6097 CMP_BOUND c05d6fd2",
+   "patch": "if net(mid) > 0.0:  ->  if net(mid) >= 0.0:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "bf5868e583609121",
+   "site": "custom_components/heatpump_optimizer/sysid.py:643 CMP_BOUND 72abb7dd",
+   "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):  ->  if not (c_r >= 1e-9 and c_s > 1e-9 and k_s > 1e-9):",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/entities.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "c0800afec99d22fc",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND 01f70545",
+   "patch": "if drawn > delivered > 0.0:  ->  if drawn >= delivered > 0.0:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ]
+  },
+  {
+   "key": "c087dc286eeff014",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5083 CLAMP_DROP 61545c3f",
+   "patch": "max_sample_hours=max(1.0, 1.5 * interval_hours),  ->  max_sample_hours=(1.0),",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py"
+   ]
+  },
+  {
+   "key": "c0bd33b7c209982d",
+   "site": "custom_components/heatpump_optimizer/defrost.py:181 CMP_BOUND 7b9d8278",
+   "patch": "if value <= centers[0]:  ->  if value < centers[0]:",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "SURVIVED",
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py"
+   ]
+  },
+  {
+   "key": "9efe002b48e1827d",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:6360 RETURN_DEL 440ee7e3",
+   "patch": "return None  ->  pass",
+   "closure_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "skipped_by_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/debug_collect.py",
+    "tests/guard_pins.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py"
+   ],
+   "verdict": "TIMEOUT",
+   "should_have_failed": [
+    "tests/features.py"
+   ]
   }
  ],
  "non_findings": [
@@ -2376,9 +7022,14 @@
    "value": "D3-u1c slice: 309 keys, 0 unparseable, 309 driven by the fast net (fast closure scripts + env_drift --all HEAD^1): 64 killed, 245 survived, 0 timeout, 0 with every driver skipped by reach; first kills typing_ruler.py 26, env_drift.py 11, plan_view.py 7, solar_alignment.py 6, manual_plan.py 6, structure.py 4, finite_boundary.py 2, doc_claims.py 1, block_duty.py 1; driver skips by the gate's reach rule 1600, by the relaxed rule 152."
   },
   {
-   "claim": "14 of 72 fast-net survivors of the slice are pinned by the full closure net",
+   "claim": "54 of 245 fast-net survivors of the slice are pinned by the full closure net",
    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/u1c_slice.py",
-   "value": "D3-u1c full net (prescreen.py complete, every deferred/relaxed-skipped closure driver, no relaxation, no early stop) on 72 of 245 slice survivors: 14 killed, 58 survived, 0 timeout; kills per driver (every kill) features.py 12, entities.py 3, harness_headers.py 1; sole killer features.py 11, entities.py 2. Killed sites: defrost.py:106 by features.py; coordinator.py:4893 by features.py; coordinator.py:3168 by features.py; coordinator.py:3102 by features.py; defrost.py:729 by features.py; coordinator.py:539 by features.py; coordinator.py:6537 by features.py; grid_fee.py:355 by features.py; sysid.py:1779 by harness_headers.py,entities.py,features.py; coordinator.py:7494 by entities.py; grid_fee.py:331 by features.py; coordinator.py:9360 by entities.py; grid_fee.py:383 by features.py; optimizer.py:5271 by features.py"
+   "value": "D3-u1c full net (prescreen.py complete, every deferred/relaxed-skipped closure driver, no relaxation, no early stop) on 245 of 245 slice survivors: 54 killed, 190 survived, 1 timeout; kills per driver (every kill) features.py 49, entities.py 6, harness_headers.py 3; sole killer features.py 46, entities.py 5. Killed sites: defrost.py:106 by features.py; coordinator.py:4893 by features.py; coordinator.py:3168 by features.py; coordinator.py:3102 by features.py; defrost.py:729 by features.py; coordinator.py:539 by features.py; coordinator.py:6537 by features.py; grid_fee.py:355 by features.py; sysid.py:1779 by harness_headers.py,entities.py,features.py; coordinator.py:7494 by entities.py; grid_fee.py:331 by features.py; coordinator.py:9360 by entities.py; grid_fee.py:383 by features.py; optimizer.py:5271 by features.py; defrost.py:540 by features.py; sysid.py:2038 by features.py; coordinator.py:9022 by features.py; coordinator.py:8978 by features.py; sysid.py:1759 by features.py; sysid.py:2208 by features.py; defrost.py:744 by features.py; coordinator.py:9023 by features.py; grid_fee.py:306 by features.py; optimizer.py:4604 by features.py; coordinator.py:10561 by features.py; coordinator.py:9107 by features.py; sysid.py:2038 by features.py; coordinator.py:6790 by features.py; defrost.py:808 by features.py; thermal_model.py:3651 by features.py; defrost.py:802 by features.py; coordinator.py:1643 by features.py; sysid.py:1083 by entities.py; grid_fee.py:310 by features.py; coordinator.py:2962 by features.py; coordinator.py:4168 by features.py; coordinator.py:3560 by features.py; coordinator.py:10445 by features.py; optimizer.py:6648 by features.py; coordinator.py:1915 by features.py; optimizer.py:6573 by features.py; optimizer.py:2780 by entities.py; coordinator.py:5969 by features.py; tariff.py:768 by features.py; coordinator.py:6892 by features.py; coordinator.py:6091 by features.py; optimizer.py:6602 by features.py; dhw_planner.py:882 by features.py; defrost.py:683 by features.py; optimizer.py:4828 by features.py; sysid.py:1798 by harness_headers.py,features.py; coordinator.py:10984 by features.py; tariff.py:1109 by entities.py; sysid.py:1549 by harness_headers.py,features.py"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/coordinator.py:6360 RETURN_DEL 440ee7e3 (return None -> pass) is not a survivor: the full net hangs on it",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/prescreen.py complete --src pre --keys <key 9efe002b48e1827d>",
+   "value": "TIMEOUT: tests/features.py rc=124 after 2030 s (provisional wall); a CI job timeout fails the gate, so the site is detected, not pinned by an assertion"
   }
  ],
  "harnesses": [

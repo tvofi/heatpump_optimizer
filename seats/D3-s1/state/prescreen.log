@@ -694,3 +694,4 @@
 2026-11-19T15:02:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling CMP_BOUND c05d6fd2 L6097 by=- ran=12 wall=1804.0s
 2026-11-19T15:03:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_identifiability CMP_BOUND 72abb7dd L643 by=- ran=12 wall=1798.1s
 2026-11-19T15:12:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_config CLAMP_DROP 61545c3f L5083 by=- ran=15 wall=1875.4s
+2026-11-19T15:31:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:_interp_position CMP_BOUND 7b9d8278 L181 by=- ran=15 wall=1772.1s

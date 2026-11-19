@@ -2491,8 +2491,10 @@
    "tests/features.py",
    "tests/finite_boundary.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "9644a454ac8f288b": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CLAMP_DROP 86078a63",
@@ -2526,7 +2528,7 @@
    "tests/features.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "966c9be1a17c8bea": {
@@ -2560,7 +2562,7 @@
    "tests/features.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "968644425a4f97f8": {
@@ -2592,7 +2594,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "968c552b8acd9df9": {
@@ -2624,7 +2626,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "96b894831c9525df": {
@@ -2653,8 +2655,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "96fe4cecaa16f997": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture GUARD_OFF 97281aaf",
@@ -2683,7 +2687,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "970ed4d74c36caa1": {
@@ -2715,7 +2719,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9733f36f95e1106b": {
@@ -2745,8 +2749,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "97628f4b14aec1b9": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps GUARD_OFF ee9a2c4c",
@@ -2777,7 +2783,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "977021e3b3964277": {
@@ -2808,7 +2814,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9770330854b5fe60": {
@@ -2838,8 +2844,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "9773f71df2de95e8": {
   "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step GUARD_OFF b5e82f97",
@@ -2868,8 +2876,10 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "9789e0e7faa1b53a": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison CMP_BOUND 8635e542",
@@ -2904,7 +2914,7 @@
    "tests/finite_boundary.py",
    "tests/manual_plan.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "97bd985754f1099b": {
@@ -2948,7 +2958,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "97da0984453a53bb": {
@@ -2981,7 +2991,7 @@
    "tests/manual_plan.py",
    "tests/optimality.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "98853a541b6b5d6a": {
@@ -3013,7 +3023,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "990cdd83373504ad": {
@@ -3042,7 +3052,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "996dce5148e02763": {
@@ -3074,7 +3084,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "998234a000a4a797": {
@@ -3103,8 +3113,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "99866c2ffc704413": {
   "anchor": "custom_components/heatpump_optimizer/sysid.py:_lm_solve CMP_BOUND 5bc864cc",
@@ -3133,7 +3145,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9a06a1a7e515fa67": {
@@ -3165,7 +3177,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9a6628c2edbddd12": {
@@ -3203,8 +3215,10 @@
    "tests/manual_plan.py",
    "tests/solar_alignment.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "9aa50bd32847b4dd": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize GUARD_OFF 510621f6",
@@ -3247,7 +3261,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9b47148e20e12b7f": {
@@ -3277,8 +3291,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "9b72b944ac12fa25": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold GUARD_OFF 688eecbd",
@@ -3307,7 +3323,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9b890e4f1fdfcd41": {
@@ -3339,7 +3355,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9bfc2c6d1bfe66bd": {
@@ -3373,7 +3389,7 @@
    "tests/features.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9c1c974cd60166ff": {
@@ -3410,8 +3426,10 @@
    "tests/finite_boundary.py",
    "tests/manual_plan.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "9c82d861621b8087": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps CMP_BOUND a84c93c2",
@@ -3441,7 +3459,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9cdf54d2309cfcc8": {
@@ -3471,7 +3489,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9d16dbc0d3aba164": {
@@ -3503,7 +3521,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9d324a1dc7a6aa82": {
@@ -3533,7 +3551,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9d455ff4aaf3f3e0": {
@@ -3563,7 +3581,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9dcd374ac007dfc9": {
@@ -3594,7 +3612,7 @@
    "tests/config_flow_steps.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9dd0547496b091b0": {
@@ -3624,7 +3642,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9df41596c4fa89c6": {
@@ -3668,7 +3686,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9e71bd23e996ec6a": {
@@ -3700,7 +3718,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9e8107a7dda03998": {
@@ -3732,8 +3750,10 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "9e9ab1d6567ff65b": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:_price_guess_weights CLAMP_DROP f3416292",
@@ -3762,7 +3782,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "9efe002b48e1827d": {
@@ -3792,7 +3812,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "TIMEOUT",
   "full_net_killed_by": []
  },
  "9fe0782a9839475e": {
@@ -3824,7 +3844,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a0722b8c635d2d93": {
@@ -3868,7 +3888,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a074fb25836c2bc6": {
@@ -3900,7 +3920,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a087d5efb15533ce": {
@@ -3935,7 +3955,7 @@
    "tests/features.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a0b74d8414f55824": {
@@ -3966,8 +3986,10 @@
    "tests/boost_drift_replay.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "a105bba13c321640": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_immersion BOOLOP 2f74d22d",
@@ -3996,8 +4018,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "a1576c7241b67401": {
   "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CMP_BOUND d209e002",
@@ -4028,7 +4052,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a1ba3ad7c4c53dd5": {
@@ -4058,7 +4082,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a1ebeff0870dfa76": {
@@ -4094,7 +4118,7 @@
    "tests/guard_pins.py",
    "tests/manual_plan.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a21e5757eab163a7": {
@@ -4136,7 +4160,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a23ed12204379870": {
@@ -4166,7 +4190,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a28fd1af46c39331": {
@@ -4201,7 +4225,7 @@
    "tests/features.py",
    "tests/plan_view.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a2a1d3802ceff60d": {
@@ -4250,7 +4274,7 @@
    "tests/solar_alignment.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a33188790c5affad": {
@@ -4282,7 +4306,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a38612ad3ad9cd34": {
@@ -4313,7 +4337,7 @@
    "tests/features.py",
    "tests/finite_boundary.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a3f2b00cc4aa527e": {
@@ -4345,7 +4369,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a40ef04798d36eab": {
@@ -4374,8 +4398,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "a43968aafffb26f3": {
   "anchor": "custom_components/heatpump_optimizer/grid_fee.py:max_abs_component CMP_BOUND 4a974762",
@@ -4405,7 +4431,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a47e12bc170a25c1": {
@@ -4443,8 +4469,10 @@
    "tests/manual_plan.py",
    "tests/solar_alignment.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "a486806b8f4ff4d7": {
   "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 2d9d455e",
@@ -4477,7 +4505,7 @@
    "tests/features.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a4ed8996c2211af4": {
@@ -4509,8 +4537,10 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "a4f4c88e7480a514": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._energy_cost_fn CMP_BOUND 6e5e1a9f",
@@ -4553,7 +4583,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a51218ce8fa47f22": {
@@ -4597,8 +4627,10 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "a545f65584b32172": {
   "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostWindow.peek BOOLOP ea64107d",
@@ -4629,8 +4661,10 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "a581feadd69c6c42": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action GUARD_OFF c9af7d41",
@@ -4661,7 +4695,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a5b06d898bf0ba03": {
@@ -4690,7 +4724,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a5c9796d35117839": {
@@ -4719,7 +4753,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a66e107749d0ae11": {
@@ -4761,7 +4795,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a6c42cff101ffc65": {
@@ -4791,7 +4825,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a6cebb125b72f083": {
@@ -4840,7 +4874,7 @@
    "tests/solar_alignment.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a7488872387d5ca7": {
@@ -4872,7 +4906,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a7dd3153718e531b": {
@@ -4903,7 +4937,7 @@
    "tests/config_flow_steps.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a80de6214002041c": {
@@ -4952,8 +4986,10 @@
    "tests/solar_alignment.py",
    "tests/wood_advisor.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "a8968da9d1b2f34c": {
   "anchor": "custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth CMP_BOUND 7e1c5191",
@@ -4981,8 +5017,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/entities.py"
+  ]
  },
  "a8bf9eb3830189cd": {
   "anchor": "custom_components/heatpump_optimizer/grid_fee.py:GridFeeSchedule.current_fee RETURN_DEL 7e53edad",
@@ -5010,8 +5048,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "a99da4c347a19ca5": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:_price_ranked_start CMP_BOUND fc7a9935",
@@ -5054,7 +5094,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "a9bc37e9ba781833": {
@@ -5083,7 +5123,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "aa338654e7801916": {
@@ -5117,7 +5157,7 @@
    "tests/features.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "aa6b718c979bf831": {
@@ -5150,7 +5190,7 @@
    "tests/features.py",
    "tests/manual_plan.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "aa6d264aa0411bcd": {
@@ -5179,7 +5219,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "aaa2a3d6bb2ba515": {
@@ -5211,7 +5251,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "aaad3e4d62ba953a": {
@@ -5242,8 +5282,10 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "aab0b73e229ad900": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._stash_price_horizon CMP_BOUND 164830ff",
@@ -5274,7 +5316,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "ab5300598b93ff8c": {
@@ -5304,8 +5346,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "ab65584805229d1c": {
   "anchor": "custom_components/heatpump_optimizer/sysid.py:_slab_refusal GUARD_OFF ebe7af8b",
@@ -5334,7 +5378,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "ab918806fc8b4af6": {
@@ -5366,7 +5410,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "ac49d556d6a98b67": {
@@ -5407,8 +5451,10 @@
    "tests/manual_plan.py",
    "tests/solar_alignment.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "ac6bedc70bb82ff7": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_data_dict GUARD_OFF 9e714704",
@@ -5443,7 +5489,7 @@
    "tests/finite_boundary.py",
    "tests/manual_plan.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "acb73e66d65ac25c": {
@@ -5479,8 +5525,10 @@
    "tests/finite_boundary.py",
    "tests/manual_plan.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "ad01ae06d7ea84ec": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._derive_hold_schedule GUARD_OFF d4fe0ab5",
@@ -5511,7 +5559,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "ad7a177d7ca99cad": {
@@ -5540,7 +5588,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "ad8a02e5c07428ab": {
@@ -5571,7 +5619,7 @@
    "tests/config_flow_steps.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "adc459d2db521041": {
@@ -5601,7 +5649,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "add8786669245391": {
@@ -5633,8 +5681,10 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "ae8f84354933d191": {
   "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab CLAMP_DROP 6ca2df8a",
@@ -5663,7 +5713,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "aebea2e6b76b2dc3": {
@@ -5707,7 +5757,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "aec57df6555d63c9": {
@@ -5742,8 +5792,10 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "af8d4fddad8f298f": {
   "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CMP_BOUND 0d9190a8",
@@ -5784,7 +5836,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "af94ce8be7140e87": {
@@ -5817,7 +5869,7 @@
    "tests/manual_plan.py",
    "tests/optimality.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "afbdfa240c441812": {
@@ -5847,7 +5899,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b020c93535a7f9e6": {
@@ -5879,7 +5931,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b028ad9d6c702965": {
@@ -5911,7 +5963,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b098598faf0d87dc": {
@@ -5950,7 +6002,7 @@
    "tests/manual_plan.py",
    "tests/solar_alignment.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b0d27be4975eb62b": {
@@ -5980,7 +6032,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b1074e70396100d8": {
@@ -6022,7 +6074,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b10967dd4ea185fd": {
@@ -6071,7 +6123,7 @@
    "tests/solar_alignment.py",
    "tests/wood_advisor.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b143b01c4ea02159": {
@@ -6103,7 +6155,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b16740061447ef70": {
@@ -6145,7 +6197,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b188ca79078b09e0": {
@@ -6177,8 +6229,10 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "b1926550efd8eac4": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._co_optimize CMP_BOUND 674746fd",
@@ -6219,7 +6273,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b1a8d3056bf42597": {
@@ -6261,7 +6315,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b1bbc6bc3bfab8a4": {
@@ -6292,8 +6346,10 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/entities.py"
+  ]
  },
  "b247841f5466162d": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:_open_loop_plan_value CMP_BOUND 78b040fc",
@@ -6323,7 +6379,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b25e80c59b31c20d": {
@@ -6365,7 +6421,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b27ac4781778a34a": {
@@ -6397,7 +6453,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b283779946540c3d": {
@@ -6427,7 +6483,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b2e075c0da35240d": {
@@ -6459,7 +6515,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b2faf84904db389e": {
@@ -6496,7 +6552,7 @@
    "tests/optimality.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b341873adae0cf3c": {
@@ -6528,7 +6584,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b3566e9bc7b8bf7a": {
@@ -6559,8 +6615,10 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "b3a8cff2e5c0a8cc": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND dcf818be",
@@ -6589,7 +6647,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b3c0e51c511b2618": {
@@ -6619,7 +6677,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b413c17079bb8176": {
@@ -6648,7 +6706,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b4278851316885cf": {
@@ -6680,8 +6738,10 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "b434193b049a41c3": {
   "anchor": "custom_components/heatpump_optimizer/price_model.py:extend_price_series CMP_BOUND b4032e2b",
@@ -6715,7 +6775,7 @@
    "tests/features.py",
    "tests/solar_alignment.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b4f7503c6959449d": {
@@ -6744,7 +6804,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b539d4504385a139": {
@@ -6773,7 +6833,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b53efc6448b724e4": {
@@ -6817,7 +6877,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b546d5e705722bb5": {
@@ -6848,7 +6908,7 @@
    "tests/boost_drift_replay.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b5a482468c783209": {
@@ -6884,7 +6944,7 @@
    "tests/guard_pins.py",
    "tests/manual_plan.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b5aef00760fd5ea8": {
@@ -6933,7 +6993,7 @@
    "tests/solar_alignment.py",
    "tests/wood_advisor.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b5d513befe99d5ad": {
@@ -6970,8 +7030,10 @@
    "tests/finite_boundary.py",
    "tests/solar_alignment.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "b5d57e4a1fc22d96": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:stored_heat_survival GUARD_OFF ddd90b1f",
@@ -7004,7 +7066,7 @@
    "tests/features.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b5f0a73275608684": {
@@ -7033,7 +7095,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b61cc630500ba50d": {
@@ -7063,8 +7125,10 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "b61d1402aad5a055": {
   "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met GUARD_OFF 442ad6d1",
@@ -7092,7 +7156,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b6ac2d53028d45a3": {
@@ -7124,7 +7188,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b6b6e82fb4a33703": {
@@ -7155,7 +7219,7 @@
    "tests/config_flow_steps.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b6c7e97a2f58a092": {
@@ -7187,8 +7251,10 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "b6c910c9ae2f0aa7": {
   "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_coil_wood_forecast GUARD_OFF e5c24a19",
@@ -7229,8 +7295,10 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "b7623a645f34e628": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._close_score_day CMP_BOUND 842b328c",
@@ -7259,7 +7327,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b7a6f145165338bf": {
@@ -7289,7 +7357,7 @@
   "should_have_failed": [
    "none of the closure executes the line: a direct check on DhwPlanner._plan_dhw_min_cost"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b7e755c60157b71b": {
@@ -7319,8 +7387,10 @@
    "tests/boost_drift_replay.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "b871ff0486182e3e": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_snow_memory CLAMP_DROP 7b17a55a",
@@ -7349,7 +7419,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b898e4112d9b4964": {
@@ -7381,8 +7451,10 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "b8d5ec03e8eba5c7": {
   "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 3e0642e4",
@@ -7410,7 +7482,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b94f040a7b0aed92": {
@@ -7444,7 +7516,7 @@
    "tests/manual_plan.py",
    "tests/optimality.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b97b45a6162a2f00": {
@@ -7473,7 +7545,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b9b6cf1d15a84248": {
@@ -7502,7 +7574,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "b9bbb3ac364893f7": {
@@ -7534,7 +7606,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "ba1c58ad6dabbebd": {
@@ -7566,7 +7638,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "ba25d4dc58c7fecc": {
@@ -7596,7 +7668,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "ba9f6b92f678ab10": {
@@ -7626,7 +7698,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "babeb7b3990a574b": {
@@ -7672,7 +7744,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "bb1abbfc58114a17": {
@@ -7702,7 +7774,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "bb3d22977851e821": {
@@ -7732,8 +7804,11 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/harness_headers.py",
+   "tests/features.py"
+  ]
  },
  "bb7fc1952d803bb6": {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_quiet_comfort_period GUARD_OFF 769f5c2e",
@@ -7763,8 +7838,10 @@
    "tests/config_flow_steps.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/features.py"
+  ]
  },
  "bbcded8a73c6a2f1": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._tighten_buffer_caps CMP_BOUND d629fd84",
@@ -7793,7 +7870,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "bc3a42f14c903439": {
@@ -7826,7 +7903,7 @@
    "tests/features.py",
    "tests/manual_plan.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "bcf290164a0edeeb": {
@@ -7864,7 +7941,7 @@
    "tests/manual_plan.py",
    "tests/solar_alignment.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "bdb9a95deedcc8fe": {
@@ -7894,7 +7971,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "be3a3a75280c7b7e": {
@@ -7928,7 +8005,7 @@
    "tests/manual_plan.py",
    "tests/optimality.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "be6936f75308c0b2": {
@@ -7960,8 +8037,10 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/entities.py"
+  ]
  },
  "be95c184bf4746ff": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory GUARD_OFF 2641a2a6",
@@ -8004,7 +8083,7 @@
    "tests/plan_view.py",
    "tests/validate.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "bed063118e10d683": {
@@ -8036,7 +8115,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "beeb068352333132": {
@@ -8068,7 +8147,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "bef285521b52e43c": {
@@ -8097,8 +8176,11 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
-  "full_net_killed_by": []
+  "full_net": "KILLED",
+  "full_net_killed_by": [
+   "tests/harness_headers.py",
+   "tests/features.py"
+  ]
  },
  "bf2229e3f179f4b6": {
   "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling CMP_BOUND c05d6fd2",
@@ -8127,7 +8209,7 @@
   "should_have_failed": [
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "bf5868e583609121": {
@@ -8157,7 +8239,7 @@
    "tests/entities.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "c0800afec99d22fc": {
@@ -8189,7 +8271,7 @@
    "tests/env_drift.py",
    "tests/features.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "c087dc286eeff014": {
@@ -8230,7 +8312,7 @@
    "tests/manual_plan.py",
    "tests/solar_alignment.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  },
  "c0bd33b7c209982d": {
@@ -8270,7 +8352,7 @@
    "tests/manual_plan.py",
    "tests/solar_alignment.py"
   ],
-  "full_net": "not driven",
+  "full_net": "SURVIVED",
   "full_net_killed_by": []
  }
 }

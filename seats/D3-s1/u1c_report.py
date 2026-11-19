@@ -149,6 +149,16 @@ def main() -> int:
             "closure_ran": sorted(r["runs"]), "skipped_by_reach": sorted(set(r["skipped"])),
             "verdict": r["verdict"], "should_have_failed": a["should_have_failed"]})
     old = json.loads((HERE / "REPORT-D3R.json").read_text())
+    carried = {r["step"]: dict(r) for r in old["coverage"]}
+    m1, m5 = carried["D3.M1"], carried["D3.M5"]
+    for r in (m1, m5):
+        if isinstance(r["evidence"], list):
+            r["evidence"] = " ".join(map(str, r["evidence"]))
+    m1["evidence"] = "Carried unchanged from box D3R's row (REPORT-D3R.json); not re-driven on box D3-u1c. " + m1["evidence"]
+    m5["evidence"] = ("Carried unchanged from box D3R's row (REPORT-D3R.json); the M5 remainder (C4, C7, C9) is "
+                      "assigned to box D3-m5, not driven on box D3-u1c. " + m5["evidence"])
+    m5["not_reached"] = [x + " (assigned to box D3-m5)" for x in m5["not_reached"]]
+    coverage = [m1] + coverage + [m5]
     rep = {
         "dimension": "D3", "baseline_sha": BASE, "report_path": f"{REL}/REPORT.md",
         "exposure": old["exposure"] + " Box D3-u1c run: read the carried evidence directory "
@@ -176,6 +186,14 @@ def main() -> int:
          "command": f"PYTHONPATH=tests/hastub python3 {REL}/u1c_slice.py",
          "value": full + " Killed sites: " + "; ".join(short(my_comp[k]['mutant']) + " by " + ",".join(x.split('/')[-1] for x in my_comp[k]['killed_by']) for k in killed_full)},
     ]
+    for k in full_to:
+        r = my_comp[k]
+        hung = sorted(s for s, v in r["runs"].items() if v.get("timed_out"))
+        rep["non_findings"].append({
+            "claim": f"{site_id(r['mutant'])} ({m4[k]['old']} -> {m4[k]['new']}) is not a survivor: the full net hangs on it",
+            "command": f"PYTHONPATH=tests/hastub python3 {REL}/prescreen.py complete --src pre --keys <key {k}>",
+            "value": "TIMEOUT: " + ", ".join(f"{s} rc={r['runs'][s]['rc']} after {r['runs'][s]['seconds']:.0f} s" for s in hung)
+                     + " (provisional wall); a CI job timeout fails the gate, so the site is detected, not pinned by an assertion"})
     (HERE / "REPORT.json").write_text(json.dumps(rep, indent=1))
     L = [f"# D3-s1 round 11, box D3-u1c slice (baseline {BASE[:8]})", "",
          "Seat D3-s1, resume box D3-u1c: the D3.M2 slice `state/keys-D3-u1c.txt` (309 keys, "
