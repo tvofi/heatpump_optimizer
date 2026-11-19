@@ -1,0 +1,19 @@
+Fix review: merge 338aa528f9c50def49f173137a9588d7a7f39574
+bus-nonce: 2c102a080f28d969fdda6c34dc7ea812
+pending-ci: tests / fast (3.14), tests / coverage, tests / closures in progress at 338aa528f9; gate waits on them (merge_train classify WAIT)
+
+Round: first (full scope, no prior reviewed head). Reviewer: local opus, detached worktrees at the head (wt, mut) and at the merge base 1723f9fdc9 (base).
+
+RESULT mutation: re-run with tools/audit/seat/features_block.py on '# -- The plan peak under the lift', prelude from --emit-prelude, PYTHONPATH=tests/hastub. Unmutated: ALL 2 PASSED. The body's two mutants reproduce (headroom `- margins - 0.1`: 2 of 2 FAILED; clip `band * 0.5`: 2 of 2 FAILED). My own mutants: headroom 0.02 K 2 of 2 FAILED; band clip removed 1 of 2 FAILED; `lifted` returns base 2 of 2 FAILED. Every mutant was restored and `git diff --quiet` was clean. A ramp-rate x10 mutant survives this block. That line is outside this PR's claim: the block pins the target and peak past step 7, not the ramp. Evidence: ev/mutation-summary.txt, ev/mut-*.log.
+RESULT harness: dev/audit/harnesses/room_lift_solve.py is committed in-tree since #3616. The roster brief names it as the null-control harness, so it is not the fixer's own instrument. I ran it at the base and at the head, rc 0 at both. none +0.241, zeros +0.241, lift +0.482 at both ends, sha1 unchanged. At the head, lift_cap_removed +0.482 (same sha1 as lift) and lift_cap_zero +0.241 (none's sha1). All 11 checks print ok. Evidence: ev/harness-base.txt, ev/harness-wt.txt.
+RESULT carry 3 (324a1354): re-measured at the head. ROOM_LIFT_CAP_C = 1.0 and DEFAULT_ROOM_LIFT_ENABLED = False still hold, so nothing is built for it, as the body says.
+RESULT carry 4 (daa69071): the rise reproduces at the base. The ruling it builds (option A: accept the rise, no clip, no headroom) is pinned through the production optimizer, and the clip and headroom mutants turn it red.
+RESULT class: I re-ran the enumeration over docs/, README.md, custom_components *.py, strings.json and translations. The only false sentence is the configuration.md room-lift row, which is corrected. strings.json data_description.room_lift_enabled bounds the minimum, which is still true. One-seam class.
+RESULT claims/version/budgets: VERSION, manifest, RELEASE_NOTES.md, tests/golden and every *_budgets.json are untouched (ev/untouched.txt). arch-score, budget-raise-gate and mutation are success at the head.
+RESULT conflicts: `git merge-tree --write-tree origin/main 338aa528f9` exits 0 (ev/merge-tree.txt).
+RESULT checks: tests / nightly-status is red. It is nightly-only, the PR's diff cannot reach it, and no required context is red. `gate` reads failure only while it waits on the in-progress runs. The packet advisory says classify reads WAIT.
+RESULT actuator (step 16) and architecture (step 15): the production diff is a docstring only. It adds no refusal and changes no structure.
+
+Note: figure: the body quotes lift max_over_target_c +0.450 at the base. This seat measured +0.482 at both ends (lift_pinned_off is +0.452), so the quoted figure does not re-derive here. The direction (lift > none +0.241) and every check hold, and the docs sentence makes no number claim. Carry: dismissed: figure only, direction verified
+Note: harness-weak: in this fixture the cap removal produces margins identical to the lift row (same sha1), so the `lift_cap_removed` null control cannot separate the floor from the cap. The body discloses this. The causal claim rests on lift_cap_zero and the clip and headroom mutants, which do move. Carry: dismissed: disclosed in body, causal evidence elsewhere
+Note: carry-missing: the brief's done-condition says both rulings must be recorded, but neither is in dev/programme/RULINGS.md. The body leaves the recording to the orchestrator yet names no forward-carry. Carry: dismissed: ruling records are orchestrator duty

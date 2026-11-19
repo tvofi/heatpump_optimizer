@@ -1,0 +1,14 @@
+prelude rc=0
+unmutated rc=0 ALL 2 FEATURES BLOCK PASSED
+headroom rc=1 2 of 2 FEATURES BLOCK FAILED
+  restored clean
+clip_half rc=1 2 of 2 FEATURES BLOCK FAILED
+  restored clean
+headroom_small rc=1 2 of 2 FEATURES BLOCK FAILED
+  restored clean
+no_band rc=1 1 of 2 FEATURES BLOCK FAILED
+  restored clean
+ramp_fast rc=0 ALL 2 FEATURES BLOCK PASSED
+  restored clean
+lift_none rc=1 2 of 2 FEATURES BLOCK FAILED
+  restored clean

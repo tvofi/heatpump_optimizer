@@ -1,0 +1,27 @@
+none               space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=d9730f8df18f status=optimal
+zeros              space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=d9730f8df18f status=optimal
+gated_enabled      space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=d9730f8df18f status=optimal
+gated_economy      space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=d9730f8df18f status=optimal
+gated_open_window  space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=d9730f8df18f status=optimal
+gated_away         space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=d9730f8df18f status=optimal
+gated_manual_pin   space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=d9730f8df18f status=optimal
+gated_two_zone     space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=d9730f8df18f status=optimal
+lift margins, first 8 steps and the largest: [0.1, 0.1625, 0.225, 0.2875, 0.35, 0.4125, 0.475, 0.5] 1.0
+lift               space_kwh=  7.94 min_c=20.000 mean_c=20.188 max_over_target_c=+0.482 sha1=57aec5f0ae68 status=optimal
+lift_cap_removed   space_kwh=  7.94 min_c=20.000 mean_c=20.188 max_over_target_c=+0.482 sha1=57aec5f0ae68 status=optimal
+lift_cap_zero      space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=d9730f8df18f status=optimal
+none_pinned_off    space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=c29033a556de status=optimal
+lift_pinned_off    space_kwh=  8.41 min_c=20.000 mean_c=20.167 max_over_target_c=+0.452 sha1=71309c5463b9 status=optimal
+released space pins: unlifted=0 lifted=6
+ok   zeros reproduce none
+ok   every gate reproduces none
+ok   the lift changes the plan
+ok   the lift plans more space energy
+ok   the lift raises the lowest planned temperature
+ok   the lifted floor is at or under the comfort target at every step
+ok   the lifted floor is at the comfort target at every step past the ramp
+ok   the lift may raise the plan peak over the unlifted plan's (accepted)
+ok   the zeros control leaves the peak at the unlifted plan's
+ok   null control: with the cap removed the peak still rises
+ok   null control: at a zero cap nothing is lifted and the plan is none's
+rc=0
