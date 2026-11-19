@@ -5559,7 +5559,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer dispatched 2026-11-18T18:17Z (dispatch/fixer-r11-seam-actuation-release) on design approved at 4554fc2d66, plan revision 4",
-    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3812
    },
    "arms": {
     "D7-s1-05": [
@@ -5918,9 +5919,9 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-seam-config",
-    "commit": null,
+    "commit": "b36742b17b7ea229b859fb86a43e74a562bb847b",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer dispatched 2026-11-18T18:17Z (dispatch/fixer-r11-seam-config) on design approved at 45cf2dce82, plan revision 4",
     "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-guards, R11-SEAM-inputs-freshness, R11-SEAM-money): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
@@ -6084,7 +6085,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "designer (designer.md) first; design review; fixer only on approve",
-    "note": null
+    "note": null,
+    "pr": 3821
    }
   },
   {
@@ -6661,12 +6663,13 @@
    ],
    "source": "audit",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-seam-comments-production",
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-010)",
-    "note": "overlap admitted (R11-SEAM-card, R11-SEAM-product-text): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-SEAM-card, R11-SEAM-product-text): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3820
    }
   },
   {
@@ -6882,8 +6885,8 @@
    ],
    "brief": "Round 11. Finish the product reads decision 0018's terms are first read from at this round's close: the two carries below. Re-measure each at your own merge base. Owner exception to the P11 freeze, tvofi 2026-11-18: this instrument group is built in round 11.",
    "resume": {
-    "stage": "not-started",
-    "commit": null,
+    "stage": "carries-open",
+    "commit": "6dc4cd18e4230cfebba4156fa8afb4ca6a2cf3e1",
     "branch": "handoff/r11-reads-residue",
     "last_step": null,
     "next_step": "dispatch the fixer",
