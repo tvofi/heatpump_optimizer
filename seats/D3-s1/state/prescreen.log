@@ -670,3 +670,4 @@
 2026-11-19T15:35:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_publish_ecl110_command CLAMP_DROP f237d800 L7693 by=- ran=13 wall=1534.5s
 2026-11-19T15:41:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:<module> CONST 731fc6ea L445 by=- ran=19 wall=1619.8s
 2026-11-19T15:41:54Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_immersion CMP_BOUND 2f74d22d L9107 by=tests/features.py ran=13 wall=1524.0s
+2026-11-19T15:45:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CMP_BOUND 63e4e0a8 L2594 by=- ran=13 wall=1438.0s
