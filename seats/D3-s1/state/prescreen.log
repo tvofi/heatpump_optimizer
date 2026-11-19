@@ -563,3 +563,4 @@
 2026-11-19T02:24:11Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:<module> CONST 22030666 L829 by=- ran=19 wall=1546.5s
 2026-11-19T02:24:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:mold_safe_room_floor GUARD_OFF e547f6b8 L2854 by=- ran=12 wall=1457.3s
 2026-11-19T02:45:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.baseline_load_array CMP_BOUND 19e7fefe L2825 by=- ran=12 wall=1357.0s
+2026-11-19T02:47:00Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum GUARD_OFF 882f6ce6 L766 by=tests/features.py ran=12 wall=1356.1s
