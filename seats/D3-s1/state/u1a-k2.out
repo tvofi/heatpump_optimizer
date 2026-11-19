@@ -220,3 +220,24 @@ K2R START 2026-11-19T01:25:00Z load1=0.68
 2026-11-19T11:47:20Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:in_frost_band CMP_BOUND a90cc8c2 L111 by=tests/features.py ran=13 wall=1875.4s
 2026-11-19T11:55:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._on_power_event CMP_BOUND ff55e496 L8785 by=- ran=13 wall=1648.3s
 2026-11-19T11:56:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery GUARD_OFF 01f70545 L2583 by=- ran=12 wall=1542.7s
+2026-11-19T12:13:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CLAMP_DROP 6d84603f L1979 by=- ran=12 wall=1653.3s
+2026-11-19T12:18:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only CLAMP_DROP e50408a5 L5478 by=- ran=16 wall=1840.1s
+2026-11-19T12:20:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.summary CLAMP_DROP 2db6a2f4 L417 by=- ran=13 wall=1531.7s
+2026-11-19T12:23:43Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_forecast GUARD_OFF f4d63b85 L5248 by=- ran=13 wall=1654.8s
+2026-11-19T12:41:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_publish_ecl110_command CLAMP_DROP f237d800 L7693 by=- ran=13 wall=1660.2s
+2026-11-19T12:47:08Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:<module> CONST 731fc6ea L445 by=- ran=19 wall=1747.5s
+2026-11-19T12:48:22Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_immersion CMP_BOUND 2f74d22d L9107 by=tests/features.py ran=13 wall=1662.2s
+2026-11-19T12:49:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CMP_BOUND 63e4e0a8 L2594 by=- ran=13 wall=1540.6s
+2026-11-19T13:09:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:<module> CONST bc3142ce L124 by=- ran=19 wall=1717.7s
+2026-11-19T13:13:22Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:extend_price_series GUARD_OFF b4032e2b L510 by=- ran=13 wall=1500.7s
+2026-11-19T13:14:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor CMP_BOUND aacbbc1b L1870 by=- ran=16 wall=1617.4s
+2026-11-19T13:16:26Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_quiet_comfort_period CMP_BOUND a3402022 L11008 by=- ran=13 wall=1622.4s
+2026-11-19T13:36:51Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor GUARD_OFF 4b24c4a4 L1804 by=tests/features.py ran=16 wall=1631.8s
+2026-11-19T13:41:45Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.buffer_tank_heat_loss_coefficient GUARD_OFF 0486e863 L668 by=- ran=14 wall=1702.3s
+2026-11-19T13:41:52Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters._windowed_draw_pattern CMP_BOUND 8abaa0d6 L940 by=- ran=16 wall=1667.0s
+2026-11-19T13:42:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast CMP_BOUND 12a0c427 L9819 by=- ran=14 wall=1553.2s
+2026-11-19T13:49:02Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_day_peaks GUARD_OFF ba30b8e0 L716 by=tests/harness_headers.py,tests/features.py ran=12 wall=731.6s
+2026-11-19T14:06:30Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison GUARD_OFF 5e7784ff L10441 by=tests/features.py ran=13 wall=1485.5s
+RESULT load1=1.00
+RESULT thread_factor=1.00
+K2R rc=0 2026-11-19T14:06:30Z load1=1.00
