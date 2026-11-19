@@ -124,5 +124,61 @@
   "should_fail": "none through production; a direct unit call at level==0 separates",
   "input": "level=0.0",
   "direction": "None -> 0.0 on direct call only"
+ },
+ "460217277822d5bd": {
+  "site": "sysid.py:610",
+  "src": "pre",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_46021727.py",
+  "baseline": "slab_mode_tau_fast=0.0 h on degenerate inputs",
+  "mutant": "1.33e10 h (k_s tiny), ZeroDivisionError (k_s=0), -2.0 h (c_r<0)",
+  "null_delta": "0.0 h",
+  "verdict": "non-finding (unreachable through production)",
+  "symbol": "sysid:slab_mode_tau_fast line 610",
+  "reach": "reach_callers_with_degenerate=0: callers sit behind the same predicate (sysid.py:643, :678) and sysid.py:2441 receives only pairs arm() admitted (sysid.py:1473-1484)",
+  "should_fail": "none through production; tests/features.py:53975 pins (0,1,1)->0.0 which the mutant also returns",
+  "input": "k_s<=1e-9 or negative constant, direct call",
+  "direction": "direct call only"
+ },
+ "65f121eb047174ad": {
+  "site": "optimizer.py:773",
+  "src": "pre",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_65f121eb.py",
+  "baseline": "_holiday_flags_for(empty)=None",
+  "mutant": "[False]*n",
+  "null_delta": "0 count",
+  "verdict": "non-finding (equivalent at the observable output)",
+  "symbol": "optimizer:_holiday_flags_for line 773",
+  "reach": "reach_empty_calls=1 of 1 through optimize(); the only consumer dhw_planner.py:75 maps None and False alike to holiday=False; reach_plan_maxabs_diff_kw=0.0 (default config, DHW disabled; DHW-enabled equivalence from reading dhw_planner.py:75)",
+  "should_fail": "none: no observable output moves",
+  "input": "empty holiday_dates (the default)",
+  "direction": "none observable"
+ },
+ "0911281eca895664": {
+  "site": "dhw_planner.py:1559",
+  "src": "c3c6",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0911281e.py",
+  "baseline": "dhw_kwh=2.5056 kWh",
+  "mutant": "dhw_kwh=1.9948 kWh",
+  "null_delta": "0.000000 kWh",
+  "verdict": "finding (low: separates only when price/COP exceeds 1000*(min|p|+1), min_price_for_separation=8000 per kWh; realistic_delta_kwh=0.0 on a 0.1-5.0 per-kWh day)",
+  "symbol": "dhw_planner:DhwPlanner._plan_dhw_min_cost line 1559 (call site dhw_planner.py:1235)",
+  "reach": "production admits the price vector (no clamp); separation needs a price spread of >=8000 per kWh with a near-free step",
+  "should_fail": "tests/features.py _plan_dhw_min_cost cases (~63150, 63611, 63732) never use a spread large enough to make the shortfall penalty bind",
+  "input": "12 steps, 60 C floor, steps 0-10 at 100000, step 11 at 0",
+  "direction": "DHW energy down 2.5056 -> 1.9948 kWh (shortfall penalty weakened)"
+ },
+ "5e8d48eff7e4fa8d": {
+  "site": "coordinator.py:8806",
+  "src": "c3c6",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+  "baseline": "(5.0,10.0) suppressing=False in both cases",
+  "mutant": "enabled,factor0: (0.0,3.0); disabled,factor1: (5.0,3.0) suppressing=True",
+  "null_delta": "0 count",
+  "verdict": "finding",
+  "symbol": "coordinator:HeatPumpOptimizerCoordinator._on_power_event line 8806",
+  "reach": "tariff enabled with factor 0 (months mask excluding the current month, tariff.py:138); tariff disabled while the tracker holds peaks restored by from_dict (coordinator.py:8378)",
+  "should_fail": "tests/features.py, tests/dst_checks.py, tests/entities.py reference _on_power_event but cover neither case",
+  "input": "10 kW fuse, 5 kW meter, 3 kW tracker peak",
+  "direction": "guard threshold down 10 -> 3 kW; suppression False -> True with the tariff disabled"
  }
 }
