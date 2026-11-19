@@ -170,3 +170,13 @@
 2026-11-19T10:58:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability CLAMP_DROP b592c18f L676 by=- ran=12 wall=1713.5s
 2026-11-19T11:05:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_liquid_fraction CMP_BOUND 0cc7355e L3101 by=- ran=13 wall=1727.8s
 2026-11-19T11:15:25Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:wood_share CLAMP_DROP cbb7802c L2906 by=- ran=12 wall=1728.0s
+2026-11-19T11:20:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostWindow._accrue CMP_BOUND 81049507 L746 by=- ran=12 wall=1716.0s
+2026-11-19T11:26:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 99f8e5db L4699 by=- ran=12 wall=1663.4s
+2026-11-19T11:32:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._settlement_caps GUARD_OFF 9c547538 L6027 by=- ran=13 wall=1634.3s
+2026-11-19T11:45:46Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:learner_newton_step GUARD_OFF b2765a37 L3080 by=- ran=13 wall=1821.2s
+2026-11-19T11:47:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CLAMP_DROP 540189d3 L2057 by=- ran=13 wall=1615.9s
+2026-11-19T11:53:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND ee25a6ee L6644 by=- ran=12 wall=1619.4s
+2026-11-19T11:59:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planning_prices CLAMP_DROP 1c3ac54a L474 by=- ran=12 wall=1626.2s
+2026-11-19T12:12:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling GUARD_OFF cf0ef9fc L6093 by=- ran=12 wall=1612.5s
+2026-11-19T12:14:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains CLAMP_DROP e9f6523e L9452 by=- ran=13 wall=1635.3s
+2026-11-19T12:20:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off CMP_BOUND 92c9617c L5212 by=- ran=13 wall=1645.1s
