@@ -1,0 +1,540 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D5/s5/REPORT.json (REPORT.md not written: this harness refuses report .md files from a subagent; its content is in the returned report)",
+ "exposure": "Read COMMON.md, D5.md, D6.md step 3, D5-criteria.md, dev/audit/README.md, tests/layout.json and the 74 cell files, whose comments cite earlier finding/RCA ids (R9-*, R10-*, #NNNN) as context; git log subject lines of two commits touching HEARTBEAT_SECONDS. No docs/ page, GitHub or earlier report read.",
+ "coverage": [
+  {
+   "step": "D5.M1",
+   "enumerator": "python3 dev/audit/rounds/round11/D5/s5/step_universe.py M1",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "text_ledger.py outline over the 74 cells prints no document row (Python and shell only), so reader paths x documents is empty. C4 (reader paths over code cells): examined, universe 0 here. C2 (feature reader paths in docs): outside these cells, D5-s1 holds README.md and docs/** for M1; lead filed."
+  },
+  {
+   "step": "D5.M2",
+   "enumerator": "python3 dev/audit/rounds/round11/D5/s5/step_universe.py M2",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "outline prints no heading or link row for these cells. C5 (structure over code cells): examined, universe 0 here."
+  },
+  {
+   "step": "D5.M3",
+   "enumerator": "python3 dev/audit/rounds/round11/D5/s5/step_universe.py M3",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "M3's universe is the D6 units of the outline's documents; there are none in these cells, so the denominator is 0 (C1: stated, examined). C3 (how-it-works.md, configuration.md mechanism paragraphs): outside these cells, D5-s2's; lead filed. C6 (docstring mechanism paragraphs): all 733 docstrings of these cells are rowed in M4's ledger with every executable token checked; their untokenised prose is in M4's not_reached."
+  },
+  {
+   "step": "D5.M4",
+   "enumerator": "python3 dev/audit/rounds/round11/D5/s5/step_universe.py M4",
+   "universe": 3631,
+   "examined": 1385,
+   "not_reached": [
+    "tools/audit/seat/a1_dispatch_arms.sh (3 of 5 units: C1 prose truth not executed)",
+    "tools/audit/seat/autofix_statuses.sh (1 of 3 units: C1 prose truth not executed)",
+    "tools/audit/seat/bare_array.py (14 of 18 units: C1 prose truth not executed)",
+    "tools/audit/seat/beat_jobs.py (45 of 55 units: C1 prose truth not executed)",
+    "tools/audit/seat/beat_jobs_selftest.py (23 of 45 units: C1 prose truth not executed)",
+    "tools/audit/seat/beatd.py (46 of 59 units: C1 prose truth not executed)",
+    "tools/audit/seat/body_patch.sh (30 of 59 units: C1 prose truth not executed)",
+    "tools/audit/seat/body_push.sh (21 of 36 units: C1 prose truth not executed)",
+    "tools/audit/seat/bottleneck_check.py (12 of 20 units: C1 prose truth not executed)",
+    "tools/audit/seat/bus.sh (166 of 241 units: C1 prose truth not executed)",
+    "tools/audit/seat/carry_fold.py (3 of 7 units: C1 prose truth not executed)",
+    "tools/audit/seat/ci-watch.sh (17 of 28 units: C1 prose truth not executed)",
+    "tools/audit/seat/ci_critpath.py (6 of 8 units: C1 prose truth not executed)",
+    "tools/audit/seat/ci_pause.py (10 of 20 units: C1 prose truth not executed)",
+    "tools/audit/seat/ci_predict_replay.sh (2 of 3 units: C1 prose truth not executed)",
+    "tools/audit/seat/ci_priority.py (9 of 15 units: C1 prose truth not executed)",
+    "tools/audit/seat/ci_probe.py (13 of 19 units: C1 prose truth not executed)",
+    "tools/audit/seat/closeout.py (27 of 36 units: C1 prose truth not executed)",
+    "tools/audit/seat/cloud-setup.sh (15 of 21 units: C1 prose truth not executed)",
+    "tools/audit/seat/cloud_dispatch.py (61 of 94 units: C1 prose truth not executed)",
+    "tools/audit/seat/cloud_relay.sh (179 of 241 units: C1 prose truth not executed)",
+    "tools/audit/seat/codeql-triage-poll.sh (2 of 2 units: C1 prose truth not executed)",
+    "tools/audit/seat/daemonize.py (8 of 13 units: C1 prose truth not executed)",
+    "tools/audit/seat/delivery_row.sh (8 of 11 units: C1 prose truth not executed)",
+    "tools/audit/seat/failure_logs.sh (6 of 10 units: C1 prose truth not executed)",
+    "tools/audit/seat/features_block.py (1 of 5 units: C1 prose truth not executed)",
+    "tools/audit/seat/finder_overlap.py (6 of 7 units: C1 prose truth not executed)",
+    "tools/audit/seat/flow_metrics.py (3 of 7 units: C1 prose truth not executed)",
+    "tools/audit/seat/gantt_drift.py (5 of 10 units: C1 prose truth not executed)",
+    "tools/audit/seat/gh_calls.py (31 of 43 units: C1 prose truth not executed)",
+    "tools/audit/seat/gh_read.py (24 of 39 units: C1 prose truth not executed)",
+    "tools/audit/seat/gh_read_run.py (2 of 4 units: C1 prose truth not executed)",
+    "tools/audit/seat/handoff_push.sh (16 of 23 units: C1 prose truth not executed)",
+    "tools/audit/seat/handover_prompt.py (9 of 13 units: C1 prose truth not executed)",
+    "tools/audit/seat/heartbeat.sh (1 of 4 units: C1 prose truth not executed)",
+    "tools/audit/seat/hooks/liveness.py (7 of 9 units: C1 prose truth not executed)",
+    "tools/audit/seat/hooks_setup.py (18 of 33 units: C1 prose truth not executed)",
+    "tools/audit/seat/ledger.py (40 of 62 units: C1 prose truth not executed)",
+    "tools/audit/seat/loop_ledger.py (10 of 16 units: C1 prose truth not executed)",
+    "tools/audit/seat/merge_pr.sh (32 of 54 units: C1 prose truth not executed)",
+    "tools/audit/seat/merge_train.py (382 of 689 units: C1 prose truth not executed)",
+    "tools/audit/seat/moved_paths.py (3 of 5 units: C1 prose truth not executed)",
+    "tools/audit/seat/mutant_run.py (30 of 57 units: C1 prose truth not executed)",
+    "tools/audit/seat/offline_spy.py (5 of 9 units: C1 prose truth not executed)",
+    "tools/audit/seat/open_driver.py (18 of 21 units: C1 prose truth not executed)",
+    "tools/audit/seat/open_driver_selftest.py (22 of 27 units: C1 prose truth not executed)",
+    "tools/audit/seat/open_pr.sh (19 of 42 units: C1 prose truth not executed)",
+    "tools/audit/seat/orchestrator_tick.py (186 of 277 units: C1 prose truth not executed)",
+    "tools/audit/seat/outside_intake.py (7 of 14 units: C1 prose truth not executed)",
+    "tools/audit/seat/outside_intake_selftest.py (7 of 11 units: C1 prose truth not executed)",
+    "tools/audit/seat/owed_unactioned.py (22 of 24 units: C1 prose truth not executed)",
+    "tools/audit/seat/owed_watch.py (18 of 36 units: C1 prose truth not executed)",
+    "tools/pr/app_approve.sh (89 of 114 units: C1 prose truth not executed)",
+    "tools/pr/app_comment.sh (6 of 10 units: C1 prose truth not executed)",
+    "tools/pr/app_mint.sh (3 of 4 units: C1 prose truth not executed)",
+    "tools/pr/app_push.sh (55 of 75 units: C1 prose truth not executed)",
+    "tools/pr/approve_held_runs.sh (19 of 23 units: C1 prose truth not executed)",
+    "tools/pr/cancel_superseded.py (27 of 40 units: C1 prose truth not executed)",
+    "tools/pr/ci_predict.py (52 of 113 units: C1 prose truth not executed)",
+    "tools/pr/codeql_scope.py (16 of 26 units: C1 prose truth not executed)",
+    "tools/pr/dependabot_merge.py (1 of 2 units: C1 prose truth not executed)",
+    "tools/pr/depgraph.py (5 of 6 units: C1 prose truth not executed)",
+    "tools/pr/figure_block.py (5 of 8 units: C1 prose truth not executed)",
+    "tools/pr/gate_priority.py (10 of 18 units: C1 prose truth not executed)",
+    "tools/pr/gh_comment.py (29 of 36 units: C1 prose truth not executed)",
+    "tools/pr/head_note.py (1 of 2 units: C1 prose truth not executed)",
+    "tools/pr/local_alerts.py (2 of 4 units: C1 prose truth not executed)",
+    "tools/pr/merge_main_bot.py (18 of 32 units: C1 prose truth not executed)",
+    "tools/pr/outside.py (25 of 53 units: C1 prose truth not executed)",
+    "tools/pr/preflight.sh (6 of 12 units: C1 prose truth not executed)",
+    "tools/pr/prepr.sh (203 of 390 units: C1 prose truth not executed)",
+    "tools/pr/push.sh (23 of 51 units: C1 prose truth not executed)"
+   ],
+   "redispatched": [
+    {
+     "item": "C7",
+     "state": "examined"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py: units_total=3631, units_examined=1385 (1032 claim rows true, 8 false/stale, 345 no-claim), check_unrowed=0 orphan=0 malformed=0 plant_refused=1; ledger.tsv. C7: the cited-number-vs-adjacent-constant check is automated in m4_ledger.py for these cells (18 hits, reviewed); its www/*.js and README/docs halves are D5-s4's and D5-s2's (leads)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D5.M4",
+   "what": "2246 units with no path, identifier, flag or adjacent constant to execute against: their C1 prose truth and C3/C4 judgement not reached (by file in not_reached; largest merge_train.py, prepr.sh, orchestrator_tick.py, cloud_relay.sh, bus.sh)."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D5-s5-01",
+   "scope": "D5-s5",
+   "step": "D5.M4",
+   "title": "prepr.sh: three comment units name a path or branch the tree does not hold",
+   "severity": "low",
+   "claim": "Three D5 units of tools/pr/prepr.sh name things absent at the baseline: the usage line `tools/audit/prepr.sh --self-test` (the file is tools/pr/prepr.sh), `attr-only` as the self-test's null-control branch (the branch the code defines is `attronly`), and `tools/audit/briefs/fixer.md` step 7 (moved to dev/governance/roles/fixer.md).",
+   "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The RO moves and a branch rename left the comments on the old names; a reader following the usage line or the pointer reaches nothing.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/prepr.sh",
+    "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+    "value": 3,
+    "unit": "units",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.55,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/pr/prepr.sh: the header usage block, the self-test's `pr attronly` branch (THE BLINDED PAIR comment) and step 7's intended-issues comment",
+   "perturbation": {
+    "change": "--edit 'tools/pr/prepr.sh|#   tools/audit/prepr.sh --self-test|#   tools/pr/prepr.sh --self-test' --edit 'tools/pr/prepr.sh|`attr-only` is their|`attronly` is their' --edit 'tools/pr/prepr.sh|`tools/audit/briefs/fixer.md` step 7|`dev/governance/roles/fixer.md` step 7' (the attr-only edit alone moves 3 to 2)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+   "phenomenon_property": "Every path, script and self-test branch a comment of tools/pr/prepr.sh names exists at the ref, or the comment marks it as history or a fallback.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/pr/prepr.sh"
+   ],
+   "proposed_fix_scope": "Edit three comment lines of tools/pr/prepr.sh: lines 25, 2604 and 4760.",
+   "reproduction_steps": [
+    "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/prepr.sh",
+    "read the `false` line(s) it prints",
+    "perturb: --edit 'tools/pr/prepr.sh|#   tools/audit/prepr.sh --self-test|#   tools/pr/prepr.sh --self-test' --edit 'tools/pr/prepr.sh|`attr-only` is their|`attronly` is their' --edit 'tools/pr/prepr.sh|`tools/audit/briefs/fixer.md` step 7|`dev/governance/roles/fixer.md` step 7' (the attr-only edit alone moves 3 to 2)"
+   ]
+  },
+  {
+   "id": "D5-s5-02",
+   "scope": "D5-s5",
+   "step": "D5.M4",
+   "title": "gh_comment.in_shared_root docstring points at tools/audit/prepr.sh, which is not in the tree",
+   "severity": "low",
+   "claim": "The docstring of tools/pr/gh_comment.py:in_shared_root says `tools/audit/prepr.sh`'s `shared_root` is the same predicate; at the baseline tools/audit/prepr.sh does not exist and shared_root() is defined in tools/pr/prepr.sh.",
+   "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). A move (tests/layout.json: tools/audit/prepr.sh -> tools/pr/prepr.sh) left the twin-predicate pointer on the old path.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/gh_comment.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+    "value": 1,
+    "unit": "units",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.55,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/pr/gh_comment.py:in_shared_root.__doc__",
+   "perturbation": {
+    "change": "--edit 'tools/pr/gh_comment.py|`tools/audit/prepr.sh`|`tools/pr/prepr.sh`'",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+   "phenomenon_property": "A comment naming a twin predicate names the file and function that define it at the ref.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/pr/gh_comment.py"
+   ],
+   "proposed_fix_scope": "One docstring line of tools/pr/gh_comment.py (line 117).",
+   "reproduction_steps": [
+    "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/gh_comment.py",
+    "read the `false` line(s) it prints",
+    "perturb: --edit 'tools/pr/gh_comment.py|`tools/audit/prepr.sh`|`tools/pr/prepr.sh`'"
+   ]
+  },
+  {
+   "id": "D5-s5-03",
+   "scope": "D5-s5",
+   "step": "D5.M4",
+   "title": "preflight.sh step 5 names the moved tools/audit/briefs/fix-review.md as the precondition's second home",
+   "severity": "low",
+   "claim": "The step-5 comment block of tools/pr/preflight.sh (from line 141) says the review seat's precondition is carried in `tools/audit/briefs/fix-review.md`, the paragraph under the detached-worktree preamble; that path is absent at the baseline (the brief is dev/governance/roles/fix-review.md).",
+   "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The history mention at line 145 is true and is dispositioned; the present-tense pointer at line 191 is the false occurrence.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/preflight.sh",
+    "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+    "value": 1,
+    "unit": "units",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.55,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/pr/preflight.sh: the `# 5. A STALE POLICY CORPUS` comment block",
+   "perturbation": {
+    "change": "--edit 'tools/pr/preflight.sh|#    tools/audit/briefs/fix-review.md, the paragraph|#    dev/governance/roles/fix-review.md, the paragraph'",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+   "phenomenon_property": "A comment pointing a reader to where a rule now lives names a path that exists at the ref.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/pr/preflight.sh"
+   ],
+   "proposed_fix_scope": "One comment line of tools/pr/preflight.sh (line 191).",
+   "reproduction_steps": [
+    "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/preflight.sh",
+    "read the `false` line(s) it prints",
+    "perturb: --edit 'tools/pr/preflight.sh|#    tools/audit/briefs/fix-review.md, the paragraph|#    dev/governance/roles/fix-review.md, the paragraph'"
+   ]
+  },
+  {
+   "id": "D5-s5-04",
+   "scope": "D5-s5",
+   "step": "D5.M4",
+   "title": "open_pr.sh's usage line names openpr.sh, a script that does not exist",
+   "severity": "low",
+   "claim": "The first comment line of tools/audit/seat/open_pr.sh documents its usage as `openpr.sh [--over-cap <reason>] <topic> ...`; no openpr.sh exists in tools/audit/seat/ (or anywhere in the tree), so the documented command fails.",
+   "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The usage line kept a name the script no longer has.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/open_pr.sh",
+    "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+    "value": 1,
+    "unit": "units",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.55,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/seat/open_pr.sh: the header usage comment (line 2)",
+   "perturbation": {
+    "change": "--edit 'tools/audit/seat/open_pr.sh|# openpr.sh [|# open_pr.sh ['",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+   "phenomenon_property": "A script's usage comment names the script by the file name it has at the ref.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/audit/seat/open_pr.sh"
+   ],
+   "proposed_fix_scope": "One comment line of tools/audit/seat/open_pr.sh (line 2).",
+   "reproduction_steps": [
+    "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/open_pr.sh",
+    "read the `false` line(s) it prints",
+    "perturb: --edit 'tools/audit/seat/open_pr.sh|# openpr.sh [|# open_pr.sh ['"
+   ]
+  },
+  {
+   "id": "D5-s5-05",
+   "scope": "D5-s5",
+   "step": "D5.M4",
+   "title": "merge_train self-test comment names _outside_self_test, which no code defines",
+   "severity": "low",
+   "claim": "The _self_test comment above `real_fork_head, Train.fork_head = ...` in tools/audit/seat/merge_train.py says `_outside_self_test` puts the real reader back; merge_train has no attribute _outside_self_test, and the real fork_head is restored inline at the two `real_fork_head` assignments (lines 5275 and 6305).",
+   "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The comment names a helper that was never added or was folded inline.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/merge_train.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+    "value": 1,
+    "unit": "units",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.55,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/seat/merge_train.py:_outside_self_test (hasattr on the imported module)",
+   "perturbation": {
+    "change": "--edit 'tools/audit/seat/merge_train.py|# `_outside_self_test` puts the real reader back|# the `real_fork_head` restores put the real reader back'",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+   "phenomenon_property": "Every function a comment of merge_train.py names is defined at the ref.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "tools/audit/seat/merge_train.py"
+   ],
+   "proposed_fix_scope": "One comment line of tools/audit/seat/merge_train.py (line 5063).",
+   "reproduction_steps": [
+    "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/merge_train.py",
+    "read the `false` line(s) it prints",
+    "perturb: --edit 'tools/audit/seat/merge_train.py|# `_outside_self_test` puts the real reader back|# the `real_fork_head` restores put the real reader back'"
+   ]
+  },
+  {
+   "id": "D5-s5-06",
+   "scope": "D5-s5",
+   "step": "D5.M4",
+   "title": "orchestrator_tick: HEARTBEAT_SECONDS called the train's heartbeat is 480 s; the train beats every 240 s",
+   "severity": "low",
+   "claim": "The comment on orchestrator_tick.HEARTBEAT_SECONDS calls 480 the watcher heartbeat the tick assumes and flags a train beat older than 2x it; merge_train.HEARTBEAT_SECONDS, the train's actual beat interval, is 240, so the stale threshold (960 s) is 4 train beats, not 2.",
+   "mechanism": "Fails D5-criteria.md C1 (precise: true). Two definitions of one interval disagree; the comment states the 2x rule on the wrong base, so either the comment or the constant is stale.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/orchestrator_tick.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+    "value": 1,
+    "unit": "units",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.55,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "orchestrator_tick.HEARTBEAT_SECONDS vs merge_train.HEARTBEAT_SECONDS (imported modules)",
+   "perturbation": {
+    "change": "--set orchestrator_tick.HEARTBEAT_SECONDS=240",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+   "phenomenon_property": "A comment describing a constant as another component's interval matches that component's constant at the ref.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+   "stop_rule_class": "bug",
+   "class_guess": "I5",
+   "files": [
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "proposed_fix_scope": "Either derive the tick's assumed heartbeat from merge_train.HEARTBEAT_SECONDS (threshold 2x240) or reword the comment to state 960 s as four beats; owner of the monitoring threshold decides.",
+   "reproduction_steps": [
+    "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/orchestrator_tick.py",
+    "read the `false` line(s) it prints",
+    "perturb: --set orchestrator_tick.HEARTBEAT_SECONDS=240"
+   ]
+  },
+  {
+   "id": "D5-s5-07",
+   "scope": "D5-s5",
+   "step": "D5.M4",
+   "title": "483 comment sentences over 40 words across 60 of 74 tooling files",
+   "severity": "low",
+   "claim": "Counting prose paragraphs only (usage, code, list and table lines excluded), the D5 units of the D5-s5 cells hold 483 sentences over 40 words, in 60 of the 74 files.",
+   "mechanism": "Fails D5-criteria.md C5 (easy to understand: no sentence over 40 words). The instruments' WHY blocks chain clauses with dashes, parentheses and semicolons into one sentence. A hand sample of 10 strict hits (taken before the table-row and `$`-split refinement, which only removed hits) read 9 as genuine prose sentences over 40 words, the tenth a threshold table; the raw splitter count is 743. Worst files: prepr.sh 111, merge_train.py 64, bus.sh 42, app_approve.sh 41, cloud_relay.sh 27.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # RESULT long_sentences_strict",
+    "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+    "value": 483,
+    "unit": "sentences",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.55,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "the comment and docstring units of tools/audit/seat/{a..o}*, tools/audit/seat/hooks/** and tools/pr/** via text_ledger.units_of",
+   "perturbation": {
+    "change": "--edit 'tools/pr/push.sh|push rather than after it, and the QUERY arm refuses the same way.|push rather than after it. The QUERY arm refuses the same way.' (one 42-word sentence split; the count moves down by one)",
+    "expected_direction": "down",
+    "observed_value": "14 (the --file tools/pr/push.sh arm, from 15)"
+   },
+   "metric_definition": "count of comment/docstring sentences over 40 words in the cells' D5 units, prose paragraphs only (RESULT long_sentences_strict)",
+   "phenomenon_property": "No comment or docstring sentence in the cells exceeds 40 words.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # long_sentences.tsv rows",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "tools/audit/seat/",
+    "tools/pr/"
+   ],
+   "proposed_fix_scope": "Split long sentences in the WHY blocks, worst files first (prepr.sh, merge_train.py, bus.sh, app_approve.sh); no code change.",
+   "reproduction_steps": [
+    "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+    "read the `false` line(s) it prints",
+    "perturb: --edit 'tools/pr/push.sh|push rather than after it, and the QUERY arm refuses the same way.|push rather than after it. The QUERY arm refuses the same way.' (one 42-word sentence split; the count moves down by one)"
+   ],
+   "leave_one_out": {
+    "cells": 74,
+    "min": 0,
+    "max": 111,
+    "drop_most_favourable": 372
+   },
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/hooks/git_identity.py",
+    "value": 0,
+    "note": "a docstring whose 54-word raw hit is two sentences joined at `$HPO_STATE_DIR` counts 0 strict: the splitter artefact is not counted"
+   }
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every --flag on a header usage line of the 74 cell files is handled by that script's code",
+   "command": "usage-flag scan (quoted-flag search in each script's comment-stripped code), the same corpus m4_ledger.py builds",
+   "value": "0 misses"
+  },
+  {
+   "claim": "beat_jobs.ROSTER_PASS_BUDGET_S=450 is at most half roster-drain's timeout_s, DARWIN_PASS_BUDGET_S=900 at most half darwin-selftest's",
+   "command": "python3 -c \"import json;[print(j['name'],j['timeout_s']) for j in json.load(open('tools/audit/seat/beatd.jobs.json'))['jobs']]\"",
+   "value": "roster-drain 900, darwin-selftest 3600"
+  },
+  {
+   "claim": "beat_jobs.py cites gate.py's ATTEMPT_CAP as 45",
+   "command": "grep -n 'ATTEMPT_CAP =' tools/ci/gate.py",
+   "value": "ATTEMPT_CAP = 45"
+  },
+  {
+   "claim": "merge_train.POLL_SECONDS: 24 reads wait two hours; orchestrator_tick: 2x480 s flags at minute 16",
+   "command": "PYTHONPATH=tests/hastub:tools/audit/seat python3 -c 'import merge_train as m,orchestrator_tick as o;print(24*m.POLL_SECONDS,2*o.HEARTBEAT_SECONDS//60)'",
+   "value": "7200 s, 16 min"
+  },
+  {
+   "claim": "handoff_push.sh: tools/audit/handoff is a transport root prepr.sh still reads",
+   "command": "grep -n '^TRANSPORT_ROOTS' tools/pr/prepr.sh",
+   "value": "TRANSPORT_ROOTS=(tools/audit/handoff/ handoff/)"
+  },
+  {
+   "claim": "prepr.sh: CI may restore the base copy at tools/audit/prepr.sh",
+   "command": "grep -n 'test -f tools/audit/prepr.sh' .github/workflows/governance.yml .github/workflows/pr-contract.yml",
+   "value": "2 hits (governance.yml:428, pr-contract.yml:461)"
+  },
+  {
+   "claim": "app_approve.sh's `git patch-id --verbatim` names a real git option",
+   "command": "git patch-id --verbatim </dev/null; echo $?",
+   "value": "0 (git 2.43.0)"
+  },
+  {
+   "claim": "The C5 strict count does not count a splitter artefact (null control)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/hooks/git_identity.py",
+   "value": "raw 1, strict 0"
+  },
+  {
+   "claim": "The ledger refuses an omitted unit (text_ledger plant control)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+   "value": "check_plant_refused=1"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+  "dev/audit/rounds/round11/D5/s5/step_universe.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D5-s1",
+   "file": "docs/**, README.md",
+   "symbol": "feature reader paths (two-tank storage, ECL110, capacity tariff)",
+   "what": "Redispatched C2: the paragraph-by-paragraph walk for dead ends and forward references was not recorded; D5-s5's cells hold no document."
+  },
+  {
+   "owner_seat": "D5-s2",
+   "file": "docs/how-it-works.md, docs/configuration.md",
+   "symbol": "mechanism paragraphs",
+   "what": "Redispatched C3: trace each mechanism paragraph against its code path; also C7's README/docs M4 cell."
+  },
+  {
+   "owner_seat": "D5-s4",
+   "file": "custom_components/heatpump_optimizer/www/*.js",
+   "symbol": "comments",
+   "what": "Redispatched C7: www/*.js comments not scanned for symbols; m4_ledger.py's path/identifier/adjacent-constant checks can be pointed at those cells."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tools/policy/fixtures/figures/good.md, tools/policy/fixtures/policy-rot/prepr/red-answered.md",
+   "symbol": "tools/audit/prepr.sh",
+   "what": "Fixtures cite `bash tools/audit/prepr.sh --self-test`, a path absent at the baseline (moved to tools/pr/prepr.sh); check whether they are meant as historical inputs. Markdown is outside D5's classify (py/sh/js/mjs); likely a D6 or tools/policy owner."
+  }
+ ]
+}

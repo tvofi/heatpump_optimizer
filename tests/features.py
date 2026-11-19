@@ -2895,7 +2895,8 @@ for _r9p8_inst in ("EUR", "HUF", "SEK"):
     _r9p8_h = _r9p8_hass(_r9p8_inst)
     for _r9p8_row in _r9p8_flow._OPTION_FIELDS:
         if _r9p8_row.key in (_r9p8_WOOD, "grid_fee_fixed"):
-            _r9p8_w = _r9p8_row.widget.of(_r9p8_h)
+            # An entry with no price entity: the figures are the instance currency's.
+            _r9p8_w = _r9p8_row.widget.of(_r9p8_h, {})
             _r9p8_widgets[(_r9p8_inst, _r9p8_row.key)] = (
                 _r9p8_w.config.get("unit_of_measurement"), _r9p8_w.config.get("max")
             )
@@ -35083,6 +35084,39 @@ for _fl_name, _fl_kwargs, _fl_mutate in (
         f"{_fl_blocked._flow_bias.as_dict()}",
     )
 
+# R11-VALVE-REFERENCE r1: behind a throttling valve on a single-zone house the
+# supply follows the valve's tank-charge temperature, not the space curve, so
+# the fold takes no sample. A two-zone valved install keeps folding (bitwise,
+# the architect note), as does a single-zone house with no valve (the control).
+_fl_valve = {}
+for _fl_zone in ("off", "on"):
+    for _fl_mode in ("none", "manual", "smart_read", "smart_write"):
+        _fl_v = _fl_coord(two_zone_mode=_fl_zone, mixing_valve_mode=_fl_mode)
+        _fold_flow_lift(_fl_v, _T6)
+        _fl_valve[(_fl_zone, _fl_mode)] = _fl_v._flow_bias.samples
+# The other end of the learner's range: a bias already on its clamp, learned
+# before the valve was configured, is held as it was, not moved.
+_fl_clamped = _fl_coord(two_zone_mode="off", mixing_valve_mode="manual")
+_fl_clamped._flow_bias.observe(_fl_expected_curve - 50.0, _fl_expected_curve)
+_fl_held = _fl_clamped._flow_bias.as_dict()
+_fold_flow_lift(_fl_clamped, _T6)
+_fl_valve["clamped held"] = (
+    _fl_clamped._flow_bias.as_dict() == _fl_held
+    and abs(_fl_held["bias_k"]) == flow_lift.FLOW_BIAS_CLAMP_K
+)
+R.check(
+    "R11-VALVE-REFERENCE r1: a single-zone house behind a throttling valve folds "
+    "nothing; with no valve, and every two-zone install, it folds (null control)",
+    _fl_valve == {
+        ("off", "none"): 1, ("off", "manual"): 0,
+        ("off", "smart_read"): 0, ("off", "smart_write"): 0,
+        ("on", "none"): 1, ("on", "manual"): 1,
+        ("on", "smart_read"): 1, ("on", "smart_write"): 1,
+        "clamped held": True,
+    },
+    f"{_fl_valve!r}",
+)
+
 # -- persistence is additive -------------------------------------------------
 _fl_store = _t2_coord()
 _fl_store._flow_bias.observe(40.0, 34.0)
@@ -47492,6 +47526,186 @@ R.check(
     and abs(_neg_row["savings_pct"] + 100.0 / 3.0) < 1e-9,
     repr(_neg_row),
 )
+# R11-SEAM-money (D8-s1-02, D2-s3-07): the open month is scaled only once it has
+# covered ledger.MIN_COVERAGE_HOURS, and a month's hours are its real hours.
+# Finder harnesses: D8/s1/monthly.py (first_scale 2688.0 at the base) and
+# D2/s3/m4_tariff.py --perturb realhours (coverage_full_23h 1.001346 at the base).
+from types import SimpleNamespace as _r11m_NS  # noqa: E402
+from zoneinfo import ZoneInfo as _r11m_Zone  # noqa: E402
+
+from heatpump_optimizer import ledger as _r11m_ledger  # noqa: E402
+from heatpump_optimizer.sensor import MonthlySavingsSensor as _r11m_Sensor  # noqa: E402
+
+_r11m_sth = _r11m_Zone("Europe/Stockholm")
+# The floor read by name, 24 h where the tree predates it, so the failing-first
+# run at the base reaches every check below instead of stopping at the import.
+_R11M_FLOOR_H = getattr(_r11m_ledger, "MIN_COVERAGE_HOURS", 24.0)
+_r11m_hours = {
+    "March, spring forward": (_r11m_ledger.month_hours(datetime(2026, 3, 20, 12, tzinfo=_r11m_sth)), 743.0),
+    "October, fall back": (_r11m_ledger.month_hours(datetime(2026, 10, 20, 12, tzinfo=_r11m_sth)), 745.0),
+    "March in UTC": (_r11m_ledger.month_hours(datetime(2026, 3, 20, 12, tzinfo=UTC)), 744.0),
+    "December into January": (_r11m_ledger.month_hours(datetime(2026, 12, 31, 23, tzinfo=_r11m_sth)), 744.0),
+    "naive February": (_r11m_ledger.month_hours(datetime(2026, 2, 10, 15)), 672.0),
+}
+R.check(
+    "R11-SEAM-money: month_hours counts a month's real hours in its zone (743 / 745 across DST, 744 in UTC)",
+    all(got == want for got, want in _r11m_hours.values()),
+    repr(_r11m_hours),
+)
+
+
+def _r11m_settled(hours: float, start: datetime) -> dict:
+    """A month's meta after ``hours`` hourly settlements from ``start``."""
+    led = _SavLedger()
+    whole, part = int(hours), hours - int(hours)
+    for _h in range(whole):
+        led.observe_spot_and_settle_savings(start + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+    if part:
+        led.observe_spot_and_settle_savings(start + timedelta(hours=whole), 1.0, {"baseline_kw": 2.0}, part, part)
+    return led.months[_sav_month_key(start)]["meta"]
+
+
+_r11m_march_now = datetime(2026, 3, 31, 23, 30, tzinfo=_r11m_sth)
+_r11m_march = _r11m_settled(743, datetime(2026, 3, 1, 0, tzinfo=_r11m_sth))
+R.check(
+    "R11-SEAM-money: a spring-forward March settled every real hour scales by exactly 1.0",
+    _r11m_ledger.coverage_factor(_r11m_march, _r11m_march_now) == 1.0,
+    repr(_r11m_ledger.coverage_factor(_r11m_march, _r11m_march_now)),
+)
+_r11m_feb_now = datetime(2026, 2, 10, 15, 0)
+_r11m_at_floor = _r11m_settled(_R11M_FLOOR_H, datetime(2026, 2, 9, 15, 0))
+_r11m_under = _r11m_settled(_R11M_FLOOR_H - 0.25, datetime(2026, 2, 9, 15, 0))
+R.check(
+    "R11-SEAM-money: coverage_factor is None a quarter-hour under MIN_COVERAGE_HOURS and scales at it",
+    getattr(_r11m_ledger, "MIN_COVERAGE_HOURS", None) == 24.0
+    and _r11m_ledger.coverage_factor(_r11m_under, _r11m_feb_now) is None
+    and _r11m_ledger.coverage_factor(_r11m_at_floor, _r11m_feb_now) == 672.0 / 24.0,
+    f"{_r11m_ledger.coverage_factor(_r11m_under, _r11m_feb_now)!r} / "
+    f"{_r11m_ledger.coverage_factor(_r11m_at_floor, _r11m_feb_now)!r}",
+)
+# The calendar-day fallback (no coverage meta) takes the same floor on the hours
+# the month has run: 8 h into 1 February is no estimate, 10 February is 28 / 10.
+R.check(
+    "R11-SEAM-money: the calendar-day fallback is None before the month has run MIN_COVERAGE_HOURS",
+    _r11m_ledger.coverage_factor({}, datetime(2026, 2, 1, 8, 0)) is None
+    and _r11m_ledger.coverage_factor({}, datetime(2026, 2, 2, 0, 0)) == 28.0 / 2
+    and _r11m_ledger.coverage_factor({}, _r11m_feb_now) == 2.8,
+    f"{_r11m_ledger.coverage_factor({}, datetime(2026, 2, 1, 8, 0))!r}",
+)
+
+# One settled quarter in February after a closed January: today's row scaled the
+# quarter by 672 / 0.25 = 2688 (D8-s1-02). The open month has no row; January's
+# row is the null control and is unchanged.
+_r11m_two = _SavLedger()
+for _h in range(48):
+    _r11m_two.observe_spot_and_settle_savings(
+        datetime(2026, 1, 20, 0, 0) + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+_r11m_jan_rows = _r11m_two.savings_months(datetime(2026, 2, 1, 0, 15))
+_r11m_two.observe_spot_and_settle_savings(datetime(2026, 2, 1, 0, 0), 1.0, {"baseline_kw": 2.0}, 0.25, 0.25)
+_r11m_feb_rows = _r11m_two.savings_months(datetime(2026, 2, 1, 0, 15))
+R.check(
+    "R11-SEAM-money: one settled quarter gives the open month no row; the closed month's row is unchanged",
+    [r["month"] for r in _r11m_feb_rows] == ["2026-01"]
+    and _r11m_feb_rows == _r11m_jan_rows and not _r11m_jan_rows[0]["estimated"],
+    repr(_r11m_feb_rows),
+)
+_r11m_sensor = _r11m_NS(_rows=lambda: _r11m_feb_rows)
+_r11m_two_day = _SavLedger.from_dict(_r11m_two.as_dict())
+for _h in range(24):
+    _r11m_two_day.observe_spot_and_settle_savings(
+        datetime(2026, 2, 1, 0, 15) + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+_r11m_ready = _r11m_NS(_rows=lambda: _r11m_two_day.savings_months(datetime(2026, 2, 2, 0, 30)))
+R.check(
+    "R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows",
+    _r11m_Sensor._waiting_for.fget(_r11m_sensor) == "open_month_coverage"
+    and _r11m_Sensor._waiting_for.fget(_r11m_NS(_rows=lambda: [])) == "settled_savings_month"
+    and _r11m_Sensor._waiting_for.fget(_r11m_ready) is None,
+    f"{_r11m_Sensor._waiting_for.fget(_r11m_sensor)!r} / {_r11m_Sensor._waiting_for.fget(_r11m_ready)!r}",
+)
+# R11-SEAM-money (D14-s1-03): every money figure the options dialog labels,
+# bounds and validates is in the currency the price feed declares, the one the
+# sensors publish (currency.figure_currency): a HUF instance priced by a EUR/kWh
+# entity labelled its four money fields and the fee page in HUF and let a
+# 50/kWh fee through under the HUF bound. Finder harness:
+# D14/s1/currency_precedence.py (money_seams 5, 6 under --instance HUF).
+from heatpump_optimizer import config_flow as _r11m_cf  # noqa: E402
+from heatpump_optimizer import grid_fee as _r11m_gf  # noqa: E402
+import asyncio as _r11m_aio  # noqa: E402
+
+
+def _r11m_money_units(feed_unit: str | None, source: str = "entity") -> tuple:
+    """(field units, placeholder currency, fee bound, fee-page verdict) on a HUF instance."""
+    hass = FakeHass()
+    hass.config.currency = "HUF"
+    cfg = {"price_source": "tibber"}
+    if feed_unit is not None:
+        hass.states.set("sensor.feed", FakeState("0.21", attributes={"unit_of_measurement": feed_unit}))
+        cfg = {"price_source": source, "price_entity": "sensor.feed"}
+    def built(of, place_of):
+        try:
+            return of(hass, cfg), place_of(hass, cfg)
+        except TypeError:  # the base's one-argument forms, for the failing-first run
+            return of(hass), place_of(hass)
+
+    rows = [row.widget.of for row in _r11m_cf._OPTION_FIELDS if isinstance(row.widget, _r11m_cf._ByHass)]
+    units = sorted(dict(built(of, _r11m_cf._fee_placeholders)[0].config).get("unit_of_measurement") for of in rows)
+    place = built(rows[0], _r11m_cf._fee_placeholders)[1]
+    verdict = _r11m_aio.run(_r11m_cf.HeatPumpOptimizerOptionsFlow._grid_fee_errors(
+        _r11m_NS(hass=hass), {"grid_fee_rules": "Mon-Sun 00-24 = 50"}, cfg))
+    return units, place["currency"], place["fee_bound"], verdict
+
+
+_r11m_eur = _r11m_money_units("EUR/kWh")
+_r11m_huf = _r11m_money_units(None)
+R.check(
+    "R11-SEAM-money: on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR",
+    _r11m_eur == (["EUR", "EUR/kWh", "EUR/kWh", "EUR/m³"], "EUR", "10",
+                  {"grid_fee_rules": _r11m_gf.ERROR_IMPLAUSIBLE}),
+    repr(_r11m_eur),
+)
+# Null controls: a Tibber install has no feed and keeps the instance's HUF
+# (bound 500, the 50/kWh fee accepted), even with a EUR entity left in its
+# price-entity slot from an earlier entity setup; a feed declaring nothing
+# ("öre/kWh") falls back to the instance as well.
+_r11m_stale = _r11m_money_units("EUR/kWh", source="tibber")
+R.check(
+    "R11-SEAM-money: with no feed code, or a Tibber source, the options dialog keeps the instance currency",
+    _r11m_huf == (["HUF", "HUF/kWh", "HUF/kWh", "HUF/m³"], "HUF", "500", {})
+    and _r11m_money_units("öre/kWh") == _r11m_huf
+    and _r11m_stale == _r11m_huf,
+    f"{_r11m_huf!r} / {_r11m_money_units('öre/kWh')!r} / {_r11m_stale!r}",
+)
+# R11-SEAM-money pins, recorded "not reproduced at main, pinned" (owner ruling
+# 2026-11-18): the finder's D2/s3/m4_tariff.py read 0 for these at main. Each
+# check fails on the harness's planted inverse. The other four planted
+# inverses are already killed by this file's checks, so they add none: the
+# Tibber parser reading 'today' only (D2-s3-03) by "each Tibber failure names
+# itself, and today and tomorrow both land"; top-k taking the smallest
+# (D2-s3-06), one-per-day keeping a lower window (D2-s3-05) and the window
+# projection weighting the current draw by the elapsed minutes (D17-s1-05) by
+# the capacity-tariff and peak-guard checks.
+
+# D2-s3-04 (inverse of m4_tariff.py --perturb weekday: a day test off by one,
+# isoweekday()): a "Mon" rule applies on Monday 12 January 2026, not on the
+# Sunday before it nor the Tuesday after.
+_r11m_mon = _r11m_gf.parse_rules("Mon 00-24 = 1")[0]
+R.check(
+    "R11-SEAM-money: a Monday fee rule applies on a Monday and on neither neighbour (D2-s3-04, pinned)",
+    [_r11m_mon.applies(datetime(2026, 1, d, 12, tzinfo=_r11m_sth)) for d in (11, 12, 13)] == [False, True, False],
+    repr([_r11m_mon.applies(datetime(2026, 1, d, 12, tzinfo=_r11m_sth)) for d in (11, 12, 13)]),
+)
+# R11-SEAM-money (ADR-001 arm day): price_model._usable_day is the one test of
+# a learnable day for both resolutions; a day whose mean sits on the 1e-6
+# floor is not learned, one just above it is (np.mean of 24 x 1e-6 is 1e-6
+# exactly, so the boundary is the comparison's own).
+from heatpump_optimizer.price_model import PriceShapeModel as _R11mShape  # noqa: E402
+
+_r11m_shape = _R11mShape()
+R.check(
+    "R11-SEAM-money: a day of prices averaging exactly the 1e-6 floor is not learned; 2e-6 is",
+    [_r11m_shape.observe_day(datetime(2026, 1, 14), [1e-6] * 24),
+     _r11m_shape.observe_day(datetime(2026, 1, 15), [2e-6] * 24)] == [False, True],
+)
 # R10-HOTFIX-SAV-ESTIMATE: a month's reference basis. Totals cannot be rebooked,
 # so a month booked against a retired reference keeps its columns and states no
 # saving; a fresh month is stamped at its first booking.
@@ -49160,7 +49374,9 @@ R.check(
 import homeassistant.util.dt as _dt_sav
 _real_now_sav = _dt_sav.now
 try:
-    _dt_sav.now = lambda: NOW
+    # Read in March, February closed: an open month half an hour old has no
+    # row until it has covered ledger.MIN_COVERAGE_HOURS (R11-SEAM-money).
+    _dt_sav.now = lambda: NOW + timedelta(days=28)
     _pub = _sv._build_data_dict()
 finally:
     _dt_sav.now = _real_now_sav
@@ -76778,9 +76994,25 @@ R.check(
 
 
 # The coin is seeded (``DITHER_SEED``), so a probe re-measures alike: the
-# order of the first twelve pairs of a fresh dither, H for the high level first.
+# order of the first twelve pairs of a fresh dither, H for the high level
+# first, a row read under every level.
+def _ss_levels_read(sd, n, read=lambda tick: True):
+    """``n`` steps of ``sd`` at base 1.0, half an hour apart, each followed by
+    a follower's row where ``read(tick)``, read under the level the step
+    before handed out (the interval that just ended); a row taken first. The
+    levels handed out."""
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))
+    out, ran = [], 1.0
+    for tick in range(n):
+        out.append(sd.step(1.0, True, _CF_T0 + _cf_td(minutes=30 * tick)))
+        if read(tick):
+            sd.take(_cf_row(1.5, 1.5 * ran / 0.8, scale=ran, at=_CF_T0 + _cf_td(minutes=30 * tick)))
+        ran = out[-1]
+    return out
+
+
 _ss_coin = _ss_SD()
-_ss_coin_seq = "".join("H" if _ss_coin.step(1.0, True) > 1.0 else "L" for _ in range(24))
+_ss_coin_seq = "".join("H" if x > 1.0 else "L" for x in _ss_levels_read(_ss_coin, 24))
 R.check(
     "a fresh dither hands out the same levels on every run: its first twelve "
     "pairs lead high six times, then low, high, high, high, high, low",
@@ -77007,9 +77239,9 @@ R.check(
 
 
 def _ss_take_under(reading):
-    """Rows taken under one ``reading``: two (heat asks 2.0 then 1.5 kW) under
-    a first-of-pair reading, one under a second-of-pair reading."""
-    sd = _ss_SD(reading=reading)
+    """Rows taken under one ``reading`` of pair (0, 1): two (heat asks 2.0
+    then 1.5 kW) under a first-of-pair reading, one under a second-of-pair reading."""
+    sd = _ss_SD(reading=(0, 1, reading[1]), pair=(0, 1))
     try:
         for asked in ((2.0, 1.5) if not reading[1] else (1.5,)):
             sd.take(_cf_row(asked, asked, scale=1.0, at=_CF_T0))
@@ -77049,31 +77281,76 @@ def _ss_floor_gap(n, every=3):
     return rec, seen
 
 
-_ss_b_gap.append(_ss_floor_gap(150))
 _ss_b_gap_end = [(len(rec.probe.dither.contrasts), rec.scale_response, rec.probe.dither.rows) for rec, _o in _ss_b_gap]
 R.check(
-    "two admitted rows then a frozen cycle, an unread one, or one refused "
-    "under the duty floor, repeated over 150 cycles: no pair completes and "
-    "the verdict stays pending on 100 rows, where the same follower "
-    "uninterrupted latches at the 50th; the scale is at the base on the cycle "
-    "after each frozen or unread one, and for a floor refusal on the cycle "
-    "after it (the refused cycle itself still set a dither level)",
-    _ss_b_gap_end == [(0, "pending", 100)] * 3
+    "two admitted rows then a frozen cycle or an unread one, repeated over "
+    "150 cycles: no pair completes and the verdict stays pending on 100 rows, "
+    "where the same follower uninterrupted latches at the 50th; the scale is "
+    "at the base on the cycle after each",
+    _ss_b_gap_end == [(0, "pending", 100)] * 2
     and all({o[t][0] for t in range(3, 150, 3)} == {1.0} for _r, o in _ss_b_gap)
-    and {_ss_b_gap[2][1][t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724}
-    and all({o[t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724} for _r, o in _ss_b_gap[:2]),
+    and all({o[t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724} for _r, o in _ss_b_gap),
     f"{_ss_b_gap_end}; {[o[:9] for _r, o in _ss_b_gap]}",
 )
-# Three admitted rows then a floor refusal: the pair's first row is read, its
-# second is not, and the row after the gap ran at the next pair's level -- half
-# the time a full step from the first. It must not complete that pair.
-_ss_b_gap4 = _ss_floor_gap(400, every=4)[0]
+# A read cycle that admits no row (a floor refusal) keeps the pair in flight:
+# the slot it missed is handed out again and held until a row is read under
+# it (BLOCKED.md departure A, approved on inbox/r11-outside-self-setting-pump
+# line 2). Every pair completes in the coin's order, from rows that were read
+# under the level the slot names; the follower latches follows.
+_ss_b_fl, _ss_b_fl_out = _ss_floor_gap(300)
+_ss_b_fl4, _ss_b_fl4_out = _ss_floor_gap(300, every=4)
+_ss_b_fl_at = [next((t for t, x in enumerate(o) if x[1] == "follows"), None) for o in (_ss_b_fl_out, _ss_b_fl4_out)]
 R.check(
-    "a pair whose second row was refused is void, not stretched to the row "
-    "after the gap: three admitted rows then a floor refusal, over 400 "
-    "cycles, completes no pair on 300 rows",
-    (len(_ss_b_gap4.probe.dither.contrasts), _ss_b_gap4.scale_response, _ss_b_gap4.probe.dither.rows) == (0, "pending", 300),
-    f"{(len(_ss_b_gap4.probe.dither.contrasts), _ss_b_gap4.scale_response, _ss_b_gap4.probe.dither.rows)}",
+    "two (or three) admitted rows then a floor refusal, over 300 cycles: the "
+    "pairs complete and the follower latches follows, where frozen or unread "
+    "gaps complete none",
+    None not in _ss_b_fl_at and _ss_b_fl.scale_response == _ss_b_fl4.scale_response == "follows",
+    f"latched at {_ss_b_fl_at}; {_ss_b_fl.scale_response}/{_ss_b_fl4.scale_response}",
+)
+
+
+# The hold itself, on a bare dither: rows read only where ``read(tick)``.
+def _ss_hold(read, n=12):
+    sd = _ss_SD()
+    levels = _ss_levels_read(sd, n, read)
+    return [round(x, 4) for x in levels], [round(c, 9) for c in sd.contrasts], sd.rows
+
+
+# One in three read: each missed slot is handed out again until a row is read
+# under it; the level handed out ahead of the miss runs once and is ignored.
+_ss_hold3 = _ss_hold(lambda tick: tick % 3 == 2, 24)
+R.check(
+    "a slot whose row was not read is handed out again and held until one "
+    "is: one row in three read, the pairs still complete in the coin's order, "
+    "each contrast +1 for a follower; with every row read the levels are the "
+    "uninterrupted sequence",
+    _ss_hold3[1] == [1.0] * 2 and _ss_hold3[2] == 9
+    and _ss_hold(lambda tick: True)[0] == [round(x, 4) for x in _ss_levels_read(_ss_SD(), 12)],
+    f"{_ss_hold3}",
+)
+# The pair voids past COP_HOLD_HORIZON_S from its first row, and the scale
+# waits at the base until a row is read: no row read after the first, steps
+# an hour apart.
+def _ss_hold_horizon(hours):
+    """The first slot's row read at ``_CF_T0`` + 30 min, then none: the two
+    levels handed out, and the scale at each of ``hours`` after that row."""
+    sd = _ss_SD()
+    first, second = _ss_levels_read(sd, 2)
+    sd.step(1.0, True, _CF_T0 + _cf_td(hours=1))  # the next pair's first, handed out ahead
+    at = sd.first.at
+    seen = [sd.step(1.0, True, at + _cf_td(hours=h)) for h in hours]
+    return round(first, 4), round(second, 4), [round(x, 4) for x in seen], sd.pair
+
+
+_ss_hh = [_ss_hold_horizon(h) for h in ((0, 24, 168), (168 + 1 / 3600, 169, 170), (-1, 2, 3))]
+R.check(
+    "a pair holding for its second row voids once COP_HOLD_HORIZON_S has "
+    "passed from its first (the bound inclusive) or its age is unknowable: "
+    "the scale returns to the base and stays there with no row read",
+    _ss_hh[0][2] == [_ss_hh[0][1]] * 3 and _ss_hh[0][3] is not None and _ss_hh[0][0] * _ss_hh[0][1] > 0
+    and [x[2] for x in _ss_hh[1:]] == [[1.0, 1.0, 1.0]] * 2 and [x[3] for x in _ss_hh[1:]] == [None] * 2
+    and _ss_hh[0][1] != _ss_hh[0][0] and 1.0 not in _ss_hh[0][:2],
+    f"{_ss_hh}",
 )
 
 
@@ -77178,12 +77455,14 @@ for _ss_i in range(3):
     _ss_idle_seen.append(_ss_seen(_ss_idle))
 _ss_idle_back = _ss_trace(_ss_idle, _ss_flat(4), true=0.8)
 R.check(
-    "mid-probe, a pump that goes off: the first idle cycle still runs the "
-    "level set before its refusal was known, every later one is at the base, "
-    "and the dither resumes on the second cycle after rows return",
-    _ss_idle_seen[0][0] in (0.9325, 1.0724) and [x[0] for x in _ss_idle_seen[1:]] == [1.0, 1.0]
+    "mid-probe, a pump that goes off (read cycles, no row): the scale holds "
+    "the slot whose row was missed, never the base, and the dither goes on "
+    "at its levels once rows return (departure A: was the base from the "
+    "second idle cycle)",
+    _ss_idle_seen[0][0] in (0.9325, 1.0724) and len({x[0] for x in _ss_idle_seen[1:]}) == 1
+    and {x[0] for x in _ss_idle_seen[1:]} <= {0.9325, 1.0724}
     and {x[1:] for x in _ss_idle_seen} == {(0, "pending", 1.0, "duty_floor")}
-    and [x[0] for x in _ss_idle_back[:1]] == [1.0] and {x[0] for x in _ss_idle_back[1:]} <= {0.9325, 1.0724},
+    and {x[0] for x in _ss_idle_back} <= {0.9325, 1.0724},
     f"{_ss_idle_seen}; back {_ss_idle_back}",
 )
 # A frozen cycle moves no scale (the owed scale sits past the freeze gate),
@@ -77239,6 +77518,148 @@ R.check(
     "does_not_follow over 672 cycles and folds nothing",
     {x[2] for x in _ss_rep} == {"pending"} and _ss_rep[-1][1] == 0,
     f"{sorted({x[2] for x in _ss_rep})}; {_ss_rep[-1]}; scales {sorted({x[0] for x in _ss_rep})}",
+)
+# A pair whose first slot never reads a row is bounded too: from when it was
+# handed out, not from each later step.
+def _ss_first_hold(hours):
+    sd = _ss_SD()
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))
+    first = sd.step(1.0, True, _CF_T0)
+    return round(first, 4), [round(sd.step(1.0, True, _CF_T0 + _cf_td(hours=h)), 4) for h in hours]
+
+
+_ss_fh = _ss_first_hold((1, 100, 168, 168 + 1 / 3600, 169))
+R.check(
+    "a first slot no row is read under: the step after it hands out the "
+    "second ahead (the miss is not known yet), then the first is held from "
+    "when it was handed out until COP_HOLD_HORIZON_S has passed (inclusive), "
+    "then the scale returns to the base and stays there",
+    _ss_fh[1][1:] == [_ss_fh[0]] * 2 + [1.0, 1.0]
+    and {_ss_fh[0], _ss_fh[1][0]} == {0.9325, 1.0724},
+    f"{_ss_fh}",
+)
+
+
+# So is the next pair's first slot, from the row that completed the pair before.
+def _ss_next_hold(hours):
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)  # the first pair completes on the row read at the third step
+    done = sd.since
+    return done == _CF_T0 + _cf_td(minutes=60) and sd.first is None, len(sd.contrasts), [round(sd.step(1.0, True, done + _cf_td(hours=h)), 4) for h in hours]
+
+
+_ss_nh = _ss_next_hold((1, 100, 168, 168 + 1 / 3600, 169))
+R.check(
+    "the next pair's first slot, no row read under it, is held from the row "
+    "that completed the pair before until COP_HOLD_HORIZON_S has passed, then "
+    "the scale is at the base",
+    _ss_nh[:2] == (True, 1) and _ss_nh[2][1:3] == [_ss_nh[2][2]] * 2 and _ss_nh[2][2] != 1.0 and _ss_nh[2][3:] == [1.0, 1.0],
+    f"{_ss_nh}",
+)
+
+
+# clear() ends the pair in flight, and a void forgets a row read before it:
+# after either, the scale waits at the base until a row is read again.
+def _ss_cleared():
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)
+    sd.clear()
+    return sd.pair, sd.first, sd.reading, sd.ahead, sd.step(1.0, True, _CF_T0 + _cf_td(hours=2))
+
+
+def _ss_after_void():
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))  # a row read, then a frozen cycle
+    return [sd.step(1.0, read, _CF_T0 + _cf_td(hours=h)) for h, read in ((2, False), (3, True), (4, True))]
+
+
+R.check(
+    "clear() leaves no pair, row or slot and the next step is at the base; "
+    "a frozen cycle voids the pair and drops the row read before it, so "
+    "with no row read since, the steps after it stay at the base",
+    _ss_cleared() == (None, None, None, None, 1.0) and _ss_after_void() == [1.0, 1.0, 1.0],
+    f"{_ss_cleared()} / {_ss_after_void()}",
+)
+
+
+# The probe consumes the row-read flag on every cycle, also where it hands
+# out no dither level (parked): a row read on a parked cycle does not start
+# a pair days later at the re-arm.
+def _ss_stale_admit():
+    probe = _df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0, level=1.0)
+    probe.dither.admitted = True
+    probe.owed_scale(lambda: 1.0, _CF_T0 + _cf_td(hours=1))
+    return probe.owed_scale(lambda: 1.0, _CF_T0 + _cf_td(days=8)), probe.parked_at, probe.dither.pair
+
+
+R.check(
+    "a row read on a parked cycle is forgotten by the next cycle: at the "
+    "re-arm with no row read since, the scale stays at the base and no pair starts",
+    _ss_stale_admit() == (None, None, None),
+    f"{_ss_stale_admit()}",
+)
+# Carry 6 (BLOCKED.md departure B1, approved on inbox/r11-outside-self-setting-pump
+# line 2): under that plan the dither spans the window by its own step, the
+# evidence turns obtainable and resets the probe, and a new one starts, without
+# end. PROBE_VOID_CAP probes in a row that a reset ends with no pair read park
+# the next on its first row, for COP_HOLD_HORIZON_S.
+def _ss_probes(coord, pairs, true, reprice):
+    """Probes started (a base appearing) and cycles at a dither level, over a re-priced run."""
+    started, dithered, had = 0, 0, False
+    for asked, drawn in pairs:
+        _ss_step(coord, reprice / coord._cop_scale, reprice / true)
+        probe = coord._measured_cop.probe
+        started += probe.base is not None and not had
+        had = probe.base is not None
+        dithered += had and abs(coord._cop_scale - probe.base) > 1e-9
+    return started, dithered, coord._measured_cop.scale_response, getattr(coord._measured_cop.probe, "voided", "-")
+
+
+_ss_rep_cap = _ss_probes(_ss_coord(), _ss_flat(336), 0.8, 1.2)
+R.check(
+    "a re-priced plan resets its probe with no pair read; after "
+    "PROBE_VOID_CAP (3) such probes the next parks on its first row: over "
+    "336 cycles (the horizon) 4 probes start, pending, and the scale leaves "
+    "the base on at most 20 cycles",
+    getattr(_df_acc, "PROBE_VOID_CAP", None) == 3 and _ss_rep_cap[0] == 4 and _ss_rep_cap[1] <= 20 and _ss_rep_cap[2:] == ("pending", 3),
+    f"{_ss_rep_cap}",
+)
+
+
+def _ss_void_count(voided, base, contrasts, parked):
+    """``ScaleProbe.voided`` after one reset of a probe in that state."""
+    probe = _df_acc.ScaleProbe(base=base, voided=voided, parked_at=_CF_T0 if parked else None,
+                               dither=_ss_SD(contrasts=list(contrasts)))
+    probe.reset(False)
+    return probe.voided
+
+
+R.check(
+    "a reset counts a running probe that read no pair, clears the count for "
+    "one that read a pair, and leaves it for a parked probe or none running",
+    [_ss_void_count(*c) for c in ((0, 1.0, [], False), (2, 1.0, [], False), (2, 1.0, [1.0], False), (3, 1.0, [], True), (2, None, [], False))]
+    == [1, 3, 0, 3, 2],
+    f"{[_ss_void_count(*c) for c in ((0, 1.0, [], False), (2, 1.0, [], False), (2, 1.0, [1.0], False), (3, 1.0, [], True), (2, None, [], False))]}",
+)
+
+
+def _ss_capped(voided, after):
+    """A fresh probe at ``voided``: parked by its first row, and the scale owed ``after`` later."""
+    probe = _df_acc.ScaleProbe(voided=voided)
+    probe.admit(_cf_row(1.5, 1.5, scale=1.0, at=_CF_T0))
+    parked = probe.parked_at
+    probe.owed_scale(lambda: 1.0, _CF_T0 + after)
+    return parked == _CF_T0, probe.parked_at is not None, probe.voided
+
+
+R.check(
+    "a probe that starts at PROBE_VOID_CAP voided ones parks on its first "
+    "row; one under the cap does not; past COP_HOLD_HORIZON_S it re-arms and "
+    "the count clears",
+    [_ss_capped(v, a) for v, a in ((3, _cf_td(hours=1)), (2, _cf_td(hours=1)), (3, _cf_td(days=7, seconds=1)))]
+    == [(True, True, 3), (False, False, 2), (True, False, 0)],
+    f"{[_ss_capped(v, a) for v, a in ((3, _cf_td(hours=1)), (2, _cf_td(hours=1)), (3, _cf_td(days=7, seconds=1)))]}",
 )
 # The ratio refusal is logged where it is decided (moved from the
 # coordinator): a refusal logs its code, a fold logs nothing.
@@ -96880,6 +97301,57 @@ R.check(
 )
 
 
+# -- The plan peak under the lift: accepted, never clipped (round-11 ruling, 2026-11-18,
+# option A). The lifted floor reaches the comfort target and the plan may store heat above
+# it, so its peak may pass the unlifted plan's. These checks encode that choice: a clip of
+# the lift short of the target, or a headroom under it, fails the first; the zeros array
+# is the solver's own null control. The fixture is the design note's, solved through
+# the production optimizer on dev/audit/harnesses/room_lift_solve.py's inputs.
+from heatpump_optimizer.thermal_model import ThermalState as _rl_State  # noqa: E402
+
+_RL_PEAK_START = datetime(2026, 4, 15, 12, 0, tzinfo=UTC)
+_rl_peak_cfg = _rl_Config(horizon_hours=24, time_step_minutes=15, target_temp=20.0, min_temp=19.5,
+                          max_temp=23.0, comfort_temp_day=20.0, comfort_temp_night=20.0)
+_RL_PEAK_N = 96
+
+
+def _rl_peak_solve(margins):
+    """The plan's room temperatures past step 0 for ``margins``, from the harness's inputs."""
+    cfg = _grad_house(target_temperature=20.0, min_temperature=19.5)
+    outdoor, wind, rain, solar = _grad_weather("shoulder", _RL_PEAK_START)
+    state = _rl_State(
+        room_temperature=19.6, slab_temperature=20.6, outdoor_temperature=float(outdoor[0]),
+        dhw_temperature=50.0, dhw_hours_since_legionella=20.0, upper_floor_temperature=19.6,
+        lower_floor_temperature=19.6, buffer_tank_temperature=40.0)
+    result = _PvOpt(_PvModel(_PvParams.from_config(cfg)), _rl_peak_cfg).optimize(inputs=solve_inputs(
+        initial_state=state, prices=_grad_prices("winter_typical", _RL_PEAK_START),
+        outdoor_temps=outdoor, wind_speeds=wind, precipitation=rain, solar_radiation=solar,
+        start_time=_RL_PEAK_START, min_temp_margins=margins))
+    return np.asarray(result.room_temp_trajectory[1:], dtype=float)
+
+
+_rl_peak_m, _ = _rl_solve(cfg=_rl_peak_cfg, start=_RL_PEAK_START, n=_RL_PEAK_N)
+_rl_peak = {k: _rl_peak_solve(m) for k, m in
+            (("none", None), ("zeros", np.zeros(_RL_PEAK_N)), ("lift", _rl_peak_m))}
+_rl_peak_gap = None if _rl_peak_m is None else [
+    round(float(_rl_peak_cfg.get_comfort_temp(t.hour + t.minute / 60.0, when=t)
+                - _rl_peak_cfg.get_temp_bounds(t.hour + t.minute / 60.0, when=t)[0] - _rl_peak_m[i]), 9)
+    for i, t in enumerate(_RL_PEAK_START + timedelta(minutes=15 * i) for i in range(_RL_PEAK_N))]
+R.check(
+    "the lifted floor reaches the comfort target, no headroom under it, at every step past the "
+    "ramp (0.1 K at step 0, 0.25 K an hour, so from step 7)",
+    _rl_peak_gap is not None and _rl_peak_gap[0] > 0.0 and set(_rl_peak_gap[7:]) == {0.0},
+    f"gap to target {_rl_peak_gap and sorted(set(_rl_peak_gap))}",
+)
+R.check(
+    "the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the "
+    "target past the ramp; null control, an all-zero margin array plans the unlifted plan",
+    float(_rl_peak["lift"].max()) > float(_rl_peak["none"].max())
+    and float(_rl_peak["lift"][12:].min()) >= 20.0 - 1e-6
+    and np.array_equal(_rl_peak["zeros"], _rl_peak["none"]),
+    f"peak none={_rl_peak['none'].max():.3f} zeros={_rl_peak['zeros'].max():.3f} "
+    f"lift={_rl_peak['lift'].max():.3f} lift min past 3 h={_rl_peak['lift'][12:].min():.3f}",
+)
 
 # ---------------------------------------------------------------------------
 # R11-OUTSIDE-ROOMS-P3 (#3616, phase 3a): room history and the identifiability report

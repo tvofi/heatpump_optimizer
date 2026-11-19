@@ -1,0 +1,59 @@
+CHECK false  dev/audit/README.md#5424e120d8 c_mock: 5: tests/doc_claims.py, tests/dst_checks.py, tests/entities.py, tests/features.py, tests/optimality.py
+CHECK stale  dev/audit/README.md#ea91491c6d c_fix_review_j5: briefs/fix-review.md exists=False; contracts naming j5_gil=[]
+CHECK true   dev/audit/README.md#45b87e7fe3 c_main_guards: without guard: []
+CHECK true   dev/audit/README.md#a3282a9a04 c_import_exit: not so: []
+CHECK true   dev/audit/README.md#d407b35c76 c_topologies: coord_minimal, coord_dhw, coord_two_zone, coord_grid_fee, coord_all_features
+CHECK true   dev/audit/README.md#ae5bf1078d c_profiles: not accepted: []
+CHECK true   dev/audit/README.md#939ed70096 c_slow_gated: 1 code lines, 0 asserting the run.sh gate; SLOW_GATED=['rolling.py']
+CHECK true   dev/audit/README.md#9f5c1e7863 c_gil: 3 calls in ['_lbfgsb_restart', '_multi_start_minimize', '_optimize_with_dhw']
+CHECK true   dev/audit/README.md#129b603c9c c_judge_sha: rc=0
+CHECK false  tests/README.md#cb6b45f9a0 c_unleased: besides stress.py: lease=['tests/harness_headers.py'] slot=8 (tests/arch_score.py, tests/boost_drift_replay.py, tests/card.mjs, tests/entities.py, tests/feature
+CHECK true   tests/README.md#2266dd14a1 c_scope_default: full
+CHECK true   tests/README.md#d96a6dd1ea c_rcs: 75, 76
+CHECK true   tests/README.md#99321b5687 c_lockdir: /tmp/hpo-gate.lock
+CHECK stale  dev/governance/rules/gate-scoping.md#9f6bfa808b c_round4_d6: ['dev/audit/rounds/round4/D6/claims.json', 'dev/audit/rounds/round4/D6/claims.md']
+CHECK true   dev/governance/rules/gate-scoping.md#0e3b8ebbfa c_measuring: lease, lease; slots 4 via HPO_HEAVY_SLOTS
+CHECK true   dev/governance/rules/gate-scoping.md#daf9105b8b c_python_order: python3
+CHECK true   dev/governance/rules/gate-scoping.md#600e46f68a c_lease_minutes: 1800
+CHECK true   dev/governance/rules/gate-scoping.md#21eca4594d c_rcs: 75, 76
+CHECK true   dev/governance/rules/claim-files.md#5c6cfc766a c_claimnotes: routed=True flag=True
+CHECK false  dev/governance/rules/writing-for-agents.md#d18caca3b8 c_handover_docs: handovers=['dev/programme/HANDOVER.md']; under docs/=[]
+CHECK stale  dev/governance/rules/brief-citations.md#3c42b7f065 c_brief_exclude: {"round2": true, "claude": false}
+CHECK stale  tools/audit/seat/INSTRUMENTS.md#ca2f2aea6f c_instrument_dirs: listed=19 present=0
+CHECK stale  dev/programme/HANDOVER.md#e7c5d9400d c_worktree_apply: rc=2 worktree_gc: REFUSE: unknown option '--apply'
+CHECK stale  tools/audit/archscore/ABOUT.md#75610bc82f c_event_hub: exact=False nearest=['dev/audit/harnesses/r10_livestate_event_hub_writes.py']
+CHECK true   CLAUDE.md#f454fd77ac c_budget_count: metrics=18 ok_lines=23 rc=0
+CHECK true   CLAUDE.md#81f2a08396 c_mode_lines: both present
+CHECK true   CLAUDE.md#0ffff50463 c_full_orphan: present
+CHECK true   CLAUDE.md#fb9fd4678f c_rules_sync: rc=0 RULES-SYNC ok: every generated rule is the generated form of its source
+CHECK true   CLAUDE.md#75ca6a2b45 c_tables: dev/governance/rules: files=10 unnamed=[] named_missing=[] | dev/governance/roles: files=18 unnamed=[] named_missing=[] | dev/governance/dimensions: files=16 un
+CHECK true   AGENTS.md#d5cdffe751 c_rules_sync: rc=0 RULES-SYNC ok: every generated rule is the generated form of its source
+RESULT claude_symbol_found_null_control=0
+RESULT event_hub_cited_name_files=0
+RESULT fix_review_j5_refs=0
+RESULT handovers_under_docs=0
+RESULT instrument_record_dirs_absent=19
+RESULT instrument_record_dirs_listed=19
+RESULT leased_or_slotted_besides_stress=9
+RESULT mock_users=5
+RESULT round2_symbol_found=1
+RESULT round4_d6_rewritten_at_doc_path=0
+RESULT structure_metrics=18
+RESULT structure_ok_lines=23
+RESULT worktree_gc_apply_refused=1
+RESULT false_or_stale[AGENTS.md]=0
+RESULT false_or_stale[CLAUDE.md]=0
+RESULT false_or_stale[dev/audit/README.md]=2
+RESULT false_or_stale[dev/governance/rules/brief-citations.md]=1
+RESULT false_or_stale[dev/governance/rules/claim-files.md]=0
+RESULT false_or_stale[dev/governance/rules/gate-scoping.md]=1
+RESULT false_or_stale[dev/governance/rules/writing-for-agents.md]=1
+RESULT false_or_stale[dev/programme/HANDOVER.md]=1
+RESULT false_or_stale[tests/README.md]=1
+RESULT false_or_stale[tools/audit/archscore/ABOUT.md]=1
+RESULT false_or_stale[tools/audit/seat/INSTRUMENTS.md]=1
+RESULT checked_units=30
+RESULT thread_factor=1.00
+RESULT load1=3.84
+RESULT swapins=0
+RESULT cpu_s=12.60 provisional

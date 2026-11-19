@@ -1,0 +1,1324 @@
+{
+ "class": "N-swallowed-failure",
+ "instances": 23,
+ "barriered": false,
+ "ledger_note": "N-swallowed-failure has no entry in dev/audit/config/bugclasses.json at 28b864af (new class this round; nearest N-silent-zero)",
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/swallowed_sweep.py  # every handler of `tools/audit/enumerate.py d1-excepts` (257): seam = no re-raise and highest record below WARNING (direct _LOGGER calls, log_held, one level of package helpers); each seam joined to the finder's executed arms (D1/s3 out/inj_*.jsonl lifecycle injection, m5_table.tsv local arm) by (file, function, rank) since those ran at 92d38ecb",
+ "baseline_sha": "28b864af6d909e3114d07546e22af79ce8dc85ef (origin/handoff/audit-r11-register)",
+ "controls": {
+  "result": "handlers=257, seams=206: 17 D1-s3-05 + 7 D1-s3-07 + 24 beyond + 158 guarded/not applicable",
+  "positive": "re-finds every judged handler: the 17 persist_seams.py handlers (D1-s3-05) and the 7 silent_broad.py handlers (D1-s3-07) are all seams",
+  "null": "--null fixture (WARNING-logged save, re-raising save, narrow float() parse, error returned to caller): seams_not_carried_not_narrow_parse=0",
+  "perturbation": "--perturb (the ledger save's DEBUG read as WARNING, one line): seams 206 -> 205, seams_persist 18 -> 17"
+ },
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "symbol": "persist_override (handler away.py:439; away.py:439 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/away.py:439  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/boost.py",
+   "symbol": "persist (handler boost.py:574; boost.py:574 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:features.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/boost.py:574)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "_prefilled_values (handler config_flow.py:781)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:config_flow_steps.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/config_flow.py:777)",
+   "beyond_finding": true,
+   "note": "a raising default callable drops its prefill with no record",
+   "probe_kind": "local"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._record_accuracy (handler coordinator.py:10085; coordinator.py:10082 at 92d38ecb)",
+   "finding": "D1-s3-07",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:10082  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._capture_diagnosis_inputs (handler coordinator.py:10645; coordinator.py:10642 at 92d38ecb)",
+   "finding": "D1-s3-07",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:10642  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._capture_diagnosis_inputs (handler coordinator.py:10650; coordinator.py:10647 at 92d38ecb)",
+   "finding": "D1-s3-07",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:10647  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._maybe_refresh_price_tile (handler coordinator.py:10712)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:config_flow_steps.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/coordinator.py:10709)",
+   "beyond_finding": true,
+   "note": "price tile refresh failing at DEBUG",
+   "probe_kind": "local"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_replay_interval (handler coordinator.py:1086)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:1085  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "learning replay simulation failing at DEBUG on every interval",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_with_sensor_advisor (handler coordinator.py:2210)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:2209  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "sensor advisor ranking skipped at DEBUG on every pass",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "CoordinatorDiagnostics.of (handler coordinator.py:2693; coordinator.py:2692 at 92d38ecb)",
+   "finding": "D1-s3-07",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:2692  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_stored_fuse_advisor (handler coordinator.py:3055)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:features.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/coordinator.py:3054)",
+   "beyond_finding": true,
+   "note": "stored fuse advisor read returns None with no record",
+   "probe_kind": "local"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription (handler coordinator.py:4174)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/swallowed_sweep.py | grep 'coordinator.py:4174 '  # static: no re-raise, highest record below WARNING; no injection arm reaches it",
+   "beyond_finding": true,
+   "note": "ECL110 MQTT state subscription unavailable at DEBUG (no arm reaches it: static probe only)",
+   "probe_kind": "static"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_load_thermal_learning (handler coordinator.py:4581)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:4580  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "load family: learned thermal parameters not loaded, DEBUG only; the learner restarts from defaults",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_save_thermal_learning (handler coordinator.py:4780; coordinator.py:4779 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:4779  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_save_price_model (handler coordinator.py:8296; coordinator.py:8293 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:8293  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_save_ledger (handler coordinator.py:8368; coordinator.py:8365 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:8365  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_save_accuracy (handler coordinator.py:8406; coordinator.py:8403 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:8403  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_save_energy_totals (handler coordinator.py:8448; coordinator.py:8445 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:8445  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_load_manual_plan (handler coordinator.py:8477)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:8474  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "load family: stored manual plan not loaded, DEBUG only",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_save_manual_plan (handler coordinator.py:8505; coordinator.py:8502 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:features.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/coordinator.py:8502)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._track_curve_comfort (handler coordinator.py:9255)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:config_flow_steps.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/coordinator.py:9252)",
+   "beyond_finding": true,
+   "note": "heat-curve comfort tracking returns with no record",
+   "probe_kind": "local"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_save_snapshots (handler coordinator.py:9776; coordinator.py:9773 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:9773  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/debugger.py",
+   "symbol": "DebugCollector.async_save (handler debugger.py:523; debugger.py:523 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:debug_collect.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/debugger.py:523)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "symbol": "DhwProfileLearner.async_load_profile (handler dhw_learning.py:254)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/dhw_learning.py:254  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "load family: learned DHW profile not loaded, DEBUG only",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "symbol": "DhwProfileLearner.async_save_profile (handler dhw_learning.py:371; dhw_learning.py:371 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:features.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/dhw_learning.py:371)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "symbol": "DhwProfileLearner.async_save_draws (handler dhw_learning.py:384; dhw_learning.py:384 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:features.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/dhw_learning.py:384)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "symbol": "DhwPlanner._plan_dhw_min_cost (handler dhw_planner.py:1604)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/dhw_planner.py:1604  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "DHW cost LP raising falls back to the greedy planner at DEBUG on every plan",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/diagnosis.py",
+   "symbol": "diagnose_record (handler diagnosis.py:151)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/swallowed_sweep.py | grep 'diagnosis.py:151 '  # static: no re-raise, highest record below WARNING; no injection arm reaches it",
+   "beyond_finding": true,
+   "note": "interval diagnosis failing at DEBUG (no arm reaches it: static probe only)",
+   "probe_kind": "static"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/diagnostics.py",
+   "symbol": "_coordinator_snapshot (handler diagnostics.py:339; diagnostics.py:339 at 92d38ecb)",
+   "finding": "D1-s3-07",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/diagnostics.py:339  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/diagnostics.py",
+   "symbol": "_never_breaks (handler diagnostics.py:367; diagnostics.py:367 at 92d38ecb)",
+   "finding": "D1-s3-07",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/diagnostics.py:367  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/duty_switch.py",
+   "symbol": "_load (handler duty_switch.py:504)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:features.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/duty_switch.py:504)",
+   "beyond_finding": true,
+   "note": "load family: duty-switch record not loaded, DEBUG only",
+   "probe_kind": "local"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/duty_switch.py",
+   "symbol": "_persist (handler duty_switch.py:514; duty_switch.py:514 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:finite_boundary.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/duty_switch.py:514)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "symbol": "LegionellaGuard.async_load (handler legionella.py:227)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/legionella.py:227  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "load family: legionella timestamp not loaded, DEBUG only",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "symbol": "LegionellaGuard.async_save (handler legionella.py:262; legionella.py:262 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/legionella.py:262  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/notifier.py",
+   "symbol": "Notifier._async_save (handler notifier.py:289; notifier.py:289 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/notifier.py:289  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/off_restore.py",
+   "symbol": "_save (handler off_restore.py:152; off_restore.py:152 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/off_restore.py:152  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/off_restore.py",
+   "symbol": "async_forget (handler off_restore.py:343)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:manual_plan.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/off_restore.py:343)",
+   "beyond_finding": true,
+   "note": "store removal failing at DEBUG: the off-restore store survives its forget",
+   "probe_kind": "local"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/open_meteo.py",
+   "symbol": "OpenMeteoSolar._fenced (handler open_meteo.py:400)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:open_meteo.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/open_meteo.py:400)",
+   "beyond_finding": true,
+   "note": "Open-Meteo response unparseable at DEBUG",
+   "probe_kind": "local"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/open_meteo.py",
+   "symbol": "OpenMeteoSolar._get_json (handler open_meteo.py:421)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:open_meteo.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/open_meteo.py:421)",
+   "beyond_finding": true,
+   "note": "Open-Meteo request failing at DEBUG",
+   "probe_kind": "local"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_lbfgsb_restart (handler optimizer.py:1866; optimizer.py:1866 at 92d38ecb)",
+   "finding": "D1-s3-07",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/optimizer.py:1866  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._co_optimize (handler optimizer.py:4000)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/optimizer.py:4000  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "DHW/space co-optimization pass skipped at DEBUG on every solve",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_avoid_priced_switches (handler optimizer.py:496)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/swallowed_sweep.py | grep 'optimizer.py:496 '  # static: no re-raise, highest record below WARNING; no injection arm reaches it",
+   "beyond_finding": true,
+   "note": "duty-switch candidate pass skipped at DEBUG (no arm reaches it: static probe only)",
+   "probe_kind": "static"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_commit_runs (handler optimizer.py:705)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/optimizer.py:705  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "run commitment failing at DEBUG on every solve; the projection ships",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_persist (handler pump_arbiter.py:2195; pump_arbiter.py:2195 at 92d38ecb)",
+   "finding": "D1-s3-05",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/local_inject.py (arm local:finite_boundary.py) -> contained, no WARNING+ record in the handler (m5_table.tsv row custom_components/heatpump_optimizer/pump_arbiter.py:2195)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/setpoint_check.py",
+   "symbol": "evaluate (handler setpoint_check.py:88)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/setpoint_check.py:88  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "set-point consistency check skipped at DEBUG on every pass",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/store.py",
+   "symbol": "load_mapping (handler store.py:690)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/store.py:690  # at 92d38ecb: fired>0, 0 WARNING+ records added over the control across the armed phases",
+   "beyond_finding": true,
+   "note": "load family: every restore built on load_mapping (boost, away, pump arbiter) starts from nothing on a failing load, recorded at DEBUG",
+   "probe_kind": "lifecycle"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/whatif.py",
+   "symbol": "steady_pair (handler whatif.py:213)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/swallowed_sweep.py | grep 'whatif.py:213 '  # static: no re-raise, highest record below WARNING; no injection arm reaches it",
+   "beyond_finding": true,
+   "note": "what-if steady pair failing at DEBUG (no arm reaches it: static probe only)",
+   "probe_kind": "static"
+  }
+ ],
+ "other_seams": [
+  {
+   "id": "__init__.py:195",
+   "func": "_take_fresh_handover",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "__init__.py:315",
+   "func": "async_setup_entry",
+   "disposition": "not applicable",
+   "reason": "the integration version label only; its absence shows on the device page"
+  },
+  {
+   "id": "accuracy.py:1050",
+   "func": "MeasuredCop.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "accuracy.py:489",
+   "func": "AccuracyTracker.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "accuracy.py:497",
+   "func": "AccuracyTracker.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "accuracy.py:505",
+   "func": "AccuracyTracker.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "accuracy.py:514",
+   "func": "AccuracyTracker.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "accuracy.py:563",
+   "func": "plan_promise",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "accuracy.py:617",
+   "func": "_stored_promise",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "boost.py:734",
+   "func": "_due_inside_horizon",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "boost.py:745",
+   "func": "_window_open",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "comfort_learning.py:243",
+   "func": "ComfortLearner.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "comfort_learning.py:254",
+   "func": "ComfortLearner.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "config_flow.py:1110",
+   "func": "_valid_months_spec",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "config_flow.py:1357",
+   "func": "_translated_menu",
+   "disposition": "not applicable",
+   "reason": "the untranslated menu labels are the visible fallback"
+  },
+  {
+   "id": "config_flow.py:2093",
+   "func": "_peak_window_as_int",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "config_flow.py:2449",
+   "func": "_omit_unstored_computed",
+   "disposition": "not applicable",
+   "reason": "keeps the user's submitted value when the computed default cannot be recomputed: the conservative result, not a lost operation"
+  },
+  {
+   "id": "config_flow.py:2558",
+   "func": "_same_setting",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "config_flow.py:2563",
+   "func": "_same_setting",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "config_flow.py:533",
+   "func": "validate_tibber_token",
+   "disposition": "guarded",
+   "reason": "returns 'cannot_connect', shown as the form's error"
+  },
+  {
+   "id": "config_flow.py:802",
+   "func": "_widen_to_fit",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "const.py:1496",
+   "func": "finite_float",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 5 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "coordinator.py:11233",
+   "func": "HeatPumpOptimizerCoordinator.async_simulate",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "coordinator.py:1913",
+   "func": "_shutdown_process_pool",
+   "disposition": "not applicable",
+   "reason": "teardown of a worker being discarded"
+  },
+  {
+   "id": "coordinator.py:1920",
+   "func": "_shutdown_process_pool",
+   "disposition": "not applicable",
+   "reason": "teardown of a worker being discarded"
+  },
+  {
+   "id": "coordinator.py:1926",
+   "func": "_shutdown_process_pool",
+   "disposition": "not applicable",
+   "reason": "teardown of a worker being discarded"
+  },
+  {
+   "id": "coordinator.py:2041",
+   "func": "_read_reply",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:2091",
+   "func": "_run_in_process",
+   "disposition": "not applicable",
+   "reason": "cleanup kill inside a path that re-raises the timeout"
+  },
+  {
+   "id": "coordinator.py:2108",
+   "func": "_run_in_process",
+   "disposition": "not applicable",
+   "reason": "cleanup kill inside a path that raises ProcessWorkerUnavailable with the cause"
+  },
+  {
+   "id": "coordinator.py:2151",
+   "func": "_await_off_loop",
+   "disposition": "guarded",
+   "reason": "the executor fallback computes the same plan; a persistent worker failure is surfaced by the 'Process-solve worker unusable' WARNING and _worker_fallback_streak"
+  },
+  {
+   "id": "coordinator.py:2276",
+   "func": "_worker_fallback_streak",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:3012",
+   "func": "_plausible_forecast_rows",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:4184",
+   "func": "HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:440",
+   "func": "_stored_isoformat",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:452",
+   "func": "_stored_learner",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:4605",
+   "func": "HeatPumpOptimizerCoordinator._async_load_thermal_learning",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:4661",
+   "func": "HeatPumpOptimizerCoordinator._load_t4b_learners",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:4678",
+   "func": "HeatPumpOptimizerCoordinator._load_t4b_learners",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:512",
+   "func": "_refuses_non_finite.guarded",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:583",
+   "func": "_comparable_ts",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 2 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "coordinator.py:5993",
+   "func": "HeatPumpOptimizerCoordinator._check_pump_mode_expired",
+   "disposition": "not applicable",
+   "reason": "a mode notice that fails to clear stays visible to the user"
+  },
+  {
+   "id": "coordinator.py:6035",
+   "func": "HeatPumpOptimizerCoordinator._dhw_effective_windows",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:6980",
+   "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 5 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "coordinator.py:6982",
+   "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 5 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "coordinator.py:7115",
+   "func": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:746",
+   "func": "_valve_write_problem",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "coordinator.py:8331",
+   "func": "HeatPumpOptimizerCoordinator._async_load_ledger",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:894",
+   "func": "_outage_reading",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:9293",
+   "func": "HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "coordinator.py:9527",
+   "func": "HeatPumpOptimizerCoordinator._raise_cop_issue",
+   "disposition": "not applicable",
+   "reason": "success-shaped 0.0: N-silent-zero's mechanism (nearest class), not this one"
+  },
+  {
+   "id": "coordinator.py:9857",
+   "func": "HeatPumpOptimizerCoordinator._entity_state",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "curve_learning.py:162",
+   "func": "CurveLearner.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "curve_learning.py:171",
+   "func": "CurveLearner.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "curve_learning.py:175",
+   "func": "CurveLearner.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "debugger.py:199",
+   "func": "_read_stores",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "debugger.py:209",
+   "func": "_parsed",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "debugger.py:355",
+   "func": "run_self_tests",
+   "disposition": "guarded",
+   "reason": "the timeout is written into the self-test outcome of the debug collection"
+  },
+  {
+   "id": "debugger.py:357",
+   "func": "run_self_tests",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "debugger.py:674",
+   "func": "DebugCollector._async_replay",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "debugger.py:676",
+   "func": "DebugCollector._async_replay",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "defrost.py:530",
+   "func": "DefrostDerate.from_dict._grid_of",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 1 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "defrost.py:737",
+   "func": "DefrostWindow._elapsed",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_draws.py:160",
+   "func": "DrawStats.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_learning.py:234",
+   "func": "DhwProfileLearner.normalize_profile",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_learning.py:272",
+   "func": "DhwProfileLearner.async_load_profile",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_learning.py:335",
+   "func": "DhwProfileLearner.apply_payload",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_learning.py:355",
+   "func": "DhwProfileLearner._restore_daytypes",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_planner.py:1032",
+   "func": "DhwPlanner._dhw_window_floors",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_schedule.py:123",
+   "func": "_parse_day_selector",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_schedule.py:129",
+   "func": "_parse_day_selector",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_schedule.py:537",
+   "func": "is_valid_spec",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "dhw_schedule.py:577",
+   "func": "spec_problem",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "diagnosis.py:103",
+   "func": "attribute",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "diagnosis.py:114",
+   "func": "attribute",
+   "disposition": "not applicable",
+   "reason": "an optional attribute read; absence is the expected case"
+  },
+  {
+   "id": "diagnosis.py:93",
+   "func": "attribute",
+   "disposition": "not applicable",
+   "reason": "an optional attribute read; absence is the expected case"
+  },
+  {
+   "id": "draw_range.py:373",
+   "func": "DrawRange.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "draw_range.py:388",
+   "func": "DrawRange.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "draw_range.py:456",
+   "func": "_stored_ceiling",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "draw_range.py:473",
+   "func": "_command_cells",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "drift.py:109",
+   "func": "stored_instant",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "drift.py:318",
+   "func": "Cusum.load",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "drift.py:360",
+   "func": "_positive_definite",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "duty_legs.py:144",
+   "func": "priced_pair",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "duty_switch.py:427",
+   "func": "DutySwitchLearner.from_record",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "entry_config.py:42",
+   "func": "_whole",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "flow_lift.py:230",
+   "func": "FlowCurveBias.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "freq_control.py:274",
+   "func": "FrequencyMap.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "freq_control.py:280",
+   "func": "FrequencyMap.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "grid_fee.py:243",
+   "func": "spec_problem",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "grid_fee.py:281",
+   "func": "GridFeeSchedule.from_config",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "inputs.py:1122",
+   "func": "InputReader.read",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "inputs.py:965",
+   "func": "parse_bool",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "issues.py:65",
+   "func": "clear_issue",
+   "disposition": "not applicable",
+   "reason": "a repair issue that fails to clear stays visible to the user"
+  },
+  {
+   "id": "ledger.py:255",
+   "func": "_clean_month",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 1 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "manual_plan.py:267",
+   "func": "ManualOverride.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "off_restore.py:218",
+   "func": "_restore_baseline",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "open_meteo.py:213",
+   "func": "_parse_block",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "open_meteo.py:223",
+   "func": "_parse_block",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "optimizer.py:1468",
+   "func": "<module>",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "optimizer.py:1944",
+   "func": "_multi_start_minimize",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 2 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "optimizer.py:1970",
+   "func": "_multi_start_minimize",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 2 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "optimizer.py:2849",
+   "func": "_solver_status",
+   "disposition": "not applicable",
+   "reason": "reads the solver's status label for diagnostics"
+  },
+  {
+   "id": "optimizer.py:4988",
+   "func": "HeatPumpOptimizer._solve_space",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 2 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "optimizer.py:5575",
+   "func": "HeatPumpOptimizer._optimize_space_only",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "price_model.py:113",
+   "func": "_stored_rows",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 3 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "price_model.py:127",
+   "func": "_stored_counts",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "price_model.py:484",
+   "func": "_noon",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "price_model.py:584",
+   "func": "_entries_by_day",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "price_model.py:749",
+   "func": "_raw_start",
+   "disposition": "guarded",
+   "reason": "its injected fault adds 5 WARNING+ record(s) downstream across the armed phases (lifecycle arm)"
+  },
+  {
+   "id": "price_model.py:772",
+   "func": "apply_price_adjustments",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "price_model.py:862",
+   "func": "pull_prices",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "price_tiles.py:307",
+   "func": "_aware",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "process_worker.py:25",
+   "func": "_bootstrap",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "process_worker.py:40",
+   "func": "_describe",
+   "disposition": "not applicable",
+   "reason": "formats a type name inside an error message"
+  },
+  {
+   "id": "process_worker.py:52",
+   "func": "_dump",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "process_worker.py:74",
+   "func": "run_worker",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "process_worker.py:76",
+   "func": "run_worker",
+   "disposition": "guarded",
+   "reason": "the load error is pickled to the parent (_dump), which raises ProcessWorkerUnavailable and logs it"
+  },
+  {
+   "id": "process_worker.py:85",
+   "func": "run_worker",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "pump_arbiter.py:1483",
+   "func": "_observed",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "pump_arbiter.py:2214",
+   "func": "_load",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "quiet_windows.py:422",
+   "func": "silent_cap_kw",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "quiet_windows.py:594",
+   "func": "_parse_spec_pair",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "quiet_windows.py:627",
+   "func": "overlap_problem",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "repairs.py:54",
+   "func": "DhwSetpointRepairFlow.async_step_confirm",
+   "disposition": "not applicable",
+   "reason": "an issue that fails to clear after its repair stays visible"
+  },
+  {
+   "id": "replay_doc.py:185",
+   "func": "numeric",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "replay_doc.py:197",
+   "func": "json_decimal_places",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "replay_doc.py:218",
+   "func": "text_ok",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "replay_doc.py:240",
+   "func": "clean_value",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "services.py:1273",
+   "func": "handle_diagnose_interval",
+   "disposition": "guarded",
+   "reason": "the handler hands the error object on (returned or assigned), to a caller that reports it"
+  },
+  {
+   "id": "silent_mode.py:109",
+   "func": "compose",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "snapshots.py:230",
+   "func": "SnapshotRing.best_restore",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "snapshots.py:286",
+   "func": "SnapshotRing.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "store.py:102",
+   "func": "_poisoned",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "store.py:160",
+   "func": "_bound_instants",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "store.py:217",
+   "func": "_parses",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "store.py:247",
+   "func": "in_domain",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "store.py:72",
+   "func": "<module>",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "sysid.py:1981",
+   "func": "SystemIdentification.identify",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "sysid.py:2098",
+   "func": "SystemIdentification.identify",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "sysid.py:2112",
+   "func": "SystemIdentification.identify",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "sysid.py:826",
+   "func": "_lm_solve",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "tariff.py:425",
+   "func": "PeakTracker.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "tariff.py:435",
+   "func": "PeakTracker.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "tariff.py:445",
+   "func": "PeakTracker.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "tariff.py:524",
+   "func": "_stored_peaks",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "thermal_model.py:173",
+   "func": "_holiday_dhw_windows",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "thermal_model.py:268",
+   "func": "ThermalParameters.clamp",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "thermal_model.py:285",
+   "func": "ThermalParameters.clamp",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "thermal_model.py:3540",
+   "func": "ThermalModel.internal_gains_at",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wear.py:225",
+   "func": "StartCounter.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wear.py:233",
+   "func": "StartCounter.from_dict",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wood_fuel.py:129",
+   "func": "wood_fuel_ready",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wood_fuel.py:291",
+   "func": "_as_dt",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wood_fuel.py:318",
+   "func": "wood_slots_to_kw",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wood_fuel.py:343",
+   "func": "_wood_slots_error",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wood_fuel.py:369",
+   "func": "_wood_override_fuel",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wood_fuel.py:420",
+   "func": "detected_wood_slots",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wood_fuel.py:459",
+   "func": "_cops",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  },
+  {
+   "id": "wood_fuel.py:501",
+   "func": "build_wood_fuel_view",
+   "disposition": "not applicable",
+   "reason": "narrow catch around a parse/coercion with no awaited operation: bad input becomes a default, a success-shaped value (N-silent-zero, the nearest class), not a swallowed operation failure"
+  }
+ ]
+}

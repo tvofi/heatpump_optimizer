@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/currency.py:<module> GUARD_OFF e1433e05",
+  "old": "if TYPE_CHECKING:",
+  "reason": "Equivalent (GUARD_OFF, `if TYPE_CHECKING:` -> `if False:`): TYPE_CHECKING is False at runtime, so both skip the block, which holds only the type-checking import of homeassistant.core.HomeAssistant; under `from __future__ import annotations` nothing evaluates that name, and the block is what keeps currency a pure module (no Home Assistant reach). Measured by the R11-SEAM-kernel-layering fixer on copies of the module loaded in venv-ci's HA-free interpreter: every module-level name with its type and annotations hashes the same under the mutant as at the head (55c66ebe4e75 both), where the control `if True:` is observable (its import raises ModuleNotFoundError: homeassistant). Reported surviving by tests/mutation on #3724 (run 44308221206, job 134815743649).",
+  "verdict": "equivalent"
+}

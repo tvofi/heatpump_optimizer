@@ -1,0 +1,107 @@
+{
+ "cell": "coordinator.py/flat/coord_two_zone",
+ "perturb": null,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "n_calls": 1,
+ "status": "optimal",
+ "objective_value": 76.36363906655626,
+ "predicted_cost": 64.5570851871671,
+ "shipped_energy_kwh": 53.797570989305925,
+ "lbfgsb_runs": 11,
+ "lbfgsb_hit_maxiter": 0,
+ "lbfgsb_abnormal": 0,
+ "calls": [
+  {
+   "call": 0,
+   "n": 96,
+   "maxiter": 200,
+   "n_candidates": 5,
+   "batch": true,
+   "has_dhw_arg": false,
+   "f_prod": 76.36363906655626,
+   "prod_feas": {
+    "bound_viol": 0.0,
+    "comfort_lo": 0.0,
+    "comfort_hi": 0.0
+   },
+   "shipped": true,
+   "energy_cost_prod": 64.5570851871671,
+   "challengers": {
+    "seeds": {
+     "f": 76.31340205319813,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 11.933,
+     "energy_cost": 64.12767043709601
+    },
+    "budget": {
+     "f": 76.36363906655626,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 3.722,
+     "energy_cost": 64.5570851871671
+    },
+    "eps-1e-6": {
+     "f": 76.25727665306525,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 1.762002455052425e-08,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 3.522,
+     "energy_cost": 64.48766100770317
+    },
+    "eps-1e-3": {
+     "f": 76.58216689206127,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 3.4698753559325723e-06,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 3.789,
+     "energy_cost": 64.48138196637376
+    },
+    "global": {
+     "f": 76.13783046362369,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 1.0718306775459041e-06,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 2.143,
+     "energy_cost": 63.31817830955074
+    },
+    "warm": {
+     "f": 76.13782501392366,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "from_": "global",
+     "energy_cost": 63.3185816864817
+    }
+   },
+   "best": "warm",
+   "f_best": 76.13782501392366,
+   "gap": 0.22581405263260024,
+   "gap_rel": 0.0029570886798072505,
+   "infeasible_cheaper": {}
+  }
+ ],
+ "wall_s": 79.49,
+ "cpu_s": 28.97,
+ "thread_factor": 1.0
+}

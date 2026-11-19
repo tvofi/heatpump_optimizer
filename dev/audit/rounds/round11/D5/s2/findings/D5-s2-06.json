@@ -1,0 +1,42 @@
+{
+ "id": "D5-s2-06",
+ "scope": "D5-s2",
+ "step": "D5.M4",
+ "title": "make_card_weekly_figure.mjs header: two sentences of 51 and 55 words",
+ "severity": "low",
+ "claim": "The header comment of docs/img/model/make_card_weekly_figure.mjs carries two prose sentences of 51 and 55 words, over C5's 40-word limit; every checked fact in it is true.",
+ "mechanism": "The header packs the figure's subject and the payload construction into two chained sentences joined by ':' and parentheses.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/comments.py --plandata $TMPDIR/plandata.json",
+  "harness_path": "dev/audit/rounds/round11/D5/s2/comments.py",
+  "value": "long_sentences[make_card_weekly_figure.mjs]=2",
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+  "cpu_or_wall": "count",
+  "contention_note": "box heavily loaded (load1 150-185); counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 172.87,
+  "thread_factor": 0.999
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of (D5 comment units) over docs/img/model/make_card_weekly_figure.mjs",
+ "perturbation": {
+  "change": "--perturb-text: each >40-word sentence split at its first clause break after word 20",
+  "expected_direction": "to_zero",
+  "observed_value": "long_sentences 8 -> 0"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/comments.py",
+  "value": "render.mjs, render_mermaid.mjs and make_readme_figures.py: long_sentences 0 each",
+  "note": "indented command lines inside comments are not counted as prose, so the 69-word false hit in render_mermaid.mjs's run block is excluded"
+ },
+ "metric_definition": "Prose sentences (indented command lines excluded) over 40 words in the file's comment units (C5).",
+ "phenomenon_property": "No comment sentence in the file exceeds 40 words.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/comments.py  (long lines)",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "docs/img/model/make_card_weekly_figure.mjs"
+ ],
+ "proposed_fix_scope": "Split the two header sentences."
+}

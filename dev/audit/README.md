@@ -38,7 +38,13 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | 10 post-merge beat and state docs | a merge | row, handover and state docs current | `tools/audit/seat/postmerge.py`, `tools/audit/seat/beatd.py`, `tools/audit/seat/state_docs.py` | `dev/governance/rules/delivery-status-tracking.md` | `dev/programme/delivery/`, `dev/programme/HANDOVER.md`, a #201 comment |
 | 11 stamps | merges since the last tag | the tag pushed | `tools/release/stamp.py`, `.claude/workflows/web-stamp.js` | `orchestrator.md` section 13 | the tag and release notes |
 | 12 projections and extension | a wave edge | the plan re-projected; a new group appended | `tools/plan/replan.py`, `tools/audit/seat/plan_page.py`, `tools/audit/seat/flow_metrics.py` | `orchestrator.md` section 2b | the projection, a roster group |
+| 12b instrument prototype and proposal triage | about 24 h before closeout | the plan's groups in the next round's roster | `tools/audit/seat/roster_edit.py` | `proposal-triage.md` | the batch's `## Plan` |
 | 13 closure | every phase drained | the criteria below hold | `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201; the round's objective record |
+
+**Phase 12b**: one Fable seat (else opus) consolidates instrument proposals and
+the prototype overlays in the state directory's per-round prototype folder and plans each ACCEPT as the batch's `## Plan`, shaped as
+`architect-planner.md`'s; on another seat's `Plan review: approve <sha>`
+(`plan-review.md`) the orchestrator creates its groups.
 
 Lessons (triage batch 141, P545): stack a later part only under the stack
 study's conditions, at the parent's merge verdict, never its handoff; log a cloud fire by the
@@ -96,7 +102,7 @@ against a measured baseline and a null control
 
 - The organization transfer is ruled out (tvofi, 2026-11-14; `dev/programme/HANDOVER.md`).
 - Intake's baseline: R10-PROTECTION-CENSUS's result,
-  `dev/audit/rounds/round10/protection-census/`. On it, B1 (triage batch 245,
+  `dev/audit/rounds/round10/protection-census/CENSUS.md`. On it, B1 (triage batch 245,
   P740) opens the round unless ordered into round 10: on an all-product diff
   `briefs`, `policy-docs` and `wave-script` turn advisory, and `blueprints/`
   joins the product predicate.
@@ -236,7 +242,7 @@ moves.
 | The card in Node | `tests/card_rig.mjs:buildCard`, `planStates`, `makeCardContext`, `qaTopologies` | the DOM stub returns a constant 900×400 rectangle: no geometry |
 | The card's drift states | `tests/card_drift.mjs:STATES` — run it with `--list` rather than carrying a count | drive both a working-tree card and a `git show` card |
 | Real geometry | `tests/card_browser.mjs` | Playwright resolved from `NODE_PATH`; Chromium under `PLAYWRIGHT_BROWSERS_PATH` |
-| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third is the only `unittest.mock` use in the suite; the first two are cited by search text, not line number |
+| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third uses `unittest.mock`; the first two are cited by search text, not line number |
 
 **Traps**
 
@@ -303,7 +309,7 @@ evidence is archived, instruments are kept.
 
 | file | metric | added by | who re-runs it |
 |---|---|---|---|
-| `j5_gil.py` | starvation share = sum(heartbeat gaps > 5 ms) / solve wall, on a real asyncio loop with a 1 ms heartbeat and `HeatPumpOptimizer.optimize` submitted the way production submits it | `8542e51` (W3-G3, #290 #199) | the #290 judge built it; `briefs/fix-review.md` §9 sends a fix reviewer to it |
+| `j5_gil.py` | starvation share = sum(heartbeat gaps > 5 ms) / solve wall, on a real asyncio loop with a 1 ms heartbeat and `HeatPumpOptimizer.optimize` submitted the way production submits it | `8542e51` (W3-G3, #290 #199) | the #290 judge built it |
 | `h8_single_scenario.py` | whether the stress gate detects a 2x regression confined to one scenario, and stays quiet on a multi-start basin flip (#346) | `291ae76` (#378) | anyone changing `tests/stress.py`'s per-scenario or solver-work rules |
 | `h9_basin_coverage.py` | how many of the 51 sweep scenarios the solver-work rule judges rather than exempts, against the tree's own floor (#387) | `32f309f` (#388) | the same |
 | `k1725_blas_kernel_gap.py` | the ftol check's arms and the R9-F2.1 P3 margins, per OpenBLAS kernel via `OPENBLAS_CORETYPE` | `613bff1b` (#1726, #1725) | anyone adding a knife-edge optimizer comparison (`tests/README.md`'s kernel rule) |

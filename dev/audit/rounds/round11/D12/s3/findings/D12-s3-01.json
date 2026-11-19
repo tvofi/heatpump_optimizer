@@ -1,0 +1,55 @@
+{
+ "id": "D12-s3-01",
+ "scope": "D12-s3",
+ "step": "D12.M3",
+ "title": "Declared on/off compressor (compressor_modulation=on_off) is planned as modulating; switch+setpoint loses its clamp",
+ "severity": "high",
+ "claim": "With compressor_modulation=on_off, thermal_model.declared_modulation returns True (modulating), so the plan one real cycle publishes is never projected onto {0} U [p_min, p_max]: 0 of 10 grid cells clamp (10 of 10 under the documented mapping), 8-9 of 10 publish steps in (0, p_min), and on an unmetered switch+setpoint plant the declaration switches the install probe's clamp off (10/10 -> 0/10).",
+ "mechanism": "declared_modulation maps COMPRESSOR_MODULATION_ON_OFF to True, the value its docstring and the modulating branch reserve for 'modulating'; duty_cycle_realizable then short-circuits to True, levels_clamped to False, and OptimizationConfig.from_mapping solves with clamp_planned_levels=False; probe_install.on_off (declared_modulation(cfg) is False) is also never set.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/modulation.py",
+  "harness_path": "dev/audit/rounds/round11/D12/s3/modulation.py",
+  "value": 0,
+  "unit": "grid cells (of 10) whose on_off-declared plan is clamped onto {0} U [p_min,p_max] (RESULT on_off_clamped_cells); switch_setpoint_on_off_clamped_cells=0 vs switch_setpoint_absent_clamped_cells=10",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6, Linux x86_64, python 3.14.7, numpy 2.5.4, scipy 1.18.1",
+  "cpu_or_wall": "count",
+  "contention_note": "two other compute seats on B6 plus this seat's own background runs (load1 5-13); counts are contention-immune",
+  "tolerance": "exact for the clamped-cell counts; on_off_sub_min_total / on_off_cells_failing depend on the hour the harness starts (prices are laid from dt_util.now, unfrozen): observed 132/8 and 92/9 on two runs, always 0/0 under the perturbation",
+  "load1": 5.28,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.thermal_model:declared_modulation (driven through heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data and optimizer:OptimizationConfig.from_mapping)",
+ "perturbation": {
+  "change": "--perturb doc-modulation: mock.patch.object(thermal_model, 'declared_modulation', the docstring's map, on_off -> False); one-line production equivalent: 'False if mode == const.COMPRESSOR_MODULATION_ON_OFF' in declared_modulation",
+  "expected_direction": "to_zero",
+  "observed_value": "on_off_clamped_cells 0 -> 10; switch_setpoint_on_off_clamped_cells 0 -> 10; on_off_sub_min_total 132 -> 0; on_off_cells_failing 8 -> 0; surfaces.py fail_count 1 -> 0"
+ },
+ "metric_definition": "Per price x weather cell, plan steps whose total electrical level (space+DHW) lies in (0, p_min) in the plan one real cycle publishes for a plant declaring compressor_modulation=on_off.",
+ "phenomenon_property": "A compressor mode the user declares (on_off / modulating) is the mode the plan obeys on every write surface: on_off always projects planned levels onto {0} U [p_min, p_max], and no declaration makes the plan less constrained than the undeclared probe.",
+ "seam_rule": "grep -n 'declared_modulation(\\|COMPRESSOR_MODULATION_ON_OFF\\|\\.on_off\\b' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/modulation.py ; ... surfaces.py --reference --setup",
+  "value": "modulation.py: modulating and absent arms 92 sub-min steps / 0 clamped (legitimate for a modulating compressor); switch_setpoint_absent 0 sub-min / 10 clamped (the probe's own clamp). surfaces.py --reference (coord_all_features, fully mapped, M5): the undeclared auto and the modulating cells pass; modulation:on_off fails there as well (1 sub-min step, clamp off), so the defect is the on_off axis value on any plant -- the reference plant itself, undeclared, passes.",
+  "note": "Not a cost claim; --flat still shows on_off 35 sub-min steps, switch_setpoint_on_off 35 vs switch_setpoint_absent 0."
+ },
+ "leave_one_out": {
+  "cells": 10,
+  "min": 0,
+  "max": 23,
+  "drop_most_favourable": 69
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 -c \"import sys;sys.path[:0]=['tests','custom_components'];from heatpump_optimizer import thermal_model as t;print(t.declared_modulation({'compressor_modulation':'on_off'}))\"  -> True (docstring: False)",
+  "run modulation.py; read RESULT on_off_clamped_cells=0 and switch_setpoint_on_off_clamped_cells=0 vs switch_setpoint_absent_clamped_cells=10",
+  "run modulation.py --perturb doc-modulation; every on_off count goes to 0 / clamped 10",
+  "surfaces.py (M3, 32 cells): fail_count=1 (modulation:on_off); --perturb doc-modulation -> fail_count=0; --entry (real async_setup_entry) reproduces it"
+ ],
+ "proposed_fix_scope": "thermal_model.declared_modulation: map COMPRESSOR_MODULATION_ON_OFF to False; tests/features.py's #3289 block already states that expectation",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}
