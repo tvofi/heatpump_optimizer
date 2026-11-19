@@ -1,0 +1,205 @@
+3551|2026-11-15T16:24:23+01:00|verdict: #3551 Fix review: merge d95a2bc761b7ce0fb14f3ff4e239a8d045567557
+3566|2026-11-16T00:14:58+01:00|verdict: #3566 Fix review: merge 2407a4ed50fe092f4c3ebe4e94867dcd7bfbd828
+3598|2026-11-15T14:36:26+01:00|verdict: #3598 Fix review: blocked a945275dd01d5a7ee100598315bd94e20652cb25 mutation-vacuous: running_signal.refresh tick-before-note survives the build's block and the whole features.py
+3598|2026-11-15T22:16:40+01:00|verdict: #3598 Fix review: merge e4edcd794d22dfe996322a63e7d115f262e12042
+3598|2026-11-17T22:52:01+01:00|verdict: #3598 Fix review: merge ca0e06eb3d4650ba8bfad61195620f429c09f2eb
+3602|2026-11-16T16:16:31+01:00|verdict: #3602 Fix review: merge bca2e138252ed1176e517aca6f3bcb47588cd2af
+3602|2026-11-17T22:52:29+01:00|verdict: #3602 Fix review: merge 38c254f3fb6cf9e6d262dcec7ca1de30a474b752
+3602|2026-11-17T22:52:57+01:00|verdict: #3602 Fix review: blocked fef885f94a3ef7865a35441bd5ab4b4afbb106df harness: design-trace-missing the amended note's test 3 clause, its item a3, and test 4 round-3 clause have no check, and one further block stands under Block
+3602|2026-11-17T22:53:22+01:00|verdict: #3602 Fix review: merge 5b33358e80a8a5bb1d20a1bf78bd675a45ca4234
+3608|2026-11-15T11:20:41+01:00|verdict: #3608 Fix review: merge c200ad654edad312d1493e0edd41cb2bd7e2897e
+3608|2026-11-18T15:59:52+01:00|verdict: #3608 Fix review: blocked 9371c9e6a3a76f37fe522501881285df1df89099 merge-resolution: the main merge 9371c9e6 unioned main's merged rows into the branch's, leaving dev/programme/delivery/3451.md, 3521.md and 3593.md two lines each for one PR (record_row.py: each row file is exactly one line); take main's line so the PR's own diff drops those three files
+3608|2026-11-18T23:39:32+01:00|verdict: #3608 Fix review: merge 731ceaa3d3505006973cef6b213a84cda4569acc
+3608|2026-11-19T01:51:44+01:00|verdict: #3608 Fix review: merge 8ad37dc99944f5e0db46d6f04562a65ff2bbe916
+3609|2026-11-15T11:37:31+01:00|verdict: #3609 Fix review: merge caa32492bc7a7b0512957f8df4f5d6153349dd6d
+3611|2026-11-15T14:22:32+01:00|verdict: #3611 Fix review: blocked f460c3a2b320cf594736d301fa464a46b87cc2e3 introduced-red: governance / instrument-self-tests fails at the head and not the base; check_scopes.py --self-test's yardstick arm refuses the added dev/audit/yardstick/round10/escapes_hand.tsv
+3611|2026-11-15T15:40:21+01:00|verdict: #3611 Fix review: merge d0704b6718b5eeb7127aa2017cbaa844326fb512
+3612|2026-11-15T15:22:44+01:00|verdict: #3612 Fix review: blocked 56a8a61b92480e770943483d37f08306ae4ee694 class-open: plant_recall.py's .git refusal checks only the tree's own root, so a --tree inside a git work tree is planted and git diff shows every plant
+3612|2026-11-15T18:55:10+01:00|verdict: #3612 Fix review: merge 54a0f39d135bfdf176ac0ab0323d92eb2925a454
+3613|2026-11-15T15:30:01+01:00|verdict: #3613 Fix review: merge 62abeb4849dbb7443240fd9d879d970ff2f98780
+3614|2026-11-15T15:30:23+01:00|verdict: #3614 Fix review: blocked 6dc42ccc267162b473d552d5f39f389d9c9a224e class-open: tools/audit/seat/body_push.sh:175
+3614|2026-11-15T19:33:03+01:00|verdict: #3614 Fix review: merge a59a124a6d7c65fa38545024a7d8c2ff765f2aa7
+3615|2026-11-15T16:16:29+01:00|verdict: #3615 Fix review: merge 6606a53561c0c326396f554169bdf29c04b1099e
+3618|2026-11-15T18:15:25+01:00|verdict: #3618 Fix review: merge 60073e460b9b8af16596edf7d2739c4dd326d0fc
+3619|2026-11-15T18:08:08+01:00|verdict: #3619 Fix review: merge 419fd6d2c455601cebe473bd1b8ec77e0090daa0
+3620|2026-11-15T18:39:19+01:00|verdict: #3620 Fix review: blocked e1e3197e3aff48ee7afd6d43db153e232f7b6134 tests-gap: --open-cards output untested and silently empty on unmarked cards
+3620|2026-11-15T21:30:28+01:00|verdict: #3620 Fix review: blocked 6f4b8cd7b729316f4ed9fa0f7bf26f6cdaea2d14 tests-gap: --open-cards exit code and UNMARKED stderr unpinned at the CLI
+3620|2026-11-16T05:37:45+01:00|verdict: #3620 Fix review: merge 86a88d394c61d615dcc0107a6189e45ca7b4d219
+3621|2026-11-15T18:39:49+01:00|verdict: #3621 Fix review: merge d1051479c6fb2a5898db48b45cd2b0403177d187
+3622|2026-11-15T23:01:04+01:00|verdict: #3622 Fix review: blocked 2aff0cc4fe1ea58c40c1113b300592211ee75d3f class-open: plan_phases.violations leaves the text fields' types unguarded, so a phases file that --check accepts crashes plan_page.render (plan_page.py:710), not only its section
+3622|2026-11-16T00:45:12+01:00|verdict: #3622 Fix review: merge 7b687a4819e54718f84e4353ce92f665414cb70e
+3622|2026-11-16T03:16:15+01:00|verdict: #3622 Fix review: merge b0f13c832f425ce5f49df540f0222c5e39ed7b54
+3624|2026-11-15T21:30:45+01:00|verdict: #3624 Fix review: merge 161689a939ce46063175f0e8eebd45e588f2367d
+3625|2026-11-16T01:17:58+01:00|verdict: #3625 Fix review: blocked 673af8e9896e4da83ac093b7ac46143d16305a8a class-open: d1-inputs omits the configured entity slot CONF_COMPRESSOR_FREQ_SENSOR, and ten mutants of the enumerator survive its self-test
+3625|2026-11-16T04:13:52+01:00|verdict: #3625 Fix review: blocked 5fd0fc537375027f219394c11994cf1239624271 class-open: d1-inputs still omits the configured entity slot CONF_COMPRESSOR_FREQ_SENSOR, and the enumerator survivors of round 1 are unchanged at this head
+3625|2026-11-16T07:40:56+01:00|verdict: #3625 Fix review: merge 8445e36cfc6e5d77931f5558efedbe1c4f22db95
+3626|2026-11-15T22:17:14+01:00|verdict: #3626 Fix review: blocked 03c8a591847756bb3ef47cc11693638602e026ba ci-red: governance / policy-docs whole-corpus budget about 69836 tokens over the 69833 cap against current main, from this PR's +96
+3626|2026-11-15T23:45:16+01:00|verdict: #3626 Fix review: merge f475901cacf05fc6b106610d90db01cff7e08a07
+3627|2026-11-15T21:31:04+01:00|verdict: #3627 Fix review: blocked 3ad61a1f6e09044cd47db34952a3ab681db1b1e5 mutation-survivors: six mutants of lines this PR adds survive their self-tests, three on the target rule's own terms (band, merge count, PR-mode tip)
+3627|2026-11-16T00:45:31+01:00|verdict: #3627 Fix review: merge 56fda94e8568b6ae57d1af8227386f8dc096f61c
+3627|2026-11-16T02:01:28+01:00|verdict: #3627 Fix review: blocked 43c1c7dbfd7a642a3543c1912469b2ce30f05584 introduced-red: merging main pushes tools/audit/briefs/orchestrator.md to 4286 tokens, over its 4251 files_tokens cap, so policy_lint exits 1 and governance / policy-docs and governance / env-matrix go red
+3627|2026-11-16T03:07:52+01:00|verdict: #3627 Fix review: merge 842b068dd0ea4b8edb6f3de1c7955380e10ca23c
+3628|2026-11-16T17:56:10+01:00|verdict: #3628 Fix review: merge 6ee7ba56e48bdeb1b8d1c05cb7a9df3a43c17daa
+3628|2026-11-17T02:55:03+01:00|verdict: #3628 Fix review: merge 53d38475ef2f31f5baf17bd2c9c171881b8ccf17
+3629|2026-11-15T22:53:40+01:00|verdict: #3629 Fix review: merge 15bd225fe18f78c3b57772e13b05f4a6e1583671
+3630|2026-11-16T17:00:49+01:00|verdict: #3630 Fix review: merge dcac89f02dbd3db8e2e3469adb4377e2630609ae
+3631|2026-11-15T22:17:34+01:00|verdict: #3631 Fix review: merge 7a587071be68a536ff3437df2b3bbc947f7013ad
+3632|2026-11-15T22:24:19+01:00|verdict: #3632 Fix review: blocked 1b9db1a72251463faf31ddeaa586119ed950dfb0 ci-red: required gate reads red at this head (merge_train classify RED); code review otherwise found no defect
+3633|2026-11-15T22:53:59+01:00|verdict: #3633 Fix review: blocked 416280f5c2e4e4a8274c32246128d2e7a1dd48e2 carry-missing: own-group: the audit-plan.js refusal the roster assigns to part 2 is carried to a part 3 that no plan names
+3633|2026-11-16T19:02:47+01:00|verdict: #3633 Fix review: blocked 2061e87b067922853a5f890dad9ea21d835f593e merge-conflict: tools/audit/seat/roster_edit.py conflicts with origin/main 2c911234e1 (#3657's CONVERGENCE_FIELDS against this PR's gates_finders in set-field)
+3633|2026-11-17T01:08:20+01:00|verdict: #3633 Fix review: merge 39174541fd3707da591f62d5c08e21af06235d0f
+3635|2026-11-16T00:15:23+01:00|verdict: #3635 Fix review: blocked 7caa9f561c3f9407b060b579c7a2c512d223bc8d mutation-vacuous: m6-dr-fetch-unreadable m25-dr-timeread-unreadable m12-ud-cp m24-dr-cp m22-ledger-arm m23-ud-wipseat m16-op-stuck3
+3635|2026-11-16T08:08:56+01:00|verdict: #3635 Fix review: merge 333aba9074bd22f40c5a18f83e15309652b89fb7
+3638|2026-11-16T00:22:48+01:00|verdict: #3638 Fix review: merge 34466736f2f4e9b7d2e7e448652904c6e9d65d4f
+3638|2026-11-16T02:01:46+01:00|verdict: #3638 Fix review: merge 82b63f10988b6450c6d0779eb93b07b500bd1cc1
+3639|2026-11-16T18:09:58+01:00|verdict: #3639 Fix review: blocked 296a0a30d41de41aced099d6c16045cbaefaa1d7 mutation-vacuous: shell_hazard.py NUMERIC.search(line) survives the self-test and excuses a raw wc string compare on any line holding a numeric op
+3639|2026-11-16T21:52:21+01:00|verdict: #3639 Fix review: blocked e0238c1fe8bc36541e3ecb9fea4c1e59e71e5245 mutation-vacuous: string_compared's last-opener loop survives the self-test and the first-opener mutant passes a raw wc string compare after a leading test
+3639|2026-11-17T03:03:12+01:00|verdict: #3639 Fix review: merge f31110589dc2fe910249a76ac0048d4da1b3a80b
+3640|2026-11-16T03:40:55+01:00|verdict: #3640 Fix review: merge 74a57885a3ef178f2556b4b105063a2b3a2edd9a
+3641|2026-11-16T02:50:49+01:00|verdict: #3641 Fix review: merge 0648b3532de38c68cfb7b869a6542c35492dc2b1
+3641|2026-11-16T13:39:13+01:00|verdict: #3641 Fix review: merge 5023cde196c43c5bdd4b11789a45780f1c70790a
+3641|2026-11-16T13:57:35+01:00|verdict: #3641 Fix review: merge 36eb8805ec1eada0b267a5925116a9179bbdf759
+3642|2026-11-16T00:52:43+01:00|verdict: #3642 Fix review: blocked 44766207b74e16930c42c268c67380ed5c0ad951 ci-red: pr-contract / pr-contract red at the head because ## Red checks names budget-raise-gate, not the context budget-raise-gate / budget-raise-gate; gate fails on it
+3642|2026-11-16T02:42:23+01:00|verdict: #3642 Fix review: merge b8ccb27bee23f96d475de0e9034f65de3d633a97
+3644|2026-11-16T03:24:30+01:00|verdict: #3644 Fix review: merge 715fbbe5d3805b034667b98858eb65a14b6ad0d2
+3645|2026-11-16T08:28:07+01:00|verdict: #3645 Fix review: merge a2e33e46c09fba23edaed5897351868525049da2
+3646|2026-11-16T01:26:46+01:00|verdict: #3646 Fix review: merge 194a75594646a73e2f55facf8f63071b5b7e346c
+3647|2026-11-16T03:24:50+01:00|verdict: #3647 Fix review: merge e1a6bedad8dfa5a2b29c51c40022456ca241da81
+3647|2026-11-16T08:09:25+01:00|verdict: #3647 Fix review: merge 5c753a73c3a222053904e2a26812f7d6c24414ec
+3647|2026-11-16T09:03:14+01:00|verdict: #3647 Fix review: merge 83d2d614047ee669cd3b80d40fb58c511fb1112a
+3648|2026-11-16T04:22:13+01:00|verdict: #3648 Fix review: merge 40cc860dd82b1e81ae8f2492a2796bf2797bc911
+3649|2026-11-16T02:17:34+01:00|verdict: #3649 Fix review: blocked 87a315a355faa219065ed906ed3adbd4d589aacd mutation-survivor: apply() ceiling taken from editCeiling() instead of applyEnd survives every card check
+3649|2026-11-16T03:49:10+01:00|verdict: #3649 Fix review: merge c57638046f9d2477d761e8da56327369f8a9a4fe
+3651|2026-11-16T03:08:19+01:00|verdict: #3651 Fix review: merge e5bf20c3b9b8af81663cd787de2460efb18656dc
+3651|2026-11-16T07:48:49+01:00|verdict: #3651 Fix review: merge 3dd9afda8c2d748c125401746164d1ea15e18913
+3652|2026-11-16T03:41:14+01:00|verdict: #3652 Fix review: merge 3350d749566385bcb0a897256544b40cbc3c46af
+3653|2026-11-16T04:31:04+01:00|verdict: #3653 Fix review: merge c155f81fa7eee55adc1de4d4211bba76f72bb20e
+3654|2026-11-16T06:01:48+01:00|verdict: #3654 Fix review: blocked 7a2b2cdef2283bf3c2f07d70d9a380f9fce0b04e merge-conflict: head conflicts with origin/main in .github/workflows/governance.yml, tools/audit/seat/INSTRUMENTS.md, tools/audit/seat/beat_jobs.py, tools/audit/seat/instruments/beat_jobs.py.md
+3654|2026-11-16T08:28:30+01:00|verdict: #3654 Fix review: merge da36537f137ad9bb8a1cbc8c2fdc60bd7c81df8e
+3654|2026-11-16T09:50:37+01:00|verdict: #3654 Fix review: merge b197da1e6bf2c51ad95aa819a78ed020b3db2549
+3657|2026-11-16T08:05:05+01:00|verdict: #3657 Fix review: blocked 95da81dcf729e71bcb6d105fe82caa24a8352a1d caused-by-unwritable: injected and refix can never read for rounds 10 and 11, because set-field refuses caused_by on any group without its own rca record and no roster op adds one
+3657|2026-11-16T11:16:46+01:00|verdict: #3657 Fix review: blocked 3868879d094dcebd146ddd49e7b5b551b7a7618e caused-by-overbroad: rca_lists admits any record that mentions a group, so a process RCA that lists defect groups only as dispatch-status rows is accepted as their root-cause record
+3657|2026-11-16T16:17:00+01:00|verdict: #3657 Fix review: merge c0d7066c07d488c95763fa56db8c18a7517b3abe
+3658|2026-11-16T19:03:04+01:00|verdict: #3658 Fix review: blocked 321d7f9f34526984b5eca8d18870cd14cffbe6f6 mutation-vacuous: ceiling-value-key, produce-prior-round, groups-json-round, groups-json-stage, groups-json-kind, groups-json-write, plans-json-write, baselines-ref, register-ref
+3658|2026-11-16T20:01:14+01:00|verdict: #3658 Fix review: blocked 1f6ea62fd0345ac0759997621fffe315ea11b139 mutation-vacuous: net-all-pages
+3658|2026-11-16T23:09:21+01:00|verdict: #3658 Fix review: merge 79c54d79eac81ae4ea74e065445dbb5ad11c7633
+3659|2026-11-16T15:37:27+01:00|verdict: #3659 Fix review: merge a77dd3b62490af458ebfe06460dd6e62135f26ed
+3661|2026-11-16T10:20:32+01:00|verdict: #3661 Fix review: merge af7d2813775aa51f817135b7df4edc55fcfa2046
+3662|2026-11-16T16:37:39+01:00|verdict: #3662 Fix review: blocked 1134fe365519ce1334aa95960e19f908bb2b4f53 class-open: the heat-ask probe latches follows on a self-setting pump whose draw swings on its own, and the scale walks to the 0.500 clamp as at base
+3662|2026-11-17T22:57:41+01:00|verdict: #3662 Fix review: blocked 9894911a81cdceb51eecec093a2527f93576d34e red-check: pr-contract red at this head on the body's stale scope-line figure block (body-only; code review complete, no code finding)
+3662|2026-11-18T03:21:44+01:00|verdict: #3662 Fix review: blocked 454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7 red-check: pr-contract red at this head on code-scanning alerts 57 and 58 missing from the body's Red checks (body-only; code delta clean, no code finding)
+3662|2026-11-18T04:20:42+01:00|verdict: #3662 Fix review: merge 454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7
+3663|2026-11-16T19:03:25+01:00|verdict: #3663 Fix review: blocked 54fd5072b6b165c4bd3eab3900e5009332132d6a mutation-survivor: build_docs.mjs fragment-keeping redirect line survives deletion, doc_claims stays 411/411
+3663|2026-11-17T01:23:40+01:00|verdict: #3663 Fix review: merge 81ffccaa018624ee9c773d450f9b98be8ba342d3
+3664|2026-11-16T15:42:31+01:00|verdict: #3664 Fix review: merge 4f3aa7edb38f9818e7ddb5ce2d411c67a35fe8db
+3665|2026-11-16T15:32:18+01:00|verdict: #3665 Fix review: blocked 3beb89a81abf8ce618cc96e4458db37e9f186e98 mutation-vacuous: the self-test leaves counted witness predicates unpinned (152 diff-driver survivors, 8 targeted), and governance / instrument-self-tests is an introduced red
+3665|2026-11-16T21:53:15+01:00|verdict: #3665 Fix review: merge 67ff9b3898d347a756c7731ea3fe0b5f460d2fec
+3666|2026-11-16T15:54:47+01:00|verdict: #3666 Fix review: blocked fe138c567b915546e95e8e963fffc527633bfb95 test-red: tests/entities.py countermeasure-B errexit check refuses the bare sh -c this diff adds at tools/pr/figure_block.py:314
+3667|2026-11-16T17:01:24+01:00|verdict: #3667 Fix review: blocked b0c7114dd6ce636514983b1e685c38e46096f35d mutation-vacuous: read_room sensor-unit mutant (state_unit(state) -> None, inputs.py:1290) survives the whole of tests/features.py
+3667|2026-11-17T01:24:06+01:00|verdict: #3667 Fix review: blocked 4fba42d0851101ef4f3994060e2cd092eac2bb2c mutation-vacuous: inputs.py:287 CLAMP_DROP survives at the head; mutation-autofix left it alive and the head is RED on gate
+3667|2026-11-18T00:15:46+01:00|verdict: #3667 Fix review: merge c12695cff70ec25c45085b1dae7a4044c0287087
+3668|2026-11-16T18:10:35+01:00|verdict: #3668 Fix review: merge 2e3fc21cca5a64a9dd1684f184c210951a767b37
+3669|2026-11-16T20:03:26+01:00|verdict: #3669 Fix review: merge 98dd1f9ac2e4887b87a9b434a253ecc9c70be82d
+3670|2026-11-16T18:10:59+01:00|verdict: #3670 Fix review: blocked efc63b60e8a9cf5e90adc1fea09bc584bddf8fe0 harness: draw/floor_kw and draw/floor_since are declared whole=_DRAW_KEY in store.py, but a bad cell costs only itself; the licence is false and unneeded
+3670|2026-11-17T00:24:32+01:00|verdict: #3670 Fix review: blocked c0bc81e0a196a6aeb5fdb386fe85be385a0e53d3 ci-red: required gate is red at this head on tests / mutation's 32 unpinned sites and mutation-autofix was cancelled, so no pin commit comes; no code defect found
+3670|2026-11-18T01:31:49+01:00|verdict: #3670 Fix review: merge d112c64e4cfc5611f4225c8c5c09e60ef2320fad
+3671|2026-11-16T18:37:10+01:00|verdict: #3671 Fix review: merge 17c9dd0672322c18c03a0cd6781310d6596a6327
+3672|2026-11-16T17:57:54+01:00|verdict: #3672 Fix review: blocked e078a0bb2e3b4663cc505282d70aaad8053a566b mutation-vacuous: tools/audit/seat/finder_overlap.py:50 the seat pattern cut back to D15 or to D16, and tools/audit/enumerate.py:1009 kind not passed by main, each survive every self-test; enumerate.py:994 and enumerate.py:130 survive as equivalents
+3672|2026-11-16T22:23:24+01:00|verdict: #3672 Fix review: merge 9e535642649c96ade5a1ad960b37851130319378
+3673|2026-11-16T19:07:55+01:00|verdict: #3673 Fix review: merge 724ee26de5ee639ab76f3bb33ee534a18da30211
+3674|2026-11-16T19:08:15+01:00|verdict: #3674 Fix review: merge 3f34385f2bf66653180d210080e11b6d892cfe02
+3675|2026-11-16T18:56:11+01:00|verdict: #3675 Fix review: blocked 2abb0ac85babec8f3cab4d42d6988d747cfca737 ci-red: gate red at the head, its code run 43914056033 cancelled at 17:43:09Z with tests / coverage unfinished; the review found no code block
+3675|2026-11-17T02:55:43+01:00|verdict: #3675 Fix review: merge 2abb0ac85babec8f3cab4d42d6988d747cfca737
+3676|2026-11-16T21:54:35+01:00|verdict: #3676 Fix review: blocked 8daf6df1576494f49f0ac32d790dbedbb6c92d0e code-unwired: a durations-file phase_hours never reaches generated.model, so the phase figure branch is unreachable and its self-test feeds it past replan; three claimed behaviours have surviving mutants
+3676|2026-11-17T20:47:23+01:00|verdict: #3676 Fix review: merge 15a99c4ff739b8b91e89699a165cb72058e2f173
+3676|2026-11-17T23:00:21+01:00|verdict: #3676 Fix review: merge 6804e9c5a29946cbef4722088b1f668de6a246a8
+3677|2026-11-16T21:55:22+01:00|verdict: #3677 Fix review: merge 264162c0d754bb24e4e41d24027c005cb779327e
+3678|2026-11-17T05:04:25+01:00|verdict: #3678 Fix review: merge 815ebab2a5398507fc2cc3df6ef8791ad74c3c89
+3678|2026-11-17T23:00:52+01:00|verdict: #3678 Fix review: merge 95eae2dd6ff1f1f00ab6336e5e8ee9dc4634b29f
+3679|2026-11-16T18:49:33+01:00|verdict: #3679 Fix review: blocked 681a0d90890c269508924867e0f5f84689ef4ed9 class-open: corpus_mirror.py safe_extract still raises out of the scan on three archive shapes and keeps a local write failure as a final answer; owner_only.py probe passes a gh that exits anything but 0
+3679|2026-11-17T01:01:55+01:00|verdict: #3679 Fix review: blocked d40c045119e3dd9f00a88ded4ec109e2d617f545 merge-conflict: tests/layout.json conflicts with origin/main 54cb721164, where #3665 adds product_reads.py to the tools/audit glob this branch extends with leak_detectors.py
+3679|2026-11-18T02:11:38+01:00|verdict: #3679 Fix review: merge fcd576d7e8092e57a3623c776c9bfd87b55407ae
+3680|2026-11-16T20:01:50+01:00|verdict: #3680 Fix review: merge 5df5e26cc935dafabdddebf18b5070875f4f00d5
+3682|2026-11-16T21:56:41+01:00|verdict: #3682 Fix review: blocked d5ba8b8ce56ba02776b02a1143657a8c98aec4d9 code-defect: prepr ancestry cache keeps a commit read that has no check run yet, losing a red that lands on it within the TTL
+3682|2026-11-17T03:33:12+01:00|verdict: #3682 Fix review: merge bf2b1888091bfe35200c8b92b3794455ca443620
+3683|2026-11-16T21:39:10+01:00|verdict: #3683 Fix review: merge 46ca59a32e3c421dc25f8e813f88add18c8dc2fe
+3684|2026-11-17T18:46:45+01:00|verdict: #3684 Fix review: merge aaf3c780f126b2268e009a00734d2cc9976ef70f
+3684|2026-11-17T19:21:33+01:00|verdict: #3684 Fix review: merge d401f1498734d5c8633b74b28b0948d9da27a4b7
+3685|2026-11-17T01:42:35+01:00|verdict: #3685 Fix review: blocked abe961e6e56432e27cd2ea56ac22fd8e37338b50 ci-red: the required gate is red at this head on tests / mutation, which refuses 4 sites this diff adds with no ledger disposition (ledger.py:80 REFERENCE_BASIS, thermal_model.py:2280, 3504, 4312 GUARD_OFF)
+3685|2026-11-17T23:02:00+01:00|verdict: #3685 Fix review: merge 813a9e9e8dca4583a89f4ec46354cf2a8b389d91
+3686|2026-11-16T21:40:15+01:00|verdict: #3686 Fix review: merge 375037b736ccac76242b76c8d2c0dc4af9806605
+3688|2026-11-17T00:11:11+01:00|verdict: #3688 Fix review: merge f7ef7c069865bdf254044c6c334b9b5e1b22c30e
+3688|2026-11-18T06:54:37+01:00|verdict: #3688 Fix review: merge cc10065b3727a9d707d8752444ea03fe56c1e8d9
+3689|2026-11-16T23:50:10+01:00|verdict: #3689 Fix review: blocked 5356706e02cd174793004a041059c090eb15efba mutation-survivor: P657 merge-verdict guard in Tick._bucket is unpinned
+3689|2026-11-17T02:46:40+01:00|verdict: #3689 Fix review: merge 32b899c1234f180de7ccf8e7f2cd809bc271098f
+3690|2026-11-17T03:04:22+01:00|verdict: #3690 Fix review: merge d11b0cb1b2835280259314ad69c8dfbfb8cd8d93
+3691|2026-11-17T02:56:41+01:00|verdict: #3691 Fix review: merge 4e85c6a50e3e234e428fad8402bbcdf623a796cb
+3693|2026-11-17T03:52:31+01:00|verdict: #3693 Fix review: merge ba0a43950c363becde31704e62552b449920b484
+3694|2026-11-17T04:08:44+01:00|verdict: #3694 Fix review: merge fe298a641f0da65a76394a24cb693bb44480f4c4
+3696|2026-11-17T04:27:50+01:00|verdict: #3696 Fix review: blocked 3fe03e1480a1149d529b46373a7ba275ac47681b mutation-vacuous: four non-equivalent mutants of the added gate-reds read survive its self-test, the `gate` job-name predicate among them, and the product/machinery column prints a reason that is false at this head
+3696|2026-11-18T02:03:41+01:00|verdict: #3696 Fix review: blocked af0616cbe8dbd95e9a0ccb1e8822949f579a7cba mutation-vacuous: five non-equivalent swaps on lines this repair added to loop_ledger.py survive its self-test: the summary column's product and machinery counts, its unread count, and the column's event test
+3696|2026-11-18T13:18:49Z|verdict: #3696 Fix review: merge 2a374610679c6e56bf3f75a158e60741827451ec
+3696|2026-11-18T15:23:07+01:00|verdict: #3696 Fix review: merge 2a374610679c6e56bf3f75a158e60741827451ec
+3697|2026-11-17T22:08:01+01:00|verdict: #3697 Fix review: merge 2d9aa137c09236f8bf08a90ab9038c438fff23ff
+3698|2026-11-17T05:05:19+01:00|verdict: #3698 Fix review: blocked 4bfd3c06fa7316f88ffa19621d3df1ac0b1b69c3 class-open: dev/audit/rounds/round11/product-reads/operation.tsv still names the retired `duty=control | running` cells and product_reads.py operation refuses it at this head; neither in the diff nor dispositioned in the body
+3698|2026-11-17T06:25:31+01:00|verdict: #3698 Fix review: merge be2d6def14ea4d2c4c30f1016af1ab6a1b7c3592
+3700|2026-11-17T06:15:51+01:00|verdict: #3700 Fix review: merge cfef1ef4afadbe8ee8501ad9fe827e7108b61da6
+3701|2026-11-17T06:16:14+01:00|verdict: #3701 Fix review: blocked 475e001874041628b919539bfdac006ba495da37 code-defect: postmerge owes a mark on every clean no-group merge; carry_fold lease and record_beat body wiring unpinned
+3701|2026-11-17T19:22:55+01:00|verdict: #3701 Fix review: merge d0ad4a212d93b6a2fb711e0483c0ac6a97367a3d
+3703|2026-11-17T08:06:01+01:00|verdict: #3703 Fix review: blocked 2eee862d2d61b2fe2431c979048360d1b4392cfa class-open: the cards key is unvalidated, so any string makes a group rank 1 and a plan relabelling all 46 rank-2 groups passes objective-check; baseline.record is unconstrained, so the NO-READ refusal is bypassed; the settlement's status choices are unpinned
+3703|2026-11-17T20:31:48+01:00|verdict: #3703 Fix review: merge 3eedf54288cd1ce6ebbc4702758a8023e3619431
+3704|2026-11-17T12:59:29+01:00|verdict: #3704 Fix review: merge 1b80732c5534a70ddfe09b324114da1b0dea6873
+3705|2026-11-17T09:09:18+01:00|verdict: #3705 Fix review: blocked 3099d416f40cf3e5468b6d93b6c410394cbbdfb2 harness: r10_seat_selftests_mutants.py pins cloud_dispatch-15 and cloud_dispatch-16 match nothing at this head and print NOT RUN
+3705|2026-11-17T23:03:33+01:00|verdict: #3705 Fix review: blocked 036d2a7ff405b55e9178de65b2cbd14ec50d57b8 class-open: r10_flow_dispatch_mutants.py pins brief-drop and part-line-dropped match nothing at this head and abort the harness
+3705|2026-11-18T05:05:07+01:00|verdict: #3705 Fix review: merge d7e9677502d03d9e62f96aab6c17a43e7a745a49
+3707|2026-11-17T14:18:15+01:00|verdict: #3707 Fix review: merge 49e0e0c270a9ae4d8e734df3bb338faf1e9593cf
+3708|2026-11-17T21:15:21+01:00|verdict: #3708 Fix review: blocked ca670cb70e0c24a21c12ed55d6d5fd6803b48919 harness: design-trace-missing part-1 job red on a planted unrecorded read and green after the bot commit
+3708|2026-11-18T01:50:27+01:00|verdict: #3708 Fix review: blocked 9e9c74fac7a1ad6cc27dddbc58d422883b650cec harness: design-trace-missing part-1 job red on a planted unrecorded read and green after the bot commit
+3708|2026-11-18T07:40:41+01:00|verdict: #3708 Fix review: blocked bef58ed281d0de8be0b95cc25016f1cd199fb128 harness: design-trace-missing part-1 job red on a planted unrecorded read and green after the bot commit
+3708|2026-11-19T09:43:30+01:00|verdict: #3708 Fix review: merge ba4d4d2359a7e15add72e3fa836aa0f11081ca61
+3711|2026-11-18T10:55:43+01:00|verdict: #3711 Fix review: blocked 8518497c1ad76bdd06e5025532e9ac3eea2558ae ci-red: tests / mutation refuses 5 added sites the block kills but no killed_by row pins
+3711|2026-11-18T17:02:43+01:00|verdict: #3711 Fix review: blocked 478e2ab92c36b309c73e8cc29903671434f73375 mutation-vacuous: coordinator.py room-history cycle step (deleted; outdoor argument swapped for floor return; space/dhw kW swapped), __init__.py unload flush deleted, room_history.py _accumulate problem-reading guard, dhw exclusion, target last-reading, _close_period power mean, _step_pairs/_room_verdict null-call filter, _times grid check, _house_line space filter, room_record.report_of cache key
+3711|2026-11-19T06:28:48+01:00|verdict: #3711 Fix review: merge aa98d2b6fbb55ba4a79a7fcd428d2b11ab0e8e30
+3711|2026-11-19T08:44:36+01:00|verdict: #3711 Fix review: merge 143c3767f9178089b7d56b6b1ca002118046a97c
+3714|2026-11-18T05:37:57+01:00|verdict: #3714 Fix review: blocked 2469c52668c90af0c143b6905c9ee6e25e140add class-open: draw/engaged cell-only cost unguarded, a loader dropping the samples on a non-bool latch survives every check
+3714|2026-11-18T11:47:06+01:00|verdict: #3714 Fix review: merge ec8b7300e74f082ce236604d4fe8ff3294e7f69b
+3715|2026-11-18T07:33:07+01:00|verdict: #3715 Fix review: merge 1c75332e983535262406473761d3b0eecce2f959
+3717|2026-11-18T11:03:26+01:00|verdict: #3717 Fix review: merge bdc3a77df7fea249cecf09581813d3726ea3d070
+3718|2026-11-18T16:16:22+01:00|verdict: #3718 Fix review: merge 0cf78fa5b147d4ef6638609e03b45adec0ea1b0a
+3719|2026-11-18T16:01:17+01:00|verdict: #3719 Fix review: merge 827c15c8b1c4b097cfda639230b5bc09f5f83f43
+3720|2026-11-18T11:47:32+01:00|verdict: #3720 Fix review: merge 6a21c2886a246f440be4870e093616ceea80265a
+3721|2026-11-18T12:13:54+01:00|verdict: #3721 Fix review: merge 5910da5843e64d0b61dd99eb27c144200d628f75
+3722|2026-11-18T19:01:03+01:00|verdict: #3722 Fix review: merge 5a4e912e4f5968ed30e6c278465323336c15649c
+3723|2026-11-18T17:31:20+01:00|verdict: #3723 Fix review: blocked 7f2ba2d2a7554eb4ce88b3484f80076d18a3dbd8 metric-gamed: machinery_budgets churn_per_kilo_product_lines: raise omits a payment, 61 byte-identical duplicate evidence files (28376 nonproduct lines) the counting rule charges twice
+3723|2026-11-18T20:58:52+01:00|verdict: #3723 Fix review: merge 30ae44cd94c646684357b486ade679a2f1270b98
+3724|2026-11-18T19:01:33+01:00|verdict: #3724 Fix review: merge f0068ae2fcd781d34d56320bec51432d2b71432b
+3725|2026-11-18T16:53:40+01:00|verdict: #3725 Fix review: merge d4896656004500c0b38c637ee4ddb498c1c8fb36
+3726|2026-11-19T02:04:08+01:00|verdict: #3726 Fix review: merge c898e61cd30cc6dc3a2d5a4d9dae7d033ec1ecd9
+3727|2026-11-18T14:10:31Z|verdict 3727 6a229a2817f0974cc6603eea47a951ef724884d6
+3727|2026-11-18T16:25:25+01:00|verdict: #3727 Fix review: merge 6a229a2817f0974cc6603eea47a951ef724884d6
+3728|2026-11-19T03:29:49+01:00|verdict: #3728 Fix review: blocked f6905ea04733853483524802345b499ef41ebbb1 class-open: wood_fuel.py:182 wood_fuel.py:556
+3729|2026-11-18T16:54:04+01:00|verdict: #3729 Fix review: blocked 5fe137027a72cdd44483f1b2ad8c4345bb554857 class-open: _LOGGER.log(level=...) keyword level, logging module rebound by assignment or walrus, _LOGGER._log and _LOGGER.handle, reflective logging lookups
+3729|2026-11-19T09:56:46+01:00|verdict: #3729 Fix review: blocked b950a3904dea576c702020b905a68bb574a00f36 class-open: a sibling module's logger as an attribute (coordinator._LOGGER.error), _LOGGER reached by the string '_LOGGER' (globals(), sys.modules[__name__]._LOGGER), warnings.warn under Home Assistant's captureWarnings
+3730|2026-11-18T15:31:50+01:00|verdict: #3730 Fix review: blocked bc02ae8701128c21146bee16d1260fa44e6e4bae record-contradiction: phases.json marks round-start items done whose own detail says still running or not dispatched, and lists #3717 (merged 11:32:08Z) under fix-waves, which it dates from 12:23Z
+3730|2026-11-18T19:02:05+01:00|verdict: #3730 Fix review: merge 4d7c80e6eb05a70f68ab5498ebedfb42efa404ee
+3731|2026-11-18T20:59:18+01:00|verdict: #3731 Fix review: merge 8f77851df5b6eea927d9dd19dc853b7b3900088c
+3731|2026-11-19T05:02:34+01:00|verdict: #3731 Fix review: merge 04117e2e7d285855bd7864a29dce431072017720
+3731|2026-11-19T08:30:58+01:00|verdict: #3731 Fix review: merge 653996c3fb8d85826c70efee82b2719ae6a91b1a
+3732|2026-11-19T00:48:27+01:00|verdict: #3732 Fix review: merge 8e0363b8902905a78733e8f0fe7a2b27fd8c3211
+3733|2026-11-18T16:14:14+01:00|verdict: #3733 Fix review: merge e4fbf16e79cb90cb93284e57a4aeeaceaa738f55
+3734|2026-11-18T16:54:29+01:00|verdict: #3734 Fix review: blocked 40328a85d4e17e5c30284b34fd55cee8655f858a class-open: wood_fuel.lighting_window
+3734|2026-11-19T00:29:55+01:00|verdict: #3734 Fix review: blocked 98cb43e750457b41ae6feb9a0c56cf1d6728e201 mutation-vacuous: open_meteo.py _parse_block len(kept) < 2 loosened to < 1 survives every _parse_block caller and is not equivalent
+3735|2026-11-19T02:04:57+01:00|verdict: #3735 Fix review: merge e0769b570ebe94ac3200fc420c86ed159c3f5a0c
+3736|2026-11-19T00:30:30+01:00|verdict: #3736 Fix review: blocked bdf096245858f5a381b67719c4174d7a2880974d tests-red: tests/doc_claims.py fails at this head (2 of 411) and passes at the base; the added lower-bound start makes the optimizer run 5 starting points while how-it-works.md still states four
+3737|2026-11-18T17:18:40+01:00|verdict: #3737 Fix review: blocked 007e7be48d0fcfe5c01c9bafb920f0c34c67d12a mutation-vacuous: draw_range.fold commit_runs(keep=not (frozen or distorted)) -> keep=True, keep=not distorted, keep=not frozen all survive
+3738|2026-11-19T10:19:03+01:00|verdict: #3738 Fix review: merge 9809bc79c2498f2b25867a5cc88dacd68c62a01a
+3739|2026-11-19T02:05:37+01:00|verdict: #3739 Fix review: merge 6bb827793e1fff355b73cc17dd267a46b6b2a254
+3740|2026-11-18T21:33:21+01:00|verdict: #3740 Fix review: merge 42115f2c1421ece1aae4dc69b2ba4f0f0f261928
+3801|2026-11-19T02:58:01+01:00|verdict: #3801 Fix review: merge 5e10f99bc84d7ecef0d5dbdc4e3451ed27cc2c4c
+3801|2026-11-19T03:00:56+01:00|verdict: #3801 Fix review: merge 5e10f99bc84d7ecef0d5dbdc4e3451ed27cc2c4c
+3803|2026-11-19T03:02:58+01:00|verdict: #3803 Fix review: merge 338aa528f9c50def49f173137a9588d7a7f39574
+3804|2026-11-19T13:00:45+01:00|verdict: #3804 Fix review: merge cd6c9c67853452969a4e2ab5e6afd5240402a305
+3805|2026-11-19T10:40:17+01:00|verdict: #3805 Fix review: merge b77df3f88d8664d606bc92e2eaaf79f4d7971ce2
+3806|2026-11-19T07:45:31+01:00|verdict: #3806 Fix review: merge 00d07210bd41a89c38f477f60490b3be091d4f72
+3808|2026-11-19T10:03:06+01:00|verdict: #3808 Fix review: merge bdcca2fb9f21edbeace79cfc108f38c38f4b1f46
+3815|2026-11-19T13:01:23+01:00|verdict: #3815 Fix review: merge 559277673d196b1655ff0e57a5cb771b7ca56ceb
