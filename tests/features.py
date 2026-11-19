@@ -97542,19 +97542,35 @@ from unittest import mock as _sv_mock  # noqa: E402
 _sv_optmod = sys.modules[type(_rk["optimizer"]).__module__]
 
 # D1-s1-51: a 2:2 reason tie inside one slot. ``max`` over a ``set`` picks by
-# the set's iteration order, which is PYTHONHASHSEED's, so the two spellings
-# of one tie read the same winner and one of them is not its first code.
+# the set's iteration order, which is PYTHONHASHSEED's. For a two-code set that
+# order follows insertion when both codes land in one hash slot, and then a set
+# also returns each spelling's first code, so a fixed pair passes a ``set``
+# revert under some seeds. The pair is therefore chosen under the running seed:
+# the first pair of action codes (synthetic codes after them) whose set order
+# is the same whichever code is inserted first. For it, a ``set`` reads one
+# winner for both spellings of the tie, and the slot's first code differs
+# between them, whatever the hash seed.
+from itertools import combinations as _sv_pairs  # noqa: E402
+
+from heatpump_optimizer.const import HEAT_PUMP_ACTION_STATES as _sv_codes  # noqa: E402
+
+_sv_pair = next(
+    (a, b)
+    for a, b in _sv_pairs(
+        [c for c in _sv_codes if c != "idle"]
+        + [f"reason_{n}" for n in range(1000)], 2)
+    if list({a, b}) == list({b, a})
+)
 _sv_ts = [_G_START + timedelta(minutes=15 * i) for i in range(4)]
 _sv_ties = [
-    plan_slots(_sv_ts, [1.0] * 4, [1.0] * 4, 0.25, reasons=list(order))
-    for order in (("cheap_price", "cheap_price", "pre_heat", "pre_heat"),
-                  ("pre_heat", "pre_heat", "cheap_price", "cheap_price"))
+    plan_slots(_sv_ts, [1.0] * 4, [1.0] * 4, 0.25, reasons=[x, x, y, y])
+    for x, y in (_sv_pair, _sv_pair[::-1])
 ]
 R.check(
     "a plan slot's reason tie reads the slot's first code, whatever the "
     "hash seed (D1-s1-51)",
-    [s[0].get("reason") for s in _sv_ties] == ["cheap_price", "pre_heat"],
-    str([s[0].get("reason") for s in _sv_ties]),
+    [s[0].get("reason") for s in _sv_ties] == [_sv_pair[0], _sv_pair[1]],
+    f"{_sv_pair}: {[s[0].get('reason') for s in _sv_ties]}",
 )
 
 # D2-s3-01: the premium lambda*sigma prices the objective only. The reference
