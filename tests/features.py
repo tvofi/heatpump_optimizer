@@ -96854,6 +96854,33 @@ R.check(
         _hdr_m_out, None, _hdr_m_rig.temps, np.minimum(47.0, _hdr_m_rig.temps(_hdr_m_plan)[1:])) is None,
     _hdr_m_on,
 )
+# The program enters on a run while the compressor runs: a tank that must be
+# charged on the first step is held where the pump would not start a charge
+# then, and is not from a pause. Asked with every start allowed, both hold
+# it, so the entry alone decides.
+_hdr_y_draws = np.r_[3.0, np.zeros(_HDR_N - 1)]
+_hdr_y_blocked = np.r_[False, np.ones(_HDR_N - 1, dtype=bool)]
+
+
+def _hdr_entry(running, may_start):
+    rig = _hdr_rig(running=running, t0=46.0, draws=_hdr_y_draws)
+    return _hdr_dp._StoreProgram(
+        rig.planner, rig.ctx, np.zeros(_HDR_N), rig.tank, (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None,
+        np.zeros(_HDR_N),
+    ).plan(may_start.copy())
+
+
+_hdr_y_run, _hdr_y_pause = _hdr_entry(True, _hdr_y_blocked), _hdr_entry(False, _hdr_y_blocked)
+_hdr_y_free = [_hdr_entry(r, np.ones(_HDR_N, dtype=bool)) for r in (True, False)]
+R.check(
+    "while the compressor runs the store program enters on a run: a tank the first step's draw takes "
+    "under its floor is charged on that step where the pump would start no charge there, and from a "
+    "pause the same program has no plan; with every start allowed both enter to the same plan",
+    _hdr_y_run is not None and _hdr_y_run[0] > 0.0 and _hdr_y_pause is None
+    and all(p is not None and p[0] > 0.0 for p in _hdr_y_free) and np.array_equal(*_hdr_y_free)
+    and np.array_equal(_hdr_y_run, _hdr_y_free[0]),
+    f"{None if _hdr_y_run is None else np.round(_hdr_y_run[:4], 2)} {_hdr_y_pause is None}",
+)
 # The program says so where no mask keeps the store in bounds; a program
 # plan refused for anything but a start is not asked for again; and a plan
 # the rating leaves with a step under the floor inside a charge is refused.
