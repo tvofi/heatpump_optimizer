@@ -150,3 +150,4 @@
 2026-11-19T16:02:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:<module> CONST bc3142ce L124 by=- ran=19 wall=1605.1s
 2026-11-19T16:05:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:extend_price_series GUARD_OFF b4032e2b L510 by=- ran=13 wall=1402.5s
 2026-11-19T16:07:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor CMP_BOUND aacbbc1b L1870 by=- ran=16 wall=1516.3s
+2026-11-19T16:10:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_quiet_comfort_period CMP_BOUND a3402022 L11008 by=- ran=13 wall=1503.3s
