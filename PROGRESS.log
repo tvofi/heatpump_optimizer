@@ -6,132 +6,131 @@
 1794988545 SEAT D3-s1 running
 1794988627 HB D3-s1 started (subagent frugal:builder, model opus; general-purpose refused by the frugal guard)
 1794989075 HB alive
-1794989480 RESUMED from 7830bb637572
-1794989480 INIT box D3-u1d
-1794989496 HB alive
-1794989527 HB drift warm skipped: HEAD is the baseline
-1794989561 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
-1794989568 HB prepared
-1794989584 SEAT D3-s1 running
-1794989695 CKPT D3-s1 125 file(s)
-1794990102 HB alive
-1794990707 HB alive
-1794991124 CKPT D3-s1 135 file(s)
-1794991312 HB alive
-1794991471 CKPT D3-s1 141 file(s)
-1794991917 HB alive
-1794992522 HB alive
-1794992972 CKPT D3-s1 166 file(s)
-1794993128 HB alive
-1794993733 HB alive
-1794994249 CKPT D3-s1 191 file(s)
-1794994338 HB alive
-1794994943 HB alive
-1794995548 HB alive
-1794995814 CKPT D3-s1 217 file(s)
-1794996155 HB alive
-1794996760 HB alive
-1794997366 HB alive
-1794997462 CKPT D3-s1 243 file(s)
-1794997972 HB alive
-1794998577 HB alive
-1794998944 CKPT D3-s1 268 file(s)
-1794999183 HB alive
-1794999795 HB alive
-1795000401 HB alive
-1795000492 CKPT D3-s1 294 file(s)
-1795001007 HB alive
-1795001612 HB alive
-1795002000 CKPT D3-s1 320 file(s)
-1795002218 HB alive
-1795002823 HB alive
-1795003322 CKPT D3-s1 345 file(s)
-1795003428 HB alive
-1795004033 HB alive
-1795004638 HB alive
-1795004976 CKPT D3-s1 371 file(s)
-1795005244 HB alive
-1795005849 HB alive
-1795006454 HB alive
-1795006645 CKPT D3-s1 396 file(s)
-1795007060 HB alive
-1795007666 HB alive
-1795008182 CKPT D3-s1 422 file(s)
-1795008272 HB alive
-1795008877 HB alive
-1795009483 HB alive
-1795009715 CKPT D3-s1 446 file(s)
-1795009749 CKPT D3-s1 447 file(s)
-1795010088 HB alive
-1795010127 CKPT D3-s1 451 file(s)
-1795010717 HB alive
-1795011323 HB alive
-1795011929 HB alive
-1795012535 HB alive
-1795013141 HB alive
-1795013748 HB alive
-1795014354 HB alive
-1795014961 HB alive
-1795015566 HB alive
-1795016172 HB alive
-1795016778 HB alive
-1795017384 HB alive
-1795017990 HB alive
-1795018596 HB alive
-1795019202 HB alive
-1795019808 HB alive
-1795020415 HB alive
-1795021020 HB alive
-1795021626 HB alive
-1795022232 HB alive
-1795022839 HB alive
-1795023445 HB alive
-1795024051 HB alive
-1795024657 HB alive
-1795024878 CKPT D3-s1 480 file(s)
-1795025263 HB alive
-1795025868 HB alive
-1795026474 HB alive
-1795027081 HB alive
-1795027688 HB alive
-1795028294 HB alive
-1795028901 HB alive
-1795029507 HB alive
-1795030113 HB alive
-1795030727 HB alive
-1795031335 HB alive
-1795031941 HB alive
-1795032549 HB alive
-1795033161 HB alive
-1795033766 HB alive
-1795034372 HB alive
-1795034945 CKPT D3-s1 505 file(s)
-1795034977 HB alive
-1795035583 HB alive
-1795036034 CKPT D3-s1 507 file(s)
-1795036188 HB alive
-1795036228 HB alive
-1795036834 HB alive
-1795037440 HB alive
-1795037840 CKPT D3-s1 512 file(s)
-1795038046 HB alive
-1795038651 HB alive
-1795039257 HB alive
-1795039645 CKPT D3-s1 518 file(s)
-1795039863 HB alive
-1795040468 HB alive
-1795041074 HB alive
-1795041451 CKPT D3-s1 522 file(s)
-1795041680 HB alive
-1795042284 HB alive
-1795042891 HB alive
-1795043257 CKPT D3-s1 527 file(s)
-1795043496 HB alive
-1795044101 HB alive
-1795044707 HB alive
-1795045062 CKPT D3-s1 531 file(s)
-1795045312 HB alive
-1795045510 HB alive
-1795045517 CKPT D3-s1 533 file(s)
-1795045574 HB container rebooted 23:44Z; box restored 4 mutated worker trees (git checkout) and relaunched K2 complete (162 queued, 82 done); D3-s1 subagent lost in an earlier restart, re-dispatch after K2 ends
-1795046140 HB alive
+1794989679 HB alive
+1794989695 HB cannot: CMD 1 (run the seat inline) -- D3-s1 is already running since ~07:58 UTC as an Agent subagent (frugal:builder, model opus; the frugal guard allowed it, FRUGAL_ALLOW_EXPENSIVE not set); the brief says a running subagent is never killed and a second inline run would drive the same keys in the same report dir. CMD 1 is not a protocol command (box_comms refused it as unknown) and changes brief step 3, so it is recorded as pending owner confirmation. To change course send STOP (the seat finishes, checkpoints) and a NOTE.
+1794989773 CKPT D3-s1 133 file(s)
+1794990285 HB alive
+1794990891 HB alive
+1794991098 CKPT D3-s1 160 file(s)
+1794991496 HB alive
+1794992102 HB alive
+1794992336 CKPT D3-s1 186 file(s)
+1794992707 HB alive
+1794993312 HB alive
+1794993690 CKPT D3-s1 210 file(s)
+1794993918 HB alive
+1794994523 HB alive
+1794995128 HB alive
+1794995245 CKPT D3-s1 236 file(s)
+1794995733 HB alive
+1794996340 HB alive
+1794996439 CKPT D3-s1 260 file(s)
+1794996945 HB alive
+1794997556 HB alive
+1794997977 CKPT D3-s1 285 file(s)
+1794998162 HB alive
+1794998766 HB alive
+1794999315 CKPT D3-s1 310 file(s)
+1794999372 HB alive
+1794999977 HB alive
+1795000552 CKPT D3-s1 336 file(s)
+1795000582 HB alive
+1795001187 HB alive
+1795001787 CKPT D3-s1 360 file(s)
+1795001793 HB alive
+1795002398 HB alive
+1795003003 HB alive
+1795003323 CKPT D3-s1 385 file(s)
+1795003608 HB alive
+1795004214 HB alive
+1795004821 HB alive
+1795004937 CKPT D3-s1 410 file(s)
+1795005426 HB alive
+1795006031 HB alive
+1795006312 CKPT D3-s1 435 file(s)
+1795006638 HB alive
+1795006820 CKPT D3-s1 444 file(s)
+1795007243 HB alive
+1795007849 HB alive
+1795008460 HB alive
+1795009066 HB alive
+1795009672 HB alive
+1795010278 HB alive
+1795010885 HB alive
+1795011491 HB alive
+1795012097 HB alive
+1795012703 HB alive
+1795013308 HB alive
+1795013915 HB alive
+1795014521 HB alive
+1795015127 HB alive
+1795015732 HB alive
+1795015987 CKPT D3-s1 473 file(s)
+1795016075 CKPT D3-s1 474 file(s)
+1795016343 HB alive
+1795016949 HB alive
+1795017555 HB alive
+1795018161 HB alive
+1795018767 HB alive
+1795019373 HB alive
+1795019525 CKPT D3-s1 485 file(s)
+1795019979 HB alive
+1795020585 HB alive
+1795021191 HB alive
+1795021799 HB alive
+1795022405 HB alive
+1795023011 HB alive
+1795023064 CKPT D3-s1 495 file(s)
+1795023617 HB alive
+1795024224 HB alive
+1795024421 CKPT D3-s1 499 file(s)
+1795024830 HB alive
+1795025435 HB alive
+1795026041 HB alive
+1795026604 CKPT D3-s1 505 file(s)
+1795026647 HB alive
+1795027252 HB alive
+1795027859 HB alive
+1795028464 HB alive
+1795029070 HB alive
+1795029676 HB alive
+1795030145 CKPT D3-s1 516 file(s)
+1795030282 HB alive
+1795030887 HB alive
+1795031493 HB alive
+1795032098 HB alive
+1795032551 CKPT D3-s1 524 file(s)
+1795032704 HB alive
+1795033310 HB alive
+1795033686 CKPT D3-s1 527 file(s)
+1795033916 HB alive
+1795034522 HB alive
+1795034994 CKPT D3-s1 531 file(s)
+1795035005 HB session restart ~20:45 UTC lost the D3-s1 subagent; its K2 full-net driver (prescreen.py complete, pid 22759, 82/242) survived and keeps running; checkpointed. The seat is re-dispatched through gate once that driver exits, so two drivers never run the same keys; it resumes from its checkpoint (R0 re-fire path).
+1795035127 HB alive
+1795035161 HB alive
+1795035765 HB alive
+1795036371 HB alive
+1795036978 HB alive
+1795037584 HB alive
+1795038190 HB alive
+1795038547 CKPT D3-s1 541 file(s)
+1795038796 HB alive
+1795039402 HB alive
+1795040008 HB alive
+1795040614 HB alive
+1795041220 HB alive
+1795041825 HB alive
+1795042088 CKPT D3-s1 553 file(s)
+1795042198 CKPT D3-s1 554 file(s)
+1795042202 HB full-net driver (pid 22759) OOM-killed at 22:48 UTC by the session memcg limit (14.3 GB) with 4 workers, at 105/242; its 4 in-flight mutants have no result and are re-driven; orphan test procs in /tmp/d3s1-workers/w2 killed; checkpointed; re-dispatching D3-s1 through gate
+1795042217 SEAT D3-s1 running
+1795042354 CKPT D3-s1 554 file(s)
+1795042440 HB alive
+1795043045 HB alive
+1795043651 HB alive
+1795044257 HB alive
+1795044863 HB alive
+1795045468 HB alive
+1795046075 HB alive
+1795046680 HB alive
