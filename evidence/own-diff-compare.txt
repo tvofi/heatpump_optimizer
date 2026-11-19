@@ -1,0 +1,17 @@
+CHANGED .claude/workflows/audit-find.js
+same .claude/workflows/audit-verify.js
+same CLAUDE.md
+same dev/audit/config/finding.schema.json
+same dev/audit/config/rotation.json
+same dev/audit/config/scopes.json
+same dev/governance/config/policy_budgets.json
+same dev/governance/dimensions/DX0.md
+same dev/governance/roles/COMMON.md
+same dev/programme/delivery/3739.md
+same tests/closures.json
+same tools/audit/check_scopes.py
+same tools/audit/fold_ledger.py
+same tools/audit/seat/finder_overlap.py
+same tools/audit/seat/ref_privacy.py
+same tools/audit/seat/roster_lib.py
+same tools/policy/check-wave-script.mjs

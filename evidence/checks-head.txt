@@ -1,0 +1,8 @@
+fold_ledger: 0 violation(s)
+rc=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+296 passed, 0 failed
+mt=0
+FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+
+[exited with code 0]
