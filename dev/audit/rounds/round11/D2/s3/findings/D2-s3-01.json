@@ -1,0 +1,48 @@
+{
+ "id": "D2-s3-01",
+ "step": "D2.M3",
+ "title": "price_risk_lambda's premium is booked as money: predicted_cost, baseline_cost, savings and prices carry lambda*sigma",
+ "severity": "high",
+ "claim": "With price_risk_lambda > 0 the optimizer prices predicted_cost, baseline_cost, deferred cost and the published per-step prices on the risk-adjusted series, so predicted_cost != sum(raw price*power*dt) and the published saving is inflated by 12.46 currency at lambda 1 (25.06 at the config maximum 2.0) on the price_risk golden, where the thermostat baseline runs through the guessed tail the plan avoids.",
+ "mechanism": "optimizer.optimize replaces prices with _stash_price_horizon's return (prices + lambda*sigma on unknown steps); every _Horizon closure (energy_cost_of) and _build_result (prices=h.prices) reads that array. The premium is a planning device (#34), never paid; the coordinator publishes predicted_cost/baseline_cost/predicted_savings and schedule[].price from the result and the accuracy promise (note_promise) reads result.prices.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_risk.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m3_risk.py",
+  "value": 12.4574,
+  "unit": "currency",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "n/a",
+  "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+  "tolerance": "±1e-3",
+  "load1": 9.0,
+  "thread_factor": 1.0003
+ },
+ "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (_stash_price_horizon, _build_result)",
+ "perturbation": {
+  "change": "--perturb-raw: the risk premium stays in the solve, the published figures are priced on the raw series",
+  "expected_direction": "to_zero",
+  "observed_value": 0.0
+ },
+ "metric_definition": "savings_inflation = (baseline_cost - raw-priced baseline) - (predicted_cost - raw-priced plan spend), the published saving's gain from prices nobody pays",
+ "phenomenon_property": "Every published money figure and per-step price of a plan is the raw input price series' (plus PV piecewise); a risk premium may shape the solve but never the reported spend, baseline or saving.",
+ "seam_rule": "grep -n 'h.prices\\|prices=h.prices\\|_stash_price_horizon' custom_components/heatpump_optimizer/optimizer.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_risk.py",
+  "value": 0.0,
+  "note": "lambda 0 on the same golden: every premium 0; also the 49 other goldens (lambda 0) close predicted-cost-sum to 0 in m3_objective.py"
+ },
+ "leave_one_out": {
+  "cells": 5,
+  "min": 3.8322,
+  "max": 25.0586,
+  "drop_most_favourable": 12.4574
+ },
+ "proposed_fix_scope": "optimizer: keep the raw series beside the risk-adjusted one in _Horizon; price predicted/baseline/deferred and publish prices on the raw one",
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "scope": "D2-s3"
+}

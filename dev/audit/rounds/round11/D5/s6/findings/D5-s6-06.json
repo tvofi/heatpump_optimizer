@@ -1,0 +1,41 @@
+{
+ "id": "D5-s6-06",
+ "scope": "D5-s6",
+ "step": "D5.M4",
+ "title": "roster_lib.py attributes its open set and wave recurrence to gen_table_rev3.py, absent from the tree",
+ "severity": "low",
+ "claim": "Three comment units of tools/audit/seat/roster_lib.py (module docstring, the comment above the closed-stage set, depth_of's docstring) define behaviour by reference to 'gen_table_rev3.py', a script no tracked path at the ref holds and that no unit qualifies with a ref.",
+ "mechanism": "The script is a design-revision prototype on another branch; the comments point a code reader at it as the definition instead of stating the rule. Fails D5-criteria C2.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "value": 3,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 container (shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 3.59,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/seat/roster_lib.py:depth_of",
+ "perturbation": {
+  "change": "--perturb gen_table: gen_table_rev3.py added to the tracked file list",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Number of mentions of gen_table_rev3.py in the file while no tracked path at the ref ends in gen_table_rev3.py.",
+ "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "tools/audit/seat/roster_lib.py"
+ ],
+ "proposed_fix_scope": "State the recurrence and open set in the comments (they are short), or cite the script with its ref.",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb gen_table"
+ ]
+}

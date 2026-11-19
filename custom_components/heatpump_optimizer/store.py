@@ -40,12 +40,13 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import const as c
-from .accuracy import HISTORY_LENGTH, LEAD_BUCKETS
+from .accuracy import LEAD_BUCKETS
 from .comfort_learning import COMFORT_WEIGHT_MAX, COMFORT_WEIGHT_MIN
 from .curve_learning import BIAS_MAX, BIAS_MIN
 from .defrost import DERATE_MAX, DERATE_MIN, STORE_VERSION
 from .draw_range import ASK_FOLLOWS, ASK_IGNORED, ASK_PENDING, RUNNING_FLOOR_KW
 from .price_tiles import TILE_NAMES
+from .const import HISTORY_LENGTH
 from .drift import REFERENCE_PRIOR_COV, STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ

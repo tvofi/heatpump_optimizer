@@ -60,9 +60,14 @@ Rows, each "folded/intervals scale":
     is full (``draw_range.WINDOW`` running samples) and unobtainable after.
     From there the heat-ask probe judges it (R11-OUTSIDE-SELF-SETTING-PUMP,
     round-3 design): two asks in three are under the duty floor, so no two
-    admitted intervals are consecutive, no pair completes, and the verdict
-    stays pending with nothing folded (``x1440`` is 30 days of it). Before
-    that design the departures base folded waited for the window, then folded.
+    admitted intervals are consecutive. Under the note's rule a refused cycle
+    voided the pair, no pair completed and the verdict stayed pending with
+    nothing folded (``x1440`` is 30 days of it; carry 5, #3662 item
+    0b01d5fd). Since departure A (BLOCKED.md on
+    handoff-wip/r11-outside-self-setting-pump-p2, approved on
+    inbox/r11-outside-self-setting-pump line 2) a read cycle that admits no
+    row holds the missed slot instead, so the pairs complete across the gaps.
+    Each line adds the probe columns of the flat rows below.
   * ``selfset_<kw>_flat_*`` / ``selfset_<kw>_within_*`` and
     ``heatled_true_<s>_flat_*`` (R11-OUTSIDE-SELF-SETTING-PUMP, owner ruling
     D4) -- a 4 kW nameplate under flat asks of 1.5 kW +-2 % (``flat``), which
@@ -91,7 +96,10 @@ Rows, each "folded/intervals scale":
     asks re-priced each tick against the scale, as an unpinned plan does:
     asked = 1.2 kW of heat over the scale, drawn = 1.2 over the true 0.8. The
     heat ask stays flat under the dither, so the probe has no contrast: the
-    row must not read does_not_follow.
+    row must not read does_not_follow. The dither moves the asks by its own
+    step, the window's evidence turns obtainable and resets the probe (carry
+    6, #3662 item 06cb4f11); since departure B1 ``PROBE_VOID_CAP`` probes in
+    a row reset with no pair park the next for ``COP_HOLD_HORIZON_S``.
   * ``null_dither0_<pump>`` -- null control 1 of the round-3 design note: the
     dither's amplitude forced to zero (``ScaleDither.levels`` returning the
     base twice). The verdict comes from the dither, so neither a heat-led
@@ -349,8 +357,10 @@ def main() -> None:
     print(f"RESULT true_0.6_max_cycle_move={max(moves):.3f}")
     # The wait before the evidence turns unobtainable (the unobtainable-arm decision's row).
     for n in (288, 384, 480, 1440):
-        got = run(cyc(matched, n), p_max=3.0, p_min=3.0, true=0.6, noise=0.05)
-        print(f"RESULT sub_min_true_0.6_x{n}={got.replace(' ', '_scale=')}")
+        st: dict = {}
+        got = run(cyc(matched, n), p_max=3.0, p_min=3.0, true=0.6, noise=0.05, stats=st).replace(" ", "_scale=")
+        print(f"RESULT sub_min_true_0.6_x{n}={got} lowest={st['lowest']} highest={st['highest']} off5={st['off']} "
+              f"probes={st['probes']} band={st['band']} verdict={st['verdict']}")
     # R11-OUTSIDE-SELF-SETTING-PUMP (owner ruling D4): flat asks on a 4 kW
     # nameplate. The run is open loop: the ask stays fixed whatever the scale,
     # as the live plan's does only where the ask is pinned (flat asks are that

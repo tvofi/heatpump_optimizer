@@ -1,0 +1,48 @@
+{
+ "id": "D4-s3-01",
+ "scope": "D4-s3",
+ "step": "D4.M3",
+ "title": "Card failure lines splice Home Assistant's English exception text into sv/de messages",
+ "severity": "medium",
+ "claim": "In the pin_fail and save_fail error states, every sv and de cell (24 of 24: 2 states x 3 viewports x 2 themes x 2 languages) renders a mixed-language failure line such as 'Kunde inte spara: A hot water minimum of 52 °C leaves no deadband ...', because the card prints err.message (the English text Home Assistant formats for a translation_key exception) instead of the integration's own translated exception message.",
+ "mechanism": "The card's ten failure sites build their line as L('errors.could_not_*', {err: (err && err.message) || err}). For an integration exception raised with translation_domain/translation_key, Home Assistant's websocket error carries `message` formatted from the en translations and the translation fields beside it; the card never reads translation_key and never calls hass.localize, so the localized prefix ('Kunde inte spara:', 'Speichern nicht möglich:') is followed by an English sentence, although translations/sv.json and de.json carry that very exception's message.",
+ "evidence": {
+  "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+  "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+  "value": 24,
+  "unit": "count of sv/de cells whose failure line contains an en exceptions.*.message prefix",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+  "cpu_or_wall": "count",
+  "contention_note": "ran beside the seat's own full-grid run; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 2.77,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:ManualPlan.slotResult (pin) / WhatIfPanel.onSaveSchedule (save) (the `(err && err.message) || err` failure lines, driven through hass.callService rejections)",
+ "perturbation": {
+  "change": "--perturb=err_localize: every `(err && err.message) || err` site first reads hass.localize(`component.${err.translation_domain}.exceptions.${err.translation_key}.message`, err.translation_placeholders)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "sv/de cells of pin_fail/save_fail whose .wi-pin-result/.wi-result text contains the leading literal of any translations/en.json exceptions.*.message",
+ "phenomenon_property": "A failure line the card shows in a non-English UI is entirely in that UI's language whenever the integration ships a translation for the error it reports.",
+ "seam_rule": "grep -nE \"err(\\.message| && err\\.message)\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+ "null_control": {
+  "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=plain --states=pin_fail,save_fail",
+  "value": 0,
+  "note": "a rejection with no translated counterpart (the P9 grid's plain 'Service call failed') leaves 0 lines matching an en exception message: the count is keyed on Home Assistant's translated-exception shape, and en cells are excluded by construction"
+ },
+ "reproduction_steps": [
+  "Set the Home Assistant profile language to Svenska",
+  "Open the card's dialog, drag a hot-water slot, press the pin button while the integration refuses (e.g. no loaded entry) or save a schedule whose hot-water minimum leaves no deadband",
+  "Read the result line: Swedish prefix, English reason"
+ ],
+ "proposed_fix_scope": "One helper in the card that turns a service rejection into text: translated exception via hass.localize (after hass.loadBackendTranslation('exceptions', 'heatpump_optimizer')) when translation_key is present, else err.message; used by all ten failure sites.",
+ "files": [
+  "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "criteria_statement": "D4-criteria 'look professional' (D4.M3 error states; D4-criteria F3 'errors say what to change' in every language)"
+}

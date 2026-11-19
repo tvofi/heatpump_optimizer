@@ -1,0 +1,45 @@
+{
+  "id": "D1-s2-02",
+  "scope": "D1-s2",
+  "step": "D1.M3",
+  "title": "PV production is read with no age check: a silent or future-stamped meter still seeds step 0 and is published",
+  "severity": "high",
+  "claim": "HeatPumpOptimizerCoordinator._pv_measured_production reads CONF_PV_PRODUCTION_ENTITY through hass.states.get + state_power_kw, never through InputReader, so the 30-minute limit const.INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] declares is never applied: in 6 of 6 report ages past the limit (31 min to 24 h) and for a report stamped 90 min in the future, the real cycle publishes data['pv']['measured_production_kw']=5.0 and overwrites step 0 of the PV forecast with it.",
+  "mechanism": "_pv_forecast sets production[0] = min(self._pv_production, peak_kw) from _pv_measured_production, which is `state_power_kw(self.hass.states.get(entity_id), sign='clamp')`. state_power_kw's own docstring calls itself 'the one parse of a power state outside InputReader (which adds the staleness of a configured input)'; the slot has a declared limit (const.py: INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] = 30.0, INPUT_ON_CHANGE_MAX_AGE_MINUTES pv_production_entity 30.0) that no reader of it applies, and the slot never appears in the input watchdog (staleness.py: 'unread'). An inverter whose integration drops off mid-afternoon keeps the planner believing in its last output (here 5 kW) for the current step indefinitely, and a host clock stepped back makes the same reading look fresh.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/pv_stale.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s2/pv_stale.py",
+    "value": 6,
+    "unit": "report ages past the 30-min limit (of 6) at which the stale reading is published and used; plus future_published=1",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 (orchestrator box B4, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, other seats running; a count",
+    "tolerance": "exact",
+    "load1": 186.49,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_measured_production (driven through _async_update_data -> _pv_forecast; published data['pv'])",
+  "perturbation": {
+    "change": "--fix: _pv_measured_production first reads the slot through InputReader(hass, {}).read(CONF_PV_PRODUCTION_ENTITY, entity_id=...) and returns None unless the reading is ok (the declared age limit applies), then state_power_kw as before; patched in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "stale_cells_published=0, future_published=0; ages 5 and 20 min still publish 5.0"
+  },
+  "metric_definition": "Of 6 report ages beyond INPUT_MAX_AGE_MINUTES[pv_production] (31,45,90,180,420,1440 min), how many cycles still publish pv.measured_production_kw from the stale state.",
+  "phenomenon_property": "Every configured input with a declared age limit is read under that limit by every consumer; a reading past its limit (or stamped ahead of the clock) is not used as a measurement and not published as one.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/consumers.py  (per d1-inputs slot, the production functions calling hass.states.get on it; a slot listed in const.INPUT_MAX_AGE_MINUTES whose getters bypass InputReader/age_of is a seam)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/pv_stale.py --fresh",
+    "value": 0,
+    "note": "the same cells with the meter re-reporting at each cycle: the reading is legitimately used, no stale cell counted"
+  },
+  "leave_one_out": {"cells": 6, "min": 1, "max": 1, "drop_most_favourable": 5},
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/pv_stale.py           -> stale_cells_published=6, future_published=1",
+    "... --fresh -> 0 (null control); ... --fix -> 0 (perturbation)"
+  ],
+  "proposed_fix_scope": "coordinator.py:_pv_measured_production reads through InputReader (age_limit_for) so the declared 30-min limit and the future-stamp refusal apply; the slot then shows in the input watchdog.",
+  "files": ["custom_components/heatpump_optimizer/coordinator.py", "custom_components/heatpump_optimizer/const.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}

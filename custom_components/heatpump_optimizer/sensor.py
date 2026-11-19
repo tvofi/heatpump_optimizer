@@ -54,7 +54,7 @@ from .entity import dhw_split_attributes
 from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
-from .thermal_model import feedback_gaps
+from .thermal_model import dhw_enabled_from_config, feedback_gaps
 from .wood_fuel import saving_includes_wood
 
 if TYPE_CHECKING:
@@ -530,7 +530,14 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
 
     @property
     def _waiting_for(self) -> str | None:
-        return None if self._rows() else "settled_savings_month"
+        # Closed months and no open row: the ledger holds the open month back
+        # until it has covered ``ledger.MIN_COVERAGE_HOURS``.
+        rows = self._rows()
+        if not rows:
+            return "settled_savings_month"
+        if any(isinstance(row, dict) and row.get("estimated") for row in rows):
+            return None
+        return "open_month_coverage"
 
     @property
     def native_value(self) -> float | None:
@@ -2987,7 +2994,8 @@ def _gap_probe_terms(
     reading; an install with none ranks nothing, and its zero is the absent
     window rather than a priced one. Once
     a series is present the COP terms read the pump load and duty cycle the
-    window shows; the DHW term is a month of the tank's usable band, one
+    window shows; on an install with hot water (``dhw_enabled_from_config``)
+    the DHW term is a month of the tank's usable band, one
     reheat a day at the resolved rate, priced from the configured tank volume
     (``CONF_DHW_TANK_VOLUME``, else the documented ``DEFAULT_DHW_TANK_VOLUME``)
     over the documented ``DEFAULT_DHW_SETPOINT`` - ``DEFAULT_DHW_MIN_TEMP``
@@ -3017,7 +3025,10 @@ def _gap_probe_terms(
     terms["outdoor_load_kw"] = sum(hp_vals) / len(hp_vals) if hp_vals else 0.0
     terms["outdoor_hours"] = 24.0 * 30.0 * duty
     terms["outdoor_price"] = rate
-    terms["dhw_extra_kwh"] = volume * band * (4.187 / 3600.0) * 30.0
+    # An install with no hot water has no tank to coast (D8-s1-01): the
+    # model's own answer, so the default volume is never priced for it.
+    if dhw_enabled_from_config(config):
+        terms["dhw_extra_kwh"] = volume * band * (4.187 / 3600.0) * 30.0
     terms["dhw_price"] = rate
     return terms
 

@@ -1,0 +1,15 @@
+CELL cross-covariate noise=white gain_recovery_mean=0.5669 gain_recovery_range=[0.5649,0.5687] gain_spurious_max_kw=0.0092 scale_err_max=0.0280 scale_bias_genuine_mean=-0.0275 scale_bias_nogain_mean=+0.0001 premature_folds=0 gain_folds_last=5646
+CELL cross-covariate noise=quantised_0.1C gain_recovery_mean=0.5649 gain_recovery_range=[0.5642,0.5654] gain_spurious_max_kw=0.0046 scale_err_max=0.0277 scale_bias_genuine_mean=-0.0275 scale_bias_nogain_mean=+0.0001 premature_folds=0 gain_folds_last=5646
+CELL cross-covariate noise=drifting gain_recovery_mean=0.5401 gain_recovery_range=[0.5401,0.5401] gain_spurious_max_kw=0.0293 scale_err_max=0.0600 scale_bias_genuine_mean=+0.0307 scale_bias_nogain_mean=+0.0600 premature_folds=0 gain_folds_last=5646
+RESULT gain_recovery_mean=0.5573 ratio
+RESULT gain_shortfall_mean=0.4427 ratio
+RESULT gain_spurious_max=0.0293 kW
+RESULT scale_err_max=0.0600 ratio
+RESULT scale_bias_genuine_mean=-0.0081 ratio
+RESULT scale_bias_nogain_mean=+0.0201 ratio
+RESULT gain_recovery_min=0.5401 ratio
+RESULT gain_recovery_max=0.5687 ratio
+RESULT premature_folds=0 count
+RESULT thread_factor=1.0000
+RESULT load1=6.80
+RESULT swapins=0

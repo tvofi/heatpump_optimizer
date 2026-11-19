@@ -1,0 +1,452 @@
+{
+  "box": "B10",
+  "missing": [],
+  "reports": {
+    "D4-s3": {
+      "dimension": "D4",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D4/s3/REPORT.json",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D4.M3",
+          "enumerator": "python3 tools/audit/check_scopes.py --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D4-s3",
+          "universe": 15,
+          "examined": 15,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C2",
+              "state": "examined"
+            }
+          ],
+          "evidence": "All 15 files: the card (heatpump-optimizer-card.js) rendered in Chromium over 50 states (the P9 grid's 41 + 9 empty/short/history states from card_drift.mjs) x 375/768/1280 px x light/dark x en/de/sv = 900 cells, measuring type sizes, spacing, status-role colours, series colours, headline-number rows, error/empty states, console errors and untranslated runs (HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --out=/tmp/m3.json); config_flow.py/quick_setup.py/prefill_offer.py through 38 flow pages' description_placeholders in en/sv/de (PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_flow_lang.py); strings.json, translations/{en,de,sv}.json, services.yaml, icons.json and the 5 blueprints for title casing, quote and unit notation, key/icon coverage (PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py). C1: denominator = these 15 files, all examined. C2: spacing vs --hpo-space (45 off-scale values, D4-s3-05), headline alignment (792 rows, D4-s3-02), error states pin_fail/save_fail/status_fallback (D4-s3-01, -04), sv in every cell."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D4.M3",
+          "what": "Card states of tests/card_drift.mjs --list not rendered in Chromium (no browser driver for them here): plan_inline, plan_inline_sv, expanded_plan, what_if_off, expanded_zoomed, draft_dirty_menu_open, draft_mid_drag, whatif_edited, whatif_weekly, shared_steps, coarse_pointer, reduced_motion, layout_editing_dragged, layout_editing_tidy, picker_open_filtered, wood_whatif, away_toggle, editor_schema, history_panned, history_deep_panned, history_no_power (21 of 45; their nearest grid equivalents were rendered). The tooltip states at 375 px in de render no tooltip (the hover point lies below the 812 px viewport), so tooltip typography is unmeasured in that cell. No real Home Assistant frontend: config-flow look is inferred from strings and placeholders only (D4.md Limits)."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D4-s3-01",
+          "scope": "D4-s3",
+          "step": "D4.M3",
+          "title": "Card failure lines splice Home Assistant's English exception text into sv/de messages",
+          "severity": "medium",
+          "claim": "In the pin_fail and save_fail error states, every sv and de cell (24 of 24: 2 states x 3 viewports x 2 themes x 2 languages) renders a mixed-language failure line such as 'Kunde inte spara: A hot water minimum of 52 \u00b0C leaves no deadband ...', because the card prints err.message (the English text Home Assistant formats for a translation_key exception) instead of the integration's own translated exception message.",
+          "mechanism": "The card's ten failure sites build their line as L('errors.could_not_*', {err: (err && err.message) || err}). For an integration exception raised with translation_domain/translation_key, Home Assistant's websocket error carries `message` formatted from the en translations and the translation fields beside it; the card never reads translation_key and never calls hass.localize, so the localized prefix ('Kunde inte spara:', 'Speichern nicht m\u00f6glich:') is followed by an English sentence, although translations/sv.json and de.json carry that very exception's message.",
+          "evidence": {
+            "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+            "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+            "value": 24,
+            "unit": "count of sv/de cells whose failure line contains an en exceptions.*.message prefix",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+            "cpu_or_wall": "count",
+            "contention_note": "ran beside the seat's own full-grid run; a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 2.77,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:ManualPlan.slotResult (pin) / WhatIfPanel.onSaveSchedule (save) (the `(err && err.message) || err` failure lines, driven through hass.callService rejections)",
+          "perturbation": {
+            "change": "--perturb=err_localize: every `(err && err.message) || err` site first reads hass.localize(`component.${err.translation_domain}.exceptions.${err.translation_key}.message`, err.translation_placeholders)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "sv/de cells of pin_fail/save_fail whose .wi-pin-result/.wi-result text contains the leading literal of any translations/en.json exceptions.*.message",
+          "phenomenon_property": "A failure line the card shows in a non-English UI is entirely in that UI's language whenever the integration ships a translation for the error it reports.",
+          "seam_rule": "grep -nE \"err(\\.message| && err\\.message)\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "null_control": {
+            "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=plain --states=pin_fail,save_fail",
+            "value": 0,
+            "note": "a rejection with no translated counterpart (the P9 grid's plain 'Service call failed') leaves 0 lines matching an en exception message: the count is keyed on Home Assistant's translated-exception shape, and en cells are excluded by construction"
+          },
+          "reproduction_steps": [
+            "Set the Home Assistant profile language to Svenska",
+            "Open the card's dialog, drag a hot-water slot, press the pin button while the integration refuses (e.g. no loaded entry) or save a schedule whose hot-water minimum leaves no deadband",
+            "Read the result line: Swedish prefix, English reason"
+          ],
+          "proposed_fix_scope": "One helper in the card that turns a service rejection into text: translated exception via hass.localize (after hass.loadBackendTranslation('exceptions', 'heatpump_optimizer')) when translation_key is present, else err.message; used by all ten failure sites.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "criteria_statement": "D4-criteria 'look professional' (D4.M3 error states; D4-criteria F3 'errors say what to change' in every language)"
+        },
+        {
+          "id": "D4-s3-02",
+          "scope": "D4-s3",
+          "step": "D4.M3",
+          "title": "German headline stats at phone width: the two numbers in one row sit 14 px apart",
+          "severity": "low",
+          "claim": "In every state that shows the headline stats (6 states), at 375 px in German, in both themes, the savings and score numbers in one .hl-stats row differ in baseline by 14 px (12 of 12 such rows; 0 of 96 rows in en, sv or at 768/1280 px), because 'Voraussichtliche Einsparung' wraps to two lines and pushes its number down while 'Optimierungswert' stays on one.",
+          "mechanism": "cardStyleBlock lays .hl-stat out as label (display:block) then .hl-value (display:block; margin-top:2px): each value hangs from its own label's last line, so a row whose labels wrap to different line counts has its numbers at different heights. The grid stretches the cells to one height but nothing aligns the values to a common line.",
+          "evidence": {
+            "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=score_open,score_open_typical,score_open_no_evidence,score_open_graded_pump,savings_open,folds_open",
+            "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+            "value": 12,
+            "unit": "count of .tiles/.hl-stats rows whose numbers differ in first-line bottom or font-size by >0.5 px (of 216 rows)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+            "cpu_or_wall": "count",
+            "contention_note": "ran beside the seat's own full-grid run; a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 2.77,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (.hl-stat / .hl-label / .hl-value rules), rendered by the headline of HeatpumpOptimizerCard",
+          "perturbation": {
+            "change": "--perturb=tile_nowrap: .tile-k and .hl-label get white-space:nowrap (one label line per cell)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "rows of .tiles/.hl-stats cells (grouped by cell top) whose value elements' first text line bottoms or font-sizes differ by more than 0.5 px",
+          "phenomenon_property": "Headline numbers that share a row share a baseline (\u00b10.5 px) whatever the length of their labels in any shipped language, at every viewport.",
+          "seam_rule": "grep -nE \"\\.(tile-k|tile-v|hl-label|hl-value) \\{\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "null_control": {
+            "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=score_open,score_open_typical,score_open_no_evidence,score_open_graded_pump,savings_open,folds_open  (read hl_rows_by_vp_lang in --out JSON)",
+            "value": 0,
+            "note": "the same rows in en and sv at 375 px and in all three languages at 768/1280 px: 0 of 96 misaligned -- the offset needs a label that wraps in one cell and not the other"
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 14,
+            "max": 14,
+            "drop_most_favourable": 14
+          },
+          "reproduction_steps": [
+            "Home Assistant language Deutsch, a phone (375 px wide) dashboard",
+            "Card with the savings and score sensors present; open the score or savings detail",
+            "Compare the heights of the two numbers in the stats row"
+          ],
+          "proposed_fix_scope": "Align the stat values to the row (e.g. a two-row subgrid for label and value, or align the value to the cell's end), not a nowrap that truncates German labels.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "criteria_statement": "D4-criteria P3 one look: 'headline numbers in one row share font size and baseline (\u00b10.5 px)'"
+        },
+        {
+          "id": "D4-s3-03",
+          "scope": "D4-s3",
+          "step": "D4.M3",
+          "title": "Tooltip, picker-note and layout-verdict text renders below the card's own 12 px type floor",
+          "severity": "medium",
+          "claim": "Across the 900-cell grid, 78 cells render text below 12 px, the smallest step of the card's --hpo-text scale and the floor its other small text keeps with max(12px, ...): the chart tooltip at 10.92 px and its shared-step note at 9.28 px in the phone-width dialog, the shared-step note at 10.95 px at 768/1280 px, the entity picker's note (.sp-note) at 11.2 px and the layout verdict at 11.9 px at every viewport.",
+          "mechanism": "These rules size type as a bare em multiple of an already reduced parent (dialog.expanded .tooltip { font-size: 0.78em } under @media (max-width: 600px), .tooltip .tt-shared { font-size: 0.85em }, .sp-note and .layout-verdict.match at 0.8/0.85 em), without the max(12px, ...) guard the stylesheet applies in 13 other places, so the product falls under the scale's floor.",
+          "evidence": {
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+            "cpu_or_wall": "count",
+            "contention_note": "ran beside the seat's own grid runs; a count, contention-immune",
+            "tolerance": "exact",
+            "thread_factor": 1.0,
+            "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=tooltip_hover,shared_steps_hover,estimated_price_hover,layout_editing,picker_twins,setup_clear_armed",
+            "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+            "value": 78,
+            "unit": "count of cells with any visible HTML text run whose computed font-size < 12 px",
+            "load1": 2.77
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (.tooltip, .tooltip .tt-shared, dialog.expanded .tooltip, .sp-note, .layout-verdict rules) as Chromium computes them",
+          "perturbation": {
+            "change": "--perturb=tooltip_floor: dialog.expanded .tooltip and .tooltip .tt-shared read max(12px, <em>)",
+            "expected_direction": "down",
+            "observed_value": 54
+          },
+          "metric_definition": "cells (state x viewport x theme x language) in which a visible HTML element with its own text has computed font-size below 11.995 px",
+          "phenomenon_property": "No text the card renders, in any state, viewport or language, is smaller than the --hpo-text-xs floor (12 px).",
+          "seam_rule": "grep -nE \"font-size: *[0-9.]+em\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "null_control": {
+            "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (below_floor in --out JSON)",
+            "value": "0 of 822 cells outside these six states",
+            "note": "the other 44 states, all viewports, both themes, three languages render no text under 12 px: the floor holds wherever a max(12px, ...) guard or a token sets the size"
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 4,
+            "max": 18,
+            "drop_most_favourable": 60
+          },
+          "proposed_fix_scope": "Give the five rules the stylesheet's own max(12px, ...) guard or a --hpo-text token; keep the phone tooltip inside its chart by width, not by shrinking type.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P9",
+          "criteria_statement": "D4-criteria 'look professional' (D4.M3 typography consistency); P9's unfloored mechanism applied to type"
+        },
+        {
+          "id": "D4-s3-04",
+          "scope": "D4-s3",
+          "step": "D4.M3",
+          "title": "One status role, two colours: error, success and warning each render in two shades across states",
+          "severity": "low",
+          "claim": "Within one theme, the error role renders as #b3261e (status pill tone-crit, status_fallback) and #ca4c46 (pin/save failure lines and dearer deltas), success as #1c7350 (pill) and #24845d (cheaper/saved lines, light), and warning as #8a5a00 (pill tone-warn) and #ffa600 (the wood alert's stripe, the same in dark): 5 (theme, role) pairs with two colours across the 50 states.",
+          "mechanism": "The token layer (CARD_TOKENS --hpo-crit/--hpo-ok/--hpo-warn) drives the status pill, while the what-if result lines take the older ERROR_READABLE/SUCCESS_READABLE constants interpolated into cardStyleBlock, and the wood/space-blocked alerts carry inline styles reading Home Assistant's --warning-color directly (border-left:3px solid var(--warning-color,#d98e00)), so one meaning is painted from three palettes.",
+          "evidence": {
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+            "cpu_or_wall": "count",
+            "contention_note": "ran beside the seat's own grid runs; a count, contention-immune",
+            "tolerance": "exact",
+            "thread_factor": 1.0,
+            "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=status_stale,status_fallback,live_default,draft_menu_open,pin_ok,pin_fail,save_ok,save_fail,wood_alert,health_page",
+            "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+            "value": 5,
+            "unit": "count of (theme, status role) pairs whose rendered colour set has more than one member",
+            "load1": 2.77
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (ERROR_READABLE/SUCCESS_READABLE interpolation, .status-pill.tone-*) and the wood-alert inline style, as Chromium computes them",
+          "perturbation": {
+            "change": "--perturb=one_error_colour: ERROR_READABLE/_DARK take the --hpo-crit literals (#b3261e/#f28b82)",
+            "expected_direction": "down",
+            "observed_value": 3
+          },
+          "metric_definition": "(theme, role) pairs, role from class (dearer|tone-crit|\u2026 = error; cheaper|tone-ok = ok; tone-warn|wood-alert = warn), whose text colour or 2px+ left stripe takes >1 computed colour across states",
+          "phenomenon_property": "Every element that signals one status (error, success, warning) renders that status in one colour per theme, from the token layer.",
+          "seam_rule": "grep -nE \"ERROR_READABLE|SUCCESS_READABLE|WARNING_READABLE|var\\(--(warning|error|success)-color\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "null_control": {
+            "command": "same command",
+            "value": "dark:ok = 1 colour",
+            "note": "where the readable constant equals the token literal (SUCCESS_READABLE_DARK #1fad6b = --hpo-ok dark) the role shows one colour: the split is the second palette, not the role classifier"
+          },
+          "proposed_fix_scope": "Point the result lines and the alert stripes at --hpo-crit/--hpo-ok/--hpo-warn (and their -bg pairs) and retire the *_READABLE literals, re-measuring contrast in the P9 grid.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "P9",
+          "criteria_statement": "D4-criteria 'look professional' / P3 one look (D4.M3 colour tokens across states)"
+        },
+        {
+          "id": "D4-s3-05",
+          "scope": "D4-s3",
+          "step": "D4.M3",
+          "title": "Rendered type and spacing mostly bypass the --hpo-text / --hpo-space scales",
+          "severity": "low",
+          "claim": "Across 50 states x 3 viewports x 2 themes x 3 languages the card renders 17 distinct font sizes outside its 4-step type scale {12, 13, 15, 18 px} (9.28 to 19.6 px; e.g. every what-if button at 14 px, legend chips at 16 px, dialog tabs at 16.66 px, the title at 19.6 px) and 45 distinct non-zero padding/margin/gap values outside its 5-step space scale {4, 8, 12, 16, 24 px}.",
+          "mechanism": "The token layer (CARD_SCALE_TOKENS) is read by a minority of rules: of 83 font-size declarations most are em multipliers (0.78em, 0.82em, 0.85em, 0.9em, 1.1em, 1.25em, 1.4em ...) and literal px, and paddings/gaps are em or literal px (3px 10px, 6px 8px, 0.45em 0.7em ...), so the computed sizes scatter between and beyond the steps.",
+          "evidence": {
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+            "cpu_or_wall": "count",
+            "contention_note": "ran beside the seat's own grid runs; a count, contention-immune",
+            "tolerance": "exact",
+            "thread_factor": 1.0,
+            "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=live_default_expanded,score_open,tooltip_hover,shared_steps_hover,savings_page,health_page,setup_two_tank,advisor_page,draft_menu_open,save_confirm",
+            "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+            "value": 14,
+            "unit": "count of distinct computed font-sizes of visible HTML text off {12,13,15,18} px (full grid: 17)",
+            "load1": 2.77
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (font-size, padding, margin, gap declarations) as Chromium computes them; CARD_SCALE_TOKENS",
+          "perturbation": {
+            "change": "--perturb=type_tokens: every font-size of 0.82em/0.85em (bare or inside max(12px, ...)) reads var(--hpo-text-sm, 13px); space_snap snaps literal 2/3/6/10 px paddings/margins/gaps (offscale_spacing 40 -> 39)",
+            "expected_direction": "down",
+            "observed_value": 10
+          },
+          "metric_definition": "distinct computed font-size values (2 dp) of visible HTML elements with own text, across the cells, not in {12,13,15,18} px",
+          "phenomenon_property": "The card's rendered type sizes and spacing are drawn from its declared scales (--hpo-text-*, --hpo-space-*), so a state introduces no size the scale does not name.",
+          "seam_rule": "grep -nE \"(font-size|padding|margin|gap)[a-z-]*: *[^;]*[0-9.]+(em|px)\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | grep -v \"var(--hpo-\"",
+          "null_control": {
+            "command": "same command",
+            "value": "the 4 on-scale sizes and 5 on-scale spacings are rendered too",
+            "note": "tiles, headline values, labels and pills that read the tokens land exactly on the scale (12/13/15/18 px, 8/12 px), so the instrument does not read the scale itself as off"
+          },
+          "proposed_fix_scope": "Map the em/px sizes and spacings in cardStyleBlock onto the existing tokens (adding a step only where a size is deliberate), one rule family per change, re-running the P9 grid.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "criteria_statement": "D4.M3 'consistency of typography, spacing and colour tokens across card states' under 'look professional'"
+        },
+        {
+          "id": "D4-s3-06",
+          "scope": "D4-s3",
+          "step": "D4.M3",
+          "title": "Six first-run setup page titles are Title Case among sentence-case titles (en; three in sv)",
+          "severity": "low",
+          "claim": "Of the 41 config/options page titles in translations/en.json, 6 -- all on the first-run path (user 'Heat Pump Optimizer Setup', temperature 'Temperature Settings', thermal, zones, dhw, weather_sensitivity) -- are Title Case while the rest read in sentence case ('Your building', 'Heat Pump Optimizer options'); sv carries 3 of the same pattern ('Termisk modell & Optimering', 'V\u00e4rmepumpsoptimering - Konfiguration', 'Tv\u00e5zons- & Solkonfiguration').",
+          "mechanism": "The older initial-flow step titles were written in Title Case and translated literally; the later pages (building, options) follow sentence case, the Home Assistant UI convention, so a new user meets both styles in consecutive pages.",
+          "evidence": {
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B10 (4 vCPU, Linux, CPython 3.14 venv-ci, Node 22)",
+            "cpu_or_wall": "count",
+            "contention_note": "a count over file-delivered strings, contention-immune",
+            "tolerance": "exact",
+            "load1": 0.5,
+            "thread_factor": 1.0,
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+            "harness_path": "dev/audit/rounds/round11/D4/s3/m3_text.py",
+            "value": 6,
+            "unit": "count of en config/options step titles with a capitalised non-first word that is neither an acronym nor a proper name (of 41)"
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/translations/en.json and sv.json: config.step.*.title / options.step.*.title (the strings Home Assistant renders as the form heading)",
+          "perturbation": {
+            "change": "--perturb=sentence_titles: every en/sv page title sentence-cased in memory, acronyms and the product's proper names kept",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "en step titles in which some word after the first starts with an uppercase letter followed by lowercase and is not in the proper-name list",
+          "phenomenon_property": "Every config and options page title in en and sv uses one casing convention (sentence case, the one the other 35 titles use).",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D4/s3/m3_text.py | grep 'title-case title'",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+            "value": "35 of 41 en titles counted 0",
+            "note": "sentence-case titles with proper names ('Heat Pump Optimizer options') are not counted, so the proper-name exclusion does not hide or invent hits"
+          },
+          "proposed_fix_scope": "Sentence-case the six en titles (and the three sv ones) in strings.json/translations; de is unaffected (nouns capitalised).",
+          "files": [
+            "custom_components/heatpump_optimizer/strings.json",
+            "custom_components/heatpump_optimizer/translations/en.json",
+            "custom_components/heatpump_optimizer/translations/sv.json"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "criteria_statement": "'look professional' (D4.M3 typography consistency)"
+        },
+        {
+          "id": "D4-s3-07",
+          "scope": "D4-s3",
+          "step": "D4.M3",
+          "title": "German text mixes \u201etypographic\u201c and \"straight\" quotes; a blueprint writes degrees as '15 C'",
+          "severity": "low",
+          "claim": "In German, 27 quoted spans across translations/de.json and the card's STRINGS use straight ASCII quotes while 95 use \u201e\u2026\u201c (25 of the 27 in de.json, e.g. exceptions.config_entry_not_loaded); and blueprints/automation/economy_mode_on_price_peak.yaml's description writes '1.5 C' and '15 C' where every other surface writes \u00b0C.",
+          "mechanism": "Strings were translated at different times by different passes: some kept the English source's ASCII quotes around placeholders and option names, others used German typography; the blueprint description is plain text written without the degree sign.",
+          "evidence": {
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B10 (4 vCPU, Linux, CPython 3.14 venv-ci, Node 22)",
+            "cpu_or_wall": "count",
+            "contention_note": "a count over file-delivered strings, contention-immune",
+            "tolerance": "exact",
+            "load1": 0.5,
+            "thread_factor": 1.0,
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+            "harness_path": "dev/audit/rounds/round11/D4/s3/m3_text.py",
+            "value": 27,
+            "unit": "count of straight-quoted spans in de strings (translations/de.json + card STRINGS.de) beside 95 typographic ones"
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/translations/de.json (all leaf strings HA renders) and heatpump-optimizer-card.js:STRINGS.de (loaded in a Node vm, the table L() reads); blueprints/automation/economy_mode_on_price_peak.yaml:blueprint.description",
+          "perturbation": {
+            "change": "--perturb=de_quotes: de.json's straight-quoted spans rewritten \u201e\u2026\u201c in memory",
+            "expected_direction": "down",
+            "observed_value": 2
+          },
+          "metric_definition": "regex count of \"\u2026\" spans (1-80 chars) in de delivered strings, beside the count of \u201e\u2026\u201c spans",
+          "phenomenon_property": "Within one language, the user-facing text uses one quotation style and one temperature notation (\u00b0C).",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+            "value": "en: 2 degree-without-sign, 0 in de/sv",
+            "note": "the degree count is 0 in de and sv over the same surfaces, so the regex does not read '\u00b0C' as bare 'C'"
+          },
+          "proposed_fix_scope": "Normalise de.json (and the 2 card STRINGS.de spans) to \u201e\u2026\u201c; write '1.5 \u00b0C' / '15 \u00b0C' in the blueprint description. sv/en straight quotes are the majority style there and are not claimed.",
+          "files": [
+            "custom_components/heatpump_optimizer/translations/de.json",
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+            "blueprints/automation/economy_mode_on_price_peak.yaml"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "criteria_statement": "'look professional' (D4.M3 typography consistency)"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Each chart series keeps one colour across all 50 states within each theme (legend dot and .series[data-key] marks); a first harness read of the dashed solar dot's border (currentColor) was a harness gap, fixed to read the gradient stop",
+          "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --out=/tmp/m3.json",
+          "value": "series_colour_split=0 over 900 cells"
+        },
+        {
+          "claim": "No console error or uncaught exception in any cell",
+          "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --out=/tmp/m3.json",
+          "value": "console_errors=0 over 900 cells"
+        },
+        {
+          "claim": "The .tiles headline numbers share size and baseline in every row; sv at every viewport and en/de at 768/1280 px align the .hl-stats rows too",
+          "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --out=/tmp/m3.json",
+          "value": "0 of 684 .tiles rows; 0 of 96 .hl-stats rows outside de@375"
+        },
+        {
+          "claim": "Empty states (no_plan, no_plan_expanded, savings_empty, advisor_empty, setup_not_published, history_unavailable, history_pending) render no sub-floor text, no misaligned row, no split status colour",
+          "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --out=/tmp/m3.json --states=no_plan,no_plan_expanded,savings_empty,advisor_empty,setup_not_published,history_unavailable,history_pending",
+          "value": "below_floor_cells=0, tile_row_misaligned=0, role_colour_split=0"
+        },
+        {
+          "claim": "The card shows no untranslated card string in sv/de: the 5 runs equal to en are fixture-supplied text (narrative lines published with language 'en', topology/advisor slot labels from qaTopologies) -- a fixture gap, not the card",
+          "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --out=/tmp/m3.json",
+          "value": "untranslated_runs=108 runs, 5 distinct texts, all fixture attributes"
+        },
+        {
+          "claim": "No config/options flow page splices an untranslated sentence into a sv/de description; the instrument moves 0 -> 4 when _building_preset_warning ignores the language",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_flow_lang.py",
+          "value": "untranslated_placeholders=0 of 40 shown placeholders on 38 pages x 2 languages"
+        },
+        {
+          "claim": "translations en/de/sv cover every strings.json key and strings.json equals translations/en.json",
+          "command": "python3 -I -c \"import json;s=json.load(open('custom_components/heatpump_optimizer/strings.json'));print(s==json.load(open('custom_components/heatpump_optimizer/translations/en.json')))\"",
+          "value": "1511 keys in each language, 0 missing, 0 extra; equal: True"
+        },
+        {
+          "claim": "icons.json gives every service and every entity translation key an icon",
+          "command": "python3 -I (icons.json vs strings.json entity.* and services.yaml)",
+          "value": "15/15 services, 82/82 entity keys"
+        },
+        {
+          "claim": "sv and de write temperatures with the degree sign everywhere",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+          "value": "de_degree_without_sign=0, sv_degree_without_sign=0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+        "dev/audit/rounds/round11/D4/s3/m3_text.py",
+        "dev/audit/rounds/round11/D4/s3/m3_flow_lang.py",
+        "dev/audit/rounds/round11/D4/s3/perturb.sh"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D4-s1",
+          "file": "tests/card_browser.mjs",
+          "symbol": "p9Grid / instrument().drive 'hover' and 'hoverShared'",
+          "what": "At 375x812 in de the expanded dialog's legend pushes the chart below the viewport, so the hover point is off-screen and tooltip_hover / shared_steps_hover / estimated_price_hover render no tooltip in that cell; the grid reports no miss, so the de phone tooltip is never measured."
+        },
+        {
+          "owner_seat": "D4-s1",
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "symbol": "dialog tabs (.dlg-tab) focus on open",
+          "what": "Opening the Savings page shows the focus ring on the Plan tab while Savings is the active tab (two tabs outlined, savings_empty screenshot); F2 'visible focus' vs active-state ambiguity, unmeasured here."
+        },
+        {
+          "owner_seat": "D4-s1",
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "symbol": "dialog legend at 375 px",
+          "what": "In de/sv at 375 px the eight legend chips stack one per line and fill the first screen of the dialog; the chart starts below the fold (tooltip_hover de screenshot). Layout/P1-F1 question for the M1 seat."
+        },
+        {
+          "owner_seat": "D4-s2",
+          "file": "custom_components/heatpump_optimizer/config_flow.py",
+          "symbol": "HeatPumpOptimizerConfigFlow.async_step_user description_placeholders['tibber_info']",
+          "what": "The English placeholder 'Get your token from https://developer.tibber.com' is passed but no en/de/sv text names {tibber_info}, so the token hint is never shown (dead placeholder; the user page may lack the hint it was meant to give)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/topology.py",
+          "symbol": "setup_topology slots[].label / sensor_advisor candidates[].label",
+          "what": "The card prints slot and advisor labels as published; whether the backend publishes them in the Home Assistant language was not measured (the card fixtures carry English labels, which render verbatim in sv/de)."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+  tests/card.mjs:498	tests/card.mjs#e8d562da5e	C2: unresolved file:card_shapes.mjs
+  tests/card.mjs:3729	tests/card.mjs#326c93bfe7	C2: unresolved file:card_shapes.mjs
+  tests/card.mjs:3785	tests/card.mjs#3305adb2b9	C2: unresolved file:card_shapes.mjs
+  tests/card.mjs:10542	tests/card.mjs#5ae7e6039f	C2: unresolved file:DESIGN.md
+  tests/closure.py:1989	tests/closure.py#e54039ea8c	C2: unresolved path:docs/delivery
+  tests/closure.py:3265	tests/closure.py#ba7a34c16e	C2: unresolved path:tools/audit/w5-partition/coverage_tree.sh
+  tests/closure.py:160	tests/closure.py#958b6777b3	C2: unresolved path:tools/audit/w5-partition/coverage_tree.sh
+  tests/closure.py:801	tests/closure.py#8a08a285f5	C2: unresolved file:carry-1922.json
+  tests/closure.py:1296	tests/closure.py#72a6b9f93e	C2: unresolved path:dev/audit/rounds/round4/D11/governance_cost.py
+  tests/doc_claims.py:2	tests/doc_claims.py#51a4e44449	C2: unresolved file:CONDENSED.md
+  tests/doc_claims.py:3258	tests/doc_claims.py#34068053f7	C2: unresolved path:dev/programme/designs/R10-ARCH-DOCS-FIRST.md
+  tests/doc_claims.py:4337	tests/doc_claims.py#b32560c883	C2: unresolved path:dev/programme/designs/R10-USER-DOCS-FINAL.md
+  tools/policy/friction_issues.mjs:2	tools/policy/friction_issues.mjs#0caeaddfc9	C2: unresolved path:.claude/workflows/friction_issues.mjs, path:.claude/workflows/friction_issues.mjs, path:.claude/workflows/friction_issues.mjs
+  tools/policy/policy_lint.mjs:1	tools/policy/policy_lint.mjs#3690fa9f3f	C2: unresolved path:docs/plan-*.md, path:docs/HANDOVER.md, path:tools/audit/briefs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs, path:.claude/workflows/policy_lint.mjs
+  tools/policy/policy_lint.mjs:485	tools/policy/policy_lint.mjs#b61938586f	C2: unresolved path:docs/decisions
+  tools/policy/policy_lint.mjs:553	tools/policy/policy_lint.mjs#613a1aa6fb	C2: unresolved path:tools/audit/briefs/orchestrator.md
+  tools/policy/policy_lint.mjs:588	tools/policy/policy_lint.mjs#ea07392220	C2: unresolved path:.claude/workflows/corpus_excluded.json
+  tools/policy/policy_lint.mjs:976	tools/policy/policy_lint.mjs#44211a56aa	C2: unresolved path:tools/audit/briefs/orchestrator.md
+  tools/policy/policy_lint.mjs:1928	tools/policy/policy_lint.mjs#b2074a702f	C2: unresolved path:docs/decisions/0010-merge-commits-on-main.md
+  tools/policy/policy_lint.mjs:1945	tools/policy/policy_lint.mjs#3520a05807	C2: unresolved path:docs/decisions/0010
+  tools/policy/policy_lint.mjs:1985	tools/policy/policy_lint.mjs#e97c20b538	C2: unresolved path:docs/delivery
+  tools/policy/policy_lint.mjs:2058	tools/policy/policy_lint.mjs#2aca5dfdd2	C2: unresolved path:docs/decisions/0010-merge-commits-on-main.md
+  tools/policy/policy_lint.mjs:2328	tools/policy/policy_lint.mjs#a2f7cf19af	C2: unresolved path:docs/delivery/N.md
+  tools/policy/policy_lint.mjs:2716	tools/policy/policy_lint.mjs#0d20edf8a6	C2: unresolved path:tools/audit/briefs/*.md
+  tools/policy/policy_lint.mjs:7438	tools/policy/policy_lint.mjs#2ef1b6ce8c	C2: unresolved path:tools/audit/preflight.sh

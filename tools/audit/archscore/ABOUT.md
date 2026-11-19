@@ -183,7 +183,7 @@ reads 41 -> 41 (40 with `C16b` off). Attempt 20b. F2 is a precision note, not cl
 to ANY call outside the package is a root, including one that never calls it (`_LOGGER.debug("%r",
 self.async_update_thermal_params)` reads 41 -> 48). The census cannot tell a subscription from a log argument,
 and it over-counts rather than misses the subscription. R10-LIVESTATE carries the 41 -> 38 control
-(`event_hub_writes.py`).
+(`dev/audit/harnesses/r10_livestate_event_hub_writes.py`).
 
 ### What R10-ARCHSCORE-COVERAGE part 3 moved (layering: `layer_violations`, `private_cross_module`)
 
