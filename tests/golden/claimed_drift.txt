@@ -69,6 +69,7 @@
 #
 price_risk  # R11-SEAM-solver D2-s3-01: the lambda*sigma premium leaves every money figure and the published prices (CHEAPER baseline_cost, predicted_cost, deferred_energy_cost, dhw_heating_cost, predicted_savings; prices drop the premium on guessed steps); every plan key byte-identical
 start_below_band  # R11-SEAM-solver D0-s3-02: the all-off start reaches a LOWER objective_value on all four OpenBLAS kernel classes (cloud-setup.sh --kernels); one more compressor start, plan keys move with it
+confidence_margins  # R11-SEAM-solver D0-s3-02: the all-off start moves the x86_64 refinement by about 1e-6 relative (CI tests / fast job 134916816497 at bdf09624: 18 leaves, predicted_cost HIGHER by 1e-6, 49.544821 at the base vs 49.544822); arm64 reads it byte-identical
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
