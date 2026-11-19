@@ -636,3 +636,5 @@
 2026-11-19T11:45:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_lbfgsb_restart CMP_BOUND daa52fe4 L1871 by=- ran=17 wall=1673.6s
 2026-11-19T12:04:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_due CMP_BOUND a50b59e0 L626 by=- ran=15 wall=1396.0s
 2026-11-19T12:07:26Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_measured_production GUARD_OFF 84888766 L9810 by=- ran=13 wall=1382.2s
+2026-11-19T12:09:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss GUARD_OFF 16fff8db L5940 by=- ran=13 wall=1480.8s
+2026-11-19T12:10:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views GUARD_OFF 76e4a528 L4831 by=- ran=14 wall=1486.9s
