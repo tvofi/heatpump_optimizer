@@ -1,0 +1,49 @@
+/Users/timmalmstrom/.local/state/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/__init__.py:10: RuntimeWarning: install_as_voluptuous is shadowing an already-imported voluptuous; call it before anything imports voluptuous so references resolve to probatio
+  install_as_voluptuous()
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys; sys.path.remove("/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages"); sys.path.append("/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages"); import runpy; runpy.run_path("tests/config_flow_steps.py", run_name="__main__")
+                                                                                                                                                                                                                          ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 294, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "tests/config_flow_steps.py", line 8124, in <module>
+    sys.exit(asyncio.run(main()))
+             ~~~~~~~~~~~^^^^^^^^
+  File "/Users/timmalmstrom/.local/share/uv/python/cpython-3.14.7-macos-aarch64-none/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/.local/share/uv/python/cpython-3.14.7-macos-aarch64-none/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/.local/share/uv/python/cpython-3.14.7-macos-aarch64-none/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "tests/config_flow_steps.py", line 8079, in main
+    await token_surfaces_agree()
+  File "tests/config_flow_steps.py", line 5475, in token_surfaces_agree
+    reauth = await reauth_flow.async_step_reauth(entry.data)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-11-orchestrator-resume-928854/f2a0d03a-dc77-4fb9-b8fa-10babda9f42a/scratchpad/rv3731/custom_components/heatpump_optimizer/config_flow.py", line 3276, in async_step_reauth
+    self._reauth_entry = getter() if getter else self._entry_from_context()
+                         ~~~~~~^^
+  File "/Users/timmalmstrom/.local/state/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/config_entries.py", line 3644, in _get_reauth_entry
+    return self.hass.config_entries.async_get_known_entry(self._reauth_entry_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'FakeConfigEntries' object has no attribute 'async_get_known_entry'. Did you mean: 'async_get_entry'?
+
+=== Initial config flow, walked end to end ===
+  ok   option_range reads the options table's own number selector for its key
+  ok   option_range refuses 'prefill_offer', which has no number field
+  ok   option_range refuses 'no_such_option_key', which has no number field
+
+-- #590 NumberSelector / advanced convention
+  ok   walker refuses a NumberSelector built outside _number
+  ok   walker accepts _number and _widen_to_fit
+  ok   walker refuses _number that omits mode
+  ok   walker refuses description={advanced: True}
+  ok   production config_flow.py holds the #590 convention
+  ok   _number runtime passes min/max and explicit BOX mode with step "any" (#1679: a pinned increment left off-grid defaults unselectable)
+  ok   _number(slider=True) passes its increment as step and explicit SLIDER mode
+
+-- E1: setup, reauth and options share one token mask
