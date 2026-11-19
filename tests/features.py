@@ -94217,16 +94217,62 @@ _dsp_days = {
     # numpy's dispatch has no AVX.
     for day, kw in (("mild", {"out_mean": 1.0}), ("cold", {"out_mean": -1.0}))
 }
+# What the commit stage guarantees is read where it decides: each commit call
+# scores the committed form of every relaxed plan (one per descent) on the
+# true objective, start term included, and ships the lowest. The solve's final
+# objective is not that score (stages after the commit move it), so which arm
+# alone ships the lower final objective is a property of one non-convex solve
+# per arm and moved with the CPU class (``fixer.md`` step 15): with hot water
+# committed as runs the 2 degC day's operand arm alone scored under both
+# descents on one CI runner class and on arm64 and above them on another, and
+# the 1 degC day chosen over four x86 kernel classes failed on arm64.
+_dsp_real_best, _dsp_real_commit = _dsp_om._best_runs, _dsp_om._commit_runs
+
+
+def _dsp_commit_calls(**kw):
+    """Per commit call of one priced duty-cycle solve with both descents:
+    each descent's committed (score, plan) and the plan that shipped."""
+    calls = []
+
+    def best(*args):
+        out = _dsp_real_best(*args)
+        calls[-1][0].append((float(out[0]), np.array(out[1], float)))
+        return out
+
+    def commit(*args, **kwargs):
+        calls.append(([], None))
+        out = _dsp_real_commit(*args, **kwargs)
+        calls[-1] = (calls[-1][0], np.array(out[0], float))
+        return out
+
+    _dsp_om._best_runs, _dsp_om._commit_runs = best, commit
+    try:
+        _dsp_solve(_DSP_PAIR, _DSP_OFF, **kw)
+    finally:
+        _dsp_om._best_runs, _dsp_om._commit_runs = _dsp_real_best, _dsp_real_commit
+    return calls
+
+
+_dsp_stage = {day: _dsp_commit_calls(**kw) for day, kw in (("mild", {}), ("cold", {"out_mean": -1.0}))}
+_dsp_stage_calls = [c for calls in _dsp_stage.values() for c in calls]
+_dsp_stage_scores = [[round(c[0], 6) for c in cands] for cands, _ in _dsp_stage_calls]
 R.check(
-    "a solve that prices a stop commits both descents and ships the lower: on "
-    "the mild day (duty-cycle, price phase 30, 1 degC) the unpriced descent's "
-    "plan, which the operand's descent alone scores above; on the cold day "
-    "(the same at -1 degC) the operand's, which the unpriced descent alone scores above",
-    _dsp_days["mild"]["both"] <= _dsp_days["mild"]["unpriced"] + 1e-9
-    and _dsp_days["mild"]["both"] < _dsp_days["mild"]["operand"] - 0.01
-    and _dsp_days["cold"]["both"] <= _dsp_days["cold"]["operand"] + 1e-9
-    and _dsp_days["cold"]["both"] < _dsp_days["cold"]["unpriced"] - 0.01,
-    f"{_dsp_days}",
+    "a solve that prices a stop commits both descents and ships the lower: on the "
+    "duty-cycle days at 2 and -1 degC every commit call scores one committed plan per "
+    "descent and ships the one that scores lowest",
+    bool(_dsp_stage_calls)
+    and all(
+        len(cands) == 2 and shipped is not None
+        and np.array_equal(shipped, min(cands, key=lambda c: c[0])[1])
+        for cands, shipped in _dsp_stage_calls
+    ),
+    f"{_dsp_stage_scores}",
+)
+R.check(
+    "and the choice is live: on some commit call the unpriced descent's committed plan "
+    "scores below the operand's, so shipping the first descent's plan would ship the higher",
+    any(len(cands) == 2 and cands[1][0] < cands[0][0] - 1e-9 for cands, _ in _dsp_stage_calls),
+    f"{_dsp_stage_scores}",
 )
 R.check(
     "the relaxed descent still leaves a priced switch: with the switch operand "
@@ -98277,6 +98323,59 @@ R.check(
     and _rl_whatif(_rl_c_off, {}) is None,
     f"{None if _rl_wi_c is None else np.round(_rl_wi_c[:4], 3).tolist()} "
     f"target={None if _rl_wi_c_target is None else sorted(set(np.round(_rl_wi_c_target, 3).tolist()))}",
+)
+
+
+# -- The plan peak under the lift: accepted, never clipped (round-11 ruling, 2026-11-18,
+# option A). The lifted floor reaches the comfort target and the plan may store heat above
+# it, so its peak may pass the unlifted plan's. These checks encode that choice: a clip of
+# the lift short of the target, or a headroom under it, fails the first; the zeros array
+# is the solver's own null control. The fixture is the design note's, solved through
+# the production optimizer on dev/audit/harnesses/room_lift_solve.py's inputs.
+from heatpump_optimizer.thermal_model import ThermalState as _rl_State  # noqa: E402
+
+_RL_PEAK_START = datetime(2026, 4, 15, 12, 0, tzinfo=UTC)
+_rl_peak_cfg = _rl_Config(horizon_hours=24, time_step_minutes=15, target_temp=20.0, min_temp=19.5,
+                          max_temp=23.0, comfort_temp_day=20.0, comfort_temp_night=20.0)
+_RL_PEAK_N = 96
+
+
+def _rl_peak_solve(margins):
+    """The plan's room temperatures past step 0 for ``margins``, from the harness's inputs."""
+    cfg = _grad_house(target_temperature=20.0, min_temperature=19.5)
+    outdoor, wind, rain, solar = _grad_weather("shoulder", _RL_PEAK_START)
+    state = _rl_State(
+        room_temperature=19.6, slab_temperature=20.6, outdoor_temperature=float(outdoor[0]),
+        dhw_temperature=50.0, dhw_hours_since_legionella=20.0, upper_floor_temperature=19.6,
+        lower_floor_temperature=19.6, buffer_tank_temperature=40.0)
+    result = _PvOpt(_PvModel(_PvParams.from_config(cfg)), _rl_peak_cfg).optimize(inputs=solve_inputs(
+        initial_state=state, prices=_grad_prices("winter_typical", _RL_PEAK_START),
+        outdoor_temps=outdoor, wind_speeds=wind, precipitation=rain, solar_radiation=solar,
+        start_time=_RL_PEAK_START, min_temp_margins=margins))
+    return np.asarray(result.room_temp_trajectory[1:], dtype=float)
+
+
+_rl_peak_m, _ = _rl_solve(cfg=_rl_peak_cfg, start=_RL_PEAK_START, n=_RL_PEAK_N)
+_rl_peak = {k: _rl_peak_solve(m) for k, m in
+            (("none", None), ("zeros", np.zeros(_RL_PEAK_N)), ("lift", _rl_peak_m))}
+_rl_peak_gap = None if _rl_peak_m is None else [
+    round(float(_rl_peak_cfg.get_comfort_temp(t.hour + t.minute / 60.0, when=t)
+                - _rl_peak_cfg.get_temp_bounds(t.hour + t.minute / 60.0, when=t)[0] - _rl_peak_m[i]), 9)
+    for i, t in enumerate(_RL_PEAK_START + timedelta(minutes=15 * i) for i in range(_RL_PEAK_N))]
+R.check(
+    "the lifted floor reaches the comfort target, no headroom under it, at every step past the "
+    "ramp (0.1 K at step 0, 0.25 K an hour, so from step 7)",
+    _rl_peak_gap is not None and _rl_peak_gap[0] > 0.0 and set(_rl_peak_gap[7:]) == {0.0},
+    f"gap to target {_rl_peak_gap and sorted(set(_rl_peak_gap))}",
+)
+R.check(
+    "the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the "
+    "target past the ramp; null control, an all-zero margin array plans the unlifted plan",
+    float(_rl_peak["lift"].max()) > float(_rl_peak["none"].max())
+    and float(_rl_peak["lift"][12:].min()) >= 20.0 - 1e-6
+    and np.array_equal(_rl_peak["zeros"], _rl_peak["none"]),
+    f"peak none={_rl_peak['none'].max():.3f} zeros={_rl_peak['zeros'].max():.3f} "
+    f"lift={_rl_peak['lift'].max():.3f} lift min past 3 h={_rl_peak['lift'][12:].min():.3f}",
 )
 
 
