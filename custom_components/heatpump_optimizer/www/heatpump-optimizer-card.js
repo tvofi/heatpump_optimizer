@@ -5564,7 +5564,9 @@ function cardStyleBlock(darkMode) {
         font-style: italic;
         color: var(--hpo-text-2, #727272);
         white-space: normal;
-        max-width: 220px;
+        /* At the 12 px floor (D4-s3-03) the shared-step sentence took a
+           fourth line at 220 px in Swedish; 260 px is the tt-why bound. */
+        max-width: 260px;
       }
       .tooltip .tt-reason {
         margin-top: var(--hpo-space-1, 4px); padding-top: var(--hpo-space-1, 4px); font-style: italic;
@@ -6328,8 +6330,13 @@ ${DIALOG_SCALED_TOKENS.map((name) =>
         /* The dialog's 0.92 em tooltip brought it up to the tile's size from
            the old 12 px floor; on the 14 px floor (H1) it outgrew the short
            phone-width chart it must stay inside (R9-UX-1). Here it keeps
-           the tile's own 0.78 em. */
-        dialog.expanded .tooltip { font-size: var(--hpo-text-xs, 12px); }
+           the tile's own size and padding. */
+        dialog.expanded .tooltip {
+          font-size: var(--hpo-text-xs, 12px);
+          padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px);
+          line-height: 1.1;
+        }
+        dialog.expanded .tooltip .tt-shared { max-width: 300px; }
         /* Phone-width dialogs (#40 feedback, item 1): the header must be
            allowed to wrap, or the Plan/Setup tabs are pushed out of reach
            by the title; and the setup diagram scrolls sideways at a
@@ -9379,20 +9386,28 @@ function idleWhyHtml(rows, ctx) {
 }
 /** Keep the tooltip inside a chart `cap` px tall by shortening the idle
  * explanation, its last (least telling) line first, and dropping it whole
- * when even its heading does not fit. Text is omitted, never clipped: the
- * box cannot scroll, so a clipped line is one nobody can read. The value
- * rows are left alone. `offsetHeight` is 0 or absent before layout, and
- * then there is nothing to measure against. */
+ * when even its heading does not fit; then, if the box is still too tall,
+ * the step's reason line. On the phone-width dialog's chart, at the 12 px
+ * floor, a shared step's value rows and sentence alone nearly fill it.
+ * Text is omitted, never clipped: the box cannot scroll, so a clipped line
+ * is one nobody can read. The value rows and the shared-step sentence are
+ * left alone. `offsetHeight` is 0 or absent before layout, and then there
+ * is nothing to measure against. */
 function fitWhy(tt, cap) {
   const tall = () => Number(tt.offsetHeight) > cap;
   if (!(cap > 0) || !tall()) return;
-  const why = tt.querySelector(".tt-why");
-  if (!why) return;
   // removeChild rather than remove(): the Node test DOM has only the former.
   const drop = (n) => n.parentNode && n.parentNode.removeChild(n);
-  const items = [...why.querySelectorAll("li")];
-  while (items.length && tall()) drop(items.pop());
-  if (tall() || !why.querySelector("li")) drop(why);
+  const why = tt.querySelector(".tt-why");
+  if (why) {
+    const items = [...why.querySelectorAll("li")];
+    while (items.length && tall()) drop(items.pop());
+    if (tall() || !why.querySelector("li")) drop(why);
+  }
+  for (const sel of [".tt-reason", ".tt-shared"]) {
+    const el = tt.querySelector(sel);
+    if (el && tall()) drop(el);
+  }
 }
 
 // ---- Legend ---------------------------------------------------------------

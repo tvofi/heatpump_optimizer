@@ -7975,6 +7975,29 @@ const slotHit = (card, key) => {
     fitWhy(cramped, 80);
     check("UX-1 and is dropped whole when not even one line fits",
       !cramped.querySelector(".tt-why") && cramped.querySelectorAll(".tt-row").length === 4);
+    // Still too tall with no explanation (a shared step's rows and sentence
+    // on the phone dialog's short chart at the 12 px floor): the reason line
+    // goes first, then the shared-step sentence, never a value row.
+    const prose = (rowsN) => {
+      const el = document.createElement("div");
+      el.innerHTML = '<div class="tt-row">r</div>'.repeat(rowsN) +
+        '<div class="tt-shared">s</div><div class="tt-reason">w</div>';
+      Object.defineProperty(el, "offsetHeight", { get: () =>
+        16 * el.querySelectorAll(".tt-row").length +
+        30 * el.querySelectorAll(".tt-shared").length +
+        15 * el.querySelectorAll(".tt-reason").length });
+      return el;
+    };
+    const noReason = prose(4);
+    fitWhy(noReason, 100);
+    check("UX-1 a box too tall with no explanation drops its reason line and keeps the shared-step sentence",
+      !noReason.querySelector(".tt-reason") && !!noReason.querySelector(".tt-shared") &&
+        noReason.querySelectorAll(".tt-row").length === 4, noReason.offsetHeight);
+    const noShared = prose(4);
+    fitWhy(noShared, 70);
+    check("UX-1 and drops the shared-step sentence only when the rows alone fit",
+      !noShared.querySelector(".tt-reason") && !noShared.querySelector(".tt-shared") &&
+        noShared.querySelectorAll(".tt-row").length === 4 && noShared.offsetHeight <= 70, noShared.offsetHeight);
   }
   // R9-UI-4: the crosshair crosses every panel, from the top of the first
   // to at least the bottom of the last (on through the lane strip under it,

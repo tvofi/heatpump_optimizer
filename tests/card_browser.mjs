@@ -261,6 +261,12 @@ function gridStates(plan) {
     S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),
     S("override_active", { states: override(), config: wi, steps: [["open"]] }),
     S("wood_alert", { states: wood({ cheaper: true, show_whatif: true, ready: true, slots: [] }) }),
+    // The three status notes R11-SEAM-card moved from inline style to rules,
+    // so the colour reach measures them: the space-blocked banner, the
+    // history line (a recorder that answers nothing for the window panned
+    // into), and the savings month withheld under the meter floor.
+    S("space_blocked", { states: (() => { const st = planStates(plan); st[DEFAULT_SPACE].attributes.space_blocked = true; return st; })() }),
+    S("history_unavailable", { states: planStates(plan), steps: [["cardClick"], ["history", 6]] }),
     S("wood_lane", { states: wood({ cheaper: false, show_whatif: true, ready: true, slots: [{ start: plan.space_plan.forecast[0].t,
       end: plan.space_plan.forecast[Math.min(4, plan.space_plan.forecast.length - 1)].t, source: "detected" }] }) }),
     S("away_return", { states: away({ sw: true }), steps: [["cardClick"]] }),
@@ -277,6 +283,10 @@ function gridStates(plan) {
     S("savings_page_wood", { states: { ...wood({ cheaper: false, show_whatif: true, ready: true, slots: [] }),
       "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1", attributes: { unit_of_measurement: "SEK", savings_months: [
         { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: null, savings_pct: null, old_basis: true }] } } },
+      steps: [["cardClick"], ["page", "savings"]] }),
+    S("savings_page_floor", { states: { ...planStates(plan), "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1",
+      attributes: { unit_of_measurement: "SEK", savings_months: [
+        { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: null, savings_pct: null, below_meter_floor: true }] } } },
       steps: [["cardClick"], ["page", "savings"]] }),
     S("estimated_price_hover", { states: (() => { const st = planStates(plan);
       for (const id of [DEFAULT_SPACE, DEFAULT_DHW]) st[id].attributes.forecast = st[id].attributes.forecast.map((p) => ({ ...p, price_known: false }));
@@ -1432,6 +1442,14 @@ function instrument() {
         hover = { x: svgPx(svg, plot.scaleX(plot.windowStart + a1 * 3600000)), y: r.top + r.height * 0.45 };
       }
       else if (op === "zoom") c.view.zoom(a1);
+      else if (op === "history") {
+        // A recorder with nothing for the window: the pan into the past asks
+        // it, and the empty answer draws the history status line.
+        c.hass.callApi = async () => [];
+        c.view.panBy(-a1 * 3600000);
+        for (let i = 0; i < 20 && !root().querySelector(".hist-note"); i++) { await sleep(50); await frame(); }
+        if (!root().querySelector(".hist-note")) missed.push(`${op} ${a1}`);
+      }
       else if (op === "hoverShared") {
         await frame();
         const svgs = charts(), svg = svgs[svgs.length - 1], plot = c._plot;
