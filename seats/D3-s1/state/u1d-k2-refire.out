@@ -1,5 +1,0 @@
-2026-11-19T00:51:24Z COMPLETE queued=91 from=pre
-2026-11-19T00:55:55Z COMPLETE SIGNAL custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF 582cce74 L783 (not written; re-drive)
-2026-11-19T00:56:32Z COMPLETE SIGNAL custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._check_pump_mode_expired GUARD_OFF f3ebeb54 L5989 (not written; re-drive)
-2026-11-19T00:58:14Z COMPLETE queued=90 from=pre
-2026-11-19T00:58:34Z COMPLETE queued=90 from=pre

@@ -1,9 +1,0 @@
-56174.757605 2026-11-18T23:28:58Z [56174.757605] Memory cgroup out of memory: Killed process 9311 (python3) total-vm:1216664kB, anon-rss:714924kB, file-rss:32784kB, shmem-rss:0kB, UID:0 pgtables:1736kB oom_score_adj:0
-56179.562291 2026-11-18T23:29:03Z [56179.562291] Memory cgroup out of memory: Killed process 10892 (python3) total-vm:352564kB, anon-rss:139132kB, file-rss:29172kB, shmem-rss:0kB, UID:0 pgtables:548kB oom_score_adj:0
-56202.505978 2026-11-18T23:29:26Z [56202.505978] Memory cgroup out of memory: Killed process 10606 (python3) total-vm:365872kB, anon-rss:69212kB, file-rss:31064kB, shmem-rss:0kB, UID:0 pgtables:516kB oom_score_adj:0
-57043.602556 2026-11-18T23:43:27Z [57043.602556] Memory cgroup out of memory: Killed process 20223 (python3) total-vm:955380kB, anon-rss:493640kB, file-rss:32572kB, shmem-rss:0kB, UID:0 pgtables:1356kB oom_score_adj:0
-53727.748431 2026-11-18T22:48:11Z (recorded from dmesg before oomwatch started)
-53730.512542 2026-11-18T22:48:14Z (recorded from dmesg before oomwatch started)
-54219.107552 2026-11-18T22:56:23Z (recorded from dmesg before oomwatch started)
-54267.809987 2026-11-18T22:57:11Z (recorded from dmesg before oomwatch started)
-54295.260851 2026-11-18T22:57:39Z (recorded from dmesg before oomwatch started)
