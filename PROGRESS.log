@@ -271,3 +271,4 @@
 1795048141 HB container restart killed K2 at 78/236; mutated worker trees discarded; K2 resumed (158 queued); stale comms lock cleared
 1795048162 CKPT D3-s1 538 file(s)
 1795049436 CKPT D3-s1 540 file(s)
+1795049441 HB K2 full net 79/236 free=26G load1=3.63
