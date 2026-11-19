@@ -17,7 +17,7 @@ survivor's production line (state/baselines.json, taken on box D3-u1a).
 Perturbation: `--drop-driver S` removes S's reach -> executed_by falls by one
 on every row S executed (down); the identity run is the null control.
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-u1a,
-Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz.
+Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz (re-fire instance; baselines.json re-taken there 2026-11-19T01:16Z).
 """
 import os
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
