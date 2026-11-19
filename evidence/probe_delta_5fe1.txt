@@ -1,0 +1,7 @@
+ctl_warning            barrier=1 alias=[]
+sibling_module_logger  barrier=0 alias=[]
+sibling_as             barrier=0 alias=[]
+sys_modules_self       barrier=0 alias=[]
+globals_lookup         barrier=0 alias=[]
+exec_string            barrier=0 alias=[]
+warnings_warn          barrier=0 alias=[]
