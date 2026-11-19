@@ -132,3 +132,4 @@
 1795049120 CKPT D3-s1 571 file(s)
 1795049127 HB alive
 1795049142 HB container reboot at ~00:44Z killed the K2 drive at 126/236 complete; checkpointed 571 files; re-firing seat D3-s1 from its checkpoint (resume path R0)
+1795049146 SEAT D3-s1 running
