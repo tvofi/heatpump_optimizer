@@ -1,15 +1,29 @@
-# Design review draft: R11-SEAM-learners
+Design review: revise 31ba57ec6c0ba6df06310bf1ae6d8a51fe8fb036 class-open
 
-Design ref tip 31ba57ec6c0ba6df06310bf1ae6d8a51fe8fb036, base 9d65fe80b0 (= origin/main).
+Group R11-SEAM-learners, note design.md at 31ba57ec6c, base 9d65fe80b0 (origin/main). Code read at the base.
 
-Draft points (unconfirmed):
-- class-open N-confounded-learner: ISSUES.json #3760 sweep lists coordinator.py _fold_measured_cop and _async_learn_lower_floor_loss (via _interval_measured_heat_kw); note section 5 names neither.
-- class-open P5: #3767 sweep lists SystemIdentification.step[cop] and step[outdoor_temp]; note silent.
-- D2-s3-11 shape: per-hour sample count does not exist (coordinator.py:3666, 4737 store only the profile); persistence and restart behaviour undeclared vs the store invariant.
-- D7-s2-02: night_gains_prior_kw (sysid.py:1291) returns one float mixing learned and configured hours; the learned/configured branch has no defined signal. Ridge duplicated at sysid.py:999 and :1021.
-- Carries 2-3: note says the harness does not exist; dev/audit/harnesses/cop_dither_fabric.py exists at origin/main (carry 3's instrument).
-- "today's eight" reasons: _learning_frozen (coordinator.py:6850-6929) lists 7 categories / 9 strings.
-- Budgets: tests/structure.py at base reads every metric at its budget (coordinator_attrs 136/136, seam_cut_total 415/415). A per-hour gains count stored on the coordinator is +1 coordinator_attrs; undeclared.
-- Interface: dhw_learning gets a str-returning callable (coordinator.py:3765); draw_range.fold gets frozen: bool (coordinator.py:9999, draw_range.py:671). Note's "replace(facts, evidence)" has no facts value in either module; the crossing is undefined.
-- D12-s3-03 null control --plan-only: predicate "unobserved and tank rose" also refuses plan-scheduled charge spans unless conditioned on the plan putting no DHW in the span.
-- class-open N-confounded-learner: _fold_measured_cop (coordinator.py:5290) named by #3760 sweep; not in note.
+## Revise points
+
+1. class-open: `coordinator.py:5290` `_fold_measured_cop` is a sweep site of N-confounded-learner (#3760, `probe_N_unobserved_dhw.py`: `ran_hot_water` False on an unobserved DHW interval). The note's section 3.2 and section 5 do not list it. The draw-range fold gate at `coordinator.py:9998` reads the same `heat_energy.ran_hot_water(attribution(...))`. Fix wanted: a section 3.2 row for each site that asks the unplanned-charge evidence, or a stated reason, citing the code, why the site is safe.
+2. class-open: the P5 sweep (#3767, `dev/audit/rounds/round11/D14/sweep-P5/probe_told.py`) names `sysid.py` `SystemIdentification.step[cop]` (told COP x0.85 admitted past the bar, worst 0.2027) and `step[outdoor_temp]` (+2.5 K admitted, worst 0.1410), both beyond the findings. Section 3.3 and section 5 do not name them. Fix wanted: price each told quantity the way `_slab_ua_told_halfwidth` (`sysid.py:1132`) prices the slab pair, or route each site by name with its reason.
+3. architecture-unsound: section 3.1's flow is "learner module -> replace(facts, own evidence) -> freeze.reason", but no learner module holds a facts value. `dhw_learning.py:166` takes `frozen: Callable[[str], str | None]`, bound at `coordinator.py:3765` to `_learning_frozen(room_air=False)`. `draw_range.fold` takes `frozen: bool` (`draw_range.py:671`), computed at `coordinator.py:9999` from `power_frozen` (`:9993`), which `_settle_defrost` reads too. Fix wanted: state what crosses each boundary, for example a facts value per call or a callable taking the sample kind and the evidence. Also state how the one `power_frozen` read splits into the ceiling ask (D2-s3-09) and the delivered-ratio ask (carries 0-1).
+4. architecture-unsound (D2-s3-11, section 3.4): "its rate shrunk by the hour's sample count" needs a per-hour count that does not exist today. `coordinator.py:3666` holds the profile only; it is saved at `:4737` and loaded at `:4659`. The note does not say where the count lives or whether it persists. If it does not persist, every restart resets the shrink. If it does, that contradicts section 3.4's "Store keys and store.DOMAINS unchanged". A new coordinator attribute is +1 on `coordinator_attrs`, which `tests/structure.py` reads at 136 of 136 at the base, and the note declares no payment. Fix wanted: name the count's owner and its persistence, and the budget payment, or show that none is needed. The approved design/R11-ARCH-fabric-learner (221c246eca, which waits on this group) extracts `fold_internal_gains(profile or None, parameters, start, residual, hours) -> profile`. The count must fit that signature, or the note must say how that design changes.
+7. architecture-unsound (D2-s3-09, section 3.2): the floor evidence keys on `DrawRange.observed()[0]` (`draw_range.py:261`) as "the metered running floor". The approved design/R11-OUTSIDE-HONEST-METERED-FLOOR (080231bbfd) makes the metered floor `DrawRange` F with `update_floor`/`power_floor_kw` (`draw_range.py:515`), so two designs would each define the running floor. Fix wanted: key the load-limited-probe evidence on the floor that design owns, or state why the window's low percentile is a different quantity.
+5. harness (D12-s3-03): the evidence "attribution not observed and the tank thermometer rose by more than its standby band" (section 3.2) also holds on the null control's `--sees-dhw --no-mode --plan-only` arm. There the plan scheduled the charge and the attribution subtracts it correctly (finding null_control: 0 inflated of 2 charge-holding spans), so the designed refusal would drop those space spans. The note's own null-control row ("`--plan-only` keep their space spans") would move. Fix wanted: condition the evidence on the case the finding names, where the plan put no DHW in the span (`space_heat_kw`'s whole-unit rule), and state the null arm's `space_spans_folded` as an acceptance figure.
+6. harness (carry 3, item 4a5e147b): section 7 declines carries 2-3 because "a closed-loop harness ... does not exist, so no failing test can be stated". Carry 3's instrument, `dev/audit/harnesses/cop_dither_fabric.py` with its `null_dither0_*` rows, exists at origin/main. Fix wanted: design carry 3 against that harness, or name exactly which reading it cannot give.
+
+## Routed decisions
+
+- decision: owner. Carry 2 (item c25b53cc): the roster carry text records the owner ruling of tvofi 2026-11-18 that keeps it in round 11, with `accuracy.py` (the dither's file) this group's. The note routes it as `decision: orchestrator`, but only the owner can change that ruling.
+
+## Notes for the fixer
+
+- Section 3.1 says "today's eight" reasons. `_learning_frozen` (`coordinator.py:6857-6929`) has seven branches, and `_tail_freeze` (`coordinator.py:3460-3474`) answers three of the strings, so the count is nine. Enumerate the invariant table from the code, not from the note. Carry: R11-SEAM-learners (item 5e1a0c01)
+- D7-s2-02: the intercept ridge is spelled twice, at `sysid.py:999` (`_ridged`) and `sysid.py:1021` (`_slab_ua_profile_halfwidth._residual`), and both must read the new width. `night_gains_prior_kw` (`sysid.py:1291`) returns one float, so the configured/learned branch needs its own signal (the plant carries a learned profile). Carry: R11-SEAM-learners (item 5e1a0c02)
+- D2-s3-10: `sqrt((1+r)/(1-r))` narrows the interval for r < 0 and diverges as r -> 1, so bound r. `slab_ua_adoption_halfwidth` (`sysid.py:1155`) is a pure combiner that holds no room series today. Carry: R11-SEAM-learners (item 5e1a0c03)
+- D2-s3-09: the floor evidence must answer when `DrawRange.observed()` (`draw_range.py:261`) is None (too few samples). Carry: R11-SEAM-learners (item 5e1a0c04)
+- `seam_cut_total` reads 415 of 415 at the base. Measure it before and after moving the reasons out of the class, because the new module's readers may cross seams. Carry: R11-SEAM-learners (item 5e1a0c05)
+
+## Checked and holding
+
+The citations `sysid.py:811-817`, `:1040-1045`, `:1458`, `:1984`, `:2073` and `:2475`, `coordinator.py:9222-9223`, `:9431` and `:6307`, `accuracy.py:1278` (`scale_response`), and `dhw_learning.py:494` (external heat only) are true at the base. The finders' harnesses named in section 6 exist at origin/main, and `prototypes.py` on plan/r11 carries the `fdjac` and `sysid` arms. ADR-003 part 2 is shaped correctly. The four ADR-008 intervals (away, unplanned charge, load-limited probe, charge-start dip) each have one evidence owner in the note.
