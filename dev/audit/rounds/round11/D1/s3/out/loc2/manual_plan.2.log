@@ -1,0 +1,33 @@
+
+=== Manual plan override ===
+
+-- Slot parsing and validation
+  ok   omitted channel stays None (fully automatic)
+  ok   explicit empty list stays [] (off for the whole period)
+  ok   slots are sorted by start time
+  ok   rejects end == start
+  ok   rejects end < start
+  ok   rejects overlapping slots
+  ok   rejects unparseable datetime
+  ok   rejects a non-object slot
+  ok   rejects expires_at in the past
+  ok   ManualPlanError is a ValueError
+
+-- Channel pin semantics
+  ok   omitted channel yields no pins
+  ok   supplied channel yields a pin array
+  ok   pins on inside the slot
+  ok   pins off outside the slot but before expiry
+  ok   free at and beyond expiry
+  ok   pinned_step_count counts the on steps
+  ok   empty list forces off up to expiry
+  ok   empty list still frees steps past expiry
+  ok   a slot starting mid-step pins the step it lands in ON
+  ok   and the partially covered trailing step stays ON too
+
+-- Serialisation round-trip
+STATUS aborted: ManualPlanError: bad stored expiry '2026-01-15T08:00:00'
+RESULT fired=1 handlers
+RESULT load1=275.67
+RESULT thread_factor=1.0 (no timing RESULT; not measured)
+RESULT swapins=0

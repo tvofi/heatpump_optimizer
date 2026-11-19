@@ -1,0 +1,14 @@
+{
+ "class": "N-order-coupling",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/n_order_coupling.py",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "async_shutdown:async_release_switch@6614->release@6615",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py (unrestored_unload_disinfecting__number.dhw_set=1)",
+   "beyond_finding": false
+  }
+ ]
+}

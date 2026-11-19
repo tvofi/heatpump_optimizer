@@ -1,0 +1,49 @@
+# unit	criterion	name	verdict	why (each checked by grep of the tree at the baseline or of the source line quoted)
+tests/features.py#fd11da5520	C2	threadpool_limits	resolves	threadpoolctl.threadpool_limits, an installed library symbol (site-packages grep hit)
+tests/features.py#3db5cbfb39	C2	protect_loop	resolves	Home Assistant's homeassistant.util.loop.protect_loop, named as HA's
+tests/features.py#b9606f3fae	C2	homeassistant.util.loop.protect_loop	resolves	Home Assistant library path, outside the tree
+tests/features.py#b9606f3fae	C2	block_async_io.enable	resolves	Home Assistant's homeassistant.block_async_io, outside the tree
+tests/features.py#dff444fb2f	C2	max_ua_seen	resolves	the docstring's name for the returned max_ua["v"] (features.py:54678 returns it third)
+tests/features.py#9c4805d319	C2	EntityRecords	resolves	plural of device_prefill.EntityRecord (device_prefill.py:83)
+tests/features.py#bb36878081	C2	EntityRecords	resolves	plural of device_prefill.EntityRecord (device_prefill.py:83)
+tests/features.py#798cfc3d6b	C2	true_slab_	resolves	glob true_slab_*: parameters true_slab_mass, true_slab_transfer at features.py:70289
+tests/features.py#630c06be92	C2	current_option	resolves	Home Assistant SelectEntity attribute
+tests/features.py#e63989fc1b	C2	SelectEntity	resolves	Home Assistant entity class
+tests/features.py#ddd832985b	C2	SelectEntity	resolves	Home Assistant entity class
+tests/features.py#4cf8361d15	C2	_async_process_on_unload	resolves	Home Assistant ConfigEntry internal, named as HA's
+tests/features.py#43d3f547b1	C2	state_changed	resolves	Home Assistant event type
+tests/finite_boundary.py#6332fb705f	C2	_load_future	resolves	Home Assistant Store internal, named with its HA version
+tests/finite_boundary.py#b25d9c2818	C2	_attr_native_value	resolves	Home Assistant SensorEntity attribute
+tests/features.py#f3f76f8afe	C2	switch.turn_	resolves	Home Assistant service glob switch.turn_*
+tests/features.py#ccb8548e9d	C2	domestic_water	resolves	an example entity of the Luxtronik integration, outside the tree
+tests/features.py#a724895f6a	C2	full_price	resolves	a formula term the unit defines (bill = full_price x mean(top-k peaks))
+tests/features.py#a724895f6a	C2	marginal_price	resolves	a formula term the unit defines
+tests/features.py#ce52b47c6f	C2	nameplate_new	resolves	a formula term of the law the unit states
+tests/features.py#d8a9fb3351	C2	dhw_on	resolves	a formula term the unit defines
+tests/features.py#d8a9fb3351	C2	wood_off	resolves	a formula term the unit defines
+tests/features.py#757f8bf951	C2	inlet_reference	resolves	ThermalParameters.dhw_inlet_reference (thermal_model.py:808), in a formula
+tests/features.py#6f7067a75d	C2	c_p	resolves	the specific heat symbol, with its value and unit in the unit
+tests/features.py#e9b367f0be	C2	p_range	resolves	an example local name the unit introduces (`p_range` vs `p_max - p_min`)
+tests/features.py#164297a989	C2	c_calls	resolves	profiler vocabulary (C function calls), not a tree name
+tests/features.py#95e83e095a	C2	max_abs_diff	resolves	a printed quantity the unit defines and gives a value for
+tests/features.py#0b08b8858d	C2	x86_64	resolves	an architecture name
+tests/features.py#0e6d4aebca	C2	x86_64	resolves	an architecture name
+tests/features.py#e262de14f2	C2	x86_64	resolves	an architecture name
+tests/features.py#8d39981731	C2	x86_64	resolves	an architecture name
+tests/features.py#d7c875488e	C2	heat_night	resolves	an example slug the unit derives ("Heat Night" slugs to heat_night)
+tests/features.py#908029ef62	C2	./tests/run.sh	resolves	tests/run.sh is tracked
+tests/features.py#5555d7cae9	C2	./tests/run.sh	resolves	tests/run.sh is tracked
+tests/features.py#193d781def	C2	docs/modbus/rotenso_windmi_gchv.yaml	resolves	a path in the external tvofi/tuya_heat_pump repository the unit names
+tests/features.py#0d9d2c8a06	C2	unwired_combi	resolves	stated as gone ("exemption is gone"), history it reports, in dev/programme/rosters/wave-r10-groups.json
+tests/features.py#b651f0a110	C2	last_buffer_trajectory	resolves	stated as gone; dev/governance/dimensions/D7.md names it
+tests/features.py#b651f0a110	C2	last_room_trajectory	resolves	an example annotation name the unit says still fails
+tests/features.py#bcb6018f04	C2	declared_offpeak	resolves	dev/audit/rounds/round4/D2/catalog_masks.py, the finder harness the unit names
+tests/features.py#a46c74cbb5	C2	drift010_30min	resolves	cell of dev/audit/rounds/round5/D2/seat-b/sysid_bias.py, which the unit names
+tests/features.py#a46c74cbb5	C2	white002_30min	resolves	cell of the same harness
+tests/features.py#6792977575	C2	attr_churn	resolves	reviewer probe name, in dev/programme/rosters/wave-r10-groups.json
+tests/features.py#8bc66f1eea	C2	fifth_episode	resolves	reviewer probe name, in dev/programme/rosters/wave-r10-groups.json
+# confirmed failures, kept failing: tools/audit/w5-partition/partition.py (moved to tools/coverage/partition.py by 3b0a39216b),
+# _feedback_sent (no such name in any tracked file or in production history: git log -S), PlantRig (no tracked file names it)
+tests/features.py#1737385400	C2	actual_power	resolves	a term of the defrost.py module docstring expression the unit quotes (defrost.py:34)
+tests/features.py#1737385400	C2	predicted_power	resolves	the same expression (defrost.py:34)
+tests/features.py#fef3bff4ee	C1	eight between-run sleep(0.002) calls	false	c1_sleep_count.py: _multi_start_minimize makes 3 to 34 such calls per solve over 50 golden solves, 8 in 2

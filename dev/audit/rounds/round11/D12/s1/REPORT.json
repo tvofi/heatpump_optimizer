@@ -1,0 +1,293 @@
+{
+ "dimension": "D12",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D12/s1/REPORT.json",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D12.M1",
+   "enumerator": "python3 tools/audit/enumerate.py d12-cells --pairs",
+   "universe": 19091,
+   "examined": 199,
+   "not_reached": [
+    "level ha_version_floor=2025.2.0 (the stub is one Home Assistant, not a version)",
+    "level ha_version_typed=2026.11.1 (same)",
+    "level language=._de (export artefact: untracked AppleDouble file counted because the export has no .git)",
+    "surface card custom_components/heatpump_optimizer/www/._heatpump-optimizer-card.js (same artefact)",
+    "pair cells whose first axis is CONF_AWAY_PRESENCE_ENTITY (388 cells)",
+    "pair cells whose first axis is CONF_BUFFER_TANK_TEMP_ENTITY (384 cells)",
+    "pair cells whose first axis is CONF_COMPRESSOR_FREQ_ENTITY (380 cells)",
+    "pair cells whose first axis is CONF_DHW_DISINFECTION_SWITCH_ENTITY (376 cells)",
+    "pair cells whose first axis is CONF_DHW_HYSTERESIS_ENTITY (372 cells)",
+    "pair cells whose first axis is CONF_DHW_INLET_ENTITY (368 cells)",
+    "pair cells whose first axis is CONF_DHW_SETPOINT_ENTITY (364 cells)",
+    "pair cells whose first axis is CONF_DHW_TEMP_ENTITY (360 cells)",
+    "pair cells whose first axis is CONF_ENERGY_ENTITY (356 cells)",
+    "pair cells whose first axis is CONF_EXTERNAL_HEAT_ENTITY (352 cells)",
+    "pair cells whose first axis is CONF_FLOOR_RETURN_TEMP_ENTITY (348 cells)",
+    "pair cells whose first axis is CONF_FLOW_METER_ENTITY (344 cells)",
+    "pair cells whose first axis is CONF_GRID_FEE_ENTITY (340 cells)",
+    "pair cells whose first axis is CONF_HEAT_CURVE_DISPLACE_ENTITY (336 cells)",
+    "pair cells whose first axis is CONF_HEAT_ENERGY_ENTITY (332 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY (328 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY (324 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_DEFROST_ENTITY (320 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY (316 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_FAULT_ENTITY (312 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_MODE_ENTITY (308 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_ONLINE_ENTITY (304 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_RETURN_TEMP_ENTITY (300 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY (296 cells)",
+    "pair cells whose first axis is CONF_HEAT_PUMP_SWITCH_ENTITY (292 cells)",
+    "pair cells whose first axis is CONF_HOLIDAY_CALENDAR_ENTITY (288 cells)",
+    "pair cells whose first axis is CONF_HOUSE_POWER_ENTITY (284 cells)",
+    "pair cells whose first axis is CONF_INDOOR_HUMIDITY_ENTITY (280 cells)",
+    "pair cells whose first axis is CONF_INDOOR_TEMP_ENTITY (276 cells)",
+    "pair cells whose first axis is CONF_LOWER_FLOOR_TEMP_ENTITY (272 cells)",
+    "pair cells whose first axis is CONF_MIXING_VALVE_TARGET_ENTITY (268 cells)",
+    "pair cells whose first axis is CONF_MIXING_VALVE_WRITE_ENTITY (264 cells)",
+    "pair cells whose first axis is CONF_OUTDOOR_TEMP_ENTITY (260 cells)",
+    "pair cells whose first axis is CONF_POWER_ENTITY (256 cells)",
+    "pair cells whose first axis is CONF_PRICE_ENTITY (252 cells)",
+    "pair cells whose first axis is CONF_PV_EXPORT_PRICE_ENTITY (248 cells)",
+    "pair cells whose first axis is CONF_PV_PRODUCTION_ENTITY (244 cells)",
+    "pair cells whose first axis is CONF_SOLAR_RADIATION_ENTITY (240 cells)",
+    "pair cells whose first axis is CONF_SPACE_HYSTERESIS_ENTITY (236 cells)",
+    "pair cells whose first axis is CONF_SPACE_PUMP_ENTITY (232 cells)",
+    "pair cells whose first axis is CONF_SPACE_SETPOINT_ENTITY (228 cells)",
+    "pair cells whose first axis is CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY (224 cells)",
+    "pair cells whose first axis is CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY (220 cells)",
+    "pair cells whose first axis is CONF_THERMAL_POWER_ENTITY (216 cells)",
+    "pair cells whose first axis is CONF_VALVE_OUTLET_TEMP_ENTITY (212 cells)",
+    "pair cells whose first axis is CONF_VVC_PUMP_ENTITY (208 cells)",
+    "pair cells whose first axis is CONF_WOOD_TANK_BOTTOM_ENTITY (204 cells)",
+    "pair cells whose first axis is CONF_WOOD_TANK_TOP_ENTITY (200 cells)",
+    "pair cells whose first axis is climate (475 cells)",
+    "pair cells whose first axis is combi_tank (276 cells)",
+    "pair cells whose first axis is compressor_modulation (267 cells)",
+    "pair cells whose first axis is emitter (174 cells)",
+    "pair cells whose first axis is energy_unit (252 cells)",
+    "pair cells whose first axis is era (395 cells)",
+    "pair cells whose first axis is flow_unit (568 cells)",
+    "pair cells whose first axis is foundation (204 cells)",
+    "pair cells whose first axis is grid_fee_mode (195 cells)",
+    "pair cells whose first axis is ha_version_floor (64 cells)",
+    "pair cells whose first axis is ha_version_typed (63 cells)",
+    "pair cells whose first axis is heat_curve_target_kind (122 cells)",
+    "pair cells whose first axis is language (228 cells)",
+    "pair cells whose first axis is layout (260 cells)",
+    "pair cells whose first axis is mixing_valve_mode (192 cells)",
+    "pair cells whose first axis is operation_mode (215 cells)",
+    "pair cells whose first axis is power_unit (156 cells)",
+    "pair cells whose first axis is price_shape (248 cells)",
+    "pair cells whose first axis is price_source (58 cells)",
+    "pair cells whose first axis is pump_duty_mode (78 cells)",
+    "pair cells whose first axis is solar_source (48 cells)",
+    "pair cells whose first axis is space_setpoint_unit (63 cells)",
+    "pair cells whose first axis is structure (68 cells)",
+    "pair cells whose first axis is temperature_unit (70 cells)",
+    "pair cells whose first axis is two_zone_mode (21 cells)",
+    "pair cells whose first axis is valve_write_target (10 cells)",
+    "pair cells whose first axis is wood_packing (6 cells)"
+   ],
+   "redispatched": [],
+   "evidence": "193 level cells x 1-2 plants = 338 runs of setup + platforms + one solving cycle + entity reads + delivered-vs-declared plant, PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s1/cells.py --quiet --ledger dev/audit/rounds/round11/D12/s1/ledger.tsv (dev/audit/rounds/round11/D12/s1/out2/arm_none.txt: fail_cells=140, fail_runs=141; clean archive of the SHA dev/audit/rounds/round11/D12/s1/out2/clean_sha_arm_none.txt: fail_cells=140); 6 surface lines by dev/audit/rounds/round11/D12/s1/blueprints.py (bp_pairs=1011, bp_fail_pairs=0) and dev/audit/rounds/round11/D12/s1/card_cells.mjs (card_runs=337, card_fail_plants=0) over cells.py --dump (dev/audit/rounds/round11/D12/s1/out2/bp.txt, card.txt); `enumerate.py d12-cells --ledger dev/audit/rounds/round11/D12/s1/ledger.tsv` leaves 4 lines not run. Universe 19091 = 196 level + 7 surface + 18888 pair lines at the export root; examined 193 + 6."
+  },
+  {
+   "step": "D12.M6",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s1/cells.py --list-shrinks",
+   "universe": 5,
+   "examined": 5,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    }
+   ],
+   "evidence": "cells.py --shrink X on a fixed 10-cell set (layout no_valve / two_tank_4way, two_zone_mode on / off, wood_type birch, CONF_DHW_TEMP_ENTITY / CONF_PV_PRODUCTION_ENTITY / CONF_LOWER_FLOOR_TEMP_ENTITY present, operation_mode auto, grid_fee_mode rules; 20 runs, each with a solve): export fail_runs none=8, dhw=17, pv=17, sensor=17, wood=18, zone=18, fail_cells 7 -> 10 under every shrink (dev/audit/rounds/round11/D12/s1/out2/m6_*.txt); clean SHA none=8, dhw=17, zone=20 (dev/audit/rounds/round11/D12/s1/out2/clean_sha_m6_*.txt). C1: per-cell solve present, count moves under each shrink."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D12.M1",
+   "what": "18888 pair cells of enumerate.py d12-cells --pairs not run (cells.py builds level cells only; about 6 CPU-s per run, roughly 31 CPU-hours for the plane); ha_version_floor / ha_version_typed levels not runnable on tests/hastub"
+  }
+ ],
+ "findings": [
+  {
+   "id": "D12-s1-01",
+   "scope": "D12-s1",
+   "step": "D12.M1",
+   "title": "A single-zone install publishes an upper and a lower floor in its space plan",
+   "severity": "medium",
+   "claim": "On every single-zone plant (published two_zone_enabled=False) the published space plan carries non-null upper and lower floor temperatures on all 96 forecast rows, so the plan sensor and the card present two floors the configuration does not have; at a clean archive of 92d38ecb this fails 140 of 193 driven d12-cells level cells.",
+   "mechanism": "OptimizationResult always fills upper_temp_trajectory and lower_temp_trajectory (single zone: both equal the room trajectory), and HeatPumpOptimizerCoordinator._build_plan_views decides two_zone from `bool(result.upper_temp_trajectory and result.lower_temp_trajectory)` rather than from the model's params.two_zone_enabled, so the zone columns are published whenever the lists are non-empty, which is always.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s1/plan_zone.py",
+    "harness_path": "dev/audit/rounds/round11/D12/s1/plan_zone.py",
+    "value": 8,
+    "unit": "single-zone plants publishing zone rows (of 8); zone_rows=768",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (clean git archive; the export handed to the seat gives zone_plants=2 of 2 single-zone plants, its other 6 plants are two-zone there, see D12-s1-02)",
+    "machine": "box B4, 4 vCPU shared container, Python 3.14, numpy/scipy per tests/requirements-ci.txt",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; box shared with other finder seats (load1 4-5)",
+    "tolerance": "exact",
+    "load1": 4.02,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views (driven through _async_update_data after the real async_setup_entry)",
+   "perturbation": {
+    "change": "--gate: _build_plan_views decides two_zone from the model's _thermal_params.two_zone_enabled (in memory, mock.patch.object on the method)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "zone_plants = single-zone plants (published two_zone_enabled False) whose published space_plan forecast carries a non-null upper or lower on any row",
+   "phenomenon_property": "The published plan names a floor (upper/lower zone column) only where the model the plan was solved with has two zones; a single-zone install publishes neither.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s1/cells.py --quiet (every d12-cells level; the check 'plan carries a lower-zone trajectory the cell does not have' lists each cell where a published plan carries a zone column the model lacks)",
+   "null_control": {
+    "command": "same command; the CONTROL two-zone plant line",
+    "value": "control_two_zone_rows=96, control_split_rows=96 on both arms",
+    "note": "the two-zone plant keeps its rows with upper != lower under --gate, so the gate removes only the invented columns"
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 96,
+    "max": 96,
+    "drop_most_favourable": 672
+   },
+   "reproduction_steps": [
+    "git archive 92d38ecb into a clean root; copy dev/audit/rounds/round11/D12/s1/{cells.py,plan_zone.py} into it",
+    "run the command: zone_plants=8 zone_rows=768",
+    "run with --gate: zone_plants=0, control rows unchanged",
+    "cells.py --quiet at the clean root: the cell sweep prints the same check on the single-zone cells (see REPORT.md)",
+    "cells.py --quiet at a clean archive of 92d38ecb: fail_cells=140 of 193, all of the pattern 'plan carries a lower-zone trajectory the cell does not have' (out2/clean_sha_arm_none.txt); the export reads the same 140 plus the D12-s1-02 pattern"
+   ],
+   "proposed_fix_scope": "coordinator.py _build_plan_views: gate the upper/lower columns on the solved model's two_zone_enabled (or have the optimizer leave the zone trajectories empty for a single-zone model); card follows the payload",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D12-s1-02",
+   "scope": "D12-s1",
+   "step": "D12.M1",
+   "title": "Export tree: two_zone_mode 'auto' (the default) turns on a second zone for installs that store no zone key",
+   "severity": "high",
+   "claim": "In the export handed to this seat, every install that stores no zone key and leaves two_zone_mode at its default publishes two_zone_enabled=True and a plan with distinct upper and lower floor trajectories (6 of 6 such plants), while thermal_model.py's own comment and const.py's TWO_ZONE_MODE comment state that 'auto' is the presence rule; a clean git archive of 92d38ecb reads 0 of 6.",
+   "mechanism": "ThermalParameters.from_config in the export tests `two_zone_mode in (TWO_ZONE_MODE_ON, DEFAULT_TWO_ZONE_MODE)`; DEFAULT_TWO_ZONE_MODE is 'auto', so the presence branch is reached only for unknown strings and every default install is modelled two-zone with the lower floor's default mass and loss. At the baseline SHA the line reads `== TWO_ZONE_MODE_ON`.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s1/plan_zone.py",
+    "harness_path": "dev/audit/rounds/round11/D12/s1/plan_zone.py",
+    "value": 6,
+    "unit": "plants with no zone key published two_zone_enabled=True (of 6)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692 as exported to the seat (the export's thermal_model.py differs from the SHA; a clean git archive of the SHA gives 0)",
+    "machine": "box B4, 4 vCPU shared container, Python 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; load1 5.5 from other seats",
+    "tolerance": "exact",
+    "load1": 5.56,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.from_config (driven through async_setup_entry and _async_update_data; read off the published two_zone_enabled)",
+   "perturbation": {
+    "change": "--presence-rule: from_config decides two_zone_mode 'auto' by the presence of a zone key (in memory, classmethod swap)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "invented_zone_plants = plants storing no zone key and no two_zone_mode 'on' whose cycle publishes two_zone_enabled=True",
+   "phenomenon_property": "A plant is modelled, solved and published two-zone only when its configuration says so (a zone key stored or two_zone_mode 'on'); the default 'auto' never adds a zone.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s1/cells.py --quiet (the check 'published two_zone_enabled=True but the cell declares zone=off' lists every cell, 138 in the export, 0 at the clean SHA)",
+   "null_control": {
+    "command": "same command; CONTROL two-zone plant and the two 'mode off' plants",
+    "value": "control two_zone_enabled=True with 96 split rows on both arms; the two plants with two_zone_mode 'off' publish False on both arms; clean archive of 92d38ecb: invented_zone_plants=0",
+    "note": "the effect vanishes at the baseline SHA and under the documented rule"
+   },
+   "leave_one_out": {
+    "cells": 6,
+    "min": 1,
+    "max": 1,
+    "drop_most_favourable": 5
+   },
+   "reproduction_steps": [
+    "run the command at the export root: invented_zone_plants=6",
+    "--presence-rule: 0, control unchanged",
+    "same command at a clean git archive of 92d38ecb: 0"
+   ],
+   "proposed_fix_scope": "thermal_model.py ThermalParameters.from_config: 'auto' falls to the presence rule (as at 92d38ecb); establish why the export differs from the baseline SHA before filing",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Setup completes on every driven level cell except CONF_PRICE_ENTITY=absent with price_source=entity, which setup refuses with ConfigEntryNotReady 'Price entity is empty'; the config flow refuses that config (price_entity_required), so it is a named refusal of an unreachable state",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s1/cells.py --quiet",
+   "value": "1 failure line of that pattern in 338 runs, export and clean SHA"
+  },
+  {
+   "claim": "No entity property (native_value, extra_state_attributes, available, is_on, current_option, hvac_mode) raises on any plant",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s1/cells.py --quiet",
+   "value": "0 'entity ... raised' lines over 338 runs (82 entities per plant)"
+  },
+  {
+   "claim": "No plan heats a hot-water tank the cell lacks, no horizon carries PV surplus without PV, no thermometer sensor is available with no entity mapped, describe_setup wood matches the declared plant, and every auto/economy run publishes a non-failed plan",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s1/cells.py --quiet",
+   "value": "0 lines of each pattern (export and clean SHA); the same checks fire under --shrink (fail_runs 8 -> 17-20)"
+  },
+  {
+   "claim": "Every blueprint's default entity and every attribute or event field it reads is published on every plant",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s1/blueprints.py $T/states.json (after cells.py --quiet --dump $T)",
+   "value": "bp_pairs=1011, bp_fail_pairs=0, bp_event_misses=0; --drop-attr manual_override: 337"
+  },
+  {
+   "claim": "The card builds, opens and renders every dialog page on every plant's published states without a throw (no perturbation moved this count: the --poison arm on the space-plan sensor left it 0, so it is a non-finding only)",
+   "command": "node dev/audit/rounds/round11/D12/s1/card_cells.mjs $T/states.json --decl dev/audit/rounds/round11/D12/s1/out2/decl.json",
+   "value": "card_runs=337, card_fail_plants=0"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D12/s1/cells.py",
+  "dev/audit/rounds/round11/D12/s1/plan_zone.py",
+  "dev/audit/rounds/round11/D12/s1/blueprints.py",
+  "dev/audit/rounds/round11/D12/s1/card_cells.mjs"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/ (17 modules), www/heatpump-optimizer-card.js, translations/de.json",
+   "symbol": "the export tree",
+   "what": "The export handed to the seats differs from a clean git archive of 92d38ecb in const, defrost, grid_fee, heat_curve, inputs, legionella, mixing_valve, optimizer, power_guard, presets, price_model, pump_arbiter, sensor, store, tariff, thermal_model, wood_fuel (.py), the card and de.json, each with an untracked macOS AppleDouble twin dated 19:07 UTC (diff -rq <archive>/custom_components $HOME/audit-r11-baseline/custom_components). Findings measured in the export may not exist at the baseline SHA; whoever provisioned it should say which tree is under audit."
+  },
+  {
+   "owner_seat": "D12-s3",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "compressor modulation (line ~1473 of the export)",
+   "what": "Seen while checking the export's integrity, not measured: the export reads `True if mode == const.COMPRESSOR_MODULATION_ON_OFF` where 92d38ecb reads `False`; the on/off versus modulating cell (D12.M3) should be driven on the export"
+  },
+  {
+   "owner_seat": "D2-s1",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "flow COP Carnot ratio (line ~3391 of the export)",
+   "what": "Seen while checking the export's integrity, not measured: the export returns max(0.25, carnot_ref / carnot_flow) where 92d38ecb returns max(0.25, carnot_flow / carnot_ref)"
+  },
+  {
+   "owner_seat": "D4-s1",
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "expanded house-temperature chart",
+   "what": "On single-zone plants the expanded chart draws 'Upper floor'/'Lower floor' traces (card_cells.mjs: card_zone_traces_on_single_zone=138 of 140 single-zone plants), the card-side consequence of D12-s1-01's published zone columns"
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tools/audit/enumerate.py",
+   "symbol": "tracked",
+   "what": "With no .git in the export, tracked() falls back to os.walk and counts untracked AppleDouble files (._de.json, ._heatpump-optimizer-card.js) as baseline items, so d12-cells prints 196 levels / 18888 pairs at the export against 195 / 18696 at the SHA"
+  }
+ ]
+}

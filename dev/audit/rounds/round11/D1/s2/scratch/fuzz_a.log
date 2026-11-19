@@ -1,0 +1,64 @@
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  FAIL the boundary quarantines nan at every depth  [scrubbed={'leaf': nan, 'nested': [[nan], {'k': nan}]}]
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  FAIL the boundary quarantines str-nan at every depth  [scrubbed={'leaf': 'NaN', 'nested': [['NaN'], {'k': 'NaN'}]}]
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  ok   the boundary quarantines an absurd magnitude as it does a non-finite (class P1)
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the class oracle flags a planted naive, magnitude, non-finite and number-turned-text label, and nothing on the healthy set (its own control)
+RESULT healthy_stores=17 count  (missing=[])
+CTRL accuracy: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT accuracy_mutants=200 count
+RESULT accuracy_loader_raise=0 count
+RESULT accuracy_cycle_fail=0 count
+RESULT accuracy_task_raise=0 count
+RESULT accuracy_repeat_fence=0 count
+RESULT accuracy_log_multi=0 count
+RESULT accuracy_log_repeat=0 count
+RESULT accuracy_nonfinite_live=0 count
+CTRL away: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT away_mutants=200 count
+RESULT away_loader_raise=0 count
+RESULT away_cycle_fail=0 count
+RESULT away_task_raise=0 count
+RESULT away_repeat_fence=0 count
+RESULT away_log_multi=0 count
+RESULT away_log_repeat=0 count
+RESULT away_nonfinite_live=0 count
+CTRL boost: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT boost_mutants=200 count
+RESULT boost_loader_raise=0 count
+RESULT boost_cycle_fail=0 count
+RESULT boost_task_raise=0 count
+RESULT boost_repeat_fence=0 count
+RESULT boost_log_multi=0 count
+RESULT boost_log_repeat=0 count
+RESULT boost_nonfinite_live=0 count
+CTRL debug: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT debug_mutants=200 count
+RESULT debug_loader_raise=0 count
+RESULT debug_cycle_fail=0 count
+RESULT debug_task_raise=0 count
+RESULT debug_repeat_fence=0 count
+RESULT debug_log_multi=0 count
+RESULT debug_log_repeat=0 count
+RESULT debug_nonfinite_live=0 count
+CTRL dhw_draws: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT dhw_draws_mutants=200 count
+RESULT dhw_draws_loader_raise=0 count
+RESULT dhw_draws_cycle_fail=0 count
+RESULT dhw_draws_task_raise=0 count
+RESULT dhw_draws_repeat_fence=0 count
+RESULT dhw_draws_log_multi=0 count
+RESULT dhw_draws_log_repeat=0 count
+RESULT dhw_draws_nonfinite_live=0 count
+RESULT thread_factor=1.000
+RESULT load1=206.17
+RESULT swapins=3

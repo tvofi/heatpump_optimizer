@@ -1,0 +1,7 @@
+# onchange sources per cycle: live live live live live live live live live live live live live live live live live
+RESULT onchange_wrong_cycles=0 cycles (of 16)
+# polled sources per cycle: live live live live live live live live live live live live live live live live live
+RESULT polled_wrong_cycles=0 cycles (of 16)
+RESULT thread_factor=0.998
+RESULT load1=4.16
+RESULT swapins=0

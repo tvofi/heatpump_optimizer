@@ -1,0 +1,264 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D3/s2/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/enumerate.py | grep -v ^RESULT",
+   "universe": 258,
+   "examined": 258,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "enumerate.py: 258 sites (242 unpinned + 16 recorded `gap` survivors) of 1031 inventory sites in the 18 cell files; every one weighted (RAISE_DEL, GUARD_OFF, CONST, CMP_BOUND, BOOLOP, CLAMP_DROP, RETURN_DEL; recorded gaps last) into drive_resumable.py's order. C8's 30-40 target is superseded by the whole universe."
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/enumerate.py | grep -v ^RESULT",
+   "universe": 258,
+   "examined": 23,
+   "not_reached": [
+    "__init__.py: 5 mutants (lines 90-220)",
+    "accuracy.py: 24 mutants (lines 51-635)",
+    "binary_sensor.py: 5 mutants (lines 100-323)",
+    "climate.py: 4 mutants (lines 186-294)",
+    "const.py: 12 mutants (lines 444-1539)",
+    "entity.py: 4 mutants (lines 180-249)",
+    "inputs.py: 33 mutants (lines 155-1415)",
+    "ledger.py: 11 mutants (lines 133-739)",
+    "sensor.py: 73 mutants (lines 60-3037)",
+    "services.py: 15 mutants (lines 154-1168)",
+    "snapshots.py: 13 mutants (lines 46-277)",
+    "store.py: 9 mutants (lines 105-614)",
+    "switch.py: 1 mutants (lines 88-88)",
+    "topology.py: 26 mutants (lines 580-1147)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "drive_resumable.py + tally.py: 23 of 258 driven to a verdict ({'killed by tests/entities.py': 8, 'killed by tests/manual_plan.py': 2, 'LIVES': 7, 'killed by tests/features.py': 4, 'killed by tests/debug_collect.py': 2}); every driver of the measured closure minus stress/edge/backtest/harness_headers, env_drift.py --all HEAD^1 (=baseline) included; 22 green traced baselines and the null control (`__init__.py:37 NULL_COMMENT survived every driver`, run/stdout.txt). ~6 mutants/hour at 3 jobs on a box at load ~7: the remainder is ~40 h."
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/tally.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run | grep -P '\\tLIVES'",
+   "universe": 7,
+   "examined": 7,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "every survivor reported as a prescreened candidate (patch, closure, scripts ran, verdict) in REPORT.md; the GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six is the quiet window's (stress.py is barred in the fan-out)."
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/tally.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run | grep -P '\\tLIVES'",
+   "universe": 7,
+   "examined": 7,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "m4_nonequiv.py (10 probes, null control --identity = 0 of 10) answers each survivor's line and the check that should have failed; 1 real gap (accuracy.py:261), 6 equivalent."
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_gate_table.py x --list | grep -v ^RESULT | cut -f1",
+   "universe": 29,
+   "examined": 28,
+   "not_reached": [
+    "tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    },
+    {
+     "item": "C7",
+     "state": "examined"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "m5_gate_table.py: per-script wall/CPU vs closures.json seconds, optimize() calls and Results.check calls (m5/table.json, provisional); m5_reach.py: closure over-approximation over 296 claimed pairs (170 clean, 29 over-approximated). golden.py counted at 0 s (GOLDEN_MODE=drift does not run it); stress.py is quiet-window only."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D3.M2",
+   "what": "235 of 258 mutants not driven (time cut: ~6/h at 3 jobs, load ~7). Resume with `PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/drive_resumable.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run --jobs 3` (pair-level resume from drive/pairs.jsonl; needs HEAD = marker commit over the baseline). Round-10 items C2 (M25-M36 via round10/D3/s1/mutants.py) and C6 are not identifiable here: that harness is absent from the walled export."
+  },
+  {
+   "step": "D3.M3",
+   "what": "Quiet-window GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six survivors, stress.py included (C3); for this seat the top candidates are accuracy.py:261 then the recorded gaps inputs.py:590, ledger.py:739, store.py:123, sensor.py:2879, accuracy.py:555. C5 (writing round 10's REPORT.md) is the orchestrator's: round 10's directory is not in this export."
+  },
+  {
+   "step": "D3.M5",
+   "what": "Kill-overlap matrix (every closure script on every mutant, no early stop) not taken (C9): ~240 h serial on this cell set. Duplicate kills therefore unmeasured. All wall/CPU numbers provisional (load 6-14); the quiet window re-takes m5_gate_table.py."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D3-s2-01",
+   "scope": "D3-s2",
+   "step": "D3.M5",
+   "title": "Import-level closures select 9 scripts (525.7 s recorded) for a payload.py function-body edit none of them executes",
+   "severity": "low",
+   "claim": "Of the 170 (script, D3-s2 cell) closure pairs whose traced unmutated run is clean, 29 claim a cell whose function bodies the script never executes and never reads as text, so closure.py select runs that script for any function-body-only edit of that cell although the edit cannot change its run; payload.py alone carries 525.7 s of 3051.3 s recorded selected seconds this way (boost_drift_replay.py 341.1 s, optimality.py 142.5 s, validate.py 21.5 s, guard_pins.py 8.2 s, manual_plan.py 6.5 s, ...).",
+   "mechanism": "tests/closures.json records the files a run imported or opened (derive_closures.sh); a module imported for its constants or a type is a closure member even when no function of it runs. tests/mutation_table.py already exploits the finer fact (reach_skip / never_reaches) for mutants, but the scoped gate's selection does not.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_reach.py dev/audit/rounds/round11/D3/s2/run/reach",
+    "harness_path": "dev/audit/rounds/round11/D3/s2/m5_reach.py",
+    "value": 29,
+    "unit": "over-approximated (script, cell) pairs of 170 clean pairs",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B2, 4 cores, shared with D0-s2 and D9-s2",
+    "cpu_or_wall": "count",
+    "contention_note": "count from traced baselines (mutation_table.traced_baseline, run by prescreen.py); contention-immune; the seconds weights are tests/closures.json's recorded seconds, not measured here",
+    "tolerance": "exact",
+    "load1": 5.83,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/mutation_table.py:traced_baseline/collect/reach_problems over tests/closures.json:closures (the selection tests/closure.py select reads)",
+   "perturbation": {
+    "change": "--claim-only tests/boost_drift_replay.py:payload.py (drop that pair from the closure the count reads, the effect of a body-granular closure for that pair)",
+    "expected_direction": "down",
+    "observed_value": "28 pairs; over_seconds[payload.py] 525.7 -> 184.6 s"
+   },
+   "metric_definition": "pairs (script, cell) in closures.json with a clean traced baseline that executed zero function-body lines of the cell and did not read it as text",
+   "phenomenon_property": "A scoped-gate selection should not run a script for an edit confined to function bodies that script's measured run never executes.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_reach.py dev/audit/rounds/round11/D3/s2/run/reach",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "tests/closures.json",
+    "tests/closure.py",
+    "tests/derive_closures.sh"
+   ],
+   "proposed_fix_scope": "Measure only; a body-granular selection is a gate-design change (module-level edits must still select every importer). At most a closure.py selection refinement that skips a script for a function-body-only hunk in a file its recorded reach never executes, reusing mutation_table.never_reaches.",
+   "reproduction_steps": [
+    "Run prescreen.py to produce run/reach/*.json (traced baselines)",
+    "Run m5_reach.py over that directory",
+    "Re-run with --claim-only tests/boost_drift_replay.py:payload.py and see 29 -> 28"
+   ]
+  },
+  {
+   "id": "D3-s2-02",
+   "scope": "D3-s2",
+   "step": "D3.M4",
+   "title": "No check feeds NaN to score_lead_predictions; dropping its guard poisons lead sigma permanently",
+   "severity": "medium",
+   "claim": "Disabling accuracy.py:261 (`if not np.isfinite(actual_temp): return` -> `if False:`) survives all 20 drivers of accuracy.py's measured closure (12 run, 8 reach-skipped; env_drift.py --all against the baseline included), yet on one NaN reading it turns AccuracyTracker.sigma(3.0) from 0.5 to nan and keeps it nan after a later finite scoring.",
+   "mechanism": "lead_sigma is an EWMA: (1-a)*prev + a*err, so one NaN err makes every later value NaN; the guard is the only barrier inside the tracker, and no test drives a non-finite actual_temp into it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+    "harness_path": "dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+    "value": 1,
+    "unit": "RESULT distinct_score_lead_nan_actual (baseline sigma 0.5, mutant nan)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B2, 4 cores, shared",
+    "cpu_or_wall": "count",
+    "contention_note": "deterministic; survivor verdict from drive_resumable.py (tally.py: accuracy.py:261 GUARD_OFF LIVES), box shared with D0-s2 and D9-s2 at load ~7",
+    "tolerance": "exact",
+    "load1": 7.1,
+    "thread_factor": 0.93
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/accuracy.py:AccuracyTracker.score_lead_predictions (and AccuracyTracker.sigma)",
+   "perturbation": {
+    "change": "m4_nonequiv.py --identity (the null mutant old->old)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m4_nonequiv.py --identity",
+    "value": 0,
+    "note": "null mutant: baseline and mutant sigma both 0.5; the sibling guard accuracy.py:238 (non-finite predicted) reads 0 too: it is shadowed by the loop's own isfinite(predicted) filter, an equivalent survivor"
+   },
+   "metric_definition": "1 when AccuracyTracker.sigma(3.0) after a NaN then a finite scoring differs between the baseline module and the in-memory mutant, else 0",
+   "phenomenon_property": "Every non-finite guard at a learner's state boundary in the cells has a check that feeds it a non-finite value and asserts the learned state stays finite.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/tally.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run | grep -E 'GUARD_OFF.*LIVES'",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "tests/features.py"
+   ],
+   "proposed_fix_scope": "Test only: one check (features.py or a unit block) scoring a NaN actual_temp after a finite one and asserting sigma stays finite and lead_counts unchanged; then pin the site killed_by.",
+   "reproduction_steps": [
+    "drive_resumable.py over accuracy.py:261 (verdict LIVES, tally.py)",
+    "m4_nonequiv.py: distinct_score_lead_nan_actual=1",
+    "m4_nonequiv.py --identity: 0"
+   ],
+   "expected_golden_drift": []
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "closures.json records env_drift.py at 1.0 s though its gate run (--all HEAD^1) costs minutes; it is documented (#934) and mutation_table keeps env_drift eager so the stub seconds never order or budget a sweep",
+   "command": "/root/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_gate_table.py ... (env_drift row) ; grep -n 'env_drift stays eager' tests/mutation_table.py",
+   "value": "measured 324.2 s wall / 219.3 s CPU vs recorded 1.0 s (provisional, load 10.6); mutation_table.lazy_drivers excludes REF_DRIVEN"
+  },
+  {
+   "claim": "The resumable drive's verdict rule agrees with the instrument's null control: a comment-only edit survives every driver",
+   "command": "see dev/audit/rounds/round11/D3/s2/run/stdout.txt line 29 (prescreen.py over mutation_table.main)",
+   "value": "null control __init__.py:37 NULL_COMMENT survived every driver (22 drivers)"
+  },
+  {
+   "claim": "All 22 driver baselines are green with clean reach records, so reach-skips are admissible",
+   "command": "grep baseline dev/audit/rounds/round11/D3/s2/run/progress.jsonl",
+   "value": "22/22 rc=0 failed=0 reach=true"
+  },
+  {
+   "claim": "Six of seven survivors are equivalent at every reachable input (no test can kill them)",
+   "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+   "value": "distinct=0 for accuracy.py:111, :238, __init__.py:188; abstract stub sensor.py:404 overridden by 7/7 subclasses; accuracy.py:269 only distinct off every entry path; accuracy.py:379 returns None either way"
+  },
+  {
+   "claim": "Scripts that solve more than they assert (M5): boost_drift_replay.py 789 optimize() calls for 46 checks (0.06 checks/solve), validate.py 22 solves and edge.py 21 solves with 0 harness checks (ISSUES/own counters); no redundancy proven (would need a solve-count ablation)",
+   "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_gate_table.py dev/audit/rounds/round11/D3/s2/m5/table.json",
+   "value": "see m5/table.json; provisional for timing, exact for counts"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s2/enumerate.py",
+  "dev/audit/rounds/round11/D3/s2/prescreen.py",
+  "dev/audit/rounds/round11/D3/s2/drive_resumable.py",
+  "dev/audit/rounds/round11/D3/s2/tally.py",
+  "dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+  "dev/audit/rounds/round11/D3/s2/m5_gate_table.py",
+  "dev/audit/rounds/round11/D3/s2/m5_reach.py",
+  "dev/audit/rounds/round11/D3/s2/hook/sitecustomize.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "tests/closure.py",
+   "symbol": "select",
+   "what": "Selection is import-granular; mutation_table.never_reaches already has the line-level reach that could skip a script for a function-body-only hunk (see D3-s2-01); a gate-design question beyond the cells."
+  }
+ ]
+}
