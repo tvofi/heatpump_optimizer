@@ -597,3 +597,4 @@
 2026-11-19T06:03:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostWindow._accrue CMP_BOUND 81049507 L746 by=- ran=12 wall=1452.1s
 2026-11-19T06:04:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 99f8e5db L4699 by=- ran=12 wall=1367.1s
 2026-11-19T06:05:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._settlement_caps GUARD_OFF 9c547538 L6027 by=- ran=13 wall=1362.7s
+2026-11-19T06:11:48Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:learner_newton_step GUARD_OFF b2765a37 L3080 by=- ran=13 wall=1670.0s
