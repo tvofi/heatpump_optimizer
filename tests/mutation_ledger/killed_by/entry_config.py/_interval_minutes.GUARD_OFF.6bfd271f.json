@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entry_config.py:_interval_minutes GUARD_OFF 6bfd271f",
+  "killed_by": "tests/entities.py",
+  "old": "    if minutes is None or not 0.0 < minutes <= _MAX_PLAN_MINUTES:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=3."
+}
