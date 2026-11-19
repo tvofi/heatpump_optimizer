@@ -663,3 +663,5 @@
 2026-11-19T15:24:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP f0477740 L1538 by=- ran=16 wall=1762.7s
 2026-11-19T15:25:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CLAMP_DROP f29a02b3 L2232 by=- ran=16 wall=1778.1s
 2026-11-19T15:27:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_price_guess_weights CLAMP_DROP f3416292 L2086 by=- ran=12 wall=1765.1s
+2026-11-19T15:51:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CLAMP_DROP 86078a63 L4272 by=- ran=13 wall=1598.8s
+2026-11-19T15:52:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_terminal_row_cost.row_cost CLAMP_DROP 1a5e5be6 L3328 by=- ran=12 wall=1710.7s
