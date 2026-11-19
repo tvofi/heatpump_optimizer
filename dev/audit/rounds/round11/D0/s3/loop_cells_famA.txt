@@ -1,0 +1,16 @@
+summer_negative/summer_warm/single-zone/dhw/manual-valve-buffer/48h
+summer_negative/summer_warm/single-zone/dhw/flow-setpoint-behind-valve/24h
+summer_negative/summer_warm/single-zone/dhw/flow-setpoint-behind-valve/48h
+summer_negative/summer_warm/single-zone/dhw/manual-valve-buffer/24h
+summer_negative/summer_warm/single-zone/dhw/valve-storage/24h
+summer_negative/summer_warm/single-zone/dhw/valve-storage/48h
+summer_negative/summer_warm/single-zone/dhw/wood/24h
+summer_negative/summer_warm/single-zone/dhw/wood/48h
+summer_negative/summer_warm/single-zone/no-dhw/flow-setpoint-behind-valve/48h
+summer_negative/summer_warm/two-zone/dhw/flow-setpoint-behind-valve/24h
+summer_negative/summer_warm/two-zone/dhw/flow-setpoint-behind-valve/48h
+summer_negative/summer_warm/two-zone/dhw/manual-valve-buffer/24h
+summer_negative/summer_warm/two-zone/dhw/manual-valve-buffer/48h
+summer_negative/summer_warm/two-zone/dhw/valve-storage/24h
+summer_negative/summer_warm/two-zone/dhw/valve-storage/48h
+summer_negative/summer_warm/two-zone/no-dhw/flow-setpoint-behind-valve/24h

@@ -1,0 +1,50 @@
+{
+ "id": "D14-s2-01",
+ "scope": "D14-s2",
+ "step": "D14.M3",
+ "title": "Push-mode pump flags quiet past their 30/60 min on-change limit publish Input Problem on a healthy pump",
+ "severity": "medium",
+ "claim": "With the six pump-flag inputs configured as report-on-change sources that legitimately hold their value for 255 min, one real coordinator cycle publishes all six in stale_inputs and turns the Input Problem binary sensor on; the same flags changed 10 min ago, or re-reported 1 min ago, publish none.",
+ "mechanism": "INPUT_ON_CHANGE_MAX_AGE_MINUTES keeps the polling limit (30 min defrost/online/backup/booster/capacity-limited, 60 min fault) for the pump flags, on the barrier's disposition 'fails safe'. That reason covers the control consequence (a stale flag demotes to None). It does not cover the reader's other consequence: InputHealth.stale_keys feeds payload stale_inputs, and InputHealthBinarySensor.is_on reads it. const.py's own comment says the reference integration's MQTT push mode 'does not poll at all -- it pushes on change', and a defrost flag 'off' through a mild day or an online flag 'on' for days is the legitimate quiet interval the class names. The barrier census only drives each key at limit+1 and checks the reader's stale flag against the named list. It never reads what a named-equal key publishes.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+  "harness_path": "dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+  "value": 6,
+  "unit": "pump-flag keys in stale_inputs (quiet_stale_flags); quiet_input_problem_on=1",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B7, linux, 4 cpu",
+  "cpu_or_wall": "count",
+  "contention_note": "shared compute box, other finder seats running; counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 5.18,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._update_current_state (via inputs:InputReader.read_bool, inputs:age_limit_for) and binary_sensor:InputHealthBinarySensor.is_on",
+ "perturbation": {
+  "change": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[k] = inf for the six flag keys (harness --perturb inf, in memory)",
+  "expected_direction": "to_zero",
+  "observed_value": "quiet_stale_flags 6 -> 0, quiet_input_problem_on 1 -> 0"
+ },
+ "metric_definition": "Count of the six pump-flag keys in the real payload's stale_inputs after one cycle with each flag an on-change source held 255 min; plus InputHealthBinarySensor.is_on.",
+ "phenomenon_property": "No reading of a report-on-change source is published as stale, in stale_inputs, input_problems or the Input Problem sensor, for a quiet interval its source legitimately holds. Where a key keeps a finite on-change limit because staleness is the safe control direction, that limit must not also raise the user-facing problem flag, or the problem must be withheld for on-change sources.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_detector.py   (SEAM arm=quiet q=255 lines: every age-limited key InputReader declares stale after a 255 min on-change hold; the 13 at baseline are external_heat, heat_pump_backup_heater, heat_pump_capacity_limited, heat_pump_defrost, heat_pump_dhw_booster, heat_pump_fault, heat_pump_online, outdoor_temp, pv_production, solar_radiation, valve_outlet_temp, wood_tank_bottom, wood_tank_top; the six pump flags are demonstrated through the coordinator here, the other seven are listed and not driven to their published consequence)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+  "value": "null_stale_flags=0, null_input_problem_on=0 (flags changed 10 min ago); polled_stale_flags=0, polled_input_problem_on=0 (same 255 min hold, re-reported 1 min ago)",
+  "note": "The effect needs both an on-change source and a quiet spell longer than the limit"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_flags.py  -> quiet_stale_flags=6, quiet_input_problem_on=1",
+  "... --perturb inf -> quiet_stale_flags=0, quiet_input_problem_on=0",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_detector.py -> quiet_stale_q255=13, polled_stale_q255=0"
+ ],
+ "proposed_fix_scope": "inputs.py age gate / const.INPUT_ON_CHANGE_MAX_AGE_MINUTES for the six pump flags (inf, as power and mode already are, since pump_signals reads None and a live value alike for control), or a separate 'acts as absent but is not a problem' disposition for on-change keys kept finite. Barrier: extend tests/features.py's R10 N-staleness census so each named-equal key also asserts what the payload's stale_inputs and InputHealthBinarySensor publish for an on-change hold of the class's quiet spell.",
+ "files": [
+  "custom_components/heatpump_optimizer/const.py",
+  "custom_components/heatpump_optimizer/inputs.py",
+  "custom_components/heatpump_optimizer/binary_sensor.py",
+  "tests/features.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "N-staleness"
+}

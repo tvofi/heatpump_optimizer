@@ -1,0 +1,46 @@
+{
+ "id": "D17-s1-01",
+ "scope": "D17-s1",
+ "step": "D17.M1",
+ "title": "d17-features --kind option omits all 156 section-nested option fields, including the brief's owed weekend/holiday cell",
+ "severity": "medium",
+ "claim": "tools/audit/enumerate.py:d17 prints an option line only for keys in options.step.<step>.data, so the 156 of 286 options fields strings.json declares under sections.<section>.data (comfort, tuning, hot_water, building, entities and six more pages) are absent from D17's option universe, including all 8 weekend/holiday comfort fields D17.md step 3 names as an owed option line.",
+ "mechanism": "d17() iterates body.get('data') per step and never descends into body['sections'][*]['data']; the options flow renders most fields inside section() groups since the page grouping, so every grouped field left the universe and no seat's coverage row can name it as not_reached.",
+ "evidence": {
+  "command": "python3 dev/audit/rounds/round11/D17/s1/h_enum.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s1/h_enum.py",
+  "value": 156,
+  "unit": "options fields declared in strings.json but not printed",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 (vm, 4 cpu, shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "counts; immune to load",
+  "tolerance": "exact",
+  "load1": 5.79,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/enumerate.py:d17",
+ "perturbation": {
+  "change": "--perturb-sections: wrap enumerate.d17 to also emit each section's data keys",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "count of options.step.*.(data|sections.*.data) keys in strings.json with no 'option <step>.<key>' line from d17-features --kind option",
+ "phenomenon_property": "Every field a user can set in the options (and config) flow is one line of the d17-features universe, whatever section it renders in.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D17/s1/h_enum.py (MISSING lines list every omitted field by page)",
+ "null_control": {
+  "command": "python3 dev/audit/rounds/round11/D17/s1/h_enum.py --perturb-sections",
+  "value": 0,
+  "note": "with sections walked the universe is 286 = declared, owed cell 8 of 8"
+ },
+ "reproduction_steps": [
+  "python3 tools/audit/enumerate.py d17-features --kind option | grep -c weekend  # 0",
+  "python3 dev/audit/rounds/round11/D17/s1/h_enum.py"
+ ],
+ "proposed_fix_scope": "tools/audit/enumerate.py d17(): also walk sections.*.data for config and options steps; its --self-test gains a planted sectioned field arm. Rotation/coverage of the next D17 round then includes the 156 fields.",
+ "files": [
+  "tools/audit/enumerate.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I4"
+}

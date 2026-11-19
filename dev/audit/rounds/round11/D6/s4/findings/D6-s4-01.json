@@ -1,0 +1,46 @@
+{
+ "id": "D6-s4-01",
+ "scope": "D6-s4",
+ "step": "D6.M2",
+ "title": "Swedish stale-plan pill tooltip renders a literal {minuter} instead of the minute limit",
+ "severity": "medium",
+ "claim": "Under hass.language sv, the card's stale-plan status pill title produced by statusPill() reads 'Ingen ny plan på mer än {minuter} min.' with the placeholder unsubstituted, because STRINGS.sv['status.stale_title'] names {minuter} while the call site passes {minutes}.",
+ "mechanism": "statusPill() calls L('status.stale_title', { minutes: Math.round(age.limit) }); L() substitutes only names present in vars and leaves any other {name} verbatim; the sv translation renamed the token to {minuter}. tests/card.mjs's R10-I18N-DE parity arm does refuse it when run here (FAIL 'sv: status.stale_title drops {minutes}; adds {minuter}', with HPO_PLANDATA from tests/plan_view.py), so the baseline carries a red card.mjs check; why it reached the baseline is a lead for the D3/D11 owner, not measured here.",
+ "evidence": {
+  "command": "node dev/audit/rounds/round11/D6/s4/card_placeholders.mjs",
+  "harness_path": "dev/audit/rounds/round11/D6/s4/card_placeholders.mjs",
+  "value": 1,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B13 finder box, linux x86_64",
+  "cpu_or_wall": "count",
+  "contention_note": "shared finder box during fan-out; count is load-immune",
+  "tolerance": "exact",
+  "load1": 1.59,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:statusPill (and :L)",
+ "perturbation": {
+  "change": "in memory: STRINGS.sv['status.stale_title'] with {minuter} replaced by {minutes} (--perturb)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Count of {name} tokens left in statusPill(plan,now).title under setLanguage('sv-SE') for a plan whose last solve is 200 min old (limit 90).",
+ "phenomenon_property": "Every card translation renders through L() with no literal {name} token left when the call site passes the placeholders the English source names (plus any listed call-site extras).",
+ "seam_rule": "node dev/audit/rounds/round11/D6/s4/card_placeholders.mjs   (RESULT unresolved_<lang> enumerates every key of every STRINGS dictionary rendered through production L; offender lines name each seam)",
+ "null_control": {
+  "command": "node dev/audit/rounds/round11/D6/s4/card_placeholders.mjs",
+  "value": "unresolved_en=0, unresolved_de=0",
+  "note": "the same render over the en source and the de translation leaves no token; only sv/status.stale_title is an offender"
+ },
+ "reproduction_steps": [
+  "node dev/audit/rounds/round11/D6/s4/card_placeholders.mjs -> stale_title_literal_tokens=1, unresolved_sv=1 (offender sv status.stale_title {minuter})",
+  "... --perturb -> 0 and 0"
+ ],
+ "proposed_fix_scope": "Rename {minuter} to {minutes} in STRINGS.sv['status.stale_title'] (card lines ~1793-1795).",
+ "files": [
+  "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I5"
+}

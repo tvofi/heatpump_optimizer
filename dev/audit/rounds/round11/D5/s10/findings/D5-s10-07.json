@@ -1,0 +1,41 @@
+{
+ "id": "D5-s10-07",
+ "scope": "D5-s10",
+ "step": "D5.M4",
+ "title": "339 comment sentences over 40 words across 193 of 329 cell files (criterion C5)",
+ "severity": "low",
+ "claim": "Counted within prose paragraphs only (list items, RESULT lines and indentation steps split apart), 339 sentences in the D5 units of the seat's 329 files exceed the 40-word ceiling D5-criteria.md C5 sets, in 193 files; the hooks alone carry examples of 41-53 words (pre-edit.sh lines 4-7, 34-40, 211-216).",
+ "mechanism": "Comments accrete narrative history (who measured, which PR) inside a single sentence joined by dashes and semicolons; no lint bounds sentence length.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv",
+  "harness_path": "dev/audit/rounds/round11/D5/s10/m4_ledger.py",
+  "value": 339,
+  "unit": "sentences",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; a count, contention-immune",
+  "tolerance": "\u00b15 % (the textual splitter: an abbreviation can split early, a list without a marker can merge)",
+  "load1": 2.6,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of and :sentences over every D5 unit of the seat's cells",
+ "perturbation": {
+  "change": "--rewrite ', so =. So ' (splitting each such sentence at its ', so' clause, in memory)",
+  "expected_direction": "down",
+  "observed_value": 275
+ },
+ "metric_definition": "long_sentences: sentences (text_ledger.sentences within a prose paragraph of a D5 unit) longer than 40 whitespace words",
+ "phenomenon_property": "No sentence in a comment or docstring of the cells exceeds 40 words.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --show | grep 'long('",
+ "proposed_fix_scope": "split or cut the flagged sentences, history clauses first (C4); a sentence-length lint over D5 units would hold it",
+ "files": [
+  ".claude/hooks/pre-edit.sh",
+  ".claude/hooks/pre-bash.sh",
+  ".claude/hooks/stop-selfcheck.sh",
+  ".claude/hooks/session-start.sh",
+  "dev/audit/harnesses/**"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

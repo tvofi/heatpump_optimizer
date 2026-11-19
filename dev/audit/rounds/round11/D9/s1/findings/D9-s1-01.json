@@ -1,0 +1,47 @@
+{
+  "id": "D9-s1-01",
+  "scope": "D9-s1",
+  "step": "D9.M1",
+  "title": "A diagnose press runs a full coordinator cycle, re-solving the plan to publish an analysis that needs no solve",
+  "severity": "low",
+  "claim": "HeatPumpOptimizerCoordinator.async_diagnose_interval ends in async_request_refresh(), so every diagnose press (button or service) enters optimizer._multi_start_minimize 2-4 times (a full main solve, plus a price tile when enabled) although the diagnosis is published by _build_data_dict alone; publishing without the cycle enters it 0 times and still publishes insight.last_diagnosis.",
+  "mechanism": "coordinator.py async_diagnose_interval: _await_process(diagnose_record) -> _store_diagnosis -> await self.async_request_refresh(); the refresh is _async_update_data, which always runs async_run_optimization (main solve, price tile rotation, fuse-advisor gate, sensor-advisor ranking, actuation and the learners' steps). The diagnosis itself is read by _insight_view ('last_diagnosis') inside _build_data_dict.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s1/h_diagnose_refresh.py",
+    "harness_path": "dev/audit/rounds/round11/D9/s1/h_diagnose_refresh.py",
+    "value": 2,
+    "unit": "_multi_start_minimize entries per diagnose press (two_zone_dhw); 2/2/2/3/4 over the five houses",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B1 container (4 vCPU, shared by three seats), CPython 3.14, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "counts are contention-immune; the per-press CPU beside them (two_zone_dhw 1.73 s, duty 7.55 s host process CPU) was taken at load1 7.5 and is provisional",
+    "tolerance": "exact",
+    "load1": 7.49,
+    "thread_factor": 1.0008,
+    "provisional": false
+  },
+  "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize (entries, tagged at heatpump_optimizer.coordinator:_await_process) driven through heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_diagnose_interval",
+  "perturbation": {
+    "change": "on the coordinator instance, async_request_refresh replaced by a publish-only twin (coord.data = coord._build_data_dict(); coord.async_update_listeners(), what DataUpdateCoordinator.async_set_updated_data does)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 entries per press in all five houses; worker jobs 3-4 -> 1 (diagnose_record only); diagnosis_published stays 1"
+  },
+  "metric_definition": "Entries into optimizer._multi_start_minimize between the call and the return of async_diagnose_interval on a coordinator with 3 warm cycles.",
+  "phenomenon_property": "A user action whose only output is a published figure (not a change to any solve input) must publish by rebuilding the data dict, never by requesting a coordinator refresh, because every refresh re-runs the full solve cycle.",
+  "seam_rule": "grep -n 'async_request_refresh()' custom_components/heatpump_optimizer/*.py  # each caller whose state change does not reach SolveRecord inputs is a seam; at the baseline: coordinator.py async_diagnose_interval",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s1/h_diagnose_refresh.py",
+    "value": "diagnose_record_msm=0 in every cell: the diagnosis job itself enters the solver 0 times; every entry comes from the refresh",
+    "note": "and the perturbed arm keeps diagnosis_returned=1 and diagnosis_published=1"
+  },
+  "leave_one_out": {"cells": 5, "min": 2, "max": 4, "drop_most_favourable": 2.25},
+  "reproduction_steps": [
+    "Run the command; read <house>.baseline.msm_per_press and <house>.perturbed.msm_per_press for the five houses (two_zone_dhw, single_zone_dhw, single_zone, two_zone_dhw_tiles, two_zone_dhw_duty).",
+    "drop_most_favourable is the mean over the four cells left after dropping the max (4, the duty house): (2+2+2+3)/4."
+  ],
+  "proposed_fix_scope": "coordinator.py async_diagnose_interval: replace await self.async_request_refresh() with self.async_set_updated_data(self._build_data_dict()) (or the sensor-advisor-carrying equivalent); a features.py check that a diagnose press enters _multi_start_minimize 0 times and publishes last_diagnosis.",
+  "files": ["custom_components/heatpump_optimizer/coordinator.py"],
+  "expected_golden_drift": [],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

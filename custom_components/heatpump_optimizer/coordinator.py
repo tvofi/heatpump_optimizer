@@ -97,7 +97,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     HOUSE_LOSS_MAX_SAMPLE_HOURS,
     DOMAIN,
-    PRICE_SOURCE_ENTITY,
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
@@ -278,7 +277,9 @@ from .price_model import (
     PriceShapeModel,
     TIBBER_API_URL,
     _raw_value,
+    entity_priced,
     extend_price_series,
+    price_feed,
     pull_prices,
 )
 from . import sysid
@@ -299,7 +300,7 @@ from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner, worst_zone_margin_k
-from .currency import declared_currency, resolve_currency
+from .currency import feed_currency, figure_currency, resolve_currency
 from .drift import utc_shift
 from .drift import Cusum, stored_instant, utc_step_starts
 from .ledger import (
@@ -935,11 +936,10 @@ def _cop_fold_blocked(coord: Any) -> bool:
 def _fold_flow_lift(coord: Any, now: datetime) -> None:
     """#1067: fold this interval's supply-vs-curve residual into the bias.
 
-    Module-level on ``_cop_fold_blocked``'s precedent: a method here would
-    cost ``coordinator_methods`` and a seam edge for a function that reads
-    four things off the coordinator and calls one learner.
+    Module-level on ``_cop_fold_blocked``'s precedent: as a method it would cost
+    ``coordinator_methods`` and a seam edge for four reads and one learner call.
 
-    Five gates, and each is somebody else's question already answered:
+    Six gates, and each is somebody else's question already answered:
 
     * a FRESH supply reading — ``last_supply_c`` is cleared every cycle the
       slot is unconfigured, unreadable or past its horizon, so this is also
@@ -954,13 +954,12 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     * a space-dominant interval by its attribution (the mode dwell where
       observed, else the commanded split), at the efficiency reference's
       ``_COP_CURVE_SHARE``: the curve is a SPACE heating curve, and a hot-water
-      interval runs the supply at the tank's charge temperature.
+      interval runs the supply at the tank's charge temperature;
+    * no throttling valve on a single-zone house: its supply is the valve's tank charge.
 
-    ``now`` is unused for arithmetic and taken anyway: this is called from
-    ``_record_accuracy``'s per-cycle block beside ``_observe_frequency``,
-    which is the one place a cycle's observations are booked, and every
-    observer there carries the cycle's timestamp so none of them can
-    disagree about when "this cycle" was.
+    ``now`` is unused and taken anyway: ``_record_accuracy``'s per-cycle block,
+    the one place a cycle's observations are booked, gives every observer the
+    cycle's timestamp so none can disagree about when "this cycle" was.
     """
     del now  # the fold is not time-weighted; see the docstring
     ctx = getattr(coord, "_ctx", coord)
@@ -968,6 +967,8 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     if supply is None:
         return
     params = ctx._thermal_params
+    if mixing_valve.is_throttling(params.mixing_valve_mode) and not params.two_zone_enabled:
+        return
     commanded = coord._commanded_power()
     if commanded < draw_range.power_floor_kw(coord._accuracy.draw, params):
         return
@@ -2881,7 +2882,7 @@ def _audit_price_units(hass: HomeAssistant, config: Mapping[str, Any]) -> None:
     # (``unit_of_measurement`` and the ``currency`` attribute), but the money
     # fields in the options dialog are labelled in the instance currency.
     # Name the disagreement.
-    declared = _feed_currency(hass, cfg)
+    declared = feed_currency(hass, price_feed(cfg))
     if declared is None or declared == resolve_currency(hass):
         ir.async_delete_issue(hass, DOMAIN, "price_currency")
         return
@@ -2893,7 +2894,7 @@ def _audit_price_units(hass: HomeAssistant, config: Mapping[str, Any]) -> None:
         severity=ir.IssueSeverity.WARNING,
         translation_key="price_currency_mismatch",
         translation_placeholders={
-            "entity": str(_price_feed(config)),
+            "entity": str(price_feed(config)),
             "feed": declared,
             "configured": resolve_currency(hass),
         },
@@ -3394,30 +3395,6 @@ def compose_scores(
     return scores
 
 
-def _entity_price_source(config: Mapping[str, Any]) -> bool:
-    return EntryConfig.from_mapping(config).price_source == PRICE_SOURCE_ENTITY
-
-
-def _price_feed(config: Mapping[str, Any]) -> Any:
-    """The price entity whose numbers the plan is priced in, if one is."""
-    cfg = EntryConfig.from_mapping(config)
-    return cfg.price_entity if _entity_price_source(cfg) else None
-
-
-def _feed_currency(hass: HomeAssistant, cfg: Mapping[str, Any]) -> str | None:
-    """The currency the price feed declares for its numbers, if any (#1657).
-
-    Every money figure is denominated by the feed, so this, not the
-    instance's label currency, is what a published money unit names; the
-    instance's (``resolve_currency``) only fills in where the feed says
-    nothing, and an unavailable feed keeps the code already adopted.
-    """
-    feed = _price_feed(cfg)
-    state = hass.states.get(feed) if feed else None
-    attrs = getattr(state, "attributes", None) or {}
-    return declared_currency(attrs.get("unit_of_measurement"), attrs)
-
-
 def _price_entity_state(hass: Any, config: Mapping[str, Any]) -> Any:
     entity_id = EntryConfig.from_mapping(config).price_entity
     if not entity_id:
@@ -3534,7 +3511,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self.entry = entry
         config = EntryConfig.from_mapping({**entry.data, **entry.options})
         # The feed's code where it declares one (#1657), adopted per cycle.
-        self.currency = _feed_currency(hass, config) or resolve_currency(hass)
+        self.currency = figure_currency(hass, price_feed(config))
 
         super().__init__(
             hass,
@@ -6645,7 +6622,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             enabled=ctx._config.staleness_watchdog_enabled,
             scale=ctx._config.staleness_max_age_scale,
         )
-        self.currency = _feed_currency(self.hass, ctx._config) or self.currency
+        self.currency = figure_currency(self.hass, price_feed(ctx._config), self.currency)
         # Read onto a copy, published whole before the first reader below;
         # ``prior`` is the state the interval started from (the slab seed).
         prior = ctx._current_state
@@ -6964,7 +6941,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         try:
             session = (
                 None
-                if _entity_price_source(cfg)
+                if entity_priced(cfg)
                 else async_get_clientsession(hass)
             )
             verdict, payload = await pull_prices(

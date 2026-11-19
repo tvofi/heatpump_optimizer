@@ -1,0 +1,14 @@
+# file<TAB>token<TAB>text that follows the occurrence (* = any)<TAB>reason. Each reviewed by the seat: the token is absent from the tree for this reason and that occurrence is true
+tools/audit/seat/bus.sh	tools/super.py	*	a path the self-test's fixture repository creates, not a tree path
+tools/audit/seat/finder_overlap.py	dev/audit/rounds/round	*	the prefix of dev/audit/rounds/round<N>, a pattern
+tools/pr/prepr.sh	dev/audit/rounds/round	*	the prefix of dev/audit/rounds/round<N>, a pattern
+tools/audit/seat/handoff_push.sh	tools/audit/handoff	*	a legacy transport root prepr.sh's TRANSPORT_ROOTS still reads, as the unit says
+tools/pr/prepr.sh	tools/audit/handoff/	*	history of the transport root, and TRANSPORT_ROOTS below still names it
+tools/pr/app_approve.sh	--verbatim	*	a git patch-id option: git patch-id --verbatim </dev/null exits 0 (git 2.43.0)
+tools/pr/ci_predict.py	tools/lib/	*	a directory the self-test's fixture tree creates on the next line
+tools/pr/gh_comment.py	docs/HANDOVER.md	*	an example body the refusal names, not a pointer
+tools/pr/prepr.sh	docs/HANDOVER.md	*	quotes #1053's pr-contract message, history
+tools/pr/prepr.sh	tools/audit/prepr.sh	and run that instead	the fallback copy CI may restore: governance.yml and pr-contract.yml test -f it first
+tools/pr/prepr.sh	docs/../x	*	a path form the copy refuses, an example
+tools/pr/push.sh	dcea170	*	an example abbreviated SHA in a prefix-comparison explanation
+tools/pr/preflight.sh	tools/audit/briefs/fix-review.md	that predated	history: the brief's path when the incident happened

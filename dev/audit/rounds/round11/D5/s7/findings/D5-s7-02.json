@@ -1,0 +1,42 @@
+{
+ "scope": "D5-s7",
+ "step": "D5.M4",
+ "severity": "low",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "seam_rule": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M4  (then PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv; rows with verdict false are the seams)",
+ "metric_definition": "Per file: D5 units (text_ledger units_of) failing C1 (executed contradiction), C2 (named code absent from the tree's code tokens) or C5 (a sentence over 40 words).",
+ "id": "D5-s7-02",
+ "title": "tests/finite_boundary.py: 14 comment units carry a sentence over 40 words (C5)",
+ "claim": "Of tests/finite_boundary.py's 143 D5 units, 14 hold a sentence over 40 words (longest 94, the Arm 4 block at line 1018), failing D5-criteria C5; none fails C1 or C2 under the executed battery.",
+ "mechanism": "Long docstring and comment-block sentences chain clauses with ';' and ' -- ' (finite_boundary.py:1, 130, 549, 704, 752, 877, 1018, 1464, 1501, 1674, 1774, 2170, 2342, 2549).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv",
+  "harness_path": "dev/audit/rounds/round11/D5/s7/m4_comments.py",
+  "value": 14,
+  "unit": "count (false ledger rows)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (cloud container, Linux x86_64)",
+  "cpu_or_wall": "count",
+  "contention_note": "count over text; contention-immune",
+  "tolerance": "exact",
+  "load1": 0.87,
+  "thread_factor": 0.997
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of and :sentences over tests/finite_boundary.py",
+ "perturbation": {
+  "change": "--perturb c5-split (each sentence re-split at its 40th word, in memory)",
+  "expected_direction": "to_zero",
+  "observed_value": "finite_boundary c5_fail 14->0 (total false_rows 471->4)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s7/ledger.tsv --plant --seat D5-s7 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "value": "unrowed=0 plant_refused=1",
+  "note": "every unit rowed; a plant is refused"
+ },
+ "phenomenon_property": "No D5 unit of tests/finite_boundary.py has a sentence over 40 words.",
+ "proposed_fix_scope": "Split the 14 sentences; comment-only.",
+ "files": [
+  "tests/finite_boundary.py"
+ ]
+}

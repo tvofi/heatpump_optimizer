@@ -1,0 +1,5605 @@
+{
+ "rows": [
+  {
+   "id": "custom_components/heatpump_optimizer/__init__.py:195",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/__init__.py",
+   "line": 195,
+   "kind": "narrow",
+   "func": "_take_fresh_handover",
+   "first": 193,
+   "caught": "(AttributeError, TypeError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/__init__.py:315",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/__init__.py",
+   "line": 315,
+   "kind": "broad",
+   "func": "async_setup_entry",
+   "first": 313,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not resolve integration version', exc_info=True)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/accuracy.py:1050",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "line": 1050,
+   "kind": "narrow",
+   "func": "MeasuredCop.from_dict",
+   "first": 1047,
+   "caught": "(TypeError, ValueError, KeyError, AttributeError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return cls()"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/accuracy.py:489",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "line": 489,
+   "kind": "narrow",
+   "func": "AccuracyTracker.from_dict",
+   "first": 488,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/accuracy.py:497",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "line": 497,
+   "kind": "narrow",
+   "func": "AccuracyTracker.from_dict",
+   "first": 496,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/accuracy.py:505",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "line": 505,
+   "kind": "narrow",
+   "func": "AccuracyTracker.from_dict",
+   "first": 503,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/accuracy.py:514",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "line": 514,
+   "kind": "narrow",
+   "func": "AccuracyTracker.from_dict",
+   "first": 511,
+   "caught": "(TypeError, ValueError, OverflowError, IndexError, KeyError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/accuracy.py:563",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "line": 563,
+   "kind": "narrow",
+   "func": "plan_promise",
+   "first": 558,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/accuracy.py:617",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/accuracy.py",
+   "line": 617,
+   "kind": "narrow",
+   "func": "_stored_promise",
+   "first": 613,
+   "caught": "(TypeError, ValueError, KeyError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/away.py:439",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/away.py",
+   "line": 439,
+   "kind": "broad",
+   "func": "persist_override",
+   "first": 438,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist away override: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/boost.py:574",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/boost.py",
+   "line": 574,
+   "kind": "broad",
+   "func": "persist",
+   "first": 573,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist boost state: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/boost.py:734",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/boost.py",
+   "line": 734,
+   "kind": "narrow",
+   "func": "_due_inside_horizon",
+   "first": 733,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/boost.py:745",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/boost.py",
+   "line": 745,
+   "kind": "narrow",
+   "func": "_window_open",
+   "first": 744,
+   "caught": "DHWWindowError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "windows = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/climate.py:300",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/climate.py",
+   "line": 300,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerClimate._async_publish_displace_from_current_action",
+   "first": 299,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Failed to publish ECL110 displace command: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/comfort_learning.py:243",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/comfort_learning.py",
+   "line": 243,
+   "kind": "narrow",
+   "func": "ComfortLearner.from_dict",
+   "first": 242,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "stored_configured = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/comfort_learning.py:254",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/comfort_learning.py",
+   "line": 254,
+   "kind": "narrow",
+   "func": "ComfortLearner.from_dict",
+   "first": 250,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return cls(configured_weight=configured_weight, learned_weight=configured_weight)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/config_flow.py:1106",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "line": 1106,
+   "kind": "narrow",
+   "func": "_valid_months_spec",
+   "first": 1103,
+   "caught": "grid_fee.GridFeeError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/config_flow.py:1342",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "line": 1342,
+   "kind": "broad",
+   "func": "_translated_menu",
+   "first": 1339,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not load %s menu translations', flow_type, exc_info=True)\nreturn labels"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/config_flow.py:2062",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "line": 2062,
+   "kind": "narrow",
+   "func": "_peak_window_as_int",
+   "first": 2061,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "cleaned[CONF_PEAK_TARIFF_WINDOW] = DEFAULT_PEAK_TARIFF_WINDOW"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/config_flow.py:2418",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "line": 2418,
+   "kind": "broad",
+   "func": "_omit_unstored_computed",
+   "first": 2417,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/config_flow.py:2527",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "line": 2527,
+   "kind": "narrow",
+   "func": "_same_setting",
+   "first": 2526,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/config_flow.py:2532",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "line": 2532,
+   "kind": "narrow",
+   "func": "_same_setting",
+   "first": 2531,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/config_flow.py:529",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "line": 529,
+   "kind": "broad",
+   "func": "validate_tibber_token",
+   "first": 518,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return 'cannot_connect'"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/config_flow.py:777",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "line": 777,
+   "kind": "broad",
+   "func": "_prefilled_values",
+   "first": 776,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/config_flow.py:798",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/config_flow.py",
+   "line": 798,
+   "kind": "narrow",
+   "func": "_widen_to_fit",
+   "first": 797,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/const.py:1491",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/const.py",
+   "line": 1491,
+   "kind": "narrow",
+   "func": "finite_float",
+   "first": 1490,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return default"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:10082",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 10082,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._record_accuracy",
+   "first": 10079,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "sample.cop_residual = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:10642",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 10642,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._capture_diagnosis_inputs",
+   "first": 10641,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:10647",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 10647,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._capture_diagnosis_inputs",
+   "first": 10646,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "planned_wind = 0.0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:10709",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 10709,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._maybe_refresh_price_tile",
+   "first": 10706,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Price tile %s failed: %s', name, err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:1085",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 1085,
+   "kind": "broad",
+   "func": "_replay_interval",
+   "first": 1079,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('%s learning simulation failed: %s', label, err)\nreturn None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:10876",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 10876,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._command_frequency",
+   "first": 10870,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.error('Error commanding compressor frequency: %s', err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:11230",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 11230,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator.async_simulate",
+   "first": 11229,
+   "caught": "whatif.Refused",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return {'error': str(err), 'rate_limited': False}"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:11237",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 11237,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator.async_simulate",
+   "first": 11235,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('What-if simulation failed: %s', err)\nreturn {'error': str(err), 'rate_limited': False}"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:1912",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 1912,
+   "kind": "broad",
+   "func": "_shutdown_process_pool",
+   "first": 1910,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:1919",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 1919,
+   "kind": "broad",
+   "func": "_shutdown_process_pool",
+   "first": 1917,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:1925",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 1925,
+   "kind": "broad",
+   "func": "_shutdown_process_pool",
+   "first": 1924,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "worker.kill()"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2040",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2040,
+   "kind": "narrow",
+   "func": "_read_reply",
+   "first": 2039,
+   "caught": "(AttributeError, OSError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return pickle.load(stdout)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2069",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2069,
+   "kind": "broad",
+   "func": "_run_in_process",
+   "first": 2068,
+   "caught": "Exception",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise ProcessWorkerUnavailable(f'job cannot be pickled: {err}') from err"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2082",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2082,
+   "kind": "narrow",
+   "func": "_run_in_process",
+   "first": 2081,
+   "caught": "ProcessWorkerTimeout",
+   "reraises": true,
+   "static_logs": false,
+   "body": "_PROCESS_WORKER = None\ntry:\n    worker.kill()\n    worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)\nexcept Exception:\n    pass\nraise"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2090",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2090,
+   "kind": "broad",
+   "func": "_run_in_process",
+   "first": 2088,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2093",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2093,
+   "kind": "narrow",
+   "func": "_run_in_process",
+   "first": 2074,
+   "caught": "ProcessWorkerUnavailable",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2097",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2097,
+   "kind": "broad",
+   "func": "_run_in_process",
+   "first": 2074,
+   "caught": "Exception",
+   "reraises": true,
+   "static_logs": false,
+   "body": "_PROCESS_WORKER = None\nif worker is None:\n    raise ProcessWorkerUnavailable(f'process worker cannot start: {err}') from err\nrc = worker.poll()\ntry:\n    worker.kill()\n    worker.wait()\nexcept Exception:\n    pass\nraise ProcessWorkerUnavailab"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2107",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2107,
+   "kind": "broad",
+   "func": "_run_in_process",
+   "first": 2105,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2147",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2147,
+   "kind": "narrow",
+   "func": "_await_off_loop",
+   "first": 2146,
+   "caught": "ProcessWorkerTimeout",
+   "reraises": true,
+   "static_logs": true,
+   "body": "log_held(hass, key, True, '%s; %s skipped this cycle', err, name)\nraise"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2150",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2150,
+   "kind": "narrow",
+   "func": "_await_off_loop",
+   "first": 2146,
+   "caught": "ProcessWorkerUnavailable",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Process worker unusable (%s); using the executor', err)\nreturn await hass.async_add_executor_job(fn, *args)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2209",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2209,
+   "kind": "broad",
+   "func": "_with_sensor_advisor",
+   "first": 2205,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Sensor advisor ranking skipped: %s', err)\nranking = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2275",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2275,
+   "kind": "narrow",
+   "func": "_worker_fallback_streak",
+   "first": 2274,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return 0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2319",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2319,
+   "kind": "narrow",
+   "func": "_await_optimize",
+   "first": 2318,
+   "caught": "ProcessWorkerTimeout",
+   "reraises": false,
+   "static_logs": true,
+   "body": "log_held(hass, f'process_worker_timeout:{entry_id}', True, '%s; keeping the last plan, a fresh worker starts next cycle', err)\n_raise_update_failed('process_worker_timeout', f'{err}; the last plan stays in effect', err, minutes=f'{PROCESS_R"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2328",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2328,
+   "kind": "narrow",
+   "func": "_await_optimize",
+   "first": 2318,
+   "caught": "ProcessWorkerUnavailable",
+   "reraises": false,
+   "static_logs": false,
+   "body": "_note_worker_fallback(hass, err, entry_id)\nn = _bump_worker_fallback(hass, entry_id)\nif n > WORKER_FALLBACK_CAP:\n    _raise_update_failed('process_worker_unusable', f'The optimization worker failed for {n} consecutive cycles; the last plan "
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2692",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2692,
+   "kind": "broad",
+   "func": "CoordinatorDiagnostics.of",
+   "first": 2691,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "summaries[name.lstrip('_')] = 'summary unavailable'"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:2768",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 2768,
+   "kind": "narrow",
+   "func": "_thermal_param_changes",
+   "first": 2766,
+   "caught": "DHWWindowError",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Ignoring invalid DHW demand windows: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:3011",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 3011,
+   "kind": "narrow",
+   "func": "_plausible_forecast_rows",
+   "first": 3010,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:3054",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 3054,
+   "kind": "broad",
+   "func": "_stored_fuse_advisor",
+   "first": 3047,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:4173",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4173,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription",
+   "first": 4159,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('ECL110 MQTT state subscription not available: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:4183",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4183,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message",
+   "first": 4181,
+   "caught": "(TypeError, ValueError, OverflowError, RecursionError)",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Ignoring malformed ECL110 state payload: %s', err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:439",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 439,
+   "kind": "narrow",
+   "func": "_stored_isoformat",
+   "first": 438,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:451",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 451,
+   "kind": "narrow",
+   "func": "_stored_learner",
+   "first": 449,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not load %s: %s', key, err)\nreturn None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:4564",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4564,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_set_pump",
+   "first": 4560,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Could not command pump %s: %s', entity_id, err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:4580",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4580,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_load_thermal_learning",
+   "first": 4579,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not load learned thermal parameters: %s', err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:4604",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4604,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._async_load_thermal_learning",
+   "first": 4601,
+   "caught": "(TypeError, ValueError, OverflowError, IndexError, KeyError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:4660",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4660,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._load_t4b_learners",
+   "first": 4659,
+   "caught": "(TypeError, ValueError, OverflowError, IndexError, KeyError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:4677",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4677,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._load_t4b_learners",
+   "first": 4676,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "self._internal_gains_profile = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:4779",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 4779,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_save_thermal_learning",
+   "first": 4775,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist learned thermal parameters: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:511",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 511,
+   "kind": "narrow",
+   "func": "_refuses_non_finite.guarded",
+   "first": 510,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "finite = False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:582",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 582,
+   "kind": "narrow",
+   "func": "_comparable_ts",
+   "first": 581,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:5992",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 5992,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._check_pump_mode_expired",
+   "first": 5991,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not clear the mode notice: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:6034",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6034,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._dhw_effective_windows",
+   "first": 6033,
+   "caught": "DHWWindowError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:6141",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6141,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._async_update_data",
+   "first": 6064,
+   "caught": "(UpdateFailed, ConfigEntryAuthFailed)",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:6148",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6148,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_update_data",
+   "first": 6064,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.error('Error updating Heat Pump Optimizer: %s', err, exc_info=True)\n_raise_update_failed('update_failed', f'Error updating data: {err}', err, error=str(err))"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:6189",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6189,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._async_first_refresh_light",
+   "first": 6179,
+   "caught": "(UpdateFailed, ConfigEntryAuthFailed)",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:6195",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6195,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_first_refresh_light",
+   "first": 6179,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.error('Error updating Heat Pump Optimizer: %s', err, exc_info=True)\n_raise_update_failed('update_failed', f'Error updating data: {err}', err, error=str(err))"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:628",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 628,
+   "kind": "narrow",
+   "func": "_peak_tariff_months",
+   "first": 625,
+   "caught": "GridFeeError",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Invalid peak tariff months %r (%s); applying the tariff in every month', spec.strip(), err)\nreturn frozenset()"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:642",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 642,
+   "kind": "narrow",
+   "func": "_peak_tariff_hours",
+   "first": 641,
+   "caught": "DHWWindowError",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Invalid peak tariff hours %r (%s); treating every hour as peak', spec.strip(), err)\nreturn ()"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:6507",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6507,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator.async_run_optimization",
+   "first": 6374,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "_note_solve_failure(self, err)\nreturn 'solve_failed'"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:685",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 685,
+   "kind": "broad",
+   "func": "_best_effort_cycle_step",
+   "first": 682,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "cause = f'{type(err).__name__}: {err}'\nif (message, cause) not in _FENCED_CAUSES:\n    _FENCED_CAUSES.add((message, cause))\n    _LOGGER.warning(message + ' (first occurrence; repeats log at DEBUG)', err)\nelse:\n    _LOGGER.debug(message, err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:6976",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6976,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+   "first": 6962,
+   "caught": "(UpdateFailed, ConfigEntryAuthFailed)",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:6978",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6978,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+   "first": 6962,
+   "caught": "aiohttp.ClientError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "self._tibber_fetch_failed(f'Error fetching Tibber prices: {err}')"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:6980",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 6980,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+   "first": 6962,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "self._tibber_fetch_failed(f'Unexpected error fetching prices: {err}', exc_info=True)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:7103",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 7103,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+   "first": 7061,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "self._weather_fetch_failed(f'Error fetching weather forecast: {err}')\nstate = self.hass.states.get(weather_entity)\nif state and (not self._weather_forecast):\n    try:\n        self._weather_forecast = _fabricated_forecast(state)\n        self"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:7113",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 7113,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+   "first": 7111,
+   "caught": "(ValueError, TypeError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:7168",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 7168,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._solar_location",
+   "first": 7167,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": true,
+   "body": "log_held(self, 'solar_location', True, 'Ignoring malformed solar location %s', location)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:745",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 745,
+   "kind": "broad",
+   "func": "_valve_write_problem",
+   "first": 743,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return f'could not be commanded: {err}'"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:8293",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 8293,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_save_price_model",
+   "first": 8291,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist price model: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:8328",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 8328,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._async_load_ledger",
+   "first": 8323,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:8365",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 8365,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_save_ledger",
+   "first": 8346,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist ledger: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:8403",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 8403,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_save_accuracy",
+   "first": 8389,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist accuracy history: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:8445",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 8445,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_save_energy_totals",
+   "first": 8428,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist energy totals: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:8474",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 8474,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_load_manual_plan",
+   "first": 8473,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not load manual plan: %s', err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:8481",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 8481,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._async_load_manual_plan",
+   "first": 8480,
+   "caught": "(ManualPlanError, AttributeError, TypeError)",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Discarding unreadable stored manual plan: %s', err)\nawait self._manual_plan_store.async_save({})\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:8502",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 8502,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_save_manual_plan",
+   "first": 8496,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist manual plan: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:893",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 893,
+   "kind": "narrow",
+   "func": "_outage_reading",
+   "first": 892,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:9252",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 9252,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._track_curve_comfort",
+   "first": 9251,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:9290",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 9290,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+   "first": 9289,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:9524",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 9524,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._raise_cop_issue",
+   "first": 9518,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "monthly_kwh = 0.0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:9773",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 9773,
+   "kind": "broad",
+   "func": "HeatPumpOptimizerCoordinator._async_save_snapshots",
+   "first": 9772,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist learner snapshots: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/coordinator.py:9854",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/coordinator.py",
+   "line": 9854,
+   "kind": "narrow",
+   "func": "HeatPumpOptimizerCoordinator._entity_state",
+   "first": 9853,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "attributes = {}"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/curve_learning.py:162",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/curve_learning.py",
+   "line": 162,
+   "kind": "narrow",
+   "func": "CurveLearner.from_dict",
+   "first": 161,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "learner.bias = 0.0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/curve_learning.py:171",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/curve_learning.py",
+   "line": 171,
+   "kind": "narrow",
+   "func": "CurveLearner.from_dict",
+   "first": 170,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "learner.comfortable_days = 0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/curve_learning.py:175",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/curve_learning.py",
+   "line": 175,
+   "kind": "narrow",
+   "func": "CurveLearner.from_dict",
+   "first": 174,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "learner.resets = 0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/debugger.py:199",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "line": 199,
+   "kind": "narrow",
+   "func": "_read_stores",
+   "first": 198,
+   "caught": "(OSError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/debugger.py:209",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "line": 209,
+   "kind": "narrow",
+   "func": "_parsed",
+   "first": 208,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/debugger.py:355",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "line": 355,
+   "kind": "narrow",
+   "func": "run_self_tests",
+   "first": 352,
+   "caught": "TimeoutError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "outcome = {'error': 'timeout'}"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/debugger.py:357",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "line": 357,
+   "kind": "broad",
+   "func": "run_self_tests",
+   "first": 352,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "outcome = {'error': repr(err)}"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/debugger.py:523",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "line": 523,
+   "kind": "broad",
+   "func": "DebugCollector.async_save",
+   "first": 522,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist the debug collection: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/debugger.py:674",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "line": 674,
+   "kind": "narrow",
+   "func": "DebugCollector._async_replay",
+   "first": 662,
+   "caught": "replay_doc.Refused",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return (None, str(err))"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/debugger.py:676",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/debugger.py",
+   "line": 676,
+   "kind": "broad",
+   "func": "DebugCollector._async_replay",
+   "first": 662,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return (None, f'the recorder could not be read: {err!r}')"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/defrost.py:530",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/defrost.py",
+   "line": 530,
+   "kind": "narrow",
+   "func": "DefrostDerate.from_dict._grid_of",
+   "first": 529,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "value = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/defrost.py:737",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/defrost.py",
+   "line": 737,
+   "kind": "narrow",
+   "func": "DefrostWindow._elapsed",
+   "first": 729,
+   "caught": "(AttributeError, TypeError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_draws.py:160",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_draws.py",
+   "line": 160,
+   "kind": "narrow",
+   "func": "DrawStats.from_dict",
+   "first": 159,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "stats._open_kwh = 0.0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_learning.py:234",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 234,
+   "kind": "narrow",
+   "func": "DhwProfileLearner.normalize_profile",
+   "first": 233,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "usable = False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_learning.py:254",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 254,
+   "kind": "broad",
+   "func": "DhwProfileLearner.async_load_profile",
+   "first": 253,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not load learned DHW profile: %s', err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_learning.py:272",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 272,
+   "kind": "narrow",
+   "func": "DhwProfileLearner.async_load_profile",
+   "first": 270,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not load learned DHW cooling rate: %s', err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_learning.py:335",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 335,
+   "kind": "narrow",
+   "func": "DhwProfileLearner.apply_payload",
+   "first": 334,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_learning.py:355",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 355,
+   "kind": "narrow",
+   "func": "DhwProfileLearner._restore_daytypes",
+   "first": 354,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "self.daytype_samples[idx] = 0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_learning.py:371",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 371,
+   "kind": "broad",
+   "func": "DhwProfileLearner.async_save_profile",
+   "first": 365,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist DHW profile: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_learning.py:384",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 384,
+   "kind": "broad",
+   "func": "DhwProfileLearner.async_save_draws",
+   "first": 382,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist DHW draw statistics: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_planner.py:1032",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 1032,
+   "kind": "narrow",
+   "func": "DhwPlanner._dhw_window_floors",
+   "first": 1031,
+   "caught": "(TypeError, ValueError, IndexError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "p90, count = (None, 0)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_planner.py:1604",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 1604,
+   "kind": "broad",
+   "func": "DhwPlanner._plan_dhw_min_cost",
+   "first": 1601,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('DHW cost LP raised %s; using greedy planner', err)\nreturn best"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_schedule.py:123",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "line": 123,
+   "kind": "narrow",
+   "func": "_parse_day_selector",
+   "first": 121,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return []"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_schedule.py:129",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "line": 129,
+   "kind": "narrow",
+   "func": "_parse_day_selector",
+   "first": 128,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return []"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_schedule.py:537",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "line": 537,
+   "kind": "narrow",
+   "func": "is_valid_spec",
+   "first": 536,
+   "caught": "DHWWindowError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_schedule.py:577",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "line": 577,
+   "kind": "narrow",
+   "func": "spec_problem",
+   "first": 576,
+   "caught": "DHWWindowError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return ERROR_INVALID"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/dhw_schedule.py:674",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/dhw_schedule.py",
+   "line": 674,
+   "kind": "narrow",
+   "func": "parse_day_overrides",
+   "first": 673,
+   "caught": "DHWWindowError",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Invalid per-day DHW window %r for %s (%s); that day keeps the default schedule', spec, key, err)\ndays.append(None)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/diagnosis.py:103",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
+   "line": 103,
+   "kind": "narrow",
+   "func": "attribute",
+   "first": 102,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/diagnosis.py:114",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
+   "line": 114,
+   "kind": "broad",
+   "func": "attribute",
+   "first": 113,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/diagnosis.py:151",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
+   "line": 151,
+   "kind": "broad",
+   "func": "diagnose_record",
+   "first": 143,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Interval diagnosis failed: %s', err)\nreturn None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/diagnosis.py:93",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnosis.py",
+   "line": 93,
+   "kind": "broad",
+   "func": "attribute",
+   "first": 92,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/diagnostics.py:339",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnostics.py",
+   "line": 339,
+   "kind": "broad",
+   "func": "_coordinator_snapshot",
+   "first": 338,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "state = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/diagnostics.py:367",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/diagnostics.py",
+   "line": 367,
+   "kind": "broad",
+   "func": "_never_breaks",
+   "first": 366,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return 'unavailable'"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/disinfection.py:225",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/disinfection.py",
+   "line": 225,
+   "kind": "broad",
+   "func": "DisinfectionSwitch._write",
+   "first": 221,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "self.failed = True\nself.failed_entity = entity_id\n_LOGGER.warning('Could not %s the disinfection switch %s: %s', service, entity_id, err)\nreturn False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/draw_range.py:373",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
+   "line": 373,
+   "kind": "narrow",
+   "func": "DrawRange.from_dict",
+   "first": 372,
+   "caught": "(TypeError, ValueError, OverflowError, KeyError, IndexError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return out"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/draw_range.py:388",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
+   "line": 388,
+   "kind": "narrow",
+   "func": "DrawRange.from_dict",
+   "first": 387,
+   "caught": "(TypeError, ValueError, OverflowError, IndexError, KeyError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/draw_range.py:456",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
+   "line": 456,
+   "kind": "narrow",
+   "func": "_stored_ceiling",
+   "first": 455,
+   "caught": "(TypeError, ValueError, OverflowError, IndexError, KeyError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/draw_range.py:473",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/draw_range.py",
+   "line": 473,
+   "kind": "narrow",
+   "func": "_command_cells",
+   "first": 472,
+   "caught": "(TypeError, ValueError, OverflowError, IndexError, KeyError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/drift.py:109",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/drift.py",
+   "line": 109,
+   "kind": "narrow",
+   "func": "stored_instant",
+   "first": 108,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/drift.py:318",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/drift.py",
+   "line": 318,
+   "kind": "narrow",
+   "func": "Cusum.load",
+   "first": 317,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "self.stat = 0.0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/drift.py:360",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/drift.py",
+   "line": 360,
+   "kind": "narrow",
+   "func": "_positive_definite",
+   "first": 359,
+   "caught": "np.linalg.LinAlgError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/duty_legs.py:144",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_legs.py",
+   "line": 144,
+   "kind": "narrow",
+   "func": "priced_pair",
+   "first": 143,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return (0.0, 0.0)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/duty_switch.py:427",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_switch.py",
+   "line": 427,
+   "kind": "narrow",
+   "func": "DutySwitchLearner.from_record",
+   "first": 423,
+   "caught": "(TypeError, KeyError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return cls()"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/duty_switch.py:504",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_switch.py",
+   "line": 504,
+   "kind": "broad",
+   "func": "_load",
+   "first": 503,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not load the duty-switch record: %s', err)\nreturn False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/duty_switch.py:514",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/duty_switch.py",
+   "line": 514,
+   "kind": "broad",
+   "func": "_persist",
+   "first": 513,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist the duty-switch record: %s', err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/entry_config.py:42",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/entry_config.py",
+   "line": 42,
+   "kind": "narrow",
+   "func": "_whole",
+   "first": 41,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return default"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/flow_lift.py:230",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/flow_lift.py",
+   "line": 230,
+   "kind": "narrow",
+   "func": "FlowCurveBias.from_dict",
+   "first": 228,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return learner"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/freq_control.py:274",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/freq_control.py",
+   "line": 274,
+   "kind": "narrow",
+   "func": "FrequencyMap.from_dict",
+   "first": 272,
+   "caught": "(TypeError, ValueError, OverflowError, IndexError, KeyError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/freq_control.py:280",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/freq_control.py",
+   "line": 280,
+   "kind": "narrow",
+   "func": "FrequencyMap.from_dict",
+   "first": 279,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/frontend.py:170",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
+   "line": 170,
+   "kind": "broad",
+   "func": "_register_lovelace_resource",
+   "first": 78,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Could not auto-register the Heat Pump Optimizer Lovelace resource; add %s manually (type: module)', url, exc_info=True)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/frontend.py:54",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
+   "line": 54,
+   "kind": "narrow",
+   "func": "_register_static_path",
+   "first": 48,
+   "caught": "(ImportError, AttributeError)",
+   "reraises": false,
+   "static_logs": true,
+   "body": "try:\n    getattr(hass.http, 'register_static_path')(URL_BASE, www_dir, False)\nexcept Exception:\n    _LOGGER.warning('Could not register static path %s for the Heat Pump Optimizer card', URL_BASE, exc_info=True)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/frontend.py:62",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
+   "line": 62,
+   "kind": "broad",
+   "func": "_register_static_path",
+   "first": 59,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Could not register static path %s for the Heat Pump Optimizer card', URL_BASE, exc_info=True)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/frontend.py:69",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/frontend.py",
+   "line": 69,
+   "kind": "broad",
+   "func": "_register_static_path",
+   "first": 48,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Unexpected error registering static path %s', URL_BASE, exc_info=True)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/grid_fee.py:177",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "line": 177,
+   "kind": "narrow",
+   "func": "_parse_rule",
+   "first": 176,
+   "caught": "ValueError",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise GridFeeError(f\"Bad rate in '{line}'\") from err"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/grid_fee.py:195",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "line": 195,
+   "kind": "narrow",
+   "func": "_parse_rule",
+   "first": 194,
+   "caught": "DHWWindowError",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise GridFeeError(str(err)) from err"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/grid_fee.py:243",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "line": 243,
+   "kind": "narrow",
+   "func": "spec_problem",
+   "first": 242,
+   "caught": "GridFeeError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return ERROR_INVALID"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/grid_fee.py:281",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "line": 281,
+   "kind": "narrow",
+   "func": "GridFeeSchedule.from_config",
+   "first": 278,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "fixed = 0.0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/grid_fee.py:288",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "line": 288,
+   "kind": "narrow",
+   "func": "GridFeeSchedule.from_config",
+   "first": 287,
+   "caught": "GridFeeError",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Invalid grid fee rules (%s); pricing with no ToU fees', err)\nrules = []"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/grid_fee.py:492",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/grid_fee.py",
+   "line": 492,
+   "kind": "narrow",
+   "func": "apply_catalog",
+   "first": 491,
+   "caught": "GridFeeError",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Stale DSO catalog row %s failed parse; not writing', product_id)\nreturn None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/heat_curve.py:245",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/heat_curve.py",
+   "line": 245,
+   "kind": "broad",
+   "func": "publish_ecl110_topics",
+   "first": 234,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "sent = False\n_LOGGER.error('Error publishing ECL110 direct displace MQTT command: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/heat_curve.py:263",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/heat_curve.py",
+   "line": 263,
+   "kind": "broad",
+   "func": "publish_ecl110_topics",
+   "first": 252,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "sent = False\n_LOGGER.error('Error publishing ECL110 legacy MQTT command: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/heat_curve.py:397",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/heat_curve.py",
+   "line": 397,
+   "kind": "broad",
+   "func": "_send",
+   "first": 396,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "log_held(entry, 'heat_curve_write', True, 'Heat-curve entity %s write failed: %s', entity_id, err)\nreturn False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/inputs.py:1115",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/inputs.py",
+   "line": 1115,
+   "kind": "narrow",
+   "func": "InputReader.read",
+   "first": 1111,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "reading.problem = 'not_numeric'\nreturn self.health.record(reading)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/inputs.py:958",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/inputs.py",
+   "line": 958,
+   "kind": "narrow",
+   "func": "parse_bool",
+   "first": 957,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/issues.py:65",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/issues.py",
+   "line": 65,
+   "kind": "broad",
+   "func": "clear_issue",
+   "first": 64,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not clear %s: %s', issue_id, err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/ledger.py:255",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/ledger.py",
+   "line": 255,
+   "kind": "narrow",
+   "func": "_clean_month",
+   "first": 245,
+   "caught": "(TypeError, ValueError, KeyError, IndexError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/ledger.py:729",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/ledger.py",
+   "line": 729,
+   "kind": "broad",
+   "func": "roll_receipts",
+   "first": 728,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Skipping malformed ledger month %s while freezing monthly receipts; recording an empty receipt instead', month, exc_info=True)\nkept[month] = {'month': month, 'lines': {}}"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/legionella.py:227",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/legionella.py",
+   "line": 227,
+   "kind": "broad",
+   "func": "LegionellaGuard.async_load",
+   "first": 210,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not load DHW legionella timestamp: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/legionella.py:262",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/legionella.py",
+   "line": 262,
+   "kind": "broad",
+   "func": "LegionellaGuard.async_save",
+   "first": 261,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist DHW legionella timestamp: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/manual_plan.py:257",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/manual_plan.py",
+   "line": 257,
+   "kind": "narrow",
+   "func": "ManualOverride.from_dict",
+   "first": 256,
+   "caught": "ValueError",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise ManualPlanError(f'bad stored expiry {raw_expiry!r}') from err"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/manual_plan.py:267",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/manual_plan.py",
+   "line": 267,
+   "kind": "narrow",
+   "func": "ManualOverride.from_dict",
+   "first": 266,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "created_at = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/manual_plan.py:99",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/manual_plan.py",
+   "line": 99,
+   "kind": "narrow",
+   "func": "_parse_dt",
+   "first": 98,
+   "caught": "ValueError",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise ManualPlanError(f'could not parse datetime {value!r}: {err}') from err"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/notifier.py:289",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/notifier.py",
+   "line": 289,
+   "kind": "broad",
+   "func": "Notifier._async_save",
+   "first": 288,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist notifier state: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/off_restore.py:152",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
+   "line": 152,
+   "kind": "broad",
+   "func": "_save",
+   "first": 151,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not save the off-restore store: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/off_restore.py:218",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
+   "line": 218,
+   "kind": "broad",
+   "func": "_restore_baseline",
+   "first": 216,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "sent, err = (False, exc)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/off_restore.py:252",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
+   "line": 252,
+   "kind": "broad",
+   "func": "async_restore",
+   "first": 251,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "log_held(entry, f'off_restore_{key}', True, 'Restore of %s to %s on %s failed: %s', restorer.entity_id, value, reason, err)\ncontinue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/off_restore.py:343",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/off_restore.py",
+   "line": 343,
+   "kind": "broad",
+   "func": "async_forget",
+   "first": 342,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not remove the off-restore store: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/open_meteo.py:213",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
+   "line": 213,
+   "kind": "narrow",
+   "func": "_parse_block",
+   "first": 212,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/open_meteo.py:223",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
+   "line": 223,
+   "kind": "narrow",
+   "func": "_parse_block",
+   "first": 222,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/open_meteo.py:400",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
+   "line": 400,
+   "kind": "broad",
+   "func": "OpenMeteoSolar._fenced",
+   "first": 399,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Open-Meteo response could not be parsed: %r', err)\nreturn _EMPTY"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/open_meteo.py:421",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/open_meteo.py",
+   "line": 421,
+   "kind": "broad",
+   "func": "OpenMeteoSolar._get_json",
+   "first": 408,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Open-Meteo request to %s failed: %s', url, err)\nreturn None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:1468",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 1468,
+   "kind": "narrow",
+   "func": "<module>",
+   "first": 1465,
+   "caught": "(ImportError, AttributeError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "_blas_threads = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:1866",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 1866,
+   "kind": "broad",
+   "func": "_lbfgsb_restart",
+   "first": 1862,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return best"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:1944",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 1944,
+   "kind": "broad",
+   "func": "_multi_start_minimize",
+   "first": 1943,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:1970",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 1970,
+   "kind": "broad",
+   "func": "_multi_start_minimize",
+   "first": 1966,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "last_error = err\ncontinue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:2849",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 2849,
+   "kind": "broad",
+   "func": "_solver_status",
+   "first": 2847,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:4000",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 4000,
+   "kind": "broad",
+   "func": "HeatPumpOptimizer._co_optimize",
+   "first": 3964,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('DHW/space co-optimization pass skipped: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:496",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 496,
+   "kind": "broad",
+   "func": "_avoid_priced_switches",
+   "first": 461,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Duty-switch candidate pass skipped: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:4988",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 4988,
+   "kind": "broad",
+   "func": "HeatPumpOptimizer._solve_space",
+   "first": 4974,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Space heating optimization (with DHW) failed: %s', e)\nself._space_avail = scope[3]\nreturn (guess, f'failed ({e})', float(objective(guess, dhw_plan)))"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:5575",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 5575,
+   "kind": "broad",
+   "func": "HeatPumpOptimizer._optimize_space_only",
+   "first": 5566,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Optimization failed: %s', e)\noptimal_power = initial_power\nstatus = f'failed ({e})'"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/optimizer.py:705",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/optimizer.py",
+   "line": 705,
+   "kind": "broad",
+   "func": "_commit_runs",
+   "first": 699,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Committing runs failed, the projection ships: %s', err)\nreturn (first, scope)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/price_model.py:113",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "line": 113,
+   "kind": "narrow",
+   "func": "_stored_rows",
+   "first": 112,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "parsed = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/price_model.py:127",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "line": 127,
+   "kind": "narrow",
+   "func": "_stored_counts",
+   "first": 126,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/price_model.py:484",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "line": 484,
+   "kind": "narrow",
+   "func": "_noon",
+   "first": 483,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/price_model.py:584",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "line": 584,
+   "kind": "narrow",
+   "func": "_entries_by_day",
+   "first": 582,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/price_model.py:749",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "line": 749,
+   "kind": "narrow",
+   "func": "_raw_start",
+   "first": 748,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/price_model.py:772",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "line": 772,
+   "kind": "narrow",
+   "func": "apply_price_adjustments",
+   "first": 771,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/price_model.py:862",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_model.py",
+   "line": 862,
+   "kind": "narrow",
+   "func": "pull_prices",
+   "first": 858,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "vat, extra = (1.0, 0.0)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/price_tiles.py:307",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/price_tiles.py",
+   "line": 307,
+   "kind": "narrow",
+   "func": "_aware",
+   "first": 306,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/process_worker.py:25",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "line": 25,
+   "kind": "narrow",
+   "func": "_bootstrap",
+   "first": 24,
+   "caught": "OSError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "kept.append(entry)\ncontinue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/process_worker.py:40",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "line": 40,
+   "kind": "broad",
+   "func": "_describe",
+   "first": 39,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return type(obj).__name__"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/process_worker.py:52",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "line": 52,
+   "kind": "broad",
+   "func": "_dump",
+   "first": 51,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "status = 'err' if payload[0] == 'ok' else payload[0]\nblob = pickle.dumps((status, RuntimeError(f'{_describe(payload[1])} ({_describe(err)})')), protocol=pickle.HIGHEST_PROTOCOL)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/process_worker.py:74",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "line": 74,
+   "kind": "narrow",
+   "func": "run_worker",
+   "first": 73,
+   "caught": "EOFError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/process_worker.py:76",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "line": 76,
+   "kind": "broad",
+   "func": "run_worker",
+   "first": 73,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "_dump(stdout, ('load-err', err))\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/process_worker.py:85",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/process_worker.py",
+   "line": 85,
+   "kind": "broad",
+   "func": "run_worker",
+   "first": 84,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": false,
+   "body": "payload = ('err', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/pump_arbiter.py:1483",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 1483,
+   "kind": "narrow",
+   "func": "_observed",
+   "first": 1482,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/pump_arbiter.py:1613",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 1613,
+   "kind": "broad",
+   "func": "_write",
+   "first": 1607,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Pump duty: writing %s to %s failed: %s', value, entity, err)\nreturn"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/pump_arbiter.py:1970",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 1970,
+   "kind": "broad",
+   "func": "switch_supply",
+   "first": 1967,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.error('Error toggling heat pump switch %s: %s', entity_id, err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/pump_arbiter.py:2195",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 2195,
+   "kind": "broad",
+   "func": "_persist",
+   "first": 2194,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not persist the pump duty record: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/pump_arbiter.py:2214",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 2214,
+   "kind": "narrow",
+   "func": "_load",
+   "first": 2213,
+   "caught": "(TypeError, KeyError, IndexError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/quiet_windows.py:422",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/quiet_windows.py",
+   "line": 422,
+   "kind": "narrow",
+   "func": "silent_cap_kw",
+   "first": 419,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/quiet_windows.py:601",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/quiet_windows.py",
+   "line": 601,
+   "kind": "narrow",
+   "func": "_parse_spec_pair",
+   "first": 600,
+   "caught": "(DHWWindowError, TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/quiet_windows.py:634",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/quiet_windows.py",
+   "line": 634,
+   "kind": "narrow",
+   "func": "overlap_problem",
+   "first": 632,
+   "caught": "(DHWWindowError, TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "dhw_win, dhw_weekly = ([], None)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/repairs.py:54",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/repairs.py",
+   "line": 54,
+   "kind": "broad",
+   "func": "DhwSetpointRepairFlow.async_step_confirm",
+   "first": 53,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not clear %s after repair: %s', ISSUE_DHW, err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/replay_doc.py:185",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
+   "line": 185,
+   "kind": "narrow",
+   "func": "numeric",
+   "first": 184,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/replay_doc.py:197",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
+   "line": 197,
+   "kind": "narrow",
+   "func": "json_decimal_places",
+   "first": 196,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/replay_doc.py:218",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
+   "line": 218,
+   "kind": "narrow",
+   "func": "text_ok",
+   "first": 216,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/replay_doc.py:240",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/replay_doc.py",
+   "line": 240,
+   "kind": "narrow",
+   "func": "clean_value",
+   "first": 239,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "dropped.append(str(value))\nout[key] = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/services.py:1144",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "line": 1144,
+   "kind": "narrow",
+   "func": "handle_apply_manual_plan",
+   "first": 1138,
+   "caught": "ManualPlanError",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise ServiceValidationError(str(err), translation_domain=DOMAIN, translation_key='manual_plan_invalid_slots', translation_placeholders={'error': str(err)}) from err"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/services.py:1265",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "line": 1265,
+   "kind": "narrow",
+   "func": "handle_diagnose_interval",
+   "first": 1264,
+   "caught": "ProcessWorkerUnavailable",
+   "reraises": false,
+   "static_logs": false,
+   "body": "failed[entry_id] = str(err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/services.py:426",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "line": 426,
+   "kind": "narrow",
+   "func": "_refuse_quiet",
+   "first": 425,
+   "caught": "DHWWindowError",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise ServiceValidationError(f'Invalid quiet windows: {err}', translation_domain=DOMAIN, translation_key=translation_key, translation_placeholders={'error': str(err)}) from err"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/services.py:657",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "line": 657,
+   "kind": "narrow",
+   "func": "handle_set_thermal_params",
+   "first": 655,
+   "caught": "DHWWindowError",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise ServiceValidationError(f'Invalid hot water windows {raw_windows!r}: {err}', translation_domain=DOMAIN, translation_key='set_thermal_params_invalid_dhw_windows', translation_placeholders={'windows': str(raw_windows), 'error': str(err)}"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/services.py:991",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/services.py",
+   "line": 991,
+   "kind": "narrow",
+   "func": "handle_apply_schedule",
+   "first": 985,
+   "caught": "DHWWindowError",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise ServiceValidationError(f'Invalid hot water windows {raw!r}: {err}', translation_domain=DOMAIN, translation_key='apply_schedule_invalid_dhw_windows', translation_placeholders={'windows': str(raw), 'error': str(err)}) from err"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/setpoint_check.py:88",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/setpoint_check.py",
+   "line": 88,
+   "kind": "broad",
+   "func": "evaluate",
+   "first": 87,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Set-point consistency check skipped: %s', err)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/silent_mode.py:109",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/silent_mode.py",
+   "line": 109,
+   "kind": "narrow",
+   "func": "compose",
+   "first": 107,
+   "caught": "(DHWWindowError, TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return caps_extra"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/snapshots.py:230",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/snapshots.py",
+   "line": 230,
+   "kind": "narrow",
+   "func": "SnapshotRing.best_restore",
+   "first": 229,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/snapshots.py:286",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/snapshots.py",
+   "line": 286,
+   "kind": "narrow",
+   "func": "SnapshotRing.from_dict",
+   "first": 285,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "ring._bias_days = 0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/store.py:102",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "line": 102,
+   "kind": "narrow",
+   "func": "_poisoned",
+   "first": 101,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/store.py:160",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "line": 160,
+   "kind": "narrow",
+   "func": "_bound_instants",
+   "first": 159,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return value"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/store.py:217",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "line": 217,
+   "kind": "narrow",
+   "func": "_parses",
+   "first": 216,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/store.py:247",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "line": 247,
+   "kind": "narrow",
+   "func": "in_domain",
+   "first": 246,
+   "caught": "ValueError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/store.py:690",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "line": 690,
+   "kind": "broad",
+   "func": "load_mapping",
+   "first": 689,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('Could not load %s: %s', what, err)\nreturn None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/store.py:72",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "line": 72,
+   "kind": "narrow",
+   "func": "<module>",
+   "first": 71,
+   "caught": "ImportError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "pass"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/store.py:750",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/store.py",
+   "line": 750,
+   "kind": "narrow",
+   "func": "QuarantiningStore.async_load",
+   "first": 749,
+   "caught": "_DOWNGRADE",
+   "reraises": true,
+   "static_logs": false,
+   "body": "_NEWER_ON_DISK.add(self._store_key)\nself._surface_version('it was saved by a newer release than this one')\nraise"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/sysid.py:1843",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "line": 1843,
+   "kind": "broad",
+   "func": "SystemIdentification._finish",
+   "first": 1838,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.exception('System identification fit raised: %s', err)\nself._slab_fit_used = False\nself.result = SysIdResult(completed=False, reason='fit raised')"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/sysid.py:1981",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "line": 1981,
+   "kind": "narrow",
+   "func": "SystemIdentification.identify",
+   "first": 1977,
+   "caught": "np.linalg.LinAlgError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return SysIdResult(completed=False, reason='fit failed')"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/sysid.py:2098",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "line": 2098,
+   "kind": "narrow",
+   "func": "SystemIdentification.identify",
+   "first": 2096,
+   "caught": "np.linalg.LinAlgError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "solution = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/sysid.py:2112",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "line": 2112,
+   "kind": "narrow",
+   "func": "SystemIdentification.identify",
+   "first": 2109,
+   "caught": "np.linalg.LinAlgError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return SysIdResult(completed=False, reason='fit failed')"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/sysid.py:826",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/sysid.py",
+   "line": 826,
+   "kind": "narrow",
+   "func": "_lm_solve",
+   "first": 823,
+   "caught": "np.linalg.LinAlgError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "damping *= 10.0\ncontinue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/tariff.py:425",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
+   "line": 425,
+   "kind": "narrow",
+   "func": "PeakTracker.from_dict",
+   "first": 423,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "tracker._window_sum = 0.0\ntracker._window_samples = 0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/tariff.py:435",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
+   "line": 435,
+   "kind": "narrow",
+   "func": "PeakTracker.from_dict",
+   "first": 434,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "tracker._window_factor = 1.0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/tariff.py:445",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
+   "line": 445,
+   "kind": "narrow",
+   "func": "PeakTracker.from_dict",
+   "first": 443,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "tracker._window_wsum = 0.0\ntracker._window_weight = 0.0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/tariff.py:524",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/tariff.py",
+   "line": 524,
+   "kind": "narrow",
+   "func": "_stored_peaks",
+   "first": 523,
+   "caught": "OverflowError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/thermal_model.py:1148",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "line": 1148,
+   "kind": "narrow",
+   "func": "ThermalParameters.from_config",
+   "first": 1142,
+   "caught": "DHWWindowError",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.warning('Invalid DHW window configuration %r (%s); falling back to always-available hot water', windows_spec, err)\nvalues['dhw_windows'] = []\nvalues['dhw_weekly_windows'] = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/thermal_model.py:173",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "line": 173,
+   "kind": "narrow",
+   "func": "_holiday_dhw_windows",
+   "first": 172,
+   "caught": "DHWWindowError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/thermal_model.py:268",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "line": 268,
+   "kind": "narrow",
+   "func": "ThermalParameters.clamp",
+   "first": 267,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "value = THERMAL_MASS_FLOOR"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/thermal_model.py:285",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "line": 285,
+   "kind": "narrow",
+   "func": "ThermalParameters.clamp",
+   "first": 284,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "value = POSITIVE_PARAM_FLOOR"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/thermal_model.py:3540",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/thermal_model.py",
+   "line": 3540,
+   "kind": "narrow",
+   "func": "ThermalModel.internal_gains_at",
+   "first": 3539,
+   "caught": "(TypeError, ValueError, IndexError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return self.params.internal_gains"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wear.py:225",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wear.py",
+   "line": 225,
+   "kind": "narrow",
+   "func": "StartCounter.from_dict",
+   "first": 224,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "counter.lifetime = 0"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wear.py:233",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wear.py",
+   "line": 233,
+   "kind": "narrow",
+   "func": "StartCounter.from_dict",
+   "first": 231,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/whatif.py:127",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/whatif.py",
+   "line": 127,
+   "kind": "narrow",
+   "func": "scratch_copies",
+   "first": 125,
+   "caught": "DHWWindowError",
+   "reraises": true,
+   "static_logs": false,
+   "body": "raise Refused(f'invalid_windows: {err}') from err"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/whatif.py:213",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/whatif.py",
+   "line": 213,
+   "kind": "broad",
+   "func": "steady_pair",
+   "first": 208,
+   "caught": "Exception",
+   "reraises": false,
+   "static_logs": true,
+   "body": "_LOGGER.debug('What-if steady pair failed: %s', err)\nreturn None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wood_fuel.py:129",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 129,
+   "kind": "narrow",
+   "func": "wood_fuel_ready",
+   "first": 127,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return False"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wood_fuel.py:291",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 291,
+   "kind": "narrow",
+   "func": "_as_dt",
+   "first": 290,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wood_fuel.py:318",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 318,
+   "kind": "narrow",
+   "func": "wood_slots_to_kw",
+   "first": 317,
+   "caught": "(TypeError, ValueError, AttributeError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "continue"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wood_fuel.py:343",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 343,
+   "kind": "narrow",
+   "func": "_wood_slots_error",
+   "first": 342,
+   "caught": "(TypeError, ValueError, OverflowError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return 'invalid_wood_slots'"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wood_fuel.py:369",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 369,
+   "kind": "narrow",
+   "func": "_wood_override_fuel",
+   "first": 359,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "return None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wood_fuel.py:420",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 420,
+   "kind": "narrow",
+   "func": "detected_wood_slots",
+   "first": 419,
+   "caught": "TypeError",
+   "reraises": false,
+   "static_logs": false,
+   "body": "dt = None"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wood_fuel.py:459",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 459,
+   "kind": "narrow",
+   "func": "_cops",
+   "first": 458,
+   "caught": "(TypeError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "out.append(0.0)"
+  },
+  {
+   "id": "custom_components/heatpump_optimizer/wood_fuel.py:501",
+   "file": "~/hpo-orch/r10s6/r11/plant-export/audit-r11-baseline/custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 501,
+   "kind": "narrow",
+   "func": "build_wood_fuel_view",
+   "first": 500,
+   "caught": "(KeyError, ValueError)",
+   "reraises": false,
+   "static_logs": false,
+   "body": "sek = None"
+  }
+ ],
+ "reach": {
+  "proc": {
+   "custom_components/heatpump_optimizer/__init__.py:195": [],
+   "custom_components/heatpump_optimizer/__init__.py:315": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/accuracy.py:1050": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/accuracy.py:489": [],
+   "custom_components/heatpump_optimizer/accuracy.py:497": [],
+   "custom_components/heatpump_optimizer/accuracy.py:505": [],
+   "custom_components/heatpump_optimizer/accuracy.py:514": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/accuracy.py:563": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/accuracy.py:617": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/away.py:439": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/boost.py:574": [],
+   "custom_components/heatpump_optimizer/boost.py:734": [],
+   "custom_components/heatpump_optimizer/boost.py:745": [],
+   "custom_components/heatpump_optimizer/climate.py:300": [],
+   "custom_components/heatpump_optimizer/comfort_learning.py:243": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/comfort_learning.py:254": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/config_flow.py:1106": [],
+   "custom_components/heatpump_optimizer/config_flow.py:1342": [],
+   "custom_components/heatpump_optimizer/config_flow.py:2062": [],
+   "custom_components/heatpump_optimizer/config_flow.py:2418": [],
+   "custom_components/heatpump_optimizer/config_flow.py:2527": [],
+   "custom_components/heatpump_optimizer/config_flow.py:2532": [],
+   "custom_components/heatpump_optimizer/config_flow.py:529": [],
+   "custom_components/heatpump_optimizer/config_flow.py:777": [],
+   "custom_components/heatpump_optimizer/config_flow.py:798": [],
+   "custom_components/heatpump_optimizer/const.py:1491": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10082": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10642": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10647": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10709": [],
+   "custom_components/heatpump_optimizer/coordinator.py:1085": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10876": [],
+   "custom_components/heatpump_optimizer/coordinator.py:11230": [],
+   "custom_components/heatpump_optimizer/coordinator.py:11237": [],
+   "custom_components/heatpump_optimizer/coordinator.py:1912": [],
+   "custom_components/heatpump_optimizer/coordinator.py:1919": [],
+   "custom_components/heatpump_optimizer/coordinator.py:1925": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2040": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2069": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2082": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2090": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2093": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2097": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2107": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2147": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2150": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2209": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2275": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2319": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2328": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2692": [
+    "diagA"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2768": [],
+   "custom_components/heatpump_optimizer/coordinator.py:3011": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:3054": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4173": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4183": [],
+   "custom_components/heatpump_optimizer/coordinator.py:439": [],
+   "custom_components/heatpump_optimizer/coordinator.py:451": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:4564": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4580": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:4604": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4660": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4677": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4779": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:511": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:582": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:5992": [],
+   "custom_components/heatpump_optimizer/coordinator.py:6034": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6141": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6148": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6189": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6195": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:628": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:642": [],
+   "custom_components/heatpump_optimizer/coordinator.py:6507": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:685": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6976": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6978": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6980": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:7103": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:7113": [],
+   "custom_components/heatpump_optimizer/coordinator.py:7168": [],
+   "custom_components/heatpump_optimizer/coordinator.py:745": [],
+   "custom_components/heatpump_optimizer/coordinator.py:8293": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8328": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8365": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8403": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8445": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8474": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8481": [],
+   "custom_components/heatpump_optimizer/coordinator.py:8502": [],
+   "custom_components/heatpump_optimizer/coordinator.py:893": [],
+   "custom_components/heatpump_optimizer/coordinator.py:9252": [],
+   "custom_components/heatpump_optimizer/coordinator.py:9290": [],
+   "custom_components/heatpump_optimizer/coordinator.py:9524": [],
+   "custom_components/heatpump_optimizer/coordinator.py:9773": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:9854": [],
+   "custom_components/heatpump_optimizer/curve_learning.py:162": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/curve_learning.py:171": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/curve_learning.py:175": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/debugger.py:199": [],
+   "custom_components/heatpump_optimizer/debugger.py:209": [],
+   "custom_components/heatpump_optimizer/debugger.py:355": [],
+   "custom_components/heatpump_optimizer/debugger.py:357": [],
+   "custom_components/heatpump_optimizer/debugger.py:523": [],
+   "custom_components/heatpump_optimizer/debugger.py:674": [],
+   "custom_components/heatpump_optimizer/debugger.py:676": [],
+   "custom_components/heatpump_optimizer/defrost.py:530": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/defrost.py:737": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/dhw_draws.py:160": [],
+   "custom_components/heatpump_optimizer/dhw_learning.py:234": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/dhw_learning.py:254": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/dhw_learning.py:272": [],
+   "custom_components/heatpump_optimizer/dhw_learning.py:335": [],
+   "custom_components/heatpump_optimizer/dhw_learning.py:355": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/dhw_learning.py:371": [],
+   "custom_components/heatpump_optimizer/dhw_learning.py:384": [],
+   "custom_components/heatpump_optimizer/dhw_planner.py:1032": [],
+   "custom_components/heatpump_optimizer/dhw_planner.py:1604": [],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:123": [],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:129": [],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:537": [],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:577": [],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:674": [],
+   "custom_components/heatpump_optimizer/diagnosis.py:103": [],
+   "custom_components/heatpump_optimizer/diagnosis.py:114": [],
+   "custom_components/heatpump_optimizer/diagnosis.py:151": [],
+   "custom_components/heatpump_optimizer/diagnosis.py:93": [],
+   "custom_components/heatpump_optimizer/diagnostics.py:339": [
+    "diagA"
+   ],
+   "custom_components/heatpump_optimizer/diagnostics.py:367": [
+    "diagA"
+   ],
+   "custom_components/heatpump_optimizer/disinfection.py:225": [],
+   "custom_components/heatpump_optimizer/draw_range.py:373": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/draw_range.py:388": [],
+   "custom_components/heatpump_optimizer/draw_range.py:456": [],
+   "custom_components/heatpump_optimizer/draw_range.py:473": [],
+   "custom_components/heatpump_optimizer/drift.py:109": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/drift.py:318": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/drift.py:360": [],
+   "custom_components/heatpump_optimizer/duty_legs.py:144": [],
+   "custom_components/heatpump_optimizer/duty_switch.py:427": [],
+   "custom_components/heatpump_optimizer/duty_switch.py:504": [],
+   "custom_components/heatpump_optimizer/duty_switch.py:514": [],
+   "custom_components/heatpump_optimizer/entry_config.py:42": [],
+   "custom_components/heatpump_optimizer/flow_lift.py:230": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/freq_control.py:274": [],
+   "custom_components/heatpump_optimizer/freq_control.py:280": [],
+   "custom_components/heatpump_optimizer/frontend.py:170": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/frontend.py:54": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/frontend.py:62": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/frontend.py:69": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:177": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:195": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:243": [],
+   "custom_components/heatpump_optimizer/grid_fee.py:281": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:288": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:492": [],
+   "custom_components/heatpump_optimizer/heat_curve.py:245": [],
+   "custom_components/heatpump_optimizer/heat_curve.py:263": [],
+   "custom_components/heatpump_optimizer/heat_curve.py:397": [],
+   "custom_components/heatpump_optimizer/inputs.py:1115": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/inputs.py:958": [],
+   "custom_components/heatpump_optimizer/issues.py:65": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/ledger.py:255": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/ledger.py:729": [],
+   "custom_components/heatpump_optimizer/legionella.py:227": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/legionella.py:262": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/manual_plan.py:257": [],
+   "custom_components/heatpump_optimizer/manual_plan.py:267": [],
+   "custom_components/heatpump_optimizer/manual_plan.py:99": [],
+   "custom_components/heatpump_optimizer/notifier.py:289": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/off_restore.py:152": [
+    "unloadA",
+    "unloadB"
+   ],
+   "custom_components/heatpump_optimizer/off_restore.py:218": [],
+   "custom_components/heatpump_optimizer/off_restore.py:252": [],
+   "custom_components/heatpump_optimizer/off_restore.py:343": [],
+   "custom_components/heatpump_optimizer/open_meteo.py:213": [],
+   "custom_components/heatpump_optimizer/open_meteo.py:223": [],
+   "custom_components/heatpump_optimizer/open_meteo.py:400": [],
+   "custom_components/heatpump_optimizer/open_meteo.py:421": [],
+   "custom_components/heatpump_optimizer/optimizer.py:1468": [],
+   "custom_components/heatpump_optimizer/optimizer.py:1866": [],
+   "custom_components/heatpump_optimizer/optimizer.py:1944": [],
+   "custom_components/heatpump_optimizer/optimizer.py:1970": [],
+   "custom_components/heatpump_optimizer/optimizer.py:2849": [],
+   "custom_components/heatpump_optimizer/optimizer.py:4000": [],
+   "custom_components/heatpump_optimizer/optimizer.py:496": [],
+   "custom_components/heatpump_optimizer/optimizer.py:4988": [],
+   "custom_components/heatpump_optimizer/optimizer.py:5575": [],
+   "custom_components/heatpump_optimizer/optimizer.py:705": [],
+   "custom_components/heatpump_optimizer/price_model.py:113": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:127": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:484": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:584": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:749": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:772": [],
+   "custom_components/heatpump_optimizer/price_model.py:862": [],
+   "custom_components/heatpump_optimizer/price_tiles.py:307": [],
+   "custom_components/heatpump_optimizer/process_worker.py:25": [],
+   "custom_components/heatpump_optimizer/process_worker.py:40": [],
+   "custom_components/heatpump_optimizer/process_worker.py:52": [],
+   "custom_components/heatpump_optimizer/process_worker.py:74": [],
+   "custom_components/heatpump_optimizer/process_worker.py:76": [],
+   "custom_components/heatpump_optimizer/process_worker.py:85": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:1483": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:1613": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:1970": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:2195": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:2214": [],
+   "custom_components/heatpump_optimizer/quiet_windows.py:422": [],
+   "custom_components/heatpump_optimizer/quiet_windows.py:601": [],
+   "custom_components/heatpump_optimizer/quiet_windows.py:634": [],
+   "custom_components/heatpump_optimizer/repairs.py:54": [],
+   "custom_components/heatpump_optimizer/replay_doc.py:185": [],
+   "custom_components/heatpump_optimizer/replay_doc.py:197": [],
+   "custom_components/heatpump_optimizer/replay_doc.py:218": [],
+   "custom_components/heatpump_optimizer/replay_doc.py:240": [],
+   "custom_components/heatpump_optimizer/services.py:1144": [],
+   "custom_components/heatpump_optimizer/services.py:1265": [],
+   "custom_components/heatpump_optimizer/services.py:426": [],
+   "custom_components/heatpump_optimizer/services.py:657": [],
+   "custom_components/heatpump_optimizer/services.py:991": [],
+   "custom_components/heatpump_optimizer/setpoint_check.py:88": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/silent_mode.py:109": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/snapshots.py:230": [],
+   "custom_components/heatpump_optimizer/snapshots.py:286": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:102": [
+    "setupB",
+    "unloadB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:160": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:217": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:247": [],
+   "custom_components/heatpump_optimizer/store.py:690": [
+    "setupA",
+    "setupB",
+    "unloadA",
+    "unloadB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:72": [],
+   "custom_components/heatpump_optimizer/store.py:750": [
+    "setupA",
+    "setupB",
+    "unloadA",
+    "unloadB"
+   ],
+   "custom_components/heatpump_optimizer/sysid.py:1843": [],
+   "custom_components/heatpump_optimizer/sysid.py:1981": [],
+   "custom_components/heatpump_optimizer/sysid.py:2098": [],
+   "custom_components/heatpump_optimizer/sysid.py:2112": [],
+   "custom_components/heatpump_optimizer/sysid.py:826": [],
+   "custom_components/heatpump_optimizer/tariff.py:425": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/tariff.py:435": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/tariff.py:445": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/tariff.py:524": [],
+   "custom_components/heatpump_optimizer/thermal_model.py:1148": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/thermal_model.py:173": [],
+   "custom_components/heatpump_optimizer/thermal_model.py:268": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/thermal_model.py:285": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/thermal_model.py:3540": [],
+   "custom_components/heatpump_optimizer/wear.py:225": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/wear.py:233": [],
+   "custom_components/heatpump_optimizer/whatif.py:127": [],
+   "custom_components/heatpump_optimizer/whatif.py:213": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:129": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:291": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:318": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:343": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:369": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:420": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/wood_fuel.py:459": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/wood_fuel.py:501": []
+  },
+  "inproc": {
+   "custom_components/heatpump_optimizer/__init__.py:195": [],
+   "custom_components/heatpump_optimizer/__init__.py:315": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/accuracy.py:1050": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/accuracy.py:489": [],
+   "custom_components/heatpump_optimizer/accuracy.py:497": [],
+   "custom_components/heatpump_optimizer/accuracy.py:505": [],
+   "custom_components/heatpump_optimizer/accuracy.py:514": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/accuracy.py:563": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/accuracy.py:617": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/away.py:439": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/boost.py:574": [],
+   "custom_components/heatpump_optimizer/boost.py:734": [],
+   "custom_components/heatpump_optimizer/boost.py:745": [],
+   "custom_components/heatpump_optimizer/climate.py:300": [],
+   "custom_components/heatpump_optimizer/comfort_learning.py:243": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/comfort_learning.py:254": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/config_flow.py:1106": [],
+   "custom_components/heatpump_optimizer/config_flow.py:1342": [],
+   "custom_components/heatpump_optimizer/config_flow.py:2062": [],
+   "custom_components/heatpump_optimizer/config_flow.py:2418": [],
+   "custom_components/heatpump_optimizer/config_flow.py:2527": [],
+   "custom_components/heatpump_optimizer/config_flow.py:2532": [],
+   "custom_components/heatpump_optimizer/config_flow.py:529": [],
+   "custom_components/heatpump_optimizer/config_flow.py:777": [],
+   "custom_components/heatpump_optimizer/config_flow.py:798": [],
+   "custom_components/heatpump_optimizer/const.py:1491": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10082": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10642": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10647": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10709": [],
+   "custom_components/heatpump_optimizer/coordinator.py:1085": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:10876": [],
+   "custom_components/heatpump_optimizer/coordinator.py:11230": [],
+   "custom_components/heatpump_optimizer/coordinator.py:11237": [],
+   "custom_components/heatpump_optimizer/coordinator.py:1912": [],
+   "custom_components/heatpump_optimizer/coordinator.py:1919": [],
+   "custom_components/heatpump_optimizer/coordinator.py:1925": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2040": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2069": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2082": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2090": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2093": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2097": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2107": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2147": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2150": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2209": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2275": [],
+   "custom_components/heatpump_optimizer/coordinator.py:2319": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2328": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2692": [
+    "diagA"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:2768": [],
+   "custom_components/heatpump_optimizer/coordinator.py:3011": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:3054": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4173": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4183": [],
+   "custom_components/heatpump_optimizer/coordinator.py:439": [],
+   "custom_components/heatpump_optimizer/coordinator.py:451": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:4564": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4580": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:4604": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4660": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4677": [],
+   "custom_components/heatpump_optimizer/coordinator.py:4779": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:511": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:582": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:5992": [],
+   "custom_components/heatpump_optimizer/coordinator.py:6034": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6141": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6148": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6189": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6195": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:628": [],
+   "custom_components/heatpump_optimizer/coordinator.py:642": [],
+   "custom_components/heatpump_optimizer/coordinator.py:6507": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:685": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6976": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6978": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:6980": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:7103": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:7113": [],
+   "custom_components/heatpump_optimizer/coordinator.py:7168": [],
+   "custom_components/heatpump_optimizer/coordinator.py:745": [],
+   "custom_components/heatpump_optimizer/coordinator.py:8293": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8328": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8365": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8403": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8445": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8474": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:8481": [],
+   "custom_components/heatpump_optimizer/coordinator.py:8502": [],
+   "custom_components/heatpump_optimizer/coordinator.py:893": [],
+   "custom_components/heatpump_optimizer/coordinator.py:9252": [],
+   "custom_components/heatpump_optimizer/coordinator.py:9290": [],
+   "custom_components/heatpump_optimizer/coordinator.py:9524": [],
+   "custom_components/heatpump_optimizer/coordinator.py:9773": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/coordinator.py:9854": [],
+   "custom_components/heatpump_optimizer/curve_learning.py:162": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/curve_learning.py:171": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/curve_learning.py:175": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/debugger.py:199": [],
+   "custom_components/heatpump_optimizer/debugger.py:209": [],
+   "custom_components/heatpump_optimizer/debugger.py:355": [],
+   "custom_components/heatpump_optimizer/debugger.py:357": [],
+   "custom_components/heatpump_optimizer/debugger.py:523": [],
+   "custom_components/heatpump_optimizer/debugger.py:674": [],
+   "custom_components/heatpump_optimizer/debugger.py:676": [],
+   "custom_components/heatpump_optimizer/defrost.py:530": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/defrost.py:737": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/dhw_draws.py:160": [],
+   "custom_components/heatpump_optimizer/dhw_learning.py:234": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/dhw_learning.py:254": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/dhw_learning.py:272": [],
+   "custom_components/heatpump_optimizer/dhw_learning.py:335": [],
+   "custom_components/heatpump_optimizer/dhw_learning.py:355": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/dhw_learning.py:371": [],
+   "custom_components/heatpump_optimizer/dhw_learning.py:384": [],
+   "custom_components/heatpump_optimizer/dhw_planner.py:1032": [],
+   "custom_components/heatpump_optimizer/dhw_planner.py:1604": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:123": [],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:129": [],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:537": [],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:577": [],
+   "custom_components/heatpump_optimizer/dhw_schedule.py:674": [],
+   "custom_components/heatpump_optimizer/diagnosis.py:103": [],
+   "custom_components/heatpump_optimizer/diagnosis.py:114": [],
+   "custom_components/heatpump_optimizer/diagnosis.py:151": [],
+   "custom_components/heatpump_optimizer/diagnosis.py:93": [],
+   "custom_components/heatpump_optimizer/diagnostics.py:339": [
+    "diagA"
+   ],
+   "custom_components/heatpump_optimizer/diagnostics.py:367": [
+    "diagA"
+   ],
+   "custom_components/heatpump_optimizer/disinfection.py:225": [],
+   "custom_components/heatpump_optimizer/draw_range.py:373": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/draw_range.py:388": [],
+   "custom_components/heatpump_optimizer/draw_range.py:456": [],
+   "custom_components/heatpump_optimizer/draw_range.py:473": [],
+   "custom_components/heatpump_optimizer/drift.py:109": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/drift.py:318": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/drift.py:360": [],
+   "custom_components/heatpump_optimizer/duty_legs.py:144": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/duty_switch.py:427": [],
+   "custom_components/heatpump_optimizer/duty_switch.py:504": [],
+   "custom_components/heatpump_optimizer/duty_switch.py:514": [],
+   "custom_components/heatpump_optimizer/entry_config.py:42": [],
+   "custom_components/heatpump_optimizer/flow_lift.py:230": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/freq_control.py:274": [],
+   "custom_components/heatpump_optimizer/freq_control.py:280": [],
+   "custom_components/heatpump_optimizer/frontend.py:170": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/frontend.py:54": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/frontend.py:62": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/frontend.py:69": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:177": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:195": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:243": [],
+   "custom_components/heatpump_optimizer/grid_fee.py:281": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:288": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/grid_fee.py:492": [],
+   "custom_components/heatpump_optimizer/heat_curve.py:245": [],
+   "custom_components/heatpump_optimizer/heat_curve.py:263": [],
+   "custom_components/heatpump_optimizer/heat_curve.py:397": [],
+   "custom_components/heatpump_optimizer/inputs.py:1115": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/inputs.py:958": [],
+   "custom_components/heatpump_optimizer/issues.py:65": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/ledger.py:255": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/ledger.py:729": [],
+   "custom_components/heatpump_optimizer/legionella.py:227": [
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/legionella.py:262": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/manual_plan.py:257": [],
+   "custom_components/heatpump_optimizer/manual_plan.py:267": [],
+   "custom_components/heatpump_optimizer/manual_plan.py:99": [],
+   "custom_components/heatpump_optimizer/notifier.py:289": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/off_restore.py:152": [
+    "unloadA",
+    "unloadB"
+   ],
+   "custom_components/heatpump_optimizer/off_restore.py:218": [],
+   "custom_components/heatpump_optimizer/off_restore.py:252": [],
+   "custom_components/heatpump_optimizer/off_restore.py:343": [],
+   "custom_components/heatpump_optimizer/open_meteo.py:213": [],
+   "custom_components/heatpump_optimizer/open_meteo.py:223": [],
+   "custom_components/heatpump_optimizer/open_meteo.py:400": [],
+   "custom_components/heatpump_optimizer/open_meteo.py:421": [],
+   "custom_components/heatpump_optimizer/optimizer.py:1468": [],
+   "custom_components/heatpump_optimizer/optimizer.py:1866": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/optimizer.py:1944": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/optimizer.py:1970": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/optimizer.py:2849": [],
+   "custom_components/heatpump_optimizer/optimizer.py:4000": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/optimizer.py:496": [],
+   "custom_components/heatpump_optimizer/optimizer.py:4988": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/optimizer.py:5575": [],
+   "custom_components/heatpump_optimizer/optimizer.py:705": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:113": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:127": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:484": [
+    "setupA"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:584": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:749": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/price_model.py:772": [],
+   "custom_components/heatpump_optimizer/price_model.py:862": [],
+   "custom_components/heatpump_optimizer/price_tiles.py:307": [],
+   "custom_components/heatpump_optimizer/process_worker.py:25": [],
+   "custom_components/heatpump_optimizer/process_worker.py:40": [],
+   "custom_components/heatpump_optimizer/process_worker.py:52": [],
+   "custom_components/heatpump_optimizer/process_worker.py:74": [],
+   "custom_components/heatpump_optimizer/process_worker.py:76": [],
+   "custom_components/heatpump_optimizer/process_worker.py:85": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:1483": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:1613": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:1970": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:2195": [],
+   "custom_components/heatpump_optimizer/pump_arbiter.py:2214": [],
+   "custom_components/heatpump_optimizer/quiet_windows.py:422": [],
+   "custom_components/heatpump_optimizer/quiet_windows.py:601": [],
+   "custom_components/heatpump_optimizer/quiet_windows.py:634": [],
+   "custom_components/heatpump_optimizer/repairs.py:54": [],
+   "custom_components/heatpump_optimizer/replay_doc.py:185": [],
+   "custom_components/heatpump_optimizer/replay_doc.py:197": [],
+   "custom_components/heatpump_optimizer/replay_doc.py:218": [],
+   "custom_components/heatpump_optimizer/replay_doc.py:240": [],
+   "custom_components/heatpump_optimizer/services.py:1144": [],
+   "custom_components/heatpump_optimizer/services.py:1265": [],
+   "custom_components/heatpump_optimizer/services.py:426": [],
+   "custom_components/heatpump_optimizer/services.py:657": [],
+   "custom_components/heatpump_optimizer/services.py:991": [],
+   "custom_components/heatpump_optimizer/setpoint_check.py:88": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/silent_mode.py:109": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/snapshots.py:230": [],
+   "custom_components/heatpump_optimizer/snapshots.py:286": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:102": [
+    "setupB",
+    "unloadB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:160": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:217": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:247": [],
+   "custom_components/heatpump_optimizer/store.py:690": [
+    "setupA",
+    "setupB",
+    "unloadA",
+    "unloadB"
+   ],
+   "custom_components/heatpump_optimizer/store.py:72": [],
+   "custom_components/heatpump_optimizer/store.py:750": [
+    "setupA",
+    "setupB",
+    "unloadA",
+    "unloadB"
+   ],
+   "custom_components/heatpump_optimizer/sysid.py:1843": [],
+   "custom_components/heatpump_optimizer/sysid.py:1981": [],
+   "custom_components/heatpump_optimizer/sysid.py:2098": [],
+   "custom_components/heatpump_optimizer/sysid.py:2112": [],
+   "custom_components/heatpump_optimizer/sysid.py:826": [],
+   "custom_components/heatpump_optimizer/tariff.py:425": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/tariff.py:435": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/tariff.py:445": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/tariff.py:524": [],
+   "custom_components/heatpump_optimizer/thermal_model.py:1148": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/thermal_model.py:173": [],
+   "custom_components/heatpump_optimizer/thermal_model.py:268": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/thermal_model.py:285": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/thermal_model.py:3540": [],
+   "custom_components/heatpump_optimizer/wear.py:225": [
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/wear.py:233": [],
+   "custom_components/heatpump_optimizer/whatif.py:127": [],
+   "custom_components/heatpump_optimizer/whatif.py:213": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:129": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:291": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:318": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:343": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:369": [],
+   "custom_components/heatpump_optimizer/wood_fuel.py:420": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/wood_fuel.py:459": [
+    "refreshA1",
+    "refreshA2",
+    "refreshB1",
+    "refreshB2",
+    "setupA",
+    "setupB"
+   ],
+   "custom_components/heatpump_optimizer/wood_fuel.py:501": []
+  }
+ },
+ "control": {
+  "proc": [
+   {
+    "phase": "setupA",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer",
+      "Could not resolve integration version",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.learner_progress",
+      "No %s sample this cycle: %s%s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "First refresh completed without a solve; the real solve follows in the background",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.frontend",
+      "Lovelace not initialised yet; skipping resource",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.learner_progress",
+      "No %s sample this cycle: %s%s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "refreshA1",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Learned house heat loss: residual %.3f\u00b0C over %.2fh at \u0394T=%.1f\u00b0C suggests scale %.3f, mode",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "refreshA2",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Learned house heat loss: residual %.3f\u00b0C over %.2fh at \u0394T=%.1f\u00b0C suggests scale %.3f, mode",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "diagA",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": []
+   },
+   {
+    "phase": "unloadA",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "setupB",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer",
+      "Could not resolve integration version",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Loaded learned %s %.3f (%d samples)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Loaded learned %s %.3f (%d samples)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Loaded learned %s %.3f (%d samples)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Loaded learned %s %.3f (%d samples)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.learner_progress",
+      "No %s sample this cycle: %s%s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "First refresh completed without a solve; the real solve follows in the background",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.frontend",
+      "Lovelace not initialised yet; skipping resource",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.learner_progress",
+      "No %s sample this cycle: %s%s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "refreshB1",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Learned house heat loss: residual %.3f\u00b0C over %.2fh at \u0394T=%.1f\u00b0C suggests scale %.3f, mode",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "refreshB2",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Learned house heat loss: residual %.3f\u00b0C over %.2fh at \u0394T=%.1f\u00b0C suggests scale %.3f, mode",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "unloadB",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": []
+   }
+  ],
+  "inproc": [
+   {
+    "phase": "setupA",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer",
+      "Could not resolve integration version",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.learner_progress",
+      "No %s sample this cycle: %s%s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "First refresh completed without a solve; the real solve follows in the background",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.frontend",
+      "Lovelace not initialised yet; skipping resource",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.learner_progress",
+      "No %s sample this cycle: %s%s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.optimizer",
+      "Predictive analysis: solar_reduction=%.2f, wind_factor=%.2f, rain_factor=%.2f, pre_heat_ur",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.optimizer",
+      "DHW+Space optimization completed in %.0fms: cost=%.2f (DHW=%.2f in %d steps), baseline=%.2",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "refreshA1",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Learned house heat loss: residual %.3f\u00b0C over %.2fh at \u0394T=%.1f\u00b0C suggests scale %.3f, mode",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.optimizer",
+      "Predictive analysis: solar_reduction=%.2f, wind_factor=%.2f, rain_factor=%.2f, pre_heat_ur",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.optimizer",
+      "DHW+Space optimization completed in %.0fms: cost=%.2f (DHW=%.2f in %d steps), baseline=%.2",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "refreshA2",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Learned house heat loss: residual %.3f\u00b0C over %.2fh at \u0394T=%.1f\u00b0C suggests scale %.3f, mode",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.optimizer",
+      "Predictive analysis: solar_reduction=%.2f, wind_factor=%.2f, rain_factor=%.2f, pre_heat_ur",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.optimizer",
+      "DHW+Space optimization completed in %.0fms: cost=%.2f (DHW=%.2f in %d steps), baseline=%.2",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "diagA",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": []
+   },
+   {
+    "phase": "unloadA",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "setupB",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer",
+      "Could not resolve integration version",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Loaded learned %s %.3f (%d samples)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Loaded learned %s %.3f (%d samples)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Loaded learned %s %.3f (%d samples)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Loaded learned %s %.3f (%d samples)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.store",
+      "%s: %d stored field(s) off their declared domain: %s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.learner_progress",
+      "No %s sample this cycle: %s%s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "First refresh completed without a solve; the real solve follows in the background",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.frontend",
+      "Lovelace not initialised yet; skipping resource",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.learner_progress",
+      "No %s sample this cycle: %s%s",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.optimizer",
+      "Predictive analysis: solar_reduction=%.2f, wind_factor=%.2f, rain_factor=%.2f, pre_heat_ur",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.optimizer",
+      "DHW+Space optimization completed in %.0fms: cost=%.2f (DHW=%.2f in %d steps), baseline=%.2",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "refreshB1",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Learned house heat loss: residual %.3f\u00b0C over %.2fh at \u0394T=%.1f\u00b0C suggests scale %.3f, mode",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.optimizer",
+      "Predictive analysis: solar_reduction=%.2f, wind_factor=%.2f, rain_factor=%.2f, pre_heat_ur",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.optimizer",
+      "DHW+Space optimization completed in %.0fms: cost=%.2f (DHW=%.2f in %d steps), baseline=%.2",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "refreshB2",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": [
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Learned house heat loss: residual %.3f\u00b0C over %.2fh at \u0394T=%.1f\u00b0C suggests scale %.3f, mode",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d price entries",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Fetched %d weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Running heat pump optimization (predictive MPC)",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.coordinator",
+      "Forecast data: %d steps (%d from published prices), wind range=%.1f-%.1f m/s, precip range",
+      false
+     ],
+     [
+      10,
+      "heatpump_optimizer.optimizer",
+      "Predictive analysis: solar_reduction=%.2f, wind_factor=%.2f, rain_factor=%.2f, pre_heat_ur",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.optimizer",
+      "DHW+Space optimization completed in %.0fms: cost=%.2f (DHW=%.2f in %d steps), baseline=%.2",
+      false
+     ],
+     [
+      20,
+      "heatpump_optimizer.coordinator",
+      "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, dhw_enabled=%s, starts=%d, pe",
+      false
+     ]
+    ]
+   },
+   {
+    "phase": "unloadB",
+    "ok": true,
+    "value": true,
+    "task_errs": [],
+    "task_mark": false,
+    "fired": 0,
+    "entered": 0,
+    "recs": []
+   }
+  ]
+ }
+}

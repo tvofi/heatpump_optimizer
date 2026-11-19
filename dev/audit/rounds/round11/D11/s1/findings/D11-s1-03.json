@@ -1,0 +1,48 @@
+{
+ "id": "D11-s1-03",
+ "scope": "D11-s1",
+ "step": "D11.M1",
+ "title": "rules_sync.mjs --check: a required refusal with no control; its --self-test rewrites the drift and exits 0",
+ "severity": "medium",
+ "claim": "rules_sync.mjs --check (governance.yml policy-docs, inside the required gate) has no positive control: nothing in the tree drives it against a drifted rule, and the control D11.M1 names for an instrument, `--self-test`, on a tree with one drifted .mdc exits 0 having rewritten that file.",
+ "mechanism": "rules_sync.mjs treats every argument but --check as regenerate mode, so `--self-test` silently regenerates (writes) the generated rules and reports success. field_coverage.mjs records it as 'none' (byte compare, no field) and no acceptance, mutant arm or self-test step drives the refusal; emptying `process.exit(drift ? 1 : 0)` would leave every control green.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/rules_sync_control.py",
+  "harness_path": "dev/audit/rounds/round11/D11/s1/rules_sync_control.py",
+  "value": 0,
+  "unit": "control_red_on_drift (1 = the --self-test control goes red on a drifted tree)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (linux 6.18, 4 cpu, node 22.23.4)",
+  "cpu_or_wall": "count",
+  "contention_note": "temp copies only; exit statuses and file bytes, contention-immune",
+  "tolerance": "exact",
+  "load1": 4.33,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/policy/rules_sync.mjs:main",
+ "perturbation": {
+  "change": "`const check = process.argv.includes('--check') || process.argv.includes('--self-test')` (harness --perturb, on the temp copy)",
+  "expected_direction": "up",
+  "observed_value": 1
+ },
+ "metric_definition": "Whether `node tools/policy/rules_sync.mjs --self-test` exits non-zero on a copy whose .cursor/rules/brief-citations.mdc has one appended line (1) or exits 0 (0).",
+ "phenomenon_property": "Every refusal a required job runs has a positive control that goes red when the refusal is emptied, and an instrument asked for a control it does not have refuses the flag rather than running its production (writing) mode.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/inventory.py && awk -F'\\t' '$3==\"ci-required\" && $4!=\"self-test\" && $4!=\"acceptance\"' dev/audit/rounds/round11/D11/s1/inventory.tsv",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/rules_sync_control.py",
+  "value": "in-sync copy: --check rc=0, --self-test wrote 0 files; drifted copy: --check rc=1",
+  "note": "the refusal itself is alive (check_refuses_drift=1); only its control is missing"
+ },
+ "reproduction_steps": [
+  "run the harness: --check on drift rc=1; --self-test on drift rc=0 and 'RULES-SYNC: 1 file(s) written'",
+  "run with --perturb: control_red_on_drift=1"
+ ],
+ "proposed_fix_scope": "Give rules_sync.mjs a --self-test that builds a temp tree, drifts and orphans one generated rule, and asserts --check refuses both and passes the in-sync tree; refuse unknown flags; add the step to governance.yml instrument-self-tests (selftest_scope ids).",
+ "files": [
+  "tools/policy/rules_sync.mjs",
+  ".github/workflows/governance.yml",
+  "tools/ci/selftest_scope.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I1"
+}
