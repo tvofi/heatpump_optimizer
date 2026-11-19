@@ -964,7 +964,9 @@ def _self_test() -> int:
 
         def sg(*a: str) -> str:
             return sp.run(["git", "-C", d, *a], check=True, capture_output=True, text=True, env=genv).stdout.strip()
-        sg("init", "-q", "-b", "main")
+        sys.path.insert(0, str(ROOT / "tests"))
+        import throwaway_git  # noqa: E402  (the one way a tracked script makes a throwaway repository)
+        throwaway_git.throwaway_git_init(d, "-q", "-b", "main")
         Path(d, "CLAUDE.md").write_text("one\n")
         sg("add", "-A")
         sg("commit", "-qm", "base")
