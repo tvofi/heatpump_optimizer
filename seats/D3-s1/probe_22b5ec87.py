@@ -2,11 +2,11 @@
 # Metric: heat (kW, q_rad + q_floor) that thermal_model._valve_two_zone_delivery lets the single-tank buffer
 #   discharge into the emitters on one 0.25 h step when the pump makes 0 kW and the tank holds almost no heat.
 # Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py
-# EXPECTED RESULT delivered_baseline=@BASE@ kW  (capped at the energy the tank can give: tank-bound)
-# EXPECTED RESULT delivered_mutant=@MUT@ kW  (cap vanishes: 1e-6 h divisor makes `available` huge, no scaling)
-# EXPECTED RESULT delta=@DELTA@ kW
-# EXPECTED RESULT null_delta=@NULL@ kW  (tank hot and large: drawn <= available in both arms, edit inert)
-# EXPECTED RESULT reach_valve_calls=@REACH@ count  (calls of _valve_two_zone_delivery with two_tank False, driven
+# EXPECTED RESULT delivered_baseline=0.278400 kW  (capped at the energy the tank can give: tank-bound)
+# EXPECTED RESULT delivered_mutant=2.800000 kW  (cap vanishes: 1e-6 h divisor makes `available` huge, no scaling)
+# EXPECTED RESULT delta=2.521600 kW
+# EXPECTED RESULT null_delta=0.0 kW  (tank hot and large: drawn <= available in both arms, edit inert)
+# EXPECTED RESULT reach_valve_calls=64 count  (calls of _valve_two_zone_delivery with two_tank False, driven
 #   through the public ThermalModel.simulate_step on a two-zone throttled-valve parameter set)
 # Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-rem (4 vCPU Xeon @ 2.10GHz).
 # Instrumented symbol: custom_components.heatpump_optimizer.thermal_model:_valve_two_zone_delivery, line 2593

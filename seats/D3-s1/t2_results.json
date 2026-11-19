@@ -40,5 +40,47 @@
   "should_fail": "tests/doc_claims.py:1949-1956 loops FLOW_BIAS_MIN_SAMPLES samples but never folds one past the boundary",
   "input": "five +2 K residuals then +12 K (6th sample)",
   "direction": "bias up 3.0 -> 3.667 K"
+ },
+ "050fdc4a20eba212": {
+  "site": "thermal_model.py:169",
+  "src": "pre",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+  "baseline": "holiday windows (option absent/''/None)=None",
+  "mutant": "[] for all 3 unset forms",
+  "null_delta": "0 count",
+  "verdict": "finding",
+  "symbol": "thermal_model:_holiday_dhw_windows line 169, reached via ThermalParameters.from_config (thermal_model.py:1157); dhw_planner.py:964 reads it",
+  "reach": "reach_unset_calls=3 (default install leaves the option unset)",
+  "should_fail": "tests/features.py (dhw_holiday_windows) / tests/config_flow_steps.py do not pin None for the unset option",
+  "input": "holiday DHW windows option absent, empty string, None",
+  "direction": "unset forms moved 0 -> 3: None -> [] (an empty window list replaces the ordinary windows on holidays)"
+ },
+ "22b5ec8775d5bd50": {
+  "site": "thermal_model.py:2593",
+  "src": "c3c6",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+  "baseline": "delivered=0.278400 kW",
+  "mutant": "delivered=2.800000 kW",
+  "null_delta": "0.0 kW",
+  "verdict": "finding",
+  "symbol": "thermal_model:_valve_two_zone_delivery single-tank branch line 2593, via simulate_step -> _simulate_step_two_zone (thermal_model.py:3963)",
+  "reach": "reach_valve_calls_single_tank=64 on the public simulate_step path",
+  "should_fail": "no tank-energy bound check in tests/edge.py or tests/block_duty.py (both drive mixing_valve_mode) pins the delivered-heat cap",
+  "input": "20 L tank at 24 C, pump 0 kW, manual valve target 35 C, dt 0.25 h, single tank",
+  "direction": "delivered heat up 0.278 -> 2.800 kW (tank energy cap divided by 1e-6 h instead of dt)"
+ },
+ "a4b00ac3ca662eec": {
+  "site": "thermal_model.py:835",
+  "src": "c3c6",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_a4b00ac3.py",
+  "baseline": "seasonal inlet at swing=0 equals dhw_inlet_temp",
+  "mutant": "identical",
+  "null_delta": "0.0 C (swing 3 and negative)",
+  "verdict": "non-finding (equivalent mutant)",
+  "symbol": "thermal_model:ThermalParameters.seasonal_inlet_temp line 835",
+  "reach": "n/a",
+  "should_fail": "none: at swing==0 the fall-through returns dhw_inlet_temp - 0.0*cos(phase) == dhw_inlet_temp; max_abs_delta_swing0=0.0 over days 1..366, means 4/10/15 C",
+  "input": "swing=0.0",
+  "direction": "none"
  }
 }
