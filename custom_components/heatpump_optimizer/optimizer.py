@@ -2169,7 +2169,14 @@ def _space_only_starts(
             for f in (1.0, *fractions)
         )
     starts.append(_lower_bound_start(bounds))
-    return starts
+    # A tank covering the reference whole collapses the scaled seeds and the
+    # all-off start onto one zero schedule: each copy would pay a full descent
+    # and polish to reach the same plan, so only the first is kept.
+    unique: dict[bytes, np.ndarray] = {}
+    for start in starts:
+        unique.setdefault(np.asarray(start, dtype=float).tobytes(), start)
+    return list(unique.values())
+
 
 def _price_ranked_start(
     prices: np.ndarray, energy_kwh: float, p_max: float, dt: float

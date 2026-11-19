@@ -165,6 +165,10 @@
     "ratio": 2.2,
     "rss_attrib_mb": 2.4,
     "rss_peak_mb": 78.5,
+    "simulate_allowance": {
+      "baseline_below": 68093,
+      "factor": 3.25
+    },
     "traced_peak_mb": 0.91
   },
   "summer_negative/1z/dhw": {
