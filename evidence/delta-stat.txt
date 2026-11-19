@@ -1,0 +1,13 @@
+ dev/programme/delivery/3731.md                                      | 1 +
+ .../config_flow.py/_omit_unstored_defaults.BOOLOP.376a1d59.json     | 6 ++++++
+ .../killed_by/config_flow.py/_single_zone.RETURN_DEL.58e58040.json  | 6 ++++++
+ .../OptimizationResult.sensor_trajectory.RETURN_DEL.25666856.json   | 6 ++++++
+ .../OptimizationResult.zone_trajectories.GUARD_OFF.b0c446b8.json    | 6 ++++++
+ .../OptimizationResult.zone_trajectories.RETURN_DEL.57e4d49d.json   | 6 ++++++
+ .../killed_by/sensor.py/_gap_probe_terms.GUARD_OFF.a67b9ef5.json    | 6 ++++++
+ .../_refuse_house_fields_on_two_zones.GUARD_OFF.0ba2147c.json       | 6 ++++++
+ .../_refuse_house_fields_on_two_zones.GUARD_OFF.29f708a6.json       | 6 ++++++
+ .../dhw_enabled_from_config.GUARD_OFF.6b1136a5.json                 | 6 ++++++
+ .../thermal_model.py/two_zone_from_config.GUARD_OFF.cf1807ed.json   | 6 ++++++
+ .../thermal_model.py/two_zone_from_config.GUARD_OFF.e7902af6.json   | 6 ++++++
+ 12 files changed, 67 insertions(+)

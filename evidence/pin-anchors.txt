@@ -1,0 +1,11 @@
+custom_components/heatpump_optimizer/config_flow.py:_omit_unstored_defaults BOOLOP 376a1d59 |old line occurs 1
+custom_components/heatpump_optimizer/config_flow.py:_single_zone RETURN_DEL 58e58040 |old line occurs 1
+custom_components/heatpump_optimizer/optimizer.py:OptimizationResult.sensor_trajectory RETURN_DEL 25666856 |old line occurs 1
+custom_components/heatpump_optimizer/optimizer.py:OptimizationResult.zone_trajectories GUARD_OFF b0c446b8 |old line occurs 1
+custom_components/heatpump_optimizer/optimizer.py:OptimizationResult.zone_trajectories RETURN_DEL 57e4d49d |old line occurs 1
+custom_components/heatpump_optimizer/sensor.py:_gap_probe_terms GUARD_OFF a67b9ef5 |old line occurs 1
+custom_components/heatpump_optimizer/services.py:_refuse_house_fields_on_two_zones GUARD_OFF 0ba2147c |old line occurs 1
+custom_components/heatpump_optimizer/services.py:_refuse_house_fields_on_two_zones GUARD_OFF 29f708a6 |old line occurs 1
+custom_components/heatpump_optimizer/thermal_model.py:dhw_enabled_from_config GUARD_OFF 6b1136a5 |old line occurs 1
+custom_components/heatpump_optimizer/thermal_model.py:two_zone_from_config GUARD_OFF cf1807ed |old line occurs 1
+custom_components/heatpump_optimizer/thermal_model.py:two_zone_from_config GUARD_OFF e7902af6 |old line occurs 1

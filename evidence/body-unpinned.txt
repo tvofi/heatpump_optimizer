@@ -1,0 +1,30 @@
+## Unpinned sites
+
+The rule is `tests/mutation_table.py`'s `inventory()`, `unpinned_sites()` and `added_unpinned(…, base_unpinned_sites(bc658f9de…), diff_sides(bc658f9de…))`, run at the head. It names 11 diff-added sites, each pinned by `mutation-autofix` (no survivor is known):
+
+- `custom_components/heatpump_optimizer/config_flow.py:1681 RETURN_DEL`: killed by the config_flow_steps single-zone arm (the options-row check).
+- `custom_components/heatpump_optimizer/config_flow.py:2538 BOOLOP`: a line this diff only renamed; the base pin on tests/features.py held it.
+- `custom_components/heatpump_optimizer/optimizer.py:2638 GUARD_OFF`: killed by the zone_trajectories mutants (pm block).
+- `custom_components/heatpump_optimizer/optimizer.py:2640 RETURN_DEL`: killed by the two-zone null control in the pm block.
+- `custom_components/heatpump_optimizer/optimizer.py:2650 RETURN_DEL`: killed by the sensor_trajectory mutant (R10-CLONE-2238 P3).
+- `custom_components/heatpump_optimizer/sensor.py:3023 GUARD_OFF`: killed by the DHW gate check (D8-s1-01 null control).
+- `custom_components/heatpump_optimizer/services.py:658 GUARD_OFF`: killed by the two-zone slab null control (D17-s3-02).
+- `custom_components/heatpump_optimizer/services.py:661 GUARD_OFF`: killed by the three D17-s3-02 refusal checks.
+- `custom_components/heatpump_optimizer/thermal_model.py:1165 GUARD_OFF`: killed by the D12-s2-01 pin (its on arm).
+- `custom_components/heatpump_optimizer/thermal_model.py:1167 GUARD_OFF`: killed by the D12-s2-01 pin (its off arm).
+- `custom_components/heatpump_optimizer/thermal_model.py:1189 GUARD_OFF`: a line this diff only moved (renamed function); the base pin on tests/features.py held it.
+
+Recording them is `mutation-autofix`'s `--pin-killed` (ci-autofix.md), so the pin is `unmeasured` at this handoff. One equivalent mutant was removed at the source: `zone_trajectories` returns early, so no line is a `return None` → `pass` no-op.
+
+Eight base dispositions anchored to lines this diff moved or renamed were removed. The ledger's completeness check refuses a disposition that names no site. They are:
+
+- `config_flow.py`: `_single_zone` RETURN_DEL 6de1e154; `_omit_unstored_defaults` BOOLOP 0d3cbe12.
+- `optimizer.py` `OptimizationResult.sensor_trajectory`: BOOLOP cc727924; GUARD_OFF cc727924; RETURN_DEL 1a942d8c.
+- `thermal_model.py`: `_dhw_enabled_from_config` GUARD_OFF 6b1136a5; `ThermalParameters.from_config` GUARD_OFF 7c9a299b and 47a09856.
+
+At the head: `ledger_form_problems` 0, `completeness_problems` 0, unpinned 2101. At the base: 0, 0 and 2091. The difference is the 11 sites above less the one old site the moves dropped.
+
+## Null control
+- `tests / mutation` (predicted): it refuses the 11 added unpinned sites listed under `## Unpinned sites`, which `mutation-autofix` pins (ci-autofix.md). Cheaper detector: `tests/mutation_table.py --pin-killed`, which drives the whole closure per site. Its cost is `mutation-autofix`'s job, and ci-autofix.md assigns that job to the bot.
+
+## Forward-carry
