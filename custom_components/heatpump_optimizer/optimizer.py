@@ -2147,8 +2147,12 @@ def _space_only_starts(
 
     The seeds scale with the share of the reference the wood tank covers,
     so a tank covering it whole collapses them onto zero (D0-s2-01): the
-    price-ranked seeds are then also drawn at the reference's own energy,
-    and the all-off start brackets the set from below (D0-s3-02).
+    price-ranked seeds are therefore also drawn at the reference's own
+    energy, and the all-off start brackets the set from below (D0-s3-02).
+    Byte-identical starts are kept once: with no wood cover the
+    reference-energy seeds are the scaled ones, and with whole cover the
+    scaled seeds and the all-off start are one zero schedule, each copy of
+    which would pay a full descent and polish to reach the same plan.
     """
     reference_kwh = float(np.sum(reference_power) * dt)
     covered = _wood_covered_share(model, state, reference_kwh, target)
@@ -2163,13 +2167,16 @@ def _space_only_starts(
         seed_power,  # inside the bounds: the reference never passes the pump
         *(_price_ranked_start(prices, energy * f, p_max, dt) for f in fractions),
     ]
-    if covered > 0.0:
-        starts.extend(
-            _price_ranked_start(prices, reference_kwh * f, p_max, dt)
-            for f in (1.0, *fractions)
-        )
+    starts.extend(
+        _price_ranked_start(prices, reference_kwh * f, p_max, dt)
+        for f in (1.0, *fractions)
+    )
     starts.append(_lower_bound_start(bounds))
-    return starts
+    unique: dict[bytes, np.ndarray] = {}
+    for start in starts:
+        unique.setdefault(np.asarray(start, dtype=float).tobytes(), start)
+    return list(unique.values())
+
 
 def _price_ranked_start(
     prices: np.ndarray, energy_kwh: float, p_max: float, dt: float
@@ -2686,16 +2693,28 @@ class OptimizationResult:
     #: The arbiter maps the plan's steps by it (R10-COP-GATE part D).
     solve_band: dict[str, Any] = field(default_factory=dict)
 
+    def zone_trajectories(self, two_zone: bool) -> tuple[list[float], list[float]] | None:
+        """The (upper, lower) floor trajectories, or None on one zone.
+
+        The one answer to "does this plan have floors" (D12-s1-01): the
+        model's flag, not the lists alone, because a single-zone solve
+        fills both lists with the room's trajectory. ``two_zone`` is the
+        model's ``two_zone_enabled``; a two-zone plan missing either list
+        has no floors to show either.
+        """
+        if not (two_zone and self.upper_temp_trajectory and self.lower_temp_trajectory):
+            return None
+        return self.upper_temp_trajectory, self.lower_temp_trajectory
+
     def sensor_trajectory(self, two_zone: bool) -> list[float]:
         """The trajectory the indoor sensor reads (#2238 P3's one owner).
 
         In two-zone mode the sensor sits on the upper floor, so its
-        trajectory is the upper one when the plan carries it; otherwise the
-        room's.
+        trajectory is the upper one when the plan carries its floors;
+        otherwise the room's.
         """
-        if two_zone and self.upper_temp_trajectory:
-            return self.upper_temp_trajectory
-        return self.room_temp_trajectory
+        zones = self.zone_trajectories(two_zone)
+        return zones[0] if zones is not None else self.room_temp_trajectory
 
 
 #: Currency per start a clamped install plans at when it prices no start
