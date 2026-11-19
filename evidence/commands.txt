@@ -1,0 +1,9 @@
+Commands run from the review worktree (detached at 148254e8db4040f37d54e25e36251053accb935f), outputs alongside:
+  python3 probe_r5.py tests/entities.py                      -> probe_r5_1482.txt (byte-identical to probe_r5_2d99.txt)
+  python3 probe_r5.py <8b68ba21 tests/entities.py>           -> probe_r5_8b68.txt (baseline)
+  python3 run_live.py                                        -> run_live.txt (the three open shapes executed for real)
+  python3 mutant.py fixed    <2d99ad5c entities> <8b68ba21 entities> -> planted==expected True
+  python3 mutant.py reverted <2d99ad5c entities> <8b68ba21 entities> -> planted==expected False, missing 23
+  git diff --stat 2d99ad5c 148254e8                          -> empty (148254e8 is the handoff tip merged onto 8b68ba21)
+  git merge-tree --write-tree origin/main 148254e8           -> rc 0
+Python 3.14.7.
