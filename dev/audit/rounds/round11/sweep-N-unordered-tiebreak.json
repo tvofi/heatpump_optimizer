@@ -1,0 +1,3 @@
+{"class": "N-unordered-tiebreak", "instances": 0, "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/unordered_tiebreak.py custom_components",
+ "instance_list": [{"file": "custom_components/heatpump_optimizer/plan_slots.py", "symbol": "plan_slots.close (line 87: max(set(codes), key=codes.count))", "probe": "dev/audit/rounds/round11/D1/leads/slot_reason_hashseed.py; inline: codes=['cheap','preheat'] max(set(codes),key=codes.count) over PYTHONHASHSEED 1..8 gives cheap x5, preheat x3", "beyond_finding": false}]}

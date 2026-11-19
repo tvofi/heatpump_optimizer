@@ -1,0 +1,12 @@
+ROW draw=0.8 kW listeners=1 should_suppress=False first_suppressed_minute=None suppressed_minutes=0 wrong_minutes=0
+ROW draw=1.2 kW listeners=1 should_suppress=False first_suppressed_minute=None suppressed_minutes=0 wrong_minutes=0
+ROW draw=1.8 kW listeners=1 should_suppress=True first_suppressed_minute=1 suppressed_minutes=59 wrong_minutes=0
+ROW draw=3.0 kW listeners=1 should_suppress=True first_suppressed_minute=1 suppressed_minutes=59 wrong_minutes=0
+ROW draw=9.0 kW listeners=1 should_suppress=True first_suppressed_minute=1 suppressed_minutes=59 wrong_minutes=0
+RESULT guard_wrong_minutes_total=0 over 5 draws
+RESULT guard_wrong_minutes_range=0..0
+RESULT guard_wrong_minutes_drop_most_favourable=0
+RESULT null_suppressed_minutes=0 (listeners=0)
+RESULT thread_factor=1.0
+RESULT load1=1.76953125
+RESULT swapins=0

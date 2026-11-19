@@ -1,0 +1,107 @@
+
+=== Stress and economics ===
+FILE custom_components/heatpump_optimizer/__init__.py executed=0 defined=30 blind=1
+FILE custom_components/heatpump_optimizer/accuracy.py executed=0 defined=101 blind=1
+FILE custom_components/heatpump_optimizer/away.py executed=0 defined=60 blind=1
+FILE custom_components/heatpump_optimizer/batchmath.py executed=1 defined=2 blind=0
+FILE custom_components/heatpump_optimizer/battery.py executed=0 defined=35 blind=1
+FILE custom_components/heatpump_optimizer/binary_sensor.py executed=0 defined=55 blind=1
+FILE custom_components/heatpump_optimizer/boost.py executed=0 defined=98 blind=1
+FILE custom_components/heatpump_optimizer/button.py executed=0 defined=43 blind=1
+FILE custom_components/heatpump_optimizer/climate.py executed=0 defined=35 blind=1
+FILE custom_components/heatpump_optimizer/comfort_band.py executed=0 defined=15 blind=1
+FILE custom_components/heatpump_optimizer/comfort_learning.py executed=0 defined=22 blind=1
+FILE custom_components/heatpump_optimizer/config_flow.py executed=0 defined=326 blind=1
+FILE custom_components/heatpump_optimizer/const.py executed=5 defined=17 blind=0
+FILE custom_components/heatpump_optimizer/coordinator.py executed=0 defined=835 blind=1
+FILE custom_components/heatpump_optimizer/currency.py executed=0 defined=6 blind=1
+FILE custom_components/heatpump_optimizer/curve_learning.py executed=0 defined=15 blind=1
+FILE custom_components/heatpump_optimizer/datetime.py executed=0 defined=9 blind=1
+FILE custom_components/heatpump_optimizer/debugger.py executed=0 defined=113 blind=1
+FILE custom_components/heatpump_optimizer/defrost.py executed=0 defined=68 blind=1
+FILE custom_components/heatpump_optimizer/device_prefill.py executed=0 defined=20 blind=1
+FILE custom_components/heatpump_optimizer/dhw_draws.py executed=0 defined=21 blind=1
+FILE custom_components/heatpump_optimizer/dhw_learning.py executed=0 defined=45 blind=1
+FILE custom_components/heatpump_optimizer/dhw_planner.py executed=37 defined=121 blind=0
+FILE custom_components/heatpump_optimizer/dhw_schedule.py executed=19 defined=62 blind=0
+FILE custom_components/heatpump_optimizer/diagnosis.py executed=0 defined=6 blind=1
+FILE custom_components/heatpump_optimizer/diagnostics.py executed=0 defined=39 blind=1
+FILE custom_components/heatpump_optimizer/disinfection.py executed=0 defined=25 blind=1
+FILE custom_components/heatpump_optimizer/draw_range.py executed=0 defined=85 blind=1
+FILE custom_components/heatpump_optimizer/drift.py executed=1 defined=36 blind=0
+FILE custom_components/heatpump_optimizer/driving_grade.py executed=0 defined=19 blind=1
+FILE custom_components/heatpump_optimizer/duty_legs.py executed=4 defined=25 blind=0
+FILE custom_components/heatpump_optimizer/duty_switch.py executed=0 defined=88 blind=1
+FILE custom_components/heatpump_optimizer/early_cutoff.py executed=0 defined=35 blind=1
+FILE custom_components/heatpump_optimizer/entity.py executed=0 defined=47 blind=1
+FILE custom_components/heatpump_optimizer/entry_config.py executed=0 defined=56 blind=1
+FILE custom_components/heatpump_optimizer/external_heat.py executed=0 defined=38 blind=1
+FILE custom_components/heatpump_optimizer/flow_lift.py executed=0 defined=13 blind=1
+FILE custom_components/heatpump_optimizer/flow_meter.py executed=0 defined=12 blind=1
+FILE custom_components/heatpump_optimizer/freq_control.py executed=0 defined=27 blind=1
+FILE custom_components/heatpump_optimizer/frontend.py executed=0 defined=8 blind=1
+FILE custom_components/heatpump_optimizer/grid_fee.py executed=0 defined=38 blind=1
+FILE custom_components/heatpump_optimizer/heat_curve.py executed=0 defined=57 blind=1
+FILE custom_components/heatpump_optimizer/heat_energy.py executed=0 defined=75 blind=1
+FILE custom_components/heatpump_optimizer/inputs.py executed=0 defined=147 blind=1
+FILE custom_components/heatpump_optimizer/issues.py executed=0 defined=8 blind=1
+FILE custom_components/heatpump_optimizer/learner_progress.py executed=0 defined=21 blind=1
+FILE custom_components/heatpump_optimizer/ledger.py executed=0 defined=76 blind=1
+FILE custom_components/heatpump_optimizer/legionella.py executed=0 defined=50 blind=1
+FILE custom_components/heatpump_optimizer/log_latch.py executed=0 defined=4 blind=1
+FILE custom_components/heatpump_optimizer/manual_plan.py executed=1 defined=33 blind=0
+FILE custom_components/heatpump_optimizer/mixing_valve.py executed=3 defined=13 blind=0
+FILE custom_components/heatpump_optimizer/modbus_prefill.py executed=0 defined=29 blind=1
+FILE custom_components/heatpump_optimizer/name_match.py executed=0 defined=36 blind=1
+FILE custom_components/heatpump_optimizer/narrative.py executed=0 defined=7 blind=1
+FILE custom_components/heatpump_optimizer/notifier.py executed=0 defined=37 blind=1
+FILE custom_components/heatpump_optimizer/off_restore.py executed=0 defined=34 blind=1
+FILE custom_components/heatpump_optimizer/open_meteo.py executed=0 defined=50 blind=1
+FILE custom_components/heatpump_optimizer/optimizer.py executed=183 defined=402 blind=0
+FILE custom_components/heatpump_optimizer/payload.py executed=0 defined=79 blind=1
+FILE custom_components/heatpump_optimizer/plan_slots.py executed=0 defined=7 blind=1
+FILE custom_components/heatpump_optimizer/plan_step.py executed=0 defined=2 blind=1
+FILE custom_components/heatpump_optimizer/power_guard.py executed=0 defined=9 blind=1
+FILE custom_components/heatpump_optimizer/prefill_offer.py executed=0 defined=7 blind=1
+FILE custom_components/heatpump_optimizer/presets.py executed=3 defined=13 blind=0
+FILE custom_components/heatpump_optimizer/price_model.py executed=0 defined=80 blind=1
+FILE custom_components/heatpump_optimizer/price_tiles.py executed=0 defined=38 blind=1
+FILE custom_components/heatpump_optimizer/process_worker.py executed=0 defined=8 blind=1
+FILE custom_components/heatpump_optimizer/pump_arbiter.py executed=0 defined=242 blind=1
+FILE custom_components/heatpump_optimizer/pump_mode.py executed=0 defined=19 blind=1
+FILE custom_components/heatpump_optimizer/pump_schedule.py executed=0 defined=6 blind=1
+FILE custom_components/heatpump_optimizer/pump_signals.py executed=0 defined=26 blind=1
+FILE custom_components/heatpump_optimizer/pv.py executed=2 defined=11 blind=0
+FILE custom_components/heatpump_optimizer/quick_setup.py executed=0 defined=6 blind=1
+FILE custom_components/heatpump_optimizer/quiet_windows.py executed=0 defined=54 blind=1
+FILE custom_components/heatpump_optimizer/repairs.py executed=0 defined=7 blind=1
+FILE custom_components/heatpump_optimizer/replay_doc.py executed=0 defined=95 blind=1
+FILE custom_components/heatpump_optimizer/running_signal.py executed=0 defined=31 blind=1
+FILE custom_components/heatpump_optimizer/runs.py executed=14 defined=25 blind=0
+FILE custom_components/heatpump_optimizer/sensor.py executed=0 defined=439 blind=1
+FILE custom_components/heatpump_optimizer/services.py executed=0 defined=56 blind=1
+FILE custom_components/heatpump_optimizer/setpoint_check.py executed=0 defined=19 blind=1
+FILE custom_components/heatpump_optimizer/silent_mode.py executed=0 defined=4 blind=1
+FILE custom_components/heatpump_optimizer/slab_seed.py executed=0 defined=10 blind=1
+FILE custom_components/heatpump_optimizer/slot_drivers.py executed=4 defined=16 blind=0
+FILE custom_components/heatpump_optimizer/snapshots.py executed=0 defined=21 blind=1
+FILE custom_components/heatpump_optimizer/store.py executed=0 defined=66 blind=1
+FILE custom_components/heatpump_optimizer/supply_hold.py executed=0 defined=16 blind=1
+FILE custom_components/heatpump_optimizer/switch.py executed=0 defined=39 blind=1
+FILE custom_components/heatpump_optimizer/sysid.py executed=0 defined=139 blind=1
+FILE custom_components/heatpump_optimizer/tariff.py executed=23 defined=83 blind=0
+FILE custom_components/heatpump_optimizer/thermal_model.py executed=108 defined=346 blind=0
+FILE custom_components/heatpump_optimizer/topology.py executed=0 defined=48 blind=1
+FILE custom_components/heatpump_optimizer/wear.py executed=0 defined=29 blind=1
+FILE custom_components/heatpump_optimizer/whatif.py executed=0 defined=15 blind=1
+FILE custom_components/heatpump_optimizer/wood_fuel.py executed=2 defined=61 blind=0
+FILE custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js executed=0 defined=n/a blind=1
+RESULT scenarios=54 scenarios
+RESULT universe=96 files
+RESULT files_reached=16 files
+RESULT files_blind=80 files
+RESULT coordinator_executed=0 functions
+RESULT coordinator_defined=835 functions
+RESULT thread_factor=1.000
+RESULT load1=6.58
+RESULT swapins=0

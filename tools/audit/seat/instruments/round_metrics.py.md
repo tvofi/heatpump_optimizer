@@ -33,6 +33,11 @@
         python3 -I tools/audit/seat/round_metrics.py produce --dir <state>/scorecard \
           --repo <checkout> --gh-repo <owner/name>
 
+    Each `ci_runs.json` row keeps, beside `id`, `t`, `c` and `attempt`, the
+    run's `head_sha`, `event`, `head_branch` and `pr` (the first pull request
+    the run lists, else null): `loop_ledger.py --runs` derives a cause per red
+    run from them. `runs.json` keeps the four keys `scorecard.py` reads.
+
   `--self-test`: an empty input prints every read unread; a planted case per
   read in a throwaway repository and planted state dirs; one mutant per
   predicate.

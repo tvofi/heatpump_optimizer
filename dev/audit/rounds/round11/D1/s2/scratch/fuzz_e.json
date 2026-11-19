@@ -1,0 +1,112 @@
+{
+ "totals": {
+  "boost": {
+   "task_raise": 3
+  },
+  "manual_plan": {
+   "log_multi": 2
+  },
+  "away": {}
+ },
+ "examples": {
+  "boost": {
+   "task_raise": [
+    {
+     "i": 37,
+     "op": "huge",
+     "path": [
+      "space_settle",
+      "boosted_h"
+     ],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [
+      "OverflowError: Python int too large to convert to C int"
+     ],
+     "load_exc": [],
+     "fence": [],
+     "extra": [],
+     "text": "{\"dhw\": {\"until\": \"2026-01-20T14:00:00+00:00\"}, \"block_space\": {\"until\": \"2026-01-20T13:00:00+00:00\"}, \"space_settle\": {\"until\": \"2026-01-20T15:00:00+00:00\", \"boosted_h\": 100000000000000.0}}",
+     "nf": []
+    },
+    {
+     "i": 125,
+     "op": "huge",
+     "path": [
+      "space_settle",
+      "boosted_h"
+     ],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [
+      "OverflowError: Python int too large to convert to C int"
+     ],
+     "load_exc": [],
+     "fence": [],
+     "extra": [],
+     "text": "{\"dhw\": {\"until\": \"2026-01-20T14:00:00+00:00\"}, \"block_space\": {\"until\": \"2026-01-20T13:00:00+00:00\"}, \"space_settle\": {\"until\": \"2026-01-20T15:00:00+00:00\", \"boosted_h\": 100000000000000.0}}",
+     "nf": []
+    },
+    {
+     "i": 165,
+     "op": "huge",
+     "path": [
+      "space_settle",
+      "boosted_h"
+     ],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [
+      "OverflowError: Python int too large to convert to C int"
+     ],
+     "load_exc": [],
+     "fence": [],
+     "extra": [],
+     "text": "{\"dhw\": {\"until\": \"2026-01-20T14:00:00+00:00\"}, \"block_space\": {\"until\": \"2026-01-20T13:00:00+00:00\"}, \"space_settle\": {\"until\": \"2026-01-20T15:00:00+00:00\", \"boosted_h\": 1000000000000.0}}",
+     "nf": []
+    }
+   ]
+  },
+  "manual_plan": {
+   "log_multi": [
+    {
+     "i": 73,
+     "op": "instant_far",
+     "path": [
+      "space_slots"
+     ],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [],
+     "load_exc": [],
+     "fence": [],
+     "extra": [
+      "WARNING:heatpump_optimizer.coordinator:Discarding unreadable stored manual plan: %s",
+      "WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s"
+     ],
+     "text": "{\"space_slots\": \"2999-01-01T00:00:00+00:00\", \"dhw_slots\": [], \"expires_at\": \"2026-01-21T00:00:00+00:00\", \"created_at\": \"2026-01-20T11:00:00+00:00\"}",
+     "nf": []
+    },
+    {
+     "i": 108,
+     "op": "instant_far",
+     "path": [
+      "space_slots"
+     ],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [],
+     "load_exc": [],
+     "fence": [],
+     "extra": [
+      "WARNING:heatpump_optimizer.coordinator:Discarding unreadable stored manual plan: %s",
+      "WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s"
+     ],
+     "text": "{\"space_slots\": \"2999-01-01T00:00:00+00:00\", \"dhw_slots\": [], \"expires_at\": \"2026-01-21T00:00:00+00:00\", \"created_at\": \"2026-01-20T11:00:00+00:00\"}",
+     "nf": []
+    }
+   ]
+  },
+  "away": {}
+ }
+}

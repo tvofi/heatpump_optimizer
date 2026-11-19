@@ -1,0 +1,330 @@
+{
+ "dimension": "D14",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D14/s3/REPORT.md",
+ "exposure": "bugclasses.json in full; git history of listed instances: 3490cb16 (exported, replayed), c4e1e0c07, 3be1d4ac6e (exported, replayed), 31717a8f91, 3dfebc1690 (exported, replayed), 3e9f1878bd/d1ed32a810 (parent exported, replayed), 9c988fc58, 5dfa6684f (log lines); in-tree tests citing earlier ids read as context (tests/features.py N-staleness census and R9 P8 pins, tests/entities.py #1760 block, tests/replay.py P10 arms); carries C1-C6 from the task text. No round-10 harness or report opened.",
+ "coverage": [
+  {
+   "step": "D14.M1",
+   "enumerator": "jq -r 'to_entries[]|select(.value|type==\"object\")|select(.key|startswith(\"_\")|not)|.key' dev/audit/config/bugclasses.json",
+   "universe": 56,
+   "examined": 56,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "Every class read (status, kind, instances, detector/barrier fields); table in REPORT.md 'M1 class ledger as read'. 28 production classes are replay-hostable in principle, 28 instrument/process classes are not on this axis."
+  },
+  {
+   "step": "D14.M2",
+   "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\")|.key' dev/audit/config/bugclasses.json",
+   "universe": 19,
+   "examined": 19,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Each open class assigned: 12 production classes to this axis's replay detectors (M3 universe); 7 instrument classes (N-postreview-merge-red, N-approval-rebuy, N-finally-return, N-gate-yield, N-p2b-assembly-reader, N-dispatch-overreach, N-stamp-claim-conflict) are not exercised by a replayed day and stay with D14-s1's open axis. C2: P8 detectors p8_currency.py and p8_surfaces.py. C6: name_sort.py, step_grid.py, reap_lock.py."
+  },
+  {
+   "step": "D14.M3",
+   "enumerator": "jq -r 'to_entries[]|select(.value|type==\"object\")|select(.value.status==\"open\" and .value.kind==\"production\")|.key' dev/audit/config/bugclasses.json",
+   "universe": 12,
+   "examined": 6,
+   "not_reached": [
+    "N-future-clamp",
+    "N-period-rollover",
+    "N-confounded-learner",
+    "N-leaf-imports-solver",
+    "N-order-coupling",
+    "N-restore-race"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "examined"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Replay detectors with pre-fix re-finds where a pre-fix tree replays: P10 p10_routes.py (3dfebc1690: 96 loop; baseline synthetic 0; reintroduce 59; owner 384/773), P8 p8_currency.py (3490cb16: 14 SEK leaves; baseline 0) and p8_surfaces.py (3490cb16: 5; baseline 3; null 0), N-name-sort name_sort.py (0; perturb up), N-step-grid step_grid.py (0 of 181; perturb 93), N-reap-lock reap_lock.py (stop 0.00 s guarded; reload 5.00/17.00 s), N-registry-leak registry_reload.py (0; perturb 2). C1: P10 at c4e1e0c07^ (3be1d4ac6e) 0 and at the real pre-fix 3dfebc1690 96; _replay_interval driven for the house and lower-floor learners on the owner fixture (worker route). C3: P8 re-found at 3490cb16; config_flow fee-bound seams probed (S3-S5 of p8_surfaces.py). C5: quiet-night fixture re-finds R9 D1-s5-51 at 3e9f1878bd^ (56) and reads 0 at baseline; MODE_LAST_GOOD consequence measured (3 cycles of unservable space heat planned)."
+  },
+  {
+   "step": "D14.M4",
+   "enumerator": "jq -r 'to_entries[]|select(.value|type==\"object\")|select(.value.status==\"open\" and .value.kind==\"production\")|.key' dev/audit/config/bugclasses.json",
+   "universe": 12,
+   "examined": 6,
+   "not_reached": [
+    "N-future-clamp",
+    "N-period-rollover",
+    "N-confounded-learner",
+    "N-leaf-imports-solver",
+    "N-order-coupling",
+    "N-restore-race"
+   ],
+   "redispatched": [
+    {
+     "item": "C4",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "One finding per class with a surviving seam: P8 D14-s3-01, N-reap-lock D14-s3-02, P10 D14-s3-03; N-name-sort, N-step-grid, N-registry-leak held (non_findings). C4: only N-staleness (barriered) swept through the replay for new seams (0 new); the other barriered/detector production classes not swept."
+  },
+  {
+   "step": "D14.M5",
+   "enumerator": "jq -r '.findings[].class_guess' dev/audit/rounds/round11/D14/s3/REPORT.json | sort -u",
+   "universe": 3,
+   "examined": 3,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "Barrier per finding class (REPORT.md): P8 -- p8_surfaces.py's arms as a tests/replay.py control, ~5-8 s wall (provisional); P10 -- tests/replay.py's kernel arm over every committed fixture, the owner fixture costing ~260 s per hour of day at load1 11 (provisional), so nightly not per-PR, plus the synthetic arms at ~11 s; N-reap-lock -- reap_lock.py's reload arm as a tests/features.py check with a short job (~25 s at JOB_S=6, ~8 s at 2 s; provisional)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D14.M3",
+   "what": "No replay detector yet for N-future-clamp, N-period-rollover, N-confounded-learner, N-leaf-imports-solver, N-order-coupling, N-restore-race: month-boundary time-shifted day (N-period-rollover), reload with a persisted future instant (N-future-clamp), restore racing a cycle write (N-restore-race); N-leaf-imports-solver/N-order-coupling/N-confounded-learner need non-replay or learner-specific arms."
+  },
+  {
+   "step": "D14.M4",
+   "what": "C4: barriered/detector production classes other than N-staleness not swept through the replay for new seams; cycle_cost reds of the full lane await the quiet re-take."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D14-s3-01",
+   "scope": "D14-s3",
+   "step": "D14.M4",
+   "title": "P8: options-dialog money fields and the grid-fee bound resolve the instance currency while every figure is the feed's",
+   "severity": "medium",
+   "claim": "On a replayed install whose price feed declares HUF on a SEK-configured Home Assistant, 3 of 6 money surfaces resolve the instance currency (the options money-field label and its maximum, and the grid-fee rules bound), so a 20 HUF/kWh grid fee -- which the integration's own price_currency repair issue says must be entered in HUF -- is refused by both the field (max 5) and the rules validator (bound 10), while the entities, the repair issue and the coordinator's fee notice all resolve HUF.",
+   "mechanism": "currency.py's precedence (the feed's declared code first, the instance label only where the feed declares none) is applied by the coordinator (_feed_currency or resolve_currency) for entity units and the runtime fee notice, but config_flow._money, config_flow._fee_placeholders and OptionsFlow._grid_fee_errors call resolve_currency(hass) alone; money_scale/fee_bound therefore scale by the label, not by the currency the entered numbers are in.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s3/p8_surfaces.py",
+    "value": 3,
+    "unit": "divergent surfaces of 6 (feed HUF, instance SEK)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU Linux container, /root/venv-ci python",
+    "cpu_or_wall": "count",
+    "contention_note": "two other finder seats on the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 7.56,
+    "thread_factor": 1.033
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:resolve_currency (as called by _money via _OPTION_FIELDS['grid_fee_fixed'].widget.of, _fee_placeholders, HeatPumpOptimizerOptionsFlow._grid_fee_errors); heatpump_optimizer.coordinator:_feed_currency",
+   "perturbation": {
+    "change": "--perturb: config_flow.resolve_currency resolves the price feed's declared code first (currency.declared_currency on the price entity's unit/attributes), as the coordinator does",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of six money surfaces of one replayed install (feed HUF, instance SEK), how many resolve to SEK or refuse a 20 HUF/kWh fee the HUF bound admits.",
+   "phenomenon_property": "Every surface that labels, bounds or validates a money amount resolves its currency by the same precedence as the published figures (the feed's declared code, then the instance label); no surface asks the user for an amount in one currency and bounds it in another.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py  (prints each surface and its resolved currency; grep -n 'resolve_currency(' custom_components/heatpump_optimizer/*.py lists the call sites that skip the feed)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py --arm huf_instance",
+    "value": 0,
+    "note": "feed and instance both HUF: every surface agrees, field max 250, rules bound 500, 20 HUF/kWh accepted. Pre-fix re-find at 3490cb16 (git archive): 5 divergent (null arm 3, the bounds then unscaled)."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py   -> huf_feed_sek_instance_divergent_surfaces=3 (S3 'SEK/kWh', S4 'refuses 20: above the maximum 5', S5 error grid_fee_rules_implausible, bound '10'); huf_instance 0",
+    "... --perturb -> 0 and 0",
+    "git archive 3490cb16 | tar -x -C $T; ... --tree $T -> 5 / 3"
+   ],
+   "proposed_fix_scope": "One resolver for a money amount's currency that takes the feed first (currency.py), called by config_flow._money, _fee_placeholders and _grid_fee_errors as by the coordinator; the price_currency_mismatch text then stops contradicting the dialog. Barrier: p8_surfaces' arms as a tests/replay.py control (counts, <10 s).",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/currency.py",
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P8"
+  },
+  {
+   "id": "D14-s3-02",
+   "scope": "D14-s3",
+   "step": "D14.M4",
+   "title": "N-reap-lock: an entry unload cancels its refresh but not the solve, so the reloaded entry's first solve waits out every orphan",
+   "severity": "medium",
+   "claim": "When an entry is unloaded (an options save reloads it) while a solve is in flight, async_shutdown cancels the refresh task awaiting coordinator._await_process but the executor thread keeps running _run_in_process under _PROCESS_LOCK, and nothing on the unload path reaps the worker, so the new entry's first job waits out the orphan's remaining time (ratio 1.00) and, after three reloads, out three whole orphaned solves (17.0 s behind 6 s jobs, 2.83x one job).",
+   "mechanism": "Teardown ordered behind the lock a solve holds, on the unload seam: the stop path (_shutdown_process_pool, HA stop only) kills first and bounds its lock wait to 5 s (guarded, 0.00 s measured), but async_unload_entry -> async_shutdown only cancels the asyncio side; run_in_executor cannot cancel a started thread, and each orphan job still queued on _PROCESS_LOCK runs its full solve after acquiring it, its result discarded.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s3/reap_lock.py",
+    "value": 17.0,
+    "unit": "s wall for a 0 s job submitted after 3 cancelled 6 s refreshes (reload3_first_job_wall_s); single reload 5.00 s = 1.00 x the orphan's remaining time",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU Linux container, /root/venv-ci python, real process_worker child",
+    "cpu_or_wall": "wall",
+    "contention_note": "provisional: two other finder seats on the box (load1 ~9); the jobs are time.sleep in the real worker, so the wall is set by the job length, not by CPU contention",
+    "tolerance": "+-0.3 s",
+    "load1": 8.87,
+    "thread_factor": 1.573
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:_await_process / _run_in_process / _PROCESS_LOCK / _shutdown_process_pool (cancel semantics of HeatPumpOptimizerCoordinator.async_shutdown's refresh.cancel())",
+   "perturbation": {
+    "change": "--reap-on-unload: after the cancel, the unload also runs coordinator._shutdown_process_pool on the executor (what HA's stop already does)",
+    "expected_direction": "down",
+    "observed_value": "reload3 17.00 s -> 0.04 s; reload 5.00 s -> 0.03 s"
+   },
+   "metric_definition": "Wall seconds from submitting a 0 s job through coordinator._await_process to its return, after N refreshes awaiting 6 s jobs were cancelled as async_shutdown cancels them.",
+   "phenomenon_property": "No teardown of an entry (stop, unload, reload) leaves a solve it no longer wants holding _PROCESS_LOCK or the worker: the next entry's first solve never waits on an orphaned one, and orphaned solves never run.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py  (stop and reload seams); grep -n '_PROCESS_LOCK\\|_shutdown_process_pool\\|refresh.cancel' custom_components/heatpump_optimizer/*.py lists the lock's holders and the teardown paths",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py",
+    "value": "reload_null_wall_s=0.04 s, stop_null_wall_s=0.01 s",
+    "note": "the same calls with no job in flight. The stop seam is guarded: stop_wall_s=0.00 s with a 6 s job in flight, and 5.00 s when the kill is made a no-op (--perturb), the _SHUTDOWN_LOCK_TIMEOUT_S bound."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py  -> reload_first_job_wall_s=5.00, reload3_first_job_wall_s=17.00, stop_wall_s=0.00",
+    "... --reap-on-unload -> 0.03 / 0.04",
+    "... --perturb -> stop_wall_s=5.00 (the stop seam's own guard moves)"
+   ],
+   "proposed_fix_scope": "async_unload_entry (or async_shutdown) reaps the worker the way the stop path does when a refresh it cancelled had a job in the worker -- kill first, bounded swap -- so the orphan's read breaks and its queued siblings fail fast; or a per-job generation token checked after acquiring _PROCESS_LOCK so a job whose awaiter was cancelled is dropped before it runs. Real cost on a Raspberry Pi: solves of median 18 s, max 426 s (the constants' own comment), one discarded per options save during a solve.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/__init__.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-reap-lock"
+  },
+  {
+   "id": "D14-s3-03",
+   "scope": "D14-s3",
+   "step": "D14.M4",
+   "title": "P10: the what-if's schedule pricing simulates reference days on the event loop; the replay barrier's DHW-only day never reaches it",
+   "severity": "medium",
+   "claim": "Replaying the owner's recorded day (tests/replay/owner-2026-10-30-away.json, 1 h) through the real coordinator runs 384 ThermalModel.simulate_step calls on the event loop -- all via coordinator.async_simulate(steady=True) -> whatif.schedule_days -> HeatPumpOptimizer.reference_day -> _compute_baseline_power, reached from the fuse advisor's cycle step -- while tests/replay.py's P10 barrier, which replays only synthetic-dhw-only.json, reads 0 on the loop.",
+   "mechanism": "async_simulate prices a schedule ask inline: whatif.schedule_days calls reference_day on both the live and the what-if optimizer in the coordinator's own coroutine, and each distinct day is simulated twice over a day of steps; every other model kernel of the what-if goes through _await_optimize/_await_off_loop. The same call is reached by the what-if service (services.py, steady=True), the power-cap price tiles and the fuse advisor. The barrier's single fixture has no fuse/power-cap configuration, so its loop count is structurally 0.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm owner-1h",
+    "harness_path": "dev/audit/rounds/round11/D14/s3/p10_routes.py",
+    "value": 384,
+    "unit": "model-kernel calls on the event-loop route over 2 replayed cycles (owner-1h_loop); 773 over 4 cycles on the 2 h arm",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU Linux container, /root/venv-ci python",
+    "cpu_or_wall": "count",
+    "contention_note": "counts are contention-immune; the loop CPU of those calls, 18.8 ms on this box at load1 10.9, is provisional",
+    "tolerance": "exact",
+    "load1": 10.93,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.simulate_step (counted by route via process_worker:run_worker and FakeHass.async_add_executor_job flags); site heatpump_optimizer.whatif:schedule_days / heatpump_optimizer.optimizer:HeatPumpOptimizer.reference_day",
+   "perturbation": {
+    "change": "P10_PERTURB_WHATIF=1: whatif.schedule_days returns None (no reference day priced)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Model-kernel calls made in the coordinator's interpreter outside process_worker.run_worker and outside any executor job, over a replayed fixture, counted once at the outermost kernel.",
+   "phenomenon_property": "No model kernel (ThermalModel.simulate_*, the sysid fit, a reference-day or baseline simulation) runs on the event loop on any path a configured install reaches -- the cycle, its advisors, the what-if service and the price tiles -- on every replay fixture, not only the DHW-only one.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py  (every arm: synthetic, synthetic-learner, synthetic-surfaces, owner, owner-learner, owner-1h; prints each loop/executor seam with its package stack)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm synthetic",
+    "value": 0,
+    "note": "the barrier's own fixture: 0 loop kernels (tests/replay.py --kernels base agrees, 8932 in the worker). The perturbed owner arm reads 0 too, so all 384 are this one seam."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm owner-1h  -> owner-1h_loop=384, stack loop optimizer.py:_compute_baseline_power <- optimizer.py:reference_day <- whatif.py:schedule_days <- coordinator.py:async_simulate <- coordinator.py:_maybe_run_fuse_advisor",
+    "P10_PERTURB_WHATIF=1 ... --arm owner-1h -> 0",
+    "... --arm synthetic -> 0 (the barrier's fixture)"
+   ],
+   "proposed_fix_scope": "Run whatif.schedule_days's two reference_day calls through _await_off_loop (both optimizers and inputs are already picklable job arguments of _await_optimize); and widen tests/replay.py's P10 arm to every committed fixture (or a fixture with the fuse advisor and power-cap tiles on), so the barrier enumerates the seams a full install reaches.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/whatif.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/replay.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P10"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "P10: synthetic and synthetic-learner arms keep every kernel in the worker",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm synthetic; ... --arm synthetic-learner",
+   "value": "loop 0, executor 0 (worker 12802 / 12813)"
+  },
+  {
+   "claim": "P10: diagnostics, every button and every options page run no kernel off the worker",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm synthetic-surfaces",
+   "value": "0 surface kernels"
+  },
+  {
+   "claim": "P10 pre-fix re-find",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p10_routes.py --arm synthetic --tree <git archive 3dfebc1690>",
+   "value": "96 loop calls of topology._advisor_replay; 0 at 3be1d4ac6e; reintroduce at baseline 59"
+  },
+  {
+   "claim": "P8: entity money units follow the feed",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_currency.py",
+   "value": "EUR feed/SEK instance 0 SEK leaves (14 EUR); perturb 14; pre-fix 3490cb16 14"
+  },
+  {
+   "claim": "N-staleness: a 5 h quiet night publishes nothing unavailable",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/staleness_quiet.py",
+   "value": "quiet5 0 (perturb 56; pre-fix 3e9f1878bd^ 56); quiet7 14 by design"
+  },
+  {
+   "claim": "MODE_LAST_GOOD expiry consequence",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/staleness_quiet.py --arm mode5",
+   "value": "3 cycles plan 30.5-33.3 kWh space heat for a hot-water-only pump after 180 min (documented direction, repair issue)"
+  },
+  {
+   "claim": "N-name-sort: published rosters sort families contiguously",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/name_sort.py",
+   "value": "0 splits en/sv/de on both fixtures; 5 by entity id (frozen ids)"
+  },
+  {
+   "claim": "N-step-grid: every number field on its grid",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/step_grid.py",
+   "value": "0 of 181 stepped fields (412 total); perturb 93"
+  },
+  {
+   "claim": "N-registry-leak: reloads leak no coordinator",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/registry_reload.py",
+   "value": "0 excess (perturb 2)"
+  },
+  {
+   "claim": "N-reap-lock stop seam guarded",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py",
+   "value": "stop 0.00 s with a 6 s job in flight (perturb 5.00 s)"
+  },
+  {
+   "claim": "Stop rule: no functional invariant break in the nightly replay",
+   "command": "PYTHONPATH=tests/hastub python3 tests/replay.py",
+   "value": "finite/unit/no_default/agreement/cycle/not_frozen/away ok on both fixtures; cycle_cost red provisional (load1 5-12)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D14/s3/p10_routes.py",
+  "dev/audit/rounds/round11/D14/s3/p8_currency.py",
+  "dev/audit/rounds/round11/D14/s3/p8_surfaces.py",
+  "dev/audit/rounds/round11/D14/s3/staleness_quiet.py",
+  "dev/audit/rounds/round11/D14/s3/name_sort.py",
+  "dev/audit/rounds/round11/D14/s3/step_grid.py",
+  "dev/audit/rounds/round11/D14/s3/reap_lock.py",
+  "dev/audit/rounds/round11/D14/s3/registry_reload.py",
+  "dev/audit/rounds/round11/D14/s3/replaykit.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D3-s3",
+   "file": "tests/replay.py",
+   "symbol": "COST_BUDGETS / class_budget (cycle_cost)",
+   "what": "Full lane at load1 5-12: owner cpu_ratio 534.6 over budget 332.8 (graded class None, fallback budget) and synthetic 2.163 over 2.084; needs a quiet re-take to tell a regression from contention."
+  }
+ ]
+}

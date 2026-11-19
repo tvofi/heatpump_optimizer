@@ -1,0 +1,572 @@
+{
+ "class": "N-comment-style",
+ "instances": 90,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . (package-wide via git ls-files; .py comments/docstrings, .js/.mjs/.ts comments, .md paragraphs; sentence >40 words)",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/__init__.py",
+   "symbol": "6 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/__init__.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/accuracy.py",
+   "symbol": "12 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/accuracy.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "symbol": "4 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/away.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/batchmath.py",
+   "symbol": "4 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/batchmath.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/battery.py",
+   "symbol": "4 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/battery.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/binary_sensor.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/binary_sensor.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/boost.py",
+   "symbol": "9 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/boost.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/button.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/button.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/climate.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/climate.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/comfort_band.py",
+   "symbol": "6 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/comfort_band.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/comfort_learning.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/comfort_learning.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "52 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/config_flow.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "60 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/const.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "114 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/coordinator.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/currency.py",
+   "symbol": "1 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/currency.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/curve_learning.py",
+   "symbol": "1 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/curve_learning.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/debugger.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/debugger.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "symbol": "21 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/defrost.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/device_prefill.py",
+   "symbol": "11 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/device_prefill.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_draws.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/dhw_draws.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "symbol": "7 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/dhw_learning.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "symbol": "39 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/dhw_planner.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "symbol": "9 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/dhw_schedule.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/diagnosis.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/diagnosis.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/diagnostics.py",
+   "symbol": "11 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/diagnostics.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/disinfection.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/disinfection.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/draw_range.py",
+   "symbol": "11 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/draw_range.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/drift.py",
+   "symbol": "4 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/drift.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/driving_grade.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/driving_grade.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/duty_legs.py",
+   "symbol": "4 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/duty_legs.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/duty_switch.py",
+   "symbol": "6 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/duty_switch.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/early_cutoff.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/early_cutoff.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/entity.py",
+   "symbol": "12 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/entity.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/external_heat.py",
+   "symbol": "6 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/external_heat.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/flow_lift.py",
+   "symbol": "9 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/flow_lift.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/flow_meter.py",
+   "symbol": "1 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/flow_meter.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/freq_control.py",
+   "symbol": "9 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/freq_control.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/frontend.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/frontend.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "symbol": "9 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/grid_fee.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/heat_curve.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/heat_curve.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/heat_energy.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/heat_energy.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "symbol": "16 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/inputs.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/issues.py",
+   "symbol": "1 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/issues.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/learner_progress.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/learner_progress.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/ledger.py",
+   "symbol": "7 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/ledger.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "symbol": "10 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/legionella.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/manual_plan.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/manual_plan.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/mixing_valve.py",
+   "symbol": "7 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/mixing_valve.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/modbus_prefill.py",
+   "symbol": "1 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/modbus_prefill.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/name_match.py",
+   "symbol": "8 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/name_match.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/narrative.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/narrative.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/notifier.py",
+   "symbol": "1 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/notifier.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/off_restore.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/off_restore.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/open_meteo.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/open_meteo.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "109 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/optimizer.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/payload.py",
+   "symbol": "8 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/payload.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/plan_step.py",
+   "symbol": "1 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/plan_step.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/power_guard.py",
+   "symbol": "1 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/power_guard.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/prefill_offer.py",
+   "symbol": "4 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/prefill_offer.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/presets.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/presets.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/price_model.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_tiles.py",
+   "symbol": "10 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/price_tiles.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "39 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/pump_arbiter.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_mode.py",
+   "symbol": "9 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/pump_mode.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_schedule.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/pump_schedule.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_signals.py",
+   "symbol": "15 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/pump_signals.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pv.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/pv.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/quick_setup.py",
+   "symbol": "7 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/quick_setup.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/quiet_windows.py",
+   "symbol": "12 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/quiet_windows.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/replay_doc.py",
+   "symbol": "6 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/replay_doc.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/rooms.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/rooms.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/running_signal.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/running_signal.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/runs.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/runs.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "32 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/sensor.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "10 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/services.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/setpoint_check.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/setpoint_check.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/silent_mode.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/silent_mode.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/slab_seed.py",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/slab_seed.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/snapshots.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/snapshots.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/store.py",
+   "symbol": "11 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/store.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/supply_hold.py",
+   "symbol": "5 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/supply_hold.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/switch.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/switch.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "64 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/sysid.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "symbol": "33 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/tariff.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "93 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/thermal_model.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/topology.py",
+   "symbol": "15 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/topology.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/wear.py",
+   "symbol": "4 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/wear.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/whatif.py",
+   "symbol": "4 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/whatif.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+   "symbol": "1 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/wood_fuel.py  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "205 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js  # nonzero = fails",
+   "beyond_finding": true
+  },
+  {
+   "file": "docs/img/model/make_card_weekly_figure.mjs",
+   "symbol": "2 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . docs/img/model/make_card_weekly_figure.mjs  # nonzero = fails",
+   "beyond_finding": false
+  },
+  {
+   "file": "tests/features.py",
+   "symbol": "560 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . tests/features.py  # nonzero = fails",
+   "beyond_finding": false
+  },
+  {
+   "file": "tests/finite_boundary.py",
+   "symbol": "23 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . tests/finite_boundary.py  # nonzero = fails",
+   "beyond_finding": false
+  },
+  {
+   "file": "tests/frontend.py",
+   "symbol": "3 C5 sentence(s) >40 words",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-comment-style/enumerate.py . tests/frontend.py  # nonzero = fails",
+   "beyond_finding": false
+  }
+ ]
+}

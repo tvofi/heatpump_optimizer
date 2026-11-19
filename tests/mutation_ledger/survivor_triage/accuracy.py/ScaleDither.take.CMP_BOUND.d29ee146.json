@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleDither.take CMP_BOUND d29ee146",
-  "old": "            if coin * math.log(first.heat_ask_kw / row.heat_ask_kw) >= FOLLOW_SLOPE_MIN * step:",
-  "reason": "Equivalent (CMP_BOUND, `>=` -> `>`). The arms differ only where `math.log(r)` for a double ratio `r` equals the double `FOLLOW_SLOPE_MIN * math.log(FOLLOW_ASK_SPAN)` (0.5 * log 1.15), signed by a coin of -1 or 1. No double reaches it: measured at 4fee736fbe with math.nextafter, log(1.0723805294763606) is under that product and log(1.0723805294763609), the next double, is over it by 6.9e-17, and the mirrored pair either side of 1/1.0723805294763609 for coin -1 behaves alike; `math.log` is monotone, so no other ratio lands between. Driven by prepr.sh's diff-mutant step at 4fee736fbe over the tests/features.py block from `R.section(\"COP learner duty floor keys` to `R.section(\"R10-COP-GATE (#2262)`: the mutant survived.",
-  "verdict": "equivalent"
-}

@@ -951,6 +951,14 @@ def rca_subjects(text: str) -> set:
     return {t.strip(".-") for t in re.findall(r"[\w.-]+", "\n".join(block))}
 
 
+def is_cause(cause, names, me=None) -> bool:
+    """Whether `cause` is a `caused_by.cause` word: a pull request `#<n>`, a roster
+    group of `names` other than `me`, or one of CAUSES. `convergence_why` holds a
+    written cause to it and `loop_ledger.py --runs` a cause it derives for a red run,
+    so the two share one vocabulary."""
+    return cause in CAUSES or (isinstance(cause, str) and bool(_PR.match(cause))) or (cause in names and cause != me)
+
+
 def convergence_why(field: str, value, group: dict, names, root=None) -> "str | None":
     """Why `value` is no admissible `field` of `group`, else None. `names` is every
     group name the reader can see (the cause, parent and follows targets).
@@ -978,7 +986,7 @@ def convergence_why(field: str, value, group: dict, names, root=None) -> "str | 
     if not isinstance(value, dict) or set(value) != {"cause", "rca"}:
         return "caused_by must be a JSON object {cause, rca}"
     cause, rca = value["cause"], value["rca"]
-    if not (cause in CAUSES or (isinstance(cause, str) and _PR.match(cause)) or (cause in names and cause != me)):
+    if not is_cause(cause, names, me):
         return f"caused_by cause {cause!r} is no pull request #<n>, other roster group, or one of {', '.join(CAUSES)}"
     if not rca_lists(rca, group, root):
         return (f"caused_by rca {rca!r} is no rca record under dev/audit/rca/ that is the group's own"
