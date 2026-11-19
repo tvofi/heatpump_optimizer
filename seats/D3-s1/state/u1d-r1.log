@@ -18,3 +18,4 @@ K2 RESTART detached workers=4 + oomguard 2026-11-18T15:49:17Z load1=0.96
 K2 RESTART after container reboot (box seat; worker trees restored with git checkout) workers=4 D3S1_FRESH_TREE=1 2026-11-18T23:45:10Z load1=1.61
 K2 rc=137 2026-11-18T23:51:30Z
 K2-oom rc=137 after reboot relaunch (memcg limit 14.3GB hit at 4 workers on cold start); RESTART workers=3 D3S1_FRESH_TREE=1 2026-11-19T00:16:03Z
+K2 rc=137 2026-11-19T00:23:14Z
