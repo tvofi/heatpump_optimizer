@@ -28,3 +28,4 @@
 2026-11-19T00:58:07Z K2 driver OOM-killed 00:55Z: mutant dc6c13ec (coordinator.py:1864 _ensure_worker GUARD_OFF) made boost_drift_replay spawn 214 process_worker.py (~67 MB each); 2 SIGNAL keys (582cce74, f3ebeb54) not written. Relaunched K2 at 3 workers on keys-D3-u1d-surv-noleak.txt (dc6c13ec excluded; driven last, alone, with a process-count watchdog)
 2026-11-19T01:03:03Z dc6c13ec classified with ensure_worker_leak.py (not driven by prescreen): mutant arm 20 live process_worker.py under boost_drift_replay in 12.7 s (capped, rc -9); null arm peak 1, rc 0, 191 s
 2026-11-19T04:47:57Z K2 milestone: complete/ holds 178
+2026-11-19T08:14:59Z K2 milestone: complete/ holds 203

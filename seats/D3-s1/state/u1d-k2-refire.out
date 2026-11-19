@@ -51,3 +51,5 @@
 2026-11-19T07:47:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:_slab_refusal CMP_BOUND ae78329c L897 by=- ran=12 wall=1573.0s
 2026-11-19T07:47:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met CMP_BOUND ade5352a L1546 by=- ran=12 wall=1573.3s
 2026-11-19T07:51:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power.fits CMP_BOUND 3896349a L1593 by=- ran=12 wall=1584.8s
+2026-11-19T08:14:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 9174794d L2208 by=- ran=12 wall=1585.5s
+2026-11-19T08:14:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab CMP_BOUND 21c9402c L2381 by=- ran=12 wall=1583.0s
