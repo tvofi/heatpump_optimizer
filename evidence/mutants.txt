@@ -1,7 +1,0 @@
-M1 swap min/max -> 16 / 19 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not its row's bound is UNREADABLE by level and key", "a flow-range level that is not the row's default constant is UNREADABLE"]
-M2 no const.py fallback -> 16 / 19 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not its row's bound is UNREADABLE by level and key", "a flow-range level that is not the row's default constant is UNREADABLE"]
-M3 dict branch off -> 16 / 19 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not the row's default constant is UNREADABLE", 'a flow-range key whose _number rows disagree is UNREADABLE']
-M4 call branch off -> 15 / 19 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not its row's bound is UNREADABLE by level and key", "a flow-range level that is not the row's default constant is UNREADABLE", 'a flow-range key whose _number rows disagree is UNREADABLE']
-M5 starred not expanded -> 17 / 19 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not the row's default constant is UNREADABLE"]
-M6 field ignored -> 17 / 19 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not the row's default constant is UNREADABLE"]
-UNMUTATED -> 19 / 19 held; red: []

@@ -542,7 +542,4 @@ script tests/guard_pins.py	checks=91	writes outside every pass=4
 outside every pass custom_components/heatpump_optimizer/inputs.py:729	1 (never witnessable: no plan)
 outside every pass custom_components/heatpump_optimizer/pump_arbiter.py:1610	3 (never witnessable: no plan)
 RESULT read=operation universe=532 examined=4 moved=4 reached=2
-
-real	1m56.333s
-user	0m44.279s
-sys	0m5.492s
+rc=0

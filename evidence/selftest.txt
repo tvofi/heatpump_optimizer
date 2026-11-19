@@ -1,23 +1,72 @@
-ok   the unchanged tree is accepted
-ok   a 41-word sentence planted in a Python comment is refused
-ok   a 40-word sentence (the null control) is accepted
-ok   a 41-word sentence planted in a docstring is refused
-ok   a 41-word sentence planted in a shell comment is refused
-ok   a shell comment marker is stripped before the count
-ok   a rule line is not a word of the sentence after it
-ok   an indented usage line is not prose
-ok   a hanging indent continues its sentence
-ok   a list item's indented paragraph is prose
-ok   an indented docstring's own margin is prose
-ok   a banner line is a paragraph of its own
-ok   a trailing comment on a code line is not part of the block below it
-ok   a list item ends the sentence before it
-ok   a long unit moved to a new file is accepted
-ok   a long unit added in a new file is refused
-ok   a file shrinking while another grows is refused per file
-ok   a changed code token reads as code
-ok   a docstring edit does not read as code
-ok   a shell comment edit does not read as code, a shell token does
-ok   a line-neutral rewrite reads 0 shifted hunks, an added line 1
-ok   a base the checkout cannot resolve refuses (a shallow clone fails closed)
-comment_ratchet self-test: OK
+ref=500eef956e218cd69967681ca147821a4e26b649 seats=65
+ok D0 mode=cells seats=3 universe=3 [s1:3f/23177loc, s2:3f/23177loc, s3:3f/23177loc]
+FAIL D1 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+   owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/accuracy.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/accuracy.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/away.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/away.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/batchmath.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/batchmath.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/battery.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/battery.py', 'M4', None) by ['s1', 's2']
+ok D2 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+ok D3 mode=cells seats=3 universe=167 [s1:12f/31866loc, s2:18f/16701loc, s3:137f/43998loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20916loc, s2:15f/20916loc, s3:15f/20916loc]
+ok D5 mode=cells seats=10 universe=910 [s1:16f/0loc/0u, s2:16f/0loc/0u, s3:45f/37885loc/0u, s4:52f/54680loc/0u, s5:77f/0loc/0u, s6:264f/0loc/0u, s7:3f/0loc/0u, s8:44f/0loc/0u, s9:69f/0loc/0u, s10:340f/0loc/0u]
+ok D6 mode=files seats=7 universe=376 [s1:15f/0loc/0u, s2:111f/0loc/0u, s3:97f/76128loc/0u, s4:2f/16437loc/0u, s5:148f/0loc/0u, s6:1f/0loc/0u, s7:2f/0loc/0u]
+ok D7 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4824loc, s2:6f/4824loc, s3:6f/4824loc]
+ok D9 mode=cells seats=3 universe=97 [s1:97f/92565loc, s2:97f/92565loc, s3:97f/92565loc]
+ok D10 mode=cells seats=3 universe=115 [s1:115f/92565loc, s2:115f/92565loc, s3:115f/92565loc]
+ok D11 mode=cells seats=3 universe=1451 [s1:1451f/0loc, s2:1451f/0loc, s3:1451f/0loc]
+ok D12 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D16 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+ok D17 mode=cells seats=3 universe=103 [s1:103f/76128loc, s2:103f/76128loc, s3:103f/76128loc]
+ok D0 mode=cells seats=3 universe=3 [s1:3f/23177loc, s2:3f/23177loc, s3:3f/23177loc]
+ok D1 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+FAIL D2 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+   unowned ('custom_components/heatpump_optimizer/__init__.py', 'M3', None)
+   unowned ('custom_components/heatpump_optimizer/__init__.py', 'M4', None)
+   unowned ('custom_components/heatpump_optimizer/__init__.py', 'M5', None)
+   unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M3', None)
+   unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M4', None)
+   unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M5', None)
+   unowned ('custom_components/heatpump_optimizer/away.py', 'M3', None)
+   unowned ('custom_components/heatpump_optimizer/away.py', 'M4', None)
+   unowned ('custom_components/heatpump_optimizer/away.py', 'M5', None)
+   unowned ('custom_components/heatpump_optimizer/batchmath.py', 'M3', None)
+ok D3 mode=cells seats=3 universe=167 [s1:12f/31866loc, s2:18f/16701loc, s3:137f/43998loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20916loc, s2:15f/20916loc, s3:15f/20916loc]
+ok D5 mode=cells seats=10 universe=910 [s1:16f/0loc/0u, s2:16f/0loc/0u, s3:45f/37885loc/0u, s4:52f/54680loc/0u, s5:77f/0loc/0u, s6:264f/0loc/0u, s7:3f/0loc/0u, s8:44f/0loc/0u, s9:69f/0loc/0u, s10:340f/0loc/0u]
+ok D6 mode=files seats=7 universe=376 [s1:15f/0loc/0u, s2:111f/0loc/0u, s3:97f/76128loc/0u, s4:2f/16437loc/0u, s5:148f/0loc/0u, s6:1f/0loc/0u, s7:2f/0loc/0u]
+ok D7 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4824loc, s2:6f/4824loc, s3:6f/4824loc]
+ok D9 mode=cells seats=3 universe=97 [s1:97f/92565loc, s2:97f/92565loc, s3:97f/92565loc]
+ok D10 mode=cells seats=3 universe=115 [s1:115f/92565loc, s2:115f/92565loc, s3:115f/92565loc]
+ok D11 mode=cells seats=3 universe=1451 [s1:1451f/0loc, s2:1451f/0loc, s3:1451f/0loc]
+ok D12 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D16 mode=cells seats=3 universe=96 [s1:96f/76128loc, s2:96f/76128loc, s3:96f/76128loc]
+ok D17 mode=cells seats=3 universe=103 [s1:103f/76128loc, s2:103f/76128loc, s3:103f/76128loc]
+   D16 and D17 arms: 5/5 held
+   coverage arm drop D10's universe: refused=True names ['custom_components/heatpump_optimizer/py.typed']=True
+   coverage arm strip tests/ and blueprints/ globs: refused=True names ['tests/closure.py', 'blueprints/automation/notifications.yaml']=True
+   coverage arms dead/unreasoned exclusion: refused=True/True
+   coverage arm exclude a covered path: refused=True; null control custom_components/heatpump_optimizer/optimizer.py covered=True
+   harness-citation arms: True, null True
+   ledger arms: live True, cap refused True, line refused True/True/True/True
+   D5 comment-line arms: plant measured True, outside refused True, D6 null refused True, no line refused True, narrow refused True, unstatic refused True
+   default verdict: live True, no D10 refused True, uncited refused True
+   default invocation: live rc=0, blueprints dropped rc=1
+   yardstick records: covered=True, refused without the exclusion=True
+   evaluation arms: 66/66 held; --round 1 rc=1; --open-cards rc=2, marked rc=0, unmarked rc=1 ['UNMARKED C2', 'UNMARKED C3']
+   population arms: 28/28 held
+SELF-TEST passed (every perturbed scope refused)
+rc=0

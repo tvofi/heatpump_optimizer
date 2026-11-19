@@ -1,9 +1,0 @@
-rev-3816 tank_volume=min accepted
-rev-3816 tank_volume=default accepted
-rev-3816 tank_volume=max accepted
-rev-3816 house_size=min accepted
-rev-3816 house_size=default accepted
-rev-3816 house_size=max accepted
-rev-3816 layout=no_valve accepted
-rev-3816 layout=moon no population level
-rev-3816 tank_volume=typical no population level

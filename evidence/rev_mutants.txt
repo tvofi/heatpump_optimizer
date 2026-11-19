@@ -1,6 +1,11 @@
-KILLED   split_trailing identity | FAIL a trailing comment on a code line is not part of the block below it
-KILLED   is_heading False | FAIL a banner line is a paragraph of its own
-KILLED   is_code False | FAIL an indented usage line is not prose
-KILLED   is_break blank-only | FAIL a list item ends the sentence before it
-SURVIVED is_rule False | 
-RESULT reviewer_mutants=5 survived=1
+UNMUTATED 28/28 held; red: []
+R1 dict non-widget value ignored KILLED | 23/28 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not the row's default constant is UNREADABLE"]
+R2 arg-after-key ignored KILLED | 23/28 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not its row's bound is UNREADABLE by level and key"]
+R3 default= keyword ignored KILLED | 27/28 held; red: ['a flow-range default= keyword that moved off the level is UNREADABLE by line']
+R4 no_default ignored KILLED | 25/28 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not the row's default constant is UNREADABLE"]
+R5 unreadable default skipped KILLED | 27/28 held; red: ['a flow-range default the record does not list as presenting none is UNREADABLE']
+R6 empty defaults accepted KILLED | 26/28 held; red: ['a flow-range key whose only defaults are recorded markers is UNREADABLE', 'a flow-range key presented with no default is UNREADABLE']
+R7 only first default compared KILLED | 27/28 held; red: ['a flow-range default that moved is UNREADABLE though an earlier one still matches (every default is read)']
+R8 unknown row field accepted KILLED | 27/28 held; red: ['a flow-range row carrying a field the reader does not read is UNREADABLE']
+R9 two args after key SURVIVED | 28/28 held; red: []
+R10 default vs max KILLED | 18/28 held; red: ['a flow-range axis prints its declared levels once each matches its row', "a flow-range level that is not its row's bound is UNREADABLE by level and key"]

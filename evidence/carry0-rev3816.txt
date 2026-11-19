@@ -1,0 +1,4 @@
+rev3816 500eef956e218cd69967681ca147821a4e26b649 accepted 6 /6 []
+ control layout=no_valve in
+ control layout=moon refused
+ control tank_volume=typical refused

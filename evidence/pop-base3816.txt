@@ -32,3 +32,4 @@ house_size	NO-READ	the levels are declared here and nothing reads them: no reade
 LEVELS: 195
 PAIRS: 18696
 NO-READ AXES: 2
+rc=0
