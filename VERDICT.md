@@ -1,41 +1,31 @@
-Fix review: blocked 478e2ab92c36b309c73e8cc29903671434f73375 mutation-vacuous: coordinator.py room-history cycle step (deleted; outdoor argument swapped for floor return; space/dhw kW swapped), __init__.py unload flush deleted, room_history.py _accumulate problem-reading guard, dhw exclusion, target last-reading, _close_period power mean, _step_pairs/_room_verdict null-call filter, _times grid check, _house_line space filter, room_record.report_of cache key
+Fix review: merge aa98d2b6fbb55ba4a79a7fcd428d2b11ab0e8e30
 
-bus-nonce: f9d2cfe3ea61b6cba7a183ae91ab9081
+bus-nonce: a9213b23973f80e6c4e5e8c5ed4dea26
 
-Round 1 (first review of #3711; no earlier reviewed head).
+Round 2, a delta review: `git diff 478e2ab92c36b309c73e8cc29903671434f73375 aa98d2b6fbb55ba4a79a7fcd428d2b11ab0e8e30` (`ev/delta.diff`). It touches `coordinator.py` (one line), `tests/features.py` (+153) and four `killed_by` pins.
 
-## Block
+## Prior findings
 
-The new feature's production behaviour is not pinned at the points a reader of this report depends on most. Mutants applied one at a time at the head (driver `ev/mut_driver.py`, output `ev/mutants.txt`); every one below leaves the PR's block `ALL 40 FEATURES BLOCK PASSED` (rc 0):
+- All twelve survivors from the blocked verdict at 478e2ab9 are killed at this head. I used that verdict's own driver (`ev/mut_driver.py`). The outdoor anchor was moved to the new production text, and I added one mutant that restores the cycle-start `ctx`. Results: 23 mutants, 23 KILLED, 0 SURVIVED, 0 NOAPPLY (`ev/mutants.txt`). Each one is killed by a FAIL line from the check written for it. That includes the coordinator mutants (step deleted, outdoor->return, space/dhw swap, cycle-start ctx), which fail on the new check that drives `_async_update_data`, and the unload-flush deletion, which fails on the check that drives `async_unload_entry`.
+- Null control: the driver run with a no-op mutant leaves the block passing (`ev/null.txt`, rc 0). Baseline is `ALL 47 FEATURES BLOCK PASSED`, rc 0 (`ev/block_baseline.txt`).
+- The block's new checks use fixtures defined elsewhere in `tests/features.py`, so I ran it standalone with a prelude (`ev/prelude.py`). I checked that every line of that prelude appears verbatim in `tests/features.py` at the head. Without the prelude, the baseline fails with a NameError (`ev/*_noprelude.txt`). That failure comes from the extraction instrument, not from the PR: CI runs the whole file.
 
-- `coordinator.py` cycle step: the call to `room_record.async_note_cycle` made a no-op; `ctx._current_state.outdoor_temperature` replaced by `self._floor_return_temp` (the fit's regressor fed the wrong sensor); `power` and `dhw_power` swapped. The outdoor swap also survives the full `tests/features.py` (`ALL 5940 FEATURE CHECKS PASSED`, rc 0, 957 s) and `tests/entities.py` (rc 0, 603 s): `ev/mut_coord_swap*.txt`. Step deleted together with the unload flush: `tests/features.py` rc 0; `tests/entities.py` rc 1 only on `main() passes the committed table at its own recorded count (the null control)`, the CI-ratchet's recorded-count line, not a room-history check (`ev/mut_unload_step*`). The extractor read of the block confirms no check runs `_async_update_data` or `async_unload_entry`: the block drives `room_record.async_note_cycle` directly, so the coordinator's arguments are never exercised.
-- `__init__.py` unload flush deleted (the design's verdict item v3a): survives, as above.
-- `room_history._accumulate`: `reading.problem is None and` dropped (a reading with a problem counts toward the calling share); `and house.dhw_kw <= 0.0` dropped (hot-water cycles count as space heating); target kept from the first reading instead of the last. No block check feeds a problem reading or a non-zero `dhw_kw`.
-- `room_history._close_period`: power as the period's last sample instead of its mean: no check asserts the mean.
-- `room_history._room_verdict`: the `columns["call"][i] is not None` pair filter dropped (a NaN share then reaches `lstsq`).
-- `room_history._times`: the `b % PERIOD_MIN` off-grid refusal dropped.
-- `room_history._house_line`: the `s >= CALLING_SHARE` space-heating filter dropped.
-- `room_record.report_of`: cache key reduced to the row count (the report goes stale once the ring is full at `HISTORY_LENGTH` rows).
+## Production delta (widened to exactly this line)
 
-These are not the ratchet's generated operators, so the CI pin runs and the body's `## Mutation proof` could not have shown them; the body's own `## Unpinned sites` already concedes the cycle step and unload flush are "wiring the features block does not drive". Owed: checks that drive the coordinator's cycle with a room list and assert the house columns it writes (outdoor, return, power mean, space share with a hot-water step), the unload flush through `async_unload_entry`, a problem reading and a reading without `calling`, an off-grid stored time, and a full-ring report refresh; each shown failing on its mutant above.
-
-Killed by the block (the null control for the driver): first->last temperature reading, the note floor's `+ 1`, the pair gap, the per-hour rate, the ring length, a bad house cell emptying the ring, no load before note, flush ignoring `unsaved`, persist never resetting `unsaved`, the diagnostics key published unconditionally (`ev/mutants.txt`).
+- `coordinator.py:6123` now reads the room history's outdoor value through `_ctx_of(self)` instead of the `ctx` bound when the cycle started. `CoordinatorContext` is replaced on each state update (`coord._ctx = replace(self, _current_state=new)`, `ev/ctx_rebinds.txt`). That means the old `ctx` held the outdoor reading from before `_update_current_state`, one cycle stale. The change is correct, it matches the file's existing `_ctx_of(self)._current_state` reads, and a mutant that reverts it is killed.
 
 ## Notes
 
-- Note: body-figure: `## Unpinned sites` lists `coordinator.py:6124 STMT_DEL`, `:6125 CONST_SWAP` and `__init__.py:429 STMT_DEL` as "SURVIVED ... pinned by mutation-autofix"; the autofix pins killed mutants only, and the review measured these survive the block and the full `tests/features.py`. Carry: dismissed: settled by the re-cut this block requires on this pull request
+- Note: none.
 
 ## Evidence
 
-- Head reviewed: `478e2ab92c36b309c73e8cc29903671434f73375` (`ev/HEAD.txt`), the head the body names.
-- `git merge-tree --write-tree origin/main <head>`: rc 0, no conflict (`ev/merge_tree.txt`).
-- `VERSION`, the manifest, `RELEASE_NOTES.md`, both claim files and `tests/structure_budgets.json`: no change in the three-dot diff.
-- Block baseline at the head: `ALL 40 FEATURES BLOCK PASSED` (`ev/block_baseline_tail.txt`), as the body states.
-- `tests/entities.py` `ALL 2731 ENTITY CHECKS PASSED` (613 s) and `tests/finite_boundary.py` `ALL 115 FINITE BOUNDARY CHECKS PASSED` (103 s) at the head, as the body states (`ev/baseline_entities_finite.txt`).
-- CI: `merge_train.py classify` still `WAIT ... pending: gate red: none` at the last read (`ev/classify_last.txt`, rc 3); not awaited further because this verdict blocks on tests, which CI cannot change. Gate scope, golden drift, structure, archscore and the mutation lane are not re-run here (CI's heavy runs are cited, not repeated).
-- Finder's harness: none, as the body states (#3616 is an outside report); the mutants here are the reviewer's own instrument.
-- Coordinator wiring read by a `frugal:extractor` subagent over `tests/features.py`'s block (lines 96884-97347): no `_async_update_data`, `async_refresh` or `async_unload_entry`; every `House` has `dhw_kw = 0.0`; no `RoomReading` has `problem` set.
+- Head: `aa98d2b6fbb55ba4a79a7fcd428d2b11ab0e8e30` (`ev/HEAD.txt`), re-read before posting.
+- `git merge-tree --write-tree origin/main <head>`: rc 0 (`ev/merge_tree.txt`).
+- CI at the head: `gate` SUCCESS, `pr-contract` SUCCESS (05:13Z re-run after the body edit), `tests / mutation` SUCCESS (`ev/checks.txt`). `tests / nightly-status` is not required and is inherited from main; the body answers it.
+- The four new `killed_by` pins are bot-recorded `--pin-killed` rows on `room_history.py` sites.
+- Finder's harness: none (#3616 is an outside report). The mutants are the reviewer's instrument from round 1.
 
 ## Friction
 
-none
+- `features_block.py` cannot run a block that uses fixtures from earlier blocks unless it is given a hand-built prelude.
