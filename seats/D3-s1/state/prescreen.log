@@ -575,3 +575,4 @@
 2026-11-19T03:37:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_shutdown GUARD_OFF b6203558 L6620 by=- ran=13 wall=1465.3s
 2026-11-19T03:43:47Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:classify_space_steps CMP_BOUND ac6d90d7 L2299 by=- ran=17 wall=1650.5s
 2026-11-19T04:01:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_fd_steps CMP_BOUND 36e1fff9 L1580 by=- ran=17 wall=1642.1s
+2026-11-19T04:01:52Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._publish_breach_reports BOOLOP 02bb0a69 L4908 by=- ran=12 wall=1470.3s
