@@ -31,7 +31,9 @@ Departures from the design, each listed here for the reviewer to judge:
 
 ## Head
 
-5ed23c2558c22fa6095540ee98ad20563449d971 is this handoff's code head: 28977f9e merged with main at 7ae05284 (c3d0249a, no conflict), plus 21aa2094, which deletes main's stale `async_simulate RETURN_DEL 1457a93f` pin (`## Red checks`), then merged with main at 8ab5dc566f (5ed23c25, no conflict); the ledger's `completeness_problems` is `[]` at 5ed23c25. The merge leaves the PR's own diff unchanged: `git diff 8751943e17ef...28977f9e` and `git diff 7ae05284d5bc c3d0249a51` share `git patch-id --stable` c1eb75b88e8d (66 files, +1184 -294). Kill at the moved line (`coordinator.py` 11312, anchor fd0988d6): `tools/audit/seat/mutant_run.py --spec` replacing `return payload` with `pass`, driven by `tools/audit/seat/features_block.py` over the block `# #240: the what-if's parameters must share` up to `# -- The held start, on the optimizer` (prelude from `--emit-prelude`), printed `SURVIVED NULL` then `KILLED async_simulate_RETURN_DEL_fd0988d6`.
+`1515566df4d4f2bc351dcdf9e2073652d48ad334` merges the authored code head `5ed23c2558c22fa6095540ee98ad20563449d971`.
+
+5ed23c2558c22fa6095540ee98ad20563449d971 is this handoff's code head: 28977f9e merged with main at 7ae05284 (c3d0249a, no conflict), plus 21aa2094, which deletes main's stale `async_simulate RETURN_DEL 1457a93f` pin (`## Red checks`), then merged with main at 8ab5dc566f (5ed23c25, no conflict); the ledger's `completeness_problems` is `[]` at 5ed23c25. The merge leaves the PR's own diff unchanged: `git diff 8751943e17ef...28977f9e` and `git diff 7ae05284d5bc c3d0249a51` share `git patch-id --stable` c1eb75b88e8d (66 files, +1184 -294). Kill at the moved line (`coordinator.py` 11312 at 21aa2094, 11289 after main's merge; anchor fd0988d6): `tools/audit/seat/mutant_run.py --spec` replacing `return payload` with `pass`, driven by `tools/audit/seat/features_block.py` over the block `# #240: the what-if's parameters must share` up to `# -- The held start, on the optimizer` (prelude from `--emit-prelude`), printed `SURVIVED NULL` then `KILLED async_simulate_RETURN_DEL_fd0988d6`.
 
 `28977f9e820ee1813eccd5952484e0365e72f91a` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
 
@@ -109,28 +111,28 @@ MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 
 ## Unpinned sites
 
-Every site below is disposed as "pinned by mutation-autofix", and the named check kills it in this tree. The `coordinator.py` 112xx–113xx sites are `async_simulate`'s body, re-indented under the user slot. The ledger's twelve kill pins on their old keys were removed because their sites no longer generate.
+Every site below is disposed as "pinned by mutation-autofix", and the named check kills it in this tree. The `coordinator.py` 111xx–112xx sites are `async_simulate`'s body, re-indented under the user slot. The ledger's twelve kill pins on their old keys were removed because their sites no longer generate.
 
-- custom_components/heatpump_optimizer/coordinator.py:851 BOOLOP: pinned by mutation-autofix ("D1-s1-01: a worker the stop killed …")
-- custom_components/heatpump_optimizer/coordinator.py:851 RETURN_DEL: pinned by mutation-autofix ("D1-s1-01: a worker the stop killed …")
-- custom_components/heatpump_optimizer/coordinator.py:2346 GUARD_OFF: pinned by mutation-autofix ("D1-s1-01: a worker the stop killed …")
-- custom_components/heatpump_optimizer/coordinator.py:6171 BOOLOP: pinned by mutation-autofix ("D1-s1-03: a request landing while a refresh runs …")
-- custom_components/heatpump_optimizer/coordinator.py:6171 GUARD_OFF: pinned by mutation-autofix ("D1-s1-03: a request landing while a refresh runs …")
-- custom_components/heatpump_optimizer/coordinator.py:6176 GUARD_OFF: pinned by mutation-autofix ("D1-s1-03: a request during a refresh trails it …")
-- custom_components/heatpump_optimizer/coordinator.py:6382 GUARD_OFF: pinned by mutation-autofix ("forcing an optimization while one runs is dropped, not queued …")
-- custom_components/heatpump_optimizer/coordinator.py:6531 GUARD_OFF: pinned by mutation-autofix ("D1-s1-01: a solve the stop broke answers 'shutdown' …")
-- custom_components/heatpump_optimizer/coordinator.py:6540 GUARD_OFF: pinned by mutation-autofix ("a service write during the production solve outlives the cycle (#1517)", whose re-run ends)
-- custom_components/heatpump_optimizer/coordinator.py:10700 GUARD_OFF: pinned by mutation-autofix ("D9-s1-01: a diagnose press republishes …")
-- custom_components/heatpump_optimizer/coordinator.py:11219 BOOLOP: pinned by mutation-autofix (the #1448 limiter checks)
-- custom_components/heatpump_optimizer/coordinator.py:11219 GUARD_OFF: pinned by mutation-autofix (the #1448 limiter checks)
-- custom_components/heatpump_optimizer/coordinator.py:11222 GUARD_OFF: pinned by mutation-autofix ("D9-s1-03: of four overlapping user what-ifs …" drives the gate; `h_whatif_backlog.py` the wiring)
-- custom_components/heatpump_optimizer/coordinator.py:11227 GUARD_OFF: pinned by mutation-autofix ("simulate_plan with no plan raises a translated operational error")
-- custom_components/heatpump_optimizer/coordinator.py:11238 BOOLOP: pinned by mutation-autofix (re-indented; the #1795 away-band checks)
-- custom_components/heatpump_optimizer/coordinator.py:11239 GUARD_OFF: pinned by mutation-autofix (re-indented; the #1753 background-base checks)
-- custom_components/heatpump_optimizer/coordinator.py:11253 GUARD_OFF: pinned by mutation-autofix (re-indented; "#1753: the tile solves through the user-limit-free path …")
-- custom_components/heatpump_optimizer/coordinator.py:11260 RETURN_DEL: pinned by mutation-autofix (re-indented; the what-if failure checks)
-- custom_components/heatpump_optimizer/coordinator.py:11271 BOOLOP: pinned by mutation-autofix (re-indented; "#2257: a schedule ask whose two day energies tie reads 0.0 on one solve …")
-- custom_components/heatpump_optimizer/coordinator.py:11310 GUARD_OFF: pinned by mutation-autofix (re-indented; the S2 #1753 borrow arms)
+- custom_components/heatpump_optimizer/coordinator.py:852 BOOLOP: pinned by mutation-autofix ("D1-s1-01: a worker the stop killed …")
+- custom_components/heatpump_optimizer/coordinator.py:852 RETURN_DEL: pinned by mutation-autofix ("D1-s1-01: a worker the stop killed …")
+- custom_components/heatpump_optimizer/coordinator.py:2347 GUARD_OFF: pinned by mutation-autofix ("D1-s1-01: a worker the stop killed …")
+- custom_components/heatpump_optimizer/coordinator.py:6148 BOOLOP: pinned by mutation-autofix ("D1-s1-03: a request landing while a refresh runs …")
+- custom_components/heatpump_optimizer/coordinator.py:6148 GUARD_OFF: pinned by mutation-autofix ("D1-s1-03: a request landing while a refresh runs …")
+- custom_components/heatpump_optimizer/coordinator.py:6153 GUARD_OFF: pinned by mutation-autofix ("D1-s1-03: a request during a refresh trails it …")
+- custom_components/heatpump_optimizer/coordinator.py:6359 GUARD_OFF: pinned by mutation-autofix ("forcing an optimization while one runs is dropped, not queued …")
+- custom_components/heatpump_optimizer/coordinator.py:6508 GUARD_OFF: pinned by mutation-autofix ("D1-s1-01: a solve the stop broke answers 'shutdown' …")
+- custom_components/heatpump_optimizer/coordinator.py:6517 GUARD_OFF: pinned by mutation-autofix ("a service write during the production solve outlives the cycle (#1517)", whose re-run ends)
+- custom_components/heatpump_optimizer/coordinator.py:10677 GUARD_OFF: pinned by mutation-autofix ("D9-s1-01: a diagnose press republishes …")
+- custom_components/heatpump_optimizer/coordinator.py:11196 BOOLOP: pinned by mutation-autofix (the #1448 limiter checks)
+- custom_components/heatpump_optimizer/coordinator.py:11196 GUARD_OFF: pinned by mutation-autofix (the #1448 limiter checks)
+- custom_components/heatpump_optimizer/coordinator.py:11199 GUARD_OFF: pinned by mutation-autofix ("D9-s1-03: of four overlapping user what-ifs …" drives the gate; `h_whatif_backlog.py` the wiring)
+- custom_components/heatpump_optimizer/coordinator.py:11204 GUARD_OFF: pinned by mutation-autofix ("simulate_plan with no plan raises a translated operational error")
+- custom_components/heatpump_optimizer/coordinator.py:11215 BOOLOP: pinned by mutation-autofix (re-indented; the #1795 away-band checks)
+- custom_components/heatpump_optimizer/coordinator.py:11216 GUARD_OFF: pinned by mutation-autofix (re-indented; the #1753 background-base checks)
+- custom_components/heatpump_optimizer/coordinator.py:11230 GUARD_OFF: pinned by mutation-autofix (re-indented; "#1753: the tile solves through the user-limit-free path …")
+- custom_components/heatpump_optimizer/coordinator.py:11237 RETURN_DEL: pinned by mutation-autofix (re-indented; the what-if failure checks)
+- custom_components/heatpump_optimizer/coordinator.py:11248 BOOLOP: pinned by mutation-autofix (re-indented; "#2257: a schedule ask whose two day energies tie reads 0.0 on one solve …")
+- custom_components/heatpump_optimizer/coordinator.py:11287 GUARD_OFF: pinned by mutation-autofix (re-indented; the S2 #1753 borrow arms)
 - custom_components/heatpump_optimizer/solve_gate.py:67 RETURN_DEL: pinned by mutation-autofix ("the published optimization_running view reads the solve gate")
 - custom_components/heatpump_optimizer/solve_gate.py:76 GUARD_OFF: pinned by mutation-autofix ("solve_gate: an idle request is not absorbed …")
 - custom_components/heatpump_optimizer/solve_gate.py:78 RETURN_DEL: pinned by mutation-autofix ("solve_gate: an idle request is not absorbed …")
@@ -175,7 +177,7 @@ Block e80c8c4a, from the review of 1cf4d759 ("Design §3 B's trailing arm does n
 
 ## Red checks
 
-- `tests / mutation` at 28977f9e, two runs. Run 44463878660 checked the head alone against ratchet base 8751943e and refused six added sites: `coordinator.py` 6171 BOOLOP and 11222 GUARD_OFF, and `solve_gate.py` 76, 78, 90 and 129. Each is disposed under `## Unpinned sites` as pinned by mutation-autofix. That dispatch skipped `mutation-pins` and `mutation-autofix`, so they are pinned after this push: `unmeasured` here. Run 44458574179 checked the PR merged with main and refused one stale pin, not an unpinned site. Main's `ed7025dc` pinned `coordinator.py:HeatPumpOptimizerCoordinator.async_simulate RETURN_DEL 1457a93f` (old `        return payload`); this PR re-indents that line into the solve gate's block, where its anchor is `fd0988d6`, already pinned by `c06d2fb9` (`ci: pin killed mutants`, killed by `tests/features.py`). mutation-autofix read `skip-not-unpinned`. Repaired at 21aa2094 by merging main (c3d0249a) and deleting the 1457a93f file. `completeness_problems(load_budgets(), inventory())` returns `[]` at 21aa2094 and at 5ed23c25, and the 1457a93f problem with that file restored (null). Kill at the new line: see `## Head`. Run 44458574179 refused that pin alone.
+- `tests / mutation` at 28977f9e, two runs. Run 44463878660 checked the head alone against ratchet base 8751943e and refused six added sites: `coordinator.py` 6171 BOOLOP and 11222 GUARD_OFF (6148 and 11199 after main's merge), and `solve_gate.py` 76, 78, 90 and 129. Each is disposed under `## Unpinned sites` as pinned by mutation-autofix. That dispatch skipped `mutation-pins` and `mutation-autofix`, so they are pinned after this push: `unmeasured` here. Run 44458574179 checked the PR merged with main and refused one stale pin, not an unpinned site. Main's `ed7025dc` pinned `coordinator.py:HeatPumpOptimizerCoordinator.async_simulate RETURN_DEL 1457a93f` (old `        return payload`); this PR re-indents that line into the solve gate's block, where its anchor is `fd0988d6`, already pinned by `c06d2fb9` (`ci: pin killed mutants`, killed by `tests/features.py`). mutation-autofix read `skip-not-unpinned`. Repaired at 21aa2094 by merging main (c3d0249a) and deleting the 1457a93f file. `completeness_problems(load_budgets(), inventory())` returns `[]` at 21aa2094 and at 5ed23c25, and the 1457a93f problem with that file restored (null). Kill at the new line: see `## Head`. Run 44458574179 refused that pin alone.
 - `governance / policy-docs` at 28977f9e (run 44463878660, job 135357182125): `machinery_ratchet` failed `churn_per_kilo_product_lines 34577 <= 14797 + band 3636`. The cap it read was this branch's pre-merge `dev/governance/config/machinery_budgets.json`; main re-recorded that cap to 34898 (30ae44cd94, after #3723's raise), and the same job on main at 7ae05284 passed (`35068 <= 34898 + band 3636`). The main merge at c3d0249a carries the 34898 cap, under which the measured 34577 passes. Cheaper detector: none exists for this one. It is a stale-base red that a merge of main cures, not a defect in the diff.
 
 ## Forward-carry
