@@ -53,3 +53,7 @@
 2026-11-19T07:51:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power.fits CMP_BOUND 3896349a L1593 by=- ran=12 wall=1584.8s
 2026-11-19T08:14:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 9174794d L2208 by=- ran=12 wall=1585.5s
 2026-11-19T08:14:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab CMP_BOUND 21c9402c L2381 by=- ran=12 wall=1583.0s
+2026-11-19T08:16:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum CMP_BOUND 882f6ce6 L766 by=- ran=12 wall=1472.4s
+2026-11-19T08:38:51Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum CMP_BOUND 061a975f L768 by=- ran=12 wall=1490.3s
+2026-11-19T08:44:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.clamp CMP_BOUND 04d3d99a L287 by=- ran=20 wall=1803.7s
+2026-11-19T08:45:54Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:planned_draw_runs CMP_BOUND d42ada6d L1298 by=tests/features.py ran=14 wall=1780.9s
