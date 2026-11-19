@@ -3,7 +3,7 @@
 Mirrored from Home Assistant 2024.6.0, the release that introduced
 ``ConfigEntry.runtime_data``, and kept to the semantics the integration and
 its tests lean on. Since #514 raised the ``hacs.json`` floor to 2025.2.0 this
-mirror is OLDER than the floor, which is the safe direction: a stub offering
+mirror is OLDER than the floor, which is the safe direction. A stub offering
 less than the real release cannot let a test pass on an API the integration
 is not entitled to. Re-mirroring against 2025.2.0 is a change of its own:
 
@@ -19,18 +19,18 @@ is not entitled to. Re-mirroring against 2025.2.0 is a change of its own:
 * ``async_set_unique_id`` and ``_abort_if_unique_id_configured`` look the
   unique id up through ``hass.config_entries.async_entry_for_domain_unique_id``
   and raise ``data_entry_flow.AbortFlow("already_configured")`` on a hit,
-  exactly as the real flow does (the flow manager is what turns that
+  exactly as the real flow does. (The flow manager is what turns that
   exception into an abort result, and there is no manager here, so a test
   catches the exception). ``raise_on_progress`` -- the real method's abort
   on a *second in-flight flow* with the same id -- has no in-progress list
   to consult and is accepted and ignored.
 * The reconfigure entry point (2024.4+, the #196 mirror) has no flow manager
-  either, so what is mirrored is the two halves a test can drive directly:
-  the handler registry the real ``ConfigFlow.__init_subclass__`` populates
-  (``HANDLERS.register(domain)(cls)``) feeding ``ConfigEntry.supports_reconfigure``
-  -- in the real class a memoised ``hasattr(handler, "async_step_reconfigure")``
-  and the exact test for whether the UI offers "Reconfigure" on an entry --
-  and ``FlowHandler.add_suggested_values_to_schema``, copied from the 2024.6.0
+  either, so what is mirrored is the two halves a test can drive directly.
+  The first is the handler registry the real ``ConfigFlow.__init_subclass__`` populates
+  (``HANDLERS.register(domain)(cls)``) feeding ``ConfigEntry.supports_reconfigure``.
+  In the real class it is a memoised ``hasattr(handler, "async_step_reconfigure")``
+  and the exact test for whether the UI offers "Reconfigure" on an entry. The
+  second is ``FlowHandler.add_suggested_values_to_schema``, copied from the 2024.6.0
   ``data_entry_flow.FlowHandler`` verbatim (minus typing) because it is how a
   reconfigure step shows the entry's current values without defaulting them.
   ``context`` defaults to an immutable empty mapping and ``source`` /
@@ -194,7 +194,7 @@ class ConfigFlow:
         """Abort when an entry already carries this flow's unique id."""
         # Imported here, not at module level: every test script imports this
         # module, and only the ones that reach the guard should see
-        # ``data_entry_flow`` in their recorded closure (tests/closures.json
+        # ``data_entry_flow`` in their recorded closure. (tests/closures.json
         # is measured, and the post-merge check fails on a file a run touched
         # that the record does not list).
         from . import data_entry_flow

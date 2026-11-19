@@ -22767,11 +22767,13 @@ R.check(
 # child, never every closure (R9-F10.9; this pinned `full` until then).
 # tests/entities.py is the third entry: countermeasure B's pin reads every
 # non-INERT .py under tests/ and tools/, so every such edit re-derives it.
+# tests/doc_claims.py is the fourth: its comment ratchet reads every tests/ script.
 _A_DRIVEN = _closure.affected(["tests/dst_checks.py"])
 R.check(
     "a change to a subprocess-driven script re-derives its driver and itself",
     _A_DRIVEN["case"] == "scoped"
-    and _A_DRIVEN["rederive"] == ["tests/entities.py", "tests/features.py", "tests/dst_checks.py"],
+    and _A_DRIVEN["rederive"] == ["tests/doc_claims.py", "tests/entities.py", "tests/features.py",
+                                  "tests/dst_checks.py"],
     f"case={_A_DRIVEN['case']} rederive={_A_DRIVEN['rederive']}",
 )
 # A tests/closures.json change runs the scripts whose entry moved, measured
