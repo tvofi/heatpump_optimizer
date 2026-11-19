@@ -554,3 +554,4 @@
 2026-11-19T03:37:10Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF a33b1852 L6839 by=tests/entities.py,tests/features.py ran=15 wall=1586.4s
 2026-11-19T03:48:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict._unit CMP_BOUND 257d42d3 L537 by=- ran=13 wall=1566.8s
 2026-11-19T03:49:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CLAMP_DROP f846d9a6 L2106 by=- ran=16 wall=1419.2s
+2026-11-19T03:51:56Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._publish_breach_reports CMP_BOUND b373b301 L4913 by=- ran=12 wall=1417.2s
