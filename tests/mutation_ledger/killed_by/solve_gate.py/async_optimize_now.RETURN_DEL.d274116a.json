@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/solve_gate.py:async_optimize_now RETURN_DEL d274116a",
+  "killed_by": "tests/features.py",
+  "old": "    return \"no_prices\" if key == \"tibber_fetch_failed\" else \"solve_failed\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}
