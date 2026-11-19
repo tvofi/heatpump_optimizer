@@ -1,3 +1,0 @@
-rc=0 head
-rc=0 base-doc_claims
-rc=1 mutant-M2

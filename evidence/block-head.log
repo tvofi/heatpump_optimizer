@@ -7,5 +7,7 @@
   ok   the space-only solve commits the all-off plan beside the descent's run, so the true objective, not the start-blind descent, ranks it (D0-s3-02)
   ok   a space-only solve no wood covers hands the multi-start no duplicate start, so the reference-energy seeds are drawn only where a share scaled the others (D0-s2-01)
   ok   a reference the wood tank covers whole still leaves the space-only start set a nonzero energy-anchored start beside the initial guess (D0-s2-01)
+  ok   the lifted floor reaches the comfort target, no headroom under it, at every step past the ramp (0.1 K at step 0, 0.25 K an hour, so from step 7)
+  ok   the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the target past the ramp; null control, an all-zero margin array plans the unlifted plan
 
-ALL 7 FEATURES BLOCK PASSED
+ALL 9 FEATURES BLOCK PASSED

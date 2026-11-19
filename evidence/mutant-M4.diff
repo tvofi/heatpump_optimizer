@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index c54290f544..20d48fcf91 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2171,7 +2171,6 @@ def _space_only_starts(
+         _price_ranked_start(prices, reference_kwh * f, p_max, dt)
+         for f in (1.0, *fractions)
+     )
+-    starts.append(_lower_bound_start(bounds))
+     unique: dict[bytes, np.ndarray] = {}
+     for start in starts:
+         unique.setdefault(np.asarray(start, dtype=float).tobytes(), start)

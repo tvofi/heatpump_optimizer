@@ -1,3 +1,5 @@
+<scratch>/rv3736-head/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+  return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
 
 === doc claims vs code facts (#1413) ===
 
@@ -81,8 +83,6 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/home/user/heatpump_optimizer/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
-  return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
   ok   every manifest requirement is named in README's Requirements section
@@ -148,8 +148,8 @@
 === Stress and economics ===
   ok   the space solve was exercised at least once (anchor)
   ok   how-it-works.md no longer claims a fixed count of two starting points now that the optimizer scores more (D6-s2-04: measured 5)
-  FAIL ...and the number it does state matches what the optimizer runs (anchor + D6-s2-04)  [doc states 'four', measured 5]
-  FAIL every starting-point count the corpus states is the count the optimizer runs (I5, measured 5)  [[('how-it-works.md', 4), ('how-it-works.md', 4)]]
+  ok   ...and the number it does state matches what the optimizer runs (anchor + D6-s2-04)
+  ok   every starting-point count the corpus states is the count the optimizer runs (I5, measured 5)
   ok   the corpus count fires on a stale count (null control)
   ok   the claim check fires on the pre-fix sentence (null control)
 
@@ -514,5 +514,33 @@
   ok   README's three hot-water rows say which split they show on a combi tank (Carry 10)
   ok   and a space figure's row does not (Carry 10 null)
   ok   configuration.md's combi option names the three figures and their dhw_split (Carry 10)
+  ok   the HA-free claim set is derived and non-empty (anchor: grid_fee states it)
+  ok   the own-import-free set is derived (anchors: grid_fee in it, accuracy out)
+  ok   null control: a module importing Home Assistant itself fails under the refusal
+  ok   comfort_band.py says comfort_band is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   device_prefill.py says device_prefill is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   diagnosis.py says diagnosis is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   disinfection.py says disinfection is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   flow_lift.py says flow_lift is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   flow_meter.py says flow_meter is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   freq_control.py says freq_control is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   grid_fee.py says grid_fee is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   heat_energy.py says heat_energy is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   inputs.py says inputs is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   ledger.py says ledger is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   mixing_valve.py says mixing_valve is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   modbus_prefill.py says modbus_prefill is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   name_match.py says name_match is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   narrative.py says narrative is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   prefill_offer.py says prefill_offer is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   quick_setup.py says quick_setup is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   quiet_windows.py says quiet_windows is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   silent_mode.py says silent_mode is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   slab_seed.py says slab_seed is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   slot_drivers.py says slot_drivers is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   topology.py says topology is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   wear.py says wear is free of Home Assistant imports, and it imports without it (D5-s3-01)
+  ok   a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)
+  ok   every entry of ADR-002's glue-reached set still needs Home Assistant (a cleared entry leaves the set)
 
-2 of 411 checks FAILED
+ALL 439 checks PASSED
