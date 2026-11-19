@@ -1,0 +1,6 @@
+
+=== features block ===
+  FAIL the lifted floor reaches the comfort target, no headroom under it, at every step past the ramp (0.1 K at step 0, 0.25 K an hour, so from step 7)  [gap to target [0.25, 0.275, 0.3375, 0.4, 0.5]]
+  FAIL the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the target past the ramp; null control, an all-zero margin array plans the unlifted plan  [peak none=20.241 zeros=20.241 lift=20.241 lift min past 3 h=19.583]
+
+2 of 2 FEATURES BLOCK FAILED
