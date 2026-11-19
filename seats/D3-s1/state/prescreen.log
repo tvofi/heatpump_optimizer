@@ -645,3 +645,7 @@
 2026-11-19T12:07:46Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop CMP_BOUND 50c75e1d L4482 by=- ran=13 wall=1487.7s
 2026-11-19T12:15:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.flow_lift_factor CMP_BOUND b66e49cc L3389 by=- ran=17 wall=1590.4s
 2026-11-19T12:27:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._simulate_step_two_zone CMP_BOUND 5b813303 L4003 by=- ran=12 wall=1491.5s
+2026-11-19T12:29:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CMP_BOUND 81b4199d L4752 by=- ran=13 wall=1499.4s
+2026-11-19T12:34:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state BOOLOP 4b71d3f0 L6747 by=- ran=13 wall=1611.5s
+2026-11-19T12:40:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CMP_BOUND 5bd31264 L4722 by=- ran=13 wall=1514.2s
+2026-11-19T12:43:05Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_freq_fold_blocked BOOLOP ba5fb853 L1246 by=tests/features.py ran=13 wall=954.7s

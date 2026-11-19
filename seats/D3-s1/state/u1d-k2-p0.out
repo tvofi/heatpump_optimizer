@@ -25,3 +25,4 @@
 2026-11-19T11:18:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.buffer_is_store CMP_BOUND 78e5c474 L303 by=- ran=14 wall=1496.6s
 2026-11-19T11:42:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:dhw_coil_draw_reduction CMP_BOUND 356d41c6 L2998 by=- ran=12 wall=1482.7s
 2026-11-19T12:07:46Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop CMP_BOUND 50c75e1d L4482 by=- ran=13 wall=1487.7s
+2026-11-19T12:34:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state BOOLOP 4b71d3f0 L6747 by=- ran=13 wall=1611.5s

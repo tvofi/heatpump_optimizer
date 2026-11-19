@@ -24,3 +24,4 @@
 2026-11-19T11:18:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum CMP_BOUND 061a975f L768 by=- ran=12 wall=1497.3s
 2026-11-19T11:48:44Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:planned_draw_runs CMP_BOUND d42ada6d L1298 by=tests/features.py ran=14 wall=1808.0s
 2026-11-19T12:15:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.flow_lift_factor CMP_BOUND b66e49cc L3389 by=- ran=17 wall=1590.4s
+2026-11-19T12:40:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CMP_BOUND 5bd31264 L4722 by=- ran=13 wall=1514.2s
