@@ -604,3 +604,4 @@
 2026-11-19T04:06:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_fetch_failed GUARD_OFF 643e387c L7118 by=- ran=13 wall=1646.8s
 2026-11-19T04:16:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 3e0642e4 L1942 by=- ran=12 wall=1631.0s
 2026-11-19T04:18:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._outage_dhw_hold CMP_BOUND 936e7a6e L9051 by=- ran=13 wall=1632.1s
+2026-11-19T04:20:34Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units GUARD_OFF 7c5d6837 L2962 by=tests/features.py ran=13 wall=1645.4s
