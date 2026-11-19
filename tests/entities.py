@@ -42428,8 +42428,12 @@ def _r11_logger_aliases(sources):
     something the barrier does not read. The barrier keys on the text
     ``_LOGGER``, so the one logger it sees is a module-level
     ``_LOGGER = logging.getLogger(...)`` used only as ``_LOGGER.<method>(...)``.
-    Both surfaces are read by allow-list, so a spelling nobody listed is
-    refused rather than missed. Refused: a name bound to ``_LOGGER`` or to a
+    A use of the module ``logging`` or of the name ``_LOGGER`` is read by
+    allow-list, so a use of either nobody listed is refused rather than
+    missed. The routes to a logger by another spelling are a named set, not
+    an allow-list: the names ``logging``, ``logger``, ``_LOGGER`` and
+    ``warnings``, as an attribute or as text, the module ``warnings``, and
+    ``exec``/``eval``/``compile``. Refused: a name bound to ``_LOGGER`` or to a
     ``getLogger``/``getChild`` result; any other ``getLogger``/``getChild``
     call, bound or inline, ``logging.getLogger`` or a bare ``getLogger``;
     ``import logging as`` another name, an import of ``_LOGGER``, of a module
@@ -42439,18 +42443,29 @@ def _r11_logger_aliases(sources):
     a rebinding by assignment or walrus, ``getattr(logging, ...)``); the text
     ``'logging'`` (``__import__``, ``import_module``, ``sys.modules``); an
     attribute named ``logging``, or ``logger`` (Home Assistant's coordinator
-    exposes the handed-over ``_LOGGER`` so); ``_LOGGER.<method>(...)`` for a
+    exposes the handed-over ``_LOGGER`` so), or ``_LOGGER`` (another module's
+    logger, ``coordinator._LOGGER``, or this one's by ``sys.modules[__name__]``);
+    the text ``'_LOGGER'`` or ``'logger'`` (``globals()['_LOGGER']``,
+    ``getattr(m, 'logger')``); the module ``warnings``, imported, named, as an
+    attribute or as the text ``'warnings'`` (Home Assistant turns on
+    ``logging.captureWarnings``, so ``warnings.warn`` lands as a WARNING
+    record on ``py.warnings``); ``exec``, ``eval`` and ``compile``, whose code
+    is text this check cannot parse; ``_LOGGER.<method>(...)`` for a
     method outside the level calls and ``isEnabledFor`` (``_log``,
     ``handle``, ``makeRecord``); and ``_LOGGER`` itself escaping, as an
     argument, a return value, an element or a bound method, which is how a
-    logger reaches a parameter the barrier cannot name. Not read: a module
-    name computed at run time (``import_module('log' + 'ging')``), which no
-    syntactic rule can name."""
+    logger reaches a parameter the barrier cannot name. Not read: a name
+    computed at run time (``import_module('log' + 'ging')``,
+    ``globals()['_LOG' + 'GER']``), which no syntactic rule can name; and a
+    route to Home Assistant's log through its own services
+    (``system_log.write``), a service call this check does not read."""
     levels = {"debug", "info", "warning", "warn", "error", "exception",
               "critical", "fatal", "log"}
     methods = levels | {"isEnabledFor"}
     numbers = {"NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL"}
     binders = (ast.Assign, ast.AnnAssign, ast.NamedExpr)
+    # each name a logger is reached by, read as an attribute or as text
+    reached = {"logging", "logger", "_LOGGER", "warnings"}
 
     def logger_call(node):
         return isinstance(node, ast.Call) and (
@@ -42474,12 +42489,14 @@ def _r11_logger_aliases(sources):
             up = parent.get(id(node))
             if isinstance(node, ast.Import):
                 for a in node.names:
-                    if a.name.split(".")[0] == "logging" and a.asname:
-                        out.append((name, node.lineno, a.asname))
+                    root = a.name.split(".")[0]
+                    if (root == "logging" and a.asname) or root == "warnings":
+                        out.append((name, node.lineno, a.asname or a.name))
             elif isinstance(node, ast.ImportFrom):
+                root = (node.module or "").split(".")[0]
                 for a in node.names:
-                    if a.name in ("_LOGGER", "logging") or (
-                            (node.module or "").split(".")[0] == "logging" and a.name not in numbers):
+                    if a.name in ("_LOGGER", "logging", "warnings") or root == "warnings" or (
+                            root == "logging" and a.name not in numbers):
                         out.append((name, node.lineno, a.asname or a.name))
             elif isinstance(node, binders):
                 value = node.value
@@ -42495,14 +42512,16 @@ def _r11_logger_aliases(sources):
                     and node.attr not in numbers and node.value.id == "logging" and not (
                         node.attr == "getLogger" and isinstance(up, ast.Call) and up.func is node)):
                 out.append((name, node.lineno, ast.unparse(node)))
-            elif isinstance(node, ast.Attribute) and node.attr in ("logging", "logger"):
+            elif isinstance(node, ast.Attribute) and node.attr in reached:
                 out.append((name, node.lineno, ast.unparse(node)))
             elif isinstance(node, ast.Name) and node.id == "logging" and not (
                     isinstance(up, ast.Attribute) and up.value is node):
                 out.append((name, node.lineno, f"logging -> {type(up).__name__}"
                             if not isinstance(up, ast.Call) else f"logging -> {ast.unparse(up.func)}"))
-            elif isinstance(node, ast.Constant) and node.value == "logging":
-                out.append((name, node.lineno, "'logging'"))
+            elif isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value in reached:
+                out.append((name, node.lineno, repr(node.value)))
+            elif isinstance(node, ast.Name) and node.id in ("warnings", "exec", "eval", "compile"):
+                out.append((name, node.lineno, node.id))
             elif isinstance(node, ast.Name) and node.id == "_LOGGER" and isinstance(node.ctx, ast.Load):
                 via = up
                 if isinstance(via, ast.Attribute) and via.value is node:
@@ -42673,7 +42692,8 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
                   "    c._LOGGER.error('x')\n    sys.modules[__name__]._LOGGER.error('y')\n",
     "bytext.py": "def f(m):\n    globals()['_LOGGER'].error('x')\n    getattr(m, 'logger').error('y')\n",
     "fromtext.py": "def f():\n    exec(\"_LOGGER.error('x')\")\n    eval('1')\n    compile('', '', 'exec')\n",
-    "warn.py": "import warnings\nfrom warnings import warn as w\ndef f(o):\n"
+    "warnimp.py": "import warnings\n",
+    "warn.py": "from warnings import warn as w\ndef f(o):\n"
                "    warnings.warn('x')\n    o.warnings.warn('y')\n    __import__('warnings')\n",
 })}
 # Every callable of a Logger, called at ERROR on _LOGGER, and every name the
@@ -42717,7 +42737,9 @@ R.check(
     # refused; perturbation: an alias, another getLogger name, a getChild, a
     # logging alias, a bare-callee getLogger, an inline getLogger, a root
     # logging call, a from-import of _LOGGER, a logger handed to a parameter
-    # or returned, and a bound method each are
+    # or returned, and a bound method each are; so are another module's
+    # _LOGGER as an attribute, '_LOGGER' or 'logger' as text, exec/eval/compile
+    # and the warnings module (ok.py's re.compile and sibling import are not)
     and _r11_aliases_planted == {("alias.py", "log"), ("child.py", "_LOG"),
                                  ("child.py", "CHILD"), ("mod.py", "lg"),
                                  ("bare.py", "getLogger"), ("bare.py", "LOG"),
@@ -42739,7 +42761,8 @@ R.check(
                                  ("sibling.py", "sys.modules[__name__]._LOGGER"),
                                  ("bytext.py", "'_LOGGER'"), ("bytext.py", "'logger'"),
                                  ("fromtext.py", "exec"), ("fromtext.py", "eval"),
-                                 ("fromtext.py", "compile"), ("warn.py", "warnings"),
+                                 ("fromtext.py", "compile"), ("warnimp.py", "warnings"),
+                                 ("warn.py", "warnings"),
                                  ("warn.py", "w"), ("warn.py", "o.warnings"),
                                  ("warn.py", "'warnings'")}
     and _r11_unread == {"_LOGGER.debug", "_LOGGER.info", "_LOGGER.isEnabledFor"}
