@@ -261,7 +261,7 @@ def text_only(ref):
     if not sha:
         print(f"REFUSE comment_ratchet --text-only: {ref} is not a commit in this checkout")
         return 1
-    changed = [f for f in git("diff", "--name-only", sha, "--").split() if in_scope(f)]
+    changed = [f for f in git("diff", "--no-renames", "--name-only", sha, "--").split() if in_scope(f)]
     old, new = blobs(sha, changed), head_texts(changed)
     code = hunks = 0
     for f in changed:
