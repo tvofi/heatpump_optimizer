@@ -33,7 +33,7 @@ MODE: SCOPED -- 2 script(s) run, 31 scoped out.
 
 ## Red checks
 
-none
+- `code-scanning alert 57 (py/overly-permissive-file)`, `code-scanning alert 58 (py/overly-permissive-file)`, `code-scanning alert 61 (py/insecure-temporary-file)`, `code-scanning alert 62 (py/insecure-temporary-file)`, `code-scanning alert 63 (py/insecure-temporary-file)`, `code-scanning alert 64 (py/incomplete-url-substring-sanitization)`, `code-scanning alert 65 (py/incomplete-url-substring-sanitization)`, `code-scanning alert 66 (py/overly-permissive-file)` and `code-scanning alert 67 (py/overly-permissive-file)`: all were open on main before this branch. They name `tools/audit/seat/postmerge.py`, `tools/audit/seat/roster_lib.py` and files under `dev/audit/rounds/round11/` (`gh api repos/tvofi/heatpump_optimizer/code-scanning/alerts/<n>`). This diff touches only `tests/features.py`, so they are inherited and not this pull request's.
 
 ## Forward-carry
 
