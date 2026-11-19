@@ -1,0 +1,62 @@
+R10-START-COUNTER-EDGES|2026-11-13T21:26:52Z|design verdict: R10-START-COUNTER-EDGES Design review: revise 111d3c3f0882d643aeb8d36131f942df75233948 architecture-unsound
+R10-START-COUNTER-EDGES|2026-11-14T11:10:06Z|design verdict: R10-START-COUNTER-EDGES Design review: approve 18655c84b679af92a83bdccbd4c1a2e88faec8ec
+R11-ARCH-OBJECTIVE|2026-11-16T23:11:26Z|design verdict: R11-ARCH-OBJECTIVE Design review: revise 588a773f0348889af2812fe79348f7adf7501b6d architecture-unsound
+R11-ARCH-OBJECTIVE|2026-11-16T23:39:21Z|design verdict: R11-ARCH-OBJECTIVE Design review: approve 4c4835e3c708190f94813ff703ff5c990fdddb0e
+R11-ARCH-fabric-learner|2026-11-18T17:57:24Z|design verdict: R11-ARCH-fabric-learner Design review: approve 221c246eceaaf173d75140abc16600f489721667
+R11-CARRY-DRAWMAP|2026-11-18T09:00:02Z|design verdict: R11-CARRY-DRAWMAP Design review: approve a1688d8d6a552a76b6b72ec6e56644d47d2b8134
+R11-INTAKE-R10-RESIDUE|2026-11-16T10:39:00Z|design verdict: R11-INTAKE-R10-RESIDUE Design review: approve af8f7048ada2e3d951537a07e94d713abe856fff
+R11-OUTSIDE-HONEST-DHW-RUNS|2026-11-16T23:20:11Z|design verdict: R11-OUTSIDE-HONEST-DHW-RUNS Design review: revise f7d50191e3bd57b8cac3b68d03ccacb502083618 architecture-unsound
+R11-OUTSIDE-HONEST-DHW-RUNS|2026-11-16T23:55:59Z|design verdict: R11-OUTSIDE-HONEST-DHW-RUNS Design review: approve ce85b100490363e0ffd6afbbcd9aa3ec334abc50
+R11-OUTSIDE-HONEST-METERED-FLOOR|2026-11-15T21:53:39Z|design verdict: R11-OUTSIDE-HONEST-METERED-FLOOR Design review: revise 4da49f23d090013b4090201294b79822c2bcb3ef class-open
+R11-OUTSIDE-HONEST-METERED-FLOOR|2026-11-16T05:00:25Z|design verdict: R11-OUTSIDE-HONEST-METERED-FLOOR Design review: revise ef9b12e7dd92d347b17d3f2d51a089630540861f golden-unclaimed
+R11-OUTSIDE-HONEST-METERED-FLOOR|2026-11-16T10:38:44Z|design verdict: R11-OUTSIDE-HONEST-METERED-FLOOR Design review: approve 080231bbfd580815e13811e5a2abcaf3e71952d2
+R11-OUTSIDE-HONEST-STARTS-RUNS|2026-11-13T20:20:17Z|design verdict: R11-OUTSIDE-HONEST-STARTS-RUNS Design review: revise 05aec03531b8418b9e53871fe0093f33707a48ea class-open
+R11-OUTSIDE-HONEST-STARTS-RUNS|2026-11-14T15:33:18Z|design verdict: R11-OUTSIDE-HONEST-STARTS-RUNS Design review: approve 0c692c86d2ff28fef984db5833219514fff52d77
+R11-OUTSIDE-HONEST-STARTS-RUNS|2026-11-15T00:17:37Z|design verdict: R11-OUTSIDE-HONEST-STARTS-RUNS Design review: approve a63a2ca6cde761f9647573b5cfeab2b02f37655a
+R11-OUTSIDE-HONEST-STARTS-RUNS|2026-11-15T00:17:46Z|design verdict: R11-OUTSIDE-HONEST-STARTS-RUNS Design review: approve a63a2ca6cde761f9647573b5cfeab2b02f37655a
+R11-OUTSIDE-ROOMS-P2|2026-11-15T21:56:24Z|design verdict: R11-OUTSIDE-ROOMS-P2 Design review: revise be728d3e72eb8673d58e53bedf5562ba21bbbf0e architecture-unsound
+R11-OUTSIDE-ROOMS-P2|2026-11-16T05:01:27Z|design verdict: R11-OUTSIDE-ROOMS-P2 Design review: approve 4784b5940e998aa8ef2d19436f763ff30daa46b2
+R11-OUTSIDE-ROOMS-P3|2026-11-16T10:40:07Z|design verdict: R11-OUTSIDE-ROOMS-P3 Design review: approve e36406c0f4c7ff73bdce5f7f3b5b7ec25a311ab7
+R11-OUTSIDE-SELF-SETTING-PUMP|2026-11-15T21:53:18Z|design verdict: R11-OUTSIDE-SELF-SETTING-PUMP Design review: revise 66aa3023d673c99e7e65ad9a84b7556562e54759 class-open
+R11-OUTSIDE-SELF-SETTING-PUMP|2026-11-16T05:02:26Z|design verdict: R11-OUTSIDE-SELF-SETTING-PUMP Design review: approve b31718e61835180b4062ae882da0615e1d6e819f
+R11-OUTSIDE-SELF-SETTING-PUMP|2026-11-16T16:48:57Z|design verdict: R11-OUTSIDE-SELF-SETTING-PUMP Design review: approve 0acbbc8b910c57256696e0d8ff56649b71eb8bbc
+R11-PRE-NEW-DIMENSIONS|2026-11-15T13:55:54Z|design verdict: R11-PRE-NEW-DIMENSIONS Design review: revise eb49f17976c34f6400a9d0e68c58d22f6523f4ee harness
+R11-PRE-NEW-DIMENSIONS|2026-11-15T16:14:19Z|design verdict: R11-PRE-NEW-DIMENSIONS Design review: approve a9377bcf47957e63060733e61a9cb551a8734b1c
+R11-PRE-NO-READ-BUILDERS|2026-11-16T05:01:50Z|design verdict: R11-PRE-NO-READ-BUILDERS Design review: revise dcf02aadcf524e8a6ec7fa673ba53d44ba28b3e6 architecture-unsound
+R11-PRE-NO-READ-BUILDERS|2026-11-16T10:39:46Z|design verdict: R11-PRE-NO-READ-BUILDERS Design review: revise dd3283712b7e924a66ccbead619019c7007f7404 architecture-unsound
+R11-PRE-NO-READ-BUILDERS|2026-11-16T11:01:41Z|design verdict: R11-PRE-NO-READ-BUILDERS Design review: revise 9cebbb202dc93846f77b12303e5112cdc5727d92 architecture-unsound
+R11-PRE-NO-READ-BUILDERS|2026-11-16T11:31:20Z|design verdict: R11-PRE-NO-READ-BUILDERS Design review: approve 9edf64948f7522213ca07a313f5121fe4c20a72a
+R11-PRE-NO-READ-BUILDERS|2026-11-16T23:38:35Z|design verdict: R11-PRE-NO-READ-BUILDERS Design review: approve de4e49ddc1558abbc64d26049015d16592a42ef2
+R11-PRE-PARALLEL-PIPELINE|2026-11-14T12:29:05+01:00|design verdict: R11-PRE-PARALLEL-PIPELINE Design review: revise 80fbf6319fdb950b8d5054ee8939fb5dea1b5aae evidence-missing
+R11-PRE-PARALLEL-PIPELINE|2026-11-14T12:51:50+01:00|design verdict: R11-PRE-PARALLEL-PIPELINE Design review: approve 22fdbabafb30647a27332d6096df1feb02fc8fb7
+R11-PRE-PARALLEL-PIPELINE|2026-11-16T10:39:56Z|design verdict: R11-PRE-PARALLEL-PIPELINE Design review: approve a21ad55901b20369a6540abdd4793f29e3eae8bb
+R11-PRE-PRODUCT-READS|2026-11-15T16:15:03Z|design verdict: R11-PRE-PRODUCT-READS Design review: revise f5147c0e5982f4e995a8645dd8e54a27dfce2b12 harness
+R11-PRE-PRODUCT-READS|2026-11-15T20:04:43Z|design verdict: R11-PRE-PRODUCT-READS Design review: approve 8daf118368ac5b3629b1e4e1ff8b31f165956ec2
+R11-PRE-SECURITY-PRIVACY|2026-11-15T21:53:19Z|design verdict: R11-PRE-SECURITY-PRIVACY Design review: revise 3637ac0015ca4d0e609ce13bf28da1605d5261a7 class-open
+R11-PRE-SECURITY-PRIVACY|2026-11-16T05:01:14Z|design verdict: R11-PRE-SECURITY-PRIVACY Design review: revise ba8209b07fecf118894b9e19e37469461b0490c4 class-open
+R11-PRE-SECURITY-PRIVACY|2026-11-16T10:39:19Z|design verdict: R11-PRE-SECURITY-PRIVACY Design review: approve 8f52783880f93747270fd34403a2ed076c19a3fc
+R11-PRE-SHARED-FILES|2026-11-15T13:19:48Z|design verdict: R11-PRE-SHARED-FILES Design review: revise 281e74a24e6844ad40a96110d1e85889a826b05f architecture-unsound
+R11-PRE-SHARED-FILES|2026-11-15T16:17:19Z|design verdict: R11-PRE-SHARED-FILES Design review: approve 20cafac7dfb226e1f8e0b20f254ffb299d8ace20
+R11-PRE-SHARED-FILES|2026-11-15T16:17:33Z|design verdict: R11-PRE-SHARED-FILES Design review: approve 20cafac7dfb226e1f8e0b20f254ffb299d8ace20
+R11-PRE-STANDING-SCRIPTS|2026-11-15T16:14:41Z|design verdict: R11-PRE-STANDING-SCRIPTS Design review: revise d1a4ae6a7472b807f23b4fe63a015b6dc412dff3 architecture-unsound
+R11-PRE-STANDING-SCRIPTS|2026-11-15T20:04:01Z|design verdict: R11-PRE-STANDING-SCRIPTS Design review: approve 375ce7ff3f820a3d8b529ad6de60114f68d00289
+R11-PRE-TOOLCHAIN-PIN|2026-11-15T13:18:57Z|design verdict: R11-PRE-TOOLCHAIN-PIN Design review: revise 5caeadfa90c64cebc3d6facf885d87e6ad6d9c54 class-open
+R11-PRE-TOOLCHAIN-PIN|2026-11-15T16:14:49Z|design verdict: R11-PRE-TOOLCHAIN-PIN Design review: revise ab1d7b76789a6cde6d8ebf7678016790e076bda8 architecture-unsound
+R11-PRE-TOOLCHAIN-PIN|2026-11-15T20:03:40Z|design verdict: R11-PRE-TOOLCHAIN-PIN Design review: revise df3267eba7d6e70490afcbdb8aa1802dc0a0c14d class-open
+R11-PRE-TOOLCHAIN-PIN|2026-11-15T21:51:07Z|design verdict: R11-PRE-TOOLCHAIN-PIN Design review: approve a37706d599ca28414378bda7813068b79fd716d6
+R11-SEAM-actuation-release|2026-11-18T18:08:47Z|design verdict: R11-SEAM-actuation-release Design review: approve 349d6277f25fb6855b58395bcb7f055f2e40d86d
+R11-SEAM-actuation-writes|2026-11-18T19:34:41Z|design verdict: R11-SEAM-actuation-writes Design review: revise 4cfb341a0dd419b39166ed3e85d49fca202829db architecture-unsound
+R11-SEAM-actuation-writes|2026-11-18T20:12:55Z|design verdict: R11-SEAM-actuation-writes Design review: approve 28bedac8a678436dba49f3f44c18f2c2ddcd826b
+R11-SEAM-card|2026-11-18T13:22:27+01:00|design verdict: R11-SEAM-card Design review: approve 3913198407d9bfe24b597fa3daba12b98a09ed59
+R11-SEAM-comments-production|2026-11-18T13:22:30+01:00|design verdict: R11-SEAM-comments-production Design review: approve 15dd4f5b3aae9534603cca9939774200d8ad7911
+R11-SEAM-comments-tests|2026-11-18T23:22:47Z|design verdict: R11-SEAM-comments-tests Design review: revise b71b07bf160d2152a0c9b1bfc9b2060b11d73854 sibling-design-conflict
+R11-SEAM-comments-tests|2026-11-18T23:51:30Z|design verdict: R11-SEAM-comments-tests Design review: approve a2823ffea00a570b2cba42ba6f65e3965ea96942
+R11-SEAM-config|2026-11-18T18:07:27Z|design verdict: R11-SEAM-config Design review: approve 069bff452c24cb5b98e5fc7c5d361a3978f9c2f2
+R11-SEAM-cycle-solve|2026-11-18T13:14:48+01:00|design-verdict: R11-SEAM-cycle-solve revise 9fe9f13b63
+R11-SEAM-cycle-solve|2026-11-18T13:37:07+01:00|design-verdict: R11-SEAM-cycle-solve approve 29f8ba8115
+R11-SEAM-cycle-solve|2026-11-19T01:03:14Z|design verdict: R11-SEAM-cycle-solve Design review: approve 85feefccce9a6a9d2aa92d13a372888aef2190d4
+R11-SEAM-money|2026-11-18T12:56:54+01:00|design verdict: R11-SEAM-money Design review: approve df30edfb8b25171dcb746acfad79e0fc9a0c035e
+R11-SEAM-plant-model|2026-11-18T13:04:05+01:00|design-verdict: R11-SEAM-plant-model approve 7940688563
+R11-SEAM-tests|2026-11-18T17:57:56Z|design verdict: R11-SEAM-tests Design review: approve 2d01f6d379cce723f4427314307b74912c9f0e81
+R11-VALVE-REFERENCE|2026-11-16T14:39:25Z|design verdict: R11-VALVE-REFERENCE Design review: revise 3c4c236375c7c6b3ee014c00e5ad7f796d0e0aee product-tradeoff-regression
+R11-VALVE-REFERENCE|2026-11-16T15:12:39Z|design verdict: R11-VALVE-REFERENCE Design review: approve 1abf062b2d41ce2fdd7ef89791d801f14e43ebab
