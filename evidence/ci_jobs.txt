@@ -1,0 +1,10 @@
+135045572288 failure 964901436fba098f65423def5aa81c1c83144b58
+  131 Refuse a self-test read set the committed table misses failure
+  132 Keep this run's measured read sets success
+  133 Absorb the drift step's measured reads into this head's table success
+  134 Keep the absorbed table to commit success
+135103173468 success c96dac87415bc12a7913b2375004c81de267057c
+  131 Refuse a self-test read set the committed table misses success
+  132 Keep this run's measured read sets success
+  133 Absorb the drift step's measured reads into this head's table skipped
+  134 Keep the absorbed table to commit skipped

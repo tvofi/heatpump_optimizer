@@ -1,31 +1,8 @@
-== baseline
-  ok   every JOB value is a name gate.REQUIRED owes
-ci_predict self-test: 0 failed
-== self-test-reads out of GATED_ARMS
-  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
-  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
-  ok   predict with a body refreshes the round rosters and notes a failed refresh
-ci_predict self-test: 2 failed
-== graders out of GATED_ARMS
-  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
-  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
-  ok   predict with a body refreshes the round rosters and notes a failed refresh
-ci_predict self-test: 2 failed
-== step-replay out of GATED_ARMS
-  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
-  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
-  ok   predict with a body refreshes the round rosters and notes a failed refresh
-ci_predict self-test: 2 failed
-== selftest-scope out of GATED_ARMS
-  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
-  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
-  ok   predict with a body refreshes the round rosters and notes a failed refresh
-ci_predict self-test: 2 failed
-== orphans added to GATED_ARMS
-  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
-  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
-  ok   predict with a body refreshes the round rosters and notes a failed refresh
-ci_predict self-test: 2 failed
-== set-equality case made True (with graders still gated: null)
-  ok   predict with a body refreshes the round rosters and notes a failed refresh
-ci_predict self-test: 0 failed
+absorb grep accepts 0 reads: SITE COUNT 0
+absorb runs whenever drift was not skipped: rc=1 fails=1 :: ["FAIL the bot's step: absorb runs only where the drift step failed, and its table is kept only where it succeeded"]
+absorb writes over the drift artifact, not absorbed/: rc=1 fails=1 :: ["FAIL the bot's step: absorb over a red run's drift table prints the read it adds, keeps the absorbed table for the commit and leaves the checkout's table as it was"]
+artifact kept always: rc=1 fails=1 :: ["FAIL the bot's step: absorb runs only where the drift step failed, and its table is kept only where it succeeded"]
+absorb exits 0 when nothing added: rc=1 fails=1 :: ["FAIL the bot's step: absorb over a table the checkout's already holds adds nothing, keeps no table and is red, naming the re-record (null control)"]
+absorb traced by wrapper: rc=1 fails=2 :: ["FAIL wrapper: the ungated steps ['scope', 'strace', 'launch', 'drift', 'absorb', 'unread'] run untraced", 'FAIL wrapper: its UNTRACED list is UNGATED']
+absorb not in UNGATED: rc=1 fails=2 :: ['FAIL wrapper: its UNTRACED list is UNGATED', 'FAIL the live job parses (138 steps) and its gating is consistent']
+record runs absorb step: rc=0 fails=0 :: []
