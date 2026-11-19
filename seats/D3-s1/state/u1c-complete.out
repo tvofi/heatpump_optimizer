@@ -199,3 +199,4 @@
 2026-11-19T13:28:22Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostWindow.peek BOOLOP d8122347 L808 by=tests/features.py ran=13 wall=1892.8s
 2026-11-19T13:32:04Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify BOOLOP f030484a L2038 by=tests/features.py ran=12 wall=1017.9s
 2026-11-19T13:32:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:prices_from_entity_state BOOLOP 44f0178f L825 by=- ran=12 wall=1687.0s
+2026-11-19T13:57:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop BOOLOP 66b15be8 L4463 by=- ran=17 wall=1957.9s
