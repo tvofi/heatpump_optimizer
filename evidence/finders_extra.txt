@@ -1,0 +1,36 @@
+== wtb m4 realhours
+CELL dst-and-month-days day=23h 15min:steps=92/92,err=0.00e+00 hourly:steps=92/92,err=0.00e+00 month_real_hours=743 month_hours=743 coverage_full=1.000000
+CELL dst-and-month-days day=25h 15min:steps=100/100,err=0.00e+00 hourly:steps=100/100,err=0.00e+00 month_real_hours=745 month_hours=745 coverage_full=1.000000
+CELL dst-and-month-days day=month_boundary 15min:steps=96/96,err=2.22e-16 hourly:steps=96/96,err=2.22e-16 month_real_hours=744 month_hours=744 coverage_full=1.000000
+RESULT coverage_full_23h=1.000000 ratio
+RESULT coverage_full_25h=1.000000 ratio
+RESULT coverage_full_month_boundary=1.000000 ratio
+== wtb monthly
+RESULT avail_none_cycles=1 count
+RESULT first_scale=2688.0 ratio
+RESULT swing=1651.06 currency
+== wt m4 realhours
+CELL dst-and-month-days day=23h 15min:steps=92/92,err=0.00e+00 hourly:steps=92/92,err=0.00e+00 month_real_hours=743 month_hours=743 coverage_full=1.000000
+CELL dst-and-month-days day=25h 15min:steps=100/100,err=0.00e+00 hourly:steps=100/100,err=0.00e+00 month_real_hours=745 month_hours=745 coverage_full=1.000000
+CELL dst-and-month-days day=month_boundary 15min:steps=96/96,err=2.22e-16 hourly:steps=96/96,err=2.22e-16 month_real_hours=744 month_hours=744 coverage_full=1.000000
+RESULT coverage_full_23h=1.000000 ratio
+RESULT coverage_full_25h=1.000000 ratio
+RESULT coverage_full_month_boundary=1.000000 ratio
+== wt monthly
+RESULT avail_none_cycles=0 count
+RESULT first_scale=0.0 ratio
+RESULT swing=0.00 currency
+== wtb m4 plain
+RESULT coverage_full_23h=1.001346 ratio
+RESULT coverage_full_25h=1.000000 ratio
+== wtb monthly gate null
+RESULT avail_none_cycles=0 count
+RESULT first_scale=0.0 ratio
+RESULT swing=0.00 currency
+== wt m4 plain
+RESULT coverage_full_23h=1.000000 ratio
+RESULT coverage_full_25h=1.000000 ratio
+== wt monthly gate null
+RESULT avail_none_cycles=0 count
+RESULT first_scale=0.0 ratio
+RESULT swing=0.00 currency

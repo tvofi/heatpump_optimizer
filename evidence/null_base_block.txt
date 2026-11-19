@@ -1,0 +1,11 @@
+  FAIL R11-SEAM-money: month_hours counts a month's real hours in its zone (743 / 745 across DST, 744 in UTC)  [{'March, spring forward': (744.0, 743.
+  FAIL R11-SEAM-money: a spring-forward March settled every real hour scales by exactly 1.0  [1.0013458950201883]
+  FAIL R11-SEAM-money: coverage_factor is None a quarter-hour under MIN_COVERAGE_HOURS and scales at it  [28.294736842105262 / 28.0]
+  FAIL R11-SEAM-money: the calendar-day fallback is None before the month has run MIN_COVERAGE_HOURS  [28.0]
+  FAIL R11-SEAM-money: one settled quarter gives the open month no row; the closed month's row is unchanged  [[{'month': '2026-01', 'baseline_sek': 96
+  FAIL R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows  [None / None]
+  FAIL R11-SEAM-money: on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR  [(['HUF', 'HUF/kWh', 'HUF/kWh', 'HUF/m
+  ok   R11-SEAM-money: with no feed code, or a Tibber source, the options dialog keeps the instance currency
+  ok   R11-SEAM-money: a Monday fee rule applies on a Monday and on neither neighbour (D2-s3-04, pinned)
+  ok   R11-SEAM-money: a day of prices averaging exactly the 1e-6 floor is not learned; 2e-6 is
+7 of 10 R11 CHECKS FAILED

@@ -1,0 +1,30 @@
+M1_real_hours_utc_removed: rc=1 KILLED
+    FAIL R11-SEAM-money: month_hours counts a month's real hours in its zone (743 / 745 across DST, 744 in UTC)  [{'March, spring forward': (744.0, 743.0), 'October
+    FAIL R11-SEAM-money: a spring-forward March settled every real hour scales by exactly 1.0  [1.0013458950201883]
+M2_settled_floor_removed: rc=1 KILLED
+    FAIL R11-SEAM-money: coverage_factor is None a quarter-hour under MIN_COVERAGE_HOURS and scales at it  [28.294736842105262 / 28.0]
+    FAIL R11-SEAM-money: one settled quarter gives the open month no row; the closed month's row is unchanged  [[{'month': '2026-01', 'baseline_sek': 96.0, 'actual_
+    FAIL R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows  [None / None]
+M3_fallback_floor_removed: rc=1 KILLED
+    FAIL R11-SEAM-money: the calendar-day fallback is None before the month has run MIN_COVERAGE_HOURS  [28.0]
+M4_savings_none_as_one: rc=1 KILLED
+    FAIL R11-SEAM-money: one settled quarter gives the open month no row; the closed month's row is unchanged  [[{'month': '2026-01', 'baseline_sek': 96.0, 'actual_
+    FAIL R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows  [None / None]
+M5_waiting_for_none: rc=1 KILLED
+    FAIL R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows  [None / None]
+M6_figure_currency_reversed: rc=1 KILLED
+    FAIL R11-SEAM-money: on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR  [(['HUF', 'HUF/kWh', 'HUF/kWh', 'HUF/m³'], 'HUF', 
+M7_price_feed_no_source_test: rc=1 KILLED
+    FAIL R11-SEAM-money: with no feed code, or a Tibber source, the options dialog keeps the instance currency  [(['HUF', 'HUF/kWh', 'HUF/kWh', 'HUF/m³'], 'HUF', '5
+M8_money_resolve: rc=1 KILLED
+    FAIL R11-SEAM-money: on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR  [(['HUF', 'HUF/kWh', 'HUF/kWh', 'HUF/m³'], 'EUR', 
+M9_grid_fee_errors_resolve: rc=1 KILLED
+    FAIL R11-SEAM-money: on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR  [(['EUR', 'EUR/kWh', 'EUR/kWh', 'EUR/m³'], 'EUR', 
+M10_usable_day_lt: rc=1 KILLED
+    FAIL R11-SEAM-money: a day of prices averaging exactly the 1e-6 floor is not learned; 2e-6 is
+M11_min_coverage_quarter: rc=1 KILLED
+    KeyError: '2026-02'
+M12_fee_placeholders_resolve: rc=1 KILLED
+    FAIL R11-SEAM-money: on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR  [(['EUR', 'EUR/kWh', 'EUR/kWh', 'EUR/m³'], 'HUF', 
+M13_waiting_for_estimated_any_dropped: rc=1 KILLED
+    FAIL R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows  ['open_month_coverage' / 'open_month_coverage']
