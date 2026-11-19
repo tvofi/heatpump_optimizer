@@ -144,3 +144,4 @@
 1795049173 CKPT D3-s1 533 file(s)
 1795049173 HB alive
 1795049191 CKPT D3-s1 533 file(s)
+1795049199 HB K2 OOM-killed twice since reboot (4 then 3 workers, rc=137); D3-s1 seat re-dispatched to resume from its checkpoint (82/242 complete)
