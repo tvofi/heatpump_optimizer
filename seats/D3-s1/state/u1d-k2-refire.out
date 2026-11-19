@@ -88,3 +88,10 @@
 2026-11-19T13:06:11Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CLAMP_DROP 11808d14#2 L2576 by=- ran=12 wall=1505.1s
 2026-11-19T13:17:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CLAMP_DROP 4cc7cd0a L2581 by=- ran=12 wall=1487.9s
 2026-11-19T13:18:56Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:wood_share CLAMP_DROP 264daabe L2915 by=tests/features.py ran=12 wall=1491.8s
+2026-11-19T13:35:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.update_ecl110_displace_state CLAMP_DROP 2aa73e81 L3567 by=- ran=13 wall=1782.3s
+2026-11-19T13:42:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 58df506a L4695 by=- ran=12 wall=1480.9s
+2026-11-19T13:43:25Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 739f3fbc L4714 by=- ran=13 wall=1469.1s
+2026-11-19T14:02:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair RETURN_DEL 10a0eb35 L2788 by=- ran=12 wall=1585.5s
+2026-11-19T14:08:39Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.arm RETURN_DEL a9322b69 L1481 by=tests/features.py ran=12 wall=1575.2s
+RESULT load1=1.15
+RESULT thread_factor=1.00
