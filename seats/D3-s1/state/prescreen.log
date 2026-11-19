@@ -640,3 +640,4 @@
 2026-11-19T08:27:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:learner_newton_step CMP_BOUND e46c5e3e L3073 by=- ran=13 wall=1935.0s
 2026-11-19T08:30:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._on_power_event CMP_BOUND ff55e496 L8785 by=- ran=13 wall=1735.9s
 2026-11-19T08:33:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND b8bcfb6f L6602 by=- ran=12 wall=1738.2s
+2026-11-19T08:36:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.buffer_tank_heat_loss_coefficient CLAMP_DROP 581f45bc L677 by=- ran=14 wall=1750.9s
