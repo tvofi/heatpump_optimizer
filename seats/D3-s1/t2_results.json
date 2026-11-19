@@ -180,5 +180,33 @@
   "should_fail": "tests/features.py, tests/dst_checks.py, tests/entities.py reference _on_power_event but cover neither case",
   "input": "10 kW fuse, 5 kW meter, 3 kW tracker peak",
   "direction": "guard threshold down 10 -> 3 kW; suppression False -> True with the tariff disabled"
+ },
+ "5cc84148fa68bda1": {
+  "site": "grid_fee.py:383",
+  "src": "c3c6",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+  "baseline": "min_component label=fixed",
+  "mutant": "label=rules",
+  "null_delta": "0 count",
+  "verdict": "finding (low: label only, value_delta=0.0)",
+  "symbol": "grid_fee:GridFeeSchedule.min_component line 383",
+  "reach": "reach_from_config_tie=1; label matters only when value<0 (coordinator.py:7628)",
+  "should_fail": "tests/features.py ~17746-17766 has no tie case",
+  "input": "fixed=-0.25 and a rule '= -0.25'",
+  "direction": "label_changed 0 -> 1 (fixed -> rules)"
+ },
+ "c38d53ab787ddbfa": {
+  "site": "price_model.py:252",
+  "src": "c2",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+  "baseline": "accepted=0",
+  "mutant": "accepted=1",
+  "null_delta": "0 count",
+  "verdict": "finding (low: separates only at a day mean of exactly 1e-6, which PriceShapeLearner.fold admits; reach in real price days not measured)",
+  "symbol": "price_model:PriceShapeLearner.observe_day_quarters line 252 (via fold, price_model.py:452)",
+  "reach": "reach_real_price_days_at_boundary=0 is asserted not measured; separable only via a hand-built vector whose np.mean is exactly 1e-6 (48x0.0 + 48x2e-6)",
+  "should_fail": "tests/features.py ~18732-18792 has no zero-mean boundary case",
+  "input": "48 quarters 0.0 + 48 of 2e-6",
+  "direction": "accepted quarter-days up 0 -> 1"
  }
 }
