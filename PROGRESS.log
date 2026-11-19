@@ -251,3 +251,4 @@
 1795097329 CKPT D3-s1 731 file(s)
 1795097923 HB alive
 1795098249 CKPT D3-s1 731 file(s)
+1795098254 HB D3-s1 seat lost in the 13:35 UTC session restart; its full-net driver finished 14:08 (241/242, the excluded key is the _ensure_worker leak mutant); checkpointed; re-dispatching D3-s1 through gate to write its report
