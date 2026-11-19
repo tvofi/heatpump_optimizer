@@ -31,3 +31,4 @@
 2026-11-19T08:14:59Z K2 milestone: complete/ holds 203
 2026-11-19T11:58:02Z K2 milestone: complete/ holds 228
 2026-11-19T14:26:22Z re-fire 3 on D3-u1d: worktree == checkpoint; K1 done (309), K2 241/242 complete (dc6c13ec leak key left), 1 TIMEOUT (f68e6ba7), 86 M4 answers pending; null + posctl relaunched (load1 0.30)
+2026-11-19T14:52:16Z re-fire 3: null LIVES (16), posctl 2/2 KILLED; 85 M4 answers added; dc6c13ec features.py arms: mutant capped 40 process_worker in 25.8 s, null peak 3 rc 0 794.5 s; f68e6ba7 TIMEOUT re-driving alone
