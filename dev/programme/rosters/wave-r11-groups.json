@@ -4752,7 +4752,9 @@
    "class": "production",
    "severity": "low",
    "size": "S",
-   "issues": [],
+   "issues": [
+    3746
+   ],
    "fixes": [],
    "findings": [
     "D7-s1-06",
