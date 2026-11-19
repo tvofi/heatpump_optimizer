@@ -1,8 +1,0 @@
-{
-"33d708ab867fe5e7": {"answer": "coordinator.py:10262 _predicted_next_room_temp: max(time_step_minutes, 1.0) -> time_step_minutes. The step is validated >= 5 min. Equivalent on reachable inputs.", "kind": "equivalent"},
-"33f34d42b3bd2d73": {"answer": "thermal_model.py:4723 simulate_trajectory_batch: drawn_safe where drawn > 0 -> >= 0. At drawn == 0 the divisor becomes 0, but cond_scale is then False (0 > delivered fails for delivered > 0), so np.where picks 1.0; only a RuntimeWarning differs. Equivalent in value.", "kind": "equivalent"},
-"341d807c3a3d361d": {"answer": "coordinator.py:9030 _maybe_run_fuse_advisor: feasible = breach <= 0.05 -> < 0.05. Only a breach of exactly 0.05 K differs. Boundary; near-equivalent.", "kind": "boundary"},
-"349b2e117d076731": {"answer": "coordinator.py:6747 _update_current_state: the stale-wood-probe fallback branch (warn and fall back to the last value) is disabled. Should fail: a wood-tank test where the probe goes unavailable after a good reading, asserting the fallback temperature and the single warning; no test makes the wood probe go stale.", "kind": "gap"},
-"34c20aac32a34344": {"answer": "coordinator.py:9273 _track_curve_comfort: bias < 0.0 -> <= 0.0, so a miss is recorded with zero bias as well. Should fail: a curve-comfort test with an untrained curve learner (bias 0) and a negative margin asserting no miss is recorded.", "kind": "gap"},
-"355c3d7dd36a1b90": {"answer": "coordinator.py:5782 _async_learn_house_heat_loss: delta_t < MIN_DELTA -> <=. Only exactly the minimum delta differs. Boundary; near-equivalent.", "kind": "boundary"}
-}
