@@ -1,0 +1,16 @@
+head 559277673d196b1655ff0e57a5cb771b7ca56ceb, macOS arm64 (numpy BLAS: accelerate), detached worktree
+cmd: PYTHONPATH=tests/hastub OPENBLAS_NUM_THREADS=1 python3 tools/audit/seat/features_block.py --prelude "exec(open('<prelude>').read())" '# -- The plan peak under the lift'
+-- unmutated head
+ALL 2 FEATURES BLOCK PASSED
+-- probe: _RL_PEAK_TOL_K = 1.0 (to print the passing figures; reverted, tree clean)
+  FAIL the lift may raise ... [peak none=20.241412 zeros=20.241412 lift=20.482126 lift min past 3 h=19.999999 max |zeros-none|=0 K, tolerance 1.0 K]
+-- mutant headroom: rooms.py "]) - margins" -> "]) - margins - 0.1"
+  FAIL the lifted floor reaches the comfort target ... [gap to target [0.1, 0.15, 0.2125, 0.275, 0.3375, 0.4]]
+  FAIL the lift may raise ... [peak none=20.241412 zeros=20.241412 lift=20.370671 lift min past 3 h=19.899940 max |zeros-none|=0 K, tolerance 0.001 K]
+2 of 2 FEATURES BLOCK FAILED
+-- mutant clip: "np.minimum(band, ramp)" -> "np.minimum(band * 0.5, ramp)"
+  FAIL the lifted floor reaches the comfort target ... [gap to target [0.25, 0.275, 0.3375, 0.4, 0.5]]
+  FAIL the lift may raise ... [peak none=20.241412 zeros=20.241412 lift=20.241412 lift min past 3 h=19.583225 max |zeros-none|=0 K, tolerance 0.001 K]
+2 of 2 FEATURES BLOCK FAILED
+rooms.py restored after each: git diff --quiet clean
+merge-base cb8edb65a5a9c0940dbe263acee49e02ba5f0b25; diff: tests/features.py, dev/programme/delivery/3815.md only; merge-tree vs origin/main rc 0
