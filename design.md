@@ -207,3 +207,63 @@ split. `solve_gate.py` is a new tracked file: a measured closure
   move them to the gate. Carry: R11-SEAM-cycle-solve (item flag-readers)
 - H's delete can re-raise once per restart when entry A's cause is its own
   job's; A's next solve latches it again. Carry: dismissed: one re-raise per restart, re-latched on the next solve (item fallback-flap)
+
+## Amendment 1 (fix review of #3738 at 1cf4d759, block e80c8c4a): the trailing arm
+
+**What §3 B assumed.** `_async_update_data`'s `finally` schedules
+`async_request_refresh()` as a background task, "which lands after the
+debouncer's lock is free". No spawn order makes that true. Upstream's
+`Debouncer.async_call` (2025.2.0) holds `_execute_lock` while it awaits the job,
+which `hass.async_run_hass_job` runs as a separate eagerly started task. It arms
+the cooldown timer only after that task ends. A call that meets the held lock
+with no timer is dropped ("any call is good, so abort"). So whenever the refresh
+that took the request is the debouncer's own job (`--origin debounced`: every
+user writer, the setup's first solve), the trailing request is lost.
+
+**Scratch model.** A loop model of that call path: the lock, the eager job task,
+and the timer armed after the job. It counts the refreshes run when the job
+requests one from its own tail:
+
+| job | trailing spawn | refreshes |
+|---|---|---|
+| never suspends | eager (the head) | 1 (lost) |
+| never suspends | non-eager | 2 |
+| suspends once | eager | 1 (lost) |
+| suspends once | non-eager | 1 (lost) |
+| suspends once | non-eager plus one `sleep(0)` hop | 2 |
+
+A real refresh always suspends (reads, fetches, the solve). Its last step
+queues the spawned task before the job task's done-callback wakes
+`async_call`, so the spawn meets the held lock. The reviewer's repro never
+suspended, which is why `eager_start=False` looked sufficient there.
+
+**Chosen: (b).** The trailing arm runs `async_refresh()` directly, spawned with
+`eager_start=False` (`_spawn`'s new flag, passed to upstream
+`async_create_task`). It does not go through the debouncer:
+
+    refreshing -> trailing -> refresh finally -> non-eager task -> async_refresh
+
+- **Ordering.** The task starts after the refresh that owed it has returned.
+  Its `_async_refresh` cancels any armed cooldown (`_debounced_refresh.async_cancel()`,
+  upstream and stub alike) and returns at once after shutdown
+  (`_shutdown_requested`).
+- **Reload or unload.** The spawn is still skipped on a released entry, and
+  `async_shutdown` cancels a running refresh through `_refresh_task`.
+- **Overlap.** A request landing during the trailing refresh is absorbed by the
+  same gate, so at most one trailing refresh runs per refresh.
+
+**Not taken.**
+- **(a) A non-eager spawn plus a `sleep(0)` hop before `async_request_refresh()`.**
+  It lands in the model, but only because of the order of upstream's internal
+  steps: one loop step between the job's end and `async_call`'s
+  `_schedule_timer`. Any await upstream adds there drops the request again,
+  silently.
+- **(c) A `Debouncer` subclass arming a trailing call.** §4 already rejected it.
+  It reads upstream's private `_execute_lock`/`_execute_at_end_of_timer`, and
+  `tests/hastub` would have to mirror them.
+
+**Test owed.** `tests/features.py` drives the trailing arm through a
+debouncer with upstream's call path, with every state read suspending. The
+head of #3738 fails it (`debounced` 1 refresh); the fix passes it (2). Its
+null controls: a direct-origin write gives 2, and no write gives 1 for each
+origin.
