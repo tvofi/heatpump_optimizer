@@ -4,7 +4,7 @@ What changes, per finding:
 
 - **D1-s1-03.** The coordinator overrides `async_request_refresh`, and every writer reaches the override. `solve_gate.absorb_request` routes each request:
   - during a solve, it records the #1754 re-run;
-  - during a refresh that is not solving, it marks one trailing refresh, which `_async_update_data`'s `finally` schedules through `_spawn`;
+  - during a refresh that is not solving, it marks one trailing refresh. `_async_update_data`'s `finally` spawns it as a direct `async_refresh()` in a non-eager task (`_spawn(..., eager_start=False)`), so it starts once the refresh that owed it has returned. This is design amendment 1 at `design/R11-SEAM-cycle-solve` 85feefccce9a; see `## Review block repaired`;
   - otherwise, the debouncer gets it. Home Assistant's debouncer drops a call made while it executes.
 - **D17-s3-01.** `solve_gate.async_optimize_now` is the button's and the `run_optimization` action's one path: a single `async_refresh` that fetches, solves, actuates and publishes. A fixed mode, whose refresh solves nothing, solves its private plan first. The button no longer solves beside the refresh. The reason a run did not happen comes from the solve, which the cycle now records on the gate. A failed refresh maps to `no_prices` for the price-coverage `tibber_fetch_failed` and to `solve_failed` otherwise.
 - **D9-s1-01.** `async_diagnose_interval` republishes the insight view and requests no refresh.
@@ -31,7 +31,7 @@ Departures from the design, each listed here for the reviewer to judge:
 
 ## Head
 
-8d5e340f5ee79ac0c9bc15514c9de91818bc6a50, merge base ae0ed64af898d8923ac35afe6e9c031ac1e6b111, which is `origin/main`'s tip at 2026-11-18T16:33:14Z. The harnesses ran at b8aaa5ad7b09a26dfd77cc4d986a9749dfed52ea. The later commits touch no production file: `git diff --quiet b8aaa5ad7b09 8d5e340f5ee7 -- custom_components && echo PROD-IDENTICAL` printed PROD-IDENTICAL.
+6b9b3ce8a74f113e846d3f20869122621f835c46, the code head of this handoff: 1cf4d759 plus the one commit repairing review block e80c8c4a (`## Review block repaired`), merge base 8751943e17ef4d3ec699e7859ae829b4528d8ce7. Figures under `## Review block repaired` were taken at 6b9b3ce8; the rest were taken at 8d5e340f (merge base ae0ed64af898d8923ac35afe6e9c031ac1e6b111), and the harnesses ran at b8aaa5ad7b09a26dfd77cc4d986a9749dfed52ea. The later commits up to 8d5e340f touched no production file: `git diff --quiet b8aaa5ad7b09 8d5e340f5ee7 -- custom_components && echo PROD-IDENTICAL` printed PROD-IDENTICAL.
 
 ## Mutation proof
 
@@ -39,7 +39,7 @@ Each production edit was made alone in a scratch worktree at c8ead87, and the bl
 
 - `absorb_request`'s refreshing arm deleted → FAIL "solve_gate: an idle request is not absorbed and sets nothing; one during a refresh trails it once; …" and FAIL "D1-s1-03: a request during a refresh trails it, one during a solve re-runs it, and only an idle one reaches the debouncer …".
 - The override's `if not solve_gate.absorb_request(...)` changed to `if True:` → FAIL "D1-s1-03: a request during a refresh trails it, …".
-- The `finally`'s `take_trailing` guard changed to `if False:` → FAIL "D1-s1-03: a request landing while a refresh runs is answered by one more debounced refresh once it ends, …" `[(0, True)]`.
+- The `finally`'s `take_trailing` guard changed to `if False:` → FAIL "D1-s1-03: a request landing while a refresh runs is answered by one more refresh once it ends, …" (measured at 8d5e340f; that check's text and its counter changed at 6b9b3ce8, see `## Review block repaired`).
 - `admit_background`'s `if gate.background_taken: return False` deleted → FAIL "D9-s1-02: one background what-if per main solve …" `[admissions [True, True, True]]`.
 - `begin_solve`'s `gate.background_taken = False` deleted → same check, `[True, False, False]`.
 - `user_slot`'s `if ticket != gate.user_waiting:` changed to `if False:` → FAIL "D9-s1-03: of four overlapping user what-ifs only the one in flight and the newest solve; …".
@@ -90,7 +90,7 @@ The harnesses come from `$EXPORT` = `git archive 819aa2e354b4 dev/audit/rounds/r
   - `tests/harness_headers.py`: only the committed-output check failed before the regenerated round-4 claims were committed.
 - Gate scope: the block below, from the recorded closures; before they were recorded, `closure.py select --diff ae0ed64af898` read `MODE: FULL` (`solve_gate.py` was in no closure). Run locally of that scope: `features.py`, `entities.py`, `harness_headers.py`, `structure.py`, `worker_deadlines.py` and `debug_collect.py`; the rest is CI's (the brief's scoped-prepr rule). The closures were recorded by `tests/derive_closures.sh --single tests/config_flow_steps.py` and by `--scripts-from` over the 21 scripts whose closure read the coordinator, button, services or whatif module but not `solve_gate.py`, merged with `closure.py merge --partial`. After that, `python3 tools/pr/ci_predict.py` predicts no closures, fast, governance or instrument red.
 - Structure: `python3 tests/structure.py --record`, against the base's budgets: `coordinator_attrs` 136 → 135, `coordinator_multiassigned_attrs` 104 → 102, `max_class_loc` 7875 → 7873, `class_excess_loc` 17382 → 17380. The reason is in the commit message.
-<!-- figure-block: scope-line mb=ae0ed64af898d8923ac35afe6e9c031ac1e6b111 head=8d5e340f5ee79ac0c9bc15514c9de91818bc6a50 -->
+<!-- figure-block: scope-line mb=8751943e17ef4d3ec699e7859ae829b4528d8ce7 head=6b9b3ce8a74f113e846d3f20869122621f835c46 -->
 ~~~text
 MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 ~~~
@@ -145,9 +145,32 @@ Every site below is disposed as "pinned by mutation-autofix", and the named chec
 - custom_components/heatpump_optimizer/solve_gate.py:164 RETURN_DEL: pinned by mutation-autofix ("D17-s3-01: a refresh failed on prices that cover no step …")
 - custom_components/heatpump_optimizer/whatif.py:182 RETURN_DEL: pinned by mutation-autofix ("D9-s1-04: the reference days are one shippable function …")
 
+## Review block repaired
+
+Block e80c8c4a, from the review of 1cf4d759 ("Design §3 B's trailing arm does not do what it claims under upstream Home Assistant").
+
+- **Cause.** Upstream's `Debouncer.async_call` holds `_execute_lock` while it awaits the job, which runs as a separate eager task, and arms the cooldown only after that task ends. A trailing `async_request_refresh()` spawned from a debounced refresh's `finally` meets the held lock with no timer, and is dropped.
+- **The reviewer's suggested `eager_start=False` is not enough.** Once the job has suspended, which a real refresh always does, the spawned task is queued ahead of `async_call`'s wake-up, so it still meets the lock. Measured below (mutant 1).
+- **Fix.** This changes the approved design. It is recorded as amendment 1 at `design/R11-SEAM-cycle-solve` 85feefccce9a: the alternatives and the scratch-model table, with the orchestrator's choice of (b) under mandate 6893738184.
+  - The `finally` spawns `self.async_refresh()` directly, non-eagerly. `_spawn` forwards keyword arguments to `hass.async_create_task`.
+  - Upstream's `_async_refresh` cancels an armed cooldown, and returns at once after shutdown.
+  - `tests/harness.py`'s `FakeHass` and `EagerHass` take upstream's `async_create_task(target, name=None, eager_start=True)` signature. `EagerHass` refuses a non-eager task, as it already refuses one that suspends: it has no loop to defer to.
+- **New check** (`tests/features.py`, solve_gate block): "D1-s1-03: under upstream's debouncer, a write landing while a debounced refresh runs is answered by one more refresh once it has returned, never nested inside it, …".
+  - It drives `_SgUpstreamDebouncer`, upstream 2025.2.0's call path: the lock, an eager job task, the timer armed after the job, and a drop on a held lock.
+  - Every state read suspends.
+  - It records the refresh count, and the nesting of the refreshes (`(` at each `async_refresh` entry, `)` at its return).
+- **The existing trailing check** now counts refreshes, not debouncer calls. Expected `(0, 2, False)`: 0 debouncer calls, 2 refreshes, trailing mark spent.
+- Block runs: `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude 'exec(open(PRELUDE).read())' '# -- R11-SEAM-cycle-solve: when a solve runs (solve_gate)'`, with the prelude from `--emit-prelude` at this tree:
+  - 1cf4d759's production code with the new tests: 2 FAIL of 13. The new check reads `{('debounced', True): 1, ('debounced', False): 1, ('direct', True): 2, ('direct', False): 1}` (the controls hold; the debounced write is lost). The trailing check reads `(1, 1, False)`.
+  - The fix: 0 FAIL, 13 ok.
+  - Mutant 1, the reviewer's suggestion (`self._spawn(self.async_request_refresh(), eager_start=False)`): 2 FAIL. The debounced write is lost (`(1, '()')`).
+  - Mutant 2, an eager direct refresh (`self._spawn(self.async_refresh())`): 1 FAIL. Two refreshes run, but nested (`(2, '(())')`), so the older refresh publishes last.
+  - The null control is inside the check: with no write, each origin runs exactly `(1, '()')`. A direct-origin write gives `(2, '()()')` at both ends.
+- **Ratchet.** The fix first grew the coordinator class by 7 lines (`class_excess_loc`, `max_class_loc`). It was paid by folding the `_spawn` docstring and the comment, with no raise. `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
+
 ## Red checks
 
-- `mutation` at 8d5e340f5ee7: red by construction on the 38 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `tests / mutation` at 8d5e340f5ee7: red by construction on the 38 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
 
 ## Forward-carry
 
@@ -160,3 +183,4 @@ Every site below is disposed as "pinned by mutation-autofix", and the named chec
 
 - harness-port: stale: the finder's `$EXPORT/dev/audit/rounds/round11/D1/s1/m4_race.py` raises `KeyError: '_vent_cusum'` at the merge base because main's `d1-solve-state` census grew a name its `WRITERS` table lacks; both ends were measured with a two-edit port (Figures) that lives beside its `rl` helper in the export, not in the tree. Carry: dismissed: the round-11 register owns its harnesses
 - frugal-guard: contradiction: the seat brief says to work inline with no subagents, and the session's frugal hook refuses a sixth inline read per prompt and points at a subagent; reads were batched and continued after each background run's wake instead. Carry: dismissed: a seat-environment conflict, recorded for the orchestrator
+
