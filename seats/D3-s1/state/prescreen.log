@@ -566,3 +566,7 @@
 2026-11-19T03:56:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor CMP_BOUND e477a434 L1872 by=- ran=16 wall=1518.4s
 2026-11-19T03:57:32Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CMP_BOUND 219aebba L2055 by=- ran=16 wall=1513.3s
 2026-11-19T03:58:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_raise_fits CMP_BOUND 33694961 L2133 by=- ran=16 wall=1516.6s
+2026-11-19T04:22:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CMP_BOUND 2befee09 L2285 by=- ran=16 wall=1524.7s
+2026-11-19T04:22:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:min_component CMP_BOUND f5134440 L383 by=- ran=12 wall=1425.8s
+2026-11-19T04:22:50Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CMP_BOUND 1c5dbe8e L2303 by=- ran=16 wall=1517.9s
+2026-11-19T04:46:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_apply_pins_to_bounds CMP_BOUND b5267853 L2417 by=- ran=14 wall=1485.5s
