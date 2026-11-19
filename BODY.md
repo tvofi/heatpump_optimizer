@@ -28,7 +28,7 @@ Departures from the note, each made for a measured reason and each open to the r
 
 ## Head
 
-`6da56a3eae049f8400e3f63e17efbae50e56b85f`, measured 2026-11-19 (UTC) on a merge base of `9fe63d00b5` (`git merge-base origin/main HEAD`), `origin/main` at `1723f9fdc9` when this was written (`git merge-tree --write-tree origin/main HEAD` clean with the merge drivers installed, so no second merge). Resumed under the orchestrator's ruling on `refs/heads/inbox/r11-outside-honest-dhw-runs`, INBOX line 2 (2026-11-18T14:45:33Z, mandate 6893738184): from handoff-wip `f33fea5a`, code tip `bafb2d00f7`, which holds `c5111367a9`, `ddc4090264` (`454585e039`, `9de00356af`, `21e945ca7e`, `3e0b02547a`), `2c0f244bba` and the shard 2/8 and 4/8 pins; nothing it carries is dropped. Commits since, first parent:
+`9334f45721d5a4fa54496755eee613c65e698a92`, measured 2026-11-19 (UTC) on a merge base of `9fe63d00b5` (`git merge-base origin/main HEAD`), `origin/main` at `1723f9fdc9` when this was written (`git merge-tree --write-tree origin/main HEAD` clean with the merge drivers installed, so no second merge). Resumed under the orchestrator's ruling on `refs/heads/inbox/r11-outside-honest-dhw-runs`, INBOX line 2 (2026-11-18T14:45:33Z, mandate 6893738184): from handoff-wip `f33fea5a`, code tip `bafb2d00f7`, which holds `c5111367a9`, `ddc4090264` (`454585e039`, `9de00356af`, `21e945ca7e`, `3e0b02547a`), `2c0f244bba` and the shard 2/8 and 4/8 pins; nothing it carries is dropped. Commits since, first parent:
 - `fc35ed57ac`: `dhw_planner.py:617` (`_StoreProgram.plan.place`'s charge bound) and `:699` (`commit_charges`' walk ceiling) each killed by a check by value (`## Mutation proof`).
 - `748ddfb59d`: `origin/main` `9fe63d00b5` merged with the drivers. `tests/golden/claimed_drift.txt` conflicted (claims-for 10.0.3 here, 10.1.0 on main after the stamp emptied the list): main's file with this branch's two claims (`cycling_cost`, `everything_on`) and the suspensions of their may-drift entries restated; R11-OUTSIDE-HONEST-METERED-FLOOR's `coord_*` claims stay emptied (merged and stamped). `tests/features.py` (both blocks kept), `tests/structure_budgets.json` and `tests/closures.json` merged under the drivers; `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, no budget raised.
 - `e83047f512`: the combi slack check of `2c0f244bba` repaired (`## Red checks`).
@@ -37,6 +37,7 @@ Departures from the note, each made for a measured reason and each open to the r
 No production line changes in this round: `git diff bafb2d00f7 6da56a3eae -- custom_components/` adds and removes exactly main's lines (`git diff 99a4010e47 9fe63d00b5 -- custom_components/`): `diff` of the two sorted added-and-removed line sets exits 0, 423 lines each.
 
 prepr: passed rc=0 at 6da56a3eae049f8400e3f63e17efbae50e56b85f (`PREPR_SKIP_CLOSURES=1`).
+- Since `6da56a3eae`, the handoff tip `9334f45721` also holds: `b77df3f88d` (test: pin the store program's running entry), `75cac35ee6` (R11-OUTSIDE-HONEST-DHW-RUNS: the descents check reads the commit stage, where the lower ships), main merges, ci bot records and the delivery row for #3805.
 
 ## Mutation proof
 
@@ -113,7 +114,7 @@ All on one box (x86_64), at `36af54c383993b5d7bcdffe8b83e1e9ca76b17dc` unless na
 - Scope at this head: `python3 tests/closure.py select --diff 5e2ef89b4e --workdir <dir>`: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=5e2ef89b4e ./tests/run.sh` at `684f554faf`: `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN`, exit 0 (`ALL 5864 FEATURE CHECKS PASSED`, `ALL 2731 ENTITY CHECKS PASSED`, `ALL 116 STRESS CHECKS PASSED`). Before the merge, `python3 tests/closure.py select --diff 2d7161a4b7 --workdir <dir>`: 27 scripts run, 6 scoped out. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=2d7161a4b7 ./tests/run.sh` at `2231093947`: 24 scripts passed and `tests/features.py`, `tests/entities.py`, `tests/typing_ruler.py` failed (`## Red checks`); the three alone at `9c4f723721`: `ALL 5812 FEATURE CHECKS PASSED`, `ALL 2723 ENTITY CHECKS PASSED`, `ALL 9 typing-ruler checks PASSED`, exit 0 each.
 - `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures, fast, governance or instrument red predicted against 2d7161a4b709`, and 79 unpinned sites (`## Unpinned sites`).
 
-<!-- figure-block: scope-line mb=9fe63d00b59f100aea67267ddddc95522e164aa1 head=6da56a3eae049f8400e3f63e17efbae50e56b85f -->
+<!-- figure-block: scope-line mb=99436a082c67ad5dbb4afc293506af010d6ee8df head=9334f45721d5a4fa54496755eee613c65e698a92 -->
 ~~~text
 MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 ~~~
