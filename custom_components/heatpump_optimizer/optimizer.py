@@ -2146,9 +2146,16 @@ def _space_only_starts(
     ``_multi_start_minimize`` for why one guess is not enough.
 
     The seeds scale with the share of the reference the wood tank covers,
-    so a tank covering it whole collapses them onto zero (D0-s2-01): the
-    price-ranked seeds are then also drawn at the reference's own energy,
-    and the all-off start brackets the set from below (D0-s3-02).
+    so a tank covering it whole collapses them onto zero (D0-s2-01): one
+    price-ranked seed is therefore also drawn at the reference's own energy,
+    and the all-off start brackets the set from below (D0-s3-02). One, not
+    one per fraction: each nonzero start is a full refinement, and one per
+    fraction doubled the solver work of a covered two-zone solve whose plan
+    none of them moved (stress.py's summer/2z/space/wood-two-tank).
+    A start equal to an earlier one is dropped: it refines into the same
+    plan at the same cost. Where no tank covers the reference, the
+    reference-energy seed is the second start again, and a collapsed seed
+    is the all-off start.
     """
     reference_kwh = float(np.sum(reference_power) * dt)
     covered = _wood_covered_share(model, state, reference_kwh, target)
@@ -2162,16 +2169,12 @@ def _space_only_starts(
         _price_ranked_start(prices, energy, p_max, dt),
         seed_power,  # inside the bounds: the reference never passes the pump
         *(_price_ranked_start(prices, energy * f, p_max, dt) for f in fractions),
+        _price_ranked_start(prices, reference_kwh, p_max, dt),
+        _lower_bound_start(bounds),
     ]
-    if covered > 0.0:
-        starts.extend(
-            _price_ranked_start(prices, reference_kwh * f, p_max, dt)
-            for f in (1.0, *fractions)
-        )
-    starts.append(_lower_bound_start(bounds))
-    # A tank covering the reference whole collapses the scaled seeds and the
-    # all-off start onto one zero schedule: each copy would pay a full descent
-    # and polish to reach the same plan, so only the first is kept.
+    # Seeds coincide (a tank covering the reference whole collapses the
+    # scaled seeds onto the all-off schedule): each copy would pay a full
+    # descent and polish to reach the same plan, so only the first is kept.
     unique: dict[bytes, np.ndarray] = {}
     for start in starts:
         unique.setdefault(np.asarray(start, dtype=float).tobytes(), start)
