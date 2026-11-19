@@ -1,1 +1,0 @@
-aborted under machine load (replay subprocess at 17.5% CPU after 18 min); no figure taken

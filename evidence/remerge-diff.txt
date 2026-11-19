@@ -1,0 +1,25 @@
+diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/config_flow.py
+index edf95944a2..4d721fb548 100644
+--- a/custom_components/heatpump_optimizer/config_flow.py
++++ b/custom_components/heatpump_optimizer/config_flow.py
+@@ -481,19 +481,14 @@ from . import (
+     topology,
+ )
+ from .wood_fuel import wood_furnace_on
+-<<<<<<< 04117e2e7d (ci: pin killed mutants)
+ from .thermal_model import (
+     ThermalParameters,
+     dhw_enabled_from_config,
+     partload_derate_limit,
+     two_zone_from_config,
+ )
+-from .currency import money_scale, resolve_currency
+-=======
+-from .thermal_model import ThermalParameters, _dhw_enabled_from_config, partload_derate_limit
+ from .currency import figure_currency, money_scale
+ from .price_model import price_feed
+->>>>>>> 8ab5dc566f (Merge pull request #3726 from tvofi/fix/r11-seam-money)
+ from .dhw_schedule import (
+     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
+     MIN_WINDOW_MINUTES,
