@@ -1640,16 +1640,27 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
   const captions = [".legend-note", ".hl-caveat", ".sb-text", ".viewctl button",
     ".setup-hint", ".setup-result", ".setup-dest", ".fact-basis", ".fact-note",
     ".fact-text .fact-sub", ".health-mark", ".whatif .wi-hint", ".fact-row.unpriced .fact-value"];
-  const unfloored = captions.filter((c) =>
-    !/font-size: max\(12px, 0\.\d+em\)/.test(ruleOf(c)));
+  // A caption reads a --hpo-text-* step (D4-s3-05), and every step is at or
+  // over 12 px on :host; the dialog multiplies its steps by a scale of 1 or
+  // more (DIALOG_FONT_PX_MIN is the floor scaleFont divides by).
+  const steps = fn("CARD_SCALE_TOKENS");
+  const stepPx = (c) => {
+    const m = /font-size: var\((--hpo-text-[a-z]+), \d+px\)/.exec(ruleOf(c));
+    return m && steps[m[1]] ? parseFloat(steps[m[1]]) : 0;
+  };
+  const unfloored = captions.filter((c) => !(stepPx(c) >= 12));
   check("every caption role is floored at the ramp's 12 px step",
     unfloored.length === 0, unfloored.length ? `unfloored: ${unfloored.join(", ")}` :
       `${captions.length} roles`);
   // H2: the dialog raises the layout bar's buttons with the chip the shared
   // rule names beside them, and on a phone with the legend's touch row.
   check("the layout bar's buttons take the chip's dialog size",
-    /font-size: 1em; border-radius: 1\.3em;/.test(ruleOf("dialog.expanded .layout-bar button")) &&
-    /dialog\.expanded \.layout-bar button \{ font-size: 1rem; \}/.test(cardSrc),
+    (() => {
+      const tok = (sel) => (/font-size: (var\(--hpo-text-[a-z]+, \d+px\))/.exec(ruleOf(sel)) || [])[1];
+      const phone = (sel) => (new RegExp(`${sel.replace(/\./g, "\\.")} \\{ font-size: (var\\(--hpo-text-[a-z]+, \\d+px\\)); \\}`).exec(cardSrc) || [])[1];
+      return !!tok("dialog.expanded .chip") && tok("dialog.expanded .layout-bar button") === tok("dialog.expanded .chip") &&
+        !!phone("dialog.expanded .legend") && phone("dialog.expanded .layout-bar button") === phone("dialog.expanded .legend");
+    })(),
     ruleOf("dialog.expanded .layout-bar button"));
   // H3a, H3b: the rows' surface is their ink's pair, the heading the card's
   // 600. The pair is asserted in ONE rule: the rule that gives a row the

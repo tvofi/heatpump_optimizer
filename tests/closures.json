@@ -4587,6 +4587,7 @@
    "dev/audit/harnesses/r10_water_setpoint_feedback.py",
    "dev/audit/harnesses/r10_weekday_range_twins.py",
    "dev/audit/harnesses/r11_advisor_measures.py",
+   "dev/audit/harnesses/r11_card_pipe_hit.mjs",
    "dev/audit/harnesses/r11_denominator_planted.py",
    "dev/audit/harnesses/r11_honest_starts_runs.py",
    "dev/audit/harnesses/r11_main_cancel_mutants.py",

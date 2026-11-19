@@ -5038,14 +5038,24 @@ for (const d of SERIES_DEFS) {
 function seriesPaint(def) {
   return `var(--hpo-series-${def.key}, ${def.color})`;
 }
-// The scale tokens, the same in both themes.
+// The scale tokens, the same in both themes. `--hpo-text-base` is the body
+// size the dialog's own floor fixes (DIALOG_FONT_PX_MIN, R10-CARD-VOICE H1).
 const CARD_SCALE_TOKENS = {
   "--hpo-space-1": "4px", "--hpo-space-2": "8px", "--hpo-space-3": "12px",
   "--hpo-space-4": "16px", "--hpo-space-5": "24px",
   "--hpo-radius-s": "6px", "--hpo-radius-m": "12px", "--hpo-radius-pill": "999px",
-  "--hpo-text-xs": "12px", "--hpo-text-sm": "13px", "--hpo-text-md": "15px",
-  "--hpo-text-lg": "18px",
+  "--hpo-text-xs": "12px", "--hpo-text-sm": "13px", "--hpo-text-base": "14px",
+  "--hpo-text-md": "15px", "--hpo-text-lg": "18px",
+  "--hpo-type-scale": "1",
 };
+// The type and spacing steps the expanded dialog redefines on itself: each
+// step times `--hpo-type-scale`, which `ExpandedDialog.scaleFont` writes as
+// the dialog's font size over DIALOG_FONT_PX_MIN. At that floor -- every
+// dialog up to about 1333 px wide -- the steps are the scale's own; wider,
+// the dialog's chrome grows with its chart as the em sizing it replaced did.
+const DIALOG_SCALED_TOKENS = ["--hpo-space-1", "--hpo-space-2", "--hpo-space-3",
+  "--hpo-space-4", "--hpo-space-5", "--hpo-text-xs", "--hpo-text-sm",
+  "--hpo-text-base", "--hpo-text-md", "--hpo-text-lg"];
 
 /** The :host block declaring every token for one theme. */
 function tokenDeclarations(darkMode) {
@@ -5137,22 +5147,22 @@ function cardStyleBlock(darkMode) {
           min-height: ${targetFloorPx}px;
         }
         .chip, dialog.expanded .chip {
-          padding: 0.45em 0.85em;
+          padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px);
           line-height: 1.25;
         }
         /* R9-UI-3: the card's own chips are compact pills -- 28 px drawn,
            the floor above still the hit target -- in the token type scale. */
         ha-card .chip {
-          padding: 2px 10px 2px 8px; min-height: ${Math.max(28, targetFloorPx)}px;
+          padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px) var(--hpo-space-1, 4px) var(--hpo-space-2, 8px); min-height: ${Math.max(28, targetFloorPx)}px;
           border-radius: var(--hpo-radius-pill, 999px);
           font-size: var(--hpo-text-sm, 13px); white-space: nowrap; flex: 0 0 auto;
         }
         ha-card .chip .dot { width: 8px; height: 8px; }
-        .dlg-tab { padding: 0.35em 0.9em; }
-        .whatif button { padding: 0.45em 0.85em; }
+        .dlg-tab { padding: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px); }
+        .whatif button { padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); }
         .whatif .wi-remove {
           min-width: ${targetFloorPx}px;
-          padding: 0 0.45em;
+          padding: 0 var(--hpo-space-2, 8px);
         }
         .viewctl button {
           width: auto; height: auto;
@@ -5160,12 +5170,12 @@ function cardStyleBlock(darkMode) {
         }`;
   return themeFallbacks(`
     <style>${tokenDeclarations(darkMode)}
-      ha-card { padding: 12px 12px 8px 12px; }
+      ha-card { padding: var(--hpo-space-3, 12px) var(--hpo-space-3, 12px) var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); }
       ha-card.clickable { cursor: pointer; }
       .header {
-        font-size: 1.15em; font-weight: 500; padding: 2px 4px 8px 4px;
+        font-size: var(--hpo-text-lg, 18px); font-weight: 500; padding: var(--hpo-space-1, 4px) var(--hpo-space-1, 4px) var(--hpo-space-2, 8px) var(--hpo-space-1, 4px);
         color: var(--hpo-text, #212121);
-        display: flex; align-items: center; gap: 8px;
+        display: flex; align-items: center; gap: var(--hpo-space-2, 8px);
       }
       /* R9-UI-3: the mark, the title and the status pill share one wrapping
          line that takes the free width, so the expand button keeps the
@@ -5187,9 +5197,9 @@ function cardStyleBlock(darkMode) {
       /* The status pill: always a word as well as a colour, each pair one of
          the design of record's measured status pairs. */
       .status-pill {
-        display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+        display: inline-flex; align-items: center; gap: var(--hpo-space-1, 4px); flex: 0 0 auto;
         font-size: var(--hpo-text-xs, 12px); font-weight: 500; line-height: 1.4;
-        padding: 3px 10px 3px 8px; border-radius: var(--hpo-radius-pill, 999px);
+        padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px) var(--hpo-space-1, 4px) var(--hpo-space-2, 8px); border-radius: var(--hpo-radius-pill, 999px);
         white-space: nowrap;
       }
       .status-pill::before {
@@ -5221,7 +5231,7 @@ function cardStyleBlock(darkMode) {
          a scroll container. */
       .tiles {
         display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: var(--hpo-space-2, 8px); padding: 0 4px var(--hpo-space-2, 8px) 4px;
+        gap: var(--hpo-space-2, 8px); padding: 0 var(--hpo-space-1, 4px) var(--hpo-space-2, 8px) var(--hpo-space-1, 4px);
       }
       /* A surface-2 block re-points the text tokens at the ink literals, so
          every descendant that reads --hpo-text or --hpo-text-2 is paired
@@ -5254,19 +5264,19 @@ function cardStyleBlock(darkMode) {
         color: var(--hpo-text-2, #727272);
       }
       .tile-v {
-        display: block; margin-top: 2px; font-size: var(--hpo-text-lg, 18px);
+        display: block; margin-top: var(--hpo-space-1, 4px); font-size: var(--hpo-text-lg, 18px);
         font-weight: 600; font-variant-numeric: tabular-nums;
         color: var(--hpo-text, #212121); overflow-wrap: break-word;
       }
       .tile.accent .tile-v .tile-n { color: var(--hpo-accent, #026aa8); }
       .tile-u {
-        margin-left: 3px; font-size: var(--hpo-text-xs, 12px); font-weight: 500;
+        margin-left: var(--hpo-space-1, 4px); font-size: var(--hpo-text-xs, 12px); font-weight: 500;
         color: var(--hpo-text-2, #727272);
       }
       .expand, .close {
         flex: 0 0 auto; display: inline-flex; align-items: center;
         justify-content: center; background: transparent; border: none;
-        padding: 4px; margin: -4px; border-radius: 50%; cursor: pointer;
+        padding: var(--hpo-space-1, 4px); margin: calc(-1 * var(--hpo-space-1, 4px)); border-radius: 50%; cursor: pointer;
         color: var(--hpo-text-2, #727272); font: inherit;
       }
       .expand:hover, .close:hover { color: var(--hpo-text, #212121); }
@@ -5300,8 +5310,8 @@ function cardStyleBlock(darkMode) {
         stroke: var(--hpo-primary, #03a9f4); stroke-width: 2;
       }
       .headline {
-        display: flex; flex-direction: column; gap: 2px;
-        padding: 0 4px 8px 4px;
+        display: flex; flex-direction: column; gap: var(--hpo-space-1, 4px);
+        padding: 0 var(--hpo-space-1, 4px) var(--hpo-space-2, 8px) var(--hpo-space-1, 4px);
       }
       /* The savings and score stay (CLAUDE.md: never delete working
          functionality merely to fit), drawn in the tile style above. */
@@ -5314,7 +5324,7 @@ function cardStyleBlock(darkMode) {
         color: var(--hpo-text-2, #727272);
       }
       .hl-value {
-        display: block; margin-top: 2px; font-size: var(--hpo-text-md, 15px);
+        display: block; margin-top: var(--hpo-space-1, 4px); font-size: var(--hpo-text-md, 15px);
         font-weight: 600; font-variant-numeric: tabular-nums;
         color: var(--hpo-text, #212121); overflow-wrap: break-word;
       }
@@ -5322,7 +5332,7 @@ function cardStyleBlock(darkMode) {
          to live only in the hover title. Kept small and muted so it reads
          as a footnote, not a second value competing with the number. */
       .hl-caveat {
-        display: block; font-size: max(12px, 0.82em); font-weight: 400;
+        display: block; font-size: var(--hpo-text-sm, 13px); font-weight: 400;
         color: var(--hpo-text-2, #727272);
       }
       /* R9-UX-8: the narrative is one surface-2 panel of rows (label left,
@@ -5331,7 +5341,7 @@ function cardStyleBlock(darkMode) {
          A media query would read the viewport, not the card's own column
          on a desktop dashboard. */
       .hl-narrative {
-        list-style: none; margin: 6px 0 0; font-size: var(--hpo-text-sm, 13px);
+        list-style: none; margin: var(--hpo-space-1, 4px) 0 0; font-size: var(--hpo-text-sm, 13px);
         display: grid; gap: var(--hpo-space-2, 8px) var(--hpo-space-5, 24px);
         grid-template-columns: repeat(auto-fit,
           minmax(max(min(100%, 348px), calc(50% - 13px)), 1fr));
@@ -5347,7 +5357,7 @@ function cardStyleBlock(darkMode) {
         display: flex; align-items: center; gap: var(--hpo-space-2, 8px);
         width: 100%; min-height: ${Math.max(32, targetFloorPx)}px; margin: 0;
         box-sizing: border-box;
-        padding: 4px var(--hpo-space-3, 12px) 4px 4px;
+        padding: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px) var(--hpo-space-1, 4px) var(--hpo-space-1, 4px);
         background: none; border: 0; border-top: 1px solid var(--hpo-divider, #e0e0e0);
         color: var(--hpo-text, #212121); font: inherit;
         font-size: var(--hpo-text-sm, 13px); text-align: left; cursor: pointer;
@@ -5357,7 +5367,7 @@ function cardStyleBlock(darkMode) {
         border-radius: 4px;
       }
       .hl-fold-chev {
-        flex: none; width: 6px; height: 6px; margin: 0 4px;
+        flex: none; width: 6px; height: 6px; margin: 0 var(--hpo-space-1, 4px);
         border-right: 2px solid var(--hpo-text-2, #727272);
         border-bottom: 2px solid var(--hpo-text-2, #727272);
         transform: rotate(-45deg); transition: transform 0.15s;
@@ -5394,14 +5404,14 @@ function cardStyleBlock(darkMode) {
       .hl-stat.hl-score { cursor: pointer; }
       /* Click-opened score breakdown (#2): one row per sub-score. */
       .score-breakdown {
-        display: flex; flex-direction: column; gap: 6px;
-        padding: 6px 8px; margin-top: 2px;
+        display: flex; flex-direction: column; gap: var(--hpo-space-1, 4px);
+        padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px); margin-top: var(--hpo-space-1, 4px);
         border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 6px;
       }
-      .sb-row { display: flex; flex-direction: column; gap: 1px; }
+      .sb-row { display: flex; flex-direction: column; gap: var(--hpo-space-1, 4px); }
       .sb-head {
-        display: flex; align-items: center; gap: 8px; font-size: 0.82em;
+        display: flex; align-items: center; gap: var(--hpo-space-2, 8px); font-size: var(--hpo-text-sm, 13px);
       }
       .sb-name { font-weight: 600; color: var(--hpo-text, #212121); }
       .sb-bar {
@@ -5418,19 +5428,19 @@ function cardStyleBlock(darkMode) {
         font-weight: 400; color: var(--hpo-text-2, #727272);
         font-style: italic;
       }
-      .sb-text { font-size: max(12px, 0.78em); color: var(--hpo-text-2, #727272); }
+      .sb-text { font-size: var(--hpo-text-xs, 12px); color: var(--hpo-text-2, #727272); }
       .legend {
-        display: flex; flex-direction: column; gap: 4px; padding: 0 2px 8px 2px;
+        display: flex; flex-direction: column; gap: var(--hpo-space-1, 4px); padding: 0 var(--hpo-space-1, 4px) var(--hpo-space-2, 8px) var(--hpo-space-1, 4px);
       }
-      .legend-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .legend-chips { display: flex; flex-wrap: wrap; gap: var(--hpo-space-1, 4px); }
       /* One rule, two surfaces: the legend's own chips and the layout bar's
          buttons are the same control, so the bar cannot drift into an
          unstyled set of boxes beside them (R10-UX-SETUP). */
       .chip, .layout-bar button {
-        display: inline-flex; align-items: center; gap: 6px;
+        display: inline-flex; align-items: center; gap: var(--hpo-space-1, 4px);
         border: 1px solid var(--hpo-divider, #e0e0e0);
-        border-radius: 14px; padding: 3px 10px; cursor: pointer;
-        font-size: 0.82em; user-select: none; background: transparent;
+        border-radius: 14px; padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px); cursor: pointer;
+        font-size: var(--hpo-text-sm, 13px); user-select: none; background: transparent;
         color: var(--hpo-text, #212121); font-family: inherit;
       }
       .chip .dot {
@@ -5463,12 +5473,12 @@ function cardStyleBlock(darkMode) {
          the token layer gives it a 4.5:1 literal fallback in both themes:
          the #888 the card used to fall back to measured 3.54:1 on white. */
       .legend-note {
-        margin: 0 2px 2px 2px;
-        font-size: max(12px, 0.76em); line-height: 1.35;
+        margin: 0 var(--hpo-space-1, 4px) var(--hpo-space-1, 4px) var(--hpo-space-1, 4px);
+        font-size: var(--hpo-text-xs, 12px); line-height: 1.35;
         color: var(--hpo-text-2, #727272);
       }
       .legend-note::before {
-        content: ""; display: inline-block; width: 18px; margin-right: 6px;
+        content: ""; display: inline-block; width: 18px; margin-right: var(--hpo-space-1, 4px);
         vertical-align: middle; border-top: 1.5px dashed currentColor;
       }
       .chartwrap { position: relative; width: 100%; }
@@ -5477,7 +5487,7 @@ function cardStyleBlock(darkMode) {
          the top-right corner, which the solar axis uses. */
       .viewctl {
         position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
-        display: flex; gap: 2px; z-index: 4;
+        display: flex; gap: var(--hpo-space-1, 4px); z-index: 4;
         opacity: 0;${
           /* The fade is the card's only animation, and it is decorative:
              reduced-motion users get an instant show/hide instead. Checked
@@ -5498,7 +5508,7 @@ function cardStyleBlock(darkMode) {
       }
       .viewctl button {
         width: 1.7em; height: 1.7em; padding: 0; line-height: 1;
-        font: inherit; font-size: max(12px, 0.85em); cursor: pointer;
+        font: inherit; font-size: var(--hpo-text-sm, 13px); cursor: pointer;
         border: 1px solid var(--hpo-divider, #e0e0e0); border-radius: 0.35em;
         background: var(--hpo-surface, #ffffff);
         color: var(--hpo-text, #212121);
@@ -5515,7 +5525,7 @@ function cardStyleBlock(darkMode) {
          re-claims the diagram while a drag must move a box, below. */
       .chartwrap svg { touch-action: none; }
       .empty {
-        padding: 28px 12px; text-align: center;
+        padding: var(--hpo-space-5, 24px) var(--hpo-space-3, 12px); text-align: center;
         color: var(--hpo-text-2, #727272); line-height: 1.5em;
         /* D4-04 (#259): the diagnostic names entity ids, and a 45-character
            monospace id is wider than a phone tile. Without this it painted
@@ -5531,7 +5541,7 @@ function cardStyleBlock(darkMode) {
         position: absolute; pointer-events: none; z-index: 5;
         background: var(--hpo-surface, #ffffff);
         border: 1px solid var(--hpo-divider, #e0e0e0);
-        border-radius: 6px; padding: 6px 8px; font-size: 0.78em;
+        border-radius: 6px; padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px); font-size: var(--hpo-text-xs, 12px);
         color: var(--hpo-text, #212121);
         box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap;
       }
@@ -5546,18 +5556,18 @@ function cardStyleBlock(darkMode) {
          inside a box told to be 180 px wide, and spilled out of it and over
          whatever sat beside the chart. tt-reason is prose too and had no
          width bound at all. Both now wrap, and both carry a width. */
-      .tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
-      .tooltip .tt-time { font-weight: 600; margin-bottom: 3px; }
+      .tooltip .tt-row { display: flex; align-items: center; gap: var(--hpo-space-1, 4px); }
+      .tooltip .tt-time { font-weight: 600; margin-bottom: var(--hpo-space-1, 4px); }
       .tooltip .tt-shared {
-        margin-top: 3px;
-        font-size: 0.85em;
+        margin-top: var(--hpo-space-1, 4px);
+        font-size: var(--hpo-text-xs, 12px);
         font-style: italic;
         color: var(--hpo-text-2, #727272);
         white-space: normal;
         max-width: 220px;
       }
       .tooltip .tt-reason {
-        margin-top: 4px; padding-top: 4px; font-style: italic;
+        margin-top: var(--hpo-space-1, 4px); padding-top: var(--hpo-space-1, 4px); font-style: italic;
         border-top: 1px solid var(--hpo-divider, #e0e0e0);
         color: var(--hpo-text-2, #727272);
         white-space: normal;
@@ -5568,14 +5578,14 @@ function cardStyleBlock(darkMode) {
          all of it fitWhy drops its last lines rather than letting the box
          run out of the chart or clipping text. */
       .tooltip .tt-why {
-        margin-top: 4px; padding-top: 4px;
+        margin-top: var(--hpo-space-1, 4px); padding-top: var(--hpo-space-1, 4px);
         border-top: 1px solid var(--hpo-divider, #e0e0e0);
         color: var(--hpo-text-2, #727272);
         white-space: normal;
         max-width: 260px;
       }
       .tooltip .tt-why .why-head { color: var(--hpo-text, #212121); }
-      .tooltip .tt-why ul { margin: 2px 0; padding-left: 1.1em; }
+      .tooltip .tt-why ul { margin: var(--hpo-space-1, 4px) 0; padding-left: var(--hpo-space-4, 16px); }
       .tooltip .dot {
         width: 8px; height: 8px; border-radius: 50%; display: inline-block;
       }
@@ -5607,6 +5617,8 @@ function cardStyleBlock(darkMode) {
          preserveAspectRatio="none", so constraining its height instead would
          stretch every axis label horizontally. */
       dialog.expanded {
+${DIALOG_SCALED_TOKENS.map((name) =>
+    `        ${name}: calc(${CARD_SCALE_TOKENS[name]} * var(--hpo-type-scale, 1));`).join("\n")}
         box-sizing: border-box;
         width: min(96vw, calc(78vh * ${VIEW_RATIO}), 1700px);
         max-width: 96vw;
@@ -5619,7 +5631,7 @@ function cardStyleBlock(darkMode) {
         max-height: 92dvh;
         display: flex;
         flex-direction: column;
-        border: none; border-radius: 12px; padding: 16px;
+        border: none; border-radius: 12px; padding: var(--hpo-space-4, 16px);
         background: var(--hpo-surface, #ffffff);
         color: var(--hpo-text, #212121);
         box-shadow: 0 8px 32px rgba(0,0,0,0.35);
@@ -5643,8 +5655,8 @@ function cardStyleBlock(darkMode) {
         background: rgba(0, 0, 0, 0.55);
       }
       .dlg-head {
-        display: flex; align-items: center; gap: 8px;
-        font-size: 1.25em; font-weight: 500; padding: 0 2px 10px 2px;
+        display: flex; align-items: center; gap: var(--hpo-space-2, 8px);
+        font-size: var(--hpo-text-lg, 18px); font-weight: 500; padding: 0 var(--hpo-space-1, 4px) var(--hpo-space-2, 8px) var(--hpo-space-1, 4px);
       }
       .dlg-head .title { flex: 1 1 auto; min-width: 0; }
       dialog.expanded .dlg-head,
@@ -5663,25 +5675,25 @@ function cardStyleBlock(darkMode) {
          container-type: inline-size also applies inline-axis containment,
          and a dialog sized by its contents then has nothing to size from. */
       dialog.expanded .legend {
-        font-size: 1em; gap: 0.5em; padding: 0 2px 0.75em 2px;
+        font-size: var(--hpo-text-base, 14px); gap: var(--hpo-space-2, 8px); padding: 0 var(--hpo-space-1, 4px) var(--hpo-space-3, 12px) var(--hpo-space-1, 4px);
       }
       dialog.expanded .dlg-head {
-        font-size: 1.4em; padding: 0 2px 0.55em 2px; gap: 0.45em;
+        font-size: var(--hpo-text-lg, 18px); padding: 0 var(--hpo-space-1, 4px) var(--hpo-space-2, 8px) var(--hpo-space-1, 4px); gap: var(--hpo-space-2, 8px);
       }
       dialog.expanded .chip {
-        font-size: 1em; padding: 0.32em 0.85em; border-radius: 1.3em;
-        gap: 0.45em; border-width: 1.5px;
+        font-size: var(--hpo-text-base, 14px); padding: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px); border-radius: 1.3em;
+        gap: var(--hpo-space-2, 8px); border-width: 1.5px;
       }
       /* The shared rule names the layout bar's buttons beside the chip, so
          the dialog raises them with it (R10-CARD-VOICE, H2): left at the
          shared 0.82 em they rendered 9.8 px beside a 12 px chip. */
-      dialog.expanded .layout-bar button { font-size: 1em; border-radius: 1.3em; }
+      dialog.expanded .layout-bar button { font-size: var(--hpo-text-base, 14px); border-radius: 1.3em; }
       dialog.expanded .chip .dot { width: 0.72em; height: 0.72em; }
       dialog.expanded .tooltip {
-        font-size: 0.92em; padding: 0.5em 0.7em; border-radius: 0.4em;
+        font-size: var(--hpo-text-sm, 13px); padding: var(--hpo-space-2, 8px) var(--hpo-space-2, 8px); border-radius: 0.4em;
       }
       dialog.expanded .tooltip .dot { width: 0.6em; height: 0.6em; }
-      dialog.expanded .whatif { font-size: 1em; }
+      dialog.expanded .whatif { font-size: var(--hpo-text-base, 14px); }
       dialog.expanded .close svg { width: 1.4em; height: 1.4em; }
 
       /* Dialog page tabs and the setup page (item 33) */
@@ -5689,12 +5701,12 @@ function cardStyleBlock(darkMode) {
          and dialog.expanded hides the spill rather than showing it -- the
          longer Swedish tab label was cut off at phone width. Shrinkable and
          wrappable, the row is never wider than the dialog it sits in. */
-      .dlg-tabs { display: flex; gap: 0.3em; flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
+      .dlg-tabs { display: flex; gap: var(--hpo-space-1, 4px); flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
       .dlg-tab {
         border: 1px solid var(--hpo-divider, #e0e0e0);
         background: transparent; color: var(--hpo-text-2, #727272);
-        border-radius: 1em; padding: 0.2em 0.9em; cursor: pointer;
-        font: inherit; font-size: 0.85em;
+        border-radius: 1em; padding: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px); cursor: pointer;
+        font: inherit; font-size: var(--hpo-text-md, 15px);
       }
       .dlg-tab.active {
         color: var(--hpo-text, #212121);
@@ -5704,7 +5716,7 @@ function cardStyleBlock(darkMode) {
         outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 2px;
       }
-      .setup-page { padding: 0.5em 0.25em; }
+      .setup-page { padding: var(--hpo-space-2, 8px) var(--hpo-space-1, 4px); }
       .setup-svg { width: 100%; height: auto; display: block; }
       /* The card (R10-UX-SETUP): the same surface, border and radius a
          tile wears, painted on the rect that is also the geometry carrier
@@ -5818,15 +5830,15 @@ function cardStyleBlock(darkMode) {
       /* Where the page each button names is, said once above the drawing. */
       .setup-dest {
         color: var(--hpo-text-2, #727272);
-        font-size: max(12px, 0.85em); margin: 0 0.25em 0.5em 0.25em; max-width: 70ch;
+        font-size: var(--hpo-text-xs, 12px); margin: 0 var(--hpo-space-1, 4px) var(--hpo-space-1, 4px) var(--hpo-space-1, 4px); max-width: 70ch;
       }
       .setup-hint {
         color: var(--hpo-text-2, #727272);
-        font-size: max(12px, 0.85em); padding: 0.5em 0.25em;
+        font-size: var(--hpo-text-xs, 12px); padding: var(--hpo-space-1, 4px) var(--hpo-space-1, 4px);
       }
       .setup-result {
         color: var(--hpo-text-2, #727272);
-        font-size: max(12px, 0.85em); padding: 0 0.25em 0.5em 0.25em;
+        font-size: var(--hpo-text-xs, 12px); padding: 0 var(--hpo-space-1, 4px) var(--hpo-space-1, 4px) var(--hpo-space-1, 4px);
       }
       .setup-hit { fill: transparent; cursor: pointer; }
       /* fill-opacity, not opacity: element opacity would fade the focus
@@ -5848,8 +5860,8 @@ function cardStyleBlock(darkMode) {
 
       /* The layout editor (v3.16.0, issue #40) */
       .layout-bar {
-        display: flex; align-items: center; gap: 0.5em;
-        flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
+        display: flex; align-items: center; gap: var(--hpo-space-2, 8px);
+        flex-wrap: wrap; padding: 0 var(--hpo-space-1, 4px) var(--hpo-space-1, 4px) var(--hpo-space-1, 4px);
       }
       .layout-bar button:focus-visible {
         outline: 2px solid var(--hpo-primary, #03a9f4);
@@ -5868,7 +5880,7 @@ function cardStyleBlock(darkMode) {
       }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
-        flex: 1 1 100%; font-size: 0.85em;
+        flex: 1 1 100%; font-size: var(--hpo-text-xs, 12px);
         color: var(--hpo-text-2, #727272);
       }
       .layout-verdict.match { color: var(--hpo-text, #212121); }
@@ -5917,37 +5929,37 @@ function cardStyleBlock(darkMode) {
         transform: translateX(-50%); z-index: 6;
         background: var(--hpo-surface, #ffffff);
         border: 1px solid var(--hpo-divider, #e0e0e0);
-        border-radius: 0.5em; padding: 0.7em 0.8em;
+        border-radius: 0.5em; padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px);
         box-shadow: 0 2px 12px rgba(0,0,0,0.25);
         min-width: 16em; max-width: 90%;
       }
-      .sp-title { font-weight: 600; padding-bottom: 0.4em; }
+      .sp-title { font-weight: 600; padding-bottom: var(--hpo-space-1, 4px); }
       /* The filter and the list it narrows are one control, so they are
          built out of one rule: an input that did not inherit the card's
          colours would be unreadable on a dark theme, which is the sort of
          thing that only shows up on somebody else's screen. */
       .sp-filter, .sp-select {
-        width: 100%; font: inherit; padding: 0.3em;
+        width: 100%; font: inherit; padding: var(--hpo-space-1, 4px);
         color: var(--hpo-text, #212121);
         background: var(--hpo-surface, #ffffff);
         border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 0.3em;
       }
       .sp-filter {
-        box-sizing: border-box; margin-bottom: 0.4em;
+        box-sizing: border-box; margin-bottom: var(--hpo-space-1, 4px);
       }
       .sp-filter:focus-visible, .sp-select:focus-visible {
         outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 1px;
       }
       .sp-actions {
-        display: flex; gap: 0.4em; padding-top: 0.5em;
+        display: flex; gap: var(--hpo-space-1, 4px); padding-top: var(--hpo-space-2, 8px);
       }
       .sp-actions button {
         font: inherit; cursor: pointer; border-radius: 0.3em;
         border: 1px solid var(--hpo-divider, #e0e0e0);
         background: transparent; color: var(--hpo-text, #212121);
-        padding: 0.25em 0.8em;
+        padding: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px);
       }
       .sp-save { border-color: var(--hpo-primary, #03a9f4) !important; }
       /* An Assign that is armed to CLEAR the slot is not the same button
@@ -5960,7 +5972,7 @@ function cardStyleBlock(darkMode) {
       }
       .sp-note {
         color: var(--hpo-text-2, #727272);
-        font-size: 0.8em; padding-top: 0.4em;
+        font-size: var(--hpo-text-xs, 12px); padding-top: var(--hpo-space-1, 4px);
       }
 
       /* Editable slot lanes */
@@ -5975,7 +5987,7 @@ function cardStyleBlock(darkMode) {
         position: absolute; z-index: 5;
         background: var(--hpo-surface, #ffffff);
         border: 1px solid var(--hpo-divider, #e0e0e0);
-        border-radius: 0.4em; padding: 0.2em;
+        border-radius: 0.4em; padding: var(--hpo-space-1, 4px);
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         /* Its own width wherever it lands: shrink-to-fit would narrow it to
            the room left of its left edge, so the box openMenu measured and
@@ -5985,26 +5997,26 @@ function cardStyleBlock(darkMode) {
       .slot-menu button {
         display: block; width: 100%; text-align: left;
         font: inherit; border: none; background: none; cursor: pointer;
-        padding: 0.4em 0.7em; border-radius: 0.3em;
+        padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px); border-radius: 0.3em;
         color: var(--hpo-text, #212121);
       }
       .slot-menu button:hover {
         background: var(--secondary-background-color, #eee);
       }
       .whatif .wi-section + .wi-section {
-        margin-top: 0.9em; padding-top: 0.7em;
+        margin-top: var(--hpo-space-3, 12px); padding-top: var(--hpo-space-2, 8px);
         border-top: 1px solid var(--hpo-divider, #e0e0e0);
       }
-      .whatif .wi-delta { align-items: baseline; gap: 0.6em; }
+      .whatif .wi-delta { align-items: baseline; gap: var(--hpo-space-2, 8px); }
       .whatif .delta {
-        font-size: 1.25em; font-weight: 600;
+        font-size: var(--hpo-text-lg, 18px); font-weight: 600;
         font-variant-numeric: tabular-nums;
       }
       .whatif .wi-pin {
         border-color: var(--hpo-primary, #03a9f4);
         color: var(--hpo-text, #212121);
       }
-      .whatif .wi-pin-result { margin-top: 0.4em; min-height: 1.2em; }
+      .whatif .wi-pin-result { margin-top: var(--hpo-space-1, 4px); min-height: 1.2em; }
 
       /* Savings table. Its figures are compared DOWN a column, which is what
          decides the typography: proportional digits behind a left edge put
@@ -6016,7 +6028,7 @@ function cardStyleBlock(darkMode) {
         width: 100%; border-collapse: collapse;
         font-variant-numeric: tabular-nums;
       }
-      .savings-table th, .savings-table td { padding: 0.35em 0.5em; }
+      .savings-table th, .savings-table td { padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px); }
       .savings-table th { text-align: left; font-weight: 600; }
       .savings-table th.num, .savings-table td.num { text-align: right; }
       .savings-table td.num { position: relative; }
@@ -6051,26 +6063,26 @@ function cardStyleBlock(darkMode) {
          must stay readable as prose, not pass as a de-emphasised
          number. */
       .advisor-page .fact-head {
-        display: flex; flex-wrap: wrap; gap: 4px 12px;
+        display: flex; flex-wrap: wrap; gap: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px);
         align-items: baseline; justify-content: space-between;
-        padding: 4px 0 2px 0;
+        padding: var(--hpo-space-1, 4px) 0 var(--hpo-space-1, 4px) 0;
       }
       .fact-title { font-weight: 600; }
       .health-cols {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
-        gap: 4px 16px; align-items: start;
+        gap: var(--hpo-space-1, 4px) var(--hpo-space-4, 16px); align-items: start;
       }
       /* 600, the card's heading weight: the heading element otherwise
          takes the user agent's 700, the one bold heading in the card
          (H3b). */
-      .health-h { margin: 12px 0 4px 0; font-size: 1em; font-weight: 600; }
+      .health-h { margin: var(--hpo-space-3, 12px) 0 var(--hpo-space-1, 4px) 0; font-size: var(--hpo-text-base, 14px); font-weight: 600; }
       /* The row's surface and ink are the surface-2 pair (H3a), set by the
          surface-2 block rule beside .tile. */
       .health-row {
-        display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
-        padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
+        display: flex; flex-wrap: wrap; gap: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px); align-items: center;
+        padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); margin: var(--hpo-space-1, 4px) 0; border-radius: 12px;
       }
-      .health-support { margin-top: 12px; }
+      .health-support { margin-top: var(--hpo-space-3, 12px); }
       /* "What the model has learned" (R9-UX-7): a tabular value and an
          evidence bar per learner, and the internal-gains strip in the
          accent colour. Both wrap under the text on a narrow card. */
@@ -6084,7 +6096,7 @@ function cardStyleBlock(darkMode) {
         background: var(--hpo-accent, #026aa8);
       }
       .gains-strip {
-        flex: 0 1 16em; display: flex; align-items: flex-end; gap: 2px; height: 2.6em;
+        flex: 0 1 16em; display: flex; align-items: flex-end; gap: var(--hpo-space-1, 4px); height: 2.6em;
       }
       .gains-bar {
         flex: 1 1 0; border-radius: 2px 2px 0 0;
@@ -6094,7 +6106,7 @@ function cardStyleBlock(darkMode) {
         flex: 0 0 auto; width: 1.4em; height: 1.4em; border-radius: 50%;
         border: 1.5px solid var(--hpo-divider, currentColor);
         display: inline-flex; align-items: center; justify-content: center;
-        color: var(--hpo-ok, #1c7350); font-size: max(12px, 0.85em);
+        color: var(--hpo-ok, #1c7350); font-size: var(--hpo-text-xs, 12px);
       }
       .health-row[data-done="true"] .health-mark {
         background: var(--hpo-ok-bg, #e8f1ed); border-color: transparent;
@@ -6104,23 +6116,23 @@ function cardStyleBlock(darkMode) {
          value and at most one action, which wraps under the text on a
          narrow card. */
       .fact-inbox-row {
-        display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
-        padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
+        display: flex; flex-wrap: wrap; gap: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px); align-items: center;
+        padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); margin: var(--hpo-space-1, 4px) 0; border-radius: 12px;
       }
       .fact-text { flex: 1 1 14em; min-width: 0; }
-      .fact-text .fact-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
+      .fact-text .fact-sub { display: block; font-size: var(--hpo-text-xs, 12px); opacity: 0.8; }
       .fact-act {
-        font: inherit; cursor: pointer; padding: 0.3em 0.9em;
+        font: inherit; cursor: pointer; padding: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px);
         color: inherit; background: none;
         border: 1px solid var(--hpo-divider, currentColor); border-radius: 6px;
       }
       .fact-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .fact-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
-      .fact-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
+      .fact-basis { font-size: var(--hpo-text-xs, 12px); opacity: 0.75; }
+      .fact-note { font-size: var(--hpo-text-xs, 12px); padding: 0 0 var(--hpo-space-2, 8px) 0; }
       .fact-row {
-        display: flex; width: 100%; gap: 12px;
+        display: flex; width: 100%; gap: var(--hpo-space-3, 12px);
         align-items: center; justify-content: space-between;
-        padding: 0.45em 0.7em; margin: 2px 0;
+        padding: var(--hpo-space-2, 8px) var(--hpo-space-2, 8px); margin: var(--hpo-space-1, 4px) 0;
         font: inherit; text-align: left; color: inherit;
         background: none; border: 1px solid
         var(--hpo-divider, #e0e0e0);
@@ -6131,32 +6143,32 @@ function cardStyleBlock(darkMode) {
       .fact-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
       .fact-label { flex: 1 1 auto; }
       .fact-value { flex: 0 0 auto; text-align: right; }
-      .fact-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
+      .fact-est { font-weight: 400; opacity: 0.75; margin-left: var(--hpo-space-1, 4px); }
       .fact-unpriced-head {
-        font-weight: 600; padding: 14px 0 2px 0;
+        font-weight: 600; padding: var(--hpo-space-3, 12px) 0 var(--hpo-space-1, 4px) 0;
       }
       .fact-unpriced-head + .fact-row .fact-value,
       .fact-row.unpriced .fact-value {
-        font-size: max(12px, 0.85em); max-width: 60%;
+        font-size: var(--hpo-text-xs, 12px); max-width: 60%;
       }
 
       /* What-if simulator */
       .whatif {
-        padding: 0.8em 0.3em 0.15em 0.3em; margin-top: 0.7em;
+        padding: var(--hpo-space-3, 12px) var(--hpo-space-1, 4px) var(--hpo-space-1, 4px) var(--hpo-space-1, 4px); margin-top: var(--hpo-space-2, 8px);
         border-top: 1px solid var(--hpo-divider, #e0e0e0);
-        font-size: 0.95rem; color: var(--hpo-text, #212121);
+        font-size: var(--hpo-text-base, 14px); color: var(--hpo-text, #212121);
       }
       .whatif .wi-row {
-        display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1.2em;
-        margin-bottom: 0.7em;
+        display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--hpo-space-4, 16px);
+        margin-bottom: var(--hpo-space-2, 8px);
       }
       .whatif .wi-field {
-        display: flex; align-items: center; gap: 0.55em;
+        display: flex; align-items: center; gap: var(--hpo-space-2, 8px);
       }
       .whatif .wi-field > span { white-space: nowrap; }
-      .whatif input[type="range"] { width: 10em; max-width: 100%; }
+      .whatif input[type="range"] { width: 10em; max-width: 100%; margin: 0; }
       .whatif input[type="time"] {
-        font: inherit; padding: 0.2em 0.4em; border-radius: 0.4em;
+        font: inherit; padding: var(--hpo-space-1, 4px) var(--hpo-space-1, 4px); border-radius: 0.4em;
         border: 1px solid var(--hpo-divider, #e0e0e0);
         background: var(--hpo-surface, #ffffff);
         color: var(--hpo-text, #212121);
@@ -6167,25 +6179,25 @@ function cardStyleBlock(darkMode) {
       }
       .whatif .wi-group {
         flex: 1 1 16em; min-width: 14em;
-        display: flex; flex-direction: column; gap: 0.4em;
+        display: flex; flex-direction: column; gap: var(--hpo-space-1, 4px);
       }
       .whatif .wi-group-title {
-        font-weight: 600; font-size: 0.9em;
+        font-weight: 600; font-size: var(--hpo-text-sm, 13px);
         color: var(--hpo-text-2, #727272);
         text-transform: uppercase; letter-spacing: 0.04em;
       }
       .whatif .wi-hint {
-        font-size: max(12px, 0.85em); color: var(--hpo-text-2, #727272);
+        font-size: var(--hpo-text-xs, 12px); color: var(--hpo-text-2, #727272);
         line-height: 1.35em;
       }
       .whatif .wi-viewlimit {
-        font-size: 12px;
+        font-size: var(--hpo-text-xs, 12px);
         color: var(--hpo-text-2, #727272);
-        margin: 4px 0 6px;
+        margin: var(--hpo-space-1, 4px) 0 var(--hpo-space-1, 4px);
       }
       .whatif .wi-viewreset {
-        font-size: 12px;
-        padding: 1px 8px;
+        font-size: var(--hpo-text-xs, 12px);
+        padding: var(--hpo-space-1, 4px) var(--hpo-space-2, 8px);
         border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 10px;
         background: none;
@@ -6200,44 +6212,44 @@ function cardStyleBlock(darkMode) {
         color: var(--hpo-warn, #8a5a00);
       }
       .whatif .wi-windows {
-        display: flex; flex-direction: column; gap: 0.4em;
+        display: flex; flex-direction: column; gap: var(--hpo-space-1, 4px);
       }
       .whatif .wi-window {
-        display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap;
+        display: flex; align-items: center; gap: var(--hpo-space-1, 4px); flex-wrap: wrap;
       }
       .whatif .wi-quiet {
         flex: 1 1 16em; min-width: 14em;
-        display: flex; flex-direction: column; gap: 0.4em;
+        display: flex; flex-direction: column; gap: var(--hpo-space-1, 4px);
       }
       .whatif .wi-quiet-window {
-        display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap;
+        display: flex; align-items: center; gap: var(--hpo-space-1, 4px); flex-wrap: wrap;
       }
       /* Colour from reached DHW rules (wi-win-days, wi-hint, .whatif button). */
-      .whatif .wi-quiet-unenforced { font-size: 0.8em; }
-      .whatif .wi-quiet-frac-note { font-size: 0.85em; }
+      .whatif .wi-quiet-unenforced { font-size: var(--hpo-text-xs, 12px); }
+      .whatif .wi-quiet-frac-note { font-size: var(--hpo-text-xs, 12px); }
       .whatif .wi-quiet-remove {
-        border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
+        border: none; padding: 0 var(--hpo-space-1, 4px); font-size: var(--hpo-text-md, 15px); line-height: 1;
       }
-      .whatif .wi-add-quiet { align-self: flex-start; font-size: 0.9em; }
+      .whatif .wi-add-quiet { align-self: flex-start; font-size: var(--hpo-text-sm, 13px); }
       .whatif .wi-win-days {
-        font: inherit; font-size: 0.9em; max-width: 8.5em;
+        font: inherit; font-size: var(--hpo-text-sm, 13px); max-width: 8.5em;
         border: 1px solid var(--hpo-divider, #e0e0e0); border-radius: 0.3em;
         background: transparent; color: var(--hpo-text, #212121);
-        padding: 0.15em 0.2em;
+        padding: var(--hpo-space-1, 4px) var(--hpo-space-1, 4px);
       }
       .whatif button {
         font: inherit; cursor: pointer; border-radius: 1.1em;
         border: 1px solid var(--hpo-divider, #e0e0e0);
         background: transparent; color: var(--hpo-text, #212121);
-        padding: 0.35em 0.8em;
+        padding: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px);
       }
       .whatif button:hover { border-color: var(--hpo-primary, #03a9f4); }
       .whatif .wi-remove {
-        border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
+        border: none; padding: 0 var(--hpo-space-1, 4px); font-size: var(--hpo-text-md, 15px); line-height: 1;
         color: var(--hpo-text-2, #727272);
       }
       .whatif .wi-remove:hover { color: var(--hpo-crit, #b3261e); }
-      .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
+      .whatif .wi-add { align-self: flex-start; font-size: var(--hpo-text-sm, 13px); }
       .whatif .wi-apply {
         border-color: var(--hpo-primary, #03a9f4);
         color: var(--hpo-text, #212121);
@@ -6264,12 +6276,12 @@ function cardStyleBlock(darkMode) {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 0.75em;
+        gap: var(--hpo-space-3, 12px);
       }
       .away-strip label {
         display: inline-flex;
         align-items: center;
-        gap: 0.4em;
+        gap: var(--hpo-space-1, 4px);
       }
       .away-strip [data-away-status] {
         flex: 1 1 100%;
@@ -6280,7 +6292,7 @@ function cardStyleBlock(darkMode) {
         color: var(--hpo-text-2, #727272);
       }
       .whatif .wi-result .wi-detail {
-        font-size: 0.88em; margin-top: 2px;
+        font-size: var(--hpo-text-xs, 12px); margin-top: var(--hpo-space-1, 4px);
       }
       .whatif .wi-result.cheaper, .whatif .cheaper {
         color: var(--hpo-ok, #1c7350);
@@ -6308,22 +6320,22 @@ function cardStyleBlock(darkMode) {
         color: var(--hpo-text-2, #727272);
       }
       @media (max-width: 600px) {
-        dialog.expanded { width: 96vw; padding: 12px; }
-        dialog.expanded .legend { font-size: 1rem; }
+        dialog.expanded { width: 96vw; padding: var(--hpo-space-3, 12px); }
+        dialog.expanded .legend { font-size: var(--hpo-text-md, 15px); }
         /* The bar's buttons are the same touch row the legend's chips are,
            so they take the same phone size (H2: bar equals chip). */
-        dialog.expanded .layout-bar button { font-size: 1rem; }
+        dialog.expanded .layout-bar button { font-size: var(--hpo-text-md, 15px); }
         /* The dialog's 0.92 em tooltip brought it up to the tile's size from
            the old 12 px floor; on the 14 px floor (H1) it outgrew the short
            phone-width chart it must stay inside (R9-UX-1). Here it keeps
            the tile's own 0.78 em. */
-        dialog.expanded .tooltip { font-size: 0.78em; }
+        dialog.expanded .tooltip { font-size: var(--hpo-text-xs, 12px); }
         /* Phone-width dialogs (#40 feedback, item 1): the header must be
            allowed to wrap, or the Plan/Setup tabs are pushed out of reach
            by the title; and the setup diagram scrolls sideways at a
            readable, tappable size instead of shrinking every slot row to
            fingernail height. */
-        .dlg-head { flex-wrap: wrap; row-gap: 6px; }
+        .dlg-head { flex-wrap: wrap; row-gap: var(--hpo-space-1, 4px); }
         .setup-canvas { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .setup-canvas svg { min-width: 560px; }
         /* The savings replay is a drawing with literal 11-12 unit labels
@@ -11396,6 +11408,9 @@ class ExpandedDialog {
     if (significantlyDifferent(px, this.fontPx)) {
       this.fontPx = px;
       dlg.style.fontSize = `${px.toFixed(2)}px`;
+      if (typeof dlg.style.setProperty === "function") {
+        dlg.style.setProperty("--hpo-type-scale", (px / DIALOG_FONT_PX_MIN).toFixed(4));
+      }
     }
   }
 }
