@@ -3754,13 +3754,13 @@
     "From r11-outside-rooms-p2, body item daa69071: A floor lifted to the comfort target raises the plan's peak above the unlifted plan's: `dev/audit/harnesses/room_lift_solve.py`'s `max_over_target_c`, `none` against `lift`, with `zeros` as the control. The note expected no rise. Whether the clip should stop short of the target (a headroom under it) or the rise is accepted is the owner's choice; re-measure with the harness at the deciding head. Pending owner ruling. Carry: R11-OUTSIDE-ROOMS-P2 (items daa69071)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r11-carry-room-lift",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch the fixer; re-measure every carry first",
     "note": "created by the round-11 carry map from R11-OUTSIDE-ROOMS-P2 carries 3,4",
-    "pr": null
+    "pr": 3803
    },
    "source": "audit"
   },
