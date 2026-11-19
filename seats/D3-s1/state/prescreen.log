@@ -643,3 +643,4 @@
 2026-11-19T08:36:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.buffer_tank_heat_loss_coefficient CLAMP_DROP 581f45bc L677 by=- ran=14 wall=1750.9s
 2026-11-19T08:55:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery GUARD_OFF 4f3bbbac L2587 by=- ran=12 wall=1645.3s
 2026-11-19T08:59:03Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss GUARD_OFF e3c61124 L5969 by=tests/features.py ran=13 wall=1740.9s
+2026-11-19T09:02:44Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND dcf818be L5654 by=- ran=13 wall=1756.7s
