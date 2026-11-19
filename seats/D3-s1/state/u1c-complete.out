@@ -208,3 +208,5 @@
 2026-11-19T14:29:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._run_system_identification CLAMP_DROP b4fd5e0d L11091 by=- ran=13 wall=1715.8s
 2026-11-19T14:29:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_due CLAMP_DROP 29c2028d L659 by=- ran=13 wall=1598.3s
 2026-11-19T14:54:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_window_floors CLAMP_DROP 152250ba L1018 by=- ran=16 wall=1680.4s
+2026-11-19T14:55:21Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 051a1593 L1343 by=- ran=12 wall=1565.5s
+2026-11-19T14:55:38Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 051a1593 L1343 by=- ran=12 wall=1563.6s
