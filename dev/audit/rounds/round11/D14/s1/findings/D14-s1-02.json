@@ -1,0 +1,42 @@
+{
+  "id": "D14-s1-02",
+  "scope": "D14-s1",
+  "step": "D14.M4",
+  "title": "N-finally-return: one live return-inside-finally seam and no class barrier beyond the single nightly_ha pin",
+  "severity": "low",
+  "claim": "An AST walk of all 1069 .py files in the export finds 1 jump escaping a finally (dev/archive/handoff/r9-f2-solver-4/mutation_proof.py:224, which returns 2 from the restore finally and so discards a KeyboardInterrupt or runner exception in flight from sh()), re-finds the R9 D7-s3-51 seam at 957f4a1ed7^ (tests/nightly_ha.py:1274), and the only shipped guard is tests/entities.py's behavioural pin of that one function.",
+  "mechanism": "A return/break/continue in a finally body replaces the in-flight exception (PEP 765); CPython 3.14 only emits a SyntaxWarning at compile, which a cached .pyc or a warnings filter hides, and no lint lane makes it an error.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 -W ignore dev/audit/rounds/round11/D14/s1/finally_escape.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s1/finally_escape.py",
+    "value": 1,
+    "unit": "seams (RESULT seams_baseline)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, x86_64, 4 vCPU, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other D14 seats on the box; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.66,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tests/nightly_ha.py:_async_check_a4 (re-found at 957f4a1ed7^) and every ast.Try.finalbody in the tree; runtime arm drives an in-flight asyncio.CancelledError through the re-introduced shape",
+  "perturbation": {
+    "change": "--reintroduce: a one-line `return None` inserted in memory at the first finally of custom_components/heatpump_optimizer/coordinator.py (line 1942)",
+    "expected_direction": "up",
+    "observed_value": "RESULT seams 1 -> 2; runtime_swallowed 0 -> 1"
+  },
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 -W ignore dev/audit/rounds/round11/D14/s1/finally_escape.py",
+    "value": "runtime_swallowed_control=0; custom_components/ and tests/ contribute 0 seams",
+    "note": "a finally without a jump lets CancelledError propagate"
+  },
+  "metric_definition": "count of Return nodes, or Break/Continue whose loop lies outside the finally, inside any try.finalbody (nested defs excluded), over every .py file under the export root",
+  "phenomenon_property": "No return/break/continue escapes a finally anywhere in the repository; an exception in flight from the try always propagates.",
+  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 -W ignore dev/audit/rounds/round11/D14/s1/finally_escape.py",
+  "proposed_fix_scope": "dev/archive/handoff/r9-f2-solver-4/mutation_proof.py: set a flag in the finally and return after it; barrier: the AST walk (about 1 s over 1069 files, provisional) as a tests/ or tools/policy lint check, or `python -W error::SyntaxWarning -m compileall -f -q` in the lint lane",
+  "files": [
+    "dev/archive/handoff/r9-f2-solver-4/mutation_proof.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "N-finally-return"
+}

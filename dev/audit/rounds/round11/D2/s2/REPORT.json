@@ -1,0 +1,229 @@
+{
+ "dimension": "D2",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D2/s2/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D2.M2",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D2-s2; python3 tools/audit/enumerate.py d2-identities --cells | grep '^M2 '",
+   "universe": 134,
+   "examined": 134,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    }
+   ],
+   "evidence": "95 scope files (check_scopes --seat D2-s2, run against the git repo at the baseline SHA since the export has no .git) each classified by dev/audit/rounds/round11/D2/s2/m2_file_census.py (1 law implementation, 18 files with COP/derate/capacity/priced-input content each driven by an executed harness or inheriting the single-sourced law, 77 with none); 39 M2 identity cells all executed: cop-monotone x5, carnot-band x5, derate-unit-interval x5 (dev/audit/rounds/round11/D2/s2/m2_cop_laws.py), capacity-envelope x15 (dev/audit/rounds/round11/D2/s2/m2_capacity_envelope.py, C1), priced-inputs-surface x9 (dev/audit/rounds/round11/D2/s2/m2_priced_surface.py). Added identities: scalar/batch COP parity, measured-defrost duty law."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D2-s2-01",
+   "scope": "D2-s2",
+   "step": "D2.M2",
+   "title": "Scalar flow_lift_factor is inverted: lifting water hotter RAISES COP (up to 2.02x), breaking batch parity",
+   "severity": "critical",
+   "claim": "ThermalModel.flow_lift_factor returns max(0.25, carnot_ref/carnot_flow), which is >1 for every flow above the 35 degC reference, so compute_cop (valve plant, direct-plant curve) and compute_cop_dhw rise with flow/tank temperature on every climate, while the batch twin _batch_cop applies carnot_flow/carnot_ref.",
+   "mechanism": "The ratio of two Carnot COPs is inverted in the scalar law only. carnot_flow < carnot_ref above the reference, so ref/flow > 1: a 55 degC hot-water charge is priced at 1.34-1.61x the space COP instead of 0.62-0.75x, a throttled buffer at the tank temperature likewise, and the Carnot fraction of the priced COP exceeds 1 (a COP above the Carnot limit) on 21320 grid points in four of five climates. _batch_cop uses carnot_flow/carnot_ref, so scalar and batch disagree by up to 8.01 COP units on the same inputs.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+    "value": 156650,
+    "unit": "count of adjacent (flow or tank) grid pairs where COP rises with flow, over 5 climates",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5 (shared compute box, linux x86_64, venv-ci python 3.14)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; box shared with up to two other seats",
+    "tolerance": "exact",
+    "load1": 0.44,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.flow_lift_factor (driven through ThermalModel.compute_cop, compute_cop_dhw and _batch_cop)",
+   "perturbation": {
+    "change": "thermal_model.py flow_lift_factor: `return max(0.25, carnot_ref / carnot_flow)` -> `return max(0.25, carnot_flow / carnot_ref)` (harness --perturb=lift, private copy)",
+    "expected_direction": "to_zero",
+    "observed_value": "cop_flow_rise 156650 -> 0; lift_over1 84350 -> 0; carnot_frac_over1 21320 -> 0; batch_parity_maxabs 8.009 -> 0.0; dhw55_over_space_cop 1.34-1.61 -> 0.62-0.75"
+   },
+   "metric_definition": "Count of adjacent grid pairs (flow 20-70 degC step 0.5, tank 35-65, outdoor = climate range +-2 K, 241 pts) where compute_cop(valve) or compute_cop_dhw rises as flow rises, tol 1e-12.",
+   "phenomenon_property": "Every flow/tank lift factor that prices COP is a derate in [0.25, 1] that is non-increasing in flow temperature, and scalar and batch COP laws agree bitwise on the same inputs.",
+   "seam_rule": "grep -n 'carnot_ref\\|carnot_flow\\|flow_lift_factor' custom_components/heatpump_optimizer/*.py",
+   "leave_one_out": {
+    "cells": 5,
+    "min": 31330,
+    "max": 31330,
+    "drop_most_favourable": 125320
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py --perturb=lift"
+   ],
+   "proposed_fix_scope": "thermal_model.py ThermalModel.flow_lift_factor: invert the ratio to carnot_flow/carnot_ref (the batch twin's form); every DHW and valve golden fixture drifts.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [
+    "every DHW fixture (compute_cop_dhw)",
+    "valve_storage*",
+    "valve_upper_direct_slab",
+    "direct_flow_carnot"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D2-s2-02",
+   "scope": "D2-s2",
+   "step": "D2.M2",
+   "title": "Measured defrost derate never derates: derate_from_duty adds duty x 1.5 and clamps to 1.0",
+   "severity": "high",
+   "claim": "defrost.derate_from_duty returns min(1, max(0.55, 1 + duty*1.5)) instead of the module's documented 1 - duty*DEFROST_LOSS_MULTIPLIER, so every measured duty in (0, 0.30] yields 1.0 and a fully trusted 20 % defrost duty leaves the frost-band COP unchanged (ratio 1.0, documented 0.70).",
+   "mechanism": "Sign error in the measured estimator. Because DERATE_MAX is 1.0 the result is pinned at 1.0; _decide hands the bucket to the measured estimator once duty_counts reaches DERATE_CONFIDENCE_SAMPLES, so on an install with a defrost flag the measured 1.0 also displaces any earned inferred derate: frost-band plans over-promise heat, the failure the module exists to stop.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+    "value": 60,
+    "unit": "count of duty grid points (61 over [0, 0.30]) where derate_from_duty differs from the documented law",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5 (shared compute box, linux x86_64, venv-ci python 3.14)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; box shared",
+    "tolerance": "exact",
+    "load1": 0.44,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.defrost:derate_from_duty (driven directly and through DefrostDerate.factor -> ThermalModel.compute_cop)",
+   "perturbation": {
+    "change": "defrost.py derate_from_duty: `1.0 + duty * DEFROST_LOSS_MULTIPLIER` -> `1.0 - duty * DEFROST_LOSS_MULTIPLIER` (harness --perturb=defrost, private copy)",
+    "expected_direction": "to_zero",
+    "observed_value": "duty_law_mismatch 60 -> 0; frost_cop_ratio 1.0 -> 0.70 on winter_mild (73 frost steps) and shoulder (41)"
+   },
+   "metric_definition": "Count of duty points d in linspace(0, 0.30, 61) with |derate_from_duty(d) - clip(1 - 1.5 d, 0.55, 1.0)| > 1e-12.",
+   "phenomenon_property": "A measured defrost duty d > 0 derates COP to clip(1 - d*DEFROST_LOSS_MULTIPLIER, DERATE_MIN, DERATE_MAX) < 1 wherever it applies.",
+   "seam_rule": "grep -n 'DEFROST_LOSS_MULTIPLIER\\|derate_from_duty' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+    "value": "winter_cold, summer_warm, summer_cool: frost_steps 0, frost_cop_ratio n/a; duty 0.0 point matches (1.0 both)",
+    "note": "the identity is silent where no frost-band step exists and at zero duty"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py --perturb=defrost"
+   ],
+   "proposed_fix_scope": "defrost.py derate_from_duty: subtract the duty term.",
+   "files": [
+    "custom_components/heatpump_optimizer/defrost.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D2-s2-03",
+   "scope": "D2-s2",
+   "step": "D2.M2",
+   "title": "compressor_modulation=on_off is read as modulating: the declared on/off pump gets unclamped sub-p_min plans",
+   "severity": "high",
+   "claim": "thermal_model.declared_modulation maps COMPRESSOR_MODULATION_ON_OFF to True (modulating) instead of False, so a user declaring an on/off compressor gets clamp_planned_levels False on every set-point unit, and the solve prices 32 of 96 steps at levels in (0, p_min) the pump cannot run; auto on the same surface clamps (0 such steps).",
+   "mechanism": "Both explicit select values return True; the docstring and the options page say on_off -> False. Every reader inherits it: levels_clamped/duty_cycle_realizable (the plan's level law), learner_unmetered (the house learner's freeze) and probe_install(...).on_off. The explicit declaration is therefore weaker than leaving the key on auto.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+    "value": 3,
+    "unit": "cells (of 9) whose derived clamp contradicts the declared modulation",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5 (shared compute box, linux x86_64, venv-ci python 3.14)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; box shared",
+    "tolerance": "exact",
+    "load1": 0.32,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:declared_modulation (via OptimizationConfig.from_mapping -> levels_clamped, and HeatPumpOptimizer.optimize)",
+   "perturbation": {
+    "change": "thermal_model.py declared_modulation: `True if mode == const.COMPRESSOR_MODULATION_ON_OFF` -> `False if mode == const.COMPRESSOR_MODULATION_ON_OFF` (harness --perturb, private copy)",
+    "expected_direction": "to_zero",
+    "observed_value": "clamp_mismatch 3 -> 0; on_off cells sub_pmin_steps 32 -> 0"
+   },
+   "metric_definition": "Per space_setpoint_unit x compressor_modulation cell, 1 if from_mapping(cfg).clamp_planned_levels != declared (on_off True, modulating False, auto = probe); summed over 9 cells.",
+   "phenomenon_property": "A declared on_off compressor plans every step at 0 or in [p_min, p_max] on every write surface; modulating opts out; auto follows the probe.",
+   "seam_rule": "grep -n 'declared_modulation' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+    "value": "auto and modulating cells: clamp_mismatch 0 on all 6",
+    "note": "only the on_off declaration moves"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py --perturb"
+   ],
+   "proposed_fix_scope": "thermal_model.py declared_modulation: on_off -> False.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "COP never falls as outdoor rises (valve plant over flow 20-70, direct-plant curve, plain curve, DHW over tank 35-65), all 5 climates",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+   "value": "cop_outdoor_fall = 0 in every climate (baseline and --perturb=lift)"
+  },
+  {
+   "claim": "Defrost derate (inferred and measured learners, random grids) stays in [0,1] and is continuous at every temperature bucket edge, both frost-band edges (0, 5 degC) and the humidity edge",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+   "value": "derate_out_of_unit = 0, derate_edge_jumps = 0 (|jump| <= 1e-6 at +-1e-9) in all 5 climates"
+  },
+  {
+   "claim": "partload_factor in [0,1] for derates 0, 0.1, 0.3, 0.45 over 0..1.2 p_max",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+   "value": "0 out-of-interval values (inside derate_out_of_unit = 0)"
+  },
+  {
+   "claim": "Carnot fraction: the tree states no band (C1's second half, re-checked by grep over *.py/*.md/*.json); against the physical bound (0,1] the only violations are D2-s2-01's; with the lift corrected the fraction spans 0.016-0.335 across the 5 climates",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py --perturb=lift",
+   "value": "carnot_frac_over1 = 0; min 0.0162 (summer_warm) max 0.3347"
+  },
+  {
+   "claim": "C1: the learned capacity cap is never below demand-at-derate without the reason figure; capped steps below steady demand (23 of 96 at winter_cold, 0.8 delivered; 47 at 0.6) are pre-heated through and the plan publishes power_cap_breach_c whenever caps are in force, in all 15 climate x compressor_modulation cells",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_capacity_envelope.py; same with --delivered=0.6",
+   "value": "total.below_steps 69 (0.8) / 141 (0.6), total.unexplained 0 in both; --perturb (floor fraction 1.0) below_steps -> 0"
+  },
+  {
+   "claim": "The COP law is single-sourced: only thermal_model.py carries the 0.025 slope or the 273.15 Carnot offset (scalar _cop_law/flow_lift_factor and batch _batch_cop); every other module calls it",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_file_census.py",
+   "value": "law_impl_files = 1 of 95"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+  "dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+  "dev/audit/rounds/round11/D2/s2/m2_capacity_envelope.py",
+  "dev/audit/rounds/round11/D2/s2/m2_file_census.py",
+  "dev/audit/rounds/round11/D2/s2/_common.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "predictive_info['power_cap_breach_c']",
+   "what": "The capacity/fuse cap's floor-breach figure is written to predictive_info but no sensor or binary_sensor reads it (grep: 0 hits), so on the live plan it reaches only diagnostics; only the what-if service echoes it. User-visibility question, not D2 arithmetic."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tests/features.py",
+   "symbol": "declared_modulation check near line 74196; derate_from_duty / flow_lift_factor checks",
+   "what": "features.py asserts declared_modulation(on_off) is False, which the baseline contradicts (D2-s2-03); if the gate is green at this baseline a check is not running or not asserting. Same question for whatever pins derate_from_duty (D2-s2-02) and the scalar/batch COP parity (D2-s2-01). Instrument question for the test-suite / gate seat."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_flow_target / FLOW_HEAT_C vs ThermalModel.compute_cop",
+   "what": "On a flow/return set-point install the arbiter writes 55 degC (flow_heat_c) at full draw, while the priced space COP takes a flow lift only when flow_curve_cop_enabled is set (default off): the priced flow is not derived from the written set-point. The supply settles below the set-point by design (comment), so it is not shown to be wrong; recorded under priced-inputs-surface as 'modelled term, not surface-derived' for a seat measuring realised vs priced COP."
+  }
+ ]
+}

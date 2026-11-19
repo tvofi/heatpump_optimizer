@@ -1,0 +1,20 @@
+  per vp/pointer: {"375/fine":48,"375/coarse":99}
+  states: away_return,away_status,away_toggle,coarse_pointer,draft_dirty_menu_open,draft_mid_drag,expanded_plan,history_unavailable,override_active,shared_steps,shared_steps_hover,tooltip_hover,whatif_edited,whatif_weekly,wood_whatif
+RESULT renders=810 renders
+RESULT slot_targets=2700 slot-hit rects
+RESULT slot_under_floor=147 slot-hit rects under 24 px (44 coarse)
+RESULT slot_wcag_fail=99 of those, also failing WCAG 2.5.8's spacing exception (fine-pointer 24 px circle)
+RESULT slot_min_px=17.7 px
+RESULT thread_factor=1 (no BLAS; node + chromium)
+RESULT load1=11.51
+RESULT swapins=0
+  per vp/pointer: {}
+  states: 
+RESULT renders=810 renders
+RESULT slot_targets=2700 slot-hit rects
+RESULT slot_under_floor=0 slot-hit rects under 24 px (44 coarse)
+RESULT slot_wcag_fail=0 of those, also failing WCAG 2.5.8's spacing exception (fine-pointer 24 px circle)
+RESULT slot_min_px=n/a px
+RESULT thread_factor=1 (no BLAS; node + chromium)
+RESULT load1=10.19
+RESULT swapins=0

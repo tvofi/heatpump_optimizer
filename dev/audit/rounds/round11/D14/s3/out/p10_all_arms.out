@@ -1,0 +1,32 @@
+arm synthetic: cycles=12 cycle_offenders=0 worker=12802 loop=12 executor=0
+  seam loop coordinator.py:_grid_view AccuracyTracker.replay x12
+  reached in worker: ['coordinator.py:_async_learn_interval', 'coordinator.py:_replay_interval', 'coordinator.py:_with_sensor_advisor']
+RESULT synthetic_loop=12 count
+RESULT synthetic_executor=0 count
+RESULT synthetic_worker=12802 count
+arm synthetic-learner: cycles=12 cycle_offenders=0 worker=12813 loop=12 executor=0
+  seam loop coordinator.py:_grid_view AccuracyTracker.replay x12
+  reached in worker: ['coordinator.py:_async_learn_house_heat_loss', 'coordinator.py:_async_learn_interval', 'coordinator.py:_replay_fabric', 'coordinator.py:_replay_interval', 'coordinator.py:_with_sensor_advisor']
+RESULT synthetic-learner_loop=12 count
+RESULT synthetic-learner_executor=0 count
+RESULT synthetic-learner_worker=12813 count
+arm owner: cycles=4 cycle_offenders=0 worker=5433 loop=773 executor=0
+  seam loop optimizer.py:_compute_baseline_power ThermalModel.simulate_step x768
+  seam loop coordinator.py:_grid_view AccuracyTracker.replay x5
+  reached in worker: ['coordinator.py:_async_learn_house_heat_loss', 'coordinator.py:_async_learn_interval', 'coordinator.py:_async_learn_lower_floor_loss', 'coordinator.py:_replay_fabric', 'coordinator.py:_replay_interval']
+RESULT owner_loop=773 count
+RESULT owner_executor=0 count
+RESULT owner_worker=5433 count
+arm owner-learner: cycles=4 cycle_offenders=0 worker=5433 loop=773 executor=0
+  seam loop optimizer.py:_compute_baseline_power ThermalModel.simulate_step x768
+  seam loop coordinator.py:_grid_view AccuracyTracker.replay x5
+  reached in worker: ['coordinator.py:_async_learn_house_heat_loss', 'coordinator.py:_async_learn_interval', 'coordinator.py:_async_learn_lower_floor_loss', 'coordinator.py:_replay_fabric', 'coordinator.py:_replay_interval']
+RESULT owner-learner_loop=773 count
+RESULT owner-learner_executor=0 count
+RESULT owner-learner_worker=5433 count
+RESULT loop_kernels_total=1570 count
+RESULT executor_kernels_total=0 count
+RESULT wall_s=1017.6 s (provisional)
+RESULT thread_factor=0.064
+RESULT load1=9.84
+RESULT swapins=0

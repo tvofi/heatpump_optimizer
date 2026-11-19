@@ -1,0 +1,45 @@
+{
+  "id": "D1-s2-05",
+  "scope": "D1-s2",
+  "step": "D1.M2",
+  "title": "One wrong-typed numeric option in an earlier-version config entry fails setup or every cycle, with no quarantine",
+  "severity": "medium",
+  "claim": "async_migrate_entry only stamps the version, and ThermalParameters.from_config / _tabled_values / _flow_curve_values and comfort_band.effective read numeric options raw (no coercion, or a bare float()), so of 1200 seeded single-option mutants of a healthy all-features entry stamped v1..v6, 54 make the coordinator constructor raise (setup fails) and 88 make both cycles raise UpdateFailed (every update fails) -- 142 permanent failures, 21 to 26 per version -- with nothing logged as a quarantined option and no reset.",
+  "mechanism": "_tabled_values copies ~50 numeric options straight from the entry (`config.get(KEY, DEFAULT)`, no float()), with the comment 'Booleans are coerced because a config entry may carry a string' -- numbers are not; a string or null dhw_tank_volume then raises in dhw_tank_thermal_mass on every cycle ('can't multiply sequence by non-int of type float'). from_config's own float(config.get(CONF_MAX_TEMP ...)) and _flow_curve_values' float(config.get(CONF_TARGET_TEMP ...)) raise in the constructor on '', 'abc', None, a list or a dict; comfort_band.effective's float(candidate.get(...)) raises on every cycle for min_temperature. An entity slot holding a list/dict raises as an unhashable key in InputReader._begin on every cycle. Because the migration validates nothing, an entry written by an older release (or a hand-edited core.config_entries) with one such value never loads until the user edits the option.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s2/config_fuzz.py",
+    "value": 142,
+    "unit": "mutants (of 1200 over v1..v6) whose setup or every cycle fails",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 (orchestrator box B4, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, run as two shards beside this seat's other harnesses; a count",
+    "tolerance": "exact (seeded)",
+    "load1": 170.16,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/__init__.py:async_migrate_entry -> coordinator.py:HeatPumpOptimizerCoordinator.__init__ (thermal_model.py:ThermalParameters.from_config) -> HeatPumpOptimizerCoordinator._async_update_data",
+  "perturbation": {
+    "change": "--fix: async_migrate_entry additionally drops every option whose JSON type differs from the type the config flow writes for it (the healthy record's), so the reader falls back to its default; patched in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "v1: build_fail=0, permanent_cycle_fail=0 (from 8 and 17)"
+  },
+  "metric_definition": "Seeded single-option mutants of a healthy entry at vN whose constructor raises or whose two cycles both raise, summed over v1..v6.",
+  "phenomenon_property": "A config-entry option of the wrong type or an empty value is coerced or reset to its default (and named once) at the entry's migration/parse boundary; no option value can make setup or every cycle fail.",
+  "seam_rule": "grep -nE 'float\\((config|candidate)\\.get\\(|config\\.get\\(\\s*$' custom_components/heatpump_optimizer/thermal_model.py custom_components/heatpump_optimizer/comfort_band.py  (plus the numeric rows of ThermalParameters._tabled_values' table)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py --n 0",
+    "value": 0,
+    "note": "the healthy entry at every version v1..v6 (the CTRL lines): migrate ok, construct ok, both cycles ok"
+  },
+  "leave_one_out": {"cells": 6, "min": 21, "max": 26, "drop_most_favourable": 23.2},
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py --versions 1   -> build_fail=8, permanent_cycle_fail=17",
+    "... --versions 1 --fix -> 0, 0 (perturbation)"
+  ],
+  "proposed_fix_scope": "Coerce numeric options once (EntryConfig or _tabled_values: finite_float with the default), drop/repair a wrong-typed option at async_migrate_entry with one log line; entity slots accept only str.",
+  "files": ["custom_components/heatpump_optimizer/__init__.py", "custom_components/heatpump_optimizer/thermal_model.py", "custom_components/heatpump_optimizer/comfort_band.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P1"
+}

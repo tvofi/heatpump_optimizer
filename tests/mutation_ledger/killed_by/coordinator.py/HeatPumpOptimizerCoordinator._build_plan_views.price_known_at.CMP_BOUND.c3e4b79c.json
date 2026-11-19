@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views.price_known_at CMP_BOUND c3e4b79c",
+  "killed_by": "tests/features.py",
+  "old": "            return bool(known[index]) if index < len(known) else True",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`return bool(known[index]) if index <= len(known) else True`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

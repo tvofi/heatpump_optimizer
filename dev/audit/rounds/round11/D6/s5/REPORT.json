@@ -1,0 +1,791 @@
+{
+ "dimension": "D6",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D6/s5/REPORT.md",
+ "exposure": "The cells themselves (dev/programme/HANDOVER.md, dev/programme/RULINGS.md, dev/audit/README.md, tools/audit/archscore/ABOUT.md, tools/audit/seat/INSTRUMENTS.md) cite earlier-round finding ids and register numbers; read only as the text under test. docs/ was not read.",
+ "coverage": [
+  {
+   "step": "D6.M1",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s5 --repo <clone holding 92d38ecb> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 3483,
+   "examined": 1359,
+   "not_reached": [
+    ".claude/skills/steward/SKILL.md (59 units)",
+    ".claude/workflows/web-fragments.md (16 units)",
+    ".github/PULL_REQUEST_TEMPLATE.md (19 units)",
+    "AGENTS.md (2 units)",
+    "CLAUDE.md (39 units)",
+    "SECURITY.md (9 units)",
+    "dev/README.md (82 units)",
+    "dev/audit/README.md (55 units)",
+    "dev/governance/rules/brief-citations.md (33 units)",
+    "dev/governance/rules/ci-autofix.md (36 units)",
+    "dev/governance/rules/claim-files.md (19 units)",
+    "dev/governance/rules/comment-readback.md (29 units)",
+    "dev/governance/rules/defect-root-cause.md (65 units)",
+    "dev/governance/rules/delivery-status-tracking.md (16 units)",
+    "dev/governance/rules/finding-propagation.md (38 units)",
+    "dev/governance/rules/gate-scoping.md (11 units)",
+    "dev/governance/rules/ratchet-budgets.md (37 units)",
+    "dev/governance/rules/writing-for-agents.md (21 units)",
+    "dev/programme/HANDOVER.md (459 units)",
+    "dev/programme/RULINGS.md (167 units)",
+    "tests/README.md (86 units)",
+    "tools/audit/archscore/ABOUT.md (181 units)",
+    "tools/audit/seat/INSTRUMENTS.md (10 units)",
+    "tools/audit/seat/instruments/app_approve.sh.md (5 units)",
+    "tools/audit/seat/instruments/app_comment.sh.md (2 units)",
+    "tools/audit/seat/instruments/app_push.sh.md (1 units)",
+    "tools/audit/seat/instruments/approve_held_runs.sh.md (2 units)",
+    "tools/audit/seat/instruments/autofix_statuses.sh.md (2 units)",
+    "tools/audit/seat/instruments/bare_array.py.md (3 units)",
+    "tools/audit/seat/instruments/beat_jobs.py.md (2 units)",
+    "tools/audit/seat/instruments/beatd.py.md (6 units)",
+    "tools/audit/seat/instruments/beatd_shims_git.md (4 units)",
+    "tools/audit/seat/instruments/body_patch.sh.md (6 units)",
+    "tools/audit/seat/instruments/body_push.sh.md (3 units)",
+    "tools/audit/seat/instruments/bottleneck_check.py.md (6 units)",
+    "tools/audit/seat/instruments/bus.sh.md (11 units)",
+    "tools/audit/seat/instruments/cancel_superseded.py.md (11 units)",
+    "tools/audit/seat/instruments/carry_fold.py.md (2 units)",
+    "tools/audit/seat/instruments/check_scopes.py.md (3 units)",
+    "tools/audit/seat/instruments/ci-watch.sh.md (3 units)",
+    "tools/audit/seat/instruments/ci_critpath.py.md (3 units)",
+    "tools/audit/seat/instruments/ci_pause.py.md (5 units)",
+    "tools/audit/seat/instruments/ci_priority.py.md (4 units)",
+    "tools/audit/seat/instruments/ci_probe.py.md (3 units)",
+    "tools/audit/seat/instruments/closeout.py.md (6 units)",
+    "tools/audit/seat/instruments/cloud-setup.sh.md (4 units)",
+    "tools/audit/seat/instruments/cloud_dispatch.py.md (16 units)",
+    "tools/audit/seat/instruments/cloud_relay.sh.md (49 units)",
+    "tools/audit/seat/instruments/codeql-triage-poll.sh.md (1 units)",
+    "tools/audit/seat/instruments/daemonize.py.md (2 units)",
+    "tools/audit/seat/instruments/delivery_row.sh.md (1 units)",
+    "tools/audit/seat/instruments/depgraph.py.md (1 units)",
+    "tools/audit/seat/instruments/enumerate.py.md (4 units)",
+    "tools/audit/seat/instruments/failure_logs.sh.md (2 units)",
+    "tools/audit/seat/instruments/features_block.py.md (5 units)",
+    "tools/audit/seat/instruments/figure_block.py.md (4 units)",
+    "tools/audit/seat/instruments/finder_overlap.py.md (12 units)",
+    "tools/audit/seat/instruments/flow_metrics.py.md (2 units)",
+    "tools/audit/seat/instruments/fold_ledger.py.md (1 units)",
+    "tools/audit/seat/instruments/gantt_drift.py.md (4 units)",
+    "tools/audit/seat/instruments/gh_calls.py.md (3 units)",
+    "tools/audit/seat/instruments/gh_read.py.md (1 units)",
+    "tools/audit/seat/instruments/gh_read_run.py.md (3 units)",
+    "tools/audit/seat/instruments/handover_prompt.py.md (2 units)",
+    "tools/audit/seat/instruments/head_note.py.md (2 units)",
+    "tools/audit/seat/instruments/heartbeat.sh.md (3 units)",
+    "tools/audit/seat/instruments/hooks_setup.py.md (6 units)",
+    "tools/audit/seat/instruments/judge_batch.py.md (2 units)",
+    "tools/audit/seat/instruments/ledger.py.md (6 units)",
+    "tools/audit/seat/instruments/loop_ledger.py.md (13 units)",
+    "tools/audit/seat/instruments/machinery_ratchet.py.md (2 units)",
+    "tools/audit/seat/instruments/merge_pr.sh.md (3 units)",
+    "tools/audit/seat/instruments/merge_throughput.py.md (5 units)",
+    "tools/audit/seat/instruments/merge_train.py.md (35 units)",
+    "tools/audit/seat/instruments/moved_paths.py.md (3 units)",
+    "tools/audit/seat/instruments/mutant_run.py.md (8 units)",
+    "tools/audit/seat/instruments/offline_spy.py.md (3 units)",
+    "tools/audit/seat/instruments/open_driver.py.md (4 units)",
+    "tools/audit/seat/instruments/open_pr.sh.md (8 units)",
+    "tools/audit/seat/instruments/orchestrator_tick.py.md (10 units)",
+    "tools/audit/seat/instruments/outside.py.md (5 units)",
+    "tools/audit/seat/instruments/outside_intake.py.md (3 units)",
+    "tools/audit/seat/instruments/owed_unactioned.py.md (4 units)",
+    "tools/audit/seat/instruments/plan_audit.py.md (2 units)",
+    "tools/audit/seat/instruments/plan_page.py.md (8 units)",
+    "tools/audit/seat/instruments/plan_public.py.md (4 units)",
+    "tools/audit/seat/instruments/plan_table.py.md (2 units)",
+    "tools/audit/seat/instruments/plant_recall.py.md (12 units)",
+    "tools/audit/seat/instruments/policy_reread_check.py.md (2 units)",
+    "tools/audit/seat/instruments/postmerge.py.md (3 units)",
+    "tools/audit/seat/instruments/pr_args.sh.md (8 units)",
+    "tools/audit/seat/instruments/pr_cap.py.md (3 units)",
+    "tools/audit/seat/instruments/preflight.sh.md (2 units)",
+    "tools/audit/seat/instruments/prepare_baseline.sh.md (2 units)",
+    "tools/audit/seat/instruments/prepr.sh.md (2 units)",
+    "tools/audit/seat/instruments/probe_bridge.py.md (3 units)",
+    "tools/audit/seat/instruments/proof_watch.py.md (2 units)",
+    "tools/audit/seat/instruments/prune_refs.py.md (8 units)",
+    "tools/audit/seat/instruments/pulse.py.md (7 units)",
+    "tools/audit/seat/instruments/push.sh.md (1 units)",
+    "tools/audit/seat/instruments/queue_pre_flight.py.md (2 units)",
+    "tools/audit/seat/instruments/record_beat.py.md (1 units)",
+    "tools/audit/seat/instruments/record_row.py.md (4 units)",
+    "tools/audit/seat/instruments/ref_privacy.py.md (2 units)",
+    "tools/audit/seat/instruments/remerge_main.sh.md (6 units)",
+    "tools/audit/seat/instruments/resume_doc.py.md (2 units)",
+    "tools/audit/seat/instruments/review_carry.py.md (1 units)",
+    "tools/audit/seat/instruments/review_packet.py.md (2 units)",
+    "tools/audit/seat/instruments/review_strength.py.md (2 units)",
+    "tools/audit/seat/instruments/role_pack.py.md (7 units)",
+    "tools/audit/seat/instruments/roster_edit.py.md (9 units)",
+    "tools/audit/seat/instruments/roster_lib.py.md (3 units)",
+    "tools/audit/seat/instruments/roster_queue.py.md (5 units)",
+    "tools/audit/seat/instruments/roster_sync.py.md (4 units)",
+    "tools/audit/seat/instruments/round_metrics.py.md (7 units)",
+    "tools/audit/seat/instruments/run_twins.py.md (2 units)",
+    "tools/audit/seat/instruments/scorecard.py.md (14 units)",
+    "tools/audit/seat/instruments/seat_gen.py.md (4 units)",
+    "tools/audit/seat/instruments/seat_venv.sh.md (4 units)",
+    "tools/audit/seat/instruments/selftest_wiring.py.md (4 units)",
+    "tools/audit/seat/instruments/shims_seat-gh.md (17 units)",
+    "tools/audit/seat/instruments/shims_seat-python.md (2 units)",
+    "tools/audit/seat/instruments/state_docs.py.md (12 units)",
+    "tools/audit/seat/instruments/survivor_list.py.md (2 units)",
+    "tools/audit/seat/instruments/sweep_driver.py.md (5 units)",
+    "tools/audit/seat/instruments/sweep_gantt.py.md (5 units)",
+    "tools/audit/seat/instruments/sweep_render.py.md (3 units)",
+    "tools/audit/seat/instruments/sweep_template.md.md (1 units)",
+    "tools/audit/seat/instruments/text_ledger.py.md (1 units)",
+    "tools/audit/seat/instruments/tick_loop.sh.md (13 units)",
+    "tools/audit/seat/instruments/tmp_paths.py.md (1 units)",
+    "tools/audit/seat/instruments/train.sh.md (7 units)",
+    "tools/audit/seat/instruments/update_pr.sh.md (6 units)",
+    "tools/audit/seat/instruments/verdict_audit.py.md (4 units)",
+    "tools/audit/seat/instruments/worktree_gc.sh.md (8 units)",
+    "tools/audit/seat/instruments/wt_sync.sh.md (2 units)",
+    "tools/audit/seat/sweep_template.md (54 units)",
+    "tools/pr/README.md (1 units)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "dev/audit/rounds/round11/D6/s5/ledger.tsv rows 1359 of 3483 units (text_ledger check: rows=1359 unrowed=2124 orphan=0 malformed=0, plant_refused=1). Rowed = every unit holding a checkable reference atom (atoms.py, 1353) plus 30 hand-selected claims (claims.py). C2 and C3 concern docs/*.md prose: outside D6-s5's cells: the claim lives in docs/ or custom_components/ (D6-s1/D6-s3 cells); not measured here, routed as a lead."
+  },
+  {
+   "step": "D6.M2",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s5 --repo <clone holding 92d38ecb> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 3483,
+   "examined": 1359,
+   "not_reached": [
+    ".claude/skills/steward/SKILL.md (59 units)",
+    ".claude/workflows/web-fragments.md (16 units)",
+    ".github/PULL_REQUEST_TEMPLATE.md (19 units)",
+    "AGENTS.md (2 units)",
+    "CLAUDE.md (39 units)",
+    "SECURITY.md (9 units)",
+    "dev/README.md (82 units)",
+    "dev/audit/README.md (55 units)",
+    "dev/governance/rules/brief-citations.md (33 units)",
+    "dev/governance/rules/ci-autofix.md (36 units)",
+    "dev/governance/rules/claim-files.md (19 units)",
+    "dev/governance/rules/comment-readback.md (29 units)",
+    "dev/governance/rules/defect-root-cause.md (65 units)",
+    "dev/governance/rules/delivery-status-tracking.md (16 units)",
+    "dev/governance/rules/finding-propagation.md (38 units)",
+    "dev/governance/rules/gate-scoping.md (11 units)",
+    "dev/governance/rules/ratchet-budgets.md (37 units)",
+    "dev/governance/rules/writing-for-agents.md (21 units)",
+    "dev/programme/HANDOVER.md (459 units)",
+    "dev/programme/RULINGS.md (167 units)",
+    "tests/README.md (86 units)",
+    "tools/audit/archscore/ABOUT.md (181 units)",
+    "tools/audit/seat/INSTRUMENTS.md (10 units)",
+    "tools/audit/seat/instruments/app_approve.sh.md (5 units)",
+    "tools/audit/seat/instruments/app_comment.sh.md (2 units)",
+    "tools/audit/seat/instruments/app_push.sh.md (1 units)",
+    "tools/audit/seat/instruments/approve_held_runs.sh.md (2 units)",
+    "tools/audit/seat/instruments/autofix_statuses.sh.md (2 units)",
+    "tools/audit/seat/instruments/bare_array.py.md (3 units)",
+    "tools/audit/seat/instruments/beat_jobs.py.md (2 units)",
+    "tools/audit/seat/instruments/beatd.py.md (6 units)",
+    "tools/audit/seat/instruments/beatd_shims_git.md (4 units)",
+    "tools/audit/seat/instruments/body_patch.sh.md (6 units)",
+    "tools/audit/seat/instruments/body_push.sh.md (3 units)",
+    "tools/audit/seat/instruments/bottleneck_check.py.md (6 units)",
+    "tools/audit/seat/instruments/bus.sh.md (11 units)",
+    "tools/audit/seat/instruments/cancel_superseded.py.md (11 units)",
+    "tools/audit/seat/instruments/carry_fold.py.md (2 units)",
+    "tools/audit/seat/instruments/check_scopes.py.md (3 units)",
+    "tools/audit/seat/instruments/ci-watch.sh.md (3 units)",
+    "tools/audit/seat/instruments/ci_critpath.py.md (3 units)",
+    "tools/audit/seat/instruments/ci_pause.py.md (5 units)",
+    "tools/audit/seat/instruments/ci_priority.py.md (4 units)",
+    "tools/audit/seat/instruments/ci_probe.py.md (3 units)",
+    "tools/audit/seat/instruments/closeout.py.md (6 units)",
+    "tools/audit/seat/instruments/cloud-setup.sh.md (4 units)",
+    "tools/audit/seat/instruments/cloud_dispatch.py.md (16 units)",
+    "tools/audit/seat/instruments/cloud_relay.sh.md (49 units)",
+    "tools/audit/seat/instruments/codeql-triage-poll.sh.md (1 units)",
+    "tools/audit/seat/instruments/daemonize.py.md (2 units)",
+    "tools/audit/seat/instruments/delivery_row.sh.md (1 units)",
+    "tools/audit/seat/instruments/depgraph.py.md (1 units)",
+    "tools/audit/seat/instruments/enumerate.py.md (4 units)",
+    "tools/audit/seat/instruments/failure_logs.sh.md (2 units)",
+    "tools/audit/seat/instruments/features_block.py.md (5 units)",
+    "tools/audit/seat/instruments/figure_block.py.md (4 units)",
+    "tools/audit/seat/instruments/finder_overlap.py.md (12 units)",
+    "tools/audit/seat/instruments/flow_metrics.py.md (2 units)",
+    "tools/audit/seat/instruments/fold_ledger.py.md (1 units)",
+    "tools/audit/seat/instruments/gantt_drift.py.md (4 units)",
+    "tools/audit/seat/instruments/gh_calls.py.md (3 units)",
+    "tools/audit/seat/instruments/gh_read.py.md (1 units)",
+    "tools/audit/seat/instruments/gh_read_run.py.md (3 units)",
+    "tools/audit/seat/instruments/handover_prompt.py.md (2 units)",
+    "tools/audit/seat/instruments/head_note.py.md (2 units)",
+    "tools/audit/seat/instruments/heartbeat.sh.md (3 units)",
+    "tools/audit/seat/instruments/hooks_setup.py.md (6 units)",
+    "tools/audit/seat/instruments/judge_batch.py.md (2 units)",
+    "tools/audit/seat/instruments/ledger.py.md (6 units)",
+    "tools/audit/seat/instruments/loop_ledger.py.md (13 units)",
+    "tools/audit/seat/instruments/machinery_ratchet.py.md (2 units)",
+    "tools/audit/seat/instruments/merge_pr.sh.md (3 units)",
+    "tools/audit/seat/instruments/merge_throughput.py.md (5 units)",
+    "tools/audit/seat/instruments/merge_train.py.md (35 units)",
+    "tools/audit/seat/instruments/moved_paths.py.md (3 units)",
+    "tools/audit/seat/instruments/mutant_run.py.md (8 units)",
+    "tools/audit/seat/instruments/offline_spy.py.md (3 units)",
+    "tools/audit/seat/instruments/open_driver.py.md (4 units)",
+    "tools/audit/seat/instruments/open_pr.sh.md (8 units)",
+    "tools/audit/seat/instruments/orchestrator_tick.py.md (10 units)",
+    "tools/audit/seat/instruments/outside.py.md (5 units)",
+    "tools/audit/seat/instruments/outside_intake.py.md (3 units)",
+    "tools/audit/seat/instruments/owed_unactioned.py.md (4 units)",
+    "tools/audit/seat/instruments/plan_audit.py.md (2 units)",
+    "tools/audit/seat/instruments/plan_page.py.md (8 units)",
+    "tools/audit/seat/instruments/plan_public.py.md (4 units)",
+    "tools/audit/seat/instruments/plan_table.py.md (2 units)",
+    "tools/audit/seat/instruments/plant_recall.py.md (12 units)",
+    "tools/audit/seat/instruments/policy_reread_check.py.md (2 units)",
+    "tools/audit/seat/instruments/postmerge.py.md (3 units)",
+    "tools/audit/seat/instruments/pr_args.sh.md (8 units)",
+    "tools/audit/seat/instruments/pr_cap.py.md (3 units)",
+    "tools/audit/seat/instruments/preflight.sh.md (2 units)",
+    "tools/audit/seat/instruments/prepare_baseline.sh.md (2 units)",
+    "tools/audit/seat/instruments/prepr.sh.md (2 units)",
+    "tools/audit/seat/instruments/probe_bridge.py.md (3 units)",
+    "tools/audit/seat/instruments/proof_watch.py.md (2 units)",
+    "tools/audit/seat/instruments/prune_refs.py.md (8 units)",
+    "tools/audit/seat/instruments/pulse.py.md (7 units)",
+    "tools/audit/seat/instruments/push.sh.md (1 units)",
+    "tools/audit/seat/instruments/queue_pre_flight.py.md (2 units)",
+    "tools/audit/seat/instruments/record_beat.py.md (1 units)",
+    "tools/audit/seat/instruments/record_row.py.md (4 units)",
+    "tools/audit/seat/instruments/ref_privacy.py.md (2 units)",
+    "tools/audit/seat/instruments/remerge_main.sh.md (6 units)",
+    "tools/audit/seat/instruments/resume_doc.py.md (2 units)",
+    "tools/audit/seat/instruments/review_carry.py.md (1 units)",
+    "tools/audit/seat/instruments/review_packet.py.md (2 units)",
+    "tools/audit/seat/instruments/review_strength.py.md (2 units)",
+    "tools/audit/seat/instruments/role_pack.py.md (7 units)",
+    "tools/audit/seat/instruments/roster_edit.py.md (9 units)",
+    "tools/audit/seat/instruments/roster_lib.py.md (3 units)",
+    "tools/audit/seat/instruments/roster_queue.py.md (5 units)",
+    "tools/audit/seat/instruments/roster_sync.py.md (4 units)",
+    "tools/audit/seat/instruments/round_metrics.py.md (7 units)",
+    "tools/audit/seat/instruments/run_twins.py.md (2 units)",
+    "tools/audit/seat/instruments/scorecard.py.md (14 units)",
+    "tools/audit/seat/instruments/seat_gen.py.md (4 units)",
+    "tools/audit/seat/instruments/seat_venv.sh.md (4 units)",
+    "tools/audit/seat/instruments/selftest_wiring.py.md (4 units)",
+    "tools/audit/seat/instruments/shims_seat-gh.md (17 units)",
+    "tools/audit/seat/instruments/shims_seat-python.md (2 units)",
+    "tools/audit/seat/instruments/state_docs.py.md (12 units)",
+    "tools/audit/seat/instruments/survivor_list.py.md (2 units)",
+    "tools/audit/seat/instruments/sweep_driver.py.md (5 units)",
+    "tools/audit/seat/instruments/sweep_gantt.py.md (5 units)",
+    "tools/audit/seat/instruments/sweep_render.py.md (3 units)",
+    "tools/audit/seat/instruments/sweep_template.md.md (1 units)",
+    "tools/audit/seat/instruments/text_ledger.py.md (1 units)",
+    "tools/audit/seat/instruments/tick_loop.sh.md (13 units)",
+    "tools/audit/seat/instruments/tmp_paths.py.md (1 units)",
+    "tools/audit/seat/instruments/train.sh.md (7 units)",
+    "tools/audit/seat/instruments/update_pr.sh.md (6 units)",
+    "tools/audit/seat/instruments/verdict_audit.py.md (4 units)",
+    "tools/audit/seat/instruments/worktree_gc.sh.md (8 units)",
+    "tools/audit/seat/instruments/wt_sync.sh.md (2 units)",
+    "tools/audit/seat/sweep_template.md (54 units)",
+    "tools/pr/README.md (1 units)"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "atoms.py: 2051 path, 146 flag, 11 file:symbol atoms resolve in the baseline tree; 113 path and 2 flag atoms do not, triaged to 3 stale (+6 more stale/false from claims.py), 54 unverifiable runtime-state names, the rest absent as the sentence states. claims.py: 30 units checked against the deciding code (21 true, 3 false, 6 stale). links.py: 115/115 internal links resolve, 0 external links in the cells, so no HEAD request is owed. Atom rows check a sentence's references, not its behavioural assertion. C1 and C4 are docs/ and const claims: outside D6-s5's cells: the claim lives in docs/ or custom_components/ (D6-s1/D6-s3 cells); not measured here, routed as a lead."
+  },
+  {
+   "step": "D6.M3",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo <clone holding 92d38ecb> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D6-s5",
+   "universe": 140,
+   "examined": 140,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> --plant -> units=3483 rows=1359 claims=1359 true=1296 false=3 stale=6 unverifiable=54 unrowed=2124 orphan=0 malformed=0 plant_refused=1, check rc=1 (the unrowed remainder). Eight files hold a false or stale row; one finding each (D6-s5-01..08)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D6.M1",
+   "what": "2124 of 3483 units are unrowed: sentences carrying no checkable reference atom and outside the 30 hand checks (largest: dev/programme/HANDOVER.md, tools/audit/archscore/ABOUT.md, dev/README.md, dev/programme/RULINGS.md, tests/README.md); listed per file in not_reached and unrowed_by_file.txt."
+  },
+  {
+   "step": "D6.M2",
+   "what": "Atom rows (1353) verify a sentence's paths, symbols and flags, not its behavioural assertion; 54 rows are unverifiable (runtime-state or seat-workdir names with no state directory on this box); the behavioural content of the 2124 unrowed units is unchecked. Redispatched C1-C4 are outside these cells."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D6-s5-01",
+   "step": "D6.M3",
+   "title": "dev/audit/README.md: the mock-use claim is false and the j5_gil reviewer pointer is stale",
+   "severity": "low",
+   "class_guess": "N-move-stale-path",
+   "files": [
+    "dev/audit/README.md"
+   ],
+   "claim": "dev/audit/README.md says tests/optimality.py is the only unittest.mock use in the suite and that `briefs/fix-review.md` section 9 sends a fix reviewer to j5_gil.py; five suite scripts import unittest.mock and no fix-review contract names j5_gil.py.",
+   "mechanism": "The builders table was written when optimality.py was the one mock user; doc_claims.py, dst_checks.py, entities.py and features.py have since imported unittest.mock. The briefs/ directory moved to dev/governance/roles/, and the moved fix-review.md carries no j5_gil.py reference.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_mock (and --only c_fix_review_j5)",
+    "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+    "value": 5,
+    "unit": "suite scripts importing unittest.mock (claim: 1)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 container (shared, light seat)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/closure.py:test_scripts",
+   "perturbation": {
+    "change": "--perturb mock_suite: restrict closure.test_scripts() to the one script the README names",
+    "expected_direction": "down",
+    "observed_value": 1
+   },
+   "metric_definition": "count of closure.test_scripts() .py entries whose AST imports unittest.mock; second row: dev/governance/**.md files naming j5_gil.py (0)",
+   "phenomenon_property": "Every factual sentence of dev/audit/README.md about the suite and the contracts matches what the suite and dev/governance/ contain at the baseline.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_main_guards",
+    "value": "true",
+    "note": "the same README's __main__-guard and import-time-exit lists check true against the AST"
+   },
+   "proposed_fix_scope": "Rewrite the two sentences in dev/audit/README.md: name the five mock users (or drop 'only'), and point the j5_gil.py row at the contract that sends a reviewer to it, or drop the pointer.",
+   "scope": "D6-s5",
+   "stop_rule_class": "hygiene",
+   "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_mock (and --only c_fix_review_j5)"
+   ]
+  },
+  {
+   "id": "D6-s5-02",
+   "step": "D6.M3",
+   "title": "gate-scoping.md tells a seat to protect tools/audit/round4/D6/, which does not exist",
+   "severity": "medium",
+   "class_guess": "N-move-stale-path",
+   "files": [
+    "dev/governance/rules/gate-scoping.md"
+   ],
+   "claim": "gate-scoping.md says a gate run rewrites tools/audit/round4/D6/; the files the gate rewrites are dev/audit/rounds/round4/D6/claims.json and claims.md (closure.INERT_EXCEPT), and tools/audit/round4/D6/ is absent at the baseline.",
+   "mechanism": "The round evidence moved from tools/audit/roundN/ to dev/audit/rounds/roundN/; closure.py's INERT_EXCEPT followed, the rule did not, so the `git checkout` it prescribes before `git add -A` names a path that is not there and the churned pair is committed.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_round4_d6",
+    "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+    "value": 0,
+    "unit": "INERT_EXCEPT entries at the rule's path (gate rewrites 2 at dev/audit/rounds/round4/D6/)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 container (shared, light seat)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/closure.py:INERT_EXCEPT",
+   "perturbation": {
+    "change": "--perturb round4_d6: respell INERT_EXCEPT's round4/D6 entries at tools/audit/round4/D6/",
+    "expected_direction": "up",
+    "observed_value": 2
+   },
+   "metric_definition": "count of closure.INERT_EXCEPT entries (the files the gate's claims-harness re-run rewrites) under the path gate-scoping.md names",
+   "phenomenon_property": "Every path a governance rule tells a seat to act on exists in the tree the rule governs.",
+   "proposed_fix_scope": "One-line edit of dev/governance/rules/gate-scoping.md (and the generated .claude/rules and .cursor/rules copies via rules_sync.mjs): dev/audit/rounds/round4/D6/.",
+   "scope": "D6-s5",
+   "stop_rule_class": "hygiene",
+   "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_round4_d6"
+   ]
+  },
+  {
+   "id": "D6-s5-03",
+   "step": "D6.M3",
+   "title": "brief-citations.md says the symbol check excludes tools/audit/round2/; brief_lint searches it",
+   "severity": "low",
+   "class_guess": "N-move-stale-path",
+   "files": [
+    "dev/governance/rules/brief-citations.md"
+   ],
+   "claim": "brief-citations.md says a cited symbol must be found in the tracked tree 'not .claude/ or tools/audit/round2/'; brief_lint.mjs's symbolInTree finds a symbol present only under tools/audit/round2/, since SYMBOL_GREP_EXCLUDE holds ':!.claude' alone.",
+   "mechanism": "brief_lint.mjs deleted the round2 exclusion when the archive left the tree (its own comment says so); the rule's sentence kept it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_brief_exclude",
+    "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+    "value": 1,
+    "unit": "symbolInTree answer (1 = found) for a symbol planted only under tools/audit/round2/",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 container (shared, light seat)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/policy/brief_lint.mjs:symbolInTree",
+   "perturbation": {
+    "change": "--perturb brief_exclude: the temp tree's SYMBOL_GREP_EXCLUDE gains ':!tools/audit/round2'",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "whether brief_lint's symbolInTree resolves a symbol that exists only under tools/audit/round2/ in a temp baseline tree (1 found, 0 excluded)",
+   "phenomenon_property": "The exclusions a governance rule states are the exclusions the instrument applies.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_brief_exclude",
+    "value": 0,
+    "note": "the same probe planted only under .claude/ is not found (RESULT claude_symbol_found_null_control=0)"
+   },
+   "proposed_fix_scope": "Edit the Symbols sentence of dev/governance/rules/brief-citations.md to name .claude/ alone, then rules_sync.mjs.",
+   "scope": "D6-s5",
+   "stop_rule_class": "hygiene",
+   "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_brief_exclude"
+   ]
+  },
+  {
+   "id": "D6-s5-04",
+   "step": "D6.M3",
+   "title": "writing-for-agents.md places the one handover under docs/; it is dev/programme/HANDOVER.md",
+   "severity": "low",
+   "class_guess": "N-move-stale-path",
+   "files": [
+    "dev/governance/rules/writing-for-agents.md"
+   ],
+   "claim": "writing-for-agents.md says tests/entities.py enforces 'exactly one handover under docs/'; closure.is_handover finds 0 handovers under docs/ and entities.py requires the one handover to be dev/programme/HANDOVER.md.",
+   "mechanism": "The handover moved from docs/ to dev/programme/; closure.HANDOVER_DIRS and entities.py's check followed (both directories count, the living file must be dev/programme/HANDOVER.md), the rule's enforcement sentence did not.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_handover_docs",
+    "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+    "value": 0,
+    "unit": "handovers under docs/ (claim: 1)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 container (shared, light seat)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/closure.py:is_handover",
+   "perturbation": {
+    "change": "--perturb handover_docs: HANDOVER_DIRS=('docs/',) with the handover at docs/HANDOVER.md",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "count of baseline tracked files under docs/ for which closure.is_handover is true",
+   "phenomenon_property": "A rule's statement of what a check enforces matches the check's own predicate and expected value.",
+   "proposed_fix_scope": "Edit the enforcement sentence of dev/governance/rules/writing-for-agents.md: exactly one handover, dev/programme/HANDOVER.md, a second under dev/programme/ or docs/ refused; rules_sync.mjs.",
+   "scope": "D6-s5",
+   "stop_rule_class": "hygiene",
+   "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_handover_docs"
+   ]
+  },
+  {
+   "id": "D6-s5-05",
+   "step": "D6.M3",
+   "title": "tests/README.md says every script but stress.py runs unleased; 9 suite scripts take a lease or slot",
+   "severity": "low",
+   "class_guess": "new",
+   "files": [
+    "tests/README.md"
+   ],
+   "claim": "tests/README.md says run.sh leases stress.py alone and every other script runs unleased; gate_lock.needs_lease answers lease for harness_headers.py and slot for 8 more suite scripts.",
+   "mechanism": "The gate lock grew a second machine-measuring script and a heavy-slot pool (gate-scoping.md states both); the README's gate-lock section kept the one-lease wording.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_unleased",
+    "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+    "value": 9,
+    "unit": "suite scripts besides stress.py that needs_lease answers lease or slot (claim: 0)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 container (shared, light seat)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/gate_lock.py:needs_lease",
+   "perturbation": {
+    "change": "--perturb needs_lease: MACHINE_MEASURING=('tests/stress.py',) and every recorded time 0 s",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of closure.test_scripts() entries other than tests/stress.py for which gate_lock.needs_lease(<scope naming it>) is not 'none'",
+   "phenomenon_property": "The README's description of which scripts run under the gate lock matches gate_lock.needs_lease over the suite.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_measuring",
+    "value": "lease, lease",
+    "note": "gate-scoping.md's statement (stress.py and harness_headers.py leased, four slots) checks true on the same instrument"
+   },
+   "proposed_fix_scope": "Rewrite the sentence in tests/README.md's gate-lock section to the gate-scoping.md shape (two exclusive-lease scripts, a slot pool, the rest unleased) or point to it.",
+   "scope": "D6-s5",
+   "stop_rule_class": "hygiene",
+   "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_unleased"
+   ]
+  },
+  {
+   "id": "D6-s5-06",
+   "step": "D6.M3",
+   "title": "INSTRUMENTS.md lists 19 record directories 'here'; none is in tools/audit/seat/",
+   "severity": "low",
+   "class_guess": "N-move-stale-path",
+   "files": [
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "claim": "tools/audit/seat/INSTRUMENTS.md says the directories round3/..round9/, round5-fix/, round7-fix/, round8-fix/, handoff/, rca/, w5-partition/, w5-g5-195-coverage/, briefs/, archscore/, ci-version-edit/, ledger-layout/ and record-predicate/ are here as records; 0 of the 19 exist under tools/audit/seat/.",
+   "mechanism": "The sentence was written for tools/audit/ before the records moved under dev/audit/rounds/ and dev/governance/ and before the index moved into seat/.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_instrument_dirs",
+    "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+    "value": 19,
+    "unit": "listed record directories absent from tools/audit/seat/ (of 19)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 container (shared, light seat)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/seat/INSTRUMENTS.md (directory listing of tools/audit/seat/ in a clean baseline tree)",
+   "perturbation": {
+    "change": "--perturb instruments_dirs: create the 19 listed directories under the temp tree's tools/audit/seat/",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of directory names the 'Directories here that are records' sentence lists (round3..round9 expanded) that are not directories under tools/audit/seat/ at the baseline",
+   "phenomenon_property": "Every directory an instrument index says is beside it exists there.",
+   "proposed_fix_scope": "Rewrite the sentence in tools/audit/seat/INSTRUMENTS.md to name where the records are (dev/audit/rounds/, dev/governance/, tools/audit/archscore/) or drop it.",
+   "scope": "D6-s5",
+   "stop_rule_class": "hygiene",
+   "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_instrument_dirs"
+   ]
+  },
+  {
+   "id": "D6-s5-07",
+   "step": "D6.M3",
+   "title": "HANDOVER.md documents worktree_gc.sh --apply; the script refuses --apply",
+   "severity": "low",
+   "class_guess": "new",
+   "files": [
+    "dev/programme/HANDOVER.md"
+   ],
+   "claim": "dev/programme/HANDOVER.md says `worktree_gc.sh --apply` collects detached clean worktrees; tools/audit/worktree_gc.sh exits 2 with 'REFUSE: unknown option --apply' (collecting is its default, --dry-run the preview).",
+   "mechanism": "The trap entry names a flag the script never had or has lost; its parser accepts only --dry-run, --strict and --keep-dir.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_worktree_apply",
+    "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+    "value": 1,
+    "unit": "worktree_gc.sh refuses --apply (1 refused, 0 accepted)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 container (shared, light seat)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/worktree_gc.sh (option parser)",
+   "perturbation": {
+    "change": "--perturb worktree_apply: the temp tree's parser accepts --apply as a no-op",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "whether `bash tools/audit/worktree_gc.sh --apply --dry-run o/r` in a clean baseline tree prints the unknown-option refusal",
+   "phenomenon_property": "Every command line the handover documents is accepted by the script it names.",
+   "proposed_fix_scope": "Edit the trap entry in dev/programme/HANDOVER.md to `worktree_gc.sh <owner/repo>` (with --dry-run to preview).",
+   "scope": "D6-s5",
+   "stop_rule_class": "hygiene",
+   "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_worktree_apply"
+   ]
+  },
+  {
+   "id": "D6-s5-08",
+   "step": "D6.M3",
+   "title": "archscore ABOUT.md cites event_hub_writes.py; the control is r10_livestate_event_hub_writes.py",
+   "severity": "low",
+   "class_guess": "N-move-stale-path",
+   "files": [
+    "tools/audit/archscore/ABOUT.md"
+   ],
+   "claim": "tools/audit/archscore/ABOUT.md says R10-LIVESTATE carries the 41 -> 38 control in `event_hub_writes.py`; no file of that name is in the baseline tree, the harness is dev/audit/harnesses/r10_livestate_event_hub_writes.py.",
+   "mechanism": "The harness was renamed with its group prefix when it moved into dev/audit/harnesses/; the citation kept the short name.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_event_hub",
+    "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+    "value": 0,
+    "unit": "files named event_hub_writes.py in the tree (claim: 1)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 container (shared, light seat)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count is contention-immune",
+    "tolerance": "exact",
+    "load1": 3.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "baseline tree listing (git ls-tree) for dev/audit/harnesses/r10_livestate_event_hub_writes.py",
+   "perturbation": {
+    "change": "--perturb event_hub: look up the basename the harness has (r10_livestate_event_hub_writes.py) instead of the cited one",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "count of files whose basename is event_hub_writes.py in the baseline tree",
+   "phenomenon_property": "Every harness a design note cites resolves to a file by the path or name it gives.",
+   "proposed_fix_scope": "One-line edit in tools/audit/archscore/ABOUT.md.",
+   "scope": "D6-s5",
+   "stop_rule_class": "hygiene",
+   "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_event_hub"
+   ]
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "CLAUDE.md: derive the structure count as budget keys less recorded_at; structure.py's ok lines are a third number",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_budget_count",
+   "value": "metrics=18 ok_lines=23 rc=0 (clean baseline tree)"
+  },
+  {
+   "claim": "CLAUDE.md: MODE: SCOPED -- N script(s) run and MODE: FULL are the mode lines",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_mode_lines",
+   "value": "both present in closure.py's select output"
+  },
+  {
+   "claim": "CLAUDE.md: entities.py fails with 'these force the FULL suite when touched'",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_full_orphan",
+   "value": "present"
+  },
+  {
+   "claim": "CLAUDE.md and AGENTS.md: .cursor/rules and .claude/rules are generated by rules_sync.mjs and --check refuses drift",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_rules_sync",
+   "value": "rc=0 RULES-SYNC ok"
+  },
+  {
+   "claim": "CLAUDE.md tables name every rule (10), role (18), dimension brief (16 at the baseline) and criteria file (4)",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_tables",
+   "value": "unnamed=[] for each directory of the baseline commit"
+  },
+  {
+   "claim": "gate-scoping.md: lease scripts are stress.py and harness_headers.py; four $HPO_HEAVY_SLOTS",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_measuring",
+   "value": "lease, lease; slots 4 via HPO_HEAVY_SLOTS"
+  },
+  {
+   "claim": "gate-scoping.md: run.sh runs $PYTHON, else .venv/bin/python, else python3",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_python_order",
+   "value": "python3 (no .venv)"
+  },
+  {
+   "claim": "gate-scoping.md and tests/README.md: 30-minute expires_at, renew exits 75, wait bound rc 76, lock at /tmp/hpo-gate.lock",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_lease_minutes / c_rcs / c_lockdir",
+   "value": "1800 s; 75, 76; /tmp/hpo-gate.lock"
+  },
+  {
+   "claim": "tests/README.md: GATE_SCOPE=full is the default",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_scope_default",
+   "value": "full"
+  },
+  {
+   "claim": "claim-files.md: .gitattributes routes both claim files to claimnotes; env_drift.py --install-merge-driver",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_claimnotes",
+   "value": "routed=True flag=True"
+  },
+  {
+   "claim": "dev/audit/README.md: __main__ guards on golden, env_drift, closure, frontend, manual_plan, stress, structure; import-time exit in entities, features, rolling, backtest, optimality",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_main_guards / c_import_exit",
+   "value": "without guard: []; not so: []"
+  },
+  {
+   "claim": "dev/audit/README.md: 5 coordinator topologies; the 8 price and 5 weather profiles",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_topologies / c_profiles",
+   "value": "5 named as stated; not accepted: []"
+  },
+  {
+   "claim": "dev/audit/README.md: the SLOW_GATED assertion closure.py's comment places in entities.py does not exist",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_slow_gated",
+   "value": "0 code lines asserting the run.sh gate"
+  },
+  {
+   "claim": "dev/audit/README.md: optimizer.py's GIL yields are 3 sleep(0.002) calls in _multi_start_minimize, _lbfgsb_restart and the DHW-to-space seam",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_gil",
+   "value": "3 calls in _lbfgsb_restart, _multi_start_minimize, _optimize_with_dhw (baseline tree)"
+  },
+  {
+   "claim": "dev/audit/README.md: round 1-3 records are at d5d8c4a (tools/audit/round2/JUDGE.md)",
+   "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone> --only c_judge_sha",
+   "value": "git cat-file -e rc=0"
+  },
+  {
+   "claim": "Every internal link in the seat's 140 files resolves (file and heading anchor)",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/links.py --repo <clone>",
+   "value": "links=115 broken=0 external=0"
+  },
+  {
+   "claim": "Reference atoms (paths, file:symbol, script --flag) across all 3483 units",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/atoms.py --repo <clone> --list-stale",
+   "value": "1353 units with atoms; 1296 rows true; stale_atoms=3 (all in findings)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D6/s5/atoms.py",
+  "dev/audit/rounds/round11/D6/s5/claims.py",
+  "dev/audit/rounds/round11/D6/s5/assemble.py",
+  "dev/audit/rounds/round11/D6/s5/links.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D6-s1",
+   "file": "docs/how-it-works.md, docs/architecture.md, docs/dashboard-card.md, docs/ecl110.md, docs/setup.md, docs/automations.md",
+   "symbol": "prose claims (C2, C3)",
+   "what": "Redispatched C2/C3 (behavioural 'optimizer will...' sentences, units/performance/version prose) concern docs/ files that are D6-s1's cells, not D6-s5's; not measured here."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "docs/ (options pages, manual-plan hours, weekly snapshots, +-12 %, external links)",
+   "symbol": "C1, C4",
+   "what": "Redispatched C1/C4 need flow/engine harnesses and HEAD requests for docs/ and const claims outside D6-s5's cells; D6-s5's own cells hold 0 external links."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/._*.py (export only)",
+   "symbol": "tests/structure.py:module_trees",
+   "what": "The shared export holds macOS AppleDouble ._*.py files absent from the baseline commit; tests/structure.py's rglob('*.py') reads them and dies with UnicodeDecodeError when run in the export, so any seat running structure.py there gets no number. D6-s5 ran it in a git-archive tree of the baseline instead."
+  }
+ ]
+}

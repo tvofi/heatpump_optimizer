@@ -1,0 +1,23 @@
+| id | metric | expected | got | reproduced | direction | perturbed | perturbation | void | null_value | load1 | thread_factor | flags |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D1-s2-04 | consequences | 2. | 2 | yes | to_zero |  | by-hand |  | by-hand | 0.63 | 0.999 |  |
+| D1-s3-07 | silent_broad_no_record | 7 | 3 | no | down |  | by-hand |  | by-hand | 0.77 | 1.0 |  |
+| D11-s1-01 | missed | 2 | 2 | yes | to_zero |  | by-hand |  | by-hand | 0.79 | 1.000 |  |
+| D11-s3-03 | null_rc |  | 0 | by-hand | to_zero |  | by-hand |  | by-hand | 0.96 | 1.000 |  |
+| D14-s1-03 | instance |  | SEK | by-hand | to_zero |  | by-hand |  | by-hand | 0.96 | 1.000 |  |
+| D15-s2-04 |  |  |  | by-hand | to_zero |  | by-hand |  | by-hand | 0.96 |  | rc=1; load1 from batch; no thread_factor |
+| D16-s2-01 | stale_share_supply | 0, | 0.0000 | no | to_zero |  | by-hand |  | by-hand | 0.96 | 1.000 | tree edited by run: dev/audit/rounds/round11/D16/s2/__pycache__/rig.cpython-314.pyc; restored |
+| D17-s1-05 | guard_wrong_minutes_total | 69 | 0 | no | to_zero |  | by-hand |  | by-hand | 0.95947265625 | 1.0 | tree edited by run: dev/audit/rounds/round11/D17/s1/__pycache__/rig.cpython-314.pyc; restored |
+| D2-s1-51 |  |  |  | by-hand |  |  | by-hand |  |  |  |  | harness not found |
+| D2-s3-10 | drifting_admitted |  | 0 | by-hand | to_zero |  | by-hand |  | by-hand | 1.02 | 1.0000 | tree edited by run: dev/audit/rounds/round11/D2/s3/__pycache__/_common.cpython-314.pyc; restored |
+| D4-s3-04 | cells |  | 180 | by-hand | down |  | by-hand |  | by-hand | 1.21 | 1.00 |  |
+| D5-s2-02 | menu_rows_readme |  | 25 | by-hand | to_zero |  | by-hand |  | by-hand | 1.21 | 1.000 | tree edited by run: dev/audit/rounds/round11/D5/s2/work/structure_fails.json; restored |
+| D5-s3-02 | overshoot_c | 0.0, | 0.0 | no | to_zero |  | by-hand |  | by-hand | 1.21 | 0.004 |  |
+| D5-s6-01 | stamp_record_class_res_len |  | 6 | by-hand | to_zero |  | by-hand |  | by-hand | 1.21 | 1.00 |  |
+| D5-s8-01 | units | 3628, |  | by-hand | down |  | by-hand |  | by-hand | 1.21 |  | rc=1; load1 from batch; no thread_factor |
+| D6-s1-01 | false_rows_total | <n> |  | by-hand | to_zero |  | by-hand |  | by-hand | 1.21 |  | rc=1; load1 from batch; no thread_factor |
+| D6-s5-04 |  |  |  | by-hand | up |  | by-hand |  | by-hand | 1.21 |  | rc=1; load1 from batch; no thread_factor |
+| D7-s1-04 | perturbation |  | none | by-hand | up |  | by-hand |  | by-hand | 1.13 | 1.00 |  |
+| D8-s1-01 | no_dhw_pairs |  | 22 | by-hand | to_zero |  | by-hand |  | by-hand | 1.08 | 1.000 |  |
+| D9-s3-02 | clean_solves_per_cycle |  | 2.00 | by-hand | up |  | by-hand |  | by-hand | 1.00 | 1.000 |  |
+rc=0

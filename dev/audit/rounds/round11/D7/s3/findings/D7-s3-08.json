@@ -1,0 +1,50 @@
+{
+ "id": "D7-s3-08",
+ "scope": "D7-s3",
+ "step": "D7.M8",
+ "title": "emitter_delivery lost its never-negative clamp: behind a valve the scalar model and its batch twin diverge",
+ "severity": "high",
+ "claim": "mixing_valve.emitter_delivery returns ua * (mix_temp - zone_temp) with no floor at zero, against its own docstring (`Never negative: a valve can shut, but it cannot cool a house`) and against the inline np.maximum(0.0, ...) of simulate_trajectory_batch; under every throttling valve mode simulate_trajectory and simulate_trajectory_batch then diverge once the tank falls to the zone it feeds (18 of 42 probes, buffer temperature up to 2.4 K apart within 24 h), where they are bitwise equal on all 24 probes without a valve.",
+ "mechanism": "The rule `what an emitter circuit takes from the mixed flow` is written twice: mixing_valve.emitter_delivery (mixing_valve.py:133), which the scalar two-zone step calls through thermal_model._valve_two_zone_delivery (thermal_model.py:2526, 2536), and inline in the batched trajectory (thermal_model.py:4673-4678). The scalar copy has no clamp, so with the pump off and the tank drained to the slab's temperature the scalar step moves heat from the slab back into the tank (slab 23.01 against the twin's 23.06 after one hour, tank 22.11 against 21.34): a mixing valve run in reverse. simulate_step is the model the coordinator predicts with and the solver's scalar objective integrates; the batch is what its finite-difference gradient is taken on, and the batch docstring states `bitwise parity is the contract`. On a valve install the objective and its gradient are therefore two different plants over every coast.",
+ "evidence": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_trajectory",
+  "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+  "value": 18,
+  "unit": "probes of 42 (a model variant x a weather, 4 schedules and 6 or 7 series each) on which a row of simulate_trajectory_batch is not simulate_trajectory to the bit: all 18 are the six valve variants (manual, smart_read, smart_write x one- and two-zone config) x 3 weathers; the 8 no-valve variants agree on 24 of 24",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+  "tolerance": "exact",
+  "load1": 290.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.mixing_valve:emitter_delivery",
+ "perturbation": {
+  "change": "attribute swap of mixing_valve.emitter_delivery for `max(0.0, ua * (mix_temp - zone_temp))` (m8_agree.py --only twin_trajectory --perturb)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "probes (model variant, weather) at which any series of simulate_trajectory_batch's row differs in any bit from simulate_trajectory on that schedule, over 4 schedules",
+ "phenomenon_property": "Every `_batch` twin returns, row for row and to the bit, what its scalar returns; a physical law both call (emitter delivery, the exact top-k) is one function the twin also calls or mirrors under a parity check that covers the regime where the law's clamp binds.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m8_enum.py --list | grep '^E'",
+ "null_control": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_trajectory",
+  "value": 0,
+  "note": "the eight variants with no throttling valve (single- and two-zone config, big buffer, flow-Carnot COP, flow-curve COP, wood tank, wood coil) agree to the bit on 24 of 24 probes in the same run; within the valve variants the full-power schedule agrees and only the schedules that let the tank fall to the slab diverge"
+ },
+ "reproduction_steps": [
+  "from custom_components.heatpump_optimizer import mixing_valve",
+  "mixing_valve.emitter_delivery(mix_temp=22.0, zone_temp=23.0, ua=0.5) -> -0.5 (docstring: never negative)"
+ ],
+ "proposed_fix_scope": "mixing_valve.py:emitter_delivery floors at zero; the batch twin's two inline expressions call or mirror it under a parity row with the tank below the slab (the regime tests/features.py's equivalence grid does not hold today, or the suite would be red on it).",
+ "files": [
+  "custom_components/heatpump_optimizer/mixing_valve.py",
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "expected_golden_drift": [
+  "every golden with a throttling mixing valve whose tank coasts to the slab temperature"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P2"
+}
