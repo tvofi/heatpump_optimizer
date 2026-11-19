@@ -1,0 +1,45 @@
+{
+  "id": "D15-s2-01",
+  "scope": "D15-s2",
+  "step": "D15.M5",
+  "title": "debug_replay seeds unmasked store entity ids against the masked replay half, voiding the learned heat loss",
+  "severity": "medium",
+  "claim": "On the owner's 2026-11-16 download, tools/replay/debug_replay.py:run_seeded seeds store documents whose entity-id leaves (8 leaves in 4 stores) name ids absent from the masked replay half, so the replayed coordinator voids house_heat_loss_scale and lower_floor_loss_ratio ('its zone sensor changed') and drops 42 learned heat-loss samples before its first cycle: the D15 timeline replay runs a house model the install does not have.",
+  "mechanism": "The debugger bundle's replay half is written through replay_doc's mask (each configured entity becomes its role name or an e_<hash> id), while its stores section is the install's store documents verbatim. debug_replay.seed_stores writes those documents onto the stub disk unchanged; the coordinator's thermal-learning load compares the stored heat_loss_zone_entities with the replay entry's (masked) zone sensors, finds them different, and runs the one void path (_void_heat_loss_learners). The same mismatch leaves dhw_legionella.disinfection_owned and off_restore.armed naming ids the replay has no state for (the replay logs the owned disinfection switch as unreadable).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_ids.py --bundle <owner download>",
+    "harness_path": "dev/audit/rounds/round11/D15/s2/m5_seed_ids.py",
+    "value": "voided_learners=2; learned_samples_lost=42; unresolved_id_leaves=8 (4 stores)",
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "owner's macOS box (B8), venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats (two other debug_replay runs); counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 44.03,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._void_heat_loss_learners (driven through tools/replay/debug_replay.py:run_seeded)",
+  "perturbation": {
+    "change": "--remap-zones: rewrite the seeded thermal_learning heat_loss_zone_entities to the replay entry's own ids for the same keys (what a mask-aware seed_stores would write)",
+    "expected_direction": "to_zero",
+    "observed_value": "voided_learners=0, learned_samples_lost=0, unresolved_id_leaves 8 -> 6"
+  },
+  "metric_definition": "Learners the production void path resets while debug_replay.run_seeded sets up from the bundle's stores and runs the window's first cycle.",
+  "phenomenon_property": "Every entity id a store document seeded by debug_replay names resolves in the replay half it is replayed against (the same mask applied to both), so the replayed coordinator starts from the install's learned state.",
+  "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_ids.py --bundle B --list",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_ids.py --bundle <dbg_bundle_gen.py --days 1 bundle.json>",
+    "value": "unresolved_id_leaves=0, voided_learners=0, learned_samples_lost=0",
+    "note": "the synthetic bundle's stores were written by the same replay, so ids agree and nothing is voided"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_ids.py --bundle B --list   # 8 seams",
+    "... --bundle B            # voided_learners=2",
+    "... --bundle B --remap-zones   # voided_learners=0"
+  ],
+  "proposed_fix_scope": "tools/replay/debug_replay.py seed_stores: carry the replay half's id mapping (or re-derive it with replay_doc's mask) and rewrite every entity-id leaf of the seeded stores through it before writing them; or have custom_components/heatpump_optimizer/debugger.py write the stores section through the same mask. Pin with a debug_replay gate check over a bundle whose stores carry an unmasked zone id.",
+  "files": ["tools/replay/debug_replay.py", "custom_components/heatpump_optimizer/debugger.py", "custom_components/heatpump_optimizer/replay_doc.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "I4"
+}

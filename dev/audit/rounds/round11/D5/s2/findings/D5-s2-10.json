@@ -1,0 +1,40 @@
+{
+  "id": "D5-s2-10",
+  "scope": "D5-s2",
+  "step": "D5.M3",
+  "title": "how-it-works says any DHW sensor, volume or window activates hot water; the wizard's explicit switch overrides that",
+  "severity": "low",
+  "claim": "docs/how-it-works.md:303-305 says 'hot water optimization activates as soon as any one of a DHW temperature sensor, a tank volume or a set of demand windows is configured', but thermal_model:_dhw_enabled_from_config returns the explicit dhw_enabled switch whenever the entry carries it, and the setup wizard's Hot water step writes it (unticked by default), so on such an entry all 7 non-empty configurations of the presence trio leave hot water off.",
+  "mechanism": "The presence trio is the fallback for entries without the explicit switch (pre-switch entries); the switch (configuration.md's 'The house has a hot water tank', default unticked) was added later and the how-it-works sentence still states the fallback as the rule. A user who adds a tank sensor on the options page expecting hot water planning to start sees none until the box is ticked.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/dhw_enable.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s2/dhw_enable.py",
+    "value": "contradicted=7 of 7; doc_presence_units=1; wizard_writes_switch=1",
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "box heavily loaded (load1 ~200); counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 202.01,
+    "thread_factor": 0.999
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:_dhw_enabled_from_config",
+  "perturbation": {
+    "change": "--perturb: the resolver's explicit-switch branch removed in memory (presence trio only)",
+    "expected_direction": "to_zero",
+    "observed_value": "contradicted 7 -> 0"
+  },
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/dhw_enable.py --null",
+    "value": "contradicted=0",
+    "note": "on an entry without the explicit switch the documented presence rule holds; the gap is only the switch's"
+  },
+  "metric_definition": "Presence-trio configurations (7 non-empty subsets) the doc says activate hot water that the production resolver leaves off on an entry carrying dhw_enabled=False.",
+  "phenomenon_property": "The reader documents state the hot-water activation rule the resolver implements: the explicit switch when present, the presence trio otherwise.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/dhw_enable.py; grep -n -i 'activates as soon as\\|has a hot water tank' README.md docs/*.md",
+  "stop_rule_class": "hygiene",
+  "class_guess": "I5",
+  "files": ["docs/how-it-works.md"],
+  "proposed_fix_scope": "Rewrite how-it-works.md:303-305: hot water is planned when 'The house has a hot water tank' is ticked; an entry created before that switch existed infers it from a DHW sensor, tank volume or demand windows. For D6: the sentence's truth."
+}

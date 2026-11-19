@@ -1,0 +1,55 @@
+{
+ "id": "D16-s2-01",
+ "scope": "D16-s2",
+ "step": "D16.M3",
+ "title": "Frequency, ECL110 displace and heat-curve offset hold the cycle's step through the next step",
+ "severity": "medium",
+ "claim": "The writes cut from the cycle's action (compressor frequency, ECL110 MQTT displace on both topics, the heat-curve offset entity) are never re-derived at a plan-step boundary, so with the default 30-min cycle over 15-min steps the command in force is another step's in 45-57 % of graded minutes on the reference plant.",
+ "mechanism": "`_current_action` is cut once per solve (async_run_optimization -> get_current_action) and `_command_frequency` (via `_commanded_split`), `async_publish_current_action` -> `heat_curve.publish` and the valve hold schedule read it only inside `_async_update_data`; the supply (`pump_arbiter.supply_tick`, #2492) and the arbiter's one-minute tick re-derive their step each minute, these do not. A cycle whose tail lands after the boundary (cell 3478) writes the step it was cut for into the next one.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py",
+  "harness_path": "dev/audit/rounds/round11/D16/s2/timing.py",
+  "value": 0.5732,
+  "unit": "stale share, mqtt displace (curve 0.4644, frequency 0.4480)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+  "cpu_or_wall": "ratio",
+  "contention_note": "other finder seats on the box; counts are contention-immune",
+  "tolerance": "exact for a given phase set",
+  "load1": 1.8,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._command_frequency; heatpump_optimizer.heat_curve:publish_ecl110_topics; heatpump_optimizer.heat_curve:write_displace (driven through HeatPumpOptimizerCoordinator._apply_action)",
+ "perturbation": {
+  "change": "cycle every 15 min aligned to the step grid (optimization_interval 15, --interval 15 --phases 0): every write re-cut at each boundary",
+  "expected_direction": "to_zero",
+  "observed_value": "mqtt 0.0000, curve 0.0000, frequency 0.0000"
+ },
+ "metric_definition": "minutes >=1 min after a boundary whose in-force value != the step's own (displace_schedule[k] by plain index; frequency the value a same-step cut writes) / graded minutes",
+ "phenomenon_property": "Every actuator write whose value is a function of the plan step is re-derived at each plan-step boundary (within the arbiter's one-minute tick), not only when the cycle runs.",
+ "seam_rule": "grep -nE '_command_frequency|async_publish_current_action|_command_valve_target|_async_drive_pumps|_current_action\\.get\\(\"(valve_target|displace_value|heat_pump_on)\"' custom_components/heatpump_optimizer/coordinator.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --interval 15 --phases 0",
+  "value": 0.0,
+  "note": "a cycle on every boundary: all three shares 0, supply/mode/flow 0 in both arms"
+ },
+ "leave_one_out": {
+  "cells": 6,
+  "min": 0.4135,
+  "max": 0.7303,
+  "drop_most_favourable": 0.6057
+ },
+ "reproduction_steps": [
+  "run timing.py: RESULT stale_share_mqtt_displace=0.5732, curve_offset=0.4644, frequency=0.4480 over cycle phases 1,6,11,16,21,26",
+  "cell 3478 line: frequency 65.5 Hz (partial's) in force in a full step whose own cut writes 90.0 Hz; mqtt '4' against the step's 6",
+  "--interval 15 --phases 0: all 0"
+ ],
+ "proposed_fix_scope": "coordinator write tail: re-cut the action's step-dependent fields (or the action) at each plan-step boundary from the same one-minute step tick that drives the supply, and run the frequency/MQTT/curve/valve writes from it, keeping their own rate limits.",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/heat_curve.py",
+  "custom_components/heatpump_optimizer/pump_arbiter.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P2"
+}

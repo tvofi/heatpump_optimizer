@@ -1,0 +1,106 @@
+RESULT universe_files=96 count
+CELL custom_components/heatpump_optimizer/__init__.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/accuracy.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/away.py solve=0 sim=1 offloop=0 loophook=3 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/batchmath.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/battery.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/binary_sensor.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/boost.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/button.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/climate.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/comfort_band.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/comfort_learning.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/config_flow.py solve=0 sim=0 offloop=0 loophook=2 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/const.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/coordinator.py solve=4 sim=1 offloop=17 loophook=14 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/currency.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/curve_learning.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/datetime.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/debugger.py solve=0 sim=0 offloop=3 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/defrost.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/device_prefill.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/dhw_draws.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/dhw_learning.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/dhw_planner.py solve=0 sim=1 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/dhw_schedule.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/diagnosis.py solve=0 sim=1 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/diagnostics.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/disinfection.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/draw_range.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/drift.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/driving_grade.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/duty_legs.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/duty_switch.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/early_cutoff.py solve=0 sim=0 offloop=0 loophook=3 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/entity.py solve=0 sim=0 offloop=0 loophook=1 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/entry_config.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/external_heat.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/flow_lift.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/flow_meter.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/freq_control.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/frontend.py solve=0 sim=0 offloop=1 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/grid_fee.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/heat_curve.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/heat_energy.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/inputs.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/issues.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/learner_progress.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/ledger.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/legionella.py solve=0 sim=0 offloop=0 loophook=2 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/log_latch.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/manual_plan.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/mixing_valve.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/modbus_prefill.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/name_match.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/narrative.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/notifier.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/off_restore.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/open_meteo.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/optimizer.py solve=11 sim=7 offloop=0 loophook=0 yield=7 js_service=0
+CELL custom_components/heatpump_optimizer/payload.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/plan_slots.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/plan_step.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/power_guard.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/prefill_offer.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/presets.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/price_model.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/price_tiles.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/process_worker.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/pump_arbiter.py solve=0 sim=0 offloop=0 loophook=6 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/pump_mode.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/pump_schedule.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/pump_signals.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/pv.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/quick_setup.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/quiet_windows.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/repairs.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/replay_doc.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/running_signal.py solve=0 sim=0 offloop=0 loophook=4 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/runs.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/sensor.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/services.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/setpoint_check.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/silent_mode.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/slab_seed.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/slot_drivers.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/snapshots.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/store.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/supply_hold.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/switch.py solve=0 sim=0 offloop=0 loophook=1 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/sysid.py solve=0 sim=2 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/tariff.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/thermal_model.py solve=0 sim=7 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/topology.py solve=0 sim=1 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/wear.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/whatif.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/wood_fuel.py solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=0
+CELL custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js solve=0 sim=0 offloop=0 loophook=0 yield=0 js_service=12
+RESULT total.solve=15 lines
+RESULT total.sim=21 lines
+RESULT total.offloop=21 lines
+RESULT total.loophook=36 lines
+RESULT total.yield=7 lines
+RESULT total.js_service=12 lines
+RESULT thread_factor=1.0 1
+RESULT load1=8.98 1
+RESULT swapins=0 count

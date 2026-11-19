@@ -1,0 +1,8 @@
+RESULT probe_processes_started=2 probe_recorded=1
+RESULT child_loads_parent_hook=0
+RESULT capture_rc=0 capture_wall_s=68.9 (provisional)
+RESULT lines_json=<tmp>/lines.json processes_recorded=1
+RESULT capture_never_executes_v2=682
+RESULT executed_v2=578
+RESULT no_instruction_line=0
+RESULT load1=2.55

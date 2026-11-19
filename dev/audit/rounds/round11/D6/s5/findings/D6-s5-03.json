@@ -1,0 +1,45 @@
+{
+ "id": "D6-s5-03",
+ "step": "D6.M3",
+ "title": "brief-citations.md says the symbol check excludes tools/audit/round2/; brief_lint searches it",
+ "severity": "low",
+ "class_guess": "N-move-stale-path",
+ "files": [
+  "dev/governance/rules/brief-citations.md"
+ ],
+ "claim": "brief-citations.md says a cited symbol must be found in the tracked tree 'not .claude/ or tools/audit/round2/'; brief_lint.mjs's symbolInTree finds a symbol present only under tools/audit/round2/, since SYMBOL_GREP_EXCLUDE holds ':!.claude' alone.",
+ "mechanism": "brief_lint.mjs deleted the round2 exclusion when the archive left the tree (its own comment says so); the rule's sentence kept it.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_brief_exclude",
+  "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+  "value": 1,
+  "unit": "symbolInTree answer (1 = found) for a symbol planted only under tools/audit/round2/",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 container (shared, light seat)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, other finder seats running; a count is contention-immune",
+  "tolerance": "exact",
+  "load1": 3.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/policy/brief_lint.mjs:symbolInTree",
+ "perturbation": {
+  "change": "--perturb brief_exclude: the temp tree's SYMBOL_GREP_EXCLUDE gains ':!tools/audit/round2'",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "whether brief_lint's symbolInTree resolves a symbol that exists only under tools/audit/round2/ in a temp baseline tree (1 found, 0 excluded)",
+ "phenomenon_property": "The exclusions a governance rule states are the exclusions the instrument applies.",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_brief_exclude",
+  "value": 0,
+  "note": "the same probe planted only under .claude/ is not found (RESULT claude_symbol_found_null_control=0)"
+ },
+ "proposed_fix_scope": "Edit the Symbols sentence of dev/governance/rules/brief-citations.md to name .claude/ alone, then rules_sync.mjs.",
+ "scope": "D6-s5",
+ "stop_rule_class": "hygiene",
+ "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_brief_exclude"
+ ]
+}

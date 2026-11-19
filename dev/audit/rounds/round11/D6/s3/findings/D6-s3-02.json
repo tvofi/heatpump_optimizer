@@ -1,0 +1,44 @@
+{
+  "id": "D6-s3-02",
+  "scope": "D6-s3",
+  "step": "D6.M2",
+  "title": "Wood packing text says loose is 0.60 of packed; the birch row prices loose above packed",
+  "severity": "high",
+  "claim": "en.json's wood_packing description ('loose ... billed at 0.60 of packed') is false for birch in the audited tree: wood_fuel.useful_kwh_m3 gives birch packed 1140 and loose 1900 kWh/m3 (ratio 1.667), so packed birch is priced at 1.4035 SEK/kWh instead of 0.8421 at 1200 SEK/m3 and 75 % efficiency.",
+  "mechanism": "wood_fuel.WOOD_KWH_M3['birch'] holds its two entries exchanged relative to the other rows (pine 1500/900, mixed 1700/1020, both 0.60) and to tests/features.py's 'birch packed is 1900 kWh/m3' pin; useful_kwh_m3 -> liters_to_kwh -> wood_sek_per_kwh carry the swapped figure into the published wood price, the cheaper-than-pump verdict and the wood advice for every birch user. Provenance: commit 92d38ec holds packed 1900 / loose 1140; the export the seat was dispatched on holds the swap.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/wood_packing_ratio.py",
+    "harness_path": "dev/audit/rounds/round11/D6/s3/wood_packing_ratio.py",
+    "value": 1,
+    "unit": "wood types whose loose/packed useful-kWh ratio differs from the text's 0.60 (birch: 1.667)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B3, linux x86_64, 4 cpu (export $HOME/audit-r11-baseline, which differs from the commit in wood_fuel.py)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 6.13,
+    "thread_factor": 1.006
+  },
+  "instrumented_symbol": "heatpump_optimizer.wood_fuel:useful_kwh_m3",
+  "perturbation": {
+    "change": "--perturb: mock.patch.dict wood_fuel.WOOD_KWH_M3 with birch's packed and loose entries exchanged",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Count of wood types where useful_kwh_m3(t,'loose',100)/useful_kwh_m3(t,'packed',100) differs from the ratio en.json's wood_packing description states.",
+  "phenomenon_property": "For every wood type, loose firewood yields 0.60 of the packed useful energy per cubic metre, as the options text states, so the published wood price per kWh of loose and packed wood follows the user's packing choice in the stated proportion.",
+  "seam_rule": "dev/audit/rounds/round11/D6/s3/wood_packing_ratio.py (iterates every key of wood_fuel.WOOD_KWH_M3)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/wood_packing_ratio.py",
+    "value": "pine_ratio=0.600, mixed_ratio=0.600",
+    "note": "The two other wood types hold the stated ratio through the same seam."
+  },
+  "reproduction_steps": [
+    "From the export root, run the harness; read RESULT birch_ratio and packed_birch_sek_per_kwh.",
+    "Compare with commit 92d38ec's wood_fuel.py (git show 92d38ec:custom_components/heatpump_optimizer/wood_fuel.py), which holds packed 1900 / loose 1140."
+  ],
+  "proposed_fix_scope": "wood_fuel.py: birch packed 1900.0, loose 1140.0 (the commit's values); no text change.",
+  "files": ["custom_components/heatpump_optimizer/wood_fuel.py", "custom_components/heatpump_optimizer/translations/en.json"],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

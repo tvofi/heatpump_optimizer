@@ -1,0 +1,40 @@
+{
+ "id": "D6-s5-02",
+ "step": "D6.M3",
+ "title": "gate-scoping.md tells a seat to protect tools/audit/round4/D6/, which does not exist",
+ "severity": "medium",
+ "class_guess": "N-move-stale-path",
+ "files": [
+  "dev/governance/rules/gate-scoping.md"
+ ],
+ "claim": "gate-scoping.md says a gate run rewrites tools/audit/round4/D6/; the files the gate rewrites are dev/audit/rounds/round4/D6/claims.json and claims.md (closure.INERT_EXCEPT), and tools/audit/round4/D6/ is absent at the baseline.",
+ "mechanism": "The round evidence moved from tools/audit/roundN/ to dev/audit/rounds/roundN/; closure.py's INERT_EXCEPT followed, the rule did not, so the `git checkout` it prescribes before `git add -A` names a path that is not there and the churned pair is committed.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_round4_d6",
+  "harness_path": "dev/audit/rounds/round11/D6/s5/claims.py",
+  "value": 0,
+  "unit": "INERT_EXCEPT entries at the rule's path (gate rewrites 2 at dev/audit/rounds/round4/D6/)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 container (shared, light seat)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, other finder seats running; a count is contention-immune",
+  "tolerance": "exact",
+  "load1": 3.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/closure.py:INERT_EXCEPT",
+ "perturbation": {
+  "change": "--perturb round4_d6: respell INERT_EXCEPT's round4/D6 entries at tools/audit/round4/D6/",
+  "expected_direction": "up",
+  "observed_value": 2
+ },
+ "metric_definition": "count of closure.INERT_EXCEPT entries (the files the gate's claims-harness re-run rewrites) under the path gate-scoping.md names",
+ "phenomenon_property": "Every path a governance rule tells a seat to act on exists in the tree the rule governs.",
+ "proposed_fix_scope": "One-line edit of dev/governance/rules/gate-scoping.md (and the generated .claude/rules and .cursor/rules copies via rules_sync.mjs): dev/audit/rounds/round4/D6/.",
+ "scope": "D6-s5",
+ "stop_rule_class": "hygiene",
+ "seam_rule": "dev/audit/rounds/round11/D6/s5/assemble.py --repo <clone> (ledger.tsv rows whose verdict is false or stale; atoms.py --list-stale for path, symbol and flag atoms)",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub PYTHONUTF8=1 ~/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s5/claims.py --repo <clone holding 92d38ecb> --only c_round4_d6"
+ ]
+}

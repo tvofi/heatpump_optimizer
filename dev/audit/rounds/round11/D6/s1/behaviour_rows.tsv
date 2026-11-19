@@ -1,0 +1,15 @@
+# unit	command	result	verdict  (written by claims.py)
+README.md#77196e8585	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	options_pages: menus list 24 pages (8 top + 16 advanced), 1 read-only	true
+README.md#58cb597c29	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	manual_plan_window: expiry 30 h clamps to 20 h; a slot starting at +20.25 h refused=True	true
+README.md#d7098ba357	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	manual_plan_window: expiry 30 h clamps to 20 h; a slot starting at +20.25 h refused=True	true
+docs/index.html#48868d99bd	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	manual_plan_window: expiry 30 h clamps to 20 h; a slot starting at +20.25 h refused=True	true
+docs/configuration.md#309639064d	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	manual_plan_window: expiry 30 h clamps to 20 h; a slot starting at +20.25 h refused=True	true
+README.md#2a8ec833a4	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	snapshot_ring: 13 taken over 12 weeks of daily ticks, 8 kept, gaps [7] days	true
+docs/how-it-works.md#960511143c	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	snapshot_ring: 13 taken over 12 weeks of daily ticks, 8 kept, gaps [7] days	true
+README.md#ebf4c0fc49	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	peak_guard_two_samples: suppressing after over,over,clear,clear = [False, True, True, False]	true
+docs/how-it-works.md#37c55c51cc	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	peak_guard_two_samples: suppressing after over,over,clear,clear = [False, True, True, False]	true
+README.md#3df9800b56	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	legionella_default: ThermalParameters() default: enabled=True, 60 °C every 10 days	false
+README.md#eb154a060b	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	comfort_weight_default: option rows [('tuning', 5.0)]	true
+docs/configuration.md#5c31343a33	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	echo_grace_60s: reading counted (write record dropped) at +s: {5: True, 10: True, 19: True, 21: True, 30: True, 59: True, 61: True, 90: True}; contradicting the 60 s sentence at [5, 10, 19, 21, 30, 59]	false
+README.md#5cadc2d084	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	learner_left_alone_12pct: 2-day closed loop, plant_error=1.0: scale 0.979 (|-0.021| vs 0.12)	true
+README.md#6436d982f4	PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py	learner_converges_35pct: 3 days at 1.35: scale 1.000->0.300, last-quarter std 0.0101, breach 0.00->5.42 K·h	false

@@ -1,0 +1,26 @@
+RESULT k0.scheduled_solve_total_s=3.35512 s
+RESULT k1.worker_jobs_started=3 count
+RESULT k1.worker_jobs_per_whatif=3 count
+RESULT k1.scheduled_solve_latency_over_solo=3.62764 ratio
+RESULT k1.answers_rate_limited=0 count
+RESULT k1.burst_wall_s=12.2224 s
+RESULT k1.scheduled_solve_total_s=12.1712 s
+RESULT k4.worker_jobs_started=12 count
+RESULT k4.worker_jobs_per_whatif=3 count
+RESULT k4.scheduled_solve_latency_over_solo=9.4572 ratio
+RESULT k4.answers_rate_limited=0 count
+RESULT k4.burst_wall_s=31.9388 s
+RESULT k4.scheduled_solve_total_s=31.7301 s
+RESULT k4.inflight_guard.worker_jobs_started=3 count
+RESULT k4.inflight_guard.worker_jobs_per_whatif=0.75 count
+RESULT k4.inflight_guard.scheduled_solve_latency_over_solo=3.62131 ratio
+RESULT k4.inflight_guard.answers_rate_limited=3 count
+RESULT k4.inflight_guard.burst_wall_s=12.3512 s
+RESULT k4.inflight_guard.scheduled_solve_total_s=12.1499 s
+
+=== Stress and economics ===
+RESULT reference_solve_cpu_ms=28.6274 ms
+RESULT thread_factor=1 1
+RESULT load1=6.76709 1
+RESULT swapins=0 count
+RESULT ru_maxrss_self_mb=105.152 MB
