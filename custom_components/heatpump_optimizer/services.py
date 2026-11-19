@@ -14,6 +14,7 @@ unload: the services belong to the domain for the life of the process.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import timedelta
 from functools import partial
 from typing import Any
@@ -100,7 +101,11 @@ from .dhw_schedule import (
     parse_windows,
 )
 from .manual_plan import ManualPlanError, build_override
-from .thermal_model import ThermalParameters
+from .thermal_model import (
+    SINGLE_ZONE_HOUSE_FIELDS,
+    ThermalParameters,
+    two_zone_from_config,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -640,6 +645,31 @@ async def handle_set_mode(hass: HomeAssistant, call: ServiceCall) -> None:
     for _entry_id, coord in _loaded_coordinators(hass):
         await coord.async_set_mode(mode)
 
+def _refuse_house_fields_on_two_zones(hass: HomeAssistant, params: Mapping[str, Any]) -> None:
+    """Refuse a whole-house mass or loss for a two-zone model (D17-s3-02).
+
+    Only a one-zone model reads them (``SINGLE_ZONE_HOUSE_FIELDS``), so on
+    two zones the write would be acknowledged and change nothing. Refused
+    before any write, by the model's own two-zone answer for the config each
+    target coordinator was built from (its published ``effective_config``);
+    the error names the fields that do act.
+    """
+    field = next((k for k in SINGLE_ZONE_HOUSE_FIELDS if params.get(k) is not None), None)
+    if field is None:
+        return
+    for _entry_id, coord in _loaded_coordinators(hass):
+        if two_zone_from_config(coord.effective_config):
+            raise ServiceValidationError(
+                f"{field} applies to a one-zone model only; this install runs "
+                "two zones. Set upper_floor_thermal_mass and "
+                "lower_floor_thermal_mass on this action, and each zone's heat "
+                "loss on the options' Two-zone model page.",
+                translation_domain=DOMAIN,
+                translation_key="set_thermal_params_house_field_two_zone",
+                translation_placeholders={"field": field},
+            )
+
+
 async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> None:
     """Handle the set_thermal_parameters service call."""
     params = dict(call.data)
@@ -730,6 +760,8 @@ async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> N
                         "ceiling": f"{ceiling:g}",
                     },
                 )
+
+    _refuse_house_fields_on_two_zones(hass, params)
 
     _LOGGER.info("Updating thermal parameters: %s", params)
     for _entry_id, coord in targets:
