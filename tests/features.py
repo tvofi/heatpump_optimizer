@@ -81578,6 +81578,7 @@ try:
         "drift": _k11_drift.utc_instant(_k11_naive) == _k11_aware,
         "open_meteo": _k11_om.utc_instant is _k11_drift.utc_instant,
         "manual_plan": _k11_mp._instant(_k11_naive) == _k11_aware.timestamp(),
+        "manual_plan coerce": _k11_mp._coerce_awareness(_k11_aware, _k11_naive) == _k11_naive,
         "aware kept": _k11_drift.utc_instant(_k11_aware.astimezone()) == _k11_aware,
     }
 finally:
@@ -81588,7 +81589,7 @@ finally:
     _k11_time.tzset()
 R.check(
     "D7-s3-04 naive instant: drift.utc_instant reads a naive stamp as UTC under a "
-    "Tokyo host; open_meteo and manual_plan read it there",
+    "Tokyo host; open_meteo and manual_plan (its instant and its naive-reference coercion) read it there",
     all(_k11_zone.values()),
     f"{_k11_zone}",
 )

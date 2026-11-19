@@ -77,9 +77,9 @@ def _coerce_awareness(value: datetime, reference: datetime) -> datetime:
     """
     if reference.tzinfo is None:
         if value.tzinfo is not None:
-            # Express the instant in local wall time, then drop the offset to
-            # match a naive reference.
-            return value.astimezone().replace(tzinfo=None)
+            # A naive reference is UTC (``_instant``), so the instant drops
+            # its offset in UTC; the host's zone would move it by its offset.
+            return utc_instant(value).replace(tzinfo=None)
         return value
     if value.tzinfo is None:
         return value.replace(tzinfo=reference.tzinfo)
