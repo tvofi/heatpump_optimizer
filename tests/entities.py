@@ -42766,6 +42766,26 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "warnimp.py": "import warnings\n",
     "warn.py": "from warnings import warn as w\ndef f(o):\n"
                "    warnings.warn('x')\n    o.warnings.warn('y')\n    __import__('warnings')\n",
+    # R11 #3729 round 4, the class: code run from text has three doors, each
+    # shut in every static spelling. The builtins that compile text, by name,
+    # attribute, text or import; the builtins namespace they live in; and an
+    # imported module, refused unless vetted (marshal, code, runpy are not).
+    "bltn.py": "import builtins\ndef f():\n    builtins.exec(\"_LOGGER.error('x')\")\n",
+    "bgetattr.py": "def f(b):\n    getattr(b, 'exec')(\"_LOGGER.error('x')\")\n",
+    "bfrom.py": "from builtins import exec as run\nfrom os import compile as c\n",
+    "bdunder.py": "def f():\n    __builtins__['eval'](\"_LOGGER.error('x')\")\n"
+                  "    f.__builtins__\n",
+    "bbytes.py": "import pickle\nP = b'cbuiltins\\nexec\\n'\n",
+    "door.py": "import marshal\nimport code as cd\nfrom runpy import run_path\n"
+               "import importlib\nimport importlib.util\nfrom importlib import machinery\n"
+               "importlib.util.spec_from_file_location('m', 'm.py')\n__import__('ctypes')\n"
+               "import types\nfrom types import FunctionType\nT = types.CodeType\n"
+               "B = (b'', b'\\n')\n",
+    # re.compile is read only through an ``import re`` nothing rebinds: a
+    # parameter, a rebinding or another module named re is refused
+    "bimp.py": "import builtins as bi\nimport importlib as il\n",
+    "rebound.py": "import re\ndef f(re):\n    return re.compile('x')\n"
+                  "def g(o):\n    return o.compile('x')\n",
 })}
 # Every callable of a Logger, called at ERROR on _LOGGER, and every name the
 # logging module exports: what neither check reads is exactly the quiet
@@ -42810,7 +42830,10 @@ R.check(
     # logging call, a from-import of _LOGGER, a logger handed to a parameter
     # or returned, and a bound method each are; so are another module's
     # _LOGGER as an attribute, '_LOGGER' or 'logger' as text, exec/eval/compile
-    # and the warnings module (ok.py's re.compile and sibling import are not)
+    # and the warnings module (ok.py's re.compile and sibling import are not);
+    # and code run from text at each of its doors: builtins and exec, eval or
+    # compile in any static spelling, an unvetted module or importlib member,
+    # and re.compile through an re that is not the module
     and _r11_aliases_planted == {("alias.py", "log"), ("child.py", "_LOG"),
                                  ("child.py", "CHILD"), ("mod.py", "lg"),
                                  ("bare.py", "getLogger"), ("bare.py", "LOG"),
@@ -42832,10 +42855,24 @@ R.check(
                                  ("sibling.py", "sys.modules[__name__]._LOGGER"),
                                  ("bytext.py", "'_LOGGER'"), ("bytext.py", "'logger'"),
                                  ("fromtext.py", "exec"), ("fromtext.py", "eval"),
-                                 ("fromtext.py", "compile"), ("warnimp.py", "warnings"),
+                                 ("fromtext.py", "compile"), ("fromtext.py", "'exec'"),
+                                 ("warnimp.py", "warnings"),
                                  ("warn.py", "warnings"),
                                  ("warn.py", "w"), ("warn.py", "o.warnings"),
-                                 ("warn.py", "'warnings'")}
+                                 ("warn.py", "'warnings'"),
+                                 ("bltn.py", "builtins"), ("bltn.py", "builtins.exec"),
+                                 ("bgetattr.py", "'exec'"),
+                                 ("bfrom.py", "run"), ("bfrom.py", "c"),
+                                 ("bdunder.py", "__builtins__"), ("bdunder.py", "'eval'"),
+                                 ("bdunder.py", "f.__builtins__"),
+                                 ("bbytes.py", "b'cbuiltins\\nexec\\n'"),
+                                 ("door.py", "import marshal"), ("door.py", "import code"),
+                                 ("door.py", "import runpy"), ("door.py", "import importlib.util"),
+                                 ("door.py", "machinery"), ("door.py", "importlib.util"),
+                                 ("door.py", "import ctypes"), ("door.py", "FunctionType"),
+                                 ("door.py", "types.CodeType"),
+                                 ("rebound.py", "re.compile"), ("rebound.py", "o.compile"),
+                                 ("bimp.py", "bi"), ("bimp.py", "il")}
     and _r11_unread == {"_LOGGER.debug", "_LOGGER.info", "_LOGGER.isEnabledFor"}
     | {f"logging.{n}" for n in ("NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR",
                                 "CRITICAL", "FATAL")}
