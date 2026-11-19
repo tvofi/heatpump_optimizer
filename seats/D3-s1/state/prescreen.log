@@ -605,3 +605,4 @@
 2026-11-19T06:50:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains CLAMP_DROP e9f6523e L9452 by=- ran=13 wall=1460.7s
 2026-11-19T06:52:51Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off CMP_BOUND 92c9617c L5212 by=- ran=13 wall=1464.3s
 2026-11-19T06:54:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_fold_flow_lift GUARD_OFF a9ba1061 L984 by=- ran=13 wall=1466.4s
+2026-11-19T07:00:53Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._narrative_view CLAMP_DROP e7bcbc6b L10603 by=- ran=13 wall=1474.5s
