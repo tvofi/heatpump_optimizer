@@ -231,3 +231,4 @@
 2026-11-19T13:25:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND 8256b8db L5674 by=- ran=13 wall=1759.3s
 2026-11-19T13:29:37Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_quiet_comfort_period GUARD_OFF 769f5c2e L10984 by=tests/features.py ran=13 wall=1771.4s
 2026-11-19T13:32:07Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._tighten_buffer_caps CMP_BOUND d629fd84 L5145 by=- ran=12 wall=1770.9s
+2026-11-19T13:50:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps CMP_BOUND 2f71906b L5250 by=- ran=13 wall=1801.4s
