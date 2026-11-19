@@ -66170,6 +66170,73 @@ R.check(
 )
 
 
+# ---- prepr's diff mutants: a refused arm sends nothing; the neutrals; the space pump's let-go ----
+async def _r11ar_refused_arm_scn(busy):
+    hass = FakeHass({"switch.vvc_pump": FakeState("on")})
+    entry = _r11ar_Entry(data={}, entry_id=f"r11ar_arm_{next(_R11AR_IDS)}")
+    config = {"vvc_pump_entity": "switch.vvc_pump"}
+    held = await _r11ar_or._armed_record(hass, entry)
+    if busy:  # the key's restore is in flight: the arm is refused
+        held.busy.add(_r11ar_circ.DHW)
+    await _r11ar_circ.command(hass, entry, config, _r11ar_circ.DHW, False, "r")
+    return [s for _d, s, _data in hass.services.calls], dict(_r11ar_circ.commanded(entry))
+
+
+def _r11ar_neutrals():
+    from heatpump_optimizer import pump_arbiter as _pa
+    made = {
+        _r11ar_circ.DHW: _r11ar_or._CONSUMERS[_r11ar_circ.DHW]({"vvc_pump_entity": "switch.v"}),
+        _r11ar_circ.SPACE: _r11ar_or._CONSUMERS[_r11ar_circ.SPACE]({"space_circulation_pump_entity": "switch.s"}),
+        _pa.SUPPLY: _r11ar_or._CONSUMERS[_pa.SUPPLY]({"heat_pump_switch_entity": "switch.hp"}),
+    }
+    return {k: (r.entity_id, r.neutral) for k, r in made.items()}, \
+        _r11ar_or._CONSUMERS[_r11ar_circ.DHW]({}), _r11ar_or._CONSUMERS[_pa.SUPPLY]({})
+
+
+def _r11ar_space_drive(stale):
+    from types import SimpleNamespace
+    from heatpump_optimizer import coordinator as _cm
+    from heatpump_optimizer.const import MODE_AUTO
+    coord = SimpleNamespace(_mode=MODE_AUTO, _plan_is_stale=lambda: stale,
+                            _config=SimpleNamespace(space_circulation_pump_entity="switch.space_pump"))
+    return _cm._space_pump_to_drive(coord), _cm._plan_let_go(coord)
+
+
+_r11ar_ra = _r11ar_try(_r11ar_aio.run, _r11ar_refused_arm_scn(True))
+_r11ar_ra0 = _r11ar_try(_r11ar_aio.run, _r11ar_refused_arm_scn(False))
+R.check(
+    "a circulation pump's off command whose restore cannot be armed is not sent and not recorded",
+    _r11ar_ok(_r11ar_ra, lambda r: r == ([], {})),
+    f"{_r11ar_ra!r}",
+)
+R.check(
+    "null control: the same off command with the arm taken is sent once and recorded",
+    _r11ar_ok(_r11ar_ra0, lambda r: r == (["turn_off"], {"switch.vvc_pump": False})),
+    f"{_r11ar_ra0!r}",
+)
+_r11ar_nt = _r11ar_try(_r11ar_neutrals)
+R.check(
+    "the two circulation pumps and the supply switch are restored to on (neutral 1.0) on the entity the config "
+    "names, and an entity not configured has no restorer",
+    _r11ar_ok(_r11ar_nt, lambda r: r[0] == {
+        "circulation_dhw": ("switch.v", 1.0), "circulation_space": ("switch.s", 1.0),
+        "pump_arbiter_supply": ("switch.hp", 1.0)} and r[1] is None and r[2] is None),
+    f"{_r11ar_nt!r}",
+)
+_r11ar_sd = _r11ar_try(_r11ar_space_drive, True)
+_r11ar_sd0 = _r11ar_try(_r11ar_space_drive, False)
+R.check(
+    "on a stale plan in a plan mode the space circulation pump is not driven: the let-go predicate holds it",
+    _r11ar_ok(_r11ar_sd, lambda r: r == (None, True)),
+    f"{_r11ar_sd!r}",
+)
+R.check(
+    "null control: on a fresh plan the same pump is the one to drive",
+    _r11ar_ok(_r11ar_sd0, lambda r: r == ("switch.space_pump", False)),
+    f"{_r11ar_sd0!r}",
+)
+
+
 # ---- B14 (D7-s1-05): the two day-count notices share one raiser ----
 def _r11ar_guard(probe=False):
     """A coordinator whose guard is overdue: hot water and the cycle on, 20 days since the last one, a 7-day interval."""
