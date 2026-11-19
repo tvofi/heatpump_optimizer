@@ -1,0 +1,471 @@
+Persisted capacity-tariff window is outside what the tracker writes; restarting that window empty
+AGREE    temperature_roundtrip ('C', -20.0) wrote -20.0 read back -20.0
+AGREE    temperature_roundtrip ('C', 0.0) wrote 0.0 read back 0.0
+AGREE    temperature_roundtrip ('C', 21.5) wrote 21.5 read back 21.5
+AGREE    temperature_roundtrip ('C', 55.0) wrote 55.0 read back 55.0
+AGREE    temperature_roundtrip ('C', 100.0) wrote 100.0 read back 100.0
+AGREE    temperature_roundtrip ('F', -20.0) wrote -4.0 read back -20.0
+AGREE    temperature_roundtrip ('F', 0.0) wrote 32.0 read back 0.0
+AGREE    temperature_roundtrip ('F', 21.5) wrote 70.69999999999999 read back 21.499999999999993
+AGREE    temperature_roundtrip ('F', 55.0) wrote 131.0 read back 55.0
+AGREE    temperature_roundtrip ('F', 100.0) wrote 212.0 read back 100.0
+AGREE    temperature_roundtrip ('K', -20.0) wrote 253.14999999999998 read back -20.0
+AGREE    temperature_roundtrip ('K', 0.0) wrote 273.15 read back 0.0
+AGREE    temperature_roundtrip ('K', 21.5) wrote 294.65 read back 21.5
+AGREE    temperature_roundtrip ('K', 55.0) wrote 328.15 read back 55.0
+AGREE    temperature_roundtrip ('K', 100.0) wrote 373.15 read back 100.0
+AGREE    temperature_roundtrip ('degC', -20.0) wrote -20.0 read back -20.0
+AGREE    temperature_roundtrip ('degC', 0.0) wrote 0.0 read back 0.0
+AGREE    temperature_roundtrip ('degC', 21.5) wrote 21.5 read back 21.5
+AGREE    temperature_roundtrip ('degC', 55.0) wrote 55.0 read back 55.0
+AGREE    temperature_roundtrip ('degC', 100.0) wrote 100.0 read back 100.0
+AGREE    temperature_roundtrip ('degF', -20.0) wrote -4.0 read back -20.0
+AGREE    temperature_roundtrip ('degF', 0.0) wrote 32.0 read back 0.0
+AGREE    temperature_roundtrip ('degF', 21.5) wrote 70.69999999999999 read back 21.499999999999993
+AGREE    temperature_roundtrip ('degF', 55.0) wrote 131.0 read back 55.0
+AGREE    temperature_roundtrip ('degF', 100.0) wrote 212.0 read back 100.0
+AGREE    temperature_roundtrip ('°C', -20.0) wrote -20.0 read back -20.0
+AGREE    temperature_roundtrip ('°C', 0.0) wrote 0.0 read back 0.0
+AGREE    temperature_roundtrip ('°C', 21.5) wrote 21.5 read back 21.5
+AGREE    temperature_roundtrip ('°C', 55.0) wrote 55.0 read back 55.0
+AGREE    temperature_roundtrip ('°C', 100.0) wrote 100.0 read back 100.0
+AGREE    temperature_roundtrip ('°F', -20.0) wrote -4.0 read back -20.0
+AGREE    temperature_roundtrip ('°F', 0.0) wrote 32.0 read back 0.0
+AGREE    temperature_roundtrip ('°F', 21.5) wrote 70.69999999999999 read back 21.499999999999993
+AGREE    temperature_roundtrip ('°F', 55.0) wrote 131.0 read back 55.0
+AGREE    temperature_roundtrip ('°F', 100.0) wrote 212.0 read back 100.0
+RESULT temperature_roundtrip_probes=35 probes
+RESULT temperature_roundtrip_disagreements=0 probes
+AGREE    dhw_store_tap (False, 0.5, 30.0) back 30.0
+AGREE    dhw_store_tap (False, 0.5, 45.0) back 45.0
+AGREE    dhw_store_tap (False, 0.5, 55.0) back 55.0
+AGREE    dhw_store_tap (False, 0.5, 65.0) back 65.0
+AGREE    dhw_store_tap (False, 0.75, 30.0) back 30.0
+AGREE    dhw_store_tap (False, 0.75, 45.0) back 45.0
+AGREE    dhw_store_tap (False, 0.75, 55.0) back 55.0
+AGREE    dhw_store_tap (False, 0.75, 65.0) back 65.0
+AGREE    dhw_store_tap (False, 1.0, 30.0) back 30.0
+AGREE    dhw_store_tap (False, 1.0, 45.0) back 45.0
+AGREE    dhw_store_tap (False, 1.0, 55.0) back 55.0
+AGREE    dhw_store_tap (False, 1.0, 65.0) back 65.0
+AGREE    dhw_store_tap (True, 0.5, 30.0) back 30.0
+AGREE    dhw_store_tap (True, 0.5, 45.0) back 45.0
+AGREE    dhw_store_tap (True, 0.5, 55.0) back 55.0
+AGREE    dhw_store_tap (True, 0.5, 65.0) back 65.0
+AGREE    dhw_store_tap (True, 0.75, 30.0) back 29.999999999999996
+AGREE    dhw_store_tap (True, 0.75, 45.0) back 45.0
+AGREE    dhw_store_tap (True, 0.75, 55.0) back 54.99999999999999
+AGREE    dhw_store_tap (True, 0.75, 65.0) back 65.0
+AGREE    dhw_store_tap (True, 1.0, 30.0) back 30.0
+AGREE    dhw_store_tap (True, 1.0, 45.0) back 45.0
+AGREE    dhw_store_tap (True, 1.0, 55.0) back 55.0
+AGREE    dhw_store_tap (True, 1.0, 65.0) back 65.0
+RESULT dhw_store_tap_probes=24 probes
+RESULT dhw_store_tap_disagreements=0 probes
+AGREE    step_covering_now 'before' _covering_index=None _step_index=None arbiter._planned_room=None early_cutoff._planned_room=[]
+AGREE    step_covering_now 'first' _covering_index=0 _step_index=0 arbiter._planned_room=20.0 early_cutoff._planned_room=[19.1]
+AGREE    step_covering_now 'mid' _covering_index=3 _step_index=3 arbiter._planned_room=23.0 early_cutoff._planned_room=[19.4]
+AGREE    step_covering_now 'last' _covering_index=7 _step_index=7 arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+DISAGREE step_covering_now 'end_edge' _covering_index=None _step_index=None arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+DISAGREE step_covering_now 'one_step_past' _covering_index=None _step_index=None arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+DISAGREE step_covering_now 'three_hours_past' _covering_index=None _step_index=None arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+DISAGREE step_covering_now 'a_day_past' _covering_index=None _step_index=None arbiter._planned_room=27.0 early_cutoff._planned_room=[19.8]
+RESULT step_covering_now_probes=8 probes
+RESULT step_covering_now_disagreements=4 probes
+AGREE    no_value_state "'unknown'" no-value at: away.py:180,away.py:626,coordinator.py:8729,inputs.py:72,inputs.py:454,price_model.py:824,supply_hold.py:65 | a value at: 
+AGREE    no_value_state "'unavailable'" no-value at: away.py:180,away.py:626,coordinator.py:8729,inputs.py:72,inputs.py:454,price_model.py:824,supply_hold.py:65 | a value at: 
+DISAGREE no_value_state "'none'" no-value at: inputs.py:72,inputs.py:454 | a value at: away.py:180,away.py:626,coordinator.py:8729,price_model.py:824,supply_hold.py:65
+DISAGREE no_value_state "''" no-value at: away.py:180,away.py:626,inputs.py:72,inputs.py:454,price_model.py:824 | a value at: coordinator.py:8729,supply_hold.py:65
+DISAGREE no_value_state 'None' no-value at: supply_hold.py:65 | a value at: away.py:180,away.py:626,coordinator.py:8729,inputs.py:72,inputs.py:454,price_model.py:824
+RESULT no_value_state_probes=5 probes
+RESULT no_value_state_disagreements=3 probes
+DISAGREE naive_instant 'winter_noon' seconds from the same aware noon: drift=0.0 coordinator=0.0 open_meteo=-32400.0 manual_plan=0.0
+DISAGREE naive_instant 'summer_noon' seconds from the same aware noon: drift=0.0 coordinator=0.0 open_meteo=-32400.0 manual_plan=0.0
+AGREE    naive_instant 'aware_null' aware: 0.0 0.0 0.0 0.0
+RESULT naive_instant_probes=3 probes
+RESULT naive_instant_disagreements=2 probes
+AGREE    stored_number '0' duty_switch=True store=True
+AGREE    stored_number '1' duty_switch=True store=True
+AGREE    stored_number '2.5' duty_switch=True store=True
+AGREE    stored_number '-1' duty_switch=False store=False
+AGREE    stored_number '-0.0' duty_switch=True store=True
+AGREE    stored_number 'True' duty_switch=False store=False
+AGREE    stored_number 'False' duty_switch=False store=False
+AGREE    stored_number 'nan' duty_switch=False store=False
+AGREE    stored_number 'inf' duty_switch=False store=False
+AGREE    stored_number "'1'" duty_switch=False store=False
+AGREE    stored_number 'None' duty_switch=False store=False
+AGREE    stored_number '1e+308' duty_switch=True store=True
+AGREE    stored_number '[1]' duty_switch=False store=False
+RESULT stored_number_probes=13 probes
+RESULT stored_number_disagreements=0 probes
+AGREE    finite_number '1' finite_float=True payload_number=True _as_float=True replay_doc.numeric=True
+AGREE    finite_number '1.5' finite_float=True payload_number=True _as_float=True replay_doc.numeric=True
+AGREE    finite_number '-2.0' finite_float=True payload_number=True _as_float=True replay_doc.numeric=True
+DISAGREE finite_number 'True' finite_float=False payload_number=False _as_float=False replay_doc.numeric=True
+AGREE    finite_number 'None' finite_float=False payload_number=False _as_float=False replay_doc.numeric=False
+DISAGREE finite_number "'1.5'" finite_float=True payload_number=False _as_float=False replay_doc.numeric=True
+AGREE    finite_number "'abc'" finite_float=False payload_number=False _as_float=False replay_doc.numeric=False
+AGREE    finite_number "''" finite_float=False payload_number=False _as_float=False replay_doc.numeric=False
+DISAGREE finite_number 'nan' finite_float=False payload_number=True _as_float=True replay_doc.numeric=True
+DISAGREE finite_number 'inf' finite_float=False payload_number=True _as_float=True replay_doc.numeric=True
+AGREE    finite_number 'np.float64(2.0)' finite_float=True payload_number=True _as_float=True replay_doc.numeric=None
+DISAGREE finite_number 'np.float64(nan)' finite_float=False payload_number=True _as_float=True replay_doc.numeric=None
+AGREE    finite_number 'np.int64(3)' finite_float=True payload_number=True _as_float=True replay_doc.numeric=None
+DISAGREE finite_number "'nan'" finite_float=False payload_number=False _as_float=False replay_doc.numeric=True
+DISAGREE finite_number "'inf'" finite_float=False payload_number=False _as_float=False replay_doc.numeric=True
+DISAGREE finite_number "' 7 '" finite_float=True payload_number=False _as_float=False replay_doc.numeric=True
+DISAGREE finite_number "'1e400'" finite_float=False payload_number=False _as_float=False replay_doc.numeric=True
+RESULT finite_number_probes=17 probes
+RESULT finite_number_disagreements=9 probes
+AGREE    soc (10.0, 5.0) {'StorageComponent': 0.5, 'VirtualBattery': 0.5}
+AGREE    soc (10.0, 12.0) {'StorageComponent': 1.0, 'VirtualBattery': 1.0}
+AGREE    soc (0.0, 1.0) {'StorageComponent': 0.0, 'VirtualBattery': 0.0}
+AGREE    soc (10.0, -2.0) {'StorageComponent': -0.2, 'VirtualBattery': -0.2}
+AGREE    soc (1e-12, 1.0) {'StorageComponent': 0.0, 'VirtualBattery': 0.0}
+RESULT soc_probes=5 probes
+RESULT soc_disagreements=0 probes
+DISAGREE water_heat 'kWh per litre per K' thermal_model=0.0011600 flow_meter=0.0011605 sensor._gap_probe_terms=0.0011631 spread=0.2634%
+RESULT water_heat_probes=1 probes
+RESULT water_heat_disagreements=1 probes
+AGREE    buffer_prior_in_bounds 0.0 prior 129.49492 in [25.89898, 1035.95934]
+AGREE    buffer_prior_in_bounds 20.0 prior 0.47706 in [0.09541, 3.81651]
+AGREE    buffer_prior_in_bounds 35.0 prior 0.39588 in [0.07918, 3.16704]
+AGREE    buffer_prior_in_bounds 100.0 prior 0.27899 in [0.05580, 2.23191]
+AGREE    buffer_prior_in_bounds 300.0 prior 0.19344 in [0.03869, 1.54752]
+AGREE    buffer_prior_in_bounds 504.0 prior 0.16272 in [0.03254, 1.30176]
+AGREE    buffer_prior_in_bounds 1000.0 prior 0.12949 in [0.02590, 1.03596]
+AGREE    buffer_prior_in_bounds 3000.0 prior 0.08979 in [0.01796, 0.71829]
+RESULT buffer_prior_in_bounds_probes=8 probes
+RESULT buffer_prior_in_bounds_disagreements=0 probes
+AGREE    effective ({'k': 1}, {'k': 2}) 1.0 1.0
+AGREE    effective ({}, {'k': 2}) 2.0 2.0
+AGREE    effective ({}, {}) 3.0 3.0
+AGREE    effective ({'k': '4.5'}, {}) 4.5 4.5
+RESULT effective_probes=4 probes
+RESULT effective_disagreements=0 probes
+AGREE    ua_from_rate 150.0 dhw rate back 0.30000 (configured 0.30000); wood rate back 0.24372 (prior 0.24372)
+AGREE    ua_from_rate 300.0 dhw rate back 0.30000 (configured 0.30000); wood rate back 0.19344 (prior 0.19344)
+AGREE    ua_from_rate 600.0 dhw rate back 0.30000 (configured 0.30000); wood rate back 0.15353 (prior 0.15353)
+RESULT ua_from_rate_probes=3 probes
+RESULT ua_from_rate_disagreements=0 probes
+AGREE    window_mean 'constant 4 kW at minute 0' projected 4.0000 kW
+AGREE    window_mean 'constant 4 kW at minute 5' projected 4.0000 kW
+AGREE    window_mean 'constant 4 kW at minute 15' projected 4.0000 kW
+AGREE    window_mean 'constant 4 kW at minute 30' projected 4.0000 kW
+AGREE    window_mean 'constant 4 kW at minute 45' projected 4.0000 kW
+AGREE    window_mean 'constant 4 kW at minute 55' projected 4.0000 kW
+AGREE    window_mean 'constant 4 kW at minute 60' projected 4.0000 kW
+AGREE    window_mean 'no samples yet' projected 4.0000 kW
+RESULT window_mean_probes=8 probes
+RESULT window_mean_disagreements=0 probes
+AGREE    twin_wood_share (30.0, 25.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (30.0, 25.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (30.0, 35.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (30.0, 35.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (30.0, 45.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (30.0, 45.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (30.0, 55.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (30.0, 55.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (38.0, 25.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (38.0, 25.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (38.0, 35.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (38.0, 35.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (38.0, 45.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (38.0, 45.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (38.0, 55.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (38.0, 55.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (45.0, 25.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (45.0, 25.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (45.0, 35.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (45.0, 35.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (45.0, 45.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (45.0, 45.0, 28.0) max |diff| 0
+AGREE    twin_wood_share (45.0, 55.0, 22.0) max |diff| 0
+AGREE    twin_wood_share (45.0, 55.0, 28.0) max |diff| 0
+RESULT twin_wood_share_probes=24 probes
+RESULT twin_wood_share_disagreements=0 probes
+AGREE    twin_topk ('smooth', 'random', 1) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'random', 1) max |diff| 0
+AGREE    twin_topk ('smooth', 'random', 2) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'random', 2) max |diff| 0
+AGREE    twin_topk ('smooth', 'random', 3) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'random', 3) max |diff| 0
+AGREE    twin_topk ('smooth', 'plateau', 1) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'plateau', 1) max |diff| 0
+AGREE    twin_topk ('smooth', 'plateau', 2) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'plateau', 2) max |diff| 0
+AGREE    twin_topk ('smooth', 'plateau', 3) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'plateau', 3) max |diff| 0
+AGREE    twin_topk ('smooth', 'zeros', 1) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'zeros', 1) max |diff| 0
+AGREE    twin_topk ('smooth', 'zeros', 2) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'zeros', 2) max |diff| 0
+AGREE    twin_topk ('smooth', 'zeros', 3) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'zeros', 3) max |diff| 0
+AGREE    twin_topk ('smooth', 'one_spike', 1) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'one_spike', 1) max |diff| 0
+AGREE    twin_topk ('smooth', 'one_spike', 2) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'one_spike', 2) max |diff| 0
+AGREE    twin_topk ('smooth', 'one_spike', 3) max |diff| 0
+AGREE    twin_topk ('plateau_aware', 'one_spike', 3) max |diff| 0
+RESULT twin_topk_probes=24 probes
+RESULT twin_topk_disagreements=0 probes
+AGREE    twin_day_peaks ('two_days', 'labelled') shapes (5, 2) (5, 2)
+AGREE    twin_day_peaks ('two_days', 'no_labels') shapes (5, 2) (5, 2)
+AGREE    twin_day_peaks ('three_days', 'labelled') shapes (5, 3) (5, 3)
+AGREE    twin_day_peaks ('three_days', 'no_labels') shapes (5, 3) (5, 3)
+RESULT twin_day_peaks_probes=4 probes
+RESULT twin_day_peaks_disagreements=0 probes
+AGREE    twin_peak_cost 'plain' max |diff| 0
+AGREE    twin_peak_cost 'distinct_off' max |diff| 0
+AGREE    twin_peak_cost 'offset' max |diff| 0
+AGREE    twin_peak_cost 'days' max |diff| 0
+RESULT twin_peak_cost_probes=4 probes
+RESULT twin_peak_cost_disagreements=0 probes
+AGREE    twin_switch_weight 'both' max |diff| 0
+AGREE    twin_switch_weight 'to_dhw_only' max |diff| 0
+AGREE    twin_switch_weight 'none' max |diff| 0
+RESULT twin_switch_weight_probes=3 probes
+RESULT twin_switch_weight_disagreements=0 probes
+AGREE    twin_trajectory ('single_zone', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('single_zone', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('single_zone', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('two_zone', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('two_zone', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('two_zone', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_big_buffer', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_big_buffer', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_big_buffer', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_big_buffer', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_big_buffer', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_big_buffer', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_flow_carnot', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_flow_carnot', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_flow_carnot', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_flow_curve', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_flow_curve', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_flow_curve', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_wood', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_wood', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_wood', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_wood_coil', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_wood_coil', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_wood_coil', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_valve_manual', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_valve_manual', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_valve_manual', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_valve_manual', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_valve_manual', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_valve_manual', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_valve_smart_read', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_valve_smart_read', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_valve_smart_read', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_valve_smart_read', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_valve_smart_read', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_valve_smart_read', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_valve_smart_write', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_valve_smart_write', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('two_zone_valve_smart_write', 'summer_warm') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_valve_smart_write', 'winter_cold') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_valve_smart_write', 'shoulder') max |diff| 0 
+AGREE    twin_trajectory ('single_zone_valve_smart_write', 'summer_warm') max |diff| 0 
+RESULT twin_trajectory_probes=42 probes
+RESULT twin_trajectory_disagreements=0 probes
+AGREE    twin_objective 'single_zone_winter' 5 plans: max relative diff 0 (scalar [7868.4533 2752.5655  115.3265  119.0594  124.4049])
+AGREE    twin_objective 'two_zone_winter' 5 plans: max relative diff 0 (scalar [67274.4937  4071.8036   125.1383   128.8345   131.7501])
+AGREE    twin_objective 'single_zone_extreme' 5 plans: max relative diff 0 (scalar [7895.1627 2962.5986  221.6831  232.6495  240.6646])
+AGREE    twin_objective 'two_zone_shoulder' 5 plans: max relative diff 0 (scalar [1.2917e+01 4.9945e+05 7.7177e+04 7.7995e+04 9.4275e+04])
+AGREE    twin_objective 'single_zone_negative' 5 plans: max relative diff 0 (scalar [  6436.3677 786051.8447 231112.4212 231979.4026 245047.9167])
+AGREE    twin_objective 'tariff_distinct_days' 5 plans: max relative diff 0 (scalar [7901.4374 2852.5655  181.8185  191.8101  224.4049])
+AGREE    twin_objective 'tariff_per_window' 5 plans: max relative diff 0 (scalar [7901.4374 3052.5655  277.0188  316.4891  373.3956])
+AGREE    twin_objective 'tariff_per_window_two_zone' 5 plans: max relative diff 0 (scalar [67307.4778  4371.8036   286.8306   326.2642   380.7407])
+RESULT twin_objective_probes=8 probes
+RESULT twin_objective_disagreements=0 probes
+AGREE    parse_format ('day_selector', (0,)) formatted 'Mo' parsed back [0]
+AGREE    parse_format ('day_selector', (1,)) formatted 'Tu' parsed back [1]
+AGREE    parse_format ('day_selector', (2,)) formatted 'We' parsed back [2]
+AGREE    parse_format ('day_selector', (3,)) formatted 'Th' parsed back [3]
+AGREE    parse_format ('day_selector', (4,)) formatted 'Fr' parsed back [4]
+AGREE    parse_format ('day_selector', (5,)) formatted 'Sa' parsed back [5]
+AGREE    parse_format ('day_selector', (6,)) formatted 'Su' parsed back [6]
+AGREE    parse_format ('day_selector', (0, 1)) formatted 'Mo,Tu' parsed back [0, 1]
+AGREE    parse_format ('day_selector', (0, 2)) formatted 'Mo,We' parsed back [0, 2]
+AGREE    parse_format ('day_selector', (0, 3)) formatted 'Mo,Th' parsed back [0, 3]
+AGREE    parse_format ('day_selector', (0, 4)) formatted 'Mo,Fr' parsed back [0, 4]
+AGREE    parse_format ('day_selector', (0, 5)) formatted 'Mo,Sa' parsed back [0, 5]
+AGREE    parse_format ('day_selector', (0, 6)) formatted 'Mo,Su' parsed back [0, 6]
+AGREE    parse_format ('day_selector', (1, 2)) formatted 'Tu,We' parsed back [1, 2]
+AGREE    parse_format ('day_selector', (1, 3)) formatted 'Tu,Th' parsed back [1, 3]
+AGREE    parse_format ('day_selector', (1, 4)) formatted 'Tu,Fr' parsed back [1, 4]
+AGREE    parse_format ('day_selector', (1, 5)) formatted 'Tu,Sa' parsed back [1, 5]
+AGREE    parse_format ('day_selector', (1, 6)) formatted 'Tu,Su' parsed back [1, 6]
+AGREE    parse_format ('day_selector', (2, 3)) formatted 'We,Th' parsed back [2, 3]
+AGREE    parse_format ('day_selector', (2, 4)) formatted 'We,Fr' parsed back [2, 4]
+AGREE    parse_format ('day_selector', (2, 5)) formatted 'We,Sa' parsed back [2, 5]
+AGREE    parse_format ('day_selector', (2, 6)) formatted 'We,Su' parsed back [2, 6]
+AGREE    parse_format ('day_selector', (3, 4)) formatted 'Th,Fr' parsed back [3, 4]
+AGREE    parse_format ('day_selector', (3, 5)) formatted 'Th,Sa' parsed back [3, 5]
+AGREE    parse_format ('day_selector', (3, 6)) formatted 'Th,Su' parsed back [3, 6]
+AGREE    parse_format ('day_selector', (4, 5)) formatted 'Fr,Sa' parsed back [4, 5]
+AGREE    parse_format ('day_selector', (4, 6)) formatted 'Fr,Su' parsed back [4, 6]
+AGREE    parse_format ('day_selector', (5, 6)) formatted 'weekend' parsed back [5, 6]
+AGREE    parse_format ('day_selector', (0, 1, 2)) formatted 'Mo-We' parsed back [0, 1, 2]
+AGREE    parse_format ('day_selector', (0, 1, 3)) formatted 'Mo,Tu,Th' parsed back [0, 1, 3]
+AGREE    parse_format ('day_selector', (0, 1, 4)) formatted 'Mo,Tu,Fr' parsed back [0, 1, 4]
+AGREE    parse_format ('day_selector', (0, 1, 5)) formatted 'Mo,Tu,Sa' parsed back [0, 1, 5]
+AGREE    parse_format ('day_selector', (0, 1, 6)) formatted 'Su-Tu' parsed back [0, 1, 6]
+AGREE    parse_format ('day_selector', (0, 2, 3)) formatted 'Mo,We,Th' parsed back [0, 2, 3]
+AGREE    parse_format ('day_selector', (0, 2, 4)) formatted 'Mo,We,Fr' parsed back [0, 2, 4]
+AGREE    parse_format ('day_selector', (0, 2, 5)) formatted 'Mo,We,Sa' parsed back [0, 2, 5]
+AGREE    parse_format ('day_selector', (0, 2, 6)) formatted 'Mo,We,Su' parsed back [0, 2, 6]
+AGREE    parse_format ('day_selector', (0, 3, 4)) formatted 'Mo,Th,Fr' parsed back [0, 3, 4]
+AGREE    parse_format ('day_selector', (0, 3, 5)) formatted 'Mo,Th,Sa' parsed back [0, 3, 5]
+AGREE    parse_format ('day_selector', (0, 3, 6)) formatted 'Mo,Th,Su' parsed back [0, 3, 6]
+AGREE    parse_format ('day_selector', (0, 4, 5)) formatted 'Mo,Fr,Sa' parsed back [0, 4, 5]
+AGREE    parse_format ('day_selector', (0, 4, 6)) formatted 'Mo,Fr,Su' parsed back [0, 4, 6]
+AGREE    parse_format ('day_selector', (0, 5, 6)) formatted 'Sa-Mo' parsed back [0, 5, 6]
+AGREE    parse_format ('day_selector', (1, 2, 3)) formatted 'Tu-Th' parsed back [1, 2, 3]
+AGREE    parse_format ('day_selector', (1, 2, 4)) formatted 'Tu,We,Fr' parsed back [1, 2, 4]
+AGREE    parse_format ('day_selector', (1, 2, 5)) formatted 'Tu,We,Sa' parsed back [1, 2, 5]
+AGREE    parse_format ('day_selector', (1, 2, 6)) formatted 'Tu,We,Su' parsed back [1, 2, 6]
+AGREE    parse_format ('day_selector', (1, 3, 4)) formatted 'Tu,Th,Fr' parsed back [1, 3, 4]
+AGREE    parse_format ('day_selector', (1, 3, 5)) formatted 'Tu,Th,Sa' parsed back [1, 3, 5]
+AGREE    parse_format ('day_selector', (1, 3, 6)) formatted 'Tu,Th,Su' parsed back [1, 3, 6]
+AGREE    parse_format ('day_selector', (1, 4, 5)) formatted 'Tu,Fr,Sa' parsed back [1, 4, 5]
+AGREE    parse_format ('day_selector', (1, 4, 6)) formatted 'Tu,Fr,Su' parsed back [1, 4, 6]
+AGREE    parse_format ('day_selector', (1, 5, 6)) formatted 'Tu,Sa,Su' parsed back [1, 5, 6]
+AGREE    parse_format ('day_selector', (2, 3, 4)) formatted 'We-Fr' parsed back [2, 3, 4]
+AGREE    parse_format ('day_selector', (2, 3, 5)) formatted 'We,Th,Sa' parsed back [2, 3, 5]
+AGREE    parse_format ('day_selector', (2, 3, 6)) formatted 'We,Th,Su' parsed back [2, 3, 6]
+AGREE    parse_format ('day_selector', (2, 4, 5)) formatted 'We,Fr,Sa' parsed back [2, 4, 5]
+AGREE    parse_format ('day_selector', (2, 4, 6)) formatted 'We,Fr,Su' parsed back [2, 4, 6]
+AGREE    parse_format ('day_selector', (2, 5, 6)) formatted 'We,Sa,Su' parsed back [2, 5, 6]
+AGREE    parse_format ('day_selector', (3, 4, 5)) formatted 'Th-Sa' parsed back [3, 4, 5]
+AGREE    parse_format ('day_selector', (3, 4, 6)) formatted 'Th,Fr,Su' parsed back [3, 4, 6]
+AGREE    parse_format ('day_selector', (3, 5, 6)) formatted 'Th,Sa,Su' parsed back [3, 5, 6]
+AGREE    parse_format ('day_selector', (4, 5, 6)) formatted 'Fr-Su' parsed back [4, 5, 6]
+AGREE    parse_format ('day_selector', (0, 1, 2, 3)) formatted 'Mo-Th' parsed back [0, 1, 2, 3]
+AGREE    parse_format ('day_selector', (0, 1, 2, 4)) formatted 'Mo,Tu,We,Fr' parsed back [0, 1, 2, 4]
+AGREE    parse_format ('day_selector', (0, 1, 2, 5)) formatted 'Mo,Tu,We,Sa' parsed back [0, 1, 2, 5]
+AGREE    parse_format ('day_selector', (0, 1, 2, 6)) formatted 'Su-We' parsed back [0, 1, 2, 6]
+AGREE    parse_format ('day_selector', (0, 1, 3, 4)) formatted 'Mo,Tu,Th,Fr' parsed back [0, 1, 3, 4]
+AGREE    parse_format ('day_selector', (0, 1, 3, 5)) formatted 'Mo,Tu,Th,Sa' parsed back [0, 1, 3, 5]
+AGREE    parse_format ('day_selector', (0, 1, 3, 6)) formatted 'Mo,Tu,Th,Su' parsed back [0, 1, 3, 6]
+AGREE    parse_format ('day_selector', (0, 1, 4, 5)) formatted 'Mo,Tu,Fr,Sa' parsed back [0, 1, 4, 5]
+AGREE    parse_format ('day_selector', (0, 1, 4, 6)) formatted 'Mo,Tu,Fr,Su' parsed back [0, 1, 4, 6]
+AGREE    parse_format ('day_selector', (0, 1, 5, 6)) formatted 'Sa-Tu' parsed back [0, 1, 5, 6]
+AGREE    parse_format ('day_selector', (0, 2, 3, 4)) formatted 'Mo,We,Th,Fr' parsed back [0, 2, 3, 4]
+AGREE    parse_format ('day_selector', (0, 2, 3, 5)) formatted 'Mo,We,Th,Sa' parsed back [0, 2, 3, 5]
+AGREE    parse_format ('day_selector', (0, 2, 3, 6)) formatted 'Mo,We,Th,Su' parsed back [0, 2, 3, 6]
+AGREE    parse_format ('day_selector', (0, 2, 4, 5)) formatted 'Mo,We,Fr,Sa' parsed back [0, 2, 4, 5]
+AGREE    parse_format ('day_selector', (0, 2, 4, 6)) formatted 'Mo,We,Fr,Su' parsed back [0, 2, 4, 6]
+AGREE    parse_format ('day_selector', (0, 2, 5, 6)) formatted 'Mo,We,Sa,Su' parsed back [0, 2, 5, 6]
+AGREE    parse_format ('day_selector', (0, 3, 4, 5)) formatted 'Mo,Th,Fr,Sa' parsed back [0, 3, 4, 5]
+AGREE    parse_format ('day_selector', (0, 3, 4, 6)) formatted 'Mo,Th,Fr,Su' parsed back [0, 3, 4, 6]
+AGREE    parse_format ('day_selector', (0, 3, 5, 6)) formatted 'Mo,Th,Sa,Su' parsed back [0, 3, 5, 6]
+AGREE    parse_format ('day_selector', (0, 4, 5, 6)) formatted 'Fr-Mo' parsed back [0, 4, 5, 6]
+AGREE    parse_format ('day_selector', (1, 2, 3, 4)) formatted 'Tu-Fr' parsed back [1, 2, 3, 4]
+AGREE    parse_format ('day_selector', (1, 2, 3, 5)) formatted 'Tu,We,Th,Sa' parsed back [1, 2, 3, 5]
+AGREE    parse_format ('day_selector', (1, 2, 3, 6)) formatted 'Tu,We,Th,Su' parsed back [1, 2, 3, 6]
+AGREE    parse_format ('day_selector', (1, 2, 4, 5)) formatted 'Tu,We,Fr,Sa' parsed back [1, 2, 4, 5]
+AGREE    parse_format ('day_selector', (1, 2, 4, 6)) formatted 'Tu,We,Fr,Su' parsed back [1, 2, 4, 6]
+AGREE    parse_format ('day_selector', (1, 2, 5, 6)) formatted 'Tu,We,Sa,Su' parsed back [1, 2, 5, 6]
+AGREE    parse_format ('day_selector', (1, 3, 4, 5)) formatted 'Tu,Th,Fr,Sa' parsed back [1, 3, 4, 5]
+AGREE    parse_format ('day_selector', (1, 3, 4, 6)) formatted 'Tu,Th,Fr,Su' parsed back [1, 3, 4, 6]
+AGREE    parse_format ('day_selector', (1, 3, 5, 6)) formatted 'Tu,Th,Sa,Su' parsed back [1, 3, 5, 6]
+AGREE    parse_format ('day_selector', (1, 4, 5, 6)) formatted 'Tu,Fr,Sa,Su' parsed back [1, 4, 5, 6]
+AGREE    parse_format ('day_selector', (2, 3, 4, 5)) formatted 'We-Sa' parsed back [2, 3, 4, 5]
+AGREE    parse_format ('day_selector', (2, 3, 4, 6)) formatted 'We,Th,Fr,Su' parsed back [2, 3, 4, 6]
+AGREE    parse_format ('day_selector', (2, 3, 5, 6)) formatted 'We,Th,Sa,Su' parsed back [2, 3, 5, 6]
+AGREE    parse_format ('day_selector', (2, 4, 5, 6)) formatted 'We,Fr,Sa,Su' parsed back [2, 4, 5, 6]
+AGREE    parse_format ('day_selector', (3, 4, 5, 6)) formatted 'Th-Su' parsed back [3, 4, 5, 6]
+AGREE    parse_format ('day_selector', (0, 1, 2, 3, 4)) formatted 'weekdays' parsed back [0, 1, 2, 3, 4]
+AGREE    parse_format ('day_selector', (0, 1, 2, 3, 5)) formatted 'Mo,Tu,We,Th,Sa' parsed back [0, 1, 2, 3, 5]
+AGREE    parse_format ('day_selector', (0, 1, 2, 3, 6)) formatted 'Su-Th' parsed back [0, 1, 2, 3, 6]
+AGREE    parse_format ('day_selector', (0, 1, 2, 4, 5)) formatted 'Mo,Tu,We,Fr,Sa' parsed back [0, 1, 2, 4, 5]
+AGREE    parse_format ('day_selector', (0, 1, 2, 4, 6)) formatted 'Mo,Tu,We,Fr,Su' parsed back [0, 1, 2, 4, 6]
+AGREE    parse_format ('day_selector', (0, 1, 2, 5, 6)) formatted 'Sa-We' parsed back [0, 1, 2, 5, 6]
+AGREE    parse_format ('day_selector', (0, 1, 3, 4, 5)) formatted 'Mo,Tu,Th,Fr,Sa' parsed back [0, 1, 3, 4, 5]
+AGREE    parse_format ('day_selector', (0, 1, 3, 4, 6)) formatted 'Mo,Tu,Th,Fr,Su' parsed back [0, 1, 3, 4, 6]
+AGREE    parse_format ('day_selector', (0, 1, 3, 5, 6)) formatted 'Mo,Tu,Th,Sa,Su' parsed back [0, 1, 3, 5, 6]
+AGREE    parse_format ('day_selector', (0, 1, 4, 5, 6)) formatted 'Fr-Tu' parsed back [0, 1, 4, 5, 6]
+AGREE    parse_format ('day_selector', (0, 2, 3, 4, 5)) formatted 'Mo,We,Th,Fr,Sa' parsed back [0, 2, 3, 4, 5]
+AGREE    parse_format ('day_selector', (0, 2, 3, 4, 6)) formatted 'Mo,We,Th,Fr,Su' parsed back [0, 2, 3, 4, 6]
+AGREE    parse_format ('day_selector', (0, 2, 3, 5, 6)) formatted 'Mo,We,Th,Sa,Su' parsed back [0, 2, 3, 5, 6]
+AGREE    parse_format ('day_selector', (0, 2, 4, 5, 6)) formatted 'Mo,We,Fr,Sa,Su' parsed back [0, 2, 4, 5, 6]
+AGREE    parse_format ('day_selector', (0, 3, 4, 5, 6)) formatted 'Th-Mo' parsed back [0, 3, 4, 5, 6]
+AGREE    parse_format ('day_selector', (1, 2, 3, 4, 5)) formatted 'Tu-Sa' parsed back [1, 2, 3, 4, 5]
+AGREE    parse_format ('day_selector', (1, 2, 3, 4, 6)) formatted 'Tu,We,Th,Fr,Su' parsed back [1, 2, 3, 4, 6]
+AGREE    parse_format ('day_selector', (1, 2, 3, 5, 6)) formatted 'Tu,We,Th,Sa,Su' parsed back [1, 2, 3, 5, 6]
+AGREE    parse_format ('day_selector', (1, 2, 4, 5, 6)) formatted 'Tu,We,Fr,Sa,Su' parsed back [1, 2, 4, 5, 6]
+AGREE    parse_format ('day_selector', (1, 3, 4, 5, 6)) formatted 'Tu,Th,Fr,Sa,Su' parsed back [1, 3, 4, 5, 6]
+AGREE    parse_format ('day_selector', (2, 3, 4, 5, 6)) formatted 'We-Su' parsed back [2, 3, 4, 5, 6]
+AGREE    parse_format ('day_selector', (0, 1, 2, 3, 4, 5)) formatted 'Mo-Sa' parsed back [0, 1, 2, 3, 4, 5]
+AGREE    parse_format ('day_selector', (0, 1, 2, 3, 4, 6)) formatted 'Su-Fr' parsed back [0, 1, 2, 3, 4, 6]
+AGREE    parse_format ('day_selector', (0, 1, 2, 3, 5, 6)) formatted 'Sa-Th' parsed back [0, 1, 2, 3, 5, 6]
+AGREE    parse_format ('day_selector', (0, 1, 2, 4, 5, 6)) formatted 'Fr-We' parsed back [0, 1, 2, 4, 5, 6]
+AGREE    parse_format ('day_selector', (0, 1, 3, 4, 5, 6)) formatted 'Th-Tu' parsed back [0, 1, 3, 4, 5, 6]
+AGREE    parse_format ('day_selector', (0, 2, 3, 4, 5, 6)) formatted 'We-Mo' parsed back [0, 2, 3, 4, 5, 6]
+AGREE    parse_format ('day_selector', (1, 2, 3, 4, 5, 6)) formatted 'Tu-Su' parsed back [1, 2, 3, 4, 5, 6]
+AGREE    parse_format ('day_selector', (0, 1, 2, 3, 4, 5, 6)) formatted 'daily' parsed back [0, 1, 2, 3, 4, 5, 6]
+AGREE    parse_format ('clock', 0.0) formatted '00:00' parsed back 0.0
+AGREE    parse_format ('clock', 0.25) formatted '00:15' parsed back 0.25
+AGREE    parse_format ('clock', 6.0) formatted '06:00' parsed back 6.0
+AGREE    parse_format ('clock', 6.5) formatted '06:30' parsed back 6.5
+AGREE    parse_format ('clock', 12.75) formatted '12:45' parsed back 12.75
+AGREE    parse_format ('clock', 17.0) formatted '17:00' parsed back 17.0
+AGREE    parse_format ('clock', 22.5) formatted '22:30' parsed back 22.5
+AGREE    parse_format ('clock', 23.75) formatted '23:45' parsed back 23.75
+AGREE    parse_format ('clock', 24.0) formatted '24:00' parsed back 24.0
+AGREE    parse_format ('windows', '06:00-08:30, 17:00-22:00') parsed [(6.0, 8.5), (17.0, 22.0)] formatted '06:00-08:30, 17:00-22:00' parsed back [(6.0, 8.5), (17.0, 22.0)]
+AGREE    parse_format ('windows', '22:00-06:00') parsed [(0.0, 6.0), (22.0, 24.0)] formatted '00:00-06:00, 22:00-24:00' parsed back [(0.0, 6.0), (22.0, 24.0)]
+AGREE    parse_format ('windows', '00:00-24:00') parsed [(0.0, 24.0)] formatted '00:00-24:00' parsed back [(0.0, 24.0)]
+AGREE    parse_format ('windows', '05:15-05:45') parsed [(5.25, 5.75)] formatted '05:15-05:45' parsed back [(5.25, 5.75)]
+AGREE    parse_format ('windows', '6-8,17-22') parsed [(6.0, 8.0), (17.0, 22.0)] formatted '06:00-08:00, 17:00-22:00' parsed back [(6.0, 8.0), (17.0, 22.0)]
+AGREE    parse_format ('windows', '') parsed [] formatted '' parsed back []
+AGREE    parse_format ('weekly', 'weekdays 06:00-08:00; weekend 08:00-10:00') formatted 'weekdays 06:00-08:00, weekend 08:00-10:00'
+AGREE    parse_format ('weekly', 'Mo-We 06:00-07:00; Sa,Su 09:00-11:00') formatted 'Mo-We 06:00-07:00, weekend 09:00-11:00'
+AGREE    parse_format ('weekly', 'daily 17:00-22:00') every-day form
+AGREE    parse_format ('weekly', 'Fr-Mo 20:00-23:00') formatted 'Fr-Mo 20:00-23:00'
+RESULT parse_format_probes=146 probes
+RESULT parse_format_disagreements=0 probes
+AGREE    as_from_dict ('accuracy', 'AccuracySample') SKIP not default-constructible: TypeError
+AGREE    as_from_dict ('accuracy', 'AccuracyTracker', 'default') 5 keys
+AGREE    as_from_dict ('accuracy', 'AccuracyTracker', 'moved') 5 keys
+AGREE    as_from_dict ('accuracy', 'ScaleProbe', 'default') 2 keys
+AGREE    as_from_dict ('accuracy', 'ScaleProbe', 'moved') 2 keys
+AGREE    as_from_dict ('accuracy', 'MeasuredCop', 'default') 6 keys
+AGREE    as_from_dict ('accuracy', 'MeasuredCop', 'moved') 6 keys
+AGREE    as_from_dict ('comfort_learning', 'ComfortLearner', 'default') 6 keys
+AGREE    as_from_dict ('comfort_learning', 'ComfortLearner', 'moved') 6 keys
+AGREE    as_from_dict ('curve_learning', 'CurveLearner', 'default') 5 keys
+AGREE    as_from_dict ('curve_learning', 'CurveLearner', 'moved') 5 keys
+AGREE    as_from_dict ('defrost', 'DefrostDerate', 'default') 6 keys
+AGREE    as_from_dict ('defrost', 'DefrostDerate', 'moved') 6 keys
+AGREE    as_from_dict ('dhw_draws', 'DrawStats', 'default') 4 keys
+AGREE    as_from_dict ('dhw_draws', 'DrawStats', 'moved') 4 keys
+AGREE    as_from_dict ('draw_range', 'DrawRange', 'default') 6 keys
+AGREE    as_from_dict ('draw_range', 'DrawRange', 'moved') 6 keys
+AGREE    as_from_dict ('flow_lift', 'FlowCurveBias', 'default') 2 keys
+AGREE    as_from_dict ('flow_lift', 'FlowCurveBias', 'moved') 2 keys
+AGREE    as_from_dict ('freq_control', 'FrequencyMap', 'default') 0 keys
+AGREE    as_from_dict ('freq_control', 'FrequencyMap', 'moved') 0 keys
+AGREE    as_from_dict ('ledger', 'MonthlyLedger', 'default') 1 keys
+AGREE    as_from_dict ('ledger', 'MonthlyLedger', 'moved') 1 keys
+AGREE    as_from_dict ('price_model', 'PriceShapeModel', 'default') 5 keys
+AGREE    as_from_dict ('price_model', 'PriceShapeModel', 'moved') 5 keys
+AGREE    as_from_dict ('snapshots', 'SnapshotRing', 'default') 6 keys
+AGREE    as_from_dict ('snapshots', 'SnapshotRing', 'moved') 6 keys
+AGREE    as_from_dict ('tariff', 'PeakTracker', 'default') 11 keys
+AGREE    as_from_dict ('tariff', 'PeakTracker', 'moved') 11 keys
+AGREE    as_from_dict ('wear', 'StartCounter', 'default') 3 keys
+AGREE    as_from_dict ('wear', 'StartCounter', 'moved') 3 keys
+RESULT as_from_dict_probes=31 probes
+RESULT as_from_dict_disagreements=0 probes
+RESULT families=22 families
+RESULT disagreements_total=19 probes
+RESULT thread_factor=1.000 ratio
+RESULT load1=227.32 load
+RESULT swapins=0 count
+rc=0

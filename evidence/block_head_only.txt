@@ -1,0 +1,13 @@
+
+=== features block ===
+  ok   D7-s3-03: plan_step_index, covering_index and both _planned_room copies agree on every probe -- inside the plan a step covers now, at and past its end none does
+  ok   D7-s3-03: a plan's last step is one PLAN_STEP wide after a shorter gap (covered at half a step, not at a step), and the arbiter's planned room reads it; null control, the series lookup with no grid width ends it one gap after its stamp
+  ok   D7-s1-05 note: GuardState, Cusum and the immersion log write evidence through EvidenceNotes.note, the newest EVIDENCE_KEEP lines kept, the same line for the same note
+  ok   D7-s3-04 water: the tank model, the flow meter and the gap advisor read one heat capacity, const.WATER_SPECIFIC_HEAT (kWh per litre per K)
+  ok   D7-s3-04 naive instant: drift.utc_instant reads a naive stamp as UTC under a Tokyo host; open_meteo and manual_plan read it there
+  ok   D7-s3-04 finite: payload_number refuses NaN and infinity, and agrees with finite_float on every probe but text
+  ok   #2229: a price list that stopped updating publishes no current price past its last entry's hour; a covered hour (the null control) still reads its entry
+  ok   #2229: no prices, or none started yet, is no current price -- never 0.0, the cheapest price there is, and never the head of a list that covers a later hour
+  ok   #2229: the forecast's outdoor 'now' and the open-loop plan seed end with their series (the sweep's two siblings); inside it they read the covering entry
+
+ALL 9 FEATURES BLOCK PASSED
