@@ -22,7 +22,8 @@ Usage:
   comment_ratchet.py --text-only REF  prints `RESULT code_changed_files=<n> line_shifted_hunks=<n>`
   comment_ratchet.py --self-test
 
-tests/doc_claims.py runs `gate` as one arm, so the ratchet adds no selectable script.
+tests/doc_claims.py runs `gate` as one arm. A script of its own would add one recording to every
+full-case run, a count tests/ci_budgets.json caps.
 """
 import argparse, ast, difflib, inspect, os, subprocess, sys
 from pathlib import Path
