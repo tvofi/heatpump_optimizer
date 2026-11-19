@@ -1,0 +1,65 @@
+== clean at 500eef956e218cd69967681ca147821a4e26b649
+tank_volume	3	default,max,min
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=0
+== P3-Farg
+UNREADABLE tank_volume: level default declares 200 for CONF_DHW_TANK_VOLUME, custom_components/heatpump_optimizer/config_flow.py line 1827 presents 300
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=1
+== P4-qdict
+tank_volume	3	default,max,min
+UNREADABLE house_size: level default declares 140 for CONF_HEATED_AREA, custom_components/heatpump_optimizer/config_flow.py line 1249 presents 180
+NO-READ AXES: 0
+rc=1
+== P6-presence
+UNREADABLE tank_volume: level default declares 200 for CONF_DHW_TANK_VOLUME, custom_components/heatpump_optimizer/config_flow.py line 2516 presents 250
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=1
+== P7-wizard-hl
+tank_volume	3	default,max,min
+UNREADABLE house_size: level default declares 0.15 for CONF_HOUSE_HEAT_LOSS_COEFFICIENT, custom_components/heatpump_optimizer/config_flow.py line 3094 presents 0.2
+NO-READ AXES: 0
+rc=1
+== P9-wizard-tank
+UNREADABLE tank_volume: level default declares 200 for CONF_DHW_TANK_VOLUME, custom_components/heatpump_optimizer/config_flow.py line 3219 presents 220
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=1
+== P8-suggested
+tank_volume	3	default,max,min
+UNREADABLE house_size: level default declares 0.15 for CONF_HOUSE_HEAT_LOSS_COEFFICIENT, custom_components/heatpump_optimizer/config_flow.py line 1876 presents 0.3
+NO-READ AXES: 0
+rc=1
+== N1-same
+tank_volume	3	default,max,min
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=0
+== N2-step
+tank_volume	3	default,max,min
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=0
+== X1-subscript
+tank_volume	3	default,max,min
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=0
+== X2-get-or
+tank_volume	3	default,max,min
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=0
+== X3-kwkey
+tank_volume	3	default,max,min
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=0
+== X4-setdefault
+UNREADABLE tank_volume: level default declares 200 for CONF_DHW_TANK_VOLUME, custom_components/heatpump_optimizer/config_flow.py line 2514 presents 300
+house_size	3	default,max,min
+NO-READ AXES: 0
+rc=1

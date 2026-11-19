@@ -1,0 +1,545 @@
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2151 _await_off_loop | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2156 _await_off_loop | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2325 _await_optimize | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:2343 _await_optimize | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:6438 HeatPumpOptimizerCoordinator.async_run_optimization | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:706 _note_solve_failure | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7149 HeatPumpOptimizerCoordinator._solar_location | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7165 HeatPumpOptimizerCoordinator._fetch_solar_forecast | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7214 HeatPumpOptimizerCoordinator._price_series | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7230 HeatPumpOptimizerCoordinator._price_series | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7292 HeatPumpOptimizerCoordinator._weather_series | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7727 HeatPumpOptimizerCoordinator._command_valve_target | upgrade	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | baseline	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | boost-partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | both	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | dhw-only	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | disinfection	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | full	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | idle	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | observe	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | off	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | partial	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | restart	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | unavailable	not run
+hold custom_components/heatpump_optimizer/coordinator.py:7743 HeatPumpOptimizerCoordinator._command_valve_target | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:366 write_displace | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:368 write_displace | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:369 write_displace | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:376 write_displace | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:383 write_displace | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:399 _send | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:401 _send | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:504 write_persistent | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:531 write_persistent | upgrade	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | baseline	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | boost-partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | both	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | dhw-only	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | disinfection	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | full	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | idle	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | observe	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | off	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | partial	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | restart	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | unavailable	not run
+hold custom_components/heatpump_optimizer/heat_curve.py:551 _write_persistent_target | upgrade	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | baseline	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | boost-partial	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | both	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | dhw-only	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | disinfection	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | full	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | idle	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | observe	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | off	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | partial	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | restart	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | unavailable	not run
+hold custom_components/heatpump_optimizer/inputs.py:1077 InputReader._age_gate | upgrade	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | baseline	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | boost-partial	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | both	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | dhw-only	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | disinfection	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | full	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | idle	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | observe	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | off	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | partial	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | restart	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | unavailable	not run
+hold custom_components/heatpump_optimizer/off_restore.py:190 async_arm | upgrade	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | baseline	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | boost-partial	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | both	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | dhw-only	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | disinfection	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | full	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | idle	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | observe	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | off	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | partial	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | restart	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | unavailable	not run
+hold custom_components/heatpump_optimizer/off_restore.py:220 _restore_baseline | upgrade	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | baseline	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | boost-partial	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | both	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | dhw-only	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | disinfection	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | full	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | idle	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | observe	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | off	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | partial	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | restart	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | unavailable	not run
+hold custom_components/heatpump_optimizer/off_restore.py:253 async_restore | upgrade	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | baseline	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | boost-partial	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | both	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | dhw-only	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | disinfection	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | full	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | idle	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | observe	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | off	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | partial	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | restart	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | unavailable	not run
+hold custom_components/heatpump_optimizer/off_restore.py:256 async_restore | upgrade	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | baseline	tests/guard_pins.py::#1913 GCHV hold	reached
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | boost-partial	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | both	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | dhw-only	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | disinfection	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | full	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | idle	tests/guard_pins.py::#1913 GCHV hold	reached
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | observe	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | off	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | partial	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | restart	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | unavailable	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | upgrade	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | baseline	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | boost-partial	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | both	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | dhw-only	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | disinfection	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | full	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | idle	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | min-cold-tank	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | observe	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | off	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | partial	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | restart	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | unavailable	not run
+hold custom_components/heatpump_optimizer/pump_arbiter.py:642 _space_target | upgrade	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | baseline	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | boost-partial	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | both	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | dhw-only	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | disinfection	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | full	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | idle	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | min-cold-tank	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | observe	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | off	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | partial	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | restart	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | unavailable	not run
+write custom_components/heatpump_optimizer/coordinator.py:10851 HeatPumpOptimizerCoordinator._command_frequency domain=number | upgrade	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | baseline	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | boost-partial	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | both	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | dhw-only	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | disinfection	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | full	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | idle	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | min-cold-tank	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | observe	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | off	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | partial	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | restart	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | unavailable	not run
+write custom_components/heatpump_optimizer/coordinator.py:3415 _disinfection_switch domain=? | upgrade	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | baseline	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | boost-partial	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | both	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | dhw-only	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | disinfection	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | full	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | idle	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | min-cold-tank	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | observe	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | off	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | partial	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | restart	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | unavailable	not run
+write custom_components/heatpump_optimizer/coordinator.py:4543 HeatPumpOptimizerCoordinator._async_set_pump domain=homeassistant | upgrade	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | baseline	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | boost-partial	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | both	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | dhw-only	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | disinfection	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | full	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | idle	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | min-cold-tank	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | observe	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | off	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | partial	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | restart	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | unavailable	not run
+write custom_components/heatpump_optimizer/heat_curve.py:234 publish_ecl110_topics domain=mqtt | upgrade	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | baseline	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | boost-partial	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | both	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | dhw-only	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | disinfection	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | full	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | idle	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | min-cold-tank	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | observe	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | off	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | partial	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | restart	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | unavailable	not run
+write custom_components/heatpump_optimizer/heat_curve.py:252 publish_ecl110_topics domain=mqtt | upgrade	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | baseline	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | boost-partial	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | both	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | dhw-only	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | disinfection	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | full	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | idle	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | min-cold-tank	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | observe	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | off	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | partial	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | restart	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | unavailable	not run
+write custom_components/heatpump_optimizer/inputs.py:729 write_setpoint domain=? | upgrade	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | baseline	tests/guard_pins.py::#1913 GCHV writes	not witnessed: the check does not move
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | baseline	tests/guard_pins.py::#1913 GCHV daytime	moved	target=no plan value
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | baseline	tests/guard_pins.py::#1913 GCHV hold	not witnessed: the check does not move
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | baseline	tests/guard_pins.py::#1913 GCHV write_ints	not witnessed: the check does not move
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | baseline	tests/guard_pins.py::R9-SW-2 mode writes its option	not witnessed: the check does not move
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | boost-partial	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | both	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | dhw-only	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | disinfection	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | full	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | idle	tests/guard_pins.py::#1913 GCHV writes	moved	target=no plan value
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | idle	tests/guard_pins.py::#1913 GCHV daytime	not witnessed: the check does not move
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | idle	tests/guard_pins.py::#1913 GCHV hold	moved	target=no plan value
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | idle	tests/guard_pins.py::#1913 GCHV write_ints	moved	target=no plan value
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | idle	tests/guard_pins.py::R9-SW-2 mode writes its option	not witnessed: the check does not move
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | min-cold-tank	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | observe	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | off	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | partial	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | restart	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | unavailable	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write domain=? | upgrade	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | baseline	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | boost-partial	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | both	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | dhw-only	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | disinfection	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | full	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | idle	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | min-cold-tank	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | observe	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | off	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | partial	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | restart	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | unavailable	not run
+write custom_components/heatpump_optimizer/pump_arbiter.py:1967 switch_supply domain=? | upgrade	not run
+script tests/guard_pins.py	checks=91	writes outside every pass=4
+outside every pass custom_components/heatpump_optimizer/inputs.py:729	1 (never witnessable: no plan)
+outside every pass custom_components/heatpump_optimizer/pump_arbiter.py:1610	3 (never witnessable: no plan)
+RESULT read=operation universe=532 examined=4 moved=4 reached=2
+rc=0

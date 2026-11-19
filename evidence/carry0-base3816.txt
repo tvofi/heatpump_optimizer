@@ -1,0 +1,4 @@
+base3816 cb8edb65a5a9c0940dbe263acee49e02ba5f0b25 accepted 0 /6 ['tank_volume=min', 'tank_volume=default', 'tank_volume=max', 'house_size=min', 'house_size=default', 'house_size=max']
+ control layout=no_valve in
+ control layout=moon refused
+ control tank_volume=typical refused
