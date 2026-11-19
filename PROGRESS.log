@@ -141,120 +141,98 @@
 1795047369 CKPT D3-s1 533 file(s)
 1795047958 HB alive
 1795048565 HB alive
-1795048760 RESUMED from aebfc60768a3
-1795048760 INIT box D3-u1d
-1795048765 HB alive
-1795048788 HB container reboot ~00:37 UTC killed the re-fired D3-s1 seat and its full-net driver at 113/242 (results on disk survive); comms loop restarted; re-dispatching D3-s1 through gate
-1795048794 SEAT D3-s1 running
-1795049369 HB alive
-1795049477 CKPT D3-s1 639 file(s)
-1795049845 HB OOM at ~00:55 UTC: pre-screen survivor mutant GUARD_OFF coordinator.py:_ensure_worker L1864 ('if worker is not None and worker.poll() is None' -> 'if False') makes tests/boost_drift_replay.py spawn a new process_worker per solve (214 live, ~67 MB each) until the 14.3 GB memcg limit; the OOM killer then took the full-net driver and sibling mutants (2 logged SIGNAL, re-drive). Box seat killed the runaway pid 2397 tree by PID; told the D3-s1 seat.
-1795049974 HB alive
-1795050183 CKPT D3-s1 645 file(s)
-1795050579 HB alive
-1795051184 HB alive
-1795051789 HB alive
-1795052395 HB alive
-1795053000 HB alive
-1795053605 HB alive
-1795054211 HB alive
-1795054817 HB alive
-1795055422 HB alive
-1795056027 HB alive
-1795056633 HB alive
-1795057238 HB alive
-1795057330 CKPT D3-s1 654 file(s)
-1795057843 HB alive
-1795058449 HB alive
-1795059055 HB alive
-1795059661 HB alive
-1795060266 HB alive
-1795060865 CKPT D3-s1 663 file(s)
-1795060871 HB alive
-1795061476 HB alive
-1795062081 HB alive
-1795062686 HB alive
-1795063292 HB alive
-1795063677 CKPT D3-s1 667 file(s)
-1795063897 HB alive
-1795064409 CKPT D3-s1 669 file(s)
-1795064502 HB alive
-1795065107 HB alive
-1795065713 HB alive
-1795066318 HB alive
-1795066924 HB alive
-1795067529 HB alive
-1795067946 CKPT D3-s1 675 file(s)
-1795068135 HB alive
-1795068740 HB alive
-1795069346 HB alive
-1795069951 HB alive
-1795070556 HB alive
-1795071161 HB alive
-1795071486 CKPT D3-s1 683 file(s)
-1795071766 HB alive
-1795072372 HB alive
-1795072977 HB alive
-1795073583 HB alive
-1795074188 HB alive
-1795074794 HB alive
-1795075025 CKPT D3-s1 690 file(s)
-1795075399 HB alive
-1795076004 HB alive
-1795076099 CKPT D3-s1 692 file(s)
-1795076609 HB alive
-1795077215 HB alive
-1795077820 HB alive
-1795078425 HB alive
-1795078565 CKPT D3-s1 696 file(s)
-1795079031 HB alive
-1795079638 HB alive
-1795080244 HB alive
-1795080850 HB alive
-1795081455 HB alive
-1795082061 HB alive
-1795082105 CKPT D3-s1 703 file(s)
-1795082667 HB alive
-1795083273 HB alive
-1795083878 HB alive
-1795084483 HB alive
-1795085090 HB alive
-1795085646 CKPT D3-s1 708 file(s)
-1795085695 HB alive
-1795086300 HB alive
-1795086906 HB alive
-1795087512 HB alive
-1795088119 HB alive
-1795088724 HB alive
-1795089192 CKPT D3-s1 715 file(s)
-1795089330 HB alive
-1795089482 CKPT D3-s1 716 file(s)
-1795089935 HB alive
-1795090543 HB alive
-1795091149 HB alive
-1795091755 HB alive
-1795092361 HB alive
-1795092785 CKPT D3-s1 722 file(s)
-1795092966 HB alive
-1795093572 HB alive
-1795094178 HB alive
-1795094784 HB alive
-1795095342 CKPT D3-s1 726 file(s)
-1795095390 HB alive
-1795095395 HB alive
-1795095426 HB session restart ~13:35 UTC: comms loop restarted with the current proxy; full-net driver still running (236/242)
-1795095499 HB alive
-1795095525 HB session restart ~13:35 UTC: comms loop restarted with the current proxy (stale push lock from the killed loop removed); full-net driver still running (236/242)
-1795096104 HB alive
-1795096710 HB alive
-1795097316 HB alive
-1795097329 CKPT D3-s1 731 file(s)
-1795097923 HB alive
-1795098249 CKPT D3-s1 731 file(s)
-1795098254 HB D3-s1 seat lost in the 13:35 UTC session restart; its full-net driver finished 14:08 (241/242, the excluded key is the _ensure_worker leak mutant); checkpointed; re-dispatching D3-s1 through gate to write its report
-1795098260 SEAT D3-s1 running
-1795098530 HB alive
-1795098565 CKPT D3-s1 740 file(s)
-1795099137 HB alive
-1795099743 HB alive
-1795099936 CKPT D3-s1 742 file(s)
+1795049173 CKPT D3-s1 533 file(s)
+1795049173 HB alive
+1795049191 CKPT D3-s1 533 file(s)
+1795049199 HB K2 OOM-killed twice since reboot (4 then 3 workers, rc=137); D3-s1 seat re-dispatched to resume from its checkpoint (82/242 complete)
+1795049779 HB alive
+1795050384 HB alive
+1795050712 CKPT D3-s1 540 file(s)
+1795050989 HB alive
+1795051628 HB alive
+1795052233 HB alive
+1795052838 HB alive
+1795053443 HB alive
+1795054048 HB alive
+1795054654 HB alive
+1795055259 HB alive
+1795055864 HB alive
+1795056469 HB alive
+1795057074 HB alive
+1795057679 HB alive
+1795058284 HB alive
+1795058889 HB alive
+1795059494 HB alive
+1795060100 HB alive
+1795060705 HB alive
+1795061310 HB alive
+1795061597 CKPT D3-s1 575 file(s)
+1795061915 HB alive
+1795062520 HB alive
+1795063125 HB alive
+1795063731 HB alive
+1795064336 HB alive
+1795064941 HB alive
+1795065547 HB alive
+1795066152 HB alive
+1795066758 HB alive
+1795067363 HB alive
+1795067968 HB alive
+1795068573 HB alive
+1795069181 HB alive
+1795069786 HB alive
+1795070391 HB alive
+1795070996 HB alive
+1795071205 CKPT D3-s1 600 file(s)
+1795071602 HB alive
+1795072208 HB alive
+1795072815 HB alive
+1795073420 HB alive
+1795074025 HB alive
+1795074631 HB alive
+1795075237 HB alive
+1795075842 HB alive
+1795076448 HB alive
+1795077054 HB alive
+1795077659 HB alive
+1795078265 HB alive
+1795078871 HB alive
+1795079476 HB alive
+1795080082 HB alive
+1795080687 HB alive
+1795081232 CKPT D3-s1 625 file(s)
+1795081293 HB alive
+1795081898 HB alive
+1795082504 HB alive
+1795083110 HB alive
+1795083715 HB alive
+1795084321 HB alive
+1795084927 HB alive
+1795085533 HB alive
+1795086139 HB alive
+1795086745 HB alive
+1795087350 HB alive
+1795087956 HB alive
+1795088562 HB alive
+1795089167 HB alive
+1795089773 HB alive
+1795090379 HB alive
+1795090985 HB alive
+1795091260 CKPT D3-s1 650 file(s)
+1795091591 HB alive
+1795092196 HB alive
+1795092223 HB alive
+1795092232 CKPT D3-s1 654 file(s)
+1795092830 HB alive
+1795093436 HB alive
+1795094042 HB alive
+1795094649 HB alive
+1795095255 HB alive
+1795095861 HB alive
+1795096469 HB alive
+1795097075 HB alive
+1795097681 HB alive
+1795098287 HB alive
+1795098893 HB alive
+1795099500 HB alive
+1795100106 HB alive
