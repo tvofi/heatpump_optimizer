@@ -536,3 +536,4 @@
 2026-11-18T23:41:33Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:<module> CONST 18a90105 L2006 by=- ran=21 wall=1601.8s
 2026-11-18T23:45:16Z COMPLETE queued=162 from=pre
 2026-11-18T23:51:25Z COMPLETE SIGNAL custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF 582cce74 L783 (not written; re-drive)
+2026-11-19T00:16:04Z COMPLETE queued=162 from=pre
