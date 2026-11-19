@@ -2895,7 +2895,8 @@ for _r9p8_inst in ("EUR", "HUF", "SEK"):
     _r9p8_h = _r9p8_hass(_r9p8_inst)
     for _r9p8_row in _r9p8_flow._OPTION_FIELDS:
         if _r9p8_row.key in (_r9p8_WOOD, "grid_fee_fixed"):
-            _r9p8_w = _r9p8_row.widget.of(_r9p8_h)
+            # An entry with no price entity: the figures are the instance currency's.
+            _r9p8_w = _r9p8_row.widget.of(_r9p8_h, {})
             _r9p8_widgets[(_r9p8_inst, _r9p8_row.key)] = (
                 _r9p8_w.config.get("unit_of_measurement"), _r9p8_w.config.get("max")
             )
@@ -8576,6 +8577,7 @@ class _PredGate:
             upper_temp_trajectory = []
             # The production selection, as _predicted_next_room_temp is above.
             sensor_trajectory = _O.sensor_trajectory
+            zone_trajectories = _O.zone_trajectories
 
         class _OptCfg:
             time_step_minutes = 30.0
@@ -23522,6 +23524,9 @@ def _nf_settled(sun):
     coord._optimization_result.sensor_trajectory = _types_mod.MethodType(
         _OptResult.sensor_trajectory, coord._optimization_result
     )
+    coord._optimization_result.zone_trajectories = _types_mod.MethodType(
+        _OptResult.zone_trajectories, coord._optimization_result
+    )
     coord._current_state.room_temperature = 21.0
     coord._current_state.outdoor_temperature = -2.0
     coord.hass.states.set("sensor.indoor", FakeState("21.0"))
@@ -23965,6 +23970,9 @@ _fake_plan = _NS(
 # The production trajectory selection, bound to the fake (R10-CLONE-2238 P3).
 _fake_plan.sensor_trajectory = _types_mod.MethodType(
     _OptResult.sensor_trajectory, _fake_plan
+)
+_fake_plan.zone_trajectories = _types_mod.MethodType(
+    _OptResult.zone_trajectories, _fake_plan
 )
 _c16._file_lead_predictions(_fake_plan, _T5)
 R.check(
@@ -27426,6 +27434,7 @@ _SVC_KEYS = {
     "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
     "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
+    "set_thermal_params_house_field_two_zone": ({"field"}, "sve"),
     "factory_reset_not_applied": ({"entry_id"}, "hae"),
 }
 
@@ -41826,6 +41835,7 @@ _ET_KEYS = {
     "config_entry_not_loaded": {"entry_id"},
     "no_loaded_config_entry": set(),
     "set_thermal_params_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
+    "set_thermal_params_house_field_two_zone": {"field"},
     "assign_entity_missing": {"entity_id"},
     "assign_entity_wrong_domain": {"entity_id", "domain", "key", "domains"},
     "apply_topology_unsupported": {"layout", "requirement"},
@@ -47524,6 +47534,186 @@ R.check(
     and abs(_neg_row["savings_pct"] + 100.0 / 3.0) < 1e-9,
     repr(_neg_row),
 )
+# R11-SEAM-money (D8-s1-02, D2-s3-07): the open month is scaled only once it has
+# covered ledger.MIN_COVERAGE_HOURS, and a month's hours are its real hours.
+# Finder harnesses: D8/s1/monthly.py (first_scale 2688.0 at the base) and
+# D2/s3/m4_tariff.py --perturb realhours (coverage_full_23h 1.001346 at the base).
+from types import SimpleNamespace as _r11m_NS  # noqa: E402
+from zoneinfo import ZoneInfo as _r11m_Zone  # noqa: E402
+
+from heatpump_optimizer import ledger as _r11m_ledger  # noqa: E402
+from heatpump_optimizer.sensor import MonthlySavingsSensor as _r11m_Sensor  # noqa: E402
+
+_r11m_sth = _r11m_Zone("Europe/Stockholm")
+# The floor read by name, 24 h where the tree predates it, so the failing-first
+# run at the base reaches every check below instead of stopping at the import.
+_R11M_FLOOR_H = getattr(_r11m_ledger, "MIN_COVERAGE_HOURS", 24.0)
+_r11m_hours = {
+    "March, spring forward": (_r11m_ledger.month_hours(datetime(2026, 3, 20, 12, tzinfo=_r11m_sth)), 743.0),
+    "October, fall back": (_r11m_ledger.month_hours(datetime(2026, 10, 20, 12, tzinfo=_r11m_sth)), 745.0),
+    "March in UTC": (_r11m_ledger.month_hours(datetime(2026, 3, 20, 12, tzinfo=UTC)), 744.0),
+    "December into January": (_r11m_ledger.month_hours(datetime(2026, 12, 31, 23, tzinfo=_r11m_sth)), 744.0),
+    "naive February": (_r11m_ledger.month_hours(datetime(2026, 2, 10, 15)), 672.0),
+}
+R.check(
+    "R11-SEAM-money: month_hours counts a month's real hours in its zone (743 / 745 across DST, 744 in UTC)",
+    all(got == want for got, want in _r11m_hours.values()),
+    repr(_r11m_hours),
+)
+
+
+def _r11m_settled(hours: float, start: datetime) -> dict:
+    """A month's meta after ``hours`` hourly settlements from ``start``."""
+    led = _SavLedger()
+    whole, part = int(hours), hours - int(hours)
+    for _h in range(whole):
+        led.observe_spot_and_settle_savings(start + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+    if part:
+        led.observe_spot_and_settle_savings(start + timedelta(hours=whole), 1.0, {"baseline_kw": 2.0}, part, part)
+    return led.months[_sav_month_key(start)]["meta"]
+
+
+_r11m_march_now = datetime(2026, 3, 31, 23, 30, tzinfo=_r11m_sth)
+_r11m_march = _r11m_settled(743, datetime(2026, 3, 1, 0, tzinfo=_r11m_sth))
+R.check(
+    "R11-SEAM-money: a spring-forward March settled every real hour scales by exactly 1.0",
+    _r11m_ledger.coverage_factor(_r11m_march, _r11m_march_now) == 1.0,
+    repr(_r11m_ledger.coverage_factor(_r11m_march, _r11m_march_now)),
+)
+_r11m_feb_now = datetime(2026, 2, 10, 15, 0)
+_r11m_at_floor = _r11m_settled(_R11M_FLOOR_H, datetime(2026, 2, 9, 15, 0))
+_r11m_under = _r11m_settled(_R11M_FLOOR_H - 0.25, datetime(2026, 2, 9, 15, 0))
+R.check(
+    "R11-SEAM-money: coverage_factor is None a quarter-hour under MIN_COVERAGE_HOURS and scales at it",
+    getattr(_r11m_ledger, "MIN_COVERAGE_HOURS", None) == 24.0
+    and _r11m_ledger.coverage_factor(_r11m_under, _r11m_feb_now) is None
+    and _r11m_ledger.coverage_factor(_r11m_at_floor, _r11m_feb_now) == 672.0 / 24.0,
+    f"{_r11m_ledger.coverage_factor(_r11m_under, _r11m_feb_now)!r} / "
+    f"{_r11m_ledger.coverage_factor(_r11m_at_floor, _r11m_feb_now)!r}",
+)
+# The calendar-day fallback (no coverage meta) takes the same floor on the hours
+# the month has run: 8 h into 1 February is no estimate, 10 February is 28 / 10.
+R.check(
+    "R11-SEAM-money: the calendar-day fallback is None before the month has run MIN_COVERAGE_HOURS",
+    _r11m_ledger.coverage_factor({}, datetime(2026, 2, 1, 8, 0)) is None
+    and _r11m_ledger.coverage_factor({}, datetime(2026, 2, 2, 0, 0)) == 28.0 / 2
+    and _r11m_ledger.coverage_factor({}, _r11m_feb_now) == 2.8,
+    f"{_r11m_ledger.coverage_factor({}, datetime(2026, 2, 1, 8, 0))!r}",
+)
+
+# One settled quarter in February after a closed January: today's row scaled the
+# quarter by 672 / 0.25 = 2688 (D8-s1-02). The open month has no row; January's
+# row is the null control and is unchanged.
+_r11m_two = _SavLedger()
+for _h in range(48):
+    _r11m_two.observe_spot_and_settle_savings(
+        datetime(2026, 1, 20, 0, 0) + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+_r11m_jan_rows = _r11m_two.savings_months(datetime(2026, 2, 1, 0, 15))
+_r11m_two.observe_spot_and_settle_savings(datetime(2026, 2, 1, 0, 0), 1.0, {"baseline_kw": 2.0}, 0.25, 0.25)
+_r11m_feb_rows = _r11m_two.savings_months(datetime(2026, 2, 1, 0, 15))
+R.check(
+    "R11-SEAM-money: one settled quarter gives the open month no row; the closed month's row is unchanged",
+    [r["month"] for r in _r11m_feb_rows] == ["2026-01"]
+    and _r11m_feb_rows == _r11m_jan_rows and not _r11m_jan_rows[0]["estimated"],
+    repr(_r11m_feb_rows),
+)
+_r11m_sensor = _r11m_NS(_rows=lambda: _r11m_feb_rows)
+_r11m_two_day = _SavLedger.from_dict(_r11m_two.as_dict())
+for _h in range(24):
+    _r11m_two_day.observe_spot_and_settle_savings(
+        datetime(2026, 2, 1, 0, 15) + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+_r11m_ready = _r11m_NS(_rows=lambda: _r11m_two_day.savings_months(datetime(2026, 2, 2, 0, 30)))
+R.check(
+    "R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows",
+    _r11m_Sensor._waiting_for.fget(_r11m_sensor) == "open_month_coverage"
+    and _r11m_Sensor._waiting_for.fget(_r11m_NS(_rows=lambda: [])) == "settled_savings_month"
+    and _r11m_Sensor._waiting_for.fget(_r11m_ready) is None,
+    f"{_r11m_Sensor._waiting_for.fget(_r11m_sensor)!r} / {_r11m_Sensor._waiting_for.fget(_r11m_ready)!r}",
+)
+# R11-SEAM-money (D14-s1-03): every money figure the options dialog labels,
+# bounds and validates is in the currency the price feed declares, the one the
+# sensors publish (currency.figure_currency): a HUF instance priced by a EUR/kWh
+# entity labelled its four money fields and the fee page in HUF and let a
+# 50/kWh fee through under the HUF bound. Finder harness:
+# D14/s1/currency_precedence.py (money_seams 5, 6 under --instance HUF).
+from heatpump_optimizer import config_flow as _r11m_cf  # noqa: E402
+from heatpump_optimizer import grid_fee as _r11m_gf  # noqa: E402
+import asyncio as _r11m_aio  # noqa: E402
+
+
+def _r11m_money_units(feed_unit: str | None, source: str = "entity") -> tuple:
+    """(field units, placeholder currency, fee bound, fee-page verdict) on a HUF instance."""
+    hass = FakeHass()
+    hass.config.currency = "HUF"
+    cfg = {"price_source": "tibber"}
+    if feed_unit is not None:
+        hass.states.set("sensor.feed", FakeState("0.21", attributes={"unit_of_measurement": feed_unit}))
+        cfg = {"price_source": source, "price_entity": "sensor.feed"}
+    def built(of, place_of):
+        try:
+            return of(hass, cfg), place_of(hass, cfg)
+        except TypeError:  # the base's one-argument forms, for the failing-first run
+            return of(hass), place_of(hass)
+
+    rows = [row.widget.of for row in _r11m_cf._OPTION_FIELDS if isinstance(row.widget, _r11m_cf._ByHass)]
+    units = sorted(dict(built(of, _r11m_cf._fee_placeholders)[0].config).get("unit_of_measurement") for of in rows)
+    place = built(rows[0], _r11m_cf._fee_placeholders)[1]
+    verdict = _r11m_aio.run(_r11m_cf.HeatPumpOptimizerOptionsFlow._grid_fee_errors(
+        _r11m_NS(hass=hass), {"grid_fee_rules": "Mon-Sun 00-24 = 50"}, cfg))
+    return units, place["currency"], place["fee_bound"], verdict
+
+
+_r11m_eur = _r11m_money_units("EUR/kWh")
+_r11m_huf = _r11m_money_units(None)
+R.check(
+    "R11-SEAM-money: on a HUF instance priced in EUR the money fields, the fee page and its bound are in EUR",
+    _r11m_eur == (["EUR", "EUR/kWh", "EUR/kWh", "EUR/m³"], "EUR", "10",
+                  {"grid_fee_rules": _r11m_gf.ERROR_IMPLAUSIBLE}),
+    repr(_r11m_eur),
+)
+# Null controls: a Tibber install has no feed and keeps the instance's HUF
+# (bound 500, the 50/kWh fee accepted), even with a EUR entity left in its
+# price-entity slot from an earlier entity setup; a feed declaring nothing
+# ("öre/kWh") falls back to the instance as well.
+_r11m_stale = _r11m_money_units("EUR/kWh", source="tibber")
+R.check(
+    "R11-SEAM-money: with no feed code, or a Tibber source, the options dialog keeps the instance currency",
+    _r11m_huf == (["HUF", "HUF/kWh", "HUF/kWh", "HUF/m³"], "HUF", "500", {})
+    and _r11m_money_units("öre/kWh") == _r11m_huf
+    and _r11m_stale == _r11m_huf,
+    f"{_r11m_huf!r} / {_r11m_money_units('öre/kWh')!r} / {_r11m_stale!r}",
+)
+# R11-SEAM-money pins, recorded "not reproduced at main, pinned" (owner ruling
+# 2026-11-18): the finder's D2/s3/m4_tariff.py read 0 for these at main. Each
+# check fails on the harness's planted inverse. The other four planted
+# inverses are already killed by this file's checks, so they add none: the
+# Tibber parser reading 'today' only (D2-s3-03) by "each Tibber failure names
+# itself, and today and tomorrow both land"; top-k taking the smallest
+# (D2-s3-06), one-per-day keeping a lower window (D2-s3-05) and the window
+# projection weighting the current draw by the elapsed minutes (D17-s1-05) by
+# the capacity-tariff and peak-guard checks.
+
+# D2-s3-04 (inverse of m4_tariff.py --perturb weekday: a day test off by one,
+# isoweekday()): a "Mon" rule applies on Monday 12 January 2026, not on the
+# Sunday before it nor the Tuesday after.
+_r11m_mon = _r11m_gf.parse_rules("Mon 00-24 = 1")[0]
+R.check(
+    "R11-SEAM-money: a Monday fee rule applies on a Monday and on neither neighbour (D2-s3-04, pinned)",
+    [_r11m_mon.applies(datetime(2026, 1, d, 12, tzinfo=_r11m_sth)) for d in (11, 12, 13)] == [False, True, False],
+    repr([_r11m_mon.applies(datetime(2026, 1, d, 12, tzinfo=_r11m_sth)) for d in (11, 12, 13)]),
+)
+# R11-SEAM-money (ADR-001 arm day): price_model._usable_day is the one test of
+# a learnable day for both resolutions; a day whose mean sits on the 1e-6
+# floor is not learned, one just above it is (np.mean of 24 x 1e-6 is 1e-6
+# exactly, so the boundary is the comparison's own).
+from heatpump_optimizer.price_model import PriceShapeModel as _R11mShape  # noqa: E402
+
+_r11m_shape = _R11mShape()
+R.check(
+    "R11-SEAM-money: a day of prices averaging exactly the 1e-6 floor is not learned; 2e-6 is",
+    [_r11m_shape.observe_day(datetime(2026, 1, 14), [1e-6] * 24),
+     _r11m_shape.observe_day(datetime(2026, 1, 15), [2e-6] * 24)] == [False, True],
+)
 # R10-HOTFIX-SAV-ESTIMATE: a month's reference basis. Totals cannot be rebooked,
 # so a month booked against a retired reference keeps its columns and states no
 # saving; a fresh month is stamped at its first booking.
@@ -49215,7 +49405,9 @@ R.check(
 import homeassistant.util.dt as _dt_sav
 _real_now_sav = _dt_sav.now
 try:
-    _dt_sav.now = lambda: NOW
+    # Read in March, February closed: an open month half an hour old has no
+    # row until it has covered ledger.MIN_COVERAGE_HOURS (R11-SEAM-money).
+    _dt_sav.now = lambda: NOW + timedelta(days=28)
     _pub = _sv._build_data_dict()
 finally:
     _dt_sav.now = _real_now_sav
@@ -90524,20 +90716,209 @@ R.check(
     f"{_c2238_p3_br.predictive_info.get('power_cap_breach_c')}, release {_c2238_p3_rel}",
 )
 
-# P3's rule itself, on a real result: two-zone with an upper trajectory reads
-# it; single-zone, or two-zone without one, reads the room.
+# P3's rule itself, on a real result: two-zone with its floors reads the
+# upper one; single-zone, or two-zone without floors, reads the room. A
+# two-zone solve fills both floor lists, so the upper floor is kept whenever
+# the plan has floors (R11-SEAM-plant-model pm-03: the indoor sensor's
+# series does not move when the floors' predicate gains the lower list).
 _c2238_p3_rule = _c2238_result(3)
 _c2238_p3_rule.upper_temp_trajectory = [19.0] * 4
+_c2238_p3_rule.lower_temp_trajectory = [20.0] * 4
 _c2238_p3_bare = _c2238_result(3)
 R.check(
     "R10-CLONE-2238 P3: sensor_trajectory is the upper floor only in two-zone "
-    "mode with an upper trajectory, else the room",
+    "mode with the plan's floors, else the room",
     _c2238_p3_rule.sensor_trajectory(True) == [19.0] * 4
     and _c2238_p3_rule.sensor_trajectory(False) == [21.0] * 4
     and _c2238_p3_bare.sensor_trajectory(True) == [21.0] * 4
     and _c2238_p3_bare.sensor_trajectory(False) == [21.0] * 4,
     f"{_c2238_p3_rule.sensor_trajectory(True)} {_c2238_p3_rule.sensor_trajectory(False)} "
     f"{_c2238_p3_bare.sensor_trajectory(True)}",
+)
+
+# R11-SEAM-plant-model: one predicate per plant question (ADR-008 part 1).
+# D12-s1-01: a single-zone solve fills the floor lists with the room's own
+# trajectory, so "has floors" is the model's flag, answered once by
+# OptimizationResult.zone_trajectories; the plan view reads it, not the lists.
+_pm_single = _c2238_result(3)
+_pm_single.upper_temp_trajectory = [21.0] * 4
+_pm_single.lower_temp_trajectory = [21.0] * 4
+_pm_upper_only = _c2238_result(3)
+_pm_upper_only.upper_temp_trajectory = [19.0] * 4
+R.check(
+    "R11-SEAM-plant-model D12-s1-01: zone_trajectories is None on one zone "
+    "even with filled floor lists, the floors on two zones, None without both",
+    _pm_single.zone_trajectories(False) is None
+    and _pm_single.zone_trajectories(True) == ([21.0] * 4, [21.0] * 4)
+    and _c2238_p3_rule.zone_trajectories(True) == ([19.0] * 4, [20.0] * 4)
+    and _pm_upper_only.zone_trajectories(True) is None,
+    f"{_pm_single.zone_trajectories(False)} {_pm_upper_only.zone_trajectories(True)}",
+)
+
+
+def _pm_space_rows(two_zone_mode):
+    coord = _t2_coord(two_zone_mode=two_zone_mode)
+    res = _c2238_result(3)
+    res.upper_temp_trajectory = [19.0] * 4
+    res.lower_temp_trajectory = [20.0] * 4
+    res.timestamps = [_T6 + timedelta(minutes=15 * i) for i in range(3)]
+    return coord._build_plan_views(res)["space_plan"]["forecast"]
+
+
+_pm_rows_one = _pm_space_rows("off")
+_pm_rows_two = _pm_space_rows("on")
+R.check(
+    "R11-SEAM-plant-model D12-s1-01: a single-zone plan publishes null "
+    "upper/lower rows; a two-zone one (null control) publishes its floors",
+    bool(_pm_rows_one)
+    and all(r.get("upper") is None and r.get("lower") is None for r in _pm_rows_one)
+    and bool(_pm_rows_two)
+    and all(r.get("upper") == 19.0 and r.get("lower") == 20.0 for r in _pm_rows_two),
+    f"one={_pm_rows_one[:1]} two={_pm_rows_two[:1]}",
+)
+
+# Not reproduced at main, pinned (R11-SEAM-plant-model; the owner's
+# 2026-11-18 precedent): each check below fails when the finder's planted
+# line is re-applied. D12-s2-01: "auto" -- the default, so every entry with
+# no mode key -- is the presence rule, never "on".
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    two_zone_from_config as _pm_two_zone,
+)
+
+R.check(
+    "R11-SEAM-plant-model D12-s2-01: two_zone_mode absent or auto follows the "
+    "zone keys; on and off override them",
+    _pm_two_zone({}) is False
+    and _pm_two_zone({"two_zone_mode": "auto"}) is False
+    and _pm_two_zone({"upper_floor_thermal_mass": 4.0}) is True
+    and _pm_two_zone({"two_zone_mode": "off", "upper_floor_thermal_mass": 4.0}) is False
+    and _pm_two_zone({"two_zone_mode": "on"}) is True
+    and ThermalParameters.from_config({}).two_zone_enabled is False,
+    f"absent {_pm_two_zone({})} auto {_pm_two_zone({'two_zone_mode': 'auto'})}",
+)
+
+# D2-s1-51: the era table orders the whole-house loss, oldest leakiest, on
+# every structure the preset offers (a low-energy house loses least).
+_pm_era_loss = {
+    st: [
+        presets.derive(presets.BuildingPreset(
+            structure=st, era=era, heated_area_m2=140.0,
+        ))["house_heat_loss_coefficient"]
+        for era in presets.ERAS
+    ]
+    for st in presets.STRUCTURES
+}
+R.check(
+    "R11-SEAM-plant-model D2-s1-51: the preset heat loss falls strictly from "
+    "the oldest era to low_energy, on every structure",
+    tuple(presets.ERAS)[-1] == presets.ERA_LOW_ENERGY
+    and all(
+        all(a > b for a, b in zip(row, row[1:])) for row in _pm_era_loss.values()
+    ),
+    f"{_pm_era_loss}",
+)
+
+# D8-s1-01: the hot-water coast term prices a tank only on an install with
+# hot water, answered by thermal_model.dhw_enabled_from_config. Null
+# control: the same series with hot water switched on still prices it.
+from heatpump_optimizer import sensor as _pm_sensor  # noqa: E402
+
+_pm_gap_off = _pm_sensor._gap_probe_terms({}, [1.0, 0.0], [2.0, 2.0], 1.5)
+_pm_gap_on = _pm_sensor._gap_probe_terms(
+    {"dhw_enabled": True}, [1.0, 0.0], [2.0, 2.0], 1.5
+)
+R.check(
+    "R11-SEAM-plant-model D8-s1-01: no hot water prices no DHW coast; "
+    "hot water (null control) still does",
+    _pm_gap_off["dhw_extra_kwh"] == 0.0
+    and _pm_gap_on["dhw_extra_kwh"] > 0.0
+    and _pm_gap_off["outdoor_load_kw"] == _pm_gap_on["outdoor_load_kw"] > 0.0,
+    f"off={_pm_gap_off} on={_pm_gap_on}",
+)
+
+# D17-s3-02: on two zones the whole-house mass and loss are read by nothing,
+# so the action refuses them before any write instead of acknowledging a
+# write that changes nothing. Null control: one zone still takes them.
+_pm_svc_hass = FakeHass()
+_seed_prices(_pm_svc_hass)
+_asyncio.run(_ha_setup_component(_integ, _pm_svc_hass))
+_pm_svc_two = FakeEntry(data=dict(_LC_DATA, two_zone_mode="on"), entry_id="pm_two")
+_asyncio.run(_ha_setup_entry(_integ, _pm_svc_hass, _pm_svc_two))
+_pm_svc_mass0 = _pm_svc_two.runtime_data._thermal_params.room_thermal_mass
+_pm_svc_out = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"house_thermal_mass": 33.0}
+)
+_svc_check(
+    "R11-SEAM-plant-model D17-s3-02: set_thermal_parameters refuses the "
+    "whole-house mass on a two-zone entry",
+    _pm_svc_out,
+    "set_thermal_params_house_field_two_zone",
+)
+_pm_svc_loss = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"house_heat_loss_coefficient": 0.4}
+)
+_svc_check(
+    "R11-SEAM-plant-model D17-s3-02: and the whole-house heat loss",
+    _pm_svc_loss,
+    "set_thermal_params_house_field_two_zone",
+)
+R.check(
+    "R11-SEAM-plant-model D17-s3-02: the refused call wrote nothing",
+    _pm_svc_two.runtime_data._thermal_params.room_thermal_mass == _pm_svc_mass0
+    and "house_thermal_mass" not in _pm_svc_two.options,
+    f"mass={_pm_svc_two.runtime_data._thermal_params.room_thermal_mass} "
+    f"options={dict(_pm_svc_two.options)}",
+)
+_pm_svc_slab = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"slab_thermal_mass": 41.0}
+)
+R.check(
+    "R11-SEAM-plant-model D17-s3-02 null control: a two-zone entry still "
+    "takes a field both topologies read",
+    _pm_svc_slab[0] == "returned"
+    and _pm_svc_two.runtime_data._thermal_params.slab_thermal_mass == 41.0,
+    f"{_pm_svc_slab} slab={_pm_svc_two.runtime_data._thermal_params.slab_thermal_mass}",
+)
+_pm_svc1_hass = FakeHass()
+_seed_prices(_pm_svc1_hass)
+_asyncio.run(_ha_setup_component(_integ, _pm_svc1_hass))
+_pm_svc_one = FakeEntry(data=dict(_LC_DATA, two_zone_mode="off"), entry_id="pm_one")
+_asyncio.run(_ha_setup_entry(_integ, _pm_svc1_hass, _pm_svc_one))
+_pm_svc_one_out = _svc_call(
+    _pm_svc1_hass, "set_thermal_parameters", {"house_thermal_mass": 33.0}
+)
+R.check(
+    "R11-SEAM-plant-model D17-s3-02 null control: a single-zone entry still "
+    "takes the whole-house mass",
+    _pm_svc_one_out[0] == "returned"
+    and _pm_svc_one.runtime_data._thermal_params.room_thermal_mass == 33.0,
+    f"{_pm_svc_one_out} mass={_pm_svc_one.runtime_data._thermal_params.room_thermal_mass}",
+)
+
+# D17-s2-03: quick setup's wood answers record the furnace and the tank; the
+# page says what else the plan needs, as buffer_tank's sentence does.
+import json as _pm_json  # noqa: E402
+from pathlib import Path as _pm_Path  # noqa: E402
+
+_pm_strings = _pm_json.loads(
+    _pm_Path("custom_components/heatpump_optimizer/strings.json").read_text()
+)
+_pm_wood = [
+    _pm_strings[flow]["step"]["quick_setup"]["data_description"][key]
+    for flow in ("config", "options")
+    for key in ("wood_furnace", "wood_buffer_tank")
+]
+R.check(
+    "R11-SEAM-plant-model D17-s2-03: every quick-setup wood description names "
+    "the throttling mixing valve, and the furnace's names the detection switch",
+    all("throttling mixing valve" in t for t in _pm_wood)
+    and all(
+        "Detect a wood furnace or other heat source" in t
+        for t in _pm_wood[0::2]
+    )
+    and not any("stand the pump down while the fire is lit." in t
+                and "once" not in t for t in _pm_wood),
+    f"{_pm_wood}",
 )
 
 # P4: window means at their billed-equivalent factor -- the published peak_kw,
@@ -97137,6 +97518,59 @@ R.check(
     and _rl_whatif(_rl_c_off, {}) is None,
     f"{None if _rl_wi_c is None else np.round(_rl_wi_c[:4], 3).tolist()} "
     f"target={None if _rl_wi_c_target is None else sorted(set(np.round(_rl_wi_c_target, 3).tolist()))}",
+)
+
+
+# -- The plan peak under the lift: accepted, never clipped (round-11 ruling, 2026-11-18,
+# option A). The lifted floor reaches the comfort target and the plan may store heat above
+# it, so its peak may pass the unlifted plan's. These checks encode that choice: a clip of
+# the lift short of the target, or a headroom under it, fails the first; the zeros array
+# is the solver's own null control. The fixture is the design note's, solved through
+# the production optimizer on dev/audit/harnesses/room_lift_solve.py's inputs.
+from heatpump_optimizer.thermal_model import ThermalState as _rl_State  # noqa: E402
+
+_RL_PEAK_START = datetime(2026, 4, 15, 12, 0, tzinfo=UTC)
+_rl_peak_cfg = _rl_Config(horizon_hours=24, time_step_minutes=15, target_temp=20.0, min_temp=19.5,
+                          max_temp=23.0, comfort_temp_day=20.0, comfort_temp_night=20.0)
+_RL_PEAK_N = 96
+
+
+def _rl_peak_solve(margins):
+    """The plan's room temperatures past step 0 for ``margins``, from the harness's inputs."""
+    cfg = _grad_house(target_temperature=20.0, min_temperature=19.5)
+    outdoor, wind, rain, solar = _grad_weather("shoulder", _RL_PEAK_START)
+    state = _rl_State(
+        room_temperature=19.6, slab_temperature=20.6, outdoor_temperature=float(outdoor[0]),
+        dhw_temperature=50.0, dhw_hours_since_legionella=20.0, upper_floor_temperature=19.6,
+        lower_floor_temperature=19.6, buffer_tank_temperature=40.0)
+    result = _PvOpt(_PvModel(_PvParams.from_config(cfg)), _rl_peak_cfg).optimize(inputs=solve_inputs(
+        initial_state=state, prices=_grad_prices("winter_typical", _RL_PEAK_START),
+        outdoor_temps=outdoor, wind_speeds=wind, precipitation=rain, solar_radiation=solar,
+        start_time=_RL_PEAK_START, min_temp_margins=margins))
+    return np.asarray(result.room_temp_trajectory[1:], dtype=float)
+
+
+_rl_peak_m, _ = _rl_solve(cfg=_rl_peak_cfg, start=_RL_PEAK_START, n=_RL_PEAK_N)
+_rl_peak = {k: _rl_peak_solve(m) for k, m in
+            (("none", None), ("zeros", np.zeros(_RL_PEAK_N)), ("lift", _rl_peak_m))}
+_rl_peak_gap = None if _rl_peak_m is None else [
+    round(float(_rl_peak_cfg.get_comfort_temp(t.hour + t.minute / 60.0, when=t)
+                - _rl_peak_cfg.get_temp_bounds(t.hour + t.minute / 60.0, when=t)[0] - _rl_peak_m[i]), 9)
+    for i, t in enumerate(_RL_PEAK_START + timedelta(minutes=15 * i) for i in range(_RL_PEAK_N))]
+R.check(
+    "the lifted floor reaches the comfort target, no headroom under it, at every step past the "
+    "ramp (0.1 K at step 0, 0.25 K an hour, so from step 7)",
+    _rl_peak_gap is not None and _rl_peak_gap[0] > 0.0 and set(_rl_peak_gap[7:]) == {0.0},
+    f"gap to target {_rl_peak_gap and sorted(set(_rl_peak_gap))}",
+)
+R.check(
+    "the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the "
+    "target past the ramp; null control, an all-zero margin array plans the unlifted plan",
+    float(_rl_peak["lift"].max()) > float(_rl_peak["none"].max())
+    and float(_rl_peak["lift"][12:].min()) >= 20.0 - 1e-6
+    and np.array_equal(_rl_peak["zeros"], _rl_peak["none"]),
+    f"peak none={_rl_peak['none'].max():.3f} zeros={_rl_peak['zeros'].max():.3f} "
+    f"lift={_rl_peak['lift'].max():.3f} lift min past 3 h={_rl_peak['lift'][12:].min():.3f}",
 )
 
 

@@ -1,0 +1,9 @@
+{
+ "class": "N-mode-coupled-write",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/n_mode_coupled_write.py",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/pump_arbiter.py", "symbol": "desired (space row under Heating + DHW, DHW_GATE_C, line 1310)", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep min-cold-tank  # gchv-flow/gchv-indoor FAIL: tank asked to charge", "beyond_finding": false}
+ ]
+}

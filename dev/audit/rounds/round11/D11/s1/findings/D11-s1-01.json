@@ -1,0 +1,46 @@
+{
+ "id": "D11-s1-01",
+ "scope": "D11-s1",
+ "step": "D11.M1",
+ "title": "Stop hook lets a turn end red on 2 of 65 policy-corpus files (AGENTS.md, dev/audit/README.md)",
+ "severity": "low",
+ "claim": "With the policy linter red and the turn's only change one policy-corpus file, the production Stop hook exits 0 (turn ends unrefused) for 2 of the 65 files policy_lint --corpus-filter prints: AGENTS.md and dev/audit/README.md.",
+ "mechanism": "stop-selfcheck.sh decides whether to run policy_lint by a hand-kept prefix list (POLICY_PREFIXES). It covers the old home of the audit README (tools/audit/) but not its new one (dev/audit/README.md, moved in the reorganisation), and it never listed AGENTS.md, which CLAUDE.md names as binding and policy_lint measures. The hook's own comment says a prefix list that is too narrow is 'the failure that matters'; its self-test pins only the paths it lists.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/stop_hook_reach.py",
+  "harness_path": "dev/audit/rounds/round11/D11/s1/stop_hook_reach.py",
+  "value": 2,
+  "unit": "corpus files the hook lets through red",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (linux 6.18, 4 cpu, node 22.23.4)",
+  "cpu_or_wall": "count",
+  "contention_note": "box shared with other seats' runs; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 5.74,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": ".claude/hooks/stop-selfcheck.sh:POLICY_PREFIXES (touches_policy), driven end to end through the hook's main path in a scratch repo",
+ "perturbation": {
+  "change": "POLICY_PREFIXES gains `AGENTS\\.md|dev/audit/` (harness --perturb, applied to the copy the scratch repo runs)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Corpus files (policy_lint --corpus-filter) for which the Stop hook exits 0 when that file is the turn's only change and the linter stub exits 1.",
+ "phenomenon_property": "Every file policy_lint measures as policy is inside the set of paths whose change makes the Stop hook run the linter; the hook's trigger set is derived from, or checked against, the linter's corpus rather than kept by hand.",
+ "seam_rule": "git ls-files | node tools/policy/policy_lint.mjs --corpus-filter | grep -vE \"$(sed -n \"s/^POLICY_PREFIXES='\\(.*\\)'$/\\1/p\" .claude/hooks/stop-selfcheck.sh)\"",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/stop_hook_reach.py",
+  "value": "production-only change rc=0; CLAUDE.md change rc=2",
+  "note": "same scratch repo, same red linter stub: the hook refuses a listed path and ignores a non-policy path, so the 2 misses are the prefix list's, not the drive's"
+ },
+ "reproduction_steps": [
+  "run the harness: MISSED AGENTS.md, MISSED dev/audit/README.md, RESULT missed=2",
+  "run with --perturb: RESULT missed=0"
+ ],
+ "proposed_fix_scope": "Have stop-selfcheck.sh take its trigger set from `policy_lint.mjs --corpus-filter` (or add a self-test arm asserting every corpus file matches POLICY_PREFIXES); add AGENTS.md and dev/audit/README.md.",
+ "files": [
+  ".claude/hooks/stop-selfcheck.sh"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "N-move-stale-path"
+}

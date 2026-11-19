@@ -31,23 +31,22 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Mapping
 
 import aiohttp
 import numpy as np
 
 from .const import (
     CONF_PRICE_ENTITY,
-    CONF_PRICE_SOURCE,
     CONF_PRICE_SURCHARGE,
     CONF_PRICE_VAT,
     CONF_TIBBER_TOKEN,
-    DEFAULT_PRICE_SOURCE,
     DEFAULT_PRICE_SURCHARGE,
     DEFAULT_PRICE_VAT,
     PRICE_SOURCE_ENTITY,
 )
 from .const import finite_float
+from .entry_config import EntryConfig
 from .inputs import normalize_price_per_kwh
 from .payload import PricePrior
 
@@ -151,6 +150,21 @@ def _in_domain(values: list[float], lo: float, hi: float, what: str) -> list[flo
     return [float(v) for v in clipped / float(np.mean(clipped))]
 
 
+def _usable_day(prices: list[float], steps: int) -> np.ndarray | None:
+    """One complete day of prices as an array, or ``None`` when it cannot be learned from.
+
+    Complete, because a day missing its cheap hours biases every other one upward;
+    finite; and with a positive mean: negative spot hours are real and are kept, but a
+    whole day averaging at or below zero makes the normalisation meaningless.
+    """
+    if len(prices) != steps:
+        return None
+    values = np.asarray(prices, dtype=float)
+    if not np.all(np.isfinite(values)) or float(np.mean(values)) <= 1e-6:
+        return None
+    return values
+
+
 def _profile_index(when: datetime) -> int:
     return PROFILE_WEEKEND if when.weekday() >= 5 else PROFILE_WEEKDAY
 
@@ -195,17 +209,10 @@ class PriceShapeModel:
         the shape is about the *relative* cost of each hour, and a day missing
         its cheap night hours would bias every hour upward.
         """
-        if len(hourly_prices) != HOURS_PER_DAY:
-            return False
-        values = np.asarray(hourly_prices, dtype=float)
-        if not np.all(np.isfinite(values)):
+        values = _usable_day(hourly_prices, HOURS_PER_DAY)
+        if values is None:
             return False
         mean = float(np.mean(values))
-        # A zero or negative daily mean makes the normalisation meaningless.
-        # Negative spot hours are real and are kept in the shape; a whole day
-        # averaging at or below zero is not something to generalise from.
-        if mean <= 1e-6:
-            return False
 
         normalised = np.clip(values / mean, SHAPE_MIN, SHAPE_MAX)
         idx = _profile_index(when)
@@ -244,12 +251,8 @@ class PriceShapeModel:
         splits across its four quarters — the ramp structure the 15-minute
         MTU introduced, which an hourly prior smears flat.
         """
-        if len(quarter_prices) != QUARTERS_PER_DAY:
-            return False
-        values = np.asarray(quarter_prices, dtype=float)
-        if not np.all(np.isfinite(values)):
-            return False
-        if float(np.mean(values)) <= 1e-6:
+        values = _usable_day(quarter_prices, QUARTERS_PER_DAY)
+        if values is None:
             return False
 
         by_hour = values.reshape(HOURS_PER_DAY, QUARTERS_PER_HOUR)
@@ -846,12 +849,22 @@ async def _tibber_post(session: Any, token: str, body: str) -> tuple[int, Any]:
         return resp.status, await resp.json()
 
 
+def entity_priced(config: Mapping[str, Any]) -> bool:
+    """Whether a Home Assistant price entity, not Tibber, prices the plan."""
+    return EntryConfig.from_mapping(config).price_source == PRICE_SOURCE_ENTITY
+
+
+def price_feed(config: Mapping[str, Any]) -> str | None:
+    """The price entity whose numbers the plan is priced in, if one is."""
+    cfg = EntryConfig.from_mapping(config)
+    return (cfg.price_entity or None) if entity_priced(cfg) else None
+
+
 async def pull_prices(
-    session: Any, config: dict[str, Any], entity_state: Any = None
+    session: Any, config: Mapping[str, Any], entity_state: Any = None
 ) -> tuple[str, Any]:
     """`('ok', rows)` / `('fail', reason)` / `('reauth', reason)`."""
-    source = config.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
-    if source == PRICE_SOURCE_ENTITY:
+    if entity_priced(config):
         if not config.get(CONF_PRICE_ENTITY):
             return "fail", "Price entity is empty"
         try:

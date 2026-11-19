@@ -1,0 +1,22 @@
+| id | metric | expected | got | reproduced | direction | perturbed | perturbation | void | null_value | load1 | thread_factor | flags |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D1-s1-01 | stale_fallback_issues_after_restart | 1, | 1 | no | to_zero |  | by-hand |  | by-hand | 0.14 | 1.181 | tree edited by run: dev/audit/rounds/round11/D1/s1/__pycache__/rl.cpython-314.pyc; restored; re-take: thread_factor > 1.05 |
+| D1-s3-01 | pump_nonfinite_flag_true | 10 | 10 | yes | to_zero |  | by-hand |  | by-hand | 0.21 | 1.000 |  |
+| D10-s1-06 | late_files | $late | 0 | no | up |  | by-hand |  | by-hand | 1.13 | 1.0 |  |
+| D11-s1-06 | real_repo_writes_on_selftest | 1 | 1 | yes | to_zero |  | by-hand |  | by-hand | 1.48 | 1.000 |  |
+| D12-s3-02 | arm |  | baseline | by-hand | to_zero |  | by-hand |  | by-hand | 1.32 | 1.000 | tree edited by run: dev/audit/rounds/round11/D12/s3/__pycache__/surfaces.cpython-314.pyc; restored |
+| D15-s1-03 |  |  |  | by-hand | up |  | by-hand |  | by-hand | 1.32 |  | rc=127; load1 from batch; no thread_factor |
+| D15-s3-02 | rows_diverging_from_cycle_row | 48 | 48 | yes | to_zero |  | by-hand |  | by-hand | 1.27 | 1.001 |  |
+| D16-s3-02 | unrestored_off | 5 | 5 | yes | to_zero |  | by-hand |  | by-hand | 1.27 | 1.000 |  |
+| D17-s3-01 | service_published_price | 0.5, | 0.5 | no | up |  | by-hand |  | by-hand | 1.25 | 1.000 | tree edited by run: dev/audit/rounds/round11/D17/s3/__pycache__/rig.cpython-314.pyc; restored |
+| D2-s3-04 | fold_err_max |  | 8.882e-16 | by-hand | to_zero |  | by-hand |  | by-hand | 1.18 | 1.0003 | tree edited by run: dev/audit/rounds/round11/D2/s3/__pycache__/_common.cpython-314.pyc; restored |
+| D4-s2-01 | unfilled_placeholders_total | 8 | 8 | yes | to_zero |  | by-hand |  | by-hand | 1.18 | 1.000 |  |
+| D5-s10-03 | report_lines |  | 7 | by-hand | down |  | by-hand |  | by-hand | 1.16 | 1.000 |  |
+| D5-s2-07 | first_file |  | README.md | by-hand | up |  | by-hand |  | by-hand | 1.16 | 1.000 |  |
+| D5-s5-02 | false_units_total |  | 1 | by-hand | to_zero |  | by-hand |  | by-hand | 1.14 | 1.000 |  |
+| D5-s6-06 | stamp_record_class_res_len |  | 6 | by-hand | to_zero |  | by-hand |  | by-hand | 1.13 | 1.00 |  |
+| D5-s8-06 | units | 3628, |  | by-hand | down |  | by-hand |  | by-hand | 1.13 |  | rc=1; load1 from batch; no thread_factor |
+| D6-s3-01 | config_refusal_missing | 2 | 2 | yes | to_zero |  | by-hand |  | by-hand | 1.13 | 1.000 |  |
+| D6-s6-01 | false_plus_stale | 18 | 18 | yes | down |  | by-hand |  | by-hand | 1.13 | 1.000 | tree edited by run: dev/audit/rounds/round11/D6/s6/__pycache__/checks.cpython-314.pyc, dev/audit/rounds/round11/D6/s6/__pycache__/facts.cpython-314.pyc, dev/audit/rounds/round11/D6/s6/ledger.tsv; restored |
+| D7-s2-03 | reuse_pairs |  | 5 | by-hand | to_zero |  | by-hand |  | by-hand | 1.05 | 1.000 |  |
+| D9-s1-01 | cells |  | 5 | by-hand | to_zero |  | by-hand |  | by-hand | 1.0166 | 1 | tree edited by run: dev/audit/rounds/round11/D9/s1/__pycache__/d9s1lib.cpython-314.pyc; restored |

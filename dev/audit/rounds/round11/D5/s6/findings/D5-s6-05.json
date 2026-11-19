@@ -1,0 +1,41 @@
+{
+ "id": "D5-s6-05",
+ "scope": "D5-s6",
+ "step": "D5.M4",
+ "title": "update_pr.sh header names the script updatepr.sh",
+ "severity": "low",
+ "claim": "Line 2 of tools/audit/seat/update_pr.sh introduces the script as 'updatepr.sh <branch> <code-sha|-> <body-file> [issues...]', but the script's $0 basename is update_pr.sh and no updatepr.sh is tracked anywhere at the ref.",
+ "mechanism": "A rename (updatepr.sh -> update_pr.sh) left the header's self-name behind. Fails D5-criteria C2.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "value": 1,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 container (shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 3.59,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/seat/update_pr.sh (bash $0 basename)",
+ "perturbation": {
+  "change": "--perturb update_pr: the script copied and run under the header's name in a temp dir, and that name added to the tracked set",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "1 when the name the header gives differs from the basename bash reports for the script, or is not a tracked file name.",
+ "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "tools/audit/seat/update_pr.sh"
+ ],
+ "proposed_fix_scope": "Header: update_pr.sh.",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb update_pr"
+ ]
+}

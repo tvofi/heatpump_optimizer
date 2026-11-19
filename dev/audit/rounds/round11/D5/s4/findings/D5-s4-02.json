@@ -1,0 +1,40 @@
+{
+ "id": "D5-s4-02",
+ "scope": "D5-s4",
+ "step": "D5.M4",
+ "title": "sysid.py comments name code variables that exist nowhere (prior_w, data_w, T_prev)",
+ "severity": "low",
+ "claim": "Two comment units in sysid.py cite names no tracked code defines: '``T_prev`` sits on BOTH sides of the regression' (line 1983) and 'prior_rel = prior_w / data_w' (line 2071), while the code beneath computes prior_rel = s_noise / prior_sd and reads the previous sample as usable[i - 1].room_temp.",
+ "mechanism": "The comments describe the estimator in notation from an earlier formulation; the variables were renamed or never existed, and the formula line reads as code next to a real assignment to prior_rel.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s4/comments.py",
+  "value": 2,
+  "unit": "units with an unresolvable cited name",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 (4 vCPU container)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 2.57,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify (comment units at lines 1983 and 2071, against every tracked file's code tokens)",
+ "perturbation": {
+  "change": "one-line production edit: sysid.py line 2073 'through prior_rel = prior_w / data_w.' -> 'through prior_rel = s_noise / prior_sd.' (comments.py --file custom_components/heatpump_optimizer/sysid.py --edit 'custom_components/heatpump_optimizer/sysid.py|through prior_rel = prior_w / data_w.|through prior_rel = s_noise / prior_sd.')",
+  "expected_direction": "down",
+  "observed_value": "unresolved_units 2 -> 1, unresolved_tokens 3 -> 1"
+ },
+ "metric_definition": "Comment units in sysid.py citing a name (backticked, snake_case, name(), dotted) found in no code token of any tracked file, after hand triage of notation.",
+ "phenomenon_property": "Every identifier a comment in sysid.py names exists in the code at the ref (D5-criteria C2).",
+ "seam_rule": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py --tsv OUT  (column 'unresolved')",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py --tsv /dev/stdout | awk -F'\\t' '$4!=\"\"'"
+ ],
+ "proposed_fix_scope": "Rewrite the two comments in sysid.py against the names the code uses (s_noise, prior_sd, usable[i - 1].room_temp).",
+ "files": [
+  "custom_components/heatpump_optimizer/sysid.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

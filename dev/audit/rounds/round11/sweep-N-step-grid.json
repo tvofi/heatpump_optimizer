@@ -1,0 +1,165 @@
+{
+ "class": "N-step-grid",
+ "instances": 4,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/sweep_step_grid.py  # surfaces: config_flow selectors + _widen_to_fit and services.yaml (via D14/s1/step_grid.py), every card <input type=number|range> probed in Chromium with a backend-legal stored value, every hass.services.async_call numeric write by AST taint from _on_step/quantise_setpoint_c",
+ "baseline_sha": "28b864af6d909e3114d07546e22af79ce8dc85ef (origin/handoff/audit-r11-register; package as 92d38ecb)",
+ "controls": {
+  "result": "seams_total=13: selectors 7 sites (_widen_to_fit + 6 services fields), card 4, writes 2 (coordinator._command_frequency, pump_arbiter._write)",
+  "positive": "re-finds both judged findings: D14-s1-01 (_widen_to_fit, the 6 set_thermal_parameters fields) and D16-s1-01 (_command_frequency)",
+  "null": "--null: a snapped number write, a non-numeric call and on-grid card inputs -> seams_total=0; selector surface null is step_grid's own (options surface 0, 49 box fields guarded)",
+  "perturbation": "--perturb-write (inputs.write_setpoint's _on_step removed, one line) seams_writes 2 -> 3; --perturb-freq (D16-s1-01 fix) 2 -> 1"
+ },
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "_widen_to_fit",
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s1/step_grid.py | grep -c '^SEAM widen'  # 28 slider defaults off the widened grid; --perturb-widen -> 0",
+   "beyond_finding": false,
+   "finding": "D14-s1-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.yaml",
+   "symbol": "set_thermal_parameters.slab_thermal_mass",
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s1/step_grid.py | grep 'services:set_thermal_parameters.slab_thermal_mass:'  # max and example off min+k*step; --perturb-svc -> 0",
+   "beyond_finding": false,
+   "finding": "D14-s1-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.yaml",
+   "symbol": "set_thermal_parameters.slab_heat_transfer",
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s1/step_grid.py | grep 'services:set_thermal_parameters.slab_heat_transfer:'  # max and example off min+k*step; --perturb-svc -> 0",
+   "beyond_finding": false,
+   "finding": "D14-s1-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.yaml",
+   "symbol": "set_thermal_parameters.upper_floor_thermal_mass",
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s1/step_grid.py | grep 'services:set_thermal_parameters.upper_floor_thermal_mass:'  # max and example off min+k*step; --perturb-svc -> 0",
+   "beyond_finding": false,
+   "finding": "D14-s1-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.yaml",
+   "symbol": "set_thermal_parameters.lower_floor_thermal_mass",
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s1/step_grid.py | grep 'services:set_thermal_parameters.lower_floor_thermal_mass:'  # max and example off min+k*step; --perturb-svc -> 0",
+   "beyond_finding": false,
+   "finding": "D14-s1-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.yaml",
+   "symbol": "set_thermal_parameters.inter_zone_heat_transfer",
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s1/step_grid.py | grep 'services:set_thermal_parameters.inter_zone_heat_transfer:'  # max and example off min+k*step; --perturb-svc -> 0",
+   "beyond_finding": false,
+   "finding": "D14-s1-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.yaml",
+   "symbol": "set_thermal_parameters.window_area",
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s1/step_grid.py | grep 'services:set_thermal_parameters.window_area:'  # max and example off min+k*step; --perturb-svc -> 0",
+   "beyond_finding": false,
+   "finding": "D14-s1-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._command_frequency",
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep clause_grid  # 50; --perturb freq_grid -> 0. Sweep: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/sweep_step_grid.py --perturb-freq moves seams_writes 2 -> 1",
+   "beyond_finding": false,
+   "finding": "D16-s1-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "input.wi-temp",
+   "line": 12761,
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/sweep_step_grid.py | grep 'input.wi-temp '  # Chromium renders the input with a stored value its backend validator admits; fails (seam printed) while the value/max is off the input's own grid",
+   "beyond_finding": true,
+   "mechanism_note": "range 16..24 step 0.5 bound to comfort_temp_day, which apply_schedule stores as any float in 5..30 (services._COMFORT_TEMP_C): a stored 21.3 renders as 21.5 (Chromium sanitises the range value)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "input.wi-dhw-min",
+   "line": 12771,
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/sweep_step_grid.py | grep 'input.wi-dhw-min '  # Chromium renders the input with a stored value its backend validator admits; fails (seam printed) while the value/max is off the input's own grid",
+   "beyond_finding": true,
+   "mechanism_note": "range DHW_MIN_FLOOR(35)..published ceiling step 0.5: the ceiling is round(dhw_setpoint - 5.0, 1) of a dhw_setpoint stored as any float (services._DHW_SETPOINT_C), so a 55.3 setpoint gives max 50.3 that the slider cannot reach (reads 50); a stored dhw_min 45.3 renders as 45.5"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "input.wi-quiet-frac",
+   "line": 13025,
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/sweep_step_grid.py | grep 'input.wi-quiet-frac '  # Chromium renders the input with a stored value its backend validator admits; fails (seam printed) while the value/max is off the input's own grid",
+   "beyond_finding": true,
+   "mechanism_note": "range 0.6..1 step 0.05 bound to silent_mode_power_fraction, which apply_schedule admits as any float in 0.0..1.0: a stored 0.62 renders as 0.6"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "input.sp-setpoint",
+   "line": 13618,
+   "disposition": "instance",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/sweep_step_grid.py | grep 'input.sp-setpoint '  # Chromium renders the input with a stored value its backend validator admits; fails (seam printed) while the value/max is off the input's own grid",
+   "beyond_finding": true,
+   "mechanism_note": "number 0..30 step 0.5 bound to manual_setpoint, which assign_entity admits as any float in 0..30: a stored 21.3 is validity.stepMismatch, and a spinner click from it lands on the grid, not +-0.5"
+  }
+ ],
+ "other_seams": [
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "_number (box fields: 49 _OPTION_FIELDS rows + _questionnaire_fields heated_area)",
+   "disposition": "guarded",
+   "guard": "_number sets step \"any\" on every box field (#1679); tests/config_flow_steps.py:7592 refuses a box-mode number field with step != any"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "_OPTION_FIELDS slider rows (45) as declared",
+   "disposition": "not applicable",
+   "reason": "every slider's max and constant default is on min+k*step at 28b864af (step_grid seams_options=0); unguarded: no tests/ script checks the grid, step_grid --perturb-min re-introduces 2 seams with nothing failing (proposed barrier)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.yaml",
+   "symbol": "41 other number selectors",
+   "disposition": "not applicable",
+   "reason": "max and example on min+k*step (step_grid reads them and prints no seam)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "symbol": "write_setpoint (and write_setpoint_c / quantise_setpoint_c; reached by pump_arbiter set-point slots, coordinator._valve_write_problem, heat_curve._send, repairs)",
+   "disposition": "guarded",
+   "guard": "sent = _on_step(float(value), setpoint_step(hass, entity_id), 'nearest') before the call; tests/features.py:77755 pins _on_step; sweep --perturb-write (the guard removed) moves seams_writes 2 -> 3"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_write via _service (night_start/end_hour/minute set_value)",
+   "disposition": "guarded",
+   "guard": "int(value) of quiet_windows.wall_clock() hours 0..23 and minutes 0..59: integers, on the integer grid of the GCHV night registers the slot is configured for. The enumerator lists it (no _on_step on the path); it does not read the entity's step, so a register with step > 1 would be unguarded -- no supported device states one"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/heat_curve.py",
+   "symbol": "publish_ecl110_topics",
+   "disposition": "not applicable",
+   "reason": "mqtt.publish of an integer displace, not a Home Assistant number entity with a step"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_async_set_pump; pump_arbiter.switch_supply; weather.get_forecasts",
+   "disposition": "not applicable",
+   "reason": "non-numeric service calls (turn_on/turn_off, a read)"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "input.wi-wood-liters",
+   "disposition": "not applicable",
+   "reason": "its value is only ever its own input's value or the constant 50 (card :12869, :12880), both on 1+k*1"
+  }
+ ]
+}

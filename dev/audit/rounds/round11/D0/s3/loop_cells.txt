@@ -1,0 +1,8 @@
+summer_negative/summer_warm/two-zone/dhw/valve-storage/24h
+summer_negative/summer_warm/two-zone/no-dhw/flow-setpoint-behind-valve/24h
+shoulder/shoulder/two-zone/no-dhw/wood/6h
+shoulder/summer_cool/two-zone/no-dhw/valve-storage/6h
+summer_typical/winter_cold/two-zone/no-dhw/valve-storage/6h
+summer_negative/winter_cold/two-zone/dhw/flow-setpoint-behind-valve/6h
+flat/winter_cold/two-zone/dhw/plain/24h
+flat/shoulder/two-zone/no-dhw/valve-storage/6h
