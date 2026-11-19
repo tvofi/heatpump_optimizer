@@ -1,0 +1,86 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17382 + both deltas = 17344
+  re-run the gate that owns this file before pushing
+Merge remote-tracking branch 'origin/main' into fix/r11-seam-config
+
+diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/config_flow.py
+index b319499c10..24858c41b9 100644
+--- a/custom_components/heatpump_optimizer/config_flow.py
++++ b/custom_components/heatpump_optimizer/config_flow.py
+@@ -482,17 +482,13 @@ from . import (
+     topology,
+ )
+ from .wood_fuel import wood_furnace_on
+-<<<<<<< 780b75f25f (R11-SEAM-config: a cleared pre-fill field re-renders empty (kills the _prefill_fields BOOLOP survivor))
+ from .entry_config import placed
+-from .thermal_model import ThermalParameters, _dhw_enabled_from_config, partload_derate_limit
+-=======
+ from .thermal_model import (
+     ThermalParameters,
+     dhw_enabled_from_config,
+     partload_derate_limit,
+     two_zone_from_config,
+ )
+->>>>>>> cb8edb65a5 (v10.1.1: stamp single-zone plan rows, savings coverage, currency, self-setting-pump pair, valve bias)
+ from .currency import figure_currency, money_scale
+ from .price_model import price_feed
+ from .dhw_schedule import (
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/thermal_model.py
+index 66b5cfa5ad..0a14a852e1 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1108,37 +1108,8 @@ class ThermalParameters:
+             else None
+         )
+ 
+-<<<<<<< 780b75f25f (R11-SEAM-config: a cleared pre-fill field re-renders empty (kills the _prefill_fields BOOLOP survivor))
+-        # Two-zone and DHW are inferred from whether their settings are present
+-        # at all, rather than from a flag, so an entry written before either
+-        # existed keeps working. The mode key (v4.0.0) is an explicit override
+-        # on top: presence alone can never turn the model *off*, because an
+-        # options page saves a value and never removes a zone key. "auto" —
+-        # the default, so every entry without
+-        # the key — is the presence rule unchanged; an unknown value is
+-        # treated as "auto" rather than silently disabling a running model.
+-        two_zone_mode = str(
+-            config.get(const.CONF_TWO_ZONE_MODE, const.DEFAULT_TWO_ZONE_MODE)
+-        )
+-        if two_zone_mode == const.TWO_ZONE_MODE_ON:
+-            values["two_zone_enabled"] = True
+-        elif two_zone_mode == const.TWO_ZONE_MODE_OFF:
+-            values["two_zone_enabled"] = False
+-        else:
+-            values["two_zone_enabled"] = any(
+-                key in config
+-                for key in (
+-                    const.CONF_UPPER_FLOOR_THERMAL_MASS,
+-                    const.CONF_LOWER_FLOOR_THERMAL_MASS,
+-                    const.CONF_INTER_ZONE_TRANSFER,
+-                    const.CONF_RADIATOR_POWER_FRACTION,
+-                )
+-            )
+-        values["dhw_enabled"] = _dhw_enabled_from_config(config)
+-=======
+         values["two_zone_enabled"] = two_zone_from_config(config)
+         values["dhw_enabled"] = dhw_enabled_from_config(config)
+->>>>>>> cb8edb65a5 (v10.1.1: stamp single-zone plan rows, savings coverage, currency, self-setting-pump pair, valve bias)
+ 
+         # Demand windows: fall back to the default schedule when the stored
+         # value is missing, and to "always available" when it cannot be parsed.
+@@ -1182,10 +1153,10 @@ def two_zone_from_config(config: Mapping[str, Any]) -> bool:
+     Two-zone and DHW are inferred from whether their settings are present
+     at all, rather than from a flag, so an entry written before either
+     existed keeps working. The mode key (v4.0.0) is an explicit override
+-    on top: presence alone can never turn the model *off*, because the
+-    initial flow writes the zone keys into entry.data where the options
+-    flow cannot erase them. "auto" — the default, so every entry without
+-    the key — is the presence rule unchanged; an unknown value is
++    on top: presence alone can never turn the model *off*, because an
++    options page saves a value and never removes a zone key. "auto" — the
++    default, so every entry without the key — is the presence rule
++    unchanged; an unknown value is
+     treated as "auto" rather than silently disabling a running model.
+     """
+     two_zone_mode = str(

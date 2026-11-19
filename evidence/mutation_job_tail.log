@@ -1,0 +1,61 @@
+2026-11-19T11:35:56.7058775Z ##[group]Run git fetch --no-tags origin main
+2026-11-19T11:35:56.7059068Z git fetch --no-tags origin main
+2026-11-19T11:35:56.7059280Z set -o pipefail
+2026-11-19T11:35:56.7059488Z python3 tests/mutation_table.py \
+2026-11-19T11:35:56.7059765Z   --scope changed --base origin/main --max 10 --jobs 3 \
+2026-11-19T11:35:56.7060040Z   | tee "$RUNNER_TEMP/mutation-table.txt"
+2026-11-19T11:35:56.7078974Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-19T11:35:56.7079223Z env:
+2026-11-19T11:35:56.7079429Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-19T11:35:56.7079737Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+2026-11-19T11:35:56.7080046Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-19T11:35:56.7080324Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-19T11:35:56.7080662Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-19T11:35:56.7080938Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+2026-11-19T11:35:56.7081168Z ##[endgroup]
+2026-11-19T11:35:57.1082709Z From https://github.com/tvofi/heatpump_optimizer
+2026-11-19T11:35:57.1083052Z  * branch                  main       -> FETCH_HEAD
+2026-11-19T11:35:59.2224135Z   2003 unpinned site(s) of 7954 candidate sites, 2006 at the ratchet base cb8edb65a5a9c0940dbe263acee49e02ba5f0b25; the ledger agrees with the deterministic inventory
+2026-11-19T11:35:59.2397625Z MUTATION TABLE -- scope changed: 5 production file(s) whose code this diff adds or modifies
+2026-11-19T11:35:59.4571025Z   8 mutant(s) over 5 file(s); drivers in play: tests/arch_score_head.py, tests/backtest.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/edge.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/harness_headers.py, tests/manual_plan.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/stress.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+2026-11-19T11:35:59.4573862Z   ref-driven drivers compare against 'cb8edb65a5a9c0940dbe263acee49e02ba5f0b25' (run.sh's GOLDEN_REF resolution)
+2026-11-19T11:36:01.0253447Z   null control: custom_components/heatpump_optimizer/__init__.py:38 NULL_COMMENT, a comment-only edit every driver in play must let survive
+2026-11-19T11:36:06.0762242Z   tests/harness_headers.py: baseline and null control deferred until a mutant survives every shared driver
+2026-11-19T11:36:06.0762910Z   tests/stress.py: baseline and null control deferred until a mutant survives every shared driver
+2026-11-19T11:36:06.0763451Z   tests/arch_score_head.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0763968Z   tests/backtest.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0764506Z   tests/block_duty.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0765056Z   tests/boost_drift_replay.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0765769Z   tests/config_flow_steps.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0766290Z   tests/debug_collect.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0766779Z   tests/deployment_shape.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0767188Z   tests/doc_claims.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0767588Z   tests/edge.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0768084Z   tests/entities.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0768751Z   tests/features.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0769303Z   tests/finite_boundary.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0769910Z   tests/guard_pins.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0770450Z   tests/manual_plan.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0770905Z   tests/optimality.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0771291Z   tests/plan_view.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0771693Z   tests/solar_alignment.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0772100Z   tests/structure.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0772682Z   tests/typing_ruler.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0773272Z   tests/validate.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:36:06.0773791Z   tests/wood_advisor.py: baseline and null control deferred until a mutant run of it is red
+2026-11-19T11:39:05.2669772Z   baseline tests/env_drift.py: rc=0 failed=0 179s
+2026-11-19T11:39:05.3093837Z   null control custom_components/heatpump_optimizer/__init__.py:38 NULL_COMMENT survived every driver
+2026-11-19T11:39:06.0096361Z   8 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+2026-11-19T11:39:49.8670676Z   baseline tests/config_flow_steps.py: rc=0 failed=0 22s
+2026-11-19T11:40:07.2661127Z   null control custom_components/heatpump_optimizer/__init__.py:38 NULL_COMMENT survived tests/config_flow_steps.py
+2026-11-19T11:55:53.2503621Z   baseline tests/entities.py: rc=0 failed=0 479s
+2026-11-19T12:03:25.3874296Z   null control custom_components/heatpump_optimizer/__init__.py:38 NULL_COMMENT survived tests/entities.py
+2026-11-19T12:17:47.5265144Z   baseline tests/features.py: rc=1 failed=2 690s
+2026-11-19T12:29:26.7433150Z 
+2026-11-19T12:29:26.7433861Z MUTATION TABLE INCONCLUSIVE
+2026-11-19T12:29:26.7434975Z   - the baseline is already red in tests/features.py, so no mutant's verdict means anything. Fix the suite first. A script the scoped gate also selected carries this red on `fast`; one it scoped out does not, and is covered by the forced `full` run on `main` rather than by any check on this pull request.
+2026-11-19T12:29:26.7473885Z       tests/features.py: the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the target past the ramp; null control, an all-zero margin array plans the unlifted plan  [peak none=20.241 zeros=20.241 lift=20.453 lift min past 3 h=20.000]
+2026-11-19T12:30:23.7626432Z ##[group]Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+2026-11-19T12:30:23.7626746Z with:
+2026-11-19T12:30:23.7626910Z   name: mutation-table
+2026-11-19T12:30:23.7627119Z   path: /home/runner/work/_temp/mutation-table.txt
