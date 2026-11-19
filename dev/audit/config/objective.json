@@ -1,5 +1,5 @@
 {
- "_rule": "The objective function's machine-read half: dev/governance/decisions/0018-objective-function.md defines every key here, and tools/audit/check_scopes.py reads this file (--round at the baseline, --population for the install population). terms are in decision order, layer 1 first. thresholds and owner_criteria hold the owner's values: a null value is unset, makes every comparison or result that needs it undecided, and owes a card (0018 sections 1 and 2); proposed is the orchestrator's proposal and is read by nothing. population lists the axes of the supported install population, each with the tracked source its levels are read from; an axis with kind null is NO-READ and names what would read it; an axis of kind flow_range carries the owner's declared levels (min, default, max), the tracked rows they were taken from in basis, and in rows each row's flow key and default constant, against which --population reads every level and refuses one a moved row has left stale. objects maps an object class to the globs whose tracked files are its objects. Only the owner changes this file (CODEOWNERS).",
+ "_rule": "The objective function's machine-read half: dev/governance/decisions/0018-objective-function.md defines every key here, and tools/audit/check_scopes.py reads this file (--round at the baseline, --population for the install population). terms are in decision order, layer 1 first. thresholds and owner_criteria hold the owner's values: a null value is unset, makes every comparison or result that needs it undecided, and owes a card (0018 sections 1 and 2); proposed is the orchestrator's proposal and is read by nothing. population lists the axes of the supported install population, each with the tracked source its levels are read from; an axis with kind null is NO-READ and names what would read it; an axis of kind flow_range carries the owner's declared levels (min, default, max), the tracked rows they were taken from in basis, and in rows each row's flow key, with in no_default the markers that present no default value (_SUGGESTED, which offers the stored value or none); --population reads min and max against every _number widget that file pairs with the key, and default against every other value it pairs with it (a dict's value, the argument after the key in a call, a default= keyword), and refuses the axis when any of them differs from the declared level or does not read as a number. objects maps an object class to the globs whose tracked files are its objects. Only the owner changes this file (CODEOWNERS).",
  "terms": [
   "regret",
   "operation",
@@ -260,8 +260,7 @@
    },
    "rows": [
     {
-     "key": "CONF_DHW_TANK_VOLUME",
-     "default": "DEFAULT_DHW_TANK_VOLUME"
+     "key": "CONF_DHW_TANK_VOLUME"
     }
    ],
    "unit": "L",
@@ -288,13 +287,14 @@
    "rows": [
     {
      "field": "heated_area_m2",
-     "key": "CONF_HEATED_AREA",
-     "default": "DEFAULT_HEATED_AREA"
+     "key": "CONF_HEATED_AREA"
     },
     {
      "field": "heat_loss_kw_per_c",
      "key": "CONF_HOUSE_HEAT_LOSS_COEFFICIENT",
-     "default": "DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT"
+     "no_default": [
+      "_SUGGESTED"
+     ]
     }
    ],
    "basis": "the heated-area row of the building questionnaire (config_flow.py's CONF_HEATED_AREA field, _number(20, 1000, 5, 'm²'), default const.py's DEFAULT_HEATED_AREA 140.0) and the heat-loss row (CONF_HOUSE_HEAT_LOSS_COEFFICIENT over RANGE_HOUSE_HEAT_LOSS (0.01, 1.0) kW/°C, default DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT 0.15; a two-zone install splits it over the upper and lower rows, defaults 0.08 + 0.07). Each level pairs the two rows' minimum, default or maximum: a declaration, since the flow lets them vary apart."
